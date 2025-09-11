@@ -232,22 +232,21 @@ export function EditApplicationForm({
     mutationFn: async () => {
       // Clean up all interview stages associated with this application
       const cleanupInterviewStages = () => {
-        console.log(`Cleaning up interview stages for application ID ${application.id}`);
-        
+
         // Delete interview stages from both key patterns
         const mockStagesKey = `mockStages_${application.id}`;
         const mockInterviewStagesKey = `mockInterviewStages_${application.id}`;
         
         try {
           localStorage.removeItem(mockStagesKey);
-          console.log(`Removed ${mockStagesKey}`);
+
         } catch (e) {
           console.error(`Error removing ${mockStagesKey}:`, e);
         }
         
         try {
           localStorage.removeItem(mockInterviewStagesKey);
-          console.log(`Removed ${mockInterviewStagesKey}`);
+
         } catch (e) {
           console.error(`Error removing ${mockInterviewStagesKey}:`, e);
         }
@@ -256,7 +255,7 @@ export function EditApplicationForm({
         const mockFollowupsKey = `mockFollowups_${application.id}`;
         try {
           localStorage.removeItem(mockFollowupsKey);
-          console.log(`Removed ${mockFollowupsKey}`);
+
         } catch (e) {
           console.error(`Error removing ${mockFollowupsKey}:`, e);
         }
@@ -265,7 +264,7 @@ export function EditApplicationForm({
         const applicationDataKey = `application_${application.id}_data`;
         try {
           localStorage.removeItem(applicationDataKey);
-          console.log(`Removed ${applicationDataKey}`);
+
         } catch (e) {
           console.error(`Error removing ${applicationDataKey}:`, e);
         }

@@ -6,11 +6,11 @@ const publicRouter = Router();
 // GET /api/public/reviews - Public endpoint to get approved reviews
 publicRouter.get("/reviews", async (req, res) => {
     try {
-        console.log("Fetching public reviews...");
+
         const reviews = await supabaseHelpers.query("reviews", q => q.eq("is_public", true)
             .order("created_at", { ascending: false })
             .limit(10));
-        console.log(`Found ${reviews.length} public reviews`);
+
         res.status(200).json({ reviews });
     }
     catch (error) {
@@ -21,7 +21,7 @@ publicRouter.get("/reviews", async (req, res) => {
 // GET /api/public-reviews - WordPress-friendly reviews endpoint with CORS support
 publicRouter.get("/public-reviews", cors({ origin: "*" }), async (req, res) => {
     try {
-        console.log("WordPress reviews endpoint accessed");
+
         const results = await supabaseHelpers.query("reviews", q => q.select("*, users(*)")
             .eq("is_public", true)
             .eq("status", "approved")
@@ -33,7 +33,7 @@ publicRouter.get("/public-reviews", cors({ origin: "*" }), async (req, res) => {
             body: row.feedback || "",
             date: row.created_at
         }));
-        console.log(`Found ${formattedReviews.length} public approved reviews for WordPress`);
+
         res.header("Access-Control-Allow-Origin", "*");
         res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
         res.status(200).json(formattedReviews);

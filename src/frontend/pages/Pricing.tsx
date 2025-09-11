@@ -567,7 +567,6 @@ export default function Pricing() {
         </div>
       </section>
 
-      
       <ContactDialog 
         open={contactDialogOpen} 
         onOpenChange={setContactDialogOpen}

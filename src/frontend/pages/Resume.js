@@ -83,16 +83,13 @@ export default function Resume() {
     // Fetch suggestions
     const getSuggestionsMutation = useMutation({
         mutationFn: async () => {
-            console.log("Sending suggestion request with:", {
-                jobDescriptionLength: jobDescription?.length || 0,
-                workHistoryLength: userWorkHistory?.length || 0
-            });
+
             const res = await apiRequest('POST', '/api/resumes/suggestions', {
                 jobDescription,
                 workHistory: userWorkHistory,
             });
             const responseData = await res.json();
-            console.log("Received suggestions response:", responseData);
+
             return responseData;
         },
         onSuccess: (data) => {
@@ -103,7 +100,7 @@ export default function Resume() {
             // Store the suggestions data and make it visible
             setShowSuggestions(true);
             // Log the received data for debugging
-            console.log("Displaying suggestions:", data);
+
             // If analysis completed successfully, switch to the suggestions tab
             const tabsElement = document.querySelector("[role='tablist']");
             if (tabsElement) {
@@ -364,12 +361,7 @@ export default function Resume() {
             });
             return;
         }
-        console.log("Beginning analysis process with:", {
-            resumeTextLength: extractedResumeText.length,
-            jobDescriptionLength: extractionJobDescription.length,
-            resumeTextExcerpt: extractedResumeText.substring(0, 50) + "...",
-            jobDescriptionExcerpt: extractionJobDescription.substring(0, 50) + "..."
-        });
+
         // Clear previous suggestions to ensure clean state
         setShowSuggestions(false);
         // This uses the mutation to analyze the extracted text
@@ -416,7 +408,7 @@ export default function Resume() {
                                     .map((a) => a.trim())
                                 : []
                         };
-                        console.log(`Updating work history item ${item.id} with:`, JSON.stringify(updateData));
+
                         try {
                             workHistoryPromises.push(apiRequest('PUT', `/api/career-data/work-history/${item.id}`, updateData)
                                 .catch(error => {
@@ -460,13 +452,13 @@ export default function Resume() {
                         // Use filter to remove any null promises from failed requests
                         const validSkillPromises = newSkillPromises.filter(p => p !== null);
                         if (validSkillPromises.length > 0) {
-                            console.log(`Processing ${validSkillPromises.length} new skills`);
+
                             // Use allSettled to prevent one failure from stopping everything
                             skillsPromise = Promise.allSettled(validSkillPromises)
                                 .then(results => {
                                 const succeeded = results.filter(r => r.status === 'fulfilled').length;
                                 const failed = results.filter(r => r.status === 'rejected').length;
-                                console.log(`Skills update results: ${succeeded} succeeded, ${failed} failed`);
+
                                 return results;
                             })
                                 .catch(err => {
@@ -482,7 +474,7 @@ export default function Resume() {
             }
             // Filter out any null values from failed promises
             const validWorkHistoryPromises = workHistoryPromises.filter(p => p !== null);
-            console.log(`Executing ${validWorkHistoryPromises.length} work history updates, 1 summary update, and skills update`);
+
             // Wait for all updates to complete, but don't fail if some promise rejects
             // This is crucial for ensuring the resume generation still happens
             try {
@@ -490,7 +482,7 @@ export default function Resume() {
                 // Count successes and failures
                 const succeeded = results.filter(r => r.status === 'fulfilled').length;
                 const failed = results.filter(r => r.status === 'rejected').length;
-                console.log(`Career data update results: ${succeeded} succeeded, ${failed} failed`);
+
                 // If all failed, throw error
                 if (succeeded === 0 && failed > 0) {
                     const errors = results
@@ -629,11 +621,7 @@ export default function Resume() {
                 return;
             }
             // Log that we're starting the resume generation process
-            console.log('Starting resume generation with optimized data:', {
-                summaryLength: optimizedCareerData.careerSummary?.length || 0,
-                workHistoryCount: optimizedCareerData.workHistory?.length || 0,
-                skillsCount: optimizedCareerData.skills?.length || 0
-            });
+
             // Format optimized work history data for AI processing
             const formattedWorkHistory = optimizedCareerData.workHistory.map((job) => {
                 // Ensure achievements is an array of non-empty strings
@@ -711,7 +699,7 @@ export default function Resume() {
     };
     // Function to download resume as PDF using our centralized utility
     const handleDownloadPDF = async (elementId) => {
-        console.log(`Initiating PDF download for resume with element ID: ${elementId}`);
+
         const element = document.getElementById(elementId);
         if (!element) {
             toast({
@@ -732,7 +720,7 @@ export default function Resume() {
                 showToast: true // Show success/error toasts from the utility
             });
             if (success) {
-                console.log(`Resume PDF successfully generated with name: ${filename}`);
+
             }
             else {
                 console.error('Failed to generate resume PDF');

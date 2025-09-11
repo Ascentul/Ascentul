@@ -55,7 +55,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                   src={user.profileImage || ''} 
                   alt={user.name} 
                   onError={(e) => {
-                    console.log("Error loading image in header, falling back to text");
+
                     e.currentTarget.style.display = 'none';
                   }}
                   className="object-cover"

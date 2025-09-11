@@ -852,8 +852,7 @@ export default function CareerPathExplorer() {
       setIsLoadingCertifications(true);
       
       // Log the API request details for debugging
-      console.log(`Fetching certifications for ${node.title} (${node.level}) with ${node.skills.length} skills`);
-      
+
       const response = await apiRequest('POST', '/api/career-certifications', {
         role: node.title,
         level: node.level,
@@ -865,8 +864,7 @@ export default function CareerPathExplorer() {
       }
       
       const data = await response.json();
-      console.log('API Response:', data);
-      
+
       // Check if we have certifications array in the response
       if (data.certifications && Array.isArray(data.certifications)) {
         // Update the certifications state with the new recommendations
@@ -874,7 +872,7 @@ export default function CareerPathExplorer() {
           ...prev,
           [nodeId]: data.certifications
         }));
-        console.log(`Stored ${data.certifications.length} certifications for node ${nodeId}`);
+
       } else {
         console.error('API response missing certifications array:', data);
         toast({
@@ -914,9 +912,7 @@ export default function CareerPathExplorer() {
     
     try {
       setIsGeneratingPaths(true);
-      
-      console.log("Sending profile data to API:", careerProfileData);
-      
+
       // Make the API call to our new endpoint
       const response = await apiRequest("POST", "/api/career-paths/generate", {
         profileData: careerProfileData
@@ -927,8 +923,7 @@ export default function CareerPathExplorer() {
       }
       
       const data = await response.json();
-      console.log("API Response:", data);
-      
+
       // Check if the data has paths array from the AI-generated response
       if (data.paths && data.paths.length > 0) {
         // Process the paths to ensure they have proper icon components
@@ -1194,8 +1189,7 @@ export default function CareerPathExplorer() {
                 })
                   .then(res => res.json())
                   .then(data => {
-                    console.log('API Response:', data);
-                    
+
                     // Check if the data has a 'paths' array (from the OpenAI response)
                     if (data.paths && data.paths.length > 0) {
                       // The first path in the paths array is the main career path

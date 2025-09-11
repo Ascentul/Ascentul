@@ -81,16 +81,14 @@ const HorizontalTimelineSection = ({
   const { data: allStages, isLoading, refetch: refetchAllStages } = useQuery<Record<number, InterviewStage[]>>({
     queryKey: ['/api/interview/stages'],
     queryFn: async () => {
-      console.log('Loading interview stages from localStorage...');
-      
+
       try {
         // Use our improved utility function to load all stages from all sources
         const stagesMap = loadAllInterviewStages();
         
         // Log summary info for debugging
         const applications = Object.keys(stagesMap);
-        console.log(`Found ${applications.length} applications with interviews to display`);
-        
+
         // Log details about each application's stages
         for (const appId of applications) {
           const numericAppId = Number(appId);
@@ -98,10 +96,9 @@ const HorizontalTimelineSection = ({
           const app = stages[0]; // Get the first stage which has company info attached
           
           // Log each application's stages
-          console.log(`Application ${appId} (${app?.companyName || 'Unknown'}): found ${stages.length} stages`);
+
         }
-        
-        console.log('Combined timeline stages:', stagesMap);
+
         return stagesMap;
       } catch (error) {
         console.error('Error loading interview stages:', error);
@@ -118,7 +115,7 @@ const HorizontalTimelineSection = ({
   useEffect(() => {
     // Event handler for any interview data change
     const handleInterviewDataChanged = () => {
-      console.log('Interview data changed event received, refreshing stages');
+
       refetchAllStages();
     };
     
@@ -133,7 +130,7 @@ const HorizontalTimelineSection = ({
         event.key.startsWith(MOCK_STAGES_PREFIX) || 
         event.key.startsWith(MOCK_INTERVIEW_STAGES_PREFIX)
       )) {
-        console.log('Storage event detected for interview stages, refreshing');
+
         refetchAllStages();
       }
     });
@@ -183,18 +180,16 @@ const HorizontalTimelineSection = ({
     const applicationId = processId;
     setSelectedProcessId(processId);
     setSelectedStageId(stageId);
-    
-    console.log(`Stage clicked: Application ${applicationId}, Stage ${stageId}`);
-    
+
     // Find the selected stage - using the application ID to look up in our stored stages
     const stage = allStages && allStages[applicationId]?.find(s => s.id === stageId);
     if (stage) {
-      console.log("Found stage for viewing/editing:", stage);
+
       setSelectedStage(stage);
       setIsStageDialogOpen(true);
     } else {
       console.error(`Stage not found: Application ${applicationId}, Stage ${stageId}`);
-      console.log("Available stages:", allStages && allStages[applicationId]);
+
     }
   };
   
@@ -248,17 +243,7 @@ const HorizontalTimelineSection = ({
       }
     });
   }
-  
-  console.log("Timeline Debug:", {
-    isLoading,
-    hasProcesses,
-    hasStages,
-    stagesCount, 
-    adaptedProcesses: generatedProcesses.length,
-    stageKeys: hasStages ? Object.keys(allStages) : [],
-    allStagesData: allStages
-  });
-  
+
   return (
     <div className="space-y-6">
       {/* Debug panel */}
@@ -405,17 +390,16 @@ const Interview = () => {
               ...serverApps,
               ...mockApplications.filter((app: any) => !existingIds.has(app.id))
             ];
-            
-            console.log('Combined applications:', mergedApps);
+
             return mergedApps;
           }
           
           return Array.isArray(response) ? response : [];
         } catch (serverError) {
           // If server request fails, fall back to the localStorage applications
-          console.log('Using mock job applications from localStorage due to server error');
+
           if (mockApplications.length > 0) {
-            console.log('Retrieved applications from localStorage:', mockApplications);
+
             return mockApplications;
           }
           throw serverError; // Re-throw if no localStorage data available
@@ -449,8 +433,7 @@ const Interview = () => {
         };
         
         localStorage.setItem('mockJobApplications', JSON.stringify(mockApplications));
-        console.log(`Application ${applicationId} updated in localStorage:`, updates);
-        
+
         // Force refresh the applications query
         queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
         
@@ -465,10 +448,7 @@ const Interview = () => {
   
   // Get selected application details
   const selectedApplication = applications?.find(a => a.id === selectedApplicationId) || null;
-  console.log("Selected application ID:", selectedApplicationId);
-  console.log("Selected application:", selectedApplication);
-  console.log("Available applications:", applications);
-  
+
   // Disable automatic refreshing if an application is selected
   const shouldAutoRefresh = selectedApplicationId === null;
   
@@ -476,11 +456,10 @@ const Interview = () => {
   useEffect(() => {
     // Function to refresh applications that maintains selection
     const refreshApplications = async () => {
-      console.log('Refreshing applications list...');
-      
+
       // If we have a selected application, skip refresh to prevent losing selection
       if (!shouldAutoRefresh) {
-        console.log('Application selected, skipping auto-refresh to maintain selection');
+
         return;
       }
       
@@ -502,7 +481,7 @@ const Interview = () => {
     // Set up focus-based refresh
     const handleFocus = () => {
       if (shouldAutoRefresh) {
-        console.log('Window gained focus, refreshing applications...');
+
         refreshApplications();
       }
     };
@@ -590,9 +569,7 @@ const Interview = () => {
   const handleViewProcess = (processId: number) => {
     // In our adapter, processId is actually applicationId
     const applicationId = processId;
-    
-    console.log(`View application request for process/application ID: ${applicationId}`);
-    
+
     // Set the selected application ID
     setSelectedApplicationId(applicationId);
     
@@ -640,13 +617,13 @@ const Interview = () => {
   const renderApplicationCard = (application: JobApplication, index: number) => {
     // Create a function that captures the application ID in a closure
     const handleCardClick = () => {
-      console.log("Card clicked, setting selectedApplicationId to:", application.id);
+
       // Explicitly disable auto-refresh before setting ID
       setSelectedApplicationId(application.id);
       // Verify the selection happened
-      console.log("Selection should now be:", application.id);
+
       setTimeout(() => {
-        console.log("After setState, selectedApplicationId is now:", selectedApplicationId);
+
       }, 10);
     };
 
@@ -911,13 +888,12 @@ const Interview = () => {
                             transition={{ duration: 0.3 }}
                           >
 
-                            
                             <ApplicationDetails 
                               application={selectedApplication}
                               onClose={() => setSelectedApplicationId(null)}
                               onDelete={() => setSelectedApplicationId(null)}
                               onStatusChange={(applicationId, newStatus) => {
-                                console.log(`Status change handler called for application ${applicationId} to status ${newStatus}`);
+
                                 // Update the application status in localStorage
                                 syncApplicationToLocalStorage(applicationId, { status: newStatus });
                               }}

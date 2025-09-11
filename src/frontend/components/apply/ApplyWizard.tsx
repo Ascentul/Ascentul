@@ -124,7 +124,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
       } catch (error: any) {
         if (error.message?.includes('Authentication required')) {
           // Save to localStorage for demo mode
-          console.log('Demo mode: Creating application in localStorage');
+
           const mockId = Date.now();
           const mockApp = {
             id: mockId,
@@ -148,8 +148,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
           const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
           storedApplications.push(mockApp);
           localStorage.setItem('mockJobApplications', JSON.stringify(storedApplications));
-          console.log('Stored mock application in localStorage:', mockApp);
-          
+
           return { success: true, message: 'Application created in demo mode' };
         }
         throw error;
@@ -469,9 +468,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
                 </FormItem>
               )}
             />
-            
 
-            
             <div className="flex justify-between w-full mt-6">
               <Button type="button" variant="outline" onClick={() => setStep(2)}>
                 Back

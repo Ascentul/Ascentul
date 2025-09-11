@@ -41,7 +41,6 @@ async function loadSchema() {
 // Create tables in Supabase
 async function createTables(schema: string) {
   try {
-    console.log("Creating tables in Supabase...")
 
     // Split the schema into individual statements
     const statements = schema
@@ -51,59 +50,3 @@ async function createTables(schema: string) {
 
     for (const statement of statements) {
       try {
-        console.log(`Executing: ${statement.substring(0, 50)}...`)
-        // Use SQL query directly instead of rpc
-        const { error } = await supabaseAdmin
-          .from("_dummy_query")
-          .select()
-          .limit(1)
-          .then(
-            () => ({ error: null }),
-            (err) => ({ error: err })
-          )
-
-        if (error) {
-          console.error(`Error executing statement: ${error.message}`)
-        } else {
-          console.log("✅ Statement executed successfully")
-        }
-      } catch (stmtError) {
-        console.error(`Error executing statement: ${stmtError}`)
-      }
-    }
-
-    console.log("✅ Tables created successfully!")
-  } catch (error) {
-    console.error("Error creating tables:", error)
-  }
-}
-
-// Main function to set up Supabase
-async function setupSupabase() {
-  try {
-    console.log("Setting up Supabase with connection details:")
-    console.log(`URL: ${ENV.SUPABASE_URL}`)
-    console.log("Anon Key: [hidden for security]")
-
-    // Test the connection with a simple query
-    try {
-      // Just check if we can connect at all
-      await supabaseAdmin.auth.getSession()
-      console.log("✅ Connected to Supabase successfully!")
-    } catch (connError) {
-      throw new Error(`Connection test failed: ${connError.message}`)
-    }
-
-    // Load and execute schema
-    const schema = await loadSchema()
-    await createTables(schema)
-
-    console.log("✅ Supabase setup completed successfully!")
-  } catch (error) {
-    console.error("❌ Supabase setup failed:", error)
-    process.exit(1)
-  }
-}
-
-// Run the setup
-setupSupabase()

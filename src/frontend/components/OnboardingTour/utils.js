@@ -33,7 +33,7 @@ export const completeTour = () => {
 export const resetTour = () => {
     localStorage.removeItem(STORAGE_KEYS.tourDismissed);
     localStorage.removeItem(STORAGE_KEYS.tourCompleted);
-    console.log('Ascentul tour reset. Refresh the page to see the tour card.');
+
 };
 /**
  * Get tour status information

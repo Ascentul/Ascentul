@@ -93,8 +93,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   // Update interview process status mutation
   const updateProcessStatusMutation = useMutation({
     mutationFn: async (status: string) => {
-      console.log('Updating interview process status for ID:', process.id, 'to:', status);
-      
+
       if (!process.id) {
         throw new Error('Process ID is missing');
       }
@@ -117,7 +116,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
         }
         
         const data = await response.json();
-        console.log('Successfully updated interview process status, received data:', data);
+
         return data;
       } catch (error) {
         console.error('Error in mutation:', error);
@@ -125,7 +124,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       }
     },
     onSuccess: (data) => {
-      console.log('Interview process status updated successfully:', data);
+
       // Invalidate the processes list
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       // Also invalidate user statistics to update any related data
@@ -184,8 +183,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   // Add interview stage mutation
   const addStageMutation = useMutation({
     mutationFn: async (stageData: any) => {
-      console.log('Adding stage to process ID:', process.id, 'with data:', stageData);
-      
+
       // Enhanced validation
       if (!process.id) {
         throw new Error('Process ID is missing. Please select a valid interview process.');
@@ -199,8 +197,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
         };
         
         // Enhanced error logging
-        console.log('Sending request to create stage with payload:', payload);
-        
+
         const response = await apiRequest('POST', `/api/interview/processes/${process.id}/stages`, payload);
         
         // Additional response validation
@@ -216,7 +213,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
         }
         
         const data = await response.json();
-        console.log('Successfully created stage, received data:', data);
+
         return data;
       } catch (error) {
         console.error('Error in mutation:', error);
@@ -224,7 +221,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       }
     },
     onSuccess: (data) => {
-      console.log('Stage added successfully:', data);
+
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
@@ -257,8 +254,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   // Add followup action mutation
   const addFollowupMutation = useMutation({
     mutationFn: async (followupData: any) => {
-      console.log('Adding followup to process ID:', process.id, 'with data:', followupData);
-      
+
       // Enhanced validation
       if (!process.id) {
         throw new Error('Process ID is missing. Please select a valid interview process.');
@@ -272,8 +268,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
         };
         
         // Enhanced error logging
-        console.log('Sending request to create followup with payload:', payload);
-        
+
         const response = await apiRequest('POST', `/api/interview/processes/${process.id}/followups`, payload);
         
         // Additional response validation
@@ -289,7 +284,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
         }
         
         const data = await response.json();
-        console.log('Successfully created followup, received data:', data);
+
         return data;
       } catch (error) {
         console.error('Error in mutation:', error);
@@ -297,7 +292,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       }
     },
     onSuccess: (data) => {
-      console.log('Followup added successfully:', data);
+
       // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
@@ -329,8 +324,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   // Update interview stage mutation
   const updateStageMutation = useMutation({
     mutationFn: async (stageData: any) => {
-      console.log('Updating interview stage ID:', stageData.id);
-      
+
       if (!stageData.id) {
         throw new Error('Stage ID is missing');
       }
@@ -363,7 +357,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
         }
         
         const data = await response.json();
-        console.log('Successfully updated interview stage, received data:', data);
+
         return data;
       } catch (error) {
         console.error('Error in mutation:', error);
@@ -371,7 +365,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       }
     },
     onSuccess: (data) => {
-      console.log('Interview stage updated successfully:', data);
+
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
@@ -396,8 +390,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   // Delete interview stage mutation
   const deleteStageMutation = useMutation({
     mutationFn: async (stageId: number) => {
-      console.log('Deleting interview stage ID:', stageId);
-      
+
       if (!stageId) {
         throw new Error('Stage ID is missing');
       }
@@ -426,7 +419,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       }
     },
     onSuccess: (stageId) => {
-      console.log('Interview stage deleted successfully:', stageId);
+
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
@@ -452,8 +445,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   // Complete interview stage mutation
   const completeInterviewStageMutation = useMutation({
     mutationFn: async (stageId: number) => {
-      console.log('Completing interview stage ID:', stageId);
-      
+
       if (!stageId) {
         throw new Error('Stage ID is missing');
       }
@@ -477,7 +469,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
         }
         
         const data = await response.json();
-        console.log('Successfully completed interview stage, received data:', data);
+
         return data;
       } catch (error) {
         console.error('Error in mutation:', error);
@@ -485,7 +477,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       }
     },
     onSuccess: (data) => {
-      console.log('Interview stage completed successfully:', data);
+
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
@@ -509,8 +501,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   // Complete followup action mutation
   const completeFollowupMutation = useMutation({
     mutationFn: async (followupId: number) => {
-      console.log('Completing followup action ID:', followupId);
-      
+
       if (!followupId) {
         throw new Error('Followup action ID is missing');
       }
@@ -533,7 +524,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
         }
         
         const data = await response.json();
-        console.log('Successfully completed followup action, received data:', data);
+
         return data;
       } catch (error) {
         console.error('Error in mutation:', error);
@@ -541,7 +532,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       }
     },
     onSuccess: (data) => {
-      console.log('Followup action completed successfully:', data);
+
       // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
@@ -566,8 +557,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   // Uncomplete followup action mutation
   const uncompleteFollowupMutation = useMutation({
     mutationFn: async (followupId: number) => {
-      console.log('Uncompleting followup action ID:', followupId);
-      
+
       if (!followupId) {
         throw new Error('Followup action ID is missing');
       }
@@ -590,7 +580,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
         }
         
         const data = await response.json();
-        console.log('Successfully uncompleted followup action, received data:', data);
+
         return data;
       } catch (error) {
         console.error('Error in mutation:', error);
@@ -598,7 +588,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       }
     },
     onSuccess: (data) => {
-      console.log('Followup action uncompleted successfully:', data);
+
       // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });

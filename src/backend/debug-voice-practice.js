@@ -12,21 +12,21 @@ if (!fs.existsSync(uploadsDir)) {
 export function logRequest(endpoint, message, data) {
     const timestamp = new Date().toISOString();
     const logMessage = `[${timestamp}] [${endpoint}] ${message}`;
-    console.log(logMessage);
+
     if (data) {
         try {
             if (typeof data === 'object') {
                 // Don't log the full audio data which could be large
                 if (data.audio && typeof data.audio === 'string' && data.audio.length > 100) {
                     const sanitizedData = { ...data, audio: `<base64_data_length:${data.audio.length}>` };
-                    console.log('Request data:', sanitizedData);
+
                 }
                 else {
-                    console.log('Request data:', data);
+
                 }
             }
             else {
-                console.log('Request data:', data);
+
             }
         }
         catch (e) {
@@ -38,14 +38,14 @@ export function logRequest(endpoint, message, data) {
 export function logResponse(endpoint, status, message, data) {
     const timestamp = new Date().toISOString();
     const logMessage = `[${timestamp}] [${endpoint}] [${status}] ${message}`;
-    console.log(logMessage);
+
     if (data) {
         try {
             if (typeof data === 'object') {
-                console.log('Response data:', data);
+
             }
             else {
-                console.log('Response data:', data);
+
             }
         }
         catch (e) {
@@ -79,18 +79,18 @@ export function saveAudioForDebugging(audio, endpoint) {
                     fileExtension = 'ogg';
                 else if (mimeType.includes('webm'))
                     fileExtension = 'webm';
-                console.log(`Extracted MIME type: ${mimeType} for debug audio`);
+
             }
             else {
                 // If no proper match but there's a comma, split at the comma
                 cleanedAudio = audio.split(',')[1] || audio;
-                console.log('Could not extract MIME type for debug audio but split at comma');
+
             }
         }
         // Make sure uploads directory exists
         if (!fs.existsSync(uploadsDir)) {
             fs.mkdirSync(uploadsDir, { recursive: true });
-            console.log(`Created uploads directory: ${uploadsDir}`);
+
         }
         // Create a filename with timestamp
         const timestamp = Date.now();
@@ -99,7 +99,7 @@ export function saveAudioForDebugging(audio, endpoint) {
         try {
             const buffer = Buffer.from(cleanedAudio, 'base64');
             fs.writeFileSync(filename, buffer);
-            console.log(`Saved debug audio to ${filename}, size: ${buffer.length} bytes`);
+
             return filename;
         }
         catch (bufferError) {

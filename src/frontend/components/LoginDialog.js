@@ -44,13 +44,13 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
             });
             // Check if user needs onboarding first
             if (user.needsUsername || !user.onboardingCompleted) {
-                console.log("User needs onboarding - redirecting to onboarding flow");
+
                 window.location.href = "/onboarding";
                 return;
             }
             // Use redirect path from result if provided
             if (result.redirectPath) {
-                console.log("Using server-provided redirect path:", result.redirectPath);
+
                 window.location.href = result.redirectPath;
                 return;
             }
@@ -58,25 +58,25 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
             if (user.role === "super_admin" ||
                 user.role === "admin" ||
                 user.userType === "admin") {
-                console.log("Redirecting admin user to admin dashboard. Role:", user.role, "Type:", user.userType);
+
                 window.location.href = "/admin";
             }
             else if (user.role === "staff" || user.userType === "staff") {
-                console.log("Redirecting staff user to staff dashboard. Role:", user.role, "Type:", user.userType);
+
                 window.location.href = "/staff-dashboard";
             }
             else if (user.role === "university_admin" ||
                 user.userType === "university_admin") {
-                console.log("Redirecting university admin to university dashboard. Role:", user.role, "Type:", user.userType);
+
                 window.location.href = "/university-admin/dashboard";
             }
             else if (user.role === "university_user" ||
                 user.userType === "university_student") {
-                console.log("Redirecting university student to university dashboard. Role:", user.role, "Type:", user.userType);
+
                 window.location.href = "/university";
             }
             else {
-                console.log("Redirecting regular user to dashboard. Role:", user.role, "Type:", user.userType);
+
                 window.location.href = "/dashboard";
             }
             if (onSuccess) {

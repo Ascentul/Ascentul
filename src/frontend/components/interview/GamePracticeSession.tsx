@@ -259,7 +259,7 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
     if (!soundEnabled) return;
     
     // In a real implementation, we would play actual sound effects here
-    console.log(`Playing sound: ${type}`);
+
   };
 
   const startQuestion = () => {

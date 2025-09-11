@@ -45,7 +45,7 @@ export function ApplicationCard({
   
   // Handle click on the entire card
   const handleCardClick = () => {
-    console.log("Application card clicked:", application.id);
+
     if (onClick) onClick();
   };
 

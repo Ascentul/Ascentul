@@ -53,9 +53,9 @@ export default function SkillStacker() {
     const { data: allPlans, isLoading: isLoadingPlans } = useQuery({
         queryKey: ['/api/skill-stacker'],
         queryFn: async () => {
-            console.log("Fetching skill stacker plans...");
+
             const result = await apiRequest({ url: '/api/skill-stacker' });
-            console.log("Received skill stacker plans:", result);
+
             return result;
         },
     });
@@ -157,11 +157,7 @@ export default function SkillStacker() {
             });
             return;
         }
-        console.log('Generating skill plan:', {
-            goalId: selectedGoal,
-            week: selectedWeek,
-            currentSkillLevel: selectedSkillLevel,
-        });
+
         setIsGenerating(true);
         generateMutation.mutate({
             goalId: selectedGoal,

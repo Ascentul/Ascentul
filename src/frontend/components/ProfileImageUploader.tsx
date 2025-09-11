@@ -161,7 +161,7 @@ export default function ProfileImageUploader({
 
     setPosition({ x: boundedX, y: boundedY });
     setZoom(newZoom);
-    console.log("Zoom updated", { newZoom, position: { x: boundedX, y: boundedY } });
+
   };
   
   const getImageStyle = () => {
@@ -184,7 +184,6 @@ export default function ProfileImageUploader({
 
     try {
       setIsLoading(true);
-      console.log('Starting profile image save process...');
 
       // Prepare the final square canvas
       const outputSize = 800; // High-res output
@@ -221,10 +220,9 @@ export default function ProfileImageUploader({
       ctx.restore();
 
       // Convert to data URL and upload
-      console.log('Image cropped exactly as visible in preview, converting to data URL...');
+
       const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.95);
       const updatedUser = await onImageUploaded(dataUrl);
-      console.log('Image uploaded and profile updated successfully:', updatedUser);
 
       // Close the dialog; rely on state/cache update to reflect UI without full reload
       setIsOpen(false);

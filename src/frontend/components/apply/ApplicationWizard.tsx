@@ -73,7 +73,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         // For demo purposes, create a mock application if authentication fails
         const errorWithMessage = error as { message?: string };
         if (errorWithMessage.message?.includes('Authentication required')) {
-          console.log('Demo mode: Creating mock application data');
+
           return {
             application: {
               id: applicationId,
@@ -128,8 +128,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         if (errorWithMessage.message?.includes('Authentication required')) {
           // Simulate a successful response with mock data
           const mockId = Math.floor(Math.random() * 10000);
-          console.log('Demo mode: Creating mock application data');
-          
+
           // Create a complete mock application object with full compatibility
           const mockApp = {
             id: mockId,
@@ -218,7 +217,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         // For demo purposes, simulate a successful step update
         const errorWithMessage = error as { message?: string };
         if (errorWithMessage.message?.includes('Authentication required')) {
-          console.log('Demo mode: Simulating successful step update');
+
           return { 
             id: stepId,
             completed: true, 
@@ -252,7 +251,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         if (storedData) {
           const parsedData = JSON.parse(storedData);
           hasBeenApplied = !!parsedData.applied;
-          console.log('Found stored application data with applied status:', hasBeenApplied);
+
         }
       } catch (err) {
         console.error('Error reading applied checkbox state:', err);
@@ -268,8 +267,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         // For demo purposes, simulate a successful application submission
         const errorWithMessage = error as { message?: string };
         if (errorWithMessage.message?.includes('Authentication required')) {
-          console.log('Demo mode: Simulating successful application submission');
-          
+
           // In demo mode, use the checkbox state we determined above
           
           // Create a complete mock application object for the Interview page with full format compatibility
@@ -318,8 +316,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
           }
           
           localStorage.setItem('mockJobApplications', JSON.stringify(storedApplications));
-          console.log('Stored mock application in localStorage:', completedApplication);
-          
+
           return completedApplication;
         }
         throw error;
@@ -615,7 +612,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
                     // Get form values including the applied checkbox status
                     // We have to access the form values from the form object
                     const formData = getValues();
-                    console.log('Storing application data before submission:', formData);
+
                     localStorage.setItem(`application_${applicationId}_data`, JSON.stringify(formData));
                   } catch (e) {
                     console.error('Failed to store form data:', e);

@@ -29,11 +29,11 @@ export default function AdminSettingsTab() {
     const { data: settingsData, isLoading, error } = useQuery({
         queryKey: ["/api/settings"],
         queryFn: async () => {
-            console.log("🔧 Frontend: Fetching settings from /api/settings");
+
             try {
                 const response = await apiRequest("GET", "/api/settings");
                 const data = await response.json();
-                console.log("🔧 Frontend: Settings data received:", !!data);
+
                 return data;
             }
             catch (error) {
@@ -48,15 +48,15 @@ export default function AdminSettingsTab() {
     // Update settings mutation
     const updateSettingsMutation = useMutation({
         mutationFn: async (updatedSettings) => {
-            console.log('🔧 Frontend: Starting settings mutation with data:', updatedSettings);
+
             try {
                 const res = await apiRequest("PUT", "/api/settings", updatedSettings);
-                console.log('🔧 Frontend: API request completed, status:', res.status);
+
                 if (!res.ok) {
                     throw new Error(`API request failed with status ${res.status}`);
                 }
                 const responseData = await res.json();
-                console.log('🔧 Frontend: Response data received:', responseData);
+
                 return responseData;
             }
             catch (error) {
@@ -65,7 +65,7 @@ export default function AdminSettingsTab() {
             }
         },
         onSuccess: (data) => {
-            console.log('🔧 Frontend: Mutation successful, response:', data);
+
             queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
             toast({
                 title: "Settings Updated",
@@ -171,7 +171,7 @@ export default function AdminSettingsTab() {
     // Handler for saving settings
     const handleSaveSettings = () => {
         if (!user || authLoading) {
-            console.log('🔧 Frontend: Cannot save settings - user not authenticated');
+
             toast({
                 title: "Authentication Required",
                 description: "Please ensure you are logged in before saving settings.",
@@ -185,12 +185,11 @@ export default function AdminSettingsTab() {
                 ...settingsData, // Start with the original complete data
                 ...settings // Override with any local changes
             };
-            console.log('🔧 Frontend: Saving complete settings for authenticated user:', user.email);
-            console.log('🔧 Frontend: Complete settings object:', completeSettings);
+
             updateSettingsMutation.mutate(completeSettings);
         }
         else {
-            console.log('🔧 Frontend: Cannot save - settings or settingsData not available');
+
             toast({
                 title: "Settings Not Ready",
                 description: "Settings data is not yet loaded. Please wait and try again.",

@@ -51,40 +51,36 @@ const keyFiles = [
   'README.md',
 ];
 
-console.log('Checking reorganized project structure...\n');
-
 // Check directories
-console.log('Checking directories:');
+
 const missingDirectories = [];
 for (const dir of expectedDirectories) {
   const fullPath = path.join(projectRoot, dir);
   const exists = directoryExists(fullPath);
-  console.log(`- ${dir}: ${exists ? '✅' : '❌'}`);
+
   if (!exists) missingDirectories.push(dir);
 }
 
 // Check key files
-console.log('\nChecking key files:');
+
 const missingFiles = [];
 for (const file of keyFiles) {
   const fullPath = path.join(projectRoot, file);
   const exists = fileExists(fullPath);
-  console.log(`- ${file}: ${exists ? '✅' : '❌'}`);
+
   if (!exists) missingFiles.push(file);
 }
 
 // Summary
-console.log('\nSummary:');
+
 if (missingDirectories.length === 0 && missingFiles.length === 0) {
-  console.log('✅ All directories and key files are present! The project structure looks good.');
+
 } else {
-  console.log('❌ Some issues were found:');
+
   if (missingDirectories.length > 0) {
-    console.log(`  - Missing directories: ${missingDirectories.join(', ')}`);
+
   }
   if (missingFiles.length > 0) {
-    console.log(`  - Missing files: ${missingFiles.join(', ')}`);
+
   }
 }
-
-console.log('\nDone!'); 

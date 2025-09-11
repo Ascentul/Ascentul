@@ -53,9 +53,7 @@ const upload = multer({
     
     const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = mimeTypes.test(file.mimetype);
-    
-    console.log(`File upload check: ${file.originalname}, mimetype: ${file.mimetype}, extension: ${path.extname(file.originalname)}`);
-    
+
     if (extname && mimetype) {
       return cb(null, true);
     } else {
@@ -187,12 +185,9 @@ export function registerPdfExtractRoutes(app: Router) {
   
   // Direct file submission endpoint - processes file immediately with enhanced debugging
   app.post("/api/resumes/extract", requireLoginFallback, (req: Request, res: Response) => {
-    console.log("=== Starting direct PDF extraction process ===");
-    console.log(`User ID: ${req.user?.id}, Content-Type: ${req.headers['content-type']}`);
-    
+
     // Add more detailed debugging
-    console.log("Request headers:", JSON.stringify(req.headers, null, 2));
-    
+
     // This is a more lenient approach that doesn't strictly check for multipart/form-data
     // Some browsers might send slightly different content-type headers
     if (!req.headers['content-type'] || 
@@ -207,9 +202,7 @@ export function registerPdfExtractRoutes(app: Router) {
     
     // Enhanced file upload handler with better error tracing
     const uploadHandler = upload.single('file');
-    
-    console.log("Starting multer upload handler processing...");
-    
+
     uploadHandler(req, res, async function(err) {
       // Handle multer errors
       if (err) {
@@ -242,8 +235,7 @@ export function registerPdfExtractRoutes(app: Router) {
         
         // Log additional form fields for debugging
         const formFields = req.body ? Object.keys(req.body).join(', ') : 'none';
-        console.log(`Form fields received: ${formFields}`);
-        
+
         return res.status(400).json({
           success: false,
           message: "No file provided for extraction. Make sure you're including a file with field name 'file'.",
@@ -252,15 +244,11 @@ export function registerPdfExtractRoutes(app: Router) {
       }
       
       // Log detailed file information
-      console.log(`File received: ${req.file.originalname} (${req.file.size} bytes, type: ${req.file.mimetype})`);
-      console.log(`Stored at: ${req.file.path}`);
-      
+
       try {
         // Import the simple PDF extractor module
         const { simplePdfExtract } = await import('./simple-pdf');
-        
-        console.log("Starting PDF text extraction...");
-        
+
         // Extract text from the uploaded file
         const filePath = req.file.path;
         const { text, pages } = await simplePdfExtract(filePath);
@@ -276,8 +264,7 @@ export function registerPdfExtractRoutes(app: Router) {
         }
         
         const previewText = text.length > 100 ? `${text.substring(0, 100)}...` : text;
-        console.log(`Successfully extracted text (${text.length} chars): ${previewText}`);
-        
+
         // Return the extracted text and file info
         return res.json({
           success: true,
@@ -304,12 +291,9 @@ export function registerPdfExtractRoutes(app: Router) {
   // Legacy endpoints for backward compatibility with enhanced debugging
   // Resume file upload endpoint
   app.post("/api/resumes/upload", requireLoginFallback, (req: Request, res: Response) => {
-    console.log(`=== Legacy upload endpoint called by user ID: ${req.user?.id} ===`);
-    console.log(`Content-Type: ${req.headers['content-type']}`);
-    
+
     // Enhanced debugging
-    console.log("Request headers:", JSON.stringify(req.headers, null, 2));
-    
+
     // More lenient content-type checking for legacy endpoint
     if (!req.headers['content-type'] || 
         (!req.headers['content-type'].includes('multipart/form-data') && 
@@ -320,9 +304,7 @@ export function registerPdfExtractRoutes(app: Router) {
         message: `Invalid content type: ${req.headers['content-type']}. File upload requires multipart/form-data.`
       });
     }
-    
-    console.log("Starting legacy upload multer processing...");
-    
+
     // Handle file upload with multer and enhanced error handling
     upload.single('file')(req, res, function (err) {
       if (err) {
@@ -355,8 +337,7 @@ export function registerPdfExtractRoutes(app: Router) {
         
         // Log additional form fields for debugging
         const formFields = req.body ? Object.keys(req.body).join(', ') : 'none';
-        console.log(`Legacy form fields received: ${formFields}`);
-        
+
         return res.status(400).json({ 
           success: false, 
           message: "No file provided for upload. Make sure you're including a file with field name 'file'.",
@@ -365,9 +346,7 @@ export function registerPdfExtractRoutes(app: Router) {
       }
       
       // Log detailed file information
-      console.log(`Legacy file upload successful: ${req.file.originalname} (${req.file.size} bytes, type: ${req.file.mimetype})`);
-      console.log(`Stored at: ${req.file.path}`);
-      
+
       // File uploaded successfully, return the path with enhanced information
       return res.json({
         success: true,
@@ -384,23 +363,18 @@ export function registerPdfExtractRoutes(app: Router) {
   // Legacy text extraction endpoint with enhanced error handling
   app.post("/api/resumes/extract-text", requireLoginFallback, async (req: Request, res: Response) => {
     try {
-      console.log("=== Legacy extract-text endpoint called ===");
-      console.log(`User ID: ${req.user?.id}, Content-Type: ${req.headers['content-type']}`);
-      
+
       // Enhanced debugging
-      console.log("Request headers:", JSON.stringify(req.headers, null, 2));
-      console.log("Request body:", JSON.stringify(req.body, null, 2));
-      
+
       // Import the simple PDF extractor module
       const { simplePdfExtract } = await import('./simple-pdf');
       
       // Check if we're receiving a file path or direct text
       const { filePath, text } = req.body;
-      console.log(`Extract text request with filePath: ${filePath ? filePath : 'none'}, text available: ${text ? 'yes' : 'no'}`);
-      
+
       // If direct text is provided, return it as is (useful for testing)
       if (text) {
-        console.log("Direct text provided, skipping extraction");
+
         return res.json({ 
           success: true, 
           text: text,
@@ -439,8 +413,7 @@ export function registerPdfExtractRoutes(app: Router) {
       }
       
       try {
-        console.log(`Starting PDF extraction from path: ${filePath}`);
-        
+
         // Extract text from the PDF file
         const { text: extractedText, pages } = await simplePdfExtract(filePath);
         
@@ -455,8 +428,7 @@ export function registerPdfExtractRoutes(app: Router) {
         }
         
         const previewText = extractedText.length > 100 ? `${extractedText.substring(0, 100)}...` : extractedText;
-        console.log(`Successfully extracted text (${extractedText.length} chars): ${previewText}`);
-        
+
         // Return the extracted text
         return res.json({ 
           success: true, 

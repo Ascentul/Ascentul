@@ -10,7 +10,7 @@ function DebugApp() {
                                         baseUrl: import.meta.env.BASE_URL
                                     }, null, 2) })] }), _jsxs("div", { className: "p-4 bg-white rounded-lg shadow", children: [_jsx("h2", { className: "text-xl font-semibold mb-2", children: "\uD83D\uDD17 API Test" }), _jsx("button", { onClick: async () => {
                                         try {
-                                            console.log("Testing API...");
+
                                             const response = await fetch("/api/health");
                                             const data = await response.json();
                                             alert(`API Works: ${JSON.stringify(data, null, 2)}`);
@@ -26,7 +26,7 @@ const root = document.getElementById("root");
 if (root) {
     try {
         createRoot(root).render(_jsx(DebugApp, {}));
-        console.log("✅ Debug app mounted successfully");
+
     }
     catch (error) {
         console.error("❌ Failed to mount debug app:", error);

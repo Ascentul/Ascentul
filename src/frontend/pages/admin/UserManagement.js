@@ -82,10 +82,10 @@ export default function UserManagement() {
     const { data: users, isLoading, error } = useQuery({
         queryKey: ["/api/admin/users", searchTerm, filters, currentPage],
         queryFn: async () => {
-            console.log("Fetching users from API...");
+
             try {
                 const response = await apiRequest({ url: "/api/admin/users" });
-                console.log("API response:", response);
+
                 return response;
             }
             catch (error) {
@@ -95,12 +95,7 @@ export default function UserManagement() {
         }
     });
     // Debug logging
-    console.log("Users query state:", {
-        users,
-        isLoading,
-        error,
-        userCount: users?.length
-    });
+
     // Mutation for updating user status
     const updateUserStatusMutation = useMutation({
         mutationFn: async ({ userId, status }) => {

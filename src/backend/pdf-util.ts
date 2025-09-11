@@ -29,8 +29,7 @@ export async function extractTextFromPdf(
   maxPages: number = 20
 ): Promise<PdfExtractionResult> {
   try {
-    console.log(`Starting PDF extraction for: ${filePath}`);
-    
+
     // Validate the file exists
     if (!fs.existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`);
@@ -43,8 +42,7 @@ export async function extractTextFromPdf(
     
     // Get the file size
     const stats = fs.statSync(filePath);
-    console.log(`PDF file size: ${stats.size} bytes`);
-    
+
     // Read a small amount of the file to verify it's a PDF
     const buffer = Buffer.alloc(5);
     const fd = fs.openSync(filePath, 'r');
@@ -64,8 +62,7 @@ export async function extractTextFromPdf(
     const pdfContent = fileBuffer.toString('utf8', 0, Math.min(fileBuffer.length, 100000));
     const pageCountMatch = pdfContent.match(/\/Type\s*\/Page/g);
     const estimatedPages = pageCountMatch ? pageCountMatch.length : 1;
-    console.log(`Estimated PDF pages: ${estimatedPages}`);
-    
+
     // For this temporary solution, we'll extract text by converting each byte to its 
     // ASCII representation if it's a printable character
     let extractedText = '';

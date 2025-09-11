@@ -9,10 +9,10 @@ export function logVoiceEvent(event, message, data) {
     // Create a base log message that shows the event and timestamp
     let logMessage = `[Voice Practice][${timestamp}][${event}] ${message}`;
     // Log to the console
-    console.log(logMessage);
+
     // If there's additional data, log it as well
     if (data) {
-        console.log(`[Voice Practice Data]`, data);
+
     }
 }
 /**

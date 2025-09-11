@@ -194,7 +194,6 @@ const InterviewFollowupActions = ({
         </div>
       )}
 
-      
     </div>
   );
 

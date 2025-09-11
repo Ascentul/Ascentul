@@ -198,11 +198,11 @@ export default function ContactDetails({ contactId, onClose }) {
     // Schedule follow-up mutation
     const scheduleFollowUpMutation = useMutation({
         mutationFn: async (values) => {
-            console.log("🔎 Starting form submission with values:", values);
+
             // Validate the date field
             let dateToUse;
             if (!values.followUpDate) {
-                console.warn("⚠️ No date provided, using current date");
+
                 dateToUse = new Date();
             }
             else if (values.followUpDate instanceof Date) {
@@ -210,18 +210,18 @@ export default function ContactDetails({ contactId, onClose }) {
                     console.error("❌ Invalid Date object, timestamp is NaN");
                     throw new Error("Invalid date selected");
                 }
-                console.log("✅ Valid Date object provided:", values.followUpDate);
+
                 dateToUse = values.followUpDate;
             }
             else {
                 // Handle string dates by creating a new Date object
-                console.log("🔄 Converting string date to Date object:", values.followUpDate);
+
                 const parsedDate = new Date(values.followUpDate);
                 if (isNaN(parsedDate.getTime())) {
                     console.error("❌ Failed to parse date string:", values.followUpDate);
                     throw new Error("Could not parse the provided date");
                 }
-                console.log("✅ Successfully parsed date:", parsedDate);
+
                 dateToUse = parsedDate;
             }
             // Extra sanity check - if date is Dec 31, 1969 (invalid timestamp near epoch), reject it
@@ -235,7 +235,7 @@ export default function ContactDetails({ contactId, onClose }) {
                 notes: values.notes,
                 dueDate: dateToUse.toISOString(),
             };
-            console.log('📤 Submitting follow-up with data:', serverData);
+
             return apiRequest({
                 url: `/api/contacts/${contactId}/schedule-followup`,
                 method: 'POST',
@@ -597,19 +597,17 @@ export default function ContactDetails({ contactId, onClose }) {
                                                                             }, title: "Delete interaction", children: _jsx(Trash, { className: "h-3.5 w-3.5 text-muted-foreground hover:text-destructive" }) })] })] })] }) }), _jsx(CardContent, { children: _jsx("p", { className: "text-sm text-muted-foreground whitespace-pre-wrap", children: interaction.notes }) })] }, interaction.id))) })) : (_jsxs("div", { className: "text-center py-6", children: [_jsx(Clock, { className: "h-12 w-12 mx-auto text-muted-foreground opacity-50" }), _jsx("h3", { className: "text-lg font-medium mt-4", children: "No interactions yet" }), _jsx("p", { className: "text-muted-foreground mt-2 max-w-md mx-auto", children: "Record your calls, meetings, and other communications with this contact to keep track of your relationship." })] }))] }) }), _jsx(TabsContent, { value: "follow-ups", className: "py-4", children: _jsxs("div", { className: "space-y-4", children: [_jsxs("div", { className: "flex justify-between items-center", children: [_jsx("h3", { className: "text-lg font-medium", children: "Follow-up Reminders" }), _jsxs(Button, { size: "sm", onClick: () => setShowFollowUpForm(true), className: "gap-1", children: [_jsx(Plus, { className: "h-4 w-4" }), " Schedule Follow-up"] })] }), showFollowUpForm && (_jsx(Dialog, { open: showFollowUpForm, onOpenChange: setShowFollowUpForm, children: _jsxs(DialogContent, { className: "sm:max-w-[500px]", children: [_jsx(DialogHeader, { children: _jsx(DialogTitle, { children: "Schedule Follow-up" }) }), _jsx(Form, { ...followUpForm, children: _jsxs("form", { onSubmit: followUpForm.handleSubmit(handleScheduleFollowUp), className: "space-y-4", children: [_jsxs("div", { className: "grid grid-cols-2 gap-4", children: [_jsx(FormField, { control: followUpForm.control, name: "followUpDate", render: ({ field }) => (_jsxs(FormItem, { children: [_jsx(FormLabel, { children: "Follow-up Date" }), _jsx(FormControl, { children: _jsx(Input, { type: "date", "data-testid": "follow-up-date-input", id: "follow-up-date", value: field.value ? new Date(field.value).toISOString().split('T')[0] : '', onChange: (e) => {
                                                                                         if (e.target.value) {
                                                                                             // Log the raw date input from the date picker
-                                                                                            console.log("🚨 Raw Date Input:", e.target.value);
+
                                                                                             // Create a date using a direct string conversion with time component
                                                                                             // Format: YYYY-MM-DDT00:00:00
                                                                                             const dateString = e.target.value + 'T00:00:00';
                                                                                             const date = new Date(dateString);
-                                                                                            console.log("📆 Parsed Date Object:", date);
-                                                                                            console.log("⏱ Timestamp:", date.getTime());
-                                                                                            console.log("📅 ISO String:", date.toISOString());
+
                                                                                             // Set the raw Date object as the field value
                                                                                             field.onChange(date);
                                                                                         }
                                                                                         else {
-                                                                                            console.log("⚠️ Empty date input");
+
                                                                                             field.onChange(null);
                                                                                         }
                                                                                     } }) }), _jsx(FormMessage, {})] })) }), _jsx(FormField, { control: followUpForm.control, name: "reminderType", render: ({ field }) => (_jsxs(FormItem, { children: [_jsx(FormLabel, { children: "Follow-up Type" }), _jsxs(Select, { onValueChange: field.onChange, defaultValue: field.value, children: [_jsx(FormControl, { children: _jsx(SelectTrigger, { children: _jsx(SelectValue, { placeholder: "Select follow-up type" }) }) }), _jsxs(SelectContent, { children: [_jsx(SelectItem, { value: "Email", children: "Send Email" }), _jsx(SelectItem, { value: "Call", children: "Make Call" }), _jsx(SelectItem, { value: "Meeting", children: "Schedule Meeting" }), _jsx(SelectItem, { value: "Coffee", children: "Coffee Meetup" }), _jsx(SelectItem, { value: "Lunch", children: "Lunch Meetup" }), _jsx(SelectItem, { value: "Other", children: "Other" })] })] }), _jsx(FormMessage, {})] })) })] }), _jsx(FormField, { control: followUpForm.control, name: "notes", render: ({ field }) => (_jsxs(FormItem, { children: [_jsx(FormLabel, { children: "Notes" }), _jsx(FormControl, { children: _jsx(Textarea, { placeholder: "Enter notes for this follow-up", className: "min-h-[100px]", ...field }) }), _jsx(FormMessage, {})] })) }), _jsxs("div", { className: "flex justify-end gap-2 pt-2", children: [_jsx(Button, { type: "button", variant: "outline", onClick: () => setShowFollowUpForm(false), children: "Cancel" }), _jsx(Button, { type: "submit", disabled: scheduleFollowUpMutation.isPending, children: scheduleFollowUpMutation.isPending ? (_jsxs(_Fragment, { children: [_jsx(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }), "Saving..."] })) : ('Schedule Follow-up') })] })] }) })] }) })), isLoadingFollowUps ? (_jsx("div", { className: "flex justify-center py-8", children: _jsx(Loader2, { className: "h-6 w-6 animate-spin text-primary" }) })) : followUps.length > 0 ? (_jsx("div", { className: "space-y-4", children: followUps.map((followUp) => (_jsxs(Card, { className: cn("overflow-hidden", followUp.completed ? "opacity-70" : "", new Date(followUp.dueDate) < new Date() && !followUp.completed ? "border-red-300" : ""), children: [_jsx(CardHeader, { className: "pb-2", children: _jsxs("div", { className: "flex justify-between items-start", children: [_jsxs("div", { className: "flex items-start gap-3", children: [_jsx("div", { className: "mt-0.5", children: (() => {

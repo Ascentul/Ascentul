@@ -33,16 +33,7 @@ export function validateEnv() {
   const missing = required.filter((key) => !ENV[key as keyof typeof ENV])
 
   if (missing.length > 0) {
-    console.warn(`⚠️ Missing environment variables: ${missing.join(", ")}`)
 
-    if (ENV.NODE_ENV === "production") {
-      console.error("❌ Environment validation failed in production mode")
-      console.error(
-        "Please set these variables in your .env file or environment"
-      )
-      return false
-    } else {
-      console.warn("⚠️ Using placeholder values in development mode")
       return true // Allow to proceed in development mode with placeholders
     }
   }

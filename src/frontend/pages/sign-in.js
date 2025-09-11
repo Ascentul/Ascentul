@@ -72,7 +72,7 @@ export default function SignInPage() {
                     ? "/dashboard"
                     : "/onboarding";
             // Redirect to the appropriate page
-            console.log(`Login successful - redirecting to ${redirectPath}`);
+
             // Use setTimeout to avoid React state update warning
             setTimeout(() => {
                 window.location.href = redirectPath;

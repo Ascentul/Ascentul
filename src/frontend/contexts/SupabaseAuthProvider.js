@@ -26,7 +26,7 @@ export function SupabaseAuthProvider({ children }) {
         initializeAuth();
         // Set up auth state change listener
         const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, currentSession) => {
-            console.log("Auth state change:", event);
+
             setSession(currentSession);
             setUser(currentSession?.user || null);
             setIsLoading(false);

@@ -34,8 +34,7 @@ export default function StatCard({
             <p className="text-2xl font-semibold">{value}</p>
           </div>
         </div>
-        
-        
+
       </CardContent>
     </Card>
   );

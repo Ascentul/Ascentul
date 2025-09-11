@@ -24,7 +24,7 @@ export const CleanedCoverLetterContent = ({
       
       setIsLoading(true);
       try {
-        console.log("Fetching cleaned content from API...");
+
         const response = await fetch('/api/strip-optimized-cover-letter', {
           method: 'POST',
           headers: {
@@ -38,14 +38,13 @@ export const CleanedCoverLetterContent = ({
         }
         
         const data = await response.json();
-        console.log("API response:", data);
-        
+
         // The API returns cleanedLetterBody
         if (data.cleanedLetterBody) {
           setCleanedContent(data.cleanedLetterBody);
-          console.log("Content cleaned successfully");
+
         } else {
-          console.log("API did not return cleaned content, using original");
+
           // Apply enhanced client-side cleaning as fallback
           const clientSideCleaned = cleanAIOutput(content)
             // Remove common greeting patterns
@@ -115,7 +114,7 @@ export const CleanedCoverLetterContent = ({
     
     // Check if this line starts actual content (using expanded pattern matching)
     if (line.match(/^I am|^As a|^With|^Having|^Thank you|^I have|^My experience|^Throughout my|^In my|^After reviewing|^I was excited|^I'm writing|^I would like|^Recently|^Your job posting|^The position/i)) {
-      console.log("Found body content starting with:", line.substring(0, 20) + "...");
+
       bodyStartIndex = i;
       break;
     }

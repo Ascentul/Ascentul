@@ -205,7 +205,7 @@ export default function DesignStudio() {
       script.src = "https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js";
       script.async = true;
       script.onload = () => {
-        console.log("Fabric.js loaded");
+
         initCanvas();
       };
       document.body.appendChild(script);
@@ -1094,9 +1094,7 @@ export default function DesignStudio() {
       // Update state
       setCurrDesignId(designId);
       setSavedDesigns(existingDesigns);
-      
-      console.log("Design saved successfully!");
-      
+
       // Show toast notification (you'll need to implement this)
       // toast({ title: "Design saved" });
       
@@ -1386,7 +1384,6 @@ export default function DesignStudio() {
                     </Button>
                   </div>
                 </div>
-                
 
               </TabsContent>
               

@@ -133,7 +133,7 @@ export default function ProfileImageUploader({ onImageUploaded, currentImage, ch
             return;
         try {
             setIsLoading(true);
-            console.log('Starting profile image save process...');
+
             // Final high-resolution canvas
             const outputSize = 800;
             const finalCanvas = document.createElement('canvas');
@@ -160,13 +160,13 @@ export default function ProfileImageUploader({ onImageUploaded, currentImage, ch
             const destH = baseSize.h * zoom * scaleOut;
             ctx.drawImage(img, 0, 0, naturalSize.w, naturalSize.h, destX, destY, destW, destH);
             ctx.restore();
-            console.log('Image cropped exactly as visible in preview, converting to data URL...');
+
             // Convert to data URL with high quality
             const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.95);
             // Use the callback to upload the image and update the user profile
             // This will be handled by the useUserData context's uploadProfileImage function
             const updatedUser = await onImageUploaded(dataUrl);
-            console.log('Image uploaded and profile updated successfully:', updatedUser);
+
             // Close the dialog; rely on state/cache update to reflect UI without hard reload
             setIsOpen(false);
         }

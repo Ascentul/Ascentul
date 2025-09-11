@@ -16,7 +16,7 @@ export async function checkDatabaseConnection() {
             console.error("Supabase connection test failed:", error);
             return false;
         }
-        console.log("✅ Supabase connection is healthy");
+
         return true;
     }
     catch (error) {

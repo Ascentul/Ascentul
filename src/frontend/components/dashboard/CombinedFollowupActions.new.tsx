@@ -116,8 +116,7 @@ export function CombinedFollowupActions({ limit = 5, showTitle = true }: Combine
       if (mockAppsJson) {
         const mockApps = JSON.parse(mockAppsJson);
         if (Array.isArray(mockApps)) {
-          console.log(`Found ${mockApps.length} applications in localStorage`);
-          
+
           // Process each localStorage application for followups
           for (const app of mockApps) {
             try {
@@ -152,7 +151,7 @@ export function CombinedFollowupActions({ limit = 5, showTitle = true }: Combine
       try {
         // Skip if the ID is too large for PostgreSQL integer (probably a client-side ID)
         if (`${app.id}`.length > 10) {
-          console.log(`Skipping API fetch for large application ID: ${app.id}`);
+
           continue;
         }
         
@@ -235,8 +234,7 @@ export function CombinedFollowupActions({ limit = 5, showTitle = true }: Combine
       // Combine and sort all followups
       const allFollowups = [...appFollowups, ...contactFups];
       const sortedFollowups = sortFollowups(allFollowups);
-      
-      console.log(`Combined ${appFollowups.length} application followups and ${contactFups.length} contact followups`);
+
       setFollowupActions(sortedFollowups);
     } catch (error) {
       console.error('Error refreshing followups:', error);

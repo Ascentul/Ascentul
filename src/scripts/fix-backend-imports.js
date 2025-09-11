@@ -7,8 +7,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..', '..');
 
-console.log('🔍 Fixing backend import references...');
-
 // Function to recursively find all .ts files in backend directory
 function findBackendFiles(dir, fileList = []) {
   try {
@@ -80,10 +78,9 @@ function updateBackendImports(filePath) {
 }
 
 // Find all TypeScript files in backend
-console.log('Finding TypeScript files in src/backend directory...');
+
 const backendDir = path.join(projectRoot, 'src', 'backend');
 const backendFiles = findBackendFiles(backendDir);
-console.log(`Found ${backendFiles.length} backend TypeScript files to check`);
 
 // Update imports in all backend files
 let updatedCount = 0;
@@ -92,12 +89,10 @@ for (const filePath of backendFiles) {
     const isUpdated = updateBackendImports(filePath);
     if (isUpdated) {
       updatedCount++;
-      console.log(`✅ Updated imports in: ${path.relative(projectRoot, filePath)}`);
+
     }
   } catch (err) {
     console.error(`Error processing ${filePath}: ${err.message}`);
   }
 }
 
-console.log(`\n🔄 Backend import updates complete: ${updatedCount} files updated`);
-console.log('📝 Please run the app to verify all imports are working correctly.'); 

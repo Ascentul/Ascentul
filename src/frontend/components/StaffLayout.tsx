@@ -48,7 +48,7 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
     user.userType === 'staff' || 
     user.userType === 'admin'
   )) {
-    console.log("StaffLayout access denied - redirecting. User role:", user?.role, "User type:", user?.userType);
+
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
@@ -59,9 +59,7 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
       </div>
     );
   }
-  
-  console.log("StaffLayout access granted for user with role:", user?.role, "type:", user?.userType);
-  
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Mobile Sidebar Toggle */}

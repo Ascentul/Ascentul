@@ -172,7 +172,7 @@ export default function CoverLetter() {
     const handleSaveGenerated = () => {
         if (!generatedContent)
             return;
-        console.log("Saving generated cover letter content");
+
         // Initialize user data with empty values
         const userData = {
             fullName: "",
@@ -184,7 +184,7 @@ export default function CoverLetter() {
         try {
             // Safely attempt to get user data if available in the component
             if (user) {
-                console.log("User data available for cover letter:", user.name);
+
                 userData.fullName = user.name || "";
                 userData.email = user.email || "";
                 // User phone might come from a profile object or contact info
@@ -197,11 +197,11 @@ export default function CoverLetter() {
         }
         catch (err) {
             console.error("Error retrieving user data for cover letter:", err);
-            console.log("Using default values instead");
+
         }
         // Process content to remove any AI commentary or formatting issues
         const processedContent = cleanAIOutput(generatedContent);
-        console.log("Content processed successfully");
+
         // Create a properly formatted cover letter with the generated content
         const newCoverLetter = {
             name: `${jobTitle} at ${companyName}`,
@@ -290,7 +290,7 @@ export default function CoverLetter() {
         setTimeout(() => {
             // Call the utility directly (no parameters needed)
             exportCoverLetterToPDF();
-            console.log("Starting improved PDF export for cover letter");
+
         }, 100);
         try {
             // Create a temporary div for PDF export with professional styling
@@ -381,7 +381,7 @@ export default function CoverLetter() {
                     compress: true
                 }
             };
-            console.log("Generating PDF with professional styling");
+
             // Add delay to ensure DOM rendering is complete
             setTimeout(() => {
                 window
@@ -390,7 +390,7 @@ export default function CoverLetter() {
                     .set(options)
                     .save()
                     .then(() => {
-                    console.log("PDF generated successfully with professional styling");
+
                     toast({
                         title: "PDF Downloaded",
                         description: `Your cover letter "${letter.name}" has been saved as a PDF.`
@@ -509,20 +509,20 @@ export default function CoverLetter() {
     };
     // Handle PDF downloads for any cover letter content
     const handleDownloadPDF = (elementId) => {
-        console.log(`Handling PDF download for: ${elementId}`);
+
         // For cover letter card buttons - extract the letter ID and use it for direct export
         if (elementId.startsWith("previewLetter-")) {
             const letterId = parseInt(elementId.replace("previewLetter-", ""), 10);
-            console.log(`Looking for cover letter with ID: ${letterId}`);
+
             // Find the letter in the cover letters array
             const letterToExport = coverLetters.find((letter) => letter.id === letterId);
             if (letterToExport) {
-                console.log("Found letter to export, setting as preview letter");
+
                 // Set the preview letter so our export function can access it
                 setPreviewLetter(letterToExport);
                 // Use setTimeout to ensure state is updated before exporting
                 setTimeout(() => {
-                    console.log("Exporting preview letter to PDF");
+
                     exportCoverLetterToPDF();
                 }, 50);
                 return;
@@ -569,7 +569,7 @@ export default function CoverLetter() {
         const linkedInUrl = careerData?.linkedInUrl;
         // Store the LinkedIn URL separately for the preview dialog
         if (linkedInUrl) {
-            console.log("Found LinkedIn URL:", linkedInUrl);
+
             window.linkedInProfile = linkedInUrl;
         }
         else {
@@ -800,7 +800,7 @@ export default function CoverLetter() {
                     })
                 });
                 if (!response.ok) {
-                    console.warn("Enhanced API cleaning failed, falling back to basic cleaning");
+
                     // Fall back to simpler endpoint if the enhanced one fails
                     const fallbackResponse = await fetch("/api/strip-optimized-cover-letter", {
                         method: "POST",
@@ -815,7 +815,7 @@ export default function CoverLetter() {
                         const fallbackData = await fallbackResponse.json();
                         if (fallbackData.cleanedLetterBody) {
                             cleanedContent = fallbackData.cleanedLetterBody;
-                            console.log("Successfully cleaned letter with fallback API");
+
                         }
                     }
                 }
@@ -826,17 +826,17 @@ export default function CoverLetter() {
                         const data = JSON.parse(responseText);
                         if (data.cleanedFinalBody) {
                             cleanedContent = data.cleanedFinalBody;
-                            console.log("Successfully cleaned letter with enhanced API cleaning");
+
                         }
                         else if (data.cleanedLetterBody) {
                             // For backward compatibility
                             cleanedContent = data.cleanedLetterBody;
-                            console.log("Successfully cleaned letter with basic API cleaning");
+
                         }
                     }
                     catch (parseError) {
                         console.error("Error parsing API response:", parseError);
-                        console.log("Response was:", responseText);
+
                         // Continue with the process using original content
                     }
                 }
@@ -945,7 +945,7 @@ export default function CoverLetter() {
                 });
                 return;
             }
-            console.log("Creating PDF with text content:", letterBody.substring(0, 100) + "...");
+
             // Create PDF document directly with jsPDF
             const doc = new jsPDF({
                 orientation: "portrait",

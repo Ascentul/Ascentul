@@ -28,10 +28,10 @@ export function UserProvider({ children }) {
             // First check if we have a Supabase session
             const { data: authSession } = await supabaseClient.auth.getSession();
             if (!authSession.session) {
-                console.log("No Supabase session found");
+
                 return null;
             }
-            console.log("Found Supabase session for user:", authSession.session.user.email);
+
             // Try the API endpoint with the Supabase token
             const token = authSession.session.access_token;
             const apiResponse = await fetch("/api/users/me", {
@@ -43,12 +43,11 @@ export function UserProvider({ children }) {
             });
             if (apiResponse.ok) {
                 const userData = await apiResponse.json();
-                console.log("Successfully fetched user data from API:", userData.name);
-                console.log("API userData userType:", userData.userType, "role:", userData.role);
+
                 return userData;
             }
             // If API fails, try getting user directly from Supabase
-            console.log("API request failed, trying Supabase directly");
+
             const { data: authUser } = await supabaseClient.auth.getUser(token);
             if (!authUser.user) {
                 return null;
@@ -63,8 +62,7 @@ export function UserProvider({ children }) {
                 console.error("Error fetching user data from Supabase:", error);
                 return null;
             }
-            console.log("Successfully fetched user data from Supabase:", userData.name);
-            console.log("Supabase userData user_type:", userData.user_type, "role:", userData.role);
+
             // Map Supabase user to our User interface
             return {
                 id: userData.id,
@@ -166,7 +164,7 @@ export function UserProvider({ children }) {
             setIsAuthenticated(true);
             // Force redirect using server-sent redirectPath
             if (redirectPath) {
-                console.log("Redirecting to", redirectPath);
+
                 window.location.href = redirectPath;
             }
         }
@@ -184,7 +182,7 @@ export function UserProvider({ children }) {
     };
     // Function to clear all cached user data and force fresh fetch
     const clearUserCache = () => {
-        console.log("Clearing user cache and forcing fresh fetch...");
+
         // Clear React Query cache for user data
         queryClient.removeQueries({ queryKey: ["/api/users/me"] });
         queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
@@ -195,7 +193,7 @@ export function UserProvider({ children }) {
     };
     const logout = async () => {
         try {
-            console.log("Starting logout process...");
+
             // Sign out from Supabase
             await supabaseClient.auth.signOut();
             // Try the API logout as well for compatibility
@@ -203,7 +201,7 @@ export function UserProvider({ children }) {
                 await apiRequest("POST", "/api/auth/logout");
             }
             catch (error) {
-                console.warn("API logout failed, but Supabase logout succeeded");
+
             }
             // Clear all localStorage items that might contain auth data
             localStorage.clear();
@@ -214,7 +212,7 @@ export function UserProvider({ children }) {
             queryClient.setQueryData(["/api/users/me"], null);
             queryClient.removeQueries({ queryKey: ["/api/users/me"] });
             setIsAuthenticated(false);
-            console.log("Logout completed, redirecting to sign-in...");
+
             // Force a hard redirect to completely reset the app state
             window.location.href = "/sign-in";
         }
@@ -238,13 +236,13 @@ export function UserProvider({ children }) {
     };
     // Debug function to force clear all auth state (useful for development)
     const forceLogout = async () => {
-        console.log("Force clearing all authentication state...");
+
         // Sign out from Supabase without waiting
         try {
             await supabaseClient.auth.signOut();
         }
         catch (e) {
-            console.warn("Supabase signOut failed:", e);
+
         }
         // Clear all storage
         localStorage.clear();
@@ -350,7 +348,7 @@ export function UserProvider({ children }) {
         // Add a timestamp to force cache refresh if this is a profile image update
         if (data.profileImage) {
             data.profileImage = `${data.profileImage}?t=${new Date().getTime()}`;
-            console.log("Setting profile image with timestamp:", data.profileImage);
+
         }
         return updateProfileMutation.mutateAsync(data);
     };
@@ -368,7 +366,7 @@ export function UserProvider({ children }) {
             else {
                 updatedData.profileImage = `${updatedData.profileImage}?t=${new Date().getTime()}`;
             }
-            console.log("updateUser setting image with timestamp:", updatedData.profileImage);
+
         }
         queryClient.setQueryData(["/api/users/me"], { ...user, ...updatedData });
     };
@@ -408,7 +406,7 @@ export function UserProvider({ children }) {
         if (!user)
             throw new Error("User not authenticated");
         try {
-            console.log("Starting profile image save process...");
+
             // Try uploading to Supabase storage first
             try {
                 const { data: authUser } = await supabaseClient.auth.getUser();
@@ -518,7 +516,7 @@ export function UserProvider({ children }) {
             // Step 4: Manually trigger refetch to ensure consistency
             queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
             // Log success
-            console.log("Image uploaded and profile updated successfully:", updatedUser);
+
             return updatedUser;
         }
         catch (error) {

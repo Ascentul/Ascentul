@@ -36,22 +36,22 @@ const HorizontalTimelineSection = ({ processes, onEditProcess }) => {
     const { data: allStages, isLoading, refetch: refetchAllStages } = useQuery({
         queryKey: ['/api/interview/stages'],
         queryFn: async () => {
-            console.log('Loading interview stages from localStorage...');
+
             try {
                 // Use our improved utility function to load all stages from all sources
                 const stagesMap = loadAllInterviewStages();
                 // Log summary info for debugging
                 const applications = Object.keys(stagesMap);
-                console.log(`Found ${applications.length} applications with interviews to display`);
+
                 // Log details about each application's stages
                 for (const appId of applications) {
                     const numericAppId = Number(appId);
                     const stages = stagesMap[numericAppId];
                     const app = stages[0]; // Get the first stage which has company info attached
                     // Log each application's stages
-                    console.log(`Application ${appId} (${app?.companyName || 'Unknown'}): found ${stages.length} stages`);
+
                 }
-                console.log('Combined timeline stages:', stagesMap);
+
                 return stagesMap;
             }
             catch (error) {
@@ -68,7 +68,7 @@ const HorizontalTimelineSection = ({ processes, onEditProcess }) => {
     useEffect(() => {
         // Event handler for any interview data change
         const handleInterviewDataChanged = () => {
-            console.log('Interview data changed event received, refreshing stages');
+
             refetchAllStages();
         };
         // Listen to all our custom events from interview-utils.ts
@@ -79,7 +79,7 @@ const HorizontalTimelineSection = ({ processes, onEditProcess }) => {
         window.addEventListener('storage', (event) => {
             if (event.key && (event.key.startsWith(MOCK_STAGES_PREFIX) ||
                 event.key.startsWith(MOCK_INTERVIEW_STAGES_PREFIX))) {
-                console.log('Storage event detected for interview stages, refreshing');
+
                 refetchAllStages();
             }
         });
@@ -126,17 +126,17 @@ const HorizontalTimelineSection = ({ processes, onEditProcess }) => {
         const applicationId = processId;
         setSelectedProcessId(processId);
         setSelectedStageId(stageId);
-        console.log(`Stage clicked: Application ${applicationId}, Stage ${stageId}`);
+
         // Find the selected stage - using the application ID to look up in our stored stages
         const stage = allStages && allStages[applicationId]?.find(s => s.id === stageId);
         if (stage) {
-            console.log("Found stage for viewing/editing:", stage);
+
             setSelectedStage(stage);
             setIsStageDialogOpen(true);
         }
         else {
             console.error(`Stage not found: Application ${applicationId}, Stage ${stageId}`);
-            console.log("Available stages:", allStages && allStages[applicationId]);
+
         }
     };
     // Handle saving changes to a stage
@@ -182,15 +182,7 @@ const HorizontalTimelineSection = ({ processes, onEditProcess }) => {
             }
         });
     }
-    console.log("Timeline Debug:", {
-        isLoading,
-        hasProcesses,
-        hasStages,
-        stagesCount,
-        adaptedProcesses: generatedProcesses.length,
-        stageKeys: hasStages ? Object.keys(allStages) : [],
-        allStagesData: allStages
-    });
+
     return (_jsxs("div", { className: "space-y-6", children: [_jsx("div", { className: "p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-800 mb-3", children: _jsxs("p", { children: [_jsx("strong", { children: "Debug Info:" }), " Loading: ", isLoading ? 'Yes' : 'No', " | Applications with interviews: ", hasStages ? Object.keys(allStages).length : 0, " | Generated processes: ", generatedProcesses.length, " | Total stages: ", stagesCount] }) }), isLoading ? (_jsx(LoadingState, { message: "Loading interview stages...", size: "md", variant: "card", className: "w-full p-6 rounded-lg" })) : !hasStages || stagesCount === 0 ? (
             // Show if we have no stages
             _jsxs("div", { className: "text-center p-8 border rounded-lg bg-muted/30", children: [_jsx("h3", { className: "text-lg font-medium mb-2", children: "No interview stages found" }), _jsx("p", { className: "text-muted-foreground mb-4", children: "Add interview stages to your applications to track your interview progress." })] })) : hasStages && stagesCount > 0 ? (
@@ -273,16 +265,16 @@ const Interview = () => {
                             ...serverApps,
                             ...mockApplications.filter((app) => !existingIds.has(app.id))
                         ];
-                        console.log('Combined applications:', mergedApps);
+
                         return mergedApps;
                     }
                     return Array.isArray(response) ? response : [];
                 }
                 catch (serverError) {
                     // If server request fails, fall back to the localStorage applications
-                    console.log('Using mock job applications from localStorage due to server error');
+
                     if (mockApplications.length > 0) {
-                        console.log('Retrieved applications from localStorage:', mockApplications);
+
                         return mockApplications;
                     }
                     throw serverError; // Re-throw if no localStorage data available
@@ -313,7 +305,7 @@ const Interview = () => {
                     updatedAt: new Date().toISOString()
                 };
                 localStorage.setItem('mockJobApplications', JSON.stringify(mockApplications));
-                console.log(`Application ${applicationId} updated in localStorage:`, updates);
+
                 // Force refresh the applications query
                 queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
                 return true;
@@ -327,19 +319,17 @@ const Interview = () => {
     }, [queryClient]);
     // Get selected application details
     const selectedApplication = applications?.find(a => a.id === selectedApplicationId) || null;
-    console.log("Selected application ID:", selectedApplicationId);
-    console.log("Selected application:", selectedApplication);
-    console.log("Available applications:", applications);
+
     // Disable automatic refreshing if an application is selected
     const shouldAutoRefresh = selectedApplicationId === null;
     // Refresh the applications list when the page loads and periodically
     useEffect(() => {
         // Function to refresh applications that maintains selection
         const refreshApplications = async () => {
-            console.log('Refreshing applications list...');
+
             // If we have a selected application, skip refresh to prevent losing selection
             if (!shouldAutoRefresh) {
-                console.log('Application selected, skipping auto-refresh to maintain selection');
+
                 return;
             }
             // Refetch the applications
@@ -357,7 +347,7 @@ const Interview = () => {
         // Set up focus-based refresh
         const handleFocus = () => {
             if (shouldAutoRefresh) {
-                console.log('Window gained focus, refreshing applications...');
+
                 refreshApplications();
             }
         };
@@ -428,7 +418,7 @@ const Interview = () => {
     const handleViewProcess = (processId) => {
         // In our adapter, processId is actually applicationId
         const applicationId = processId;
-        console.log(`View application request for process/application ID: ${applicationId}`);
+
         // Set the selected application ID
         setSelectedApplicationId(applicationId);
         // Switch to applications tab to show details
@@ -444,13 +434,13 @@ const Interview = () => {
     const renderApplicationCard = (application, index) => {
         // Create a function that captures the application ID in a closure
         const handleCardClick = () => {
-            console.log("Card clicked, setting selectedApplicationId to:", application.id);
+
             // Explicitly disable auto-refresh before setting ID
             setSelectedApplicationId(application.id);
             // Verify the selection happened
-            console.log("Selection should now be:", application.id);
+
             setTimeout(() => {
-                console.log("After setState, selectedApplicationId is now:", selectedApplicationId);
+
             }, 10);
         };
         return (_jsx(motion.div, { variants: listItem, initial: "hidden", animate: "visible", className: "md:w-full", children: _jsx(ApplicationCard, { application: application, isSelected: selectedApplicationId === application.id, onClick: handleCardClick, onEditSuccess: () => queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] }) }) }, application.id));
@@ -471,7 +461,7 @@ const Interview = () => {
                                                                             .filter(app => app.status === 'Offer' ||
                                                                             app.status === 'Rejected')
                                                                             .map((app, index) => renderApplicationCard(app, index)) })) : (_jsx("p", { className: "text-muted-foreground text-center py-6", children: "No completed applications" }))] })] }) }), selectedApplication && (_jsx("div", { className: "md:col-span-4", children: _jsx(motion.div, { variants: fadeIn, className: "w-full h-full", initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 20 }, transition: { duration: 0.3 }, children: _jsx(ApplicationDetails, { application: selectedApplication, onClose: () => setSelectedApplicationId(null), onDelete: () => setSelectedApplicationId(null), onStatusChange: (applicationId, newStatus) => {
-                                                                console.log(`Status change handler called for application ${applicationId} to status ${newStatus}`);
+
                                                                 // Update the application status in localStorage
                                                                 syncApplicationToLocalStorage(applicationId, { status: newStatus });
                                                             } }) }) }))] })) : (_jsx(motion.div, { variants: fadeIn, className: "text-center py-8", children: _jsxs("div", { className: "mx-auto flex flex-col items-center justify-center space-y-4", children: [_jsx("div", { className: "rounded-full bg-muted p-3", children: _jsx(Briefcase, { className: "h-8 w-8 text-muted-foreground" }) }), _jsxs("div", { className: "space-y-2", children: [_jsx("h3", { className: "text-xl font-semibold tracking-tight", children: "No applications yet" }), _jsx("p", { className: "text-muted-foreground max-w-md mx-auto", children: "Get started by creating your first job application or searching for jobs." })] }), _jsxs("div", { className: "flex flex-col sm:flex-row gap-2", children: [_jsxs(Button, { onClick: () => setShowApplyWizard(true), children: [_jsx(Plus, { className: "h-4 w-4 mr-2" }), "Add Application"] }), _jsxs(Button, { variant: "outline", onClick: () => setActiveTab('job_search'), children: [_jsx(Search, { className: "h-4 w-4 mr-2" }), "Search for Jobs"] })] })] }) })) })), activeTab === 'practice' && (_jsxs(motion.div, { variants: fadeIn, className: "space-y-6", children: [_jsxs("div", { className: "space-y-2", children: [_jsx("h3", { className: "font-medium", children: "Select an Application" }), _jsx("p", { className: "text-sm text-muted-foreground", children: "Choose a job application to practice for. We'll generate relevant interview questions based on the job description." }), isLoadingProcesses ? (_jsx("div", { className: "py-4", children: _jsx(LoadingState, { message: "Loading practice interviews...", size: "sm", variant: "card", mascotAction: "thinking", className: "w-full rounded-lg" }) })) : processes && processes.length > 0 ? (_jsxs(motion.div, { variants: listContainer, initial: "hidden", animate: "visible", className: "space-y-6 mt-4", children: [_jsxs("div", { className: "space-y-3", children: [_jsxs("h3", { className: "font-medium flex items-center text-sm", children: [_jsx(Briefcase, { className: "h-4 w-4 mr-2" }), "Active Applications"] }), activeProcesses.length > 0 ? (_jsx("div", { className: "space-y-3", children: activeProcesses.map((process, index) => (_jsx(motion.div, { variants: listItem, children: _jsxs(Card, { className: `cursor-pointer transition-colors hover:bg-accent/50 ${process.status === 'Not Selected' ? 'bg-red-100/70' : process.status === 'Hired' ? 'bg-green-100/70' : ''}`, onClick: () => setSelectedProcessId(process.id), children: [_jsxs(CardHeader, { className: "p-4 pb-2", children: [_jsxs("div", { className: "flex justify-between items-start", children: [_jsx(CardTitle, { className: "text-base", children: process.companyName }), _jsx(InterviewProcessStatusBadge, { status: process.status })] }), _jsx(CardDescription, { children: process.position })] }), _jsx(CardContent, { className: "p-4 pt-0", children: _jsxs("div", { className: "flex justify-between items-center", children: [_jsxs("div", { className: "flex items-center text-sm text-muted-foreground", children: [_jsx(CalendarDays, { className: "h-3 w-3 mr-1" }), new Date(process.createdAt).toLocaleDateString()] }), _jsx(Button, { size: "sm", onClick: (e) => {

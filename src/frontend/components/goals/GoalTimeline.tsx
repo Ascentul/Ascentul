@@ -123,10 +123,7 @@ const GoalTimeline = ({ goals, className }: GoalTimelineProps) => {
                       <span>Created: {format(new Date(goal.createdAt), 'MMM d, yyyy')}</span>
                     </div>
                   )}
-                  
-                  
-                  
-                  
+
                 </div>
               </div>
               

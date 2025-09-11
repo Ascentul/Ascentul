@@ -13,7 +13,7 @@ export function PendingTasksProvider({ children }) {
             if (storedCount) {
                 const count = parseInt(storedCount, 10);
                 if (!isNaN(count)) {
-                    console.log(`Initialized pending followup count from localStorage: ${count}`);
+
                     return count;
                 }
             }
@@ -66,7 +66,7 @@ export function PendingTasksProvider({ children }) {
                 console.error("Error parsing applications from localStorage:", appParseError);
             }
             const combinedCount = contactFollowupCount + appFollowupCount;
-            console.log(`Combined ${appFollowupCount} application followups and ${contactFollowupCount} contact followups`);
+
             // Update the state with combined count
             setPendingFollowupCount(combinedCount);
             // Save this value to localStorage so it persists across page reloads
@@ -91,7 +91,7 @@ export function PendingTasksProvider({ children }) {
                 }
                 const apiApplications = await response.json();
                 if (Array.isArray(apiApplications) && apiApplications.length > 0) {
-                    console.log(`Found ${apiApplications.length} applications from API`);
+
                     // Get API counts for each application
                     let apiAppCount = 0;
                     const apiPromises = apiApplications.map(async (app) => {
@@ -138,9 +138,9 @@ export function PendingTasksProvider({ children }) {
                     apiAppCount = appCountsArray.reduce((sum, count) => sum + count, 0);
                     // If API application count differs from localStorage count, update the total
                     if (apiAppCount !== appFollowupCount) {
-                        console.log(`API app count (${apiAppCount}) differs from localStorage app count (${appFollowupCount}), updating...`);
+
                         const updatedCombinedCount = apiAppCount + contactFollowupCount;
-                        console.log(`Combined ${apiAppCount} application followups and ${contactFollowupCount} contact followups`);
+
                         setPendingFollowupCount(updatedCombinedCount);
                         localStorage.setItem("pendingFollowupCount", String(updatedCombinedCount));
                         return updatedCombinedCount;
@@ -174,12 +174,12 @@ export function PendingTasksProvider({ children }) {
                     if (isCompleted) {
                         // Task being marked as completed - decrement count
                         setPendingFollowupCount((prev) => Math.max(0, prev - 1));
-                        console.log(`Task ${followupId} marked as completed. Pending count decreased.`);
+
                     }
                     else {
                         // Task being marked as pending - increment count
                         setPendingFollowupCount((prev) => prev + 1);
-                        console.log(`Task ${followupId} marked as pending. Pending count increased.`);
+
                     }
                     // Update the followup in localStorage
                     followups[followupIndex] = {

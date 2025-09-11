@@ -53,12 +53,7 @@ if (root) {
         </SupabaseAuthProvider>
       </QueryClientProvider>
     )
-    console.log("✅ SUCCESS: Real App component mounted with all providers!")
-  } catch (error) {
-    console.error(
-      "❌ FOUND THE ISSUE: App component is causing the crash:",
-      error
-    )
+
     root.innerHTML = `
       <div style="padding: 20px; font-family: monospace; background: #fee; border: 2px solid #fcc;">
         <h1>🎯 FOUND THE ISSUE: App Component Error</h1>

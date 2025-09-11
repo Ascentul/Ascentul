@@ -13,7 +13,7 @@ class SupabaseSessionStore extends session.Store {
                 .eq("sid", sid)
                 .single();
             if (error) {
-                console.warn(`Session retrieval error for sid ${sid}:`, error);
+
                 // Don't fail the operation, just return null session
                 return callback(null, null);
             }
@@ -45,7 +45,7 @@ class SupabaseSessionStore extends session.Store {
                 onConflict: "sid"
             });
             if (error) {
-                console.warn(`Session storage error for sid ${sid}:`, error);
+
                 // In development, don't fail if we can't store the session
                 if (ENV.NODE_ENV === "development" && callback) {
                     callback();
@@ -71,7 +71,7 @@ class SupabaseSessionStore extends session.Store {
         try {
             const { error } = await supabase.from("sessions").delete().eq("sid", sid);
             if (error) {
-                console.warn(`Session deletion error for sid ${sid}:`, error);
+
                 // In development, don't fail if we can't delete the session
                 if (ENV.NODE_ENV === "development" && callback) {
                     callback();
@@ -147,13 +147,13 @@ let sessionStore;
 // For development mode, use the lightweight in-memory store by default
 if (ENV.NODE_ENV === "development") {
     sessionStore = new SimpleMemoryStore();
-    console.log("✅ Using lightweight in-memory session store for development");
+
 }
 else if (ENV.SUPABASE_URL && ENV.SUPABASE_ANON_KEY) {
     try {
         // Use Supabase session store
         sessionStore = new SupabaseSessionStore();
-        console.log("✅ Using Supabase for session storage");
+
     }
     catch (error) {
         console.error("❌ Failed to create Supabase session store:", error);
@@ -166,7 +166,7 @@ else if (ENV.SUPABASE_URL && ENV.SUPABASE_ANON_KEY) {
                     tableName: "session",
                     createTableIfMissing: true
                 });
-                console.log("✅ Fallback: Using PostgreSQL for session storage");
+
             }
             catch (pgError) {
                 console.error("❌ Failed to create PostgreSQL session store:", pgError);
@@ -188,7 +188,7 @@ else if (ENV.DATABASE_URL && pool) {
             tableName: "session", // Default is "session"
             createTableIfMissing: true // Automatically create the session table
         });
-        console.log("✅ Using PostgreSQL for session storage");
+
     }
     catch (error) {
         console.error("❌ Failed to create PostgreSQL session store:", error);
@@ -196,11 +196,11 @@ else if (ENV.DATABASE_URL && pool) {
     }
 }
 else {
-    console.log("⚠️ No database configuration found");
+
     sessionStore = fallbackToMemoryStore();
 }
 function fallbackToMemoryStore() {
-    console.log("⚠️ FALLING BACK to in-memory session store. Sessions will be lost on server restart!");
+
     const MemoryStore = createMemoryStore(session);
     return new MemoryStore({
         checkPeriod: 86400000 // prune expired entries every 24h

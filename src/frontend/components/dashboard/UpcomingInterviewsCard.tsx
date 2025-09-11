@@ -52,7 +52,6 @@ export function UpcomingInterviewsCard() {
         keys.push(key);
       }
     }
-    console.log("All interview stage localStorage keys:", keys);
 
     // Process each key to fix any interviews with missing scheduled dates
     keys.forEach(key => {
@@ -65,8 +64,6 @@ export function UpcomingInterviewsCard() {
           if ((stage.status === 'scheduled' || stage.status === 'pending' || 
                stage.outcome === 'scheduled' || stage.outcome === 'pending') && 
               !stage.scheduledDate) {
-
-            console.log(`Fixing stage ${stage.id} in ${key} - adding scheduled date`);
 
             // Add a scheduled date (7 days from now)
             const defaultDate = new Date();
@@ -84,7 +81,7 @@ export function UpcomingInterviewsCard() {
 
         // Save back if changes were made
         if (hasChanges) {
-          console.log(`Saving fixed stages back to ${key}`);
+
           localStorage.setItem(key, JSON.stringify(stages));
         }
       } catch (error) {
@@ -152,7 +149,6 @@ export function UpcomingInterviewsCard() {
 
     // Filter applications with status "Interviewing"
     const interviewingApps = applications.filter(app => app.status === 'Interviewing');
-    console.log("Interviewing applications:", interviewingApps.map(app => ({id: app.id, company: app.company || app.companyName})));
 
     // Load all interview stages from both localStorage key patterns
     let allStages: any[] = [];
@@ -160,8 +156,6 @@ export function UpcomingInterviewsCard() {
     // DEBUG: Log all localStorage keys to help diagnose the issue
     const allKeys: string[] = [];
     let totalInterviewStages = 0;
-
-    console.log("===== DEBUGGING INTERVIEW COUNT ISSUE =====");
 
     // First pass - collect all keys for interview stages
     const stageKeys: string[] = [];
@@ -179,14 +173,12 @@ export function UpcomingInterviewsCard() {
               const stages = JSON.parse(data);
               if (Array.isArray(stages)) {
                 totalInterviewStages += stages.length;
-                console.log(`Key ${key}: ${stages.length} stages`);
 
                 // Print details of each stage
                 stages.forEach((stage, idx) => {
                   const date = stage.scheduledDate ? new Date(stage.scheduledDate) : null;
                   const isInFuture = date ? date > new Date() : false;
 
-                  console.log(`  Stage ${idx+1}: ID=${stage.id}, status=${stage.status}, outcome=${stage.outcome}, date=${stage.scheduledDate}, in future=${isInFuture}`);
                 });
               }
             }
@@ -196,10 +188,6 @@ export function UpcomingInterviewsCard() {
         }
       }
     }
-
-    console.log(`Found ${stageKeys.length} stage keys and ${totalInterviewStages} total interview stages`);
-    console.log(`All localStorage keys: ${allKeys.join(", ")}`);
-    console.log("========================================");
 
     // Second pass - process all keys, now including all applications (not just interviewing)
     // This ensures we find all interviews even if application status is inconsistent

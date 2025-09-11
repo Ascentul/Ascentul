@@ -35,10 +35,10 @@ export default function StaffLayout({ children }) {
         user.role === 'super_admin' ||
         user.userType === 'staff' ||
         user.userType === 'admin')) {
-        console.log("StaffLayout access denied - redirecting. User role:", user?.role, "User type:", user?.userType);
+
         return (_jsxs("div", { className: "flex flex-col items-center justify-center h-screen", children: [_jsx("h1", { className: "text-2xl font-bold mb-4", children: "Access Denied" }), _jsx("p", { className: "mb-4", children: "You don't have permission to access the staff portal." }), _jsx(Button, { onClick: () => window.location.href = '/sign-in', children: "Return to Login" })] }));
     }
-    console.log("StaffLayout access granted for user with role:", user?.role, "type:", user?.userType);
+
     return (_jsxs("div", { className: "flex h-screen bg-gray-50", children: [_jsx("div", { className: "lg:hidden fixed top-4 left-4 z-50", children: _jsx(Button, { variant: "outline", size: "icon", onClick: () => setIsSidebarOpen(!isSidebarOpen), className: "bg-white shadow-md", children: isSidebarOpen ? _jsx(X, { size: 20 }) : _jsx(Menu, { size: 20 }) }) }), _jsxs("aside", { className: `fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:relative lg:flex w-64 flex-col bg-white border-r border-gray-200 transition-transform duration-200 ease-in-out z-40`, children: [_jsx("div", { className: "flex items-center justify-center h-16 px-4 border-b border-gray-200", children: _jsxs(Link, { href: "/staff", className: "flex items-center space-x-2", children: [_jsx("svg", { viewBox: "0 0 24 24", className: "h-8 w-8 text-primary", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: _jsx("path", { d: "M22 12h-4l-3 9L9 3l-3 9H2" }) }), _jsx("span", { className: "text-xl font-bold", children: "Staff Portal" })] }) }), _jsx("div", { className: "flex-1 overflow-y-auto py-4", children: _jsx("nav", { className: "px-2 space-y-1", children: navigationItems.map((item) => {
                                 const isActive = location === item.href;
                                 return (_jsx(Link, { href: item.href, className: `flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive

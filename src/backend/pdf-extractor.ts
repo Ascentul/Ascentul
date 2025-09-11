@@ -33,19 +33,17 @@ export async function extractTextFromPdf(
     
     // Read the file as a Uint8Array
     const fileBuffer = new Uint8Array(fs.readFileSync(fullPath));
-    console.log(`Read PDF file: ${fullPath} (${fileBuffer.length} bytes)`);
 
     // Get PDF document from data
     const pdf = await pdfjs.getDocument({ data: fileBuffer }).promise;
     const numPages = pdf.numPages;
-    console.log(`PDF has ${numPages} pages`);
 
     // Process pages (limit to maxPages)
     const pagesToProcess = Math.min(numPages, maxPages);
     let extractedText = '';
 
     for (let i = 1; i <= pagesToProcess; i++) {
-      console.log(`Processing page ${i}/${pagesToProcess}`);
+
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       

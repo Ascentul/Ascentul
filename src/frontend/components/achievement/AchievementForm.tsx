@@ -299,8 +299,6 @@ export function AchievementForm({
             )}
           />
 
-          
-
           <FormField
             control={form.control}
             name="proofUrl"

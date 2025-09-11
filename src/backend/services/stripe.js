@@ -7,7 +7,7 @@ const stripeKey = process.env.STRIPE_SECRET_KEY;
 let useMockStripe = false;
 let stripe;
 if (!stripeKey) {
-    console.warn('STRIPE_SECRET_KEY is not set. Using mock Stripe mode.');
+
     useMockStripe = true;
     // Create a mock Stripe instance that will use the mock methods
     stripe = {
@@ -27,7 +27,7 @@ else {
 }
 // Mock method for Stripe operations in development
 function mockMethod(params) {
-    console.log('Mock Stripe method called with params:', params);
+
     return Promise.resolve({
         id: `mock_${Math.random().toString(36).substring(2, 15)}`,
         client_secret: `mock_secret_${Math.random().toString(36).substring(2, 15)}`,
@@ -103,7 +103,7 @@ export async function createOrRetrieveCustomer(userId, email, name) {
     if (user?.stripeCustomerId) {
         // Check if this is a mock customer ID (for demo purposes)
         if (user.stripeCustomerId.startsWith('cus_mock')) {
-            console.log('Using mock customer ID:', user.stripeCustomerId);
+
             return user.stripeCustomerId;
         }
         // Retrieve existing customer
@@ -160,7 +160,7 @@ export async function createSubscription(data) {
         // Check if this is a mock customer ID (for demo purposes)
         const isMockCustomer = customerId.startsWith('cus_mock');
         if (isMockCustomer) {
-            console.log('Using mock subscription flow for customer:', customerId);
+
             // Generate mock subscription ID and client secret for demo
             const mockSubscriptionId = 'sub_mock_' + Math.random().toString(36).substr(2, 9);
             const mockClientSecret = 'pi_mock_secret_' + Math.random().toString(36).substr(2, 9);

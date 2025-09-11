@@ -169,7 +169,7 @@ export class MemStorage {
         // No initial work history - users should enter their own work history
         const sampleWorkHistory = [];
         // Skip adding sample work history records as per requirements
-        console.log(`No default work history items initialized - users will add their own data`);
+
         // Initialize sample education history for alex (user id 1)
         const sampleEducation = [
             {
@@ -510,7 +510,7 @@ export class MemStorage {
         // Force statistics cache refresh when creating a new goal
         const userStatsCacheKey = `user-stats-${userId}`;
         this.cache.delete(userStatsCacheKey);
-        console.log(`Deleted stats cache for user ${userId} on goal creation`);
+
         return goal;
     }
     async updateGoal(id, goalData) {
@@ -532,7 +532,7 @@ export class MemStorage {
             // Force statistics cache refresh when completing a goal
             const userStatsCacheKey = `user-stats-${goal.userId}`;
             this.cache.delete(userStatsCacheKey);
-            console.log(`Deleted stats cache for user ${goal.userId} on goal completion`);
+
         }
         // Also check if the status is being set to 'completed' directly
         if (goalData.status === "completed" && !updatedGoal.completed) {
@@ -540,7 +540,7 @@ export class MemStorage {
             // Force statistics cache refresh when marking a goal as completed
             const userStatsCacheKey = `user-stats-${goal.userId}`;
             this.cache.delete(userStatsCacheKey);
-            console.log(`Deleted stats cache for user ${goal.userId} on status change to completed`);
+
             updatedGoal.completedAt = updatedGoal.completedAt || new Date();
             updatedGoal.progress = 100;
         }
@@ -560,7 +560,7 @@ export class MemStorage {
         if (result) {
             const userStatsCacheKey = `user-stats-${userId}`;
             this.cache.delete(userStatsCacheKey);
-            console.log(`Deleted stats cache for user ${userId} on goal deletion`);
+
         }
         return result;
     }
@@ -588,7 +588,7 @@ export class MemStorage {
         // Invalidate the role insights cache for this user
         const roleInsightsCacheKey = `role_insights_${userId}`;
         await this.deleteCachedData(roleInsightsCacheKey);
-        console.log(`Invalidated role insights cache for user ${userId} on work history creation`);
+
         return workHistoryItem;
     }
     async updateWorkHistoryItem(id, itemData) {
@@ -600,7 +600,7 @@ export class MemStorage {
         // Invalidate the role insights cache for this user
         const roleInsightsCacheKey = `role_insights_${item.userId}`;
         await this.deleteCachedData(roleInsightsCacheKey);
-        console.log(`Invalidated role insights cache for user ${item.userId} on work history update`);
+
         return updatedItem;
     }
     async deleteWorkHistoryItem(id) {
@@ -614,7 +614,7 @@ export class MemStorage {
         if (result) {
             const roleInsightsCacheKey = `role_insights_${item.userId}`;
             await this.deleteCachedData(roleInsightsCacheKey);
-            console.log(`Invalidated role insights cache for user ${item.userId} on work history deletion`);
+
         }
         return result;
     }
@@ -628,14 +628,13 @@ export class MemStorage {
         return this.educationHistory.get(id);
     }
     async createEducationHistoryItem(userId, item) {
-        console.log("Creating education history item with data:", JSON.stringify(item, null, 2));
-        console.log("User ID:", userId);
+
         // Fix for missing achievements array
         if (!item.achievements) {
             item.achievements = [];
         }
         else if (!Array.isArray(item.achievements)) {
-            console.log("Fixing non-array achievements:", item.achievements);
+
             item.achievements = Array.isArray(item.achievements)
                 ? item.achievements
                 : [item.achievements];
@@ -646,33 +645,22 @@ export class MemStorage {
         item.gpa = item.gpa || null;
         const id = this.educationHistoryIdCounter++;
         const now = new Date();
-        console.log("Creating education history with processed data:", {
-            id,
-            userId,
-            institution: item.institution,
-            degree: item.degree,
-            fieldOfStudy: item.fieldOfStudy,
-            achievements: item.achievements,
-            current: item.current,
-            description: item.description,
-            location: item.location,
-            gpa: item.gpa
-        });
+
         const educationHistoryItem = {
             ...item,
             id,
             userId,
             createdAt: now
         };
-        console.log("Final education item before storage:", JSON.stringify(educationHistoryItem, null, 2));
+
         this.educationHistory.set(id, educationHistoryItem);
-        console.log(`Education item with ID ${id} saved successfully`);
+
         // Award XP for adding education history
         await this.addUserXP(userId, 75, "education_history_added", "Added education");
         // Invalidate the role insights cache for this user
         const roleInsightsCacheKey = `role_insights_${userId}`;
         await this.deleteCachedData(roleInsightsCacheKey);
-        console.log(`Invalidated role insights cache for user ${userId} on education history creation`);
+
         return educationHistoryItem;
     }
     async updateEducationHistoryItem(id, itemData) {
@@ -684,7 +672,7 @@ export class MemStorage {
         // Invalidate the role insights cache for this user
         const roleInsightsCacheKey = `role_insights_${item.userId}`;
         await this.deleteCachedData(roleInsightsCacheKey);
-        console.log(`Invalidated role insights cache for user ${item.userId} on education history update`);
+
         return updatedItem;
     }
     async deleteEducationHistoryItem(id) {
@@ -698,7 +686,7 @@ export class MemStorage {
         if (result) {
             const roleInsightsCacheKey = `role_insights_${item.userId}`;
             await this.deleteCachedData(roleInsightsCacheKey);
-            console.log(`Invalidated role insights cache for user ${item.userId} on education history deletion`);
+
         }
         return result;
     }
@@ -1187,10 +1175,10 @@ export class MemStorage {
         // Check if cached stats are available
         const cachedStats = this.cache.get(cacheKey);
         if (cachedStats) {
-            console.log(`Using cached statistics for user ${userId}`);
+
             return cachedStats;
         }
-        console.log(`Calculating new statistics for user ${userId}`);
+
         const user = await this.getUser(userId);
         if (!user)
             throw new Error("User not found");
@@ -1199,17 +1187,12 @@ export class MemStorage {
             user.userType === "university_admin";
         const goals = await this.getGoals(userId);
         // Count goals that are in_progress and not completed, or have another active status
-        console.log("All goals for user:", JSON.stringify(goals.map((g) => ({
-            id: g.id,
-            title: g.title,
-            status: g.status,
-            completed: g.completed
-        }))));
+
         const activeGoals = goals.filter((g) => {
             // Consider a goal active if its status is NOT 'completed'
             // and it's not marked as completed
             const isActive = g.status !== "completed" && !g.completed;
-            console.log(`Goal ${g.id} "${g.title}" - status: ${g.status}, completed: ${g.completed}, isActive: ${isActive}`);
+
             return isActive;
         }).length;
         const achievements = await this.getUserAchievements(userId);
@@ -1759,7 +1742,7 @@ export class MemStorage {
             createdAt: now,
             updatedAt: now
         };
-        console.log(`Creating interview stage: ${JSON.stringify(interviewStage)}`);
+
         this.interviewStages.set(id, interviewStage);
         // Award XP to the user
         await this.addUserXP(process.userId, 40, "interview_stage_added", `Added interview stage: ${stageData.type}`);
@@ -1768,7 +1751,7 @@ export class MemStorage {
             const stageDate = new Date(stageData.scheduledDate);
             const now = new Date();
             if (stageDate >= now) {
-                console.log(`Stage has future date, should increment upcoming interviews: ${stageDate}`);
+
                 // Directly update the statistics cache to have correct upcoming interviews count
                 const userStatsCacheKey = `user-stats-${process.userId}`;
                 this.cache.delete(userStatsCacheKey);
@@ -1803,7 +1786,7 @@ export class MemStorage {
             const process = await this.getInterviewProcess(stage.processId);
             if (process) {
                 const userStatsCacheKey = `user-stats-${process.userId}`;
-                console.log(`Invalidating cache for ${userStatsCacheKey} due to interview stage update`);
+
                 this.cache.delete(userStatsCacheKey);
             }
         }
@@ -1881,7 +1864,7 @@ export class MemStorage {
             // Clear the user statistics cache so the pending tasks count gets updated
             const userStatsCacheKey = `user-stats-${process.userId}`;
             this.cache.delete(userStatsCacheKey);
-            console.log(`Deleted stats cache for user ${process.userId} on followup action creation`);
+
             await this.addUserXP(process.userId, 25, "followup_action_created", `Added followup action: ${actionData.type}`);
         }
         return followupAction;
@@ -1921,7 +1904,7 @@ export class MemStorage {
             // Clear the user statistics cache so the pending tasks count gets updated
             const userStatsCacheKey = `user-stats-${process.userId}`;
             this.cache.delete(userStatsCacheKey);
-            console.log(`Deleted stats cache for user ${process.userId} on followup action completion`);
+
             await this.addUserXP(process.userId, 50, "followup_action_completed", `Completed followup action: ${action.type}`);
         }
         return updatedAction;
@@ -1948,7 +1931,7 @@ export class MemStorage {
             // Clear the user statistics cache so the pending tasks count gets updated
             const userStatsCacheKey = `user-stats-${process.userId}`;
             this.cache.delete(userStatsCacheKey);
-            console.log(`Deleted stats cache for user ${process.userId} on followup action uncompleted`);
+
         }
         return updatedAction;
     }
@@ -1965,7 +1948,7 @@ export class MemStorage {
         if (result && process) {
             const userStatsCacheKey = `user-stats-${process.userId}`;
             this.cache.delete(userStatsCacheKey);
-            console.log(`Deleted stats cache for user ${process.userId} on followup action deletion`);
+
         }
         return result;
     }
@@ -2816,7 +2799,7 @@ export class MemStorage {
                 updatedAt: now
             };
             this.supportTickets.set(id, supportTicket);
-            console.log("Database operation failed, fallback to in-memory storage was used");
+
             return supportTicket;
         }
     }
@@ -2902,7 +2885,7 @@ export class MemStorage {
             createdAt: now,
             updatedAt: now
         };
-        console.log(`Creating job application with ID ${id} for user ${userId} with jobId ${jobId}`);
+
         this.jobApplications.set(id, newApplication);
         return newApplication;
     }
@@ -3240,14 +3223,14 @@ export class MemStorage {
         const allContactFollowups = Array.from(this.followupActions.values()).filter((followup) => !followup.completed &&
             followup.dueDate !== null &&
             followup.type.startsWith("contact_"));
-        console.log(`Found ${allContactFollowups.length} pending follow-ups in the system`);
+
         // Get contact IDs from follow-up actions
         const contactIdsWithExplicitFollowups = new Set(allContactFollowups.map((followup) => followup.applicationId));
         // Get contacts that have explicit follow-ups
         const contactsWithExplicitFollowups = Array.from(this.networkingContacts.values()).filter((contact) => contact.userId === userId &&
             contact.status === "active" &&
             contactIdsWithExplicitFollowups.has(contact.id));
-        console.log(`Found ${contactsWithExplicitFollowups.length} contacts with explicit follow-ups`);
+
         // Combine both lists, removing duplicates
         const allContactIds = new Set();
         const allContacts = [];
@@ -3257,7 +3240,7 @@ export class MemStorage {
                 allContacts.push(contact);
             }
         });
-        console.log(`Total contacts needing follow-up: ${allContacts.length}`);
+
         // Sort by followUpDate (oldest first), or by due date of earliest follow-up action
         return allContacts.sort((a, b) => {
             // If both have followUpDate, use that
@@ -3319,18 +3302,13 @@ export class MemStorage {
     }
     // Contact Follow-ups methods
     async getContactFollowUps(contactId) {
-        console.log(`🔍 Looking for follow-ups for contact ID: ${contactId}`);
+
         // Debug all follow-up actions in storage
         const allActions = Array.from(this.followupActions.values());
-        console.log(`📊 Total follow-up actions in storage: ${allActions.length}`);
+
         // Debug the actions to find any for this contact
         allActions.forEach((action) => {
-            console.log(`📑 Follow-up ID ${action.id}:
-        - applicationId: ${action.applicationId}
-        - type: ${action.type}
-        - dueDate: ${action.dueDate}
-        - notes: ${action.notes}
-      `);
+
         });
         // Filter follow-ups by contactId and sort by due date (most recent first)
         const result = Array.from(this.followupActions.values())
@@ -3347,7 +3325,7 @@ export class MemStorage {
             const dateB = b.dueDate || b.createdAt;
             return dateA.getTime() - dateB.getTime();
         });
-        console.log(`✅ Found ${result.length} follow-ups for contact ID: ${contactId}`);
+
         return result;
     }
     async createContactFollowUp(userId, contactId, followUp) {
@@ -3358,18 +3336,18 @@ export class MemStorage {
         }
         const now = new Date();
         // Log incoming data
-        console.log(`📝 Creating contact follow-up for contact ID ${contactId}:`, JSON.stringify(followUp, null, 2));
+
         // Check/validate dueDate if provided
         let parsedDueDate = null;
         if (followUp.dueDate) {
             if (followUp.dueDate instanceof Date) {
-                console.log(`✅ Valid Date object for dueDate:`, followUp.dueDate.toISOString());
+
                 parsedDueDate = followUp.dueDate;
             }
             else {
                 try {
                     parsedDueDate = new Date(followUp.dueDate);
-                    console.log(`✅ Parsed dueDate string to Date:`, parsedDueDate.toISOString());
+
                 }
                 catch (err) {
                     console.error(`❌ Error parsing dueDate:`, err);
@@ -3438,7 +3416,7 @@ export class DatabaseStorage {
             if (!db) {
                 throw new Error("Database client is not initialized");
             }
-            console.log("✅ Database client initialized, proceeding with PostgreSQL storage");
+
         }
         catch (error) {
             console.error("❌ Database client initialization error:", error);
@@ -3485,7 +3463,7 @@ export class DatabaseStorage {
                 .insert(jobApplications)
                 .values(applicationData)
                 .returning();
-            console.log(`Successfully created job application:`, newApplication);
+
             return newApplication;
         }
         catch (error) {
@@ -3585,7 +3563,7 @@ export class DatabaseStorage {
     }
     async createInterviewStageForApplication(applicationId, stageData) {
         try {
-            console.log(`Creating interview stage for application ${applicationId} with data:`, stageData);
+
             // Ensure applicationId is set in the data
             const interviewStageData = {
                 ...stageData,
@@ -3596,7 +3574,7 @@ export class DatabaseStorage {
                 .insert(interviewStages)
                 .values(interviewStageData)
                 .returning();
-            console.log(`Successfully created interview stage:`, newStage);
+
             return newStage;
         }
         catch (error) {
@@ -3676,7 +3654,7 @@ export class DatabaseStorage {
     }
     async createWorkHistoryItem(userId, item) {
         try {
-            console.log(`Creating work history item for user ${userId}:`, JSON.stringify(item, null, 2));
+
             // Ensure dates are properly formatted if they're strings
             let startDate = item.startDate;
             let endDate = item.endDate;
@@ -3699,7 +3677,7 @@ export class DatabaseStorage {
                 updatedAt: now
             })
                 .returning();
-            console.log(`Successfully created work history item with ID ${newWorkHistoryItem.id}`);
+
             // Award XP for adding work history
             try {
                 await this.addUserXP(userId, 75, "work_history_added", "Added work experience");
@@ -3724,10 +3702,10 @@ export class DatabaseStorage {
                 .where(eq(workHistory.id, id))
                 .limit(1);
             if (!item) {
-                console.log(`Work history item with ID ${id} not found for deletion`);
+
                 return false;
             }
-            console.log(`Deleting work history item with ID ${id} belonging to user ${item.userId}`);
+
             // Delete the work history item
             const result = await db
                 .delete(workHistory)
@@ -3738,7 +3716,7 @@ export class DatabaseStorage {
             if (success) {
                 const roleInsightsCacheKey = `role_insights_${item.userId}`;
                 await this.deleteCachedData(roleInsightsCacheKey);
-                console.log(`Invalidated role insights cache for user ${item.userId} on work history deletion`);
+
             }
             return success;
         }
@@ -3763,14 +3741,13 @@ export class DatabaseStorage {
     }
     async createEducationHistoryItem(userId, item) {
         try {
-            console.log("Creating education history item with data:", JSON.stringify(item, null, 2));
-            console.log("User ID:", userId);
+
             // Fix for missing achievements array
             if (!item.achievements) {
                 item.achievements = [];
             }
             else if (!Array.isArray(item.achievements)) {
-                console.log("Fixing non-array achievements:", item.achievements);
+
                 item.achievements = Array.isArray(item.achievements)
                     ? item.achievements
                     : [item.achievements];
@@ -3789,17 +3766,7 @@ export class DatabaseStorage {
                     ? item.endDate
                     : new Date(item.endDate)
                 : null;
-            console.log("Creating education history with processed data:", {
-                userId,
-                institution: item.institution,
-                degree: item.degree,
-                fieldOfStudy: item.fieldOfStudy,
-                achievements: item.achievements,
-                current: item.current,
-                description: item.description,
-                location: item.location,
-                gpa: item.gpa
-            });
+
             // Insert the education history record
             const [newEducationHistoryItem] = await db
                 .insert(educationHistory)
@@ -3811,7 +3778,7 @@ export class DatabaseStorage {
                 createdAt: now
             })
                 .returning();
-            console.log(`Successfully created education history item with ID ${newEducationHistoryItem.id}`);
+
             // Award XP for adding education history
             try {
                 await this.addUserXP(userId, 50, "education_history_added", "Added education information");
@@ -3856,7 +3823,7 @@ export class DatabaseStorage {
     }
     async createCertification(userId, certification) {
         try {
-            console.log(`Creating certification for user ${userId}:`, JSON.stringify(certification, null, 2));
+
             // Ensure we have a valid date for issueDate
             // Our schema expects a text field but requires a value
             const now = new Date();
@@ -3886,13 +3853,13 @@ export class DatabaseStorage {
                 createdAt: now,
                 updatedAt: now
             };
-            console.log("Prepared certification data:", JSON.stringify(certificationData, null, 2));
+
             // Insert the certification record
             const [newCertification] = await db
                 .insert(certifications)
                 .values(certificationData)
                 .returning();
-            console.log(`Successfully created certification with ID ${newCertification.id}`);
+
             // Award XP for adding a certification
             try {
                 await this.addUserXP(userId, 100, "certification_added", "Added professional certification");
@@ -3982,7 +3949,7 @@ export class DatabaseStorage {
                 .insert(userReviews)
                 .values(reviewData)
                 .returning();
-            console.log("Review created successfully:", newReview);
+
             return newReview;
         }
         catch (error) {
@@ -4020,7 +3987,7 @@ export class DatabaseStorage {
     }
     async createResume(userId, resumeData) {
         try {
-            console.log(`Creating resume for user ${userId}`);
+
             const now = new Date();
             const [result] = await db
                 .insert(resumes)
@@ -4031,7 +3998,7 @@ export class DatabaseStorage {
                 updatedAt: now
             })
                 .returning();
-            console.log(`Resume created with ID ${result.id}`);
+
             // Check if this is the first resume for the user
             const userResumes = await this.getResumes(userId);
             if (userResumes.length === 1) {
@@ -4083,13 +4050,13 @@ export class DatabaseStorage {
     // Cover Letter operations
     async getCoverLetters(userId) {
         try {
-            console.log(`DatabaseStorage: Fetching cover letters for user ${userId}`);
+
             const results = await db
                 .select()
                 .from(coverLetters)
                 .where(eq(coverLetters.userId, userId))
                 .orderBy(desc(coverLetters.updatedAt));
-            console.log(`DatabaseStorage: Found ${results.length} cover letters`);
+
             return results;
         }
         catch (error) {
@@ -4113,7 +4080,7 @@ export class DatabaseStorage {
     }
     async createCoverLetter(userId, letterData) {
         try {
-            console.log(`Creating cover letter for user ${userId}`);
+
             const now = new Date();
             const [result] = await db
                 .insert(coverLetters)
@@ -4124,7 +4091,7 @@ export class DatabaseStorage {
                 updatedAt: now
             })
                 .returning();
-            console.log(`Cover letter created with ID ${result.id}`);
+
             return result;
         }
         catch (error) {
@@ -4266,7 +4233,7 @@ export class DatabaseStorage {
             // Try using a raw SQL query to delete the goal since we're having issues
             try {
                 await pool.query("DELETE FROM goals WHERE id = $1", [id]);
-                console.log(`Successfully deleted goal with ID ${id}`);
+
                 return true;
             }
             catch (sqlError) {
@@ -4325,7 +4292,7 @@ export class DatabaseStorage {
         AND (status != 'completed' AND completed = false)
       `, [userId]);
             const activeGoalsCount = parseInt(activeGoalsResult.rows[0].count);
-            console.log(`Active goals count for user ${userId}: ${activeGoalsCount}`);
+
             // Count achievements
             const achievementsCount = await db
                 .select({ count: sql `count(*)` })
@@ -4387,7 +4354,7 @@ export class DatabaseStorage {
         try {
             // Try a simple query to test the connection
             const result = await db.execute(sql `SELECT 1 as test`);
-            console.log("✅ Database connection test successful:", result);
+
             return true;
         }
         catch (error) {
@@ -4448,12 +4415,12 @@ export class DatabaseStorage {
     }
     async getUserSkills(userId) {
         // Fetch skills directly from the skills table where userId matches
-        console.log(`DatabaseStorage.getUserSkills: Fetching skills for user ${userId}`);
+
         const userSkills = await db
             .select()
             .from(skills)
             .where(eq(skills.userId, userId));
-        console.log(`DatabaseStorage.getUserSkills: Found ${userSkills.length} skills:`, JSON.stringify(userSkills));
+
         return userSkills;
     }
     // Languages Methods
@@ -4600,7 +4567,7 @@ export class DatabaseStorage {
     // Contact Follow-ups methods
     async getContactFollowUps(contactId) {
         try {
-            console.log(`🔍 Looking for follow-ups for contact ID: ${contactId}`);
+
             // Find follow-ups for this contact
             // The applicationId field in followupActions is used to store the contactId for contact follow-ups
             const result = await db
@@ -4608,7 +4575,7 @@ export class DatabaseStorage {
                 .from(followupActions)
                 .where(eq(followupActions.applicationId, contactId))
                 .orderBy(sql `${followupActions.dueDate} ASC`);
-            console.log(`✅ Found ${result.length} follow-ups for contact ID ${contactId}`);
+
             return result;
         }
         catch (error) {
@@ -4629,18 +4596,18 @@ export class DatabaseStorage {
             }
             const now = new Date();
             // Log incoming data
-            console.log(`📝 Creating contact follow-up for contact ID ${contactId}:`, JSON.stringify(followUp, null, 2));
+
             // Check/validate dueDate if provided
             let parsedDueDate = null;
             if (followUp.dueDate) {
                 if (followUp.dueDate instanceof Date) {
-                    console.log(`✅ Valid Date object for dueDate:`, followUp.dueDate.toISOString());
+
                     parsedDueDate = followUp.dueDate;
                 }
                 else {
                     try {
                         parsedDueDate = new Date(followUp.dueDate);
-                        console.log(`✅ Parsed dueDate string to Date:`, parsedDueDate.toISOString());
+
                     }
                     catch (err) {
                         console.error(`❌ Error parsing dueDate:`, err);
@@ -4729,14 +4696,14 @@ export class DatabaseStorage {
             const targetDate = date || new Date();
             // Format date to match database date format (YYYY-MM-DD)
             const formattedDate = targetDate.toISOString().split("T")[0];
-            console.log(`DEBUG - getUserDailyRecommendations for user ${userId} and date ${formattedDate}`);
+
             // Directly query the database using SQL to bypass any schema reference issues
             const result = await pool.query(`
         SELECT * FROM daily_recommendations 
         WHERE user_id = $1 AND date = $2
         ORDER BY created_at
       `, [userId, formattedDate]);
-            console.log(`Found ${result.rows.length} recommendations via direct SQL query`);
+
             // Convert from snake_case to camelCase for the returned objects
             const recommendations = result.rows.map((row) => ({
                 id: row.id,
@@ -4767,10 +4734,10 @@ export class DatabaseStorage {
             const existingRecommendations = await this.getUserDailyRecommendations(userId, today);
             // If recommendations already exist for today, return them
             if (existingRecommendations.length > 0) {
-                console.log(`Found ${existingRecommendations.length} existing recommendations for user ${userId} today`);
+
                 return existingRecommendations;
             }
-            console.log(`Generating new recommendations for user ${userId}`);
+
             // Format date to match database date format (YYYY-MM-DD)
             const formattedDate = today.toISOString().split("T")[0];
             // Get data needed for generating personalized recommendations
@@ -4784,7 +4751,7 @@ export class DatabaseStorage {
                 .from(goals)
                 .where(eq(goals.userId, userId))
                 .where(sql `${goals.status} != 'completed'`);
-            console.log(`Found ${activeGoals.length} active goals for user ${userId}`);
+
             // Fetch follow-up actions that are due soon
             const pendingActions = await db
                 .select()
@@ -4794,14 +4761,14 @@ export class DatabaseStorage {
           SELECT id FROM ${jobApplications} WHERE user_id = ${userId}
         )`)
                 .orderBy(followupActions.dueDate);
-            console.log(`Found ${pendingActions.length} pending follow-up actions for user ${userId}`);
+
             // Fetch interview processes
             const activeProcesses = await db
                 .select()
                 .from(interviewProcesses)
                 .where(eq(interviewProcesses.userId, userId))
                 .where(eq(interviewProcesses.status, "active"));
-            console.log(`Found ${activeProcesses.length} active interview processes for user ${userId}`);
+
             // Fetch upcoming interview stages
             const upcomingStages = await db
                 .select()
@@ -4811,7 +4778,7 @@ export class DatabaseStorage {
         )`)
                 .where(sql `${interviewStages.scheduledDate} IS NOT NULL`)
                 .orderBy(interviewStages.scheduledDate);
-            console.log(`Found ${upcomingStages.length} upcoming interview stages for user ${userId}`);
+
             // Generate personalized recommendations
             const newRecommendations = [];
             // 1. Goal-based recommendations
@@ -4974,7 +4941,7 @@ export class DatabaseStorage {
                 .insert(dailyRecommendations)
                 .values(finalRecommendations)
                 .returning();
-            console.log(`Created ${insertedRecommendations.length} recommendations for user ${userId}`);
+
             return insertedRecommendations;
         }
         catch (error) {
@@ -5003,7 +4970,7 @@ export class DatabaseStorage {
         WHERE id = $1
       `, [id]);
             if (result.rows.length === 0) {
-                console.log(`Recommendation with ID ${id} not found`);
+
                 return undefined;
             }
             const recommendation = result.rows[0];
@@ -5049,7 +5016,7 @@ export class DatabaseStorage {
     // But we'll add a fallback direct SQL version to be safe
     async getUserDailyRecommendations(userId, date) {
         try {
-            console.log("WARNING: Second implementation of getUserDailyRecommendations was called!");
+
             const targetDate = date || new Date();
             // Format date to match database date format (YYYY-MM-DD)
             const formattedDate = targetDate.toISOString().split("T")[0];
@@ -5113,10 +5080,10 @@ export class DatabaseStorage {
     async completeRecommendation(id) {
         try {
             // This is the MemStorage implementation which uses the in-memory Map
-            console.log("MemStorage completeRecommendation called for ID:", id);
+
             const recommendation = this.dailyRecommendations.get(id);
             if (!recommendation) {
-                console.log(`Recommendation with ID ${id} not found in MemStorage`);
+
                 return undefined;
             }
             // Mark as completed
@@ -5128,7 +5095,7 @@ export class DatabaseStorage {
             this.dailyRecommendations.set(id, updatedRecommendation);
             // Award XP for completing the recommendation
             await this.addUserXP(recommendation.userId, 10, "recommendation_completed", `Completed recommendation: ${recommendation.text}`);
-            console.log(`Recommendation with ID ${id} marked as completed with timestamp: ${updatedRecommendation.completedAt}`);
+
             return updatedRecommendation;
         }
         catch (error) {
@@ -5162,10 +5129,10 @@ export class DatabaseStorage {
         const existingRecommendations = await this.getUserDailyRecommendations(userId, today);
         // If recommendations already exist for today, return them
         if (existingRecommendations.length > 0) {
-            console.log(`Found ${existingRecommendations.length} existing recommendations for user ${userId} today`);
+
             return existingRecommendations;
         }
-        console.log(`Generating new recommendations for user ${userId}`);
+
         // Format date to match expected format (YYYY-MM-DD)
         const formattedDate = today.toISOString().split("T")[0];
         // Get data needed to generate personalized recommendations
@@ -5415,7 +5382,7 @@ export class DatabaseStorage {
         newRecommendations.forEach((recommendation) => {
             this.dailyRecommendations.set(recommendation.id, recommendation);
         });
-        console.log(`Generated ${newRecommendations.length} recommendations for user ${userId}`);
+
         // Only return up to 5 recommendations per day
         return newRecommendations.slice(0, 5);
     }
@@ -5427,19 +5394,19 @@ const USE_SUPABASE_STORAGE = true; // Set to true to use Supabase or false to us
 let storage;
 try {
     if (USE_SUPABASE_STORAGE) {
-        console.log("Attempting to initialize SupabaseStorage...");
+
         // Initialize Supabase storage (no DATABASE_URL needed)
         storage = new SupabaseStorage();
-        console.log("✅ SUCCESS: Using SupabaseStorage for data persistence");
+
     }
     else {
-        console.log("⚠️ USING IN-MEMORY STORAGE BY CONFIGURATION: All data will be lost on server restart");
+
         storage = new MemStorage();
     }
 }
 catch (error) {
     console.error("❌ ERROR: Failed to initialize SupabaseStorage:", error);
-    console.log("⚠️ FALLING BACK to MemStorage. ALL DATA WILL BE LOST ON SERVER RESTART!");
+
     storage = new MemStorage();
 }
 // Health check method to verify storage status

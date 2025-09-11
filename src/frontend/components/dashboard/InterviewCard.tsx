@@ -63,8 +63,7 @@ export default function InterviewCard({ stage, onEdit }: InterviewCardProps) {
               {application?.position || application?.jobTitle || 'Position'}
             </p>
           </div>
-          
-          
+
         </div>
         
         <div className="space-y-2 mt-3">
@@ -112,8 +111,7 @@ export default function InterviewCard({ stage, onEdit }: InterviewCardProps) {
             </Button>
           )}
         </div>
-        
-        
+
       </CardContent>
     </Card>
   );

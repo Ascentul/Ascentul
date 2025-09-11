@@ -155,7 +155,7 @@ export default function OnboardingFlow() {
         setStep(2);
     };
     const handleStudentInfoChange = (key, value) => {
-        console.log(`handleStudentInfoChange: Setting ${key} to ${value}`);
+
         setData((prevData) => {
             const newData = {
                 ...prevData,
@@ -164,7 +164,7 @@ export default function OnboardingFlow() {
                     [key]: value
                 }
             };
-            console.log("Updated student info:", newData.studentInfo);
+
             return newData;
         });
     };
@@ -281,7 +281,7 @@ export default function OnboardingFlow() {
             if (success) {
                 // We don't need to navigate anywhere here since step 5 is already
                 // the plan selection step which is displayed in the component
-                console.log("Successfully saved onboarding data");
+
             }
             else {
                 // Show error toast if saving failed
@@ -304,10 +304,7 @@ export default function OnboardingFlow() {
     const saveOnboardingData = async () => {
         try {
             setIsSavingOnboarding(true);
-            console.log("=== SAVING ONBOARDING DATA ===");
-            console.log("Current data state:", JSON.stringify(data, null, 2));
-            console.log("User type:", user?.userType);
-            console.log("Student info:", data.studentInfo);
+
             // Use apiRequest from queryClient for consistency with the rest of the app
             const response = await apiRequest("PUT", "/api/users/profile", {
                 onboardingCompleted: true,
@@ -318,18 +315,14 @@ export default function OnboardingFlow() {
                 console.error("Server response error:", errorData);
                 throw new Error(errorData.message || "Failed to save onboarding data");
             }
-            console.log("Onboarding data saved successfully");
+
             // Clear the cache to force a fresh fetch
-            console.log("Clearing user cache and forcing refetch...");
+
             queryClient.removeQueries({ queryKey: ["/api/users/me"] });
             queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
             // Refresh user data to ensure the UI and route guards see the updated data
             const updatedUser = await refetchUser();
-            console.log("Updated user data after refetch:", {
-                onboardingCompleted: updatedUser?.onboardingCompleted,
-                userType: updatedUser?.userType,
-                needsUsername: updatedUser?.needsUsername
-            });
+
             // Wait a bit more to ensure the cache is properly updated
             await new Promise((resolve) => setTimeout(resolve, 500));
             return true;
@@ -428,7 +421,7 @@ export default function OnboardingFlow() {
                                                         const redirectUrl = user?.userType === "university_student"
                                                             ? "/university"
                                                             : "/dashboard";
-                                                        console.log(`Redirecting to: ${redirectUrl}`);
+
                                                         setLocation(redirectUrl);
                                                     }
                                                 }, variant: "outline", className: "w-full", disabled: isSavingOnboarding, children: isSavingOnboarding ? "Saving..." : "Get Started" })] }), _jsxs("div", { className: "border border-primary rounded-md p-6 bg-primary/5 hover:shadow-md transition-shadow", children: [_jsxs("div", { className: "flex justify-between items-center mb-1", children: [_jsx("h3", { className: "text-lg font-semibold", children: "Pro Plan" }), _jsx("span", { className: "bg-[#1333c2] text-white text-xs px-2 py-1 rounded-full", children: "RECOMMENDED" })] }), _jsx("p", { className: "text-sm text-muted-foreground mb-4", children: "Advanced features for career growth" }), _jsxs("p", { className: "text-3xl font-bold mb-4", children: ["$9.99", _jsx("span", { className: "text-sm font-normal text-muted-foreground", children: "/mo" })] }), _jsxs("ul", { className: "space-y-2 mb-6", children: [_jsxs("li", { className: "flex items-center", children: [_jsx(Check, { className: "h-4 w-4 mr-2 text-green-500" }), _jsx("span", { className: "text-sm", children: "Everything in Free plan" })] }), _jsxs("li", { className: "flex items-center", children: [_jsx(Check, { className: "h-4 w-4 mr-2 text-green-500" }), _jsx("span", { className: "text-sm", children: "Unlimited AI career suggestions" })] }), _jsxs("li", { className: "flex items-center", children: [_jsx(Check, { className: "h-4 w-4 mr-2 text-green-500" }), _jsx("span", { className: "text-sm", children: "Advanced network management" })] }), _jsxs("li", { className: "flex items-center", children: [_jsx(Check, { className: "h-4 w-4 mr-2 text-green-500" }), _jsx("span", { className: "text-sm", children: "Priority support" })] })] }), _jsx(Button, { onClick: async () => {
@@ -438,7 +431,7 @@ export default function OnboardingFlow() {
                                                         const redirectUrl = user?.userType === "university_student"
                                                             ? "/university"
                                                             : "/dashboard";
-                                                        console.log(`Redirecting to: ${redirectUrl}`);
+
                                                         setLocation(redirectUrl);
                                                     }
                                                 }, className: "w-full bg-[#1333c2] hover:bg-[#0f2aae]", disabled: isSavingOnboarding, children: isSavingOnboarding ? "Saving..." : "Start Pro Plan" })] })] }) })] }));

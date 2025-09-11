@@ -120,8 +120,7 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
           const errorMessage = error instanceof Error ? error.message : String(error);
           if (errorMessage.includes('not found') || errorMessage.includes('404')) {
             // Fallback to localStorage for applications that exist only there
-            console.log('Application not found on server, adding interview stage to localStorage application');
-            
+
             // Get applications from localStorage
             const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
             const appIndex = storedApplications.findIndex((app: any) => app.id === applicationId);
@@ -164,8 +163,7 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
             
             // Notify components that interview data has changed
             notifyInterviewDataChanged();
-            
-            console.log('Saved mock interview stage in localStorage:', mockStage);
+
             return mockStage;
           }
           
@@ -217,8 +215,7 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
   });
 
   const onSubmit = (values: InterviewStageFormValues) => {
-    console.log("Submitting new interview stage:", values);
-    
+
     // The date is now required in the form schema, so we don't need to set a default
     // Use the mutation to handle the interview stage creation
     // The mutation will try the API first, then fall back to localStorage if needed

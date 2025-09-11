@@ -49,11 +49,11 @@ export default function DesignEditor({ initialDesign, onSave }) {
         let isMounted = true;
         const initCanvas = async () => {
             if (!canvasRef.current) {
-                console.warn("Canvas reference is not available");
+
                 return;
             }
             try {
-                console.log("Starting canvas initialization...");
+
                 // Load Fabric.js using our loader
                 const fabric = await getFabric().catch(err => {
                     console.error("Error loading Fabric.js:", err);
@@ -61,7 +61,7 @@ export default function DesignEditor({ initialDesign, onSave }) {
                 });
                 if (!isMounted)
                     return;
-                console.log("Fabric.js loaded successfully, creating canvas...");
+
                 // Create canvas instance with error handling
                 let canvas;
                 try {
@@ -80,7 +80,7 @@ export default function DesignEditor({ initialDesign, onSave }) {
                 if (!canvas) {
                     throw new Error("Canvas initialization failed");
                 }
-                console.log("Canvas created, setting up configurations...");
+
                 // Set up canvas configurations
                 await setupCanvas(canvas);
                 if (!isMounted) {
@@ -88,7 +88,7 @@ export default function DesignEditor({ initialDesign, onSave }) {
                     canvas.dispose();
                     return;
                 }
-                console.log("Canvas setup complete");
+
                 // Save canvas instance
                 setFabricCanvas(canvas);
                 setIsCanvasReady(true);
@@ -96,7 +96,7 @@ export default function DesignEditor({ initialDesign, onSave }) {
                 if (initialDesign) {
                     await loadDesign(canvas, initialDesign);
                 }
-                console.log("Canvas initialization complete");
+
             }
             catch (error) {
                 console.error("Failed to initialize canvas:", error);
@@ -152,7 +152,7 @@ export default function DesignEditor({ initialDesign, onSave }) {
                 fabric.Object.prototype.padding = 0; // Default zero padding for shape elements
             }
             else {
-                console.warn("Fabric.Object.prototype not available, skipping default settings");
+
             }
             // Add canvas event listeners safely
             try {
@@ -174,11 +174,11 @@ export default function DesignEditor({ initialDesign, onSave }) {
                     await drawGrid(canvas);
                 }
                 catch (gridError) {
-                    console.warn("Failed to draw initial grid:", gridError);
+
                     // Continue without grid rather than failing completely
                 }
             }
-            console.log("Canvas setup completed successfully");
+
         }
         catch (error) {
             console.error("Error in setupCanvas:", error);
@@ -436,7 +436,7 @@ export default function DesignEditor({ initialDesign, onSave }) {
     const clearGuides = async () => {
         // Ensure canvas exists before proceeding
         if (!fabricCanvas) {
-            console.log("Cannot clear guides - canvas not initialized");
+
             return;
         }
         try {

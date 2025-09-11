@@ -47,13 +47,7 @@ export default function AccountSettings() {
     const { careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = careerQuery;
     // Debug logging for career data
     useEffect(() => {
-        console.log("🔍 Career data in AccountSettings:", {
-            careerData: careerData,
-            careerSummary: careerData?.careerSummary,
-            workHistoryLength: careerData?.workHistory?.length,
-            skillsLength: careerData?.skills?.length,
-            isLoading: careerDataLoading
-        });
+
     }, [careerData, careerDataLoading]);
     // Track the current active tab
     const [activeTab, setActiveTab] = useState("career");
@@ -75,7 +69,7 @@ export default function AccountSettings() {
         // Only refetch if the data is stale, which React Query handles automatically
         // We don't need to manually removeQueries
         if (!careerData) {
-            console.log("Career data not found in cache, fetching");
+
             refetchCareerData();
         }
         // Always update form values when user data changes
@@ -93,9 +87,9 @@ export default function AccountSettings() {
     useEffect(() => {
         if (activeTab === "career" &&
             (!careerData || Object.keys(careerData).length === 0)) {
-            console.log("Career data missing or empty, fetching on tab change");
+
             refetchCareerData().then(() => {
-                console.log("Career data loaded on tab change");
+
             });
         }
         // Update form with latest user data when switching to profile tab
@@ -306,7 +300,7 @@ export default function AccountSettings() {
         }
     };
     return (_jsxs("div", { className: "container py-10", children: [_jsx("h1", { className: "text-3xl font-bold mb-8", children: "Account Settings" }), _jsxs(Tabs, { defaultValue: "career", className: "space-y-8", onValueChange: (value) => {
-                    console.log(`Tab changed to: ${value}`);
+
                     setActiveTab(value);
                 }, children: [_jsxs(TabsList, { className: "inline-flex flex-wrap w-auto", children: [_jsxs(TabsTrigger, { value: "career", className: "flex items-center", children: [_jsx(Briefcase, { className: "mr-2 h-4 w-4" }), "Career"] }), _jsxs(TabsTrigger, { value: "profile", className: "flex items-center", children: [_jsx(User, { className: "mr-2 h-4 w-4" }), "Profile"] }), _jsxs(TabsTrigger, { value: "subscription", className: "flex items-center", children: [_jsx(CreditCard, { className: "mr-2 h-4 w-4" }), "Subscription"] })] }), _jsx(TabsContent, { value: "profile", className: "px-6 py-8", children: _jsxs("div", { className: "space-y-6", children: [_jsxs("div", { className: "rounded-lg bg-white shadow-sm p-6 border border-gray-200", children: [_jsxs("div", { className: "mb-4", children: [_jsx("h2", { className: "text-lg font-semibold text-gray-900", children: "Profile Information" }), _jsx("p", { className: "text-sm text-gray-500 mt-1", children: "Update your personal information and how we can contact you." })] }), _jsx(Form, { ...form, children: _jsxs("form", { onSubmit: form.handleSubmit(handleProfileSubmit), className: "space-y-6", children: [_jsx(FormField, { control: form.control, name: "name", render: ({ field }) => (_jsxs(FormItem, { children: [_jsx(FormLabel, { className: "text-sm text-gray-500", children: "Full Name" }), _jsx(FormControl, { children: _jsx(Input, { placeholder: "Your name", ...field }) }), _jsx(FormMessage, {})] })) }), _jsx(FormField, { control: form.control, name: "email", render: ({ field }) => (_jsxs(FormItem, { children: [_jsx(FormLabel, { className: "text-sm text-gray-500", children: "Email Address" }), _jsx(FormControl, { children: _jsx(Input, { placeholder: "your.email@example.com", ...field }) }), _jsx(FormDescription, { children: user.emailVerified ? (_jsx("span", { className: "inline-flex items-center gap-1 text-green-700 bg-green-100 text-xs font-medium px-2 py-0.5 rounded-full", children: "\u2705 Verified" })) : (_jsx(Button, { variant: "link", className: "p-0 h-auto text-sm", onClick: handleSendVerificationEmail, disabled: sendVerificationEmailMutation.isPending, children: sendVerificationEmailMutation.isPending ? (_jsxs(_Fragment, { children: [_jsx(Loader2, { className: "mr-1 h-3 w-3 animate-spin" }), "Sending..."] })) : (_jsx(_Fragment, { children: "Not verified. Click to verify" })) })) }), _jsx(FormMessage, {})] })) }), _jsx(FormField, { control: form.control, name: "currentPassword", render: ({ field }) => (_jsxs(FormItem, { children: [_jsx(FormLabel, { className: "text-sm text-gray-500", children: "Current Password" }), _jsx(FormControl, { children: _jsx(Input, { type: "password", placeholder: "Required to change email or password", ...field }) }), _jsx(FormDescription, { children: "Required only when changing email or password." }), _jsx(FormMessage, {})] })) }), _jsx(FormField, { control: form.control, name: "password", render: ({ field }) => (_jsxs(FormItem, { children: [_jsx(FormLabel, { className: "text-sm text-gray-500", children: "New Password" }), _jsx(FormControl, { children: _jsx(Input, { type: "password", placeholder: "Leave blank to keep current password", ...field }) }), _jsx(FormDescription, { children: "Must be at least 8 characters. Leave blank to keep your current password." }), _jsx(FormMessage, {})] })) }), _jsx("div", { className: "flex justify-end", children: _jsx(Button, { type: "submit", disabled: form.formState.isSubmitting, className: "w-full sm:w-auto", children: form.formState.isSubmitting ? (_jsxs(_Fragment, { children: [_jsx(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }), "Saving..."] })) : ("Save Changes") }) })] }) })] }), _jsxs("div", { className: "rounded-lg bg-white shadow-sm p-6 border border-gray-200", children: [_jsxs("div", { className: "mb-4", children: [_jsx("h2", { className: "text-lg font-semibold text-gray-900", children: "Account Information" }), _jsx("p", { className: "text-sm text-gray-500 mt-1", children: "View your account details and session information." })] }), _jsxs("dl", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm", children: [_jsxs("div", { children: [_jsx("dt", { className: "text-xs text-gray-500 mb-1", children: "Username" }), _jsx("dd", { className: "font-medium", children: user.username })] }), _jsxs("div", { children: [_jsx("dt", { className: "text-xs text-gray-500 mb-1", children: "Account Type" }), _jsx("dd", { className: "font-medium capitalize", children: user.userType || "Regular" })] }), _jsxs("div", { children: [_jsx("dt", { className: "text-xs text-gray-500 mb-1", children: "Account Created" }), _jsx("dd", { className: "font-medium", children: user.createdAt
                                                                 ? formatDate(new Date(user.createdAt))
@@ -393,9 +387,7 @@ export default function AccountSettings() {
                                                                     }), children: [_jsx(Trash2, { className: "h-4 w-4" }), _jsx("span", { className: "sr-only", children: "Delete" })] })] }), _jsxs("div", { children: [_jsxs(Badge, { variant: "outline", className: "font-normal", children: [new Date(edu.startDate).getFullYear(), " -", " ", edu.endDate
                                                                             ? new Date(edu.endDate).getFullYear()
                                                                             : "Present"] }), _jsxs("h3", { className: "text-base font-semibold mt-2", children: [edu.degreeType, " ", edu.fieldOfStudy && `in ${edu.fieldOfStudy}`] }), _jsx("p", { className: "text-sm text-gray-700", children: edu.institution }), _jsxs("div", { className: "text-xs text-gray-500 mt-1 flex items-center", children: [_jsx(MapPin, { className: "h-3 w-3 mr-1 inline" }), edu.location || "Remote"] }), edu.description && (_jsx("div", { className: "mt-2 text-sm text-gray-600 whitespace-pre-wrap", children: edu.description })), edu.achievements && edu.achievements.length > 0 && (_jsxs("div", { className: "mt-2", children: [_jsx("span", { className: "text-xs font-medium text-gray-500", children: "Achievements:" }), _jsx("ul", { className: "mt-1 text-sm text-gray-600 list-disc pl-5 space-y-1", children: edu.achievements.map((achievement, i) => (_jsx("li", { children: achievement }, i))) })] }))] })] }, edu.id))) }))] }), _jsxs("div", { className: "rounded-lg bg-white shadow-sm p-6 border border-gray-200", children: [_jsxs("div", { className: "flex justify-between items-center mb-4", children: [_jsxs("div", { children: [_jsxs("h2", { className: "text-lg font-semibold text-gray-900 flex items-center", children: [_jsx(Award, { className: "h-5 w-5 mr-2 text-primary" }), "Skills"] }), _jsx("p", { className: "text-sm text-gray-500 mt-1", children: "Technical and professional skills that define your expertise." })] }), _jsxs(Button, { variant: "outline", size: "sm", className: "flex items-center", onClick: () => setSkillModal({ open: true }), children: [_jsx(Pencil, { className: "h-4 w-4 mr-1" }), " Manage Skills"] })] }), !careerData?.skills || careerData.skills.length === 0 ? (_jsxs("div", { className: "text-center py-8 border border-dashed border-gray-300 rounded-md bg-gray-50", children: [_jsx(Award, { className: "mx-auto h-10 w-10 text-gray-400" }), _jsx("h3", { className: "mt-2 text-sm font-semibold text-gray-900", children: "No skills added" }), _jsx("p", { className: "mt-1 text-sm text-gray-500", children: "Add your technical, soft, and industry-specific skills." }), _jsx("div", { className: "mt-4", children: _jsxs(Button, { variant: "default", size: "sm", onClick: () => setSkillModal({ open: true }), children: [_jsx(Award, { className: "h-4 w-4 mr-2" }), "Add Skills"] }) })] })) : (_jsxs(_Fragment, { children: [_jsxs("div", { className: "hidden", children: [console.log("Skills data:", careerData.skills), careerData.skills.forEach((skill, i) => {
-                                                                console.log(`Skill ${i}:`, skill);
-                                                                console.log(`- Name: ${skill.name || "UNDEFINED"}`);
-                                                                console.log(`- Type: ${typeof skill}`);
+
                                                             })] }), _jsx("div", { className: "flex flex-wrap gap-2", children: careerData.skills.map((skill, index) => (_jsx(Badge, { variant: "secondary", className: "px-3 py-1", children: typeof skill === "object" && skill !== null
                                                                 ? skill.name || "Unknown skill"
                                                                 : typeof skill === "string"

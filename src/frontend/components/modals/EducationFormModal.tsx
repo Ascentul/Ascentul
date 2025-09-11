@@ -166,7 +166,7 @@ export function EducationFormModal({
       values.achievements = [];
     }
     // Log the values being submitted for debugging
-    console.log("Submitting education form values:", values);
+
     mutation.mutate(values);
   };
 

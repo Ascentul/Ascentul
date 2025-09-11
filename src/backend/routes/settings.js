@@ -120,13 +120,9 @@ function getDefaultSettings() {
 // Get platform settings
 router.get("/", requireAdmin, async (req, res) => {
     try {
-        console.log("🔧 GET /api/settings request received");
-        console.log("🔧 User authenticated:", req.user ? "Yes" : "No");
-        console.log("🔧 User role:", req.user?.role);
-        console.log("🔧 User email:", req.user?.email);
-        console.log("🔧 User ID:", req.user?.id);
+
         // Try to fetch existing settings using Supabase
-        console.log("🔧 Attempting to fetch settings from database using Supabase...");
+
         const { data: settings, error } = await supabase
             .from("platform_settings")
             .select("*")
@@ -135,21 +131,20 @@ router.get("/", requireAdmin, async (req, res) => {
         if (error) {
             console.error("🔧 Supabase query error:", error);
             // If there's an error (like table doesn't exist or is empty), return defaults
-            console.log("🔧 Database error, returning default settings");
+
             const defaultSettings = getDefaultSettings();
-            console.log("🔧 Default settings keys:", Object.keys(defaultSettings));
+
             return res.status(200).json(defaultSettings);
         }
-        console.log("🔧 Settings query result count:", settings?.length);
-        console.log("🔧 Settings query result:", settings?.length > 0 ? "Found data" : "No data");
+
         if (settings && settings.length > 0) {
-            console.log("🔧 Returning existing settings with ID:", settings[0].id);
+
             return res.status(200).json(settings[0]);
         }
         // If no settings exist yet, return defaults
-        console.log("🔧 No settings found in database, returning default settings");
+
         const defaultSettings = getDefaultSettings();
-        console.log("🔧 Default settings keys:", Object.keys(defaultSettings));
+
         return res.status(200).json(defaultSettings);
     }
     catch (error) {
@@ -165,7 +160,7 @@ router.get("/", requireAdmin, async (req, res) => {
 router.put("/", requireAdmin, async (req, res) => {
     try {
         const settingsData = req.body;
-        console.log('🔧 Settings route: Bypassing database storage and returning success');
+
         // For now, bypass database storage to fix the column schema issue
         // Return success response to allow the admin interface to work
         return res.json({
@@ -192,7 +187,7 @@ router.post("/reset", requireAdmin, async (req, res) => {
     try {
         const defaultSettings = getDefaultSettings();
         // Bypass database operations for now due to schema issues
-        console.log('🔧 Settings route: Bypassing database for reset operation');
+
         return res.json({
             message: "Settings reset to defaults successfully",
             settings: defaultSettings,

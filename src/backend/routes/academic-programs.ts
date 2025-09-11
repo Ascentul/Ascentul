@@ -54,7 +54,7 @@ async function requireUniversityAdmin(req: Request, res: Response, next: () => v
 
   const user = await storage.getUser(req.userId);
   if (!user || user.userType !== 'university_admin') {
-    console.log(`Access denied: User ${req.userId} tried to access university admin route`);
+
     return res.status(403).json({ message: "Access denied. University Admin privileges required." });
   }
   

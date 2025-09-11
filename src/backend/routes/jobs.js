@@ -1,16 +1,16 @@
 import { requireAuth } from "../auth";
 import { jobProviders } from "../services/job-sources";
 export function registerJobRoutes(app, storage) {
-    console.log("Registering job routes at /api/jobs/...");
+
     // Get available job sources
     app.get("/api/jobs/sources", (req, res) => {
-        console.log("GET /api/jobs/sources request received");
+
         try {
             const sources = Object.keys(jobProviders).map((id) => ({
                 id,
                 name: jobProviders[id].name
             }));
-            console.log("Available job sources:", sources);
+
             return res.json({ sources });
         }
         catch (error) {
@@ -20,19 +20,10 @@ export function registerJobRoutes(app, storage) {
     });
     // Search for jobs
     app.get("/api/jobs/search", async (req, res) => {
-        console.log("GET /api/jobs/search request received", req.url);
+
         try {
             const { query = "", location = "", jobType = "", source = "", isRemote, page = "1", pageSize = "10" } = req.query;
-            console.log("Job search request:", {
-                query,
-                location,
-                jobType,
-                source,
-                isRemote,
-                page,
-                pageSize
-            });
-            console.log("Available job providers:", Object.keys(jobProviders));
+
             // Use the specified provider or default to using all providers
             const providers = source
                 ? [jobProviders[source]].filter(Boolean)
@@ -53,9 +44,9 @@ export function registerJobRoutes(app, storage) {
             const allJobs = [];
             for (const provider of providers) {
                 try {
-                    console.log(`Searching jobs with provider: ${provider.name}`);
+
                     const results = await provider.searchJobs(searchParams);
-                    console.log(`Found ${results.length} jobs from ${provider.name}`);
+
                     allJobs.push(...results);
                 }
                 catch (providerError) {
@@ -67,7 +58,7 @@ export function registerJobRoutes(app, storage) {
             const startIndex = (searchParams.page - 1) * searchParams.pageSize;
             const endIndex = startIndex + searchParams.pageSize;
             const paginatedJobs = allJobs.slice(startIndex, endIndex);
-            console.log(`Returning ${paginatedJobs.length} jobs, total: ${allJobs.length}`);
+
             return res.json({
                 jobs: paginatedJobs,
                 totalJobs: allJobs.length,
@@ -115,7 +106,7 @@ export function registerJobRoutes(app, storage) {
             }
             // In a real implementation, save to database
             // For now, just return success
-            console.log(`User ${userId} saved job ${job.id}`);
+
             return res.json({ success: true, message: "Job saved" });
         }
         catch (error) {

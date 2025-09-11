@@ -34,5 +34,5 @@ export const jobProviders: Record<string, JobProvider> = {
 
 // Log registered providers
 Object.values(jobProviders).forEach(provider => {
-  console.log(`Job source provider registered: ${provider.name}`);
+
 });

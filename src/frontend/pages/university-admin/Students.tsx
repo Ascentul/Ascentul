@@ -680,7 +680,6 @@ export default function StudentManagement() {
                         <p className="text-sm text-muted-foreground">Software Development, Data Science</p>
                       </div>
                     </div>
-                    
 
                   </TabsContent>
                   

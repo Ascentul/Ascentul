@@ -48,64 +48,7 @@ export function SupabaseAuthProvider({
     const {
       data: { subscription }
     } = supabaseClient.auth.onAuthStateChange((event, currentSession) => {
-      console.log("Auth state change:", event)
-      setSession(currentSession)
-      setUser(currentSession?.user || null)
-      setIsLoading(false)
-    })
 
-    // Cleanup listener on unmount
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
-
-  // Sign in with email and password
-  const signIn = async (email: string, password: string) => {
-    return supabaseClient.auth.signInWithPassword({ email, password })
-  }
-
-  // Sign up with email and password
-  const signUp = async (
-    email: string,
-    password: string,
-    userData: object = {}
-  ) => {
-    return supabaseClient.auth.signUp({
-      email,
-      password,
-      options: { data: userData }
-    })
-  }
-
-  // Sign out
-  const signOut = async () => {
-    await supabaseClient.auth.signOut()
-  }
-
-  const value = {
-    session,
-    user,
-    isLoading,
-    signIn,
-    signUp,
-    signOut
-  }
-
-  return (
-    <SupabaseAuthContext.Provider value={value}>
-      {children}
-    </SupabaseAuthContext.Provider>
-  )
-}
-
-// Custom hook to use the auth context
-export function useSupabaseAuth() {
-  const context = useContext(SupabaseAuthContext)
-  if (context === undefined) {
-    throw new Error(
-      "useSupabaseAuth must be used within a SupabaseAuthProvider"
-    )
   }
   return context
 }

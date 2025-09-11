@@ -17,7 +17,7 @@ function fetchZipRecruiterApi(url, headers, redirectCount = 0) {
         const options = {
             headers: headers
         };
-        console.log(`Requesting URL (redirect ${redirectCount}): ${url}`);
+
         https.get(url, options, (res) => {
             let data = '';
             // Handle redirects
@@ -27,7 +27,7 @@ function fetchZipRecruiterApi(url, headers, redirectCount = 0) {
                     reject(new Error(`Redirect response ${res.statusCode} without Location header`));
                     return;
                 }
-                console.log(`Following redirect (${res.statusCode}) to: ${location}`);
+
                 // Recursively follow the redirect
                 fetchZipRecruiterApi(location, headers, redirectCount + 1)
                     .then(resolve)
@@ -40,14 +40,13 @@ function fetchZipRecruiterApi(url, headers, redirectCount = 0) {
             res.on('end', () => {
                 try {
                     // Log detailed response information for debugging
-                    console.log(`ZipRecruiter API response status: ${res.statusCode}`);
-                    console.log(`ZipRecruiter API response headers:`, res.headers);
+
                     // Log the first 500 characters of the response for debugging
                     if (data.length > 0) {
-                        console.log(`ZipRecruiter API response preview: ${data.substring(0, 500)}...`);
+
                     }
                     else {
-                        console.log('ZipRecruiter API response is empty');
+
                     }
                     if (res.statusCode && res.statusCode >= 400) {
                         reject(new Error(`API returned ${res.statusCode}: ${data}`));
@@ -89,7 +88,7 @@ export const zipRecruiterProvider = {
             return [];
         }
         try {
-            console.log('Searching ZipRecruiter with params:', params);
+
             // Build query parameters for the new API endpoint
             const queryParams = new URLSearchParams({
                 job_title: params.query,
@@ -115,7 +114,7 @@ export const zipRecruiterProvider = {
             }
             // API URL using the new endpoint - using trailing slash as the API redirects to this
             const apiUrl = `https://api.ziprecruiter.com/jobs/?${queryParams.toString()}`;
-            console.log('ZipRecruiter API URL:', apiUrl);
+
             // API headers with Bearer token authentication
             const headers = {
                 'Authorization': `Bearer ${API_KEY}`,
@@ -123,7 +122,7 @@ export const zipRecruiterProvider = {
             };
             // Call the API with the new authentication method
             const data = await fetchZipRecruiterApi(apiUrl, headers);
-            console.log('ZipRecruiter API response:', JSON.stringify(data).substring(0, 200) + '...');
+
             if (!data.jobs) {
                 console.error('No jobs found in ZipRecruiter response');
                 return [];
@@ -131,7 +130,7 @@ export const zipRecruiterProvider = {
             // Calculate pagination info
             const totalJobs = data.total_jobs || data.jobs.length;
             const totalPages = Math.ceil(totalJobs / params.pageSize);
-            console.log(`Found ${totalJobs} jobs, ${totalPages} pages`);
+
             // Map API response to our Job interface
             return data.jobs.map((job) => {
                 // Normalize the job data to our schema

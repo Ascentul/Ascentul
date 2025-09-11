@@ -85,7 +85,7 @@ class SettingsService {
                 .limit(1)
                 .single();
             if (error) {
-                console.warn("Failed to fetch platform settings, using defaults:", error);
+
                 return DEFAULT_SETTINGS;
             }
             if (data) {
@@ -105,7 +105,7 @@ class SettingsService {
             }
         }
         catch (error) {
-            console.warn("Exception fetching platform settings, using defaults:", error);
+
         }
         return DEFAULT_SETTINGS;
     }

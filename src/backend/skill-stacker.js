@@ -7,7 +7,7 @@ import { z } from "zod";
 // });
 const hasMockFlag = !process.env.OPENAI_API_KEY;
 if (hasMockFlag) {
-    console.log("OPENAI_API_KEY is not set. Using mock OpenAI mode for skill stacker features.");
+
 }
 // Schema for the generate plan request
 export const generatePlanRequestSchema = z.object({
@@ -83,7 +83,7 @@ export async function generateSkillStackerPlan(userId, data) {
         if (!responseContent) {
             throw new Error("Failed to generate skill stacker plan");
         }
-        console.log("OpenAI Response:", responseContent);
+
         try {
             const parsedResponse = JSON.parse(responseContent);
             // Transform the response to match our expected format

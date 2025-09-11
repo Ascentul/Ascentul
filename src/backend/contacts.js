@@ -13,7 +13,7 @@ const contactSchema = z.object({
     lastContactDate: z.string().optional()
 });
 export const registerContactsRoutes = (app, storage) => {
-    console.log("Registered contacts routes at /api/contacts");
+
     // Get all contacts for the current user
     app.get("/api/contacts", requireLoginFallback, async (req, res) => {
         try {
@@ -100,7 +100,7 @@ export const registerContactsRoutes = (app, storage) => {
                     return -1;
                 return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
             });
-            console.log(`Found ${allFollowUps.length} pending follow-ups across all contacts`);
+
             // Return all pending follow-ups
             res.json(allFollowUps);
         }
@@ -192,31 +192,31 @@ export const registerContactsRoutes = (app, storage) => {
         try {
             const userId = req.userId || req.user?.id;
             const contactId = parseInt(req.params.id);
-            console.log(`Delete contact request: Contact ID=${contactId}, User ID=${userId}`);
+
             if (!userId) {
-                console.log("Delete contact rejected: Unauthorized");
+
                 return res.status(401).json({ message: "Unauthorized" });
             }
             if (isNaN(contactId)) {
-                console.log(`Delete contact rejected: Invalid contact ID format: ${req.params.id}`);
+
                 return res.status(400).json({ message: "Invalid contact ID" });
             }
             // Make sure the contact exists and belongs to the user
             const existingContact = await storage.getNetworkingContact(contactId);
-            console.log(`Looking up contact ID=${contactId}, found:`, existingContact ? "Contact exists" : "Contact not found");
+
             if (!existingContact) {
-                console.log(`Delete contact rejected: Contact ID=${contactId} not found in storage`);
+
                 return res.status(404).json({ message: "Contact not found" });
             }
             if (existingContact.userId !== userId) {
-                console.log(`Delete contact rejected: Contact belongs to user ${existingContact.userId}, not current user ${userId}`);
+
                 return res.status(403).json({ message: "Access denied" });
             }
             // Delete the contact
             const result = await storage.deleteNetworkingContact(contactId);
-            console.log(`Delete contact result for ID=${contactId}:`, result ? "Success" : "Failed");
+
             res.status(204).end();
-            console.log(`Contact ID=${contactId} successfully deleted`);
+
         }
         catch (error) {
             console.error("Error deleting contact:", error);
@@ -355,7 +355,7 @@ export const registerContactsRoutes = (app, storage) => {
                 return res.status(403).json({ message: "Access denied" });
             }
             // Debug the incoming request body
-            console.log("💾 Received follow-up data:", JSON.stringify(req.body, null, 2));
+
             // Validate and safely parse the date
             let parsedDate = null;
             if (req.body.followUpDate) {
@@ -386,7 +386,7 @@ export const registerContactsRoutes = (app, storage) => {
                 completed: false,
                 notes: req.body.notes || null
             };
-            console.log("💾 Creating follow-up with data:", JSON.stringify(followUpData, null, 2));
+
             // Create the follow-up action
             const newFollowUp = await storage.createContactFollowUp(userId, contactId, followUpData);
             res.status(201).json(newFollowUp);

@@ -72,8 +72,6 @@ const universityProfileSchema = z.object({
   secondaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, 'Please enter a valid hex color code').optional(),
 });
 
-
-
 // Schema for notification settings
 const notificationSettingsSchema = z.object({
   emailNotifications: z.boolean().default(true),
@@ -226,8 +224,6 @@ export default function Settings() {
     },
   });
 
-
-
   // Notification settings form
   const notificationForm = useForm<z.infer<typeof notificationSettingsSchema>>({
     resolver: zodResolver(notificationSettingsSchema),
@@ -254,17 +250,15 @@ export default function Settings() {
 
   // Form submission handlers
   const onProfileSubmit = (data: z.infer<typeof universityProfileSchema>) => {
-    console.log('Profile data:', data);
+
     toast({
       title: 'Profile updated',
       description: 'University profile settings have been saved.',
     });
   };
 
-
-
   const onNotificationSubmit = (data: z.infer<typeof notificationSettingsSchema>) => {
-    console.log('Notification data:', data);
+
     toast({
       title: 'Notification settings updated',
       description: 'Notification preferences have been saved.',
@@ -528,8 +522,6 @@ export default function Settings() {
             </CardContent>
           </Card>
         </TabsContent>
-
-
 
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-4">

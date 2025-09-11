@@ -111,7 +111,7 @@ export class SupabaseStorage {
     }
     // ============ User Operations ============
     async getUser(id) {
-        console.log(`🔍 Looking up user with ID: ${id} (type: ${typeof id})`);
+
         try {
             const { data, error } = await supabase
                 .from("users")
@@ -124,10 +124,10 @@ export class SupabaseStorage {
                 return undefined;
             }
             if (!data) {
-                console.log(`⚠️ No user found with ID: ${id}`);
+
                 return undefined;
             }
-            console.log(`✅ Found user ${id}: ${data.email || data.username || "no email/username"}`);
+
             return this.mapDatabaseUserToFrontend(data);
         }
         catch (exception) {
@@ -160,12 +160,7 @@ export class SupabaseStorage {
         return this.mapDatabaseUserToFrontend(data);
     }
     async createUser(user) {
-        console.log(`🔨 Creating user with data:`, JSON.stringify({
-            id: user.id,
-            email: user.email,
-            username: user.username,
-            displayName: user.displayName
-        }, null, 2));
+
         try {
             // Map camelCase fields to snake_case for database columns
             const mappedUser = { ...user };
@@ -279,7 +274,7 @@ export class SupabaseStorage {
                 console.error(`❌ No data returned after user creation`);
                 throw new Error("No data returned after user creation");
             }
-            console.log(`✅ User created successfully: ${data.id}`);
+
             return this.mapDatabaseUserToFrontend(data);
         }
         catch (exception) {
@@ -288,12 +283,12 @@ export class SupabaseStorage {
         }
     }
     async updateUser(id, userData) {
-        console.log(`⭐️ Updating user ${id} with data:`, JSON.stringify(userData, null, 2));
+
         try {
             // First, check if user exists
             const existingUser = await this.getUser(Number(id));
             if (!existingUser) {
-                console.warn(`⚠️ User ${id} not found in database, attempting to create basic user record...`);
+
                 // Create a basic user record with minimal required fields
                 const idStr = String(id);
                 const idNum = Number(id);
@@ -311,7 +306,7 @@ export class SupabaseStorage {
                 };
                 try {
                     const newUser = await this.createUser(basicUserData);
-                    console.log(`✅ Created new user ${id} in database`);
+
                     return newUser;
                 }
                 catch (createError) {
@@ -437,7 +432,7 @@ export class SupabaseStorage {
                 console.error("❌ No data returned after user update");
                 return undefined;
             }
-            console.log(`✅ User ${id} updated successfully with fields:`, Object.keys(userData).join(", "));
+
             return this.mapDatabaseUserToFrontend(data);
         }
         catch (error) {
@@ -448,15 +443,10 @@ export class SupabaseStorage {
     // ============ Skill Operations ============
     // Updated to handle two-table structure: skills + user_skills
     async createSkill(skillData) {
-        console.log("🚀 NEW CREATESKILL METHOD EXECUTED - UNIQUE MARKER 2024-06-06-11:20AM");
+
         try {
             const { userId, name, proficiencyLevel, category } = skillData;
-            console.log("🔍 Creating skill with data:", JSON.stringify({
-                userId,
-                name,
-                proficiencyLevel,
-                category
-            }, null, 2));
+
             // Step 1: Check if the skill already exists in the master skills table
             const { data: existingSkill, error: searchError } = await supabase
                 .from("skills")
@@ -470,12 +460,12 @@ export class SupabaseStorage {
             }
             let skillId;
             if (existingSkill) {
-                console.log("🔍 Found existing skill:", existingSkill);
+
                 skillId = existingSkill.id;
             }
             else {
                 // Step 2: Create the skill in the master skills table if it doesn't exist
-                console.log("🔍 Creating new skill in master skills table");
+
                 const { data: newSkill, error: createSkillError } = await supabase
                     .from("skills")
                     .insert({
@@ -492,7 +482,7 @@ export class SupabaseStorage {
                     console.error("Error creating skill:", createSkillError);
                     throw new Error(`Failed to create skill: ${createSkillError.message}`);
                 }
-                console.log("✅ Created new skill:", newSkill);
+
                 skillId = newSkill.id;
             }
             // Step 3: Check if user already has this skill
@@ -507,7 +497,7 @@ export class SupabaseStorage {
                 throw new Error(`Failed to search for existing user skill: ${userSkillSearchError.message}`);
             }
             if (existingUserSkill) {
-                console.log("✅ User already has this skill, returning existing:", existingUserSkill);
+
                 // Return the existing skill with user-specific data
                 return {
                     id: skillId,
@@ -522,7 +512,7 @@ export class SupabaseStorage {
                 };
             }
             // Step 4: Create the user_skills record
-            console.log("🔍 Creating user_skills record");
+
             const { data: userSkill, error: userSkillError } = await supabase
                 .from("user_skills")
                 .insert({
@@ -538,7 +528,7 @@ export class SupabaseStorage {
                 console.error("Error creating user skill:", userSkillError);
                 throw new Error(`Failed to create user skill: ${userSkillError.message}`);
             }
-            console.log("✅ Created user skill:", userSkill);
+
             // Step 5: Return the skill in the expected format
             const result = {
                 id: skillId,
@@ -551,7 +541,7 @@ export class SupabaseStorage {
                 createdAt: new Date(userSkill.created_at),
                 updatedAt: new Date(userSkill.created_at)
             };
-            console.log("✅ Returning skill result:", result);
+
             return result;
         }
         catch (error) {
@@ -866,7 +856,7 @@ export class SupabaseStorage {
                 achievements: item.achievements // This might be a JSON array
                 // Let Supabase handle created_at and updated_at automatically
             };
-            console.log("🔍 UPDATED CODE - Mapped work history item for Supabase:", mappedItem);
+
             const { data, error } = await supabase
                 .from("work_history")
                 .insert(mappedItem)
@@ -876,7 +866,7 @@ export class SupabaseStorage {
                 console.error("❌ Error creating work history item:", error);
                 throw new Error(`Failed to create work history item: ${error.message}`);
             }
-            console.log("✅ Successfully created work history item:", data);
+
             return data;
         }
         catch (exception) {
@@ -976,7 +966,7 @@ export class SupabaseStorage {
                 achievements: item.achievements
                 // Let Supabase handle created_at automatically
             };
-            console.log("🔍 Mapped education history item for Supabase:", mappedItem);
+
             const { data, error } = await supabase
                 .from("education_history")
                 .insert(mappedItem)
@@ -986,7 +976,7 @@ export class SupabaseStorage {
                 console.error("❌ Error creating education history item:", error);
                 throw new Error(`Failed to create education history item: ${error.message}`);
             }
-            console.log("✅ Successfully created education history item:", data);
+
             return data;
         }
         catch (exception) {
@@ -1533,18 +1523,17 @@ export class SupabaseStorage {
         return undefined;
     }
     async updateUserCareerSummary(userId, careerSummary) {
-        console.log(`⭐️ Updating career summary for user ${userId}`);
-        console.log(`📝 Career summary content length: ${careerSummary.length} characters`);
+
         try {
             const result = await this.updateUser(userId, { careerSummary });
             if (!result) {
                 console.error("❌ Failed to update career summary - no user returned");
             }
             else {
-                console.log(`✅ Career summary updated successfully for user ${userId}`);
+
                 // Verify the update was applied
                 if (result.careerSummary !== careerSummary) {
-                    console.warn(`⚠️ Updated career summary doesn't match input - expected length ${careerSummary.length}, got ${result.careerSummary?.length || 0}`);
+
                 }
             }
             return result;
@@ -1562,7 +1551,7 @@ export class SupabaseStorage {
     }
     async getGoals(userId) {
         try {
-            console.log(`🎯 Getting goals for user: ${userId}`);
+
             const { data, error } = await supabase
                 .from("goals")
                 .select("*")
@@ -1587,7 +1576,7 @@ export class SupabaseStorage {
                 xpReward: goal.xp_reward, // Map xp_reward to xpReward
                 createdAt: goal.created_at // Map created_at to createdAt
             }));
-            console.log(`✅ Found ${mappedGoals.length} goals for user ${userId}`);
+
             return mappedGoals;
         }
         catch (exception) {
@@ -1597,7 +1586,7 @@ export class SupabaseStorage {
     }
     async getGoal(id) {
         try {
-            console.log(`🎯 Getting goal by ID: ${id}`);
+
             const { data, error } = await supabase
                 .from("goals")
                 .select("*")
@@ -1625,7 +1614,7 @@ export class SupabaseStorage {
                 xpReward: data.xp_reward, // Map xp_reward to xpReward
                 createdAt: data.created_at // Map created_at to createdAt
             };
-            console.log(`✅ Found goal:`, mappedGoal);
+
             return mappedGoal;
         }
         catch (exception) {
@@ -1635,8 +1624,7 @@ export class SupabaseStorage {
     }
     async createGoal(userId, goal) {
         try {
-            console.log("🎯 GOALS FIX - UNIQUE MARKER 2024-06-06-11:25AM");
-            console.log("📝 Raw goal data:", JSON.stringify(goal, null, 2));
+
             // Map frontend field names to database column names
             const mappedGoal = {
                 user_id: userId,
@@ -1652,7 +1640,7 @@ export class SupabaseStorage {
                     (await settingsService.getXpReward("goalCompletionReward")) // Use settings for default XP reward
                 // Let Supabase handle created_at automatically
             };
-            console.log("🔍 Mapped goal item for Supabase:", JSON.stringify(mappedGoal, null, 2));
+
             const { data, error } = await supabase
                 .from("goals")
                 .insert(mappedGoal)
@@ -1662,7 +1650,7 @@ export class SupabaseStorage {
                 console.error("❌ Error creating goal:", error);
                 throw new Error(`Failed to create goal: ${error.message}`);
             }
-            console.log("✅ Successfully created goal:", data);
+
             // Award XP for creating a goal
             await this.addUserXP(userId, await settingsService.getXpReward("goalCreationReward"), "goals_created", "Created a new career goal");
             return data;
@@ -1674,11 +1662,11 @@ export class SupabaseStorage {
     }
     async updateGoal(id, goalData) {
         try {
-            console.log(`🎯 Updating goal ${id} with data:`, JSON.stringify(goalData, null, 2));
+
             // First get the current goal to check completion status
             const currentGoal = await this.getGoal(id);
             if (!currentGoal) {
-                console.log(`❌ Goal ${id} not found`);
+
                 return undefined;
             }
             // Check if the goal is being completed
@@ -1716,7 +1704,7 @@ export class SupabaseStorage {
                 mappedData.completed_at = mappedData.completed_at || new Date();
                 mappedData.progress = 100;
             }
-            console.log(`🔍 Mapped update data for Supabase:`, mappedData);
+
             const { data, error } = await supabase
                 .from("goals")
                 .update(mappedData)
@@ -1748,7 +1736,7 @@ export class SupabaseStorage {
                 xpReward: data.xp_reward, // Map xp_reward to xpReward
                 createdAt: data.created_at // Map created_at to createdAt
             };
-            console.log(`✅ Successfully updated goal:`, mappedGoal);
+
             return mappedGoal;
         }
         catch (exception) {
@@ -1758,13 +1746,13 @@ export class SupabaseStorage {
     }
     async deleteGoal(id) {
         try {
-            console.log(`🎯 Deleting goal with ID: ${id}`);
+
             const { error } = await supabase.from("goals").delete().eq("id", id);
             if (error) {
                 console.error("❌ Error deleting goal:", error);
                 return false;
             }
-            console.log(`✅ Successfully deleted goal ${id}`);
+
             return true;
         }
         catch (exception) {
@@ -1823,8 +1811,7 @@ export class SupabaseStorage {
     }
     async createCertification(userId, certification) {
         try {
-            console.log("🚀 CERTIFICATION FIX - UNIQUE MARKER 2024-06-06-11:20AM");
-            console.log("📝 Raw certification data:", JSON.stringify(certification, null, 2));
+
             // Map frontend field names to database column names and handle required fields
             const mappedItem = {
                 user_id: userId,
@@ -1839,7 +1826,7 @@ export class SupabaseStorage {
                 description: certification.description
                 // Let Supabase handle created_at and updated_at automatically
             };
-            console.log("🔍 Mapped certification item for Supabase:", mappedItem);
+
             const { data, error } = await supabase
                 .from("certifications")
                 .insert(mappedItem)
@@ -1849,7 +1836,7 @@ export class SupabaseStorage {
                 console.error("❌ Error creating certification:", error);
                 throw new Error(`Failed to create certification: ${error.message}`);
             }
-            console.log("✅ Successfully created certification:", data);
+
             return data;
         }
         catch (exception) {
@@ -1899,7 +1886,7 @@ export class SupabaseStorage {
     // ============ Networking Contacts Operations ============
     async getNetworkingContacts(userId, filters) {
         try {
-            console.log(`🔍 Getting networking contacts for user: ${userId}`);
+
             let query = supabase
                 .from("networking_contacts")
                 .select("*")
@@ -1918,7 +1905,7 @@ export class SupabaseStorage {
                 console.error("❌ Error fetching networking contacts:", error);
                 return [];
             }
-            console.log(`✅ Found ${data?.length || 0} networking contacts for user ${userId}`);
+
             return data || [];
         }
         catch (exception) {
@@ -2009,7 +1996,7 @@ export class SupabaseStorage {
     // ============ Contact Follow-up Operations ============
     async getContactsNeedingFollowup(userId) {
         try {
-            console.log(`🔍 Getting contacts needing follow-up for user: ${userId}`);
+
             // Get contacts that have pending follow-ups with due dates
             const { data, error } = await supabase
                 .from("networking_contacts")
@@ -2031,7 +2018,7 @@ export class SupabaseStorage {
                 console.error("❌ Error fetching contacts needing follow-up:", error);
                 return [];
             }
-            console.log(`✅ Found ${data?.length || 0} contacts needing follow-up for user ${userId}`);
+
             return data || [];
         }
         catch (exception) {
@@ -2041,7 +2028,7 @@ export class SupabaseStorage {
     }
     async getContactFollowUps(contactId) {
         try {
-            console.log(`🔍 Getting follow-ups for contact: ${contactId}`);
+
             const { data, error } = await supabase
                 .from("followup_actions")
                 .select("*")
@@ -2051,7 +2038,7 @@ export class SupabaseStorage {
                 console.error("❌ Error fetching contact follow-ups:", error);
                 return [];
             }
-            console.log(`✅ Found ${data?.length || 0} follow-ups for contact ${contactId}`);
+
             return data || [];
         }
         catch (exception) {
@@ -2061,7 +2048,7 @@ export class SupabaseStorage {
     }
     async createContactFollowUp(userId, contactId, followUp) {
         try {
-            console.log(`🔍 Creating follow-up for contact ${contactId} by user ${userId}`);
+
             const { data, error } = await supabase
                 .from("followup_actions")
                 .insert({
@@ -2078,7 +2065,7 @@ export class SupabaseStorage {
                 console.error("❌ Error creating contact follow-up:", error);
                 throw new Error(`Failed to create contact follow-up: ${error.message}`);
             }
-            console.log(`✅ Created follow-up ${data.id} for contact ${contactId}`);
+
             return data;
         }
         catch (exception) {
@@ -2088,7 +2075,7 @@ export class SupabaseStorage {
     }
     async completeContactFollowUp(id) {
         try {
-            console.log(`🔍 Completing follow-up: ${id}`);
+
             const { data, error } = await supabase
                 .from("followup_actions")
                 .update({
@@ -2103,7 +2090,7 @@ export class SupabaseStorage {
                 console.error("❌ Error completing contact follow-up:", error);
                 return undefined;
             }
-            console.log(`✅ Completed follow-up ${id}`);
+
             return data;
         }
         catch (exception) {
@@ -2113,7 +2100,7 @@ export class SupabaseStorage {
     }
     async deleteContactFollowUp(id) {
         try {
-            console.log(`🔍 Deleting follow-up: ${id}`);
+
             const { error } = await supabase
                 .from("followup_actions")
                 .delete()
@@ -2122,7 +2109,7 @@ export class SupabaseStorage {
                 console.error("❌ Error deleting contact follow-up:", error);
                 return false;
             }
-            console.log(`✅ Deleted follow-up ${id}`);
+
             return true;
         }
         catch (exception) {
@@ -2176,7 +2163,7 @@ export class SupabaseStorage {
     // ============ AI Coach Operations ============
     async getAiCoachConversations(userId) {
         try {
-            console.log(`🤖 AI COACH - Getting conversations for user: ${userId}`);
+
             const { data, error } = await supabase
                 .from("ai_coach_conversations")
                 .select("*")
@@ -2186,7 +2173,7 @@ export class SupabaseStorage {
                 console.error("❌ Error fetching AI coach conversations:", error);
                 return [];
             }
-            console.log(`✅ Found ${data?.length || 0} AI coach conversations`);
+
             return data || [];
         }
         catch (exception) {
@@ -2196,7 +2183,7 @@ export class SupabaseStorage {
     }
     async getAiCoachConversation(id) {
         try {
-            console.log(`🤖 AI COACH - Getting conversation: ${id}`);
+
             const { data, error } = await supabase
                 .from("ai_coach_conversations")
                 .select("*")
@@ -2215,8 +2202,7 @@ export class SupabaseStorage {
     }
     async createAiCoachConversation(userId, conversation) {
         try {
-            console.log(`🤖 AI COACH - Creating conversation for user: ${userId}`);
-            console.log("📝 Conversation data:", JSON.stringify(conversation, null, 2));
+
             const { data, error } = await supabase
                 .from("ai_coach_conversations")
                 .insert({
@@ -2230,7 +2216,7 @@ export class SupabaseStorage {
                 console.error("❌ Error creating AI coach conversation:", error);
                 throw new Error(`Failed to create AI coach conversation: ${error.message}`);
             }
-            console.log(`✅ Created AI coach conversation ${data.id}`);
+
             return data;
         }
         catch (exception) {
@@ -2240,7 +2226,7 @@ export class SupabaseStorage {
     }
     async getAiCoachMessages(conversationId) {
         try {
-            console.log(`🤖 AI COACH - Getting messages for conversation: ${conversationId}`);
+
             const { data, error } = await supabase
                 .from("ai_coach_messages")
                 .select("*")
@@ -2250,7 +2236,7 @@ export class SupabaseStorage {
                 console.error("❌ Error fetching AI coach messages:", error);
                 return [];
             }
-            console.log(`✅ Found ${data?.length || 0} AI coach messages`);
+
             return data || [];
         }
         catch (exception) {
@@ -2260,8 +2246,7 @@ export class SupabaseStorage {
     }
     async addAiCoachMessage(message) {
         try {
-            console.log(`🤖 AI COACH - Adding message to conversation: ${message.conversationId}`);
-            console.log("📝 Message data:", JSON.stringify(message, null, 2));
+
             const { data, error } = await supabase
                 .from("ai_coach_messages")
                 .insert({
@@ -2276,7 +2261,7 @@ export class SupabaseStorage {
                 console.error("❌ Error adding AI coach message:", error);
                 throw new Error(`Failed to add AI coach message: ${error.message}`);
             }
-            console.log(`✅ Added AI coach message ${data.id}`);
+
             // If it's a user message, add XP reward
             if (message.isUser) {
                 const conversation = await this.getAiCoachConversation(message.conversationId);
@@ -2294,7 +2279,7 @@ export class SupabaseStorage {
     // ============ Personal Achievements Operations ============
     async getUserPersonalAchievements(userId) {
         try {
-            console.log(`🏆 Getting personal achievements for user: ${userId}`);
+
             const { data, error } = await supabase
                 .from("user_personal_achievements")
                 .select("*")
@@ -2321,7 +2306,7 @@ export class SupabaseStorage {
                 createdAt: achievement.created_at, // Map created_at to createdAt
                 updatedAt: achievement.updated_at // Map updated_at to updatedAt
             }));
-            console.log(`✅ Found ${mappedAchievements.length} personal achievements`);
+
             return mappedAchievements;
         }
         catch (exception) {
@@ -2331,7 +2316,7 @@ export class SupabaseStorage {
     }
     async getUserPersonalAchievement(id) {
         try {
-            console.log(`🏆 Getting personal achievement: ${id}`);
+
             const { data, error } = await supabase
                 .from("user_personal_achievements")
                 .select("*")
@@ -2366,8 +2351,7 @@ export class SupabaseStorage {
     }
     async createUserPersonalAchievement(userId, achievement) {
         try {
-            console.log(`🏆 Creating personal achievement for user: ${userId}`);
-            console.log("📝 Achievement data:", JSON.stringify(achievement, null, 2));
+
             // Map frontend field names to database column names
             const mappedAchievement = {
                 user_id: userId,
@@ -2385,7 +2369,7 @@ export class SupabaseStorage {
                 created_at: new Date(),
                 updated_at: new Date()
             };
-            console.log("🔍 Mapped achievement for Supabase:", JSON.stringify(mappedAchievement, null, 2));
+
             const { data, error } = await supabase
                 .from("user_personal_achievements")
                 .insert(mappedAchievement)
@@ -2395,7 +2379,7 @@ export class SupabaseStorage {
                 console.error("❌ Error creating personal achievement:", error);
                 throw new Error(`Failed to create personal achievement: ${error.message}`);
             }
-            console.log("✅ Successfully created personal achievement:", data);
+
             // Award XP for adding a personal achievement
             await this.addUserXP(userId, await settingsService.getXpReward("personalAchievementCreationReward"), "personal_achievement_added", "Added personal achievement");
             // Map the returned data back to frontend format

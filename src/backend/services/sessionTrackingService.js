@@ -39,7 +39,7 @@ export class SessionTrackingService {
             this.activeSessions.set(userId, sessionId);
             // Update user's login count and last login
             await this.updateUserLoginStats(userId);
-            console.log(`✅ Started session ${sessionId} for user ${userId}`);
+
             return sessionId;
         }
         catch (error) {
@@ -54,7 +54,7 @@ export class SessionTrackingService {
         try {
             const sessionId = this.activeSessions.get(userId);
             if (!sessionId) {
-                console.log(`No active session found for user ${userId}`);
+
                 return;
             }
             // Get current session data
@@ -93,7 +93,7 @@ export class SessionTrackingService {
             this.activeSessions.delete(userId);
             // Update user's total session time
             await this.updateUserSessionStats(userId);
-            console.log(`✅ Ended session ${sessionId} for user ${userId} (duration: ${Math.round(durationMs / 1000)}s)`);
+
         }
         catch (error) {
             console.error('Error ending session:', error);
@@ -106,7 +106,7 @@ export class SessionTrackingService {
         try {
             const sessionId = this.activeSessions.get(userId);
             if (!sessionId) {
-                console.log(`No active session for user ${userId} to track feature: ${featureName}`);
+
                 return;
             }
             // Get current features
@@ -134,7 +134,7 @@ export class SessionTrackingService {
                     console.error('Error tracking feature usage:', updateError);
                     return;
                 }
-                console.log(`📊 Tracked feature usage: ${featureName} for user ${userId}`);
+
             }
         }
         catch (error) {

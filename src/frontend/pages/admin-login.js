@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
     const [isLoginLoading, setIsLoginLoading] = useState(false);
     // Redirect if user is already logged in as admin - check both role and userType fields
     if (user && (user.role === 'super_admin' || user.role === 'admin' || user.userType === 'admin')) {
-        console.log("Admin already logged in, redirecting to /admin. Role:", user.role, "Type:", user.userType);
+
         setLocation('/admin');
         return null;
     }
@@ -35,7 +35,7 @@ export default function AdminLoginPage() {
             // in case the server doesn't handle the login type correctly
             // Check both role and userType fields
             if (user.role !== 'super_admin' && user.role !== 'admin' && user.userType !== 'admin') {
-                console.log("Access denied: Not an admin. Role:", user.role, "Type:", user.userType);
+
                 toast({
                     title: "Access denied",
                     description: "You do not have admin privileges.",
@@ -46,14 +46,14 @@ export default function AdminLoginPage() {
                 setLocation('/sign-in');
                 return;
             }
-            console.log("Admin login successful. Role:", user.role, "Type:", user.userType);
+
             toast({
                 title: "Admin login successful!",
                 description: "You have been logged in successfully.",
             });
             // ✅ Rely solely on the server-sent redirectPath for proper routing
             // The login function in useUserData.tsx handles redirection based on the server response
-            console.log("Admin login successful - redirection will be handled by useUserData.tsx");
+
         }
         catch (error) {
             toast({

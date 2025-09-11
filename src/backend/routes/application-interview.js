@@ -44,31 +44,25 @@ export function registerApplicationInterviewRoutes(app, storage) {
                 return res.status(401).json({ message: "Authentication required" });
             }
             // Debug logging
-            console.log(`Attempting to get application with ID: ${applicationId} for user ${userId}`);
+
             // Note: We don't need to get all applications as we'll check the specific one below
-            console.log(`Checking if application ${applicationId} belongs to user ${userId}`);
+
             // Get the application to verify ownership
             const application = await storage.getJobApplication(applicationId);
             if (!application) {
-                console.log(`ERROR: Application with ID ${applicationId} not found`);
+
                 // For debugging, if application not found, check if there's a mismatch in ID type
-                console.log(`Debug: Checking all application IDs to match ${applicationId} (${typeof applicationId})`);
+
                 const allApps = [];
                 for (let testId = 1; testId <= 10; testId++) {
                     const testApp = await storage.getJobApplication(testId);
                     if (testApp)
                         allApps.push({ id: testId, userId: testApp.userId });
                 }
-                console.log(`Found these applications:`, allApps);
+
             }
             else {
-                console.log(`Application found:`, {
-                    id: application.id,
-                    userId: application.userId,
-                    jobTitle: application.jobTitle || application.title,
-                    company: application.company,
-                    status: application.status
-                });
+
             }
             if (!application) {
                 return res.status(404).json({ message: "Application not found" });
@@ -84,7 +78,7 @@ export function registerApplicationInterviewRoutes(app, storage) {
                     ...application,
                     status: "Interviewing"
                 });
-                console.log(`Updated application ${applicationId} status to "Interviewing"`);
+
             }
             // Parse the stage data
             const stageData = {

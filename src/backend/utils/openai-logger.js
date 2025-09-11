@@ -17,7 +17,7 @@ export function logOpenAIUsage(logEntry) {
         logs.pop();
     }
     // Also log to console for debugging
-    console.log(`OpenAI API Call - User: ${logEntry.userId}, Model: ${logEntry.model}, Status: ${logEntry.status}, Tokens: ${logEntry.total_tokens}`);
+
 }
 /**
  * Get all logged OpenAI API calls

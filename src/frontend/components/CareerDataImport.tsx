@@ -76,8 +76,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
   useEffect(() => {
     const refreshCareerData = async () => {
       if (isDialogOpen) {
-        console.log('CareerDataImport: Dialog opened, refreshing career data...');
-        
+
         try {
           // First, run our comprehensive debugging function to trace the data flow
           await debugCompareWorkHistorySources();
@@ -94,7 +93,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           };
           
           // Directly perform a fetch to verify what's coming from the API
-          console.log('Performing direct API call to fetch career data...');
+
           const response = await fetch(`/api/career-data?t=${timestamp}`, {
             credentials: 'include',
             headers: cacheHeaders
@@ -105,41 +104,32 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           }
           
           const directData = await response.json();
-          console.log('DIRECT API CALL - Career data received:', directData);
-          console.log('DIRECT API CALL - Work history count:', directData?.workHistory?.length || 0);
-          
+
           if (directData?.workHistory?.length > 0) {
-            console.log('DIRECT API CALL - First work history item:', directData.workHistory[0]);
-            
+
             // Verify all work history dates are correctly formatted
             const sampleJob = directData.workHistory[0];
-            console.log('DIRECT API CALL - Date format verification:');
-            console.log(`  startDate (${typeof sampleJob.startDate}):`, sampleJob.startDate);
-            console.log(`  endDate (${typeof sampleJob.endDate}):`, sampleJob.endDate);
-            console.log(`  createdAt (${typeof sampleJob.createdAt}):`, sampleJob.createdAt);
-            
+
             // Test parsing dates
             if (sampleJob.startDate) {
               const testDate = new Date(sampleJob.startDate);
-              console.log('  Parsed startDate:', testDate.toISOString());
+
             }
           } else {
-            console.log('DIRECT API CALL - No work history items found!');
+
           }
           
           // Now perform the React Query refetch to update the UI
           // Pass the same cache-busting timestamp to the refetch function
-          console.log('Now refetching data via React Query...');
+
           const result = await refetch();
           
           if (result.isSuccess && result.data) {
-            console.log('RQ - Career data successfully refreshed:', result.data);
-            console.log('RQ - Work history items:', result.data.workHistory?.length || 0);
-            
+
             if (result.data.workHistory?.length === 0) {
-              console.log('RQ - No work history items found in response');
+
             } else {
-              console.log('RQ - Work history sample:', result.data.workHistory[0]);
+
             }
           } else if (result.isError) {
             console.error('RQ - Error refreshing career data:', result.error);
@@ -311,7 +301,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           );
           
           if (!existsInCareerData && item.company && item.position) {
-            console.log('Creating new work history item from resume data:', item);
+
             const startDate = item.startDate ? new Date(item.startDate) : new Date();
             const endDate = item.currentJob ? null : (item.endDate ? new Date(item.endDate) : null);
             
@@ -372,7 +362,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           );
           
           if (!existsInCareerData && item.institution && item.degree) {
-            console.log('Creating new education history item from resume data:', item);
+
             const startDate = item.startDate ? new Date(item.startDate) : new Date();
             const endDate = item.current ? null : (item.endDate ? new Date(item.endDate) : null);
             
@@ -427,8 +417,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           );
           
           if (!existsInCareerData && skillName) {
-            console.log('Creating new skill from resume data:', skillName);
-            
+
             // Create a mutation to save this item to career data
             syncPromises.push(
               fetch('/api/career-data/skills', {
@@ -477,7 +466,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           );
           
           if (!existsInCareerData && item.name && item.issuer) {
-            console.log('Creating new certification from resume data:', item);
+
             const issueDate = item.date ? new Date(item.date) : new Date();
             
             // Create a mutation to save this item to career data
@@ -505,10 +494,9 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
   
       // If we have any sync operations to perform, wait for them to complete
       if (syncPromises.length > 0) {
-        console.log(`Performing ${syncPromises.length} sync operations...`);
+
         await Promise.all(syncPromises);
-        console.log('All sync operations completed successfully!');
-        
+
         // After syncing, force a refresh of the career data
         queryClient.removeQueries({ queryKey: ['/api/career-data'] });
         await refetch();

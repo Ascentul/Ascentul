@@ -1,10 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { ENV } from "../config/env";
 // Log environment status
-console.log("Supabase configuration status:");
-console.log(`- SUPABASE_URL: ${ENV.SUPABASE_URL ? "set" : "missing"}`);
-console.log(`- SUPABASE_ANON_KEY: ${ENV.SUPABASE_ANON_KEY ? "set" : "missing"}`);
-console.log(`- SUPABASE_SERVICE_ROLE_KEY: ${ENV.SUPABASE_SERVICE_ROLE_KEY ? "set" : "missing"}`);
+
 // Default values for development (these should be replaced with actual values in .env)
 const supabaseUrl = ENV.SUPABASE_URL || "https://placeholder-project.supabase.co";
 const supabaseAnonKey = ENV.SUPABASE_ANON_KEY || "placeholder-key";
@@ -18,7 +15,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         fetch: (...args) => {
             // For debugging, log the request URL (but not the headers which may contain auth tokens)
             if (ENV.NODE_ENV === "development") {
-                console.log(`🔍 Supabase Request: ${args[0]}`);
+
             }
             return fetch(...args);
         }
@@ -31,9 +28,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     }
 });
 // Log Supabase connection status
-console.log("🔌 Supabase client initialized with URL:", supabaseUrl);
+
 if (!ENV.SUPABASE_URL || !ENV.SUPABASE_ANON_KEY) {
-    console.warn("⚠️ WARNING: Missing Supabase credentials. Check your .env file.");
+
 }
 // Supabase admin client with service role for admin operations
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {

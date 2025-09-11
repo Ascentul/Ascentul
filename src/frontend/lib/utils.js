@@ -13,11 +13,11 @@ export function cn(...inputs) {
  * 3. Due to UI interactions that create duplicates or orphaned stages
  */
 export function cleanupOrphanedInterviewStages() {
-    console.log('Running interview stages cleanup...');
+
     // First get all application IDs from localStorage
     const mockApps = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
     const validAppIds = new Set(mockApps.map((app) => app.id.toString()));
-    console.log(`Found ${validAppIds.size} valid applications`);
+
     // Now scan localStorage for all interview stage keys
     const stagesToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -55,11 +55,11 @@ export function cleanupOrphanedInterviewStages() {
         }
     }
     // Remove all orphaned keys
-    console.log(`Found ${stagesToRemove.length} orphaned keys to remove`);
+
     stagesToRemove.forEach(key => {
         try {
             localStorage.removeItem(key);
-            console.log(`Removed orphaned key: ${key}`);
+
         }
         catch (e) {
             console.error(`Error removing key ${key}:`, e);
@@ -80,5 +80,5 @@ export function cleanupOrphanedInterviewStages() {
     catch (e) {
         console.error('Error dispatching update events:', e);
     }
-    console.log('Interview stages cleanup complete');
+
 }

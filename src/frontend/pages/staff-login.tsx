@@ -28,7 +28,7 @@ export default function StaffLoginPage() {
     user.userType === 'staff' || 
     user.userType === 'admin'
   )) {
-    console.log("Staff login page: User already has staff access. Role:", user.role, "Type:", user.userType);
+
     setLocation('/staff-dashboard');
     return null;
   }
@@ -55,7 +55,7 @@ export default function StaffLoginPage() {
         user.userType === 'staff' || 
         user.userType === 'admin'
       )) {
-        console.log("Staff login denied - User has incorrect role/type. Role:", user.role, "Type:", user.userType);
+
         toast({
           title: "Access denied",
           description: "You do not have staff portal access privileges.",
@@ -67,9 +67,7 @@ export default function StaffLoginPage() {
         setLocation('/sign-in');
         return;
       }
-      
-      console.log("Staff login successful for user with role:", user.role, "type:", user.userType);
-      
+
       toast({
         title: "Staff login successful!",
         description: "You have been logged in successfully.",
@@ -77,7 +75,7 @@ export default function StaffLoginPage() {
       
       // ✅ Rely solely on the server-sent redirectPath for proper routing
       // The login function in useUserData.tsx handles redirection based on the server response
-      console.log("Staff login successful - redirection will be handled by useUserData.tsx");
+
     } catch (error) {
       toast({
         title: "Login failed",

@@ -103,7 +103,7 @@ export default function SignUpPage() {
             // University users should go to standard onboarding for now, then to university dashboard
             // TODO: Create dedicated university onboarding flow
             const redirectPath = "/onboarding";
-            console.log(`Registration successful - redirecting to ${redirectPath}`);
+
             window.location.href = redirectPath;
         }
         catch (error) {

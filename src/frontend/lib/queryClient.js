@@ -63,11 +63,11 @@ export async function apiRequest(methodOrOptions, urlOrNothing, dataOrNothing) {
     // Get Supabase token and add Authorization header
     const token = await getSupabaseToken();
     if (token) {
-        console.log("Using Supabase JWT token for authentication");
+
         headers["Authorization"] = `Bearer ${token}`;
     }
     else {
-        console.log("No Supabase token available, using dev fallback");
+
         // Fallback to dev token for development mode
         headers["Authorization"] = "Bearer dev_token";
     }
@@ -87,7 +87,7 @@ export async function apiRequest(methodOrOptions, urlOrNothing, dataOrNothing) {
         credentials: "include" // This ensures cookies are sent with the request
     });
     // Debug authentication info
-    console.log(`API Request to ${url}: Status ${res.status}, Auth: ${res.headers.get("x-auth-status") || "N/A"}`);
+
     await throwIfResNotOk(res);
     // If we're using the object pattern, assume they want JSON back
     if (typeof methodOrOptions === "object") {
@@ -106,11 +106,11 @@ export const getQueryFn = (options) => {
         // Get Supabase token and add Authorization header
         const token = await getSupabaseToken();
         if (token) {
-            console.log("Using Supabase JWT token for query");
+
             headers["Authorization"] = `Bearer ${token}`;
         }
         else {
-            console.log("No Supabase token available for query, using dev fallback");
+
             // Fallback to dev token for development mode
             headers["Authorization"] = "Bearer dev_token";
         }

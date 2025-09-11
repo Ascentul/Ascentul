@@ -161,12 +161,7 @@ export function GetStartedChecklist({ userId }) {
     const saveProgress = (items, reviewCompleted, explicitlyDismissed = false) => {
         try {
             // Added log to track what's being saved
-            console.log('Saving checklist progress for user', userId, {
-                itemCount: items.length,
-                completedCount: items.filter(i => i.completed).length,
-                reviewCompleted,
-                explicitlyDismissed
-            });
+
             const progressData = {
                 userId,
                 items: items.reduce((acc, item) => {
@@ -185,7 +180,7 @@ export function GetStartedChecklist({ userId }) {
     };
     // Helper function to handle new user initialization
     const handleNewUser = () => {
-        console.log("No stored progress found - initializing new user checklist");
+
         // Ensure we have a clean slate for the checklist items
         const freshItems = checklistItems.map(item => ({ ...item, completed: false }));
         setChecklistItems(freshItems);
@@ -194,39 +189,35 @@ export function GetStartedChecklist({ userId }) {
         // Initialize localStorage with a delay to ensure state is updated
         setTimeout(() => {
             saveProgress(freshItems, false, false);
-            console.log("Saved initial checklist state for new user");
+
         }, 300);
         // Always show checklist for new users
         setShowChecklist(true);
-        console.log("Checklist visibility explicitly set to TRUE for new user");
+
     };
     // Fetch user's checklist progress from localStorage (or API in the future)
     useEffect(() => {
         // Simulate loading
         setIsLoading(true);
-        console.log("Initializing checklist for user ID:", userId);
+
         // In a real app, you would fetch this data from your API
         // For now, simulate by checking localStorage
         setTimeout(() => {
             try {
                 // Check if we have stored progress
                 const storedProgress = localStorage.getItem(`checklist_progress_${userId}`);
-                console.log("Checklist initialization - stored progress found:", !!storedProgress);
+
                 if (storedProgress) {
                     try {
                         const parsedProgress = JSON.parse(storedProgress);
-                        console.log("Parsed progress:", {
-                            hasItems: !!parsedProgress.items,
-                            reviewCompleted: parsedProgress.reviewCompleted || false,
-                            explicitlyDismissed: parsedProgress.explicitlyDismissed || false
-                        });
+
                         // Update the checklist items with the stored progress
                         setChecklistItems(prevItems => {
                             const updatedItems = prevItems.map(item => ({
                                 ...item,
                                 completed: parsedProgress.items && parsedProgress.items[item.id] || false
                             }));
-                            console.log("Updated items:", updatedItems.map(i => ({ id: i.id, completed: i.completed })));
+
                             return updatedItems;
                         });
                         // Check if review is completed
@@ -237,7 +228,7 @@ export function GetStartedChecklist({ userId }) {
                         // Only hide the checklist if explicitly dismissed by the user
                         // This ensures the checklist persists for all users until they explicitly dismiss it
                         setShowChecklist(!parsedProgress.explicitlyDismissed);
-                        console.log("Setting showChecklist to:", !parsedProgress.explicitlyDismissed);
+
                     }
                     catch (parseError) {
                         console.error("Failed to parse stored progress, treating as new user:", parseError);
@@ -331,7 +322,7 @@ export function GetStartedChecklist({ userId }) {
             return;
         // Check if the user has added at least one contact
         const hasAtLeastOneContact = networkContacts.length > 0;
-        console.log(`User has ${networkContacts.length} contacts in the Network Hub`);
+
         // Update the network-contact item based on actual data
         setChecklistItems(prevItems => {
             const updatedItems = prevItems.map(item => {
@@ -349,7 +340,7 @@ export function GetStartedChecklist({ userId }) {
             return;
         // Check if the user has created at least one goal
         const hasAtLeastOneGoal = userGoals.length > 0;
-        console.log(`User has ${userGoals.length} career goals`);
+
         // Update the career-goal item based on actual data
         setChecklistItems(prevItems => {
             const updatedItems = prevItems.map(item => {
@@ -367,7 +358,7 @@ export function GetStartedChecklist({ userId }) {
             return;
         // Check if the user has added at least one application
         const hasAtLeastOneApplication = jobApplications.length > 0;
-        console.log(`User has ${jobApplications.length} job applications`);
+
         // Update the job-application item based on actual data
         setChecklistItems(prevItems => {
             const updatedItems = prevItems.map(item => {
@@ -385,7 +376,7 @@ export function GetStartedChecklist({ userId }) {
             return;
         // Check if the user has created at least one resume
         const hasAtLeastOneResume = userResumes.length > 0;
-        console.log(`User has ${userResumes.length} resumes`);
+
         // Update the resume-creation item based on actual data
         setChecklistItems(prevItems => {
             const updatedItems = prevItems.map(item => {
@@ -412,7 +403,7 @@ export function GetStartedChecklist({ userId }) {
         const completedSections = sections.filter(Boolean).length;
         const totalSections = sections.length;
         const percentageComplete = Math.round((completedSections / totalSections) * 100);
-        console.log(`Career profile completion: ${percentageComplete}% (${completedSections}/${totalSections} sections)`);
+
         // Check if profile is 100% complete
         const isProfileComplete = percentageComplete === 100;
         // Update the career-profile item based on completion

@@ -96,8 +96,7 @@ class OnboardingTour {
   resetTour() {
     localStorage.removeItem(this.storageKeys.tourDismissed);
     localStorage.removeItem(this.storageKeys.tourCompleted);
-    console.log('Ascentul tour reset. Refresh the page to see the tour card.');
-    
+
     // Remove any existing tour elements
     if (this.dashboardCard) {
       this.dashboardCard.remove();
@@ -115,7 +114,7 @@ class OnboardingTour {
     const dashboardContainer = document.querySelector('#dashboard');
     
     if (!dashboardContainer) {
-      console.warn('Dashboard container (#dashboard) not found. Cannot show onboarding card.');
+
       return;
     }
 
@@ -214,7 +213,7 @@ class OnboardingTour {
    */
   showStep(stepIndex) {
     if (stepIndex < 0 || stepIndex >= this.tourSteps.length) {
-      console.warn(`Invalid step index: ${stepIndex}`);
+
       return;
     }
 
@@ -231,7 +230,7 @@ class OnboardingTour {
     // Find the target element to highlight
     const targetElement = document.querySelector(step.target);
     if (!targetElement) {
-      console.warn(`Target element not found: ${step.target}`);
+
       return;
     }
 
@@ -369,8 +368,7 @@ class OnboardingTour {
    */
   tryFeature(stepIndex) {
     const step = this.tourSteps[stepIndex];
-    console.log(`User wants to try: ${step.title}`);
-    
+
     // This is where you would implement the action for each feature
     // For now, we'll just log it and go to the next step
     

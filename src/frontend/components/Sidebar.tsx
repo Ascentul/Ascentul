@@ -340,12 +340,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
           <div className="inline-block">
             <ProfileImageUploader
               onImageUploaded={async (imageDataUrl) => {
-                console.log("Sidebar image upload started...");
-                
+
                 try {
                   // Use the centralized uploadProfileImage function from useUserData context
                   const updatedUser = await uploadProfileImage(imageDataUrl);
-                  console.log("Profile successfully updated from sidebar:", updatedUser);
+
                   return updatedUser;
                 } catch (error) {
                   console.error("Error updating profile with image:", error);
@@ -362,7 +361,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                       src={user.profileImage || ''} 
                       alt={user.name} 
                       onError={(e) => {
-                        console.log("Error loading image, falling back to text");
+
                         // Hide the broken image icon
                         e.currentTarget.style.display = 'none';
                       }}

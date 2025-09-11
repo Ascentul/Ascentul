@@ -17,8 +17,7 @@ router.get('/status', (req: Request, res: Response) => {
     const envKeys = Object.keys(process.env)
       .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD') && !key.includes('KEY'))
       .join(', ');
-    console.log('Available environment variables (excluding secrets):', envKeys);
-    
+
     // Check for Mailgun API key - try different potential environment variable names
     const mailgunKey = process.env.MAILGUN_API_KEY || process.env.MAILGUN_KEY || process.env.MG_API_KEY;
     const hasMailgunApiKey = !!mailgunKey;
@@ -28,17 +27,9 @@ router.get('/status', (req: Request, res: Response) => {
     const hasCustomDomain = !!process.env.MAILGUN_DOMAIN;
     
     // Log the API key status
-    console.log('Mail service status check:');
-    console.log('- MAILGUN API KEY status:', hasMailgunApiKey ? 'configured' : 'not configured');
-    console.log('- MAILGUN_DOMAIN status:', hasCustomDomain ? 'configured' : 'using default');
-    console.log('- Default domain:', mailDomain);
-    
+
     // Check for specific environment variables that might contain the API key
-    console.log('Environment variable check:');
-    console.log('- MAILGUN_API_KEY present:', process.env.MAILGUN_API_KEY ? 'Yes' : 'No');
-    console.log('- MAILGUN_KEY present:', process.env.MAILGUN_KEY ? 'Yes' : 'No');
-    console.log('- MG_API_KEY present:', process.env.MG_API_KEY ? 'Yes' : 'No');
-    
+
     res.status(200).json({
       success: true,
       service: 'Mailgun Email',
@@ -161,8 +152,6 @@ router.get('/test', async (req: Request, res: Response) => {
     // Get recipient email from query parameters
     const toEmail = req.query.email as string || 'test@example.com';
     const toName = req.query.name as string || 'Test User';
-    
-    console.log(`Sending test email to ${toEmail} (${toName})`);
 
     // Send the test email
     const result = await sendEmail({
@@ -224,9 +213,7 @@ router.post('/welcome', async (req: Request, res: Response) => {
       email = req.user.email;
       name = req.user.name;
     }
-    
-    console.log(`Sending welcome email to ${email} (${name || 'unnamed user'})`);
-    
+
     // Send welcome email
     const result = await sendWelcomeEmail(email, name);
     
@@ -277,8 +264,6 @@ router.get('/welcome', async (req: Request, res: Response) => {
         details: 'Email address must be provided as a query parameter'
       });
     }
-    
-    console.log(`Sending welcome email to ${toEmail} (${toName || 'unnamed user'})`);
 
     // Send welcome email
     const result = await sendWelcomeEmail(toEmail, toName);
@@ -321,9 +306,7 @@ router.post('/application-update', async (req: Request, res: Response) => {
     
     // For name, try to use from body, then from authenticated user if available
     const userName = name || (req.isAuthenticated() && req.user ? req.user.name : 'User');
-    
-    console.log(`Sending application update email to ${email} (${userName}) for ${companyName} - ${positionTitle}`);
-    
+
     // Send application update email
     const result = await sendApplicationUpdateEmail(
       email,
@@ -376,9 +359,7 @@ router.get('/application-update', async (req: Request, res: Response) => {
         details: 'email, company, position, and status are required'
       });
     }
-    
-    console.log(`Sending application update email to ${email} (${name || 'User'}) for ${companyName} - ${positionTitle}`);
-    
+
     // Send application update email
     const result = await sendApplicationUpdateEmail(
       email,
@@ -426,7 +407,7 @@ router.post('/custom', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Not authorized. Admin privileges required.' });
     }
   } else {
-    console.log('Development mode: Bypassing authentication for custom email');
+
   }
 
   try {
@@ -438,9 +419,7 @@ router.post('/custom', async (req: Request, res: Response) => {
         details: 'to, subject, and either text or html are required'
       });
     }
-    
-    console.log(`Sending custom email to ${to} with subject "${subject}"`);
-    
+
     // Send custom email
     const result = await sendEmail({
       to,

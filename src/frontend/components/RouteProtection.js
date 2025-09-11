@@ -40,13 +40,7 @@ export function CareerRouteGuard({ children }) {
     useEffect(() => {
         // Check if the user needs to complete onboarding
         if (user.needsUsername || !user.onboardingCompleted) {
-            console.log("User needs to complete onboarding. Redirecting to onboarding flow.");
-            console.log("User details:", {
-                needsUsername: user.needsUsername,
-                onboardingCompleted: user.onboardingCompleted,
-                role: user.role,
-                userType: user.userType
-            });
+
             setLocation("/onboarding");
             return;
         }
@@ -55,7 +49,7 @@ export function CareerRouteGuard({ children }) {
         if (user.role === "staff" ||
             user.userType === "staff" ||
             user.role === "super_admin") {
-            console.log("Career route check - redirecting staff/admin user to admin dashboard. Role:", user.role, "Type:", user.userType);
+
             setLocation("/admin");
             return;
         }
@@ -71,7 +65,7 @@ export function CareerRouteGuard({ children }) {
         return (_jsx("div", { className: "min-h-screen flex items-center justify-center", children: _jsx(Loader2, { className: "h-8 w-8 animate-spin text-primary" }) }));
     }
     // Admins, university users, and regular users should have access to career features
-    console.log("Career route access granted for user with role:", user.role, "type:", user.userType);
+
     return _jsx(_Fragment, { children: children });
 }
 export function CareerRoute({ children }) {
@@ -89,39 +83,29 @@ export function AdminRouteGuard({ children }) {
         !(user.role === "super_admin" ||
             user.role === "admin" ||
             user.userType === "admin")) {
-        console.log("Admin route check failed - redirecting to appropriate page.");
-        console.log("User details:", {
-            role: user?.role,
-            userType: user?.userType,
-            isLoggedIn: !!user,
-            currentPath: window.location.pathname
-        });
+
         // Redirect based on user type
         if (!user) {
-            console.log("No user found - redirecting to /sign-in");
+
             setLocation("/sign-in");
         }
         else if (user.userType === "staff") {
-            console.log("Staff user - redirecting to /admin");
+
             setLocation("/admin");
         }
         else if (user.userType === "university_admin" ||
             user.userType === "university_student") {
-            console.log("University user - redirecting to /university-admin/dashboard");
+
             setLocation("/university-admin/dashboard");
         }
         else {
-            console.log("Regular user - redirecting to /career-dashboard");
+
             setLocation("/career-dashboard");
         }
         return null;
     }
     // If we got here, the user is an admin
-    console.log("Admin route access granted for path:", window.location.pathname);
-    console.log("User details:", {
-        role: user?.role,
-        userType: user?.userType
-    });
+
     return _jsx(_Fragment, { children: children });
 }
 export function AdminRoute({ children }) {
@@ -140,7 +124,7 @@ export function UniversityRouteGuard({ children }) {
             user.role !== "university_admin" &&
             user.userType !== "university_student" &&
             user.userType !== "university_admin")) {
-        console.log("University route check failed - redirecting. User role:", user?.role, "User type:", user?.userType);
+
         // Redirect based on user type and role
         if (!user) {
             setLocation("/sign-in");
@@ -158,7 +142,7 @@ export function UniversityRouteGuard({ children }) {
         }
         return null;
     }
-    console.log("University route access granted for user with role:", user?.role, "type:", user?.userType);
+
     return _jsx(_Fragment, { children: children });
 }
 export function UniversityRoute({ children }) {
@@ -177,7 +161,7 @@ export function StaffRouteGuard({ children }) {
             user.role === "super_admin" ||
             user.userType === "staff" ||
             user.userType === "admin")) {
-        console.log("Staff route check failed - redirecting. User role:", user?.role, "User type:", user?.userType);
+
         // Redirect based on user type
         if (!user) {
             setLocation("/sign-in");
@@ -192,7 +176,7 @@ export function StaffRouteGuard({ children }) {
         return null;
     }
     // If we got here, the user has staff access
-    console.log("Staff route access granted for user with role:", user?.role, "type:", user?.userType);
+
     return _jsx(_Fragment, { children: children });
 }
 export function StaffRoute({ children }) {
@@ -208,7 +192,7 @@ export function UniversityAdminRouteGuard({ children }) {
     // Check both role and userType fields for university admin permissions
     if (!user ||
         !(user.role === "university_admin" || user.userType === "university_admin")) {
-        console.log("University admin route check failed - redirecting. User role:", user?.role, "User type:", user?.userType);
+
         // Redirect based on user type
         if (!user) {
             setLocation("/sign-in");
@@ -232,7 +216,7 @@ export function UniversityAdminRouteGuard({ children }) {
         return null;
     }
     // If we got here, the user has university admin access
-    console.log("University admin route access granted for user with role:", user?.role, "type:", user?.userType);
+
     return _jsx(_Fragment, { children: children });
 }
 export function UniversityAdminRoute({ children }) {

@@ -99,7 +99,7 @@ export default function Contacts() {
     // Delete contact mutation - handles the actual server-side deletion
     const deleteContactMutation = useMutation({
         mutationFn: async (contactId) => {
-            console.log(`Executing deletion for contact ID: ${contactId}`);
+
             try {
                 // Send the DELETE request to the API
                 const response = await fetch(`/api/contacts/${contactId}`, {
@@ -113,17 +113,17 @@ export default function Contacts() {
                 });
                 // Even if we get a non-200 status, we'll still count it as success in certain cases
                 if (response.status === 204 || response.status === 200) {
-                    console.log(`Contact ID ${contactId} successfully deleted from API`);
+
                     return { success: true };
                 }
                 else if (response.status === 404) {
                     // 404 means the contact doesn't exist anymore, which is fine
-                    console.log(`Contact ID ${contactId} returned 404, handling as success`);
+
                     return { success: true, notFound: true };
                 }
                 else {
                     // For other status codes, still return success since we've already updated the UI
-                    console.warn(`Contact deletion returned unexpected status ${response.status}`);
+
                     return { success: true, apiStatus: response.status };
                 }
             }
@@ -135,7 +135,7 @@ export default function Contacts() {
             }
         },
         onSuccess: (result, variables) => {
-            console.log('Contact delete mutation completed successfully', result);
+
             // Refresh all contact-related data to ensure consistency
             queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
             queryClient.invalidateQueries({ queryKey: ['/api/contacts/all-followups'] });
@@ -143,18 +143,18 @@ export default function Contacts() {
             // but we'll keep the logging for reference
             if (result?.networkError) {
                 // Log the network issue for tracking purposes
-                console.warn('Network issue during contact deletion, but UI was updated');
+
             }
             else if (result?.notFound) {
-                console.log('Contact was already removed');
+
             }
             else if (result?.apiStatus && result.apiStatus !== 200 && result.apiStatus !== 204) {
                 // For unexpected API status codes, log the issue
-                console.warn(`API returned unusual status ${result.apiStatus} for contact deletion`);
+
             }
             else {
                 // Normal success case
-                console.log('Contact successfully deleted from server');
+
             }
             // Always close any open dialogs
             setSelectedContactId(null);

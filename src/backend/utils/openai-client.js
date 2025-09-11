@@ -5,12 +5,12 @@ const hasOpenAIKey = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.le
 // Create a mock OpenAI client for development mode
 class MockOpenAI {
     constructor() {
-        console.warn("⚠️ Using MockOpenAI - all OpenAI calls will return sample responses");
+
     }
     chat = {
         completions: {
             create: async ({ messages, model, response_format }) => {
-                console.log(`🔍 MockOpenAI: would have called gpt-4o-mini (was: ${model}) with ${messages.length} messages`);
+
                 // Return a sample response based on the requested format
                 const isJsonFormat = response_format?.type === "json_object";
                 if (isJsonFormat) {
@@ -50,12 +50,12 @@ if (hasOpenAIKey) {
     client = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
     });
-    console.log("✅ OpenAI client initialized with API key");
+
 }
 else if (ENV.NODE_ENV !== "production") {
     // Use mock client in development mode
     client = new MockOpenAI();
-    console.warn("⚠️ Using mock OpenAI client in development mode");
+
 }
 else {
     // In production, we need a real API key

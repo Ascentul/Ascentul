@@ -88,13 +88,7 @@ async function sendEmail({
       message: mailgunResult.message || 'Email sent',
       status: 200
     };
-    
-    console.log('Email sent successfully:', {
-      to,
-      subject,
-      messageId: result.id
-    });
-    
+
     return result;
   } catch (error) {
     console.error('Mailgun email error:', error);

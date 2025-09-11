@@ -153,7 +153,7 @@ function App() {
         if (user &&
             user.role === "super_admin" &&
             location === "/career-dashboard") {
-            console.log("SUPER ADMIN FIX: Detected super_admin at incorrect route, redirecting to /admin");
+
             navigate("/admin");
         }
     }, [user, location, navigate]);

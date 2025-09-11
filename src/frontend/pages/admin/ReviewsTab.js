@@ -186,12 +186,12 @@ const ReviewsTab = () => {
     const getFilteredReviews = () => {
         // First check if we have data
         if (!adminReviews) {
-            console.log("No admin reviews data available");
+
             return [];
         }
         // Check if adminReviews is an array (new format from API)
         if (Array.isArray(adminReviews)) {
-            console.log("Processing adminReviews as array", adminReviews);
+
             // Extract the review objects from the array of {review, user} objects
             const reviews = adminReviews.map((item) => item.review);
             switch (activeTab) {
@@ -210,7 +210,7 @@ const ReviewsTab = () => {
         }
         // Handle the old format where adminReviews has a 'reviews' property
         if (adminReviews.reviews && Array.isArray(adminReviews.reviews)) {
-            console.log("Processing adminReviews.reviews", adminReviews.reviews);
+
             switch (activeTab) {
                 case "pending":
                     return adminReviews.reviews.filter((r) => r.status === "pending");
@@ -225,7 +225,7 @@ const ReviewsTab = () => {
                     return adminReviews.reviews;
             }
         }
-        console.log("Unable to process reviews data:", adminReviews);
+
         return [];
     };
     if (adminLoading) {
@@ -258,17 +258,17 @@ const ReviewsTab = () => {
                             let reviewsToDisplay = [];
                             if (publicReviews) {
                                 if (Array.isArray(publicReviews)) {
-                                    console.log("Public reviews is an array");
+
                                     // Extract reviews from array of {review, user} objects
                                     reviewsToDisplay = publicReviews.map((item) => item.review);
                                 }
                                 else if (publicReviews.reviews &&
                                     Array.isArray(publicReviews.reviews)) {
-                                    console.log("Public reviews has reviews property");
+
                                     reviewsToDisplay = publicReviews.reviews;
                                 }
                             }
-                            console.log("Public reviews to display:", reviewsToDisplay);
+
                             if (reviewsToDisplay.length > 0) {
                                 return reviewsToDisplay.map((review) => (_jsxs(Card, { className: "overflow-hidden border rounded-lg shadow-sm", children: [_jsx(CardHeader, { className: "pb-2 bg-gray-50", children: _jsxs("div", { className: "flex justify-between items-center", children: [_jsxs("div", { className: "flex items-center", children: [_jsx(Avatar, { className: "h-8 w-8 mr-2", children: _jsx(AvatarFallback, { className: "text-xs", children: review.userId.toString()[0] }) }), _jsxs("div", { children: [_jsx(CardTitle, { className: "text-sm", children: "Verified User" }), _jsx("div", { className: "flex mt-1", children: Array(5)
                                                                             .fill(0)

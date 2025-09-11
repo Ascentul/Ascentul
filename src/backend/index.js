@@ -13,10 +13,7 @@ import { supabaseHelpers } from "./supabase";
 // Load .env file if it exists
 dotenv.config();
 // Log all environment variables for debugging (masking sensitive values)
-console.log("Environment Variables Status:");
-console.log("- OPENAI_API_KEY:", process.env.OPENAI_API_KEY ? "present" : "missing");
-console.log("- SUPABASE_URL:", ENV.SUPABASE_URL ? "present" : "missing");
-console.log("- SUPABASE_ANON_KEY:", ENV.SUPABASE_ANON_KEY ? "present" : "missing");
+
 // Validate environment variables
 validateEnv();
 // No longer need session type declarations with Supabase auth
@@ -28,7 +25,7 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 // Mount the public router BEFORE auth middleware
 // This ensures public endpoints don't require authentication
 app.use("/api/public", publicRouter);
-console.log("Public API routes mounted at /api/public");
+
 // New WordPress-friendly reviews endpoint with CORS enabled
 // Health check endpoint (public, no auth)
 app.get("/api/health", async (_req, res) => {
@@ -107,11 +104,10 @@ app.use((req, res, next) => {
         process.exit(1);
     }
     else if (!isConnected) {
-        console.warn("⚠️ Database connection failed but continuing in development mode");
-        console.warn("⚠️ Some functionality will not work without a database connection");
+
     }
     else {
-        console.log("✅ Database connection successful");
+
     }
     const server = await registerRoutes(app);
     app.use((err, _req, res, _next) => {
@@ -132,9 +128,7 @@ app.use((req, res, next) => {
     // Force port 3000 for consistent development experience
     const PORT = 3000; // Always use port 3000
     const HOST = "0.0.0.0"; // Always bind to all network interfaces for Replit
-    console.log(`✨ Attempting to start server on ${HOST}:${PORT}...`);
-    console.log(`✨ Environment: NODE_ENV=${ENV.NODE_ENV}`);
-    console.log(`✨ REPL_ID=${process.env.REPL_ID || "not set"}, REPL_SLUG=${process.env.REPL_SLUG || "not set"}`);
+
     try {
         server
             .listen({
@@ -142,30 +136,19 @@ app.use((req, res, next) => {
             host: HOST
         }, () => {
             const serverUrl = `http://${HOST}:${PORT}`;
-            console.log(`✅ SERVER STARTED SUCCESSFULLY: ${serverUrl}`);
+
             log(`✅ Server running at ${serverUrl}`);
             // On Replit, show the public URL
             if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-                console.log(`🔗 Public URL: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+
             }
             else {
                 log(`🌐 You can access the app at http://localhost:${PORT}`);
             }
             // Output info about available routes to help with debugging
-            console.log("\n📡 API ROUTES AVAILABLE:");
-            console.log("- /api                    (API info)");
-            console.log("- /api/health             (Server health check)");
-            console.log("- /api/career-data        (Career profile data)");
-            console.log("- /api/cover-letters      (Cover letter management)");
-            console.log("- /api/resumes            (Resume management)");
-            console.log("- /api/jobs               (Job listings)");
+
             // Check if frontend dev server is correctly set up
-            console.log("\n🔍 Server configuration:");
-            console.log(`- Environment: ${ENV.NODE_ENV}`);
-            console.log(`- Using Vite dev server: ${app.get("env") === "development" ? "Yes" : "No"}`);
-            console.log(`- Static files path: ${app.get("env") !== "development"
-                ? path.resolve(__dirname, "public")
-                : "Using Vite"}`);
+
         })
             .on("error", (err) => {
             console.error("❌ SERVER ERROR:", err.message);

@@ -22,8 +22,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   useEffect(() => {
     // You can add additional logic here that should run alongside the tour
     // For example, tracking when the dashboard was first visited
-    
-    console.log('Dashboard loaded with onboarding tour');
+
   }, []);
 
   return (

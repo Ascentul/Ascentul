@@ -4,7 +4,7 @@ import { openai } from "./openai-client";
 const apiKey = process.env.OPENAI_API_KEY;
 let useMockOpenAI = !apiKey;
 if (!apiKey) {
-    console.warn("OPENAI_API_KEY is not set in utils/openai.ts. Using the centralized mock OpenAI client.");
+
 }
 // Schedule for daily recommendations - midnight (00:00:00)
 export const RECOMMENDATIONS_REFRESH_TIME = {

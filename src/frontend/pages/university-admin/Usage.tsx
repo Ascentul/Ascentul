@@ -209,9 +209,7 @@ export default function Usage() {
       
       // In a real implementation, this would be an API request:
       // await apiRequest('POST', '/api/schedule-report', data);
-      
-      console.log('Scheduled report:', data);
-      
+
       // Add to the Recent Reports section (would be done via API/DB in a real implementation)
       const now = new Date();
       const reportDate = now.toLocaleDateString('en-US', {

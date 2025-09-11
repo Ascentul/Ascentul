@@ -75,7 +75,7 @@ export function validateModelAndGetId(modelId) {
     }
     // If we're in development mode, default to the default model
     if (ENV.NODE_ENV !== "production") {
-        console.warn(`⚠️ Invalid model ID: ${modelId}. Using default model: ${DEFAULT_MODEL}`);
+
         return DEFAULT_MODEL;
     }
     // In production, we should throw an error

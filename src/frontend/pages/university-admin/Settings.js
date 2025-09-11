@@ -180,14 +180,14 @@ export default function Settings() {
     };
     // Form submission handlers
     const onProfileSubmit = (data) => {
-        console.log('Profile data:', data);
+
         toast({
             title: 'Profile updated',
             description: 'University profile settings have been saved.',
         });
     };
     const onNotificationSubmit = (data) => {
-        console.log('Notification data:', data);
+
         toast({
             title: 'Notification settings updated',
             description: 'Notification preferences have been saved.',

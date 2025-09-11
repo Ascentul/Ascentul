@@ -9,7 +9,7 @@ let useMockStripe = false;
 let stripe: any;
 
 if (!stripeKey) {
-  console.warn('STRIPE_SECRET_KEY is not set. Using mock Stripe mode.');
+
   useMockStripe = true;
   // Create a mock Stripe instance that will use the mock methods
   stripe = {
@@ -29,7 +29,7 @@ if (!stripeKey) {
 
 // Mock method for Stripe operations in development
 function mockMethod(params?: any) {
-  console.log('Mock Stripe method called with params:', params);
+
   return Promise.resolve({
     id: `mock_${Math.random().toString(36).substring(2, 15)}`,
     client_secret: `mock_secret_${Math.random().toString(36).substring(2, 15)}`,
@@ -115,7 +115,7 @@ export async function createOrRetrieveCustomer(userId: number, email: string, na
   if (user?.stripeCustomerId) {
     // Check if this is a mock customer ID (for demo purposes)
     if (user.stripeCustomerId.startsWith('cus_mock')) {
-      console.log('Using mock customer ID:', user.stripeCustomerId);
+
       return user.stripeCustomerId;
     }
     
@@ -185,8 +185,7 @@ export async function createSubscription(data: z.infer<typeof createSubscription
     const isMockCustomer = customerId.startsWith('cus_mock');
     
     if (isMockCustomer) {
-      console.log('Using mock subscription flow for customer:', customerId);
-      
+
       // Generate mock subscription ID and client secret for demo
       const mockSubscriptionId = 'sub_mock_' + Math.random().toString(36).substr(2, 9);
       const mockClientSecret = 'pi_mock_secret_' + Math.random().toString(36).substr(2, 9);
@@ -491,15 +490,13 @@ export async function handleStripeWebhook(body: any, signature: string) {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     
     if (!webhookSecret) {
-      console.warn('STRIPE_WEBHOOK_SECRET not set, using mock webhook handler');
+
       return handleMockWebhook(body);
     }
     
     // Verify webhook signature
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    
-    console.log('Received Stripe webhook:', event.type);
-    
+
     switch (event.type) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
@@ -519,7 +516,7 @@ export async function handleStripeWebhook(body: any, signature: string) {
         break;
         
       default:
-        console.log(`Unhandled webhook event type: ${event.type}`);
+
     }
     
     return { received: true };
@@ -531,11 +528,10 @@ export async function handleStripeWebhook(body: any, signature: string) {
 
 // Mock webhook handler for development
 async function handleMockWebhook(body: any) {
-  console.log('Mock webhook handler called with:', body);
-  
+
   // Simulate webhook processing
   if (body.type === 'customer.subscription.updated') {
-    console.log('Mock: Processing subscription update');
+
   }
   
   return { received: true, mock: true };
@@ -547,7 +543,7 @@ async function handleSubscriptionCancelled(subscriptionId: string) {
     const user = await storage.getUserByStripeSubscriptionId(subscriptionId);
     
     if (!user) {
-      console.warn(`No user found with subscription ID: ${subscriptionId}`);
+
       return;
     }
     
@@ -557,8 +553,7 @@ async function handleSubscriptionCancelled(subscriptionId: string) {
       subscriptionPlan: 'free',
       subscriptionCycle: undefined,
     });
-    
-    console.log(`Subscription cancelled for user ${user.id}`);
+
   } catch (error: any) {
     console.error('Error handling subscription cancellation:', error);
     throw error;
@@ -571,14 +566,13 @@ async function handlePaymentSucceeded(invoice: any) {
     const subscriptionId = invoice.subscription;
     
     if (!subscriptionId) {
-      console.log('Payment succeeded but no subscription ID found');
+
       return;
     }
     
     // Update subscription status to active
     await handleSubscriptionUpdated(subscriptionId);
-    
-    console.log(`Payment succeeded for subscription ${subscriptionId}`);
+
   } catch (error: any) {
     console.error('Error handling payment success:', error);
     throw error;
@@ -591,14 +585,14 @@ async function handlePaymentFailed(invoice: any) {
     const subscriptionId = invoice.subscription;
     
     if (!subscriptionId) {
-      console.log('Payment failed but no subscription ID found');
+
       return;
     }
     
     const user = await storage.getUserByStripeSubscriptionId(subscriptionId);
     
     if (!user) {
-      console.warn(`No user found with subscription ID: ${subscriptionId}`);
+
       return;
     }
     
@@ -606,8 +600,7 @@ async function handlePaymentFailed(invoice: any) {
     await storage.updateUserStripeInfo(user.id, {
       subscriptionStatus: 'past_due',
     });
-    
-    console.log(`Payment failed for user ${user.id}, subscription ${subscriptionId}`);
+
   } catch (error: any) {
     console.error('Error handling payment failure:', error);
     throw error;

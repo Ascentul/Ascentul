@@ -10,7 +10,7 @@ export function InterviewDebugTools() {
     const clearAllInterviewData = () => {
         setIsClearing(true);
         try {
-            console.log("Starting complete cleanup of all interview data");
+
             // Get all localStorage keys
             const keys = [];
             for (let i = 0; i < localStorage.length; i++) {
@@ -24,12 +24,12 @@ export function InterviewDebugTools() {
                 key.startsWith('mockFollowups_') ||
                 (key.startsWith('application_') && key.endsWith('_data')) ||
                 key === 'upcomingInterviewCount');
-            console.log(`Found ${interviewKeys.length} interview-related keys to delete`);
+
             // Delete all these keys
             interviewKeys.forEach(key => {
                 try {
                     localStorage.removeItem(key);
-                    console.log(`Deleted key: ${key}`);
+
                 }
                 catch (e) {
                     console.error(`Error deleting ${key}:`, e);

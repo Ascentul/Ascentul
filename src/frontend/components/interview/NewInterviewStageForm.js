@@ -50,7 +50,7 @@ export function NewInterviewStageForm({ open, onClose, processId }) {
                 // The scheduledDate is already a Date object (or null), so we don't need to convert it
                 interviewers: values.interviewers ? values.interviewers.split(',').map(name => name.trim()) : []
             };
-            console.log('Submitting interview stage with data:', formattedValues);
+
             const response = await apiRequest("POST", `/api/interview/processes/${processId}/stages`, formattedValues);
             // Also invalidate upcoming interviews data
             queryClient.invalidateQueries({ queryKey: ["/api/users/statistics"] });

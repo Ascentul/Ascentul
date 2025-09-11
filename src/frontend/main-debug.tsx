@@ -42,34 +42,7 @@ function DebugApp() {
             <button
               onClick={async () => {
                 try {
-                  console.log("Testing API...")
-                  const response = await fetch("/api/health")
-                  const data = await response.json()
-                  alert(`API Works: ${JSON.stringify(data, null, 2)}`)
-                } catch (error) {
-                  console.error("API Error:", error)
-                  alert(`API Error: ${error.message}`)
-                }
-              }}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-            >
-              Test API
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
-// Try to mount the app with error handling
-const root = document.getElementById("root")
-if (root) {
-  try {
-    createRoot(root).render(<DebugApp />)
-    console.log("✅ Debug app mounted successfully")
-  } catch (error) {
-    console.error("❌ Failed to mount debug app:", error)
     root.innerHTML = `
       <div style="padding: 20px; font-family: monospace;">
         <h1>React Mount Error</h1>

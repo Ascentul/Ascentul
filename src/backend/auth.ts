@@ -36,29 +36,5 @@ export function devTokenAuthBypass(
 ) {
   // TEMPORARY: Special handling for reviews endpoints
   if (req.path.startsWith("/api/reviews")) {
-    console.log(
-      "ADMIN REVIEWS FIX: Redirecting to verifySupabaseToken with admin handling"
-    )
-    // Let verifySupabaseToken handle this - it has proper dev mode support
-    return verifySupabaseToken(req, res, next)
-  }
 
-  // For development, let the verifySupabaseToken handle the dev mode
-  if (ENV.NODE_ENV === "development") {
-    console.log("DEV MODE: Redirecting to verifySupabaseToken")
-    return verifySupabaseToken(req, res, next)
-  }
-
-  // If not a special case, continue to normal auth flow
-  next()
-}
-
-// Standard authentication middleware - no fallback behavior
-export function requireLoginFallback(
-  req: Request,
-  res: Response,
-  next: () => void
-) {
-  // Simply use the standard verifySupabaseToken - no fallback behavior
-  verifySupabaseToken(req, res, next as any)
 }

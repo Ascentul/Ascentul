@@ -125,7 +125,7 @@ router.post('/', async (req, res) => {
         try {
             // Send invitation email
             await sendUniversityInviteEmail(validatedData.email, token, university.name);
-            console.log(`University invitation email sent to ${validatedData.email} for ${university.name}`);
+
             res.status(201).json({
                 success: true,
                 message: `Invitation sent to ${validatedData.email} to join as ${validatedData.role}`,

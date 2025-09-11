@@ -97,7 +97,7 @@ class FrontendSettingsService {
             }
         }
         catch (error) {
-            console.warn("Failed to fetch platform settings, using defaults:", error);
+
         }
         return DEFAULT_SETTINGS;
     }

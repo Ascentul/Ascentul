@@ -60,7 +60,7 @@ export function FollowupActionForm({ isOpen, onClose, processId, applicationId, 
                     const errorMessage = error instanceof Error ? error.message : String(error);
                     if (errorMessage.includes('not found') || errorMessage.includes('404')) {
                         // Fallback to localStorage for applications that exist only there
-                        console.log('Application not found on server, adding followup action to localStorage application');
+
                         // Get applications from localStorage
                         const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
                         const appIndex = storedApplications.findIndex((app) => app.id === applicationId);
@@ -87,7 +87,7 @@ export function FollowupActionForm({ isOpen, onClose, processId, applicationId, 
                         const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${applicationId}`) || '[]');
                         mockFollowups.push(mockFollowup);
                         localStorage.setItem(`mockFollowups_${applicationId}`, JSON.stringify(mockFollowups));
-                        console.log('Saved mock followup action in localStorage:', mockFollowup);
+
                         return mockFollowup;
                     }
                     // If it's another error, rethrow

@@ -7,7 +7,7 @@ export function useCareerData() {
                 // Only use a timestamp when explicitly requesting fresh data
                 // This allows React Query's caching to work properly during navigation
                 const url = queryKey[0];
-                console.log(`Fetching career data from ${url}`);
+
                 const response = await fetch(url, {
                     credentials: "include",
                 });
@@ -16,25 +16,13 @@ export function useCareerData() {
                     throw new Error(`Error fetching career data: ${response.status}`);
                 }
                 const data = await response.json();
-                console.log('Raw career data from API:', data);
+
                 // Log detailed counts for debugging
-                console.log(`Career data received:
-          - Work history: ${data.workHistory?.length || 0} items
-          - Education: ${data.educationHistory?.length || 0} items
-          - Skills: ${data.skills?.length || 0} items
-          - Certifications: ${data.certifications?.length || 0} items
-          - Career summary: ${data.careerSummary ? 'present' : 'not present'}
-        `);
+
                 // Detailed date logging for the first work history item if it exists
                 if (data.workHistory && data.workHistory.length > 0) {
                     const firstItem = data.workHistory[0];
-                    console.log('Sample work history item date inspection:');
-                    console.log(`- Item ID: ${firstItem.id}`);
-                    console.log(`- Company: ${firstItem.company}`);
-                    console.log(`- Position: ${firstItem.position}`);
-                    console.log(`- startDate: ${firstItem.startDate} (${typeof firstItem.startDate})`);
-                    console.log(`- endDate: ${firstItem.endDate} (${typeof firstItem.endDate})`);
-                    console.log(`- createdAt: ${firstItem.createdAt} (${typeof firstItem.createdAt})`);
+
                 }
                 // Process the data to ensure dates are properly parsed - with error handling
                 // This prevents issues with date parsing in the UI components
@@ -69,7 +57,7 @@ export function useCareerData() {
                     }) : [],
                     skills: Array.isArray(data.skills) ? data.skills.map((skill) => {
                         try {
-                            console.log('Processing skill:', skill);
+
                             // Ensure each skill has a name property
                             if (!skill.name && typeof skill === 'string') {
                                 // Handle case where skill might be a string instead of an object

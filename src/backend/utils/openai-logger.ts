@@ -34,7 +34,7 @@ export function logOpenAIUsage(logEntry: OpenAILogEntry): void {
   }
   
   // Also log to console for debugging
-  console.log(`OpenAI API Call - User: ${logEntry.userId}, Model: ${logEntry.model}, Status: ${logEntry.status}, Tokens: ${logEntry.total_tokens}`);
+
 }
 
 /**

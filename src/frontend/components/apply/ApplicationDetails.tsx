@@ -47,7 +47,6 @@ import {
   MOCK_INTERVIEW_STAGES_PREFIX
 } from '@/lib/interview-utils';
 
-
 interface ApplicationDetailsProps {
   application: any;
   onClose?: () => void;
@@ -104,7 +103,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
   
   // Update localApplication when the application prop changes
   useEffect(() => {
-    console.log("Application changed:", application);
+
     setLocalApplication(application);
     setIsEditing(false); // Reset editing state when application changes
   }, [application]);
@@ -113,7 +112,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
   useEffect(() => {
     // Function to handle interview data change event
     const handleInterviewDataChange = () => {
-      console.log("Interview data changed event detected, refreshing data");
+
       // Invalidate queries to refresh the data
       queryClient.invalidateQueries({ queryKey: [`/api/applications/${application.id}/stages`] });
     };
@@ -130,7 +129,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
         event.key.startsWith(MOCK_STAGES_PREFIX) || 
         event.key.startsWith(MOCK_INTERVIEW_STAGES_PREFIX)
       )) {
-        console.log('Storage event detected for interview stages, refreshing');
+
         handleInterviewDataChange();
       }
     });
@@ -158,13 +157,12 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
         return await response.json();
       } catch (error) {
         // If server request fails, use our utility function to get from localStorage
-        console.log('Server request for interview stages failed, checking localStorage');
-        
+
         // Load interview stages using our centralized utility
         const stages = loadInterviewStagesForApplication(application.id);
         
         if (stages.length > 0) {
-          console.log('Using interview stages from localStorage via utility:', stages);
+
           return stages;
         }
         
@@ -189,13 +187,12 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
         return await response.json();
       } catch (error) {
         // If server request fails, try localStorage
-        console.log('Server request for followup actions failed, checking localStorage');
-        
+
         // Check if there are mock followup actions in localStorage
         const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${application.id}`) || '[]');
         
         if (mockFollowups.length > 0) {
-          console.log('Using mock followup actions from localStorage:', mockFollowups);
+
           return mockFollowups;
         }
         
@@ -209,8 +206,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
 
   const updateApplication = useMutation({
     mutationFn: async (updatedApplication: any) => {
-      console.log(`Updating application ${application.id} with data:`, updatedApplication);
-      
+
       // First try both API endpoints
       try {
         try {
@@ -218,14 +214,13 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
           const response = await apiRequest('PUT', `/api/applications/${application.id}`, updatedApplication);
           return await response.json();
         } catch (error) {
-          console.log('Trying job-applications endpoint instead');
+
           // Fall back to job-applications endpoint
           const response = await apiRequest('PATCH', `/api/job-applications/${application.id}`, updatedApplication);
           return await response.json();
         }
       } catch (error) {
-        console.log('Both API endpoints failed, updating localStorage');
-        
+
         // If both API calls fail, update in localStorage
         const mockApps = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
         const appIndex = mockApps.findIndex((a: any) => a.id === application.id);
@@ -299,7 +294,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
       
       // Then call the parent callback if it exists
       if (onStatusChange) {
-        console.log(`Calling onStatusChange with application ID ${application.id} and status ${status}`);
+
         onStatusChange(application.id, status);
       }
     }
@@ -353,8 +348,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
   
   // Function to update interview stage outcome using our utility functions
   const handleUpdateStageOutcome = async (stageId: number, outcome: string) => {
-    console.log(`Updating stage ${stageId} outcome to ${outcome} for application ${application.id}`);
-    
+
     // Find the current stage from our data
     const stageToUpdate = interviewStages?.find(s => s.id === stageId);
     if (!stageToUpdate) {
@@ -366,9 +360,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
       });
       return;
     }
-    
-    console.log("Current stage data:", stageToUpdate);
-    
+
     // Create an updated stage
     const updatedStage = {
       ...stageToUpdate,
@@ -383,8 +375,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
     try {
       // Use the updateInterviewStage utility to consistently update the stage
       updateInterviewStage(updatedStage);
-      console.log("Updated stage using utility function:", updatedStage);
-      
+
       // Notify components that interview data has changed
       notifyInterviewDataChanged();
     } catch (localStorageError) {
@@ -396,13 +387,11 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
       ...stageToUpdate,
       outcome
     };
-    
-    console.log("Sending update payload to API:", updatePayload);
-    
+
     // Try to update on server in parallel
     try {
       const response = await apiRequest('PATCH', `/api/applications/${application.id}/stages/${stageId}`, updatePayload);
-      console.log(`API response status:`, response.status);
+
     } catch (apiError) {
       console.error("API update failed, but localStorage update should still work:", apiError);
     }
@@ -422,8 +411,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
 
   // Function to toggle followup completion status
   const handleToggleFollowupStatus = async (followupId: number) => {
-    console.log(`Toggling followup ${followupId} completion status for application ${application.id}`);
-    
+
     // Find the current followup from our data
     const followupToUpdate = followupActions?.find(f => f.id === followupId);
     if (!followupToUpdate) {
@@ -435,9 +423,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
       });
       return;
     }
-    
-    console.log("Current followup data:", followupToUpdate);
-    
+
     // Toggle the completion status
     const newCompletionStatus = !followupToUpdate.completed;
     
@@ -445,8 +431,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
     try {
       // Always update in localStorage as a backup - Get followups from localStorage
       const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${application.id}`) || '[]');
-      console.log("Followups in localStorage before update:", mockFollowups);
-      
+
       let followupIndex = mockFollowups.findIndex((f: any) => f.id === followupId);
       
       if (followupIndex === -1) {
@@ -456,7 +441,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
           completed: newCompletionStatus,
           updatedAt: new Date().toISOString()
         });
-        console.log("Adding new followup to localStorage:", mockFollowups[mockFollowups.length - 1]);
+
       } else {
         // Update existing followup
         mockFollowups[followupIndex] = {
@@ -464,7 +449,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
           completed: newCompletionStatus,
           updatedAt: new Date().toISOString()
         };
-        console.log("Updated followup in localStorage:", mockFollowups[followupIndex]);
+
       }
       
       // Save updated followups back to localStorage
@@ -478,13 +463,11 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
       ...followupToUpdate,
       completed: newCompletionStatus
     };
-    
-    console.log("Sending update payload to API:", updatePayload);
-    
+
     // Try to update on server in parallel
     try {
       const response = await apiRequest('PATCH', `/api/applications/${application.id}/followups/${followupId}`, updatePayload);
-      console.log(`API response status:`, response.status);
+
     } catch (apiError) {
       console.error("API update failed, but localStorage update should still work:", apiError);
     }

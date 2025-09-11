@@ -37,7 +37,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
 
   // Log shouldFetch changes
   useEffect(() => {
-    console.log('shouldFetch state changed to:', shouldFetch);
+
   }, [shouldFetch]);
   
   // Direct fetch function (alternative approach)
@@ -52,8 +52,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     }
     
     setDirectIsLoading(true);
-    console.log('Direct fetch initiated with params:', searchParams);
-    
+
     try {
       const params = new URLSearchParams();
       params.append('keywords', searchParams.keywords);
@@ -64,8 +63,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       
       // Important: Make sure this matches the server-side endpoint
       const endpointUrl = `/api/adzuna/jobs?${params.toString()}`;
-      console.log('Directly fetching from:', endpointUrl);
-      
+
       const timeout = setTimeout(() => {
         // Show a loading message if it's taking longer than expected
         toast({
@@ -75,11 +73,9 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       }, 3000);
       
       const response = await fetch(endpointUrl);
-      console.log('Fetching from API using endpoint:', endpointUrl);
+
       clearTimeout(timeout);
-      
-      console.log('Direct fetch response status:', response.status);
-      
+
       // Check if response is ok
       if (!response.ok) {
         let errorMessage = "Failed to fetch job listings";
@@ -104,8 +100,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       
       // Parse response data
       const data = await response.json();
-      console.log('Direct fetch received data:', data);
-      
+
       // Check if there's an error field in the response
       if (data.error) {
         toast({
@@ -149,7 +144,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     queryKey: ['jobs', searchParams, shouldFetch],
     queryFn: async () => {
       if (!shouldFetch) {
-        console.log('Search is not enabled yet');
+
         return null;
       }
       
@@ -162,12 +157,10 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       
       // Important: Make sure this matches the server-side endpoint
       const endpointUrl = `/api/adzuna/jobs?${params.toString()}`;
-      console.log('Fetching from:', endpointUrl);
-      
+
       try {
         const response = await fetch(endpointUrl);
-        console.log('Response status:', response.status);
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error('API error:', errorText);
@@ -175,7 +168,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
         }
         
         const data = await response.json();
-        console.log('Received data:', data);
+
         return data;
       } catch (error) {
         console.error('Fetch error:', error);
@@ -225,8 +218,6 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       return;
     }
 
-    console.log('Search initiated with params:', searchParams);
-
     // Add to search history
     setSearchHistory((prev) => [
       { keywords: searchParams.keywords, location: searchParams.location, timestamp: new Date() },
@@ -234,9 +225,9 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     ]);
 
     // Trigger fetch
-    console.log('Setting shouldFetch to true');
+
     setShouldFetch(true);
-    console.log('shouldFetch should now be true');
+
   }, [searchParams]);
 
   // State to store selected job
@@ -291,8 +282,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
         // Invalidate queries to refresh the UI
         queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
         queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
-        
-        console.log('Application created:', response);
+
       } catch (error) {
         console.error('API error, falling back to localStorage:', error);
         
@@ -440,7 +430,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
             
             <Button 
               onClick={(e) => {
-                console.log('Search button clicked!');
+
                 e.preventDefault();
                 // Update search history
                 if (searchParams.keywords.trim()) {
@@ -594,7 +584,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                           {selectedJob.description.length > 500 && (
                             <button 
                               onClick={() => {
-                                console.log('Toggle description', !expandedDescription);
+
                                 setExpandedDescription(prevState => !prevState);
                               }}
                               className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"

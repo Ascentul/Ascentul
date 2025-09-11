@@ -42,9 +42,7 @@ export class ModelNotificationService {
     try {
       // In a real implementation, you would send email notifications here
       // For now, we'll just log and update the notifiedModels array
-      
-      console.log(`New models activated: ${newlyActivatedModels.map(m => m.label).join(', ')}`);
-      
+
       // Add the newly activated models to the notified list
       notifiedModels = [...notifiedModels, ...newlyActivatedModels.map(m => m.id)];
       
@@ -78,7 +76,7 @@ export class ModelNotificationService {
     models: OpenAIModel[]
   ): Promise<boolean> {
     if (!process.env.SENDGRID_API_KEY) {
-      console.log('SendGrid API key not available, skipping email notifications');
+
       return false;
     }
     
@@ -90,8 +88,7 @@ export class ModelNotificationService {
       // and log information about what would be sent
       
       const userCount = userIds ? userIds.length : 'all';
-      console.log(`Would send email to ${userCount} users about new models: ${models.map(m => m.label).join(', ')}`);
-      
+
       return true;
     } catch (error) {
       console.error('Error sending email notifications:', error);

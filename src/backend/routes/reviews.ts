@@ -22,8 +22,7 @@ const filterReviewsSchema = z.object({
 // This endpoint is intentionally not auth protected for testing purposes
 router.get("/public", publicAccess, async (req, res) => {
   try {
-    console.log("Fetching public reviews...");
-    
+
     // Get only approved public reviews (temporarily removed deletedAt check until column is created)
     const reviews = await db.select()
       .from(userReviews)
@@ -37,8 +36,7 @@ router.get("/public", publicAccess, async (req, res) => {
       )
       .orderBy(sql`${userReviews.createdAt} DESC`)
       .limit(10);
-    
-    console.log(`Found ${reviews.length} public reviews`);
+
     res.status(200).json({ reviews });
   } catch (error) {
     console.error("Error fetching public reviews:", error);
@@ -87,7 +85,6 @@ router.get("/", requireAdmin, async (req, res) => {
   try {
     // The requireAdmin middleware already checks that the user is authenticated
     // and has admin or super_admin role, so we don't need to check again
-    console.log("Admin review route accessed by user:", req.user?.id, "Role:", req.user?.role);
 
     // Parse query parameters for filtering and sorting
     const { rating, status, search, sortBy = "createdAt", sortOrder = "desc" } = filterReviewsSchema.parse(req.query);

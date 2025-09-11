@@ -7,8 +7,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..', '..');
 
-console.log('🔍 Checking and updating import references...');
-
 // Function to recursively find all .ts and .tsx files
 function findFiles(dir, fileList = []) {
   try {
@@ -82,7 +80,7 @@ function fixDbImport() {
       
       if (content !== updatedContent) {
         fs.writeFileSync(dbFilePath, updatedContent);
-        console.log('✅ Fixed special import in db.ts');
+
         return true;
       }
     }
@@ -93,9 +91,8 @@ function fixDbImport() {
 }
 
 // Find all TypeScript files
-console.log('Finding TypeScript files in src directory...');
+
 const allFiles = findFiles(path.join(projectRoot, 'src'));
-console.log(`Found ${allFiles.length} TypeScript files to check`);
 
 // Update imports in all files
 let updatedCount = 0;
@@ -104,7 +101,7 @@ for (const filePath of allFiles) {
     const isUpdated = updateImports(filePath);
     if (isUpdated) {
       updatedCount++;
-      console.log(`✅ Updated imports in: ${path.relative(projectRoot, filePath)}`);
+
     }
   } catch (err) {
     console.error(`Error processing ${filePath}: ${err.message}`);
@@ -114,23 +111,19 @@ for (const filePath of allFiles) {
 // Special fix for db.ts
 fixDbImport();
 
-console.log(`\n🔄 Import updates complete: ${updatedCount} files updated`);
-
 // Update vite.config.ts paths
-console.log('\n📝 Ensuring vite.config.ts paths are correct');
+
 const viteConfigPath = path.join(projectRoot, 'vite.config.ts');
 try {
   let viteContent = fs.readFileSync(viteConfigPath, 'utf8');
   
   if (viteContent.includes('@shared') && !viteContent.includes('@shared: path.resolve')) {
-    console.log('⚠️ Need to update vite.config.ts paths');
+
     // Update already done in earlier steps
   } else {
-    console.log('✓ vite.config.ts paths are already updated');
+
   }
 } catch (err) {
   console.error('❌ Error checking vite.config.ts:', err.message);
 }
 
-console.log('\n✅ All import paths have been checked and updated!');
-console.log('📝 Please run the app to verify all imports are working correctly.'); 

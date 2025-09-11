@@ -5,7 +5,7 @@ if (!process.env.OPENAI_API_KEY && process.env.NODE_ENV === "production") {
     throw new Error("❌ OPENAI_API_KEY not found — please add it in Replit Secrets.");
 }
 else if (!process.env.OPENAI_API_KEY) {
-    console.warn("⚠️ OPENAI_API_KEY not found — using mock responses in development mode.");
+
 }
 // Use our centralized client
 const openaiInstance = openai;
@@ -557,18 +557,7 @@ export async function generateCoverLetter(jobTitle, companyName, jobDescription,
 ) {
     try {
         // Log the user profile to debug what we're receiving
-        console.log("Generating cover letter with user profile:", userProfile
-            ? {
-                id: userProfile.id,
-                name: userProfile.name,
-                firstName: userProfile.firstName,
-                lastName: userProfile.lastName,
-                email: userProfile.email,
-                phone: userProfile.phone,
-                location: userProfile.location,
-                hasProfile: !!userProfile
-            }
-            : "No user profile provided");
+
         // Prepare user information with fallbacks
         // Build full name from name field, ensuring we never use placeholders
         let userName = "Job Applicant"; // Default fallback
@@ -582,7 +571,7 @@ export async function generateCoverLetter(jobTitle, companyName, jobDescription,
             userName = `${firstName} ${lastName}`.trim();
         }
         // Debug the user name being used
-        console.log("Using userName for cover letter:", userName, "from user profile:", userProfile?.name);
+
         const prompt = `
 You are an expert AI career assistant helping job seekers write tailored, professional cover letters.
 

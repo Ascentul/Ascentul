@@ -67,7 +67,7 @@ onSuccess, }) {
             if (values.currentJob) {
                 values.endDate = null;
             }
-            console.log("WorkHistoryFormModal - Submitting data:", JSON.stringify(values, null, 2));
+
             let response;
             if (mode === 'add') {
                 response = await apiRequest('POST', '/api/career-data/work-history', values);
@@ -80,7 +80,7 @@ onSuccess, }) {
                 throw new Error(errorData.error || 'Failed to save work history');
             }
             const responseData = await response.json();
-            console.log("WorkHistoryFormModal - Received response:", JSON.stringify(responseData, null, 2));
+
             return responseData;
         },
         onSuccess: (data) => {
@@ -89,12 +89,12 @@ onSuccess, }) {
                 title: mode === 'add' ? 'Work history added' : 'Work history updated',
                 description: 'Your changes have been saved successfully.',
             });
-            console.log("WorkHistoryFormModal - Success, invalidating queries for '/api/career-data'");
+
             // Invalidate queries to refresh the data
             queryClient.invalidateQueries({ queryKey: ['/api/career-data'] });
             // Explicitly refetch career data to ensure we have the latest
             setTimeout(() => {
-                console.log("WorkHistoryFormModal - Performing manual refetch after timeout");
+
                 queryClient.refetchQueries({ queryKey: ['/api/career-data'] });
             }, 500);
             // Close the modal

@@ -26,7 +26,7 @@ export class ModelNotificationService {
         try {
             // In a real implementation, you would send email notifications here
             // For now, we'll just log and update the notifiedModels array
-            console.log(`New models activated: ${newlyActivatedModels.map(m => m.label).join(', ')}`);
+
             // Add the newly activated models to the notified list
             notifiedModels = [...notifiedModels, ...newlyActivatedModels.map(m => m.id)];
             return {
@@ -55,7 +55,7 @@ export class ModelNotificationService {
      */
     async sendEmailNotifications(userIds, models) {
         if (!process.env.SENDGRID_API_KEY) {
-            console.log('SendGrid API key not available, skipping email notifications');
+
             return false;
         }
         try {
@@ -64,7 +64,7 @@ export class ModelNotificationService {
             // For this implementation we'll simulate sending notifications 
             // and log information about what would be sent
             const userCount = userIds ? userIds.length : 'all';
-            console.log(`Would send email to ${userCount} users about new models: ${models.map(m => m.label).join(', ')}`);
+
             return true;
         }
         catch (error) {

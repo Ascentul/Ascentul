@@ -52,23 +52,23 @@ async function getCurrentUser(req) {
     try {
         // If we already have the user object from the Supabase auth middleware
         if (req.user) {
-            console.log("Found user from Supabase auth:", req.user.id);
+
             return req.user;
         }
         // If we have a userId but no user object
         if (req.userId) {
-            console.log("User ID from Supabase token:", req.userId);
+
             const user = await storage.getUser(req.userId); // Remove parseInt since we now use string UUIDs
             if (user) {
-                console.log("Found user:", user.id, user.username);
+
                 return user;
             }
             else {
-                console.log("User not found in database for ID:", req.userId);
+
             }
         }
         else {
-            console.log("No user ID available");
+
         }
         // Return null if no valid user found
         return null;
@@ -99,7 +99,7 @@ async function requireAdmin(req, res, next) {
         if (req.user.userType !== "admin" &&
             req.user.role !== "admin" &&
             req.user.role !== "super_admin") {
-            console.log(`Access denied: User ${req.user.id} tried to access admin route`);
+
             return res
                 .status(403)
                 .json({ message: "Access denied. Admin privileges required." });
@@ -120,7 +120,7 @@ async function requireStaff(req, res, next) {
             req.user.role !== "staff" &&
             req.user.role !== "admin" &&
             req.user.role !== "super_admin") {
-            console.log(`Access denied: User ${req.user.id} tried to access staff route`);
+
             return res
                 .status(403)
                 .json({ message: "Access denied. Staff privileges required." });
@@ -151,7 +151,7 @@ async function validateUserAccess(req, res, next) {
         }
         // For all other cases, only allow access to own data
         if (resourceUserId && resourceUserId !== req.userId) {
-            console.log(`Data access violation: User ${req.userId} attempted to access data for user ${resourceUserId}`);
+
             return res
                 .status(403)
                 .json({ message: "Access denied. You can only access your own data." });
@@ -224,14 +224,14 @@ export async function registerRoutes(app) {
     // Register reviews router
     // IMPORTANT: Add debugging middleware to diagnose route issues
     apiRouter.use("/reviews/*", (req, res, next) => {
-        console.log(`[DEBUG REVIEWS] Requested path: ${req.originalUrl}, Method: ${req.method}`);
+
         next();
     });
     // Register review endpoints directly - bypass the router completely
     // This is a workaround for the route ordering issues we're facing
     // GET /api/reviews/public - Public endpoint for approved reviews
     apiRouter.get("/reviews/public", (req, res) => {
-        console.log("PUBLIC REVIEWS ENDPOINT ACCESSED DIRECTLY");
+
         try {
             db.select()
                 .from(userReviews)
@@ -239,7 +239,7 @@ export async function registerRoutes(app) {
                 .orderBy(desc(userReviews.createdAt))
                 .limit(10)
                 .then((reviews) => {
-                console.log(`Found ${reviews.length} public reviews (direct endpoint)`);
+
                 return res.status(200).json({ reviews });
             })
                 .catch((error) => {
@@ -254,7 +254,7 @@ export async function registerRoutes(app) {
     });
     // GET /api/public-reviews - WordPress-friendly reviews endpoint with proper formatting
     apiRouter.get("/public-reviews", (req, res) => {
-        console.log("WordPress public reviews endpoint accessed");
+
         try {
             db.select({
                 review: userReviews,
@@ -276,7 +276,7 @@ export async function registerRoutes(app) {
                     body: review.feedback || "", // Safe fallback
                     date: review.createdAt.toISOString()
                 }));
-                console.log(`Found ${formattedReviews.length} public approved reviews for WordPress`);
+
                 return res.status(200).json(formattedReviews);
             })
                 .catch((error) => {
@@ -297,14 +297,14 @@ export async function registerRoutes(app) {
     });
     // GET /api/reviews/recent - Testing endpoint for most recent reviews
     apiRouter.get("/reviews/recent", (req, res) => {
-        console.log("RECENT REVIEWS ENDPOINT ACCESSED DIRECTLY");
+
         try {
             db.select()
                 .from(userReviews)
                 .orderBy(desc(userReviews.createdAt))
                 .limit(10)
                 .then((reviews) => {
-                console.log(`Found ${reviews.length} recent reviews (direct endpoint)`);
+
                 return res.status(200).json({ reviews });
             })
                 .catch((error) => {
@@ -322,11 +322,11 @@ export async function registerRoutes(app) {
     apiRouter.use("/reviews", (req, res, next) => {
         const path = req.path;
         if (path === "/public" || path === "/recent") {
-            console.log(`[REVIEWS ROUTER BYPASS] Skipping router for special path: ${path}`);
+
             // These endpoints are handled directly above, so skip to next middleware
             return next("route"); // This will skip to the next route instead of returning 404
         }
-        console.log(`[REVIEWS ROUTER] Processing path: ${path}`);
+
         next();
     }, reviewsRouter);
     // Public endpoints for reviews are now handled directly and by the reviews router in routes/reviews.ts
@@ -335,11 +335,7 @@ export async function registerRoutes(app) {
     apiRouter.post("/review/submit", async (req, res) => {
         try {
             const { rating, feedback, name } = req.body;
-            console.log("Received review submission request:", {
-                rating,
-                feedback,
-                name
-            });
+
             if (!rating || rating < 1 || rating > 5) {
                 return res
                     .status(400)
@@ -347,7 +343,7 @@ export async function registerRoutes(app) {
             }
             // Use session user ID if available, otherwise default to user ID 1 for testing
             const userId = req.userId || "1";
-            console.log("Processing review from user:", userId);
+
             try {
                 // If a name is provided and user exists, update the user's name
                 if (name) {
@@ -355,7 +351,7 @@ export async function registerRoutes(app) {
                         const user = await storage.getUser(userId);
                         if (user) {
                             await storage.updateUser(userId, { name });
-                            console.log(`Updated user ${userId} name to "${name}"`);
+
                         }
                     }
                     catch (nameUpdateError) {
@@ -372,7 +368,7 @@ export async function registerRoutes(app) {
                     isPublic: true,
                     appVersion: "1.0"
                 });
-                console.log("Review created successfully:", review);
+
                 res.status(201).json({ success: true, review });
             }
             catch (dbError) {
@@ -401,7 +397,7 @@ export async function registerRoutes(app) {
     });
     // Also create a test endpoint that just echoes back the request
     apiRouter.post("/review/test", (req, res) => {
-        console.log("Received test review submission:", req.body);
+
         res.status(200).json({
             success: true,
             message: "Test endpoint successful",
@@ -417,7 +413,7 @@ export async function registerRoutes(app) {
     // Admin users endpoint for user management
     apiRouter.get("/admin/users", requireAdmin, async (req, res) => {
         try {
-            console.log("Admin users endpoint accessed by user:", req.userId);
+
             // Get all users with basic information from Supabase
             const { data: usersData, error } = await supabaseAdmin
                 .from("users")
@@ -430,7 +426,7 @@ export async function registerRoutes(app) {
                     error: error.message
                 });
             }
-            console.log("Fetched users data:", usersData?.length, "users");
+
             // Format users for frontend
             const formattedUsers = (usersData || []).map((user) => ({
                 id: user.id,
@@ -606,7 +602,7 @@ export async function registerRoutes(app) {
                 subscriptionPlan: "premium",
                 emailVerified: true
             });
-            console.log("Created admin user:", adminUser.id);
+
         }
         // Create a regular sample user for testing
         const existingUser = await storage.getUserByUsername("alex");
@@ -635,7 +631,7 @@ export async function registerRoutes(app) {
                 emailVerified: true,
                 subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 1 month from now
             });
-            console.log("Created sample user:", sampleUser.id);
+
             // No sample goals are added by default to ensure new users
             // can complete the "Set your first career goal" checklist item
             // Add some XP to the sample user
@@ -668,7 +664,7 @@ export async function registerRoutes(app) {
                 emailVerified: true,
                 subscriptionExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year from now
             });
-            console.log("Created university admin user:", universityAdminUser.id);
+
             // End of university admin user creation code - don't continue into the sample user functionality
         }
     }
@@ -679,7 +675,7 @@ export async function registerRoutes(app) {
     apiRouter.post("/auth/login", async (req, res) => {
         try {
             const { email, password, loginType } = req.body;
-            console.log("Login attempt:", { email, loginType });
+
             if (!email || !password) {
                 return res
                     .status(400)
@@ -688,7 +684,7 @@ export async function registerRoutes(app) {
             // Find user by email or username
             let user = (await storage.getUserByEmail(email)) ||
                 (await storage.getUserByUsername(email));
-            console.log("User found:", user ? { id: user.id, userType: user.userType } : "null");
+
             if (!user) {
                 return res.status(401).json({ message: "Invalid credentials" });
             }
@@ -748,14 +744,7 @@ export async function registerRoutes(app) {
             // Use the utility function to determine redirect path
             const redirectPath = getRedirectByRole(user.role || "user");
             // Enhanced logging to diagnose redirect issues
-            console.log("Login success - User info for redirect:", {
-                id: user.id,
-                username: user.username,
-                email: user.email,
-                role: user.role,
-                userType: user.userType,
-                redirectPath
-            });
+
             res.status(200).json({ user: safeUser, redirectPath });
         }
         catch (error) {
@@ -836,7 +825,7 @@ export async function registerRoutes(app) {
                 emailVerified: true
             });
             // Log the action
-            console.log(`Admin ${req.userId} created staff user: ${newUser.id}`);
+
             // Return user without password
             const { password: pwd, ...safeUser } = newUser;
             return res.status(201).json({
@@ -1067,7 +1056,7 @@ export async function registerRoutes(app) {
             let user = req.user;
             // If we don't have a user object but have a userId, try to fetch it
             if (!user && req.userId) {
-                console.log("Fetching user with UUID:", req.userId);
+
                 // Use Supabase to fetch user by UUID (not integer parsing!)
                 const { data: userData, error } = await supabaseAdmin
                     .from("users")
@@ -1076,10 +1065,10 @@ export async function registerRoutes(app) {
                     .single();
                 if (!error && userData) {
                     user = userData;
-                    console.log("Found user by UUID:", userData.name);
+
                 }
                 else {
-                    console.log("Could not find user with UUID:", req.userId, error);
+
                 }
             }
             if (!user) {
@@ -1136,11 +1125,7 @@ export async function registerRoutes(app) {
             delete mappedUser.pending_email_token;
             delete mappedUser.pending_email_expires;
             delete mappedUser.password_last_changed;
-            console.log("Successfully retrieved authenticated user:", user.name);
-            console.log("Original user object keys:", Object.keys(user));
-            console.log("User type from database:", user.user_type);
-            console.log("User type (camelCase):", user.userType);
-            console.log("Mapped user userType:", mappedUser.userType);
+
             res.status(200).json(mappedUser);
         }
         catch (error) {
@@ -1151,7 +1136,7 @@ export async function registerRoutes(app) {
     // Profile update endpoint
     apiRouter.put("/users/profile", requireAuth, async (req, res) => {
         try {
-            console.log("Profile update endpoint called");
+
             // Get user ID from request (set by Supabase auth middleware)
             const userId = req.userId;
             if (!userId) {
@@ -1162,7 +1147,7 @@ export async function registerRoutes(app) {
             if (!user) {
                 return res.status(404).json({ message: "User not found" });
             }
-            console.log("Updating profile for user:", user.email);
+
             // Extract the update data from request body
             const updateData = req.body;
             // Update the user profile
@@ -1172,7 +1157,7 @@ export async function registerRoutes(app) {
                     .status(404)
                     .json({ message: "Failed to update user profile" });
             }
-            console.log("User profile updated successfully");
+
             // Remove password before sending response
             const { password: userPassword, ...safeUser } = updatedUser;
             res.status(200).json(safeUser);
@@ -1185,7 +1170,7 @@ export async function registerRoutes(app) {
     // Profile image upload endpoint
     apiRouter.post("/users/profile-image", async (req, res) => {
         try {
-            console.log("Profile image upload endpoint called");
+
             // Get user ID from request (set by Supabase auth middleware)
             const userId = req.userId;
             // Get the user by ID or fall back to default
@@ -1200,10 +1185,10 @@ export async function registerRoutes(app) {
             if (!user) {
                 return res.status(404).json({ message: "User not found" });
             }
-            console.log("User found:", user.id);
+
             // Check if we received image data in JSON format
             if (req.body && req.body.imageDataUrl) {
-                console.log("Received image data URL");
+
                 // Extract the base64 data from the data URL
                 const matches = req.body.imageDataUrl.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
                 if (!matches || matches.length !== 3) {
@@ -1233,7 +1218,7 @@ export async function registerRoutes(app) {
                     console.error("Failed to update user profile with new image URL");
                     return res.status(404).json({ message: "Failed to update profile image" });
                 }
-                console.log("User profile updated with new image URL:", publicUrl);
+
                 // Return success response
                 return res.status(200).json({ message: "Profile image updated successfully", profileImage: publicUrl });
             }
@@ -2483,7 +2468,7 @@ export async function registerRoutes(app) {
             }
             // Check if we received file data in JSON format
             if (req.body && req.body.fileDataUrl) {
-                console.log("Received resume file data");
+
                 // Extract the base64 data from the data URL
                 const matches = req.body.fileDataUrl.match(/^data:application\/([A-Za-z-+\/]+);base64,(.+)$/);
                 if (!matches || matches.length !== 3) {
@@ -2504,7 +2489,7 @@ export async function registerRoutes(app) {
                 }
                 // Get public URL
                 const { data: { publicUrl } } = supabaseAdmin.storage.from("resumes").getPublicUrl(filePathInBucket);
-                console.log("Resume uploaded to Supabase:", publicUrl);
+
                 // Return the public URL to the client
                 return res.json({ success: true, filePath: publicUrl, message: "Resume uploaded successfully" });
             }
@@ -2565,9 +2550,9 @@ export async function registerRoutes(app) {
             if (!user) {
                 return res.status(401).json({ message: "Authentication required" });
             }
-            console.log("Fetching cover letters for user ID:", user.id);
+
             const coverLetters = await storage.getCoverLetters(user.id);
-            console.log("Found cover letters:", coverLetters.length);
+
             res.status(200).json(coverLetters);
         }
         catch (error) {
@@ -2608,18 +2593,18 @@ export async function registerRoutes(app) {
     });
     apiRouter.post("/cover-letters", requireAuth, async (req, res) => {
         try {
-            console.log("Received POST /api/cover-letters request with body:", JSON.stringify(req.body));
+
             // Get current user from session
             const user = await getCurrentUser(req);
             if (!user) {
                 return res.status(401).json({ message: "Authentication required" });
             }
-            console.log("User authenticated:", user.id);
+
             try {
                 const letterData = insertCoverLetterSchema.parse(req.body);
-                console.log("Cover letter data passed validation");
+
                 const letter = await storage.createCoverLetter(user.id, letterData);
-                console.log("Cover letter created successfully with ID:", letter.id);
+
                 res.status(201).json(letter);
             }
             catch (validationError) {
@@ -2832,7 +2817,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
                         .substring(cleanedBody.length - 100)
                         .toLowerCase();
                     if (lastHundredChars.includes(firstHundredChars.substring(0, 50))) {
-                        console.log("Duplicate content detected in final cover letter cleaning");
+
                         // Found duplication, keep only the beginning portion
                         cleanedBody = cleanedBody
                             .substring(0, cleanedBody.length / 2)
@@ -3156,7 +3141,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
             }
             // Check if we received file data in JSON format
             if (req.body && req.body.fileDataUrl) {
-                console.log("Received resume file data");
+
                 // Extract the base64 data from the data URL
                 const matches = req.body.fileDataUrl.match(/^data:application\/([A-Za-z-+\/]+);base64,(.+)$/);
                 if (!matches || matches.length !== 3) {
@@ -3177,7 +3162,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
                 }
                 // Get public URL
                 const { data: { publicUrl } } = supabaseAdmin.storage.from("resumes").getPublicUrl(filePathInBucket);
-                console.log("Resume uploaded to Supabase:", publicUrl);
+
                 // Return the public URL to the client
                 return res.json({ success: true, filePath: publicUrl, message: "Resume uploaded successfully" });
             }
@@ -3514,11 +3499,11 @@ Return ONLY the clean body content that contains the applicant's qualifications 
             const cacheKey = `role_insights_${user.id}`;
             const cachedInsights = await storage.getCachedData(cacheKey);
             if (cachedInsights) {
-                console.log(`Returning cached role insights for user ${user.id}`);
+
                 return res.json(cachedInsights);
             }
             // Generate new insights
-            console.log(`Generating role insights for user ${user.id}`);
+
             const insights = await generateRoleInsights(currentRole, yearsExperience, industry, workHistory);
             // Cache the results
             await storage.setCachedData(cacheKey, insights, 24 * 60 * 60 * 1000); // 24 hours
@@ -3544,9 +3529,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
     apiRouter.post("/ai-coach/generate-response", requireAuth, async (req, res) => {
         try {
             const { query, conversationHistory = [] } = req.body;
-            console.log("🤖 AI Coach generate-response request:");
-            console.log("Query:", JSON.stringify(query));
-            console.log("ConversationHistory:", JSON.stringify(conversationHistory));
+
             // Validate query
             if (!query || typeof query !== "string" || query.trim() === "") {
                 return res.status(400).json({
@@ -3582,7 +3565,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
                     .status(400)
                     .json({ message: "No valid messages found in conversation" });
             }
-            console.log("🔍 Final formatted messages:", JSON.stringify(validMessages, null, 2));
+
             // Generate response
             const response = await generateCoachingResponse(validMessages, userContext);
             res.json({ response: response.content });
@@ -3755,7 +3738,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         try {
             const { processId } = req.params;
             const processIdNum = parseInt(processId);
-            console.log(`Adding stage to process ID: ${processId}, parsed as: ${processIdNum}`);
+
             if (isNaN(processIdNum)) {
                 return res.status(400).json({ message: "Invalid process ID" });
             }
@@ -3764,11 +3747,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
             if (!user) {
                 return res.status(401).json({ message: "Authentication required" });
             }
-            console.log(`User ID: ${user.id}, looking for process with ID: ${processIdNum}`);
+
             const process = await storage.getInterviewProcess(processIdNum);
-            console.log(`Process found:`, process
-                ? `ID: ${process.id}, Company: ${process.companyName}`
-                : "Process not found");
+
             if (!process) {
                 return res.status(400).json({ message: "Invalid interview process" });
             }
@@ -3778,9 +3759,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
                     message: "You don't have permission to add stages to this interview process"
                 });
             }
-            console.log(`Stage data before parsing:`, req.body);
+
             const stageData = insertInterviewStageSchema.parse(req.body);
-            console.log(`Stage data after parsing:`, stageData);
+
             const stage = await storage.createInterviewStage(processIdNum, stageData);
             // Invalidate statistics cache since this may affect the "Upcoming Interviews" count
             res.setHeader("X-Invalidate-Cache", JSON.stringify([`/api/users/statistics`]));
@@ -4755,19 +4736,19 @@ Return ONLY the clean body content that contains the applicant's qualifications 
             if (!user) {
                 return res.status(401).json({ message: "Authentication required" });
             }
-            console.log(`Processing recommendations request for user ID: ${user.id}`);
+
             // Check if a refresh is requested
             const shouldRefresh = req.query.refresh === "true";
             if (shouldRefresh) {
-                console.log(`Refresh requested. Clearing today's recommendations for user ${user.id}`);
+
                 // If refresh is requested, clear today's recommendations first
                 await storage.clearTodaysRecommendations(user.id);
             }
             try {
-                console.log(`Generating recommendations for user ${user.id}`);
+
                 // Generate or get today's recommendations
                 const recommendations = await storage.generateDailyRecommendations(user.id);
-                console.log(`Successfully generated ${recommendations.length} recommendations for user ${user.id}`);
+
                 return res.status(200).json(recommendations);
             }
             catch (genError) {
@@ -4794,7 +4775,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
     const setupRecommendationsScheduler = async () => {
         // Import the scheduled refresh time configuration
         const { RECOMMENDATIONS_REFRESH_TIME } = await import("./utils/openai");
-        console.log(`Setting up daily recommendations refresh at ${RECOMMENDATIONS_REFRESH_TIME.hour}:${RECOMMENDATIONS_REFRESH_TIME.minute}:${RECOMMENDATIONS_REFRESH_TIME.second}`);
+
         // Function to schedule the next refresh
         const scheduleNextRefresh = () => {
             const now = new Date();
@@ -4802,11 +4783,11 @@ Return ONLY the clean body content that contains the applicant's qualifications 
                 (now.getHours() >= RECOMMENDATIONS_REFRESH_TIME.hour ? 1 : 0), RECOMMENDATIONS_REFRESH_TIME.hour, RECOMMENDATIONS_REFRESH_TIME.minute, RECOMMENDATIONS_REFRESH_TIME.second);
             // Calculate milliseconds until next refresh
             const msUntilRefresh = nextRefresh.getTime() - now.getTime();
-            console.log(`Next recommendations refresh scheduled for ${nextRefresh.toLocaleString()}`);
+
             // Schedule the refresh
             setTimeout(async () => {
                 try {
-                    console.log(`Running scheduled recommendations refresh at ${new Date().toLocaleString()}`);
+
                     // Get all active users
                     const users = await storage.getAllActiveUsers();
                     for (const user of users) {
@@ -4822,12 +4803,12 @@ Return ONLY the clean body content that contains the applicant's qualifications 
                                     title: 'New Daily Recommendations',
                                     body: 'Your daily job recommendations are ready! Check them out to stay on track with your career goals.'
                                 });
-                                console.log(`Notification created for user ${user.id}`);
+
                             }
                             catch (notifError) {
                                 console.error(`Failed to create notification for user ${user.id}:`, notifError);
                             }
-                            console.log(`Successfully refreshed recommendations for user ${user.id}`);
+
                         }
                         catch (userError) {
                             console.error(`Error refreshing recommendations for user ${user.id}:`, userError);
@@ -5268,7 +5249,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
     app.use("/debug", debugRouter);
     // Add a simple health check endpoint
     app.get("/api/health", (req, res) => {
-        console.log("Health check endpoint hit");
+
         return res.status(200).json({
             status: "ok",
             timestamp: new Date().toISOString(),
@@ -5278,7 +5259,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
     });
     // Add a root route handler for API that provides information
     app.get("/api", (req, res) => {
-        console.log("Root API endpoint hit");
+
         return res.status(200).json({
             message: "Ascentul API is running",
             routes: [
@@ -5301,7 +5282,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
                     message: "Invalid request. Required fields: role (string), level (string), skills (array)"
                 });
             }
-            console.log(`Generating certification recommendations for ${role} (${level}) with ${skills.length} skills`);
+
             // Generate certification recommendations
             const certifications = await generateCertificationRecommendations(role, level, skills);
             // Return the recommendations
@@ -5322,7 +5303,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
             if (!userId) {
                 return res.status(401).json({ message: "Authentication required" });
             }
-            console.log(`Generating personalized career paths for user ${userId}`);
+
             // Get profile data from the request or fetch it directly
             let profileData = req.body.profileData;
             // If profile data wasn't provided in the request, fetch it from storage
@@ -5340,7 +5321,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
                     certifications: certifications || [],
                     careerSummary: user?.careerSummary || ""
                 };
-                console.log(`Fetched profile data: ${workHistory?.length || 0} work history items, ${education?.length || 0} education items, ${skills?.length || 0} skills, ${certifications?.length || 0} certifications`);
+
             }
             // Generate career paths based on profile data
             const paths = await generateCareerPaths(profileData);
@@ -5353,6 +5334,6 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         }
     });
     const httpServer = createServer(app);
-    console.log("HTTP server created for the API and frontend");
+
     return httpServer;
 }

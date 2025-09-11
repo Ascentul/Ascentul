@@ -2,7 +2,7 @@ import { storage } from "./storage";
 import { openai } from "./utils/openai-client";
 // Session type declaration is now centralized in index.ts
 if (!process.env.OPENAI_API_KEY) {
-    console.warn("Warning: OPENAI_API_KEY is not set. Career path features will use mock data in development mode.");
+
 }
 // Function to generate career path from job title
 async function generateCareerPathFromJobTitle(jobTitle) {
@@ -119,7 +119,7 @@ async function generateCareerPathFromJobTitle(jobTitle) {
     catch (error) {
         console.error("Error generating career path:", error.message);
         if (process.env.NODE_ENV === "development") {
-            console.log("Using mock career path data due to error");
+
             return mockCareerPathResponse(jobTitle);
         }
         throw error;

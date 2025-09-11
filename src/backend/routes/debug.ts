@@ -38,8 +38,7 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max file size
   fileFilter: function(req, file, cb) {
-    console.log("Debug multer fileFilter called with:", file);
-    
+
     // Check MIME type
     if (file.mimetype !== 'application/pdf') {
       return cb(new Error('Only PDF files are allowed'));
@@ -56,8 +55,7 @@ router.get("/upload-test", (req: Request, res: Response) => {
 
 // Simple upload endpoint that just saves the file and returns its details
 router.post("/upload", (req: Request, res: Response) => {
-  console.log("Debug upload endpoint called with request headers:", req.headers);
-  
+
   upload(req, res, function(err) {
     if (err) {
       console.error("Debug upload error:", err);
@@ -66,9 +64,7 @@ router.post("/upload", (req: Request, res: Response) => {
         message: err.message || "Upload failed"
       });
     }
-    
-    console.log("Debug upload request file:", req.file);
-    
+
     // Check if file was uploaded
     if (!req.file) {
       console.error("Debug upload - no file received in request");
@@ -92,8 +88,7 @@ router.post("/upload", (req: Request, res: Response) => {
 
 // Special test endpoint for PDF text extraction (no auth required)
 router.post("/extract-pdf", (req: Request, res: Response) => {
-  console.log("Debug PDF extraction endpoint called");
-  
+
   upload(req, res, async function(err) {
     if (err) {
       console.error("Debug PDF extraction error:", err);
@@ -111,21 +106,16 @@ router.post("/extract-pdf", (req: Request, res: Response) => {
         message: "No file provided"
       });
     }
-    
-    console.log(`PDF file received for extraction: ${req.file.originalname} (${req.file.size} bytes)`);
-    
+
     try {
       // Import the PDF extractor module
       const { extractTextFromPdf } = await import('../pdf-extractor');
       
       // Extract text from the uploaded file
       const filePath = req.file.path;
-      console.log(`Starting text extraction from ${filePath}`);
-      
+
       const { text, pages } = await extractTextFromPdf(filePath);
-      
-      console.log(`Successfully extracted text from PDF (${pages.processed}/${pages.total} pages)`);
-      
+
       // Return the extracted text and file info
       return res.json({
         success: true,

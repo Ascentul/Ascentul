@@ -47,7 +47,7 @@ const upload = multer({
  */
 async function testPdfLib(filePath: string) {
   try {
-    console.log(`[PDF-LIB] Testing PDF at path: ${filePath}`);
+
     const fileData = fs.readFileSync(filePath);
     
     // Try to load with pdf-lib
@@ -83,7 +83,7 @@ async function testPdfLib(filePath: string) {
  */
 async function testPdfParse(filePath: string) {
   try {
-    console.log(`[PDF-PARSE] Testing PDF extraction at path: ${filePath}`);
+
     const dataBuffer = fs.readFileSync(filePath);
     
     // Try to extract text
@@ -158,8 +158,7 @@ export async function handleTestPdfExtract(req: Request, res: Response) {
     
     try {
       const filePath = req.file.path;
-      console.log(`Processing uploaded file: ${filePath}`);
-      
+
       // Test loading with pdf-lib
       const pdfLibResult = await testPdfLib(filePath);
       

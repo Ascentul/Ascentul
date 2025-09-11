@@ -95,7 +95,7 @@ export default function Invite() {
         }, 3000);
     };
     const onSubmit = (data) => {
-        console.log("Form data:", data);
+
         // Count the number of emails
         const emailCount = data.emailAddresses.split(',').filter(email => email.trim().length > 0).length;
         toast({

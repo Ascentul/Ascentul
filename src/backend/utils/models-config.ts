@@ -96,24 +96,7 @@ export function validateModelAndGetId(modelId: string): string {
 
   // If we're in development mode, default to the default model
   if (ENV.NODE_ENV !== "production") {
-    console.warn(
-      `⚠️ Invalid model ID: ${modelId}. Using default model: ${DEFAULT_MODEL}`
-    )
-    return DEFAULT_MODEL
-  }
 
-  // In production, we should throw an error
-  throw new InvalidModelError(modelId)
-}
-
-// Update the models configuration
-export function updateModelsConfig(updatedModels: OpenAIModel[]): boolean {
-  try {
-    const config: ModelsConfig = { models: updatedModels }
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), "utf8")
-    return true
-  } catch (error) {
-    console.error("Error updating models config:", error)
     return false
   }
 }

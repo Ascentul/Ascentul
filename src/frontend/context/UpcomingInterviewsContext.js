@@ -30,7 +30,7 @@ export function UpcomingInterviewsProvider({ children }) {
             const allStages = [];
             const allStagesSet = new Set();
             // Directly count ALL interview stages from localStorage regardless of status
-            console.log("=========== ALL INTERVIEW STAGES DEBUGGING ===========");
+
             // Scan all localStorage for interview stages - get a complete picture
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
@@ -40,31 +40,31 @@ export function UpcomingInterviewsProvider({ children }) {
                 if (!key.includes("mockStages_") &&
                     !key.includes("mockInterviewStages_"))
                     continue;
-                console.log(`Checking key: ${key}`);
+
                 try {
                     const stagesJson = localStorage.getItem(key);
                     if (!stagesJson) {
-                        console.log(`  Key ${key} has no content`);
+
                         continue;
                     }
                     const stages = JSON.parse(stagesJson);
                     if (!Array.isArray(stages)) {
-                        console.log(`  Key ${key} content is not an array`);
+
                         continue;
                     }
                     if (stages.length === 0) {
-                        console.log(`  Key ${key} has empty array`);
+
                         continue;
                     }
-                    console.log(`  Key ${key} has ${stages.length} stages`);
+
                     // Log ALL stages regardless of status or date
                     stages.forEach((stage) => {
                         if (!stage) {
-                            console.log(`  Stage is null/undefined`);
+
                             return;
                         }
                         if (!stage.id) {
-                            console.log(`  Stage has no ID`, stage);
+
                             return;
                         }
                         // Add to collection of ALL stages
@@ -80,7 +80,7 @@ export function UpcomingInterviewsProvider({ children }) {
                             const dateInfo = stage.scheduledDate
                                 ? `date=${stage.scheduledDate}, in future=${isInFuture}`
                                 : "no date";
-                            console.log(`  Stage ID ${stage.id}: ${statusInfo}, ${dateInfo}`);
+
                         }
                     });
                 }
@@ -116,17 +116,11 @@ export function UpcomingInterviewsProvider({ children }) {
             // Set the count to the number of valid unique stage IDs we found
             scheduledInterviewsCount = scheduledStageIds.size;
             // Debug information
-            console.log(`Found ${allStages.length} total stages in ALL storages`);
-            console.log(`Found ${scheduledStageIds.size} upcoming scheduled interviews`);
+
             if (validStages.length > 0) {
-                console.log("Valid upcoming interviews:", validStages.map((stage) => ({
-                    id: stage.id,
-                    date: stage.scheduledDate,
-                    status: stage.status || stage.outcome
-                })));
+
             }
-            console.log("============== END DEBUGGING ==============");
-            console.log(`Local count: ${appCount} interviewing applications, ${scheduledInterviewsCount} scheduled interviews`);
+
             // For this stat card, we always want to show the total number of scheduled interviews
             // This ensures the count reflects the actual number of upcoming interviews
             // rather than just the number of applications

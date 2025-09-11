@@ -7,8 +7,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..', '..');
 
-console.log('🔍 Running comprehensive import fix...');
-
 async function fixAllImports() {
   try {
     // Fix all imports in backend files
@@ -59,8 +57,6 @@ async function fixAllImports() {
       dry: false,
     });
 
-    console.log('✅ Backend imports updated successfully');
-    
     // Fix frontend files to use the correct import path
     const frontendResults = await replaceInFile({
       files: [
@@ -75,8 +71,6 @@ async function fixAllImports() {
       dry: false,
     });
 
-    console.log('✅ Frontend imports updated successfully');
-    
     // Count total changes
     const totalChanges = [
       ...backendResults,
@@ -84,8 +78,7 @@ async function fixAllImports() {
       ...deepSubDirResults,
       ...frontendResults
     ].reduce((sum, result) => sum + (result.hasChanged ? 1 : 0), 0);
-    
-    console.log(`\n🎉 Fixed imports in ${totalChanges} files`);
+
     return totalChanges;
     
   } catch (error) {
@@ -96,6 +89,5 @@ async function fixAllImports() {
 
 // Run the fix
 fixAllImports().then(totalChanges => {
-  console.log(`\n✅ Import paths update complete with ${totalChanges} files changed`);
-  console.log('📝 Please try running the app now to verify all imports are working correctly.');
+
 }); 

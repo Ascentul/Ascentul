@@ -22,10 +22,6 @@ export async function checkDatabaseConnection(): Promise<boolean> {
       return false
     }
 
-    console.log("✅ Supabase connection is healthy")
-    return true
-  } catch (error) {
-    console.error("Database connection test failed:", error)
     return false
   }
 }

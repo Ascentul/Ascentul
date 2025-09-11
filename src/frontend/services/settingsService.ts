@@ -165,38 +165,5 @@ class FrontendSettingsService {
         return this.cachedSettings
       }
     } catch (error) {
-      console.warn("Failed to fetch platform settings, using defaults:", error)
-    }
 
-    return DEFAULT_SETTINGS
-  }
-
-  async getXpReward(type: keyof PlatformSettings["xpSystem"]): Promise<number> {
-    const settings = await this.getSettings()
-    return settings.xpSystem[type]
-  }
-
-  async getBulkThreshold(): Promise<number> {
-    const settings = await this.getSettings()
-    return settings.admin.bulkThreshold
-  }
-
-  async getDefaultHealthValue(): Promise<number> {
-    const settings = await this.getSettings()
-    return settings.admin.defaultHealthValue
-  }
-
-  async getDefaultLicenseSeats(): Promise<number> {
-    const settings = await this.getSettings()
-    return settings.university.defaultLicenseSeats
-  }
-
-  // Clear cache to force refresh
-  clearCache(): void {
-    this.cachedSettings = null
-    this.lastFetch = 0
-  }
-}
-
-export const frontendSettingsService = FrontendSettingsService.getInstance()
 export type { PlatformSettings }

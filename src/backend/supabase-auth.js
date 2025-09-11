@@ -20,7 +20,7 @@ export async function verifySupabaseToken(req, res, next) {
                 .status(401)
                 .json({ message: "Invalid or expired authentication token" });
         }
-        console.log("Authenticated Supabase auth user:", data.user.email);
+
         // Align with DB: look up app user by email to get numeric ID
         const email = data.user.email;
         if (!email) {
@@ -34,7 +34,7 @@ export async function verifySupabaseToken(req, res, next) {
         // Attach the app user and numeric userId
         req.user = appUser;
         req.userId = appUser.id;
-        console.log("Successfully authenticated app user:", appUser.email);
+
         next();
     }
     catch (error) {

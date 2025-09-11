@@ -40,7 +40,7 @@ export function CareerSummaryFormModal({ open, onOpenChange, onClose, defaultVal
     // Form submission mutation
     const mutation = useMutation({
         mutationFn: async (values) => {
-            console.log("⭐️ Submitting career summary form with length:", values.summary.length);
+
             const response = await apiRequest("PUT", "/api/career-data/career-summary", {
                 careerSummary: values.summary
             });
@@ -59,7 +59,7 @@ export function CareerSummaryFormModal({ open, onOpenChange, onClose, defaultVal
                     throw new Error(`Failed to save career summary (${response.status}: ${response.statusText})`);
                 }
             }
-            console.log("✅ Career summary saved successfully");
+
             return await response.json();
         },
         onSuccess: () => {

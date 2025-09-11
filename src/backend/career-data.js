@@ -38,7 +38,7 @@ export function registerCareerDataRoutes(app, storage) {
                     }
                 };
             });
-            console.log(`DEBUG: Found ${workHistoryItems.length} work history items for user ${userId}`);
+
             res.status(200).json({
                 count: workHistoryItems.length,
                 items: debugItems
@@ -63,7 +63,7 @@ export function registerCareerDataRoutes(app, storage) {
             // Fetch all career data in parallel
             let workHistory, educationHistory, skills, certifications = [], user;
             try {
-                console.log(`DEBUG: About to fetch skills for user ${userId}`);
+
                 [workHistory, educationHistory, skills, user] = await Promise.all([
                     storage.getWorkHistory(userId),
                     storage.getEducationHistory(userId),
@@ -71,22 +71,21 @@ export function registerCareerDataRoutes(app, storage) {
                     storage.getUser(userId)
                 ]);
                 // Add debug logs to see what's happening with skills
-                console.log(`DEBUG: getUserSkills returned ${skills ? skills.length : "undefined"} skills for user ${userId}`);
-                console.log(`DEBUG: Skills is type: ${typeof skills}, Array? ${Array.isArray(skills)}`);
+
                 // Make sure skills is an array
                 if (!skills) {
-                    console.log(`DEBUG: Skills is falsy, setting to empty array`);
+
                     skills = [];
                 }
                 if (skills.length > 0) {
-                    console.log(`DEBUG: First skill:`, JSON.stringify(skills[0], null, 2));
+
                 }
                 // Only try to get certifications if the method exists
                 if (typeof storage.getCertifications === "function") {
                     certifications = await storage.getCertifications(userId);
                 }
                 else {
-                    console.log("getCertifications method not available in current storage implementation");
+
                     certifications = []; // Empty array as fallback
                 }
             }
@@ -190,7 +189,7 @@ export function registerCareerDataRoutes(app, storage) {
                 return serialized;
             });
             // Return all career data in a single response with serialized dates
-            console.log(`Returning ${serializedWorkHistory.length} work history items, ${serializedEducationHistory.length} education items, ${serializedSkills.length} skills, and ${serializedCertifications.length} certifications`);
+
             res.status(200).json({
                 workHistory: serializedWorkHistory,
                 educationHistory: serializedEducationHistory,
@@ -228,7 +227,7 @@ export function registerCareerDataRoutes(app, storage) {
                     certifications = await storage.getCertifications(userId);
                 }
                 else {
-                    console.log("getCertifications method not available in current storage implementation");
+
                     certifications = []; // Empty array as fallback
                 }
             }
@@ -238,13 +237,7 @@ export function registerCareerDataRoutes(app, storage) {
             }
             // Extract career summary from user profile - map snake_case from DB to camelCase for API
             const careerSummary = user?.career_summary || user?.careerSummary || "";
-            console.log(`Career profile data for path generation received:
-        - Work history: ${workHistory.length} items
-        - Education: ${education.length} items
-        - Skills: ${skills.length} items
-        - Certifications: ${certifications.length} items
-        - Career summary: ${careerSummary ? "present" : "not present"}
-      `);
+
             // Return all career data in the format expected by the path generator
             return res.json({
                 workHistory,
@@ -266,8 +259,7 @@ export function registerCareerDataRoutes(app, storage) {
                 return res.status(401).json({ message: "Authentication required" });
             }
             const userId = req.userId;
-            console.log("⭐️ POST /api/career-data/work-history - Request received for user:", userId);
-            console.log("📦 Raw request body:", JSON.stringify(req.body, null, 2));
+
             // Process dates to ensure they're Date objects
             const formData = { ...req.body };
             // Convert string dates to Date objects
@@ -277,28 +269,10 @@ export function registerCareerDataRoutes(app, storage) {
             if (formData.endDate && typeof formData.endDate === "string") {
                 formData.endDate = new Date(formData.endDate);
             }
-            console.log("🛠️ Creating work history with processed data:", {
-                userId,
-                company: formData.company,
-                position: formData.position,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-                currentJob: formData.currentJob,
-                location: formData.location,
-                startDateType: formData.startDate
-                    ? typeof formData.startDate
-                    : "undefined",
-                endDateType: formData.endDate ? typeof formData.endDate : "undefined",
-                isStartDateValid: formData.startDate instanceof Date &&
-                    !isNaN(formData.startDate.getTime()),
-                isEndDateValid: formData.endDate
-                    ? formData.endDate instanceof Date &&
-                        !isNaN(formData.endDate.getTime())
-                    : true
-            });
+
             // Check storage before creating
             const existingItems = await storage.getWorkHistory(userId);
-            console.log(`📋 User ${userId} has ${existingItems.length} existing work history items before creation`);
+
             const workHistoryItem = await storage.createWorkHistoryItem(userId, formData);
             // Serialize dates to ISO strings in the response
             const serializedItem = {
@@ -313,13 +287,13 @@ export function registerCareerDataRoutes(app, storage) {
                     ? workHistoryItem.createdAt.toISOString()
                     : workHistoryItem.createdAt
             };
-            console.log("✅ Work history item created successfully:", serializedItem);
+
             // Verify item was saved by retrieving again
             const updatedItems = await storage.getWorkHistory(userId);
-            console.log(`📋 User ${userId} now has ${updatedItems.length} work history items after creation`);
+
             // Debug all work history items to check that the newly created item is there
             updatedItems.forEach((item, index) => {
-                console.log(`  Item ${index + 1}: ID=${item.id}, Company=${item.company}, Position=${item.position}`);
+
             });
             res.status(201).json(serializedItem);
         }
@@ -343,23 +317,7 @@ export function registerCareerDataRoutes(app, storage) {
             if (formData.endDate && typeof formData.endDate === "string") {
                 formData.endDate = new Date(formData.endDate);
             }
-            console.log("Updating work history with data:", {
-                id,
-                company: formData.company,
-                position: formData.position,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-                startDateType: formData.startDate
-                    ? typeof formData.startDate
-                    : "undefined",
-                endDateType: formData.endDate ? typeof formData.endDate : "undefined",
-                isStartDateValid: formData.startDate instanceof Date &&
-                    !isNaN(formData.startDate.getTime()),
-                isEndDateValid: formData.endDate
-                    ? formData.endDate instanceof Date &&
-                        !isNaN(formData.endDate.getTime())
-                    : true
-            });
+
             const updatedItem = await storage.updateWorkHistoryItem(id, formData);
             if (!updatedItem) {
                 return res
@@ -379,7 +337,7 @@ export function registerCareerDataRoutes(app, storage) {
                     ? updatedItem.createdAt.toISOString()
                     : updatedItem.createdAt
             };
-            console.log("Work history item updated successfully:", serializedItem);
+
             res.status(200).json(serializedItem);
         }
         catch (error) {
@@ -413,11 +371,10 @@ export function registerCareerDataRoutes(app, storage) {
                 return res.status(401).json({ message: "Authentication required" });
             }
             const userId = req.userId;
-            console.log("⭐️ POST /api/career-data/education - Request received for user:", userId);
-            console.log("📦 Raw request body:", JSON.stringify(req.body, null, 2));
+
             // Process dates to ensure they're Date objects
             const formData = { ...req.body };
-            console.log("Processing education form data with achievements:", formData.achievements);
+
             // Convert string dates to Date objects
             if (formData.startDate && typeof formData.startDate === "string") {
                 formData.startDate = new Date(formData.startDate);
@@ -432,29 +389,10 @@ export function registerCareerDataRoutes(app, storage) {
             else if (!Array.isArray(formData.achievements)) {
                 formData.achievements = [formData.achievements];
             }
-            console.log("🛠️ Creating education history with processed data:", {
-                userId,
-                institution: formData.institution,
-                degree: formData.degree,
-                fieldOfStudy: formData.fieldOfStudy,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-                current: formData.current,
-                achievements: formData.achievements,
-                startDateType: formData.startDate
-                    ? typeof formData.startDate
-                    : "undefined",
-                endDateType: formData.endDate ? typeof formData.endDate : "undefined",
-                isStartDateValid: formData.startDate instanceof Date &&
-                    !isNaN(formData.startDate.getTime()),
-                isEndDateValid: formData.endDate
-                    ? formData.endDate instanceof Date &&
-                        !isNaN(formData.endDate.getTime())
-                    : true
-            });
+
             // Check storage before creating
             const existingItems = await storage.getEducationHistory(userId);
-            console.log(`📋 User ${userId} has ${existingItems.length} existing education history items before creation`);
+
             const educationItem = await storage.createEducationHistoryItem(userId, formData);
             // Serialize dates to ISO strings in the response
             const serializedItem = {
@@ -469,10 +407,10 @@ export function registerCareerDataRoutes(app, storage) {
                     ? educationItem.createdAt.toISOString()
                     : educationItem.createdAt
             };
-            console.log("✅ Education history item created successfully:", serializedItem);
+
             // Verify item was saved by retrieving again
             const updatedItems = await storage.getEducationHistory(userId);
-            console.log(`📋 User ${userId} now has ${updatedItems.length} education history items after creation`);
+
             res.status(201).json(serializedItem);
         }
         catch (error) {
@@ -547,12 +485,12 @@ export function registerCareerDataRoutes(app, storage) {
                 return res.status(401).json({ message: "Authentication required" });
             }
             const userId = req.userId;
-            console.log(`DEBUG: Direct skills endpoint - Fetching skills for user ${userId}`);
+
             // Fetch skills directly
             const skills = await storage.getUserSkills(userId);
-            console.log(`DEBUG: Direct skills endpoint - Found ${skills.length} skills for user ${userId}`);
+
             if (skills.length > 0) {
-                console.log(`DEBUG: First skill:`, JSON.stringify(skills[0], null, 2));
+
             }
             res.status(200).json(skills);
         }
@@ -569,9 +507,9 @@ export function registerCareerDataRoutes(app, storage) {
             const userId = req.userId;
             // Add userId to the request body before creating
             const skillData = { ...req.body, userId };
-            console.log(`DEBUG: Creating skill for user ${userId}:`, JSON.stringify(skillData, null, 2));
+
             const skill = await storage.createSkill(skillData);
-            console.log(`DEBUG: Skill created successfully:`, JSON.stringify(skill, null, 2));
+
             res.status(201).json(skill);
         }
         catch (error) {
@@ -780,9 +718,7 @@ export function registerCareerDataRoutes(app, storage) {
             }
             const userId = req.userId;
             const { careerSummary } = req.body;
-            console.log(`⭐️ PUT /api/career-data/career-summary - Request received for user ${userId}`);
-            console.log(`📝 Career summary length: ${careerSummary ? careerSummary.length : 0} characters`);
-            console.log(`🔍 User ID type: ${typeof userId}, value: "${userId}"`);
+
             if (careerSummary === undefined) {
                 console.error("❌ Career summary is undefined in request body");
                 return res.status(400).json({
@@ -791,7 +727,7 @@ export function registerCareerDataRoutes(app, storage) {
                 });
             }
             try {
-                console.log(`🔄 About to call storage.updateUser for user ${userId}`);
+
                 const updatedUser = await storage.updateUser(userId, {
                     careerSummary
                 });
@@ -799,8 +735,7 @@ export function registerCareerDataRoutes(app, storage) {
                     console.error(`❌ User ${userId} not found or update failed - storage.updateUser returned null/undefined`);
                     return res.status(404).json({ message: "User not found" });
                 }
-                console.log(`✅ Career summary updated successfully for user ${userId}`);
-                console.log(`📄 Updated user careerSummary length: ${updatedUser.careerSummary?.length || 0}`);
+
                 res.status(200).json({ careerSummary: updatedUser.careerSummary });
             }
             catch (updateError) {
@@ -861,7 +796,7 @@ export function registerCareerDataRoutes(app, storage) {
             if (!careerData) {
                 return res.status(400).json({ message: "Career data is required" });
             }
-            console.log(`Optimizing career data for user ${userId} based on job description`);
+
             // Import the optimizeCareerData function from openai
             const { optimizeCareerData } = await import("./openai");
             // Call OpenAI to optimize the career data

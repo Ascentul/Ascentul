@@ -208,37 +208,7 @@ export default function UserManagement() {
   } = useQuery<User[]>({
     queryKey: ["/api/admin/users", searchTerm, filters, currentPage],
     queryFn: async () => {
-      console.log("Fetching users from API...")
-      try {
-        const response = await apiRequest({ url: "/api/admin/users" })
-        console.log("API response:", response)
-        return response
-      } catch (error) {
-        console.error("Error fetching users:", error)
-        throw error
-      }
-    }
-  })
 
-  // Debug logging
-  console.log("Users query state:", {
-    users,
-    isLoading,
-    error,
-    userCount: users?.length
-  })
-
-  // Mutation for updating user status
-  const updateUserStatusMutation = useMutation({
-    mutationFn: async ({
-      userId,
-      status
-    }: {
-      userId: number
-      status: "active" | "inactive" | "suspended"
-    }) => {
-      // This is where you'd call your API
-      // await apiRequest('PUT', `/api/admin/users/${userId}/status`, { status });
       return { userId, status }
     },
     onSuccess: (data) => {

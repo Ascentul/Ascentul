@@ -48,7 +48,7 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
     try {
       const mockApps = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
       if (Array.isArray(mockApps) && mockApps.length > 0) {
-        console.log(`Loaded ${mockApps.length} applications from localStorage`);
+
         setLocalApplicationsLoaded(true);
         // Immediately load followups based on these applications
         const pendingFollowups = loadPendingFollowupsFromApps(mockApps);
@@ -68,7 +68,7 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
     queryKey: ['/api/job-applications'],
     queryFn: async () => {
       try {
-        console.log("Refreshing applications list...");
+
         const response = await apiRequest('GET', '/api/job-applications');
         if (!response.ok) throw new Error(`API error: ${response.status}`);
         const apiApps = await response.json();
@@ -87,8 +87,7 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
               }
             });
           }
-          
-          console.log("Combined applications:", combinedApps.slice(0, 2));
+
           return combinedApps;
         } catch (e) {
           console.error("Error combining applications:", e);
@@ -169,8 +168,7 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
     // Load only pending followups
     const pendingFollowups = loadPendingFollowups();
     const sortedFollowups = sortFollowups(pendingFollowups);
-    
-    console.log(`Loaded ${pendingFollowups.length} pending followups across all applications`);
+
     setFollowupActions(sortedFollowups);
     
     // Ensure the counter matches the number of followups we've loaded

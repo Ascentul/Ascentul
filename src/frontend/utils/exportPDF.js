@@ -11,7 +11,7 @@ export function exportCoverLetterToPDF() {
             alert("❌ Could not find cover letter content. Please try again.");
             return;
         }
-        console.log("Exporting cover letter to PDF from preview element...");
+
         // Get all required details from the new unified DOM structure
         // Find the header container within the preview element
         const headerContainer = previewLetterEl.querySelector(".text-base.font-normal.text-neutral-900");
@@ -22,7 +22,7 @@ export function exportCoverLetterToPDF() {
         let date = new Date().toLocaleDateString();
         let companyName = "";
         if (!headerContainer) {
-            console.log("Using legacy selectors - unified header container not found");
+
             // Fallback to old selectors for compatibility
             const fullNameElement = previewLetterEl.querySelector("h2, p.font-semibold");
             fullName = fullNameElement?.textContent?.trim() || "Your Name";
@@ -45,7 +45,7 @@ export function exportCoverLetterToPDF() {
             companyName = companyElement?.textContent?.trim() || "";
         }
         else {
-            console.log("Using new unified header structure for PDF export");
+
             // Get all paragraph elements in the header container
             const paragraphs = headerContainer.querySelectorAll("p");
             // Extract full name (first paragraph with font-semibold class)
@@ -115,8 +115,7 @@ export function exportCoverLetterToPDF() {
             alert("❌ Letter body is empty. Cannot export.");
             return;
         }
-        console.log("Cleaned letter body for PDF export");
-        console.log("Creating PDF with text content:", letterBody.substring(0, 100) + "...");
+
         // Create new PDF document
         const doc = new jsPDF({
             orientation: "portrait",
@@ -150,8 +149,7 @@ export function exportCoverLetterToPDF() {
         // Add contact info (Email | LinkedIn | Phone) on a single line
         if (contactInfo) {
             doc.setFont(baseFontFamily, "normal");
-            console.log("Export PDF - LinkedIn profile:", window.linkedInProfile);
-            console.log("Export PDF - Contact info:", contactInfo);
+
             // Always try to format contact info with LinkedIn, even if it's not mentioned in the contact info yet
             if (window.linkedInProfile) {
                 let emailPart = "";
@@ -208,12 +206,7 @@ export function exportCoverLetterToPDF() {
                     doc.text(phonePart, currentX, yPosition);
                 }
                 // Log what we're doing
-                console.log("Added formatted contact line with LinkedIn URL:", {
-                    email: emailPart,
-                    linkedIn: "LinkedIn",
-                    phone: phonePart,
-                    linkedInUrl: window.linkedInProfile
-                });
+
                 // Add spacing after contact line
                 yPosition += 8;
             }
@@ -221,7 +214,7 @@ export function exportCoverLetterToPDF() {
                 // Without LinkedIn URL, just use the regular contact info line
                 doc.text(contactInfo, margin, yPosition);
                 yPosition += 8;
-                console.log("Using standard contact info (no LinkedIn URL):", contactInfo);
+
             }
         }
         // Add date and company name on separate lines with consistent body text spacing
@@ -248,7 +241,7 @@ export function exportCoverLetterToPDF() {
             const match = greetingText.match(/Dear\s+([^,]+)/i);
             if (match && match[1]) {
                 recipientName = match[1].trim();
-                console.log("Found recipient name from greeting:", recipientName);
+
             }
         }
         // Add greeting with consistent font
@@ -278,7 +271,7 @@ export function exportCoverLetterToPDF() {
         doc.save(filename);
         // Show success message
         alert("✅ Your cover letter has been downloaded successfully.");
-        console.log("PDF export successful");
+
     }
     catch (error) {
         console.error("Error creating PDF:", error);
@@ -295,7 +288,7 @@ export function exportCoverLetterToPDF() {
  */
 export function exportResumeToPDF(elementId, resumeName = "Resume") {
     try {
-        console.log(`Exporting resume with ID: ${elementId}, name: ${resumeName}`);
+
         // Get the element containing the resume data
         const resumeElement = document.getElementById(elementId);
         if (!resumeElement) {
@@ -346,16 +339,7 @@ export function exportResumeToPDF(elementId, resumeName = "Resume") {
             .forEach((item) => {
             educationItems.push(item.textContent?.trim() || "");
         });
-        console.log("Creating PDF with resume data:", {
-            name: fullName,
-            contactSummary: contactInfo.substring(0, 30) + "...",
-            sections: {
-                summary: summary ? "Present" : "Not found",
-                skills: skills ? "Present" : "Not found",
-                experience: `${experienceItems.length} items`,
-                education: `${educationItems.length} items`
-            }
-        });
+
         // Create new PDF document
         const doc = new jsPDF({
             orientation: "portrait",
@@ -465,7 +449,7 @@ export function exportResumeToPDF(elementId, resumeName = "Resume") {
         doc.save(filename);
         // Show success message
         alert("✅ Your resume has been downloaded successfully.");
-        console.log("Resume PDF export successful");
+
     }
     catch (error) {
         console.error("Error creating resume PDF:", error);
@@ -493,7 +477,7 @@ export function exportElementToPDF(elementId, filename = "cover-letter.pdf") {
         clone.style.display = "block"; // Ensure visibility for rendering
         // Ensure LinkedIn URL is properly handled in the cloned content
         if (window.linkedInProfile) {
-            console.log("Found LinkedIn profile URL for PDF export:", window.linkedInProfile);
+
             // Find contact info line in the clone
             const contactInfo = clone.querySelector(".text-neutral-700");
             if (contactInfo) {
@@ -503,11 +487,11 @@ export function exportElementToPDF(elementId, filename = "cover-letter.pdf") {
                 // Try to extract phone numbers
                 const phoneMatch = contactInfo.textContent?.match(/(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})/) || null;
                 const phone = phoneMatch ? phoneMatch[0] : null;
-                console.log("Extracted from contact info:", { email, phone });
+
                 // Check if LinkedIn is mentioned in the contact info
                 const hasLinkedInText = contactInfo.textContent?.includes("LinkedIn") || false;
                 if (hasLinkedInText) {
-                    console.log("LinkedIn text found in contact info, converting to link for PDF");
+
                     // Get the current HTML content
                     const currentHTML = contactInfo.innerHTML;
                     // Replace LinkedIn text with a properly formatted hyperlink
@@ -523,10 +507,10 @@ export function exportElementToPDF(elementId, filename = "cover-letter.pdf") {
                         newContent += ` | ${phone}`;
                     }
                     contactInfo.innerHTML = newContent;
-                    console.log("Reformatted contact info for PDF with LinkedIn link:", newContent);
+
                 }
                 else {
-                    console.log("Adding LinkedIn to existing contact info for PDF");
+
                     // Add LinkedIn to the contact info if not present
                     const currentHTML = contactInfo.innerHTML;
                     // Check if there's a pipe separator in the content
@@ -546,7 +530,7 @@ export function exportElementToPDF(elementId, filename = "cover-letter.pdf") {
                 }
             }
             else {
-                console.log("No contact info found for LinkedIn PDF integration");
+
                 // Try to find any header element to inject contact info into
                 const headerSection = clone.querySelector(".header, header, .letterhead, h1, h2");
                 if (headerSection) {
@@ -556,7 +540,7 @@ export function exportElementToPDF(elementId, filename = "cover-letter.pdf") {
                     newContactInfo.innerHTML = `<a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important; font-weight:bold;">LinkedIn</a>`;
                     // Insert after the header section
                     headerSection.parentNode?.insertBefore(newContactInfo, headerSection.nextSibling);
-                    console.log("Created new contact info with LinkedIn link");
+
                 }
             }
             // Also check for LinkedIn URL placeholders in the body text
@@ -576,7 +560,7 @@ export function exportElementToPDF(elementId, filename = "cover-letter.pdf") {
                     // Replace "LinkedIn Profile" text
                     updatedHTML = updatedHTML.replace(/LinkedIn Profile/g, `<a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important; font-weight:bold;">LinkedIn Profile</a>`);
                     bodyContent.innerHTML = updatedHTML;
-                    console.log("Replaced LinkedIn placeholders in body text");
+
                 }
             }
         }
@@ -591,7 +575,7 @@ export function exportElementToPDF(elementId, filename = "cover-letter.pdf") {
                 text.includes("Regards,") ||
                 text.includes("Thank you,");
             if (!hasClosing) {
-                console.log("Adding closing signature to the letter");
+
                 // Get the name from the header if possible
                 const nameElement = clone.querySelector("h1, h2, .name");
                 const senderName = nameElement?.textContent?.trim() || "Your Name";

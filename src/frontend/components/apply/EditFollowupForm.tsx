@@ -197,15 +197,12 @@ export function EditFollowupForm({
   
   const onSubmit = (data: FollowupFormValues) => {
     setIsPending(true);
-    
-    console.log("Submitting followup update:", data);
-    
+
     // First, update the followup in localStorage immediately for better UX
     try {
       // Get current followups from localStorage
       const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${applicationId}`) || '[]');
-      console.log("Current followups in localStorage:", mockFollowups);
-      
+
       // Find the index of the followup to update
       const followupIndex = mockFollowups.findIndex((f: any) => f.id === followup.id);
       
@@ -217,17 +214,14 @@ export function EditFollowupForm({
           dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null,
           updatedAt: new Date().toISOString()
         };
-        
-        console.log("Updated followup in localStorage:", mockFollowups[followupIndex]);
-        
+
         // Save back to localStorage
         localStorage.setItem(`mockFollowups_${applicationId}`, JSON.stringify(mockFollowups));
         
         // Force UI update
         queryClient.invalidateQueries({ queryKey: [`/api/applications/${applicationId}/followups`] });
       } else {
-        console.log(`Followup with ID ${followup.id} not found in localStorage, adding it`);
-        
+
         // If followup doesn't exist in localStorage yet, add it
         mockFollowups.push({
           ...followup,

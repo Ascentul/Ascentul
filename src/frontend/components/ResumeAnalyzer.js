@@ -185,7 +185,7 @@ const ResumeAnalyzer = ({ onExtractComplete, onAnalyzeComplete, jobDescription, 
             // Add debugging data
             formData.append('fileName', file.name);
             formData.append('fileSize', file.size.toString());
-            console.log("Uploading file:", file.name, "Size:", file.size, "Type:", file.type);
+
             // Direct extraction approach
             const response = await fetch('/api/resumes/extract', {
                 method: 'POST',
@@ -199,7 +199,7 @@ const ResumeAnalyzer = ({ onExtractComplete, onAnalyzeComplete, jobDescription, 
                 throw new Error(result.message || 'Extraction failed to retrieve text');
             }
             // Successful extraction
-            console.log("Extraction successful, text length:", result.text.length);
+
             handleExtractSuccess(result.text);
         }
         catch (error) {
@@ -260,12 +260,7 @@ const ResumeAnalyzer = ({ onExtractComplete, onAnalyzeComplete, jobDescription, 
             return;
         }
         // Enhanced logging with detailed file info
-        console.log('File selected:', {
-            name: selectedFile.name,
-            type: selectedFile.type || 'unknown type',
-            size: `${(selectedFile.size / 1024 / 1024).toFixed(2)}MB`,
-            lastModified: new Date(selectedFile.lastModified).toISOString()
-        });
+
         // Check file type - allow both explicit application/pdf and for browsers 
         // that may report different MIME types for PDFs
         const fileType = selectedFile.type.toLowerCase();
@@ -325,17 +320,13 @@ const ResumeAnalyzer = ({ onExtractComplete, onAnalyzeComplete, jobDescription, 
         }
         try {
             const droppedFiles = e.dataTransfer.files;
-            console.log("Files dropped:", droppedFiles.length, "files");
+
             if (droppedFiles?.length) {
                 // Validate file type before handling
                 const droppedFile = droppedFiles[0];
                 const fileType = droppedFile.type.toLowerCase();
                 const fileName = droppedFile.name.toLowerCase();
-                console.log("Dropped file details:", {
-                    name: droppedFile.name,
-                    type: droppedFile.type,
-                    size: `${(droppedFile.size / 1024 / 1024).toFixed(2)}MB`
-                });
+
                 const isPdf = fileType === 'application/pdf' ||
                     fileType === 'application/x-pdf' ||
                     fileName.endsWith('.pdf');

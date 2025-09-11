@@ -16,7 +16,7 @@ const root = document.getElementById("root");
 if (root) {
     try {
         createRoot(root).render(_jsx(QueryClientProvider, { client: queryClient, children: _jsx(SupabaseAuthProvider, { children: _jsx(UserProvider, { children: _jsxs(AuthProvider, { children: [_jsx(TestWrapper, {}), _jsx(Toaster, {})] }) }) }) }));
-        console.log("✅ SUCCESS: Real App component mounted with all providers!");
+
     }
     catch (error) {
         console.error("❌ FOUND THE ISSUE: App component is causing the crash:", error);

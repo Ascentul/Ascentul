@@ -300,32 +300,30 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   // Schedule follow-up mutation
   const scheduleFollowUpMutation = useMutation({
     mutationFn: async (values: FollowUpFormValues) => {
-      console.log("🔎 Starting form submission with values:", values);
-      
+
       // Validate the date field
       let dateToUse: Date;
       
       if (!values.followUpDate) {
-        console.warn("⚠️ No date provided, using current date");
+
         dateToUse = new Date();
       } else if (values.followUpDate instanceof Date) {
         if (isNaN(values.followUpDate.getTime())) {
           console.error("❌ Invalid Date object, timestamp is NaN");
           throw new Error("Invalid date selected");
         }
-        console.log("✅ Valid Date object provided:", values.followUpDate);
+
         dateToUse = values.followUpDate;
       } else {
         // Handle string dates by creating a new Date object
-        console.log("🔄 Converting string date to Date object:", values.followUpDate);
+
         const parsedDate = new Date(values.followUpDate);
         
         if (isNaN(parsedDate.getTime())) {
           console.error("❌ Failed to parse date string:", values.followUpDate);
           throw new Error("Could not parse the provided date");
         }
-        
-        console.log("✅ Successfully parsed date:", parsedDate);
+
         dateToUse = parsedDate;
       }
       
@@ -341,9 +339,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
         notes: values.notes,
         dueDate: dateToUse.toISOString(),
       };
-      
-      console.log('📤 Submitting follow-up with data:', serverData);
-      
+
       return apiRequest({
         url: `/api/contacts/${contactId}/schedule-followup`,
         method: 'POST',
@@ -1169,21 +1165,16 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                                   onChange={(e) => {
                                     if (e.target.value) {
                                       // Log the raw date input from the date picker
-                                      console.log("🚨 Raw Date Input:", e.target.value);
-                                      
+
                                       // Create a date using a direct string conversion with time component
                                       // Format: YYYY-MM-DDT00:00:00
                                       const dateString = e.target.value + 'T00:00:00';
                                       const date = new Date(dateString);
-                                      
-                                      console.log("📆 Parsed Date Object:", date);
-                                      console.log("⏱ Timestamp:", date.getTime());
-                                      console.log("📅 ISO String:", date.toISOString());
-                                      
+
                                       // Set the raw Date object as the field value
                                       field.onChange(date);
                                     } else {
-                                      console.log("⚠️ Empty date input");
+
                                       field.onChange(null);
                                     }
                                   }}

@@ -27,13 +27,7 @@ const storage = multer.diskStorage({
 
 // Filter for PDF files
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  console.log('Debug multer fileFilter called with:', {
-    fieldname: file.fieldname,
-    originalname: file.originalname,
-    encoding: file.encoding,
-    mimetype: file.mimetype
-  });
-  
+
   if (file.mimetype === 'application/pdf') {
     // Accept PDF files
     cb(null, true);
@@ -58,8 +52,7 @@ import { extractTextFromPdf } from '../pdf-util';
 // Separated PDF extraction function with robust error handling
 async function extractText(filePath: string): Promise<string> {
   try {
-    console.log(`Starting PDF text extraction from ${filePath}`);
-    
+
     // Use our TypeScript PDF utility
     const result = await extractTextFromPdf(filePath, 10); // Limit to 10 pages for quicker debugging
     
@@ -139,7 +132,7 @@ export function registerPdfDebugRoutes(router: Router) {
             entry.className = isError ? 'card error' : 'card success';
             entry.textContent = message;
             logOutput.prepend(entry);
-            console.log(message);
+
           }
           
           document.getElementById('uploadBtn').addEventListener('click', function() {
@@ -191,17 +184,14 @@ export function registerPdfDebugRoutes(router: Router) {
   // PDF upload and basic extraction endpoint (simplified for debugging)
   router.post('/debug/pdf-upload', upload.single('file'), async (req, res) => {
     try {
-      console.log('Debug PDF upload endpoint called');
-      
+
       if (!req.file) {
         return res.status(400).json({
           success: false,
           message: 'No file was uploaded'
         });
       }
-      
-      console.log('Debug upload request file:', req.file);
-      
+
       // Use simplified extraction function
       const extractedText = await extractText(req.file.path);
       

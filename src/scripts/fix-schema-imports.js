@@ -7,8 +7,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..', '..');
 
-console.log('🔍 Running comprehensive import fix...');
-
 function findTsFiles(dir, fileList = []) {
   const files = fs.readdirSync(dir);
   for (const file of files) {
@@ -63,8 +61,7 @@ function fixImport(file, level = 1) {
 async function processBackendFiles() {
   const backendDir = path.join(projectRoot, 'src', 'backend');
   const backendFiles = findTsFiles(backendDir);
-  console.log(`Found ${backendFiles.length} TypeScript files in backend`);
-  
+
   let changedFiles = 0;
   
   for (const file of backendFiles) {
@@ -74,16 +71,14 @@ async function processBackendFiles() {
     const updated = fixImport(file, level);
     if (updated) {
       changedFiles++;
-      console.log(`✅ Updated imports in: ${path.relative(projectRoot, file)}`);
+
     }
   }
-  
-  console.log(`\n🎉 Fixed imports in ${changedFiles} backend files`);
+
   return changedFiles;
 }
 
 // Run the script
 processBackendFiles().then(count => {
-  console.log('\n✅ All import paths have been updated!');
-  console.log('📝 Please try running the app now to verify all imports are working correctly.');
+
 }); 

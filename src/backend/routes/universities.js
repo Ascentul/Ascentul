@@ -28,7 +28,7 @@ const universitySchema = z.object({
 router.get("/", async (req, res) => {
     // Authentication and admin check is handled by middleware
     try {
-        console.log("Fetching universities from Supabase...");
+
         // Get all universities from the universities table
         const { data: universityList, error: universitiesError } = await supabaseAdmin
             .from("universities")
@@ -39,7 +39,7 @@ router.get("/", async (req, res) => {
             console.error("Error fetching universities:", universitiesError);
             return res.status(500).json({ error: "Failed to fetch universities" });
         }
-        console.log(`Found ${universityList?.length || 0} universities`);
+
         // Get all users who have a university_id to count students and admins
         const { data: universityUsers, error: usersError } = await supabaseAdmin
             .from("users")
@@ -78,7 +78,7 @@ router.get("/", async (req, res) => {
                 adminEmail: null
             };
         });
-        console.log("Returning universities with counts:", universitiesWithCounts.length);
+
         res.json(universitiesWithCounts);
     }
     catch (error) {

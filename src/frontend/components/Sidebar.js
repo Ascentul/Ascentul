@@ -223,11 +223,11 @@ export default function Sidebar({ isOpen, onToggle } = {}) {
     return (_jsxs("div", { ref: sidebarRef, className: `flex-col overflow-hidden transition-all duration-300 ease-in-out bg-white shadow-md z-30 
         ${expanded ? 'w-64' : 'w-16'} 
         ${isOpen ? 'flex fixed inset-y-0 left-0 md:relative' : 'hidden md:flex'}`, "data-expanded": expanded ? 'true' : 'false', children: [_jsxs("div", { className: "flex items-center justify-between h-16 border-b px-3", children: [expanded && (_jsx("img", { src: ascentulLogo, alt: "Ascentul", className: "h-6 ml-2" })), _jsx(Button, { variant: "ghost", size: "sm", onClick: toggleSidebar, className: "ml-auto hidden md:flex", "aria-label": expanded ? "Collapse sidebar" : "Expand sidebar", children: expanded ? _jsx(PanelLeft, { size: 18 }) : _jsx(PanelRight, { size: 18 }) }), isOpen && (_jsx(Button, { variant: "ghost", size: "sm", onClick: onToggle, className: "ml-auto md:hidden", "aria-label": "Close sidebar", children: _jsx(ChevronsLeft, { className: "h-6 w-6" }) }))] }), _jsxs("div", { className: "flex flex-col items-center py-6 border-b", children: [_jsxs("div", { className: "relative", children: [_jsx("div", { className: "inline-block", children: _jsx(ProfileImageUploader, { onImageUploaded: async (imageDataUrl) => {
-                                        console.log("Sidebar image upload started...");
+
                                         try {
                                             // Use the centralized uploadProfileImage function from useUserData context
                                             const updatedUser = await uploadProfileImage(imageDataUrl);
-                                            console.log("Profile successfully updated from sidebar:", updatedUser);
+
                                             return updatedUser;
                                         }
                                         catch (error) {
@@ -236,7 +236,7 @@ export default function Sidebar({ isOpen, onToggle } = {}) {
                                             throw error;
                                         }
                                     }, currentImage: user.profileImage, children: _jsx("div", { children: _jsx(Avatar, { className: `border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity ${expanded ? 'w-16 h-16' : 'w-10 h-10'}`, children: user.profileImage ? (_jsx(AvatarImage, { src: user.profileImage || '', alt: user.name, onError: (e) => {
-                                                    console.log("Error loading image, falling back to text");
+
                                                     // Hide the broken image icon
                                                     e.currentTarget.style.display = 'none';
                                                 }, className: "object-cover", style: { objectPosition: 'center' } })) : (_jsx(AvatarFallback, { className: "bg-primary/10 text-primary text-xl", children: user.name.charAt(0) })) }) }) }) }), isUnivUser && user.level !== undefined && expanded && (_jsx("div", { className: "absolute -top-1 -right-1 bg-[#8bc34a] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold", children: user.level }))] }), expanded && (_jsxs(_Fragment, { children: [_jsx("h2", { className: "mt-3 font-medium text-lg", children: user.name }), isUnivUser && user.rank && (_jsx("div", { className: "mt-1 text-sm text-neutral-400", children: user.rank })), isUnivUser && user.xp !== undefined && user.level !== undefined && (_jsxs("div", { className: "mt-3 w-full px-6", children: [_jsxs("div", { className: "flex justify-between text-xs mb-1", children: [_jsxs("span", { children: ["Level ", user.level] }), _jsxs("span", { children: [user.xp, " XP"] })] }), _jsx(Progress, { value: progressPercentage, className: "h-2" })] })), isUnivUser && (_jsxs("div", { className: "mt-3 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium flex items-center", children: [_jsx(GraduationCap, { className: "w-3 h-3 mr-1" }), "University User"] }))] }))] }), _jsxs("nav", { className: "flex-1 overflow-hidden py-4 flex flex-col", children: [_jsxs(Link, { href: dashboardLink.href, className: `flex items-center ${expanded ? 'px-6' : 'px-3 justify-center'} py-3 text-sm transition-colors hover:bg-primary/5

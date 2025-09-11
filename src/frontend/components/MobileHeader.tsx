@@ -47,12 +47,11 @@ export default function MobileHeader({ onMenuToggle }: MobileHeaderProps) {
           <div className="inline-block">
             <ProfileImageUploader
               onImageUploaded={async (imageDataUrl) => {
-                console.log("Mobile header image upload started...");
-                
+
                 try {
                   // Use the centralized uploadProfileImage function from useUserData context
                   const updatedUser = await uploadProfileImage(imageDataUrl);
-                  console.log("Profile successfully updated from mobile header:", updatedUser);
+
                   return updatedUser;
                 } catch (error) {
                   console.error("Error updating profile with image:", error);
@@ -69,7 +68,7 @@ export default function MobileHeader({ onMenuToggle }: MobileHeaderProps) {
                       src={user.profileImage || ''} 
                       alt={user.name} 
                       onError={(e) => {
-                        console.log("Error loading image in mobile header, falling back to text");
+
                         e.currentTarget.style.display = 'none';
                       }}
                       className="object-cover"
