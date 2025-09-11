@@ -484,3 +484,132 @@ export async function getUserPaymentMethods(userId: number) {
     throw new Error(`Error retrieving payment methods: ${error.message}`);
   }
 }
+
+// Handle Stripe webhook events
+export async function handleStripeWebhook(body: any, signature: string) {
+  try {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    
+    if (!webhookSecret) {
+      console.warn('STRIPE_WEBHOOK_SECRET not set, using mock webhook handler');
+      return handleMockWebhook(body);
+    }
+    
+    // Verify webhook signature
+    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    
+    console.log('Received Stripe webhook:', event.type);
+    
+    switch (event.type) {
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(event.data.object.id);
+        break;
+        
+      case 'customer.subscription.deleted':
+        await handleSubscriptionCancelled(event.data.object.id);
+        break;
+        
+      case 'invoice.payment_succeeded':
+        await handlePaymentSucceeded(event.data.object);
+        break;
+        
+      case 'invoice.payment_failed':
+        await handlePaymentFailed(event.data.object);
+        break;
+        
+      default:
+        console.log(`Unhandled webhook event type: ${event.type}`);
+    }
+    
+    return { received: true };
+  } catch (error: any) {
+    console.error('Error handling Stripe webhook:', error);
+    throw new Error(`Webhook handler failed: ${error.message}`);
+  }
+}
+
+// Mock webhook handler for development
+async function handleMockWebhook(body: any) {
+  console.log('Mock webhook handler called with:', body);
+  
+  // Simulate webhook processing
+  if (body.type === 'customer.subscription.updated') {
+    console.log('Mock: Processing subscription update');
+  }
+  
+  return { received: true, mock: true };
+}
+
+// Handle subscription cancellation
+async function handleSubscriptionCancelled(subscriptionId: string) {
+  try {
+    const user = await storage.getUserByStripeSubscriptionId(subscriptionId);
+    
+    if (!user) {
+      console.warn(`No user found with subscription ID: ${subscriptionId}`);
+      return;
+    }
+    
+    // Update user subscription status
+    await storage.updateUserStripeInfo(user.id, {
+      subscriptionStatus: 'cancelled',
+      subscriptionPlan: 'free',
+      subscriptionCycle: undefined,
+    });
+    
+    console.log(`Subscription cancelled for user ${user.id}`);
+  } catch (error: any) {
+    console.error('Error handling subscription cancellation:', error);
+    throw error;
+  }
+}
+
+// Handle successful payment
+async function handlePaymentSucceeded(invoice: any) {
+  try {
+    const subscriptionId = invoice.subscription;
+    
+    if (!subscriptionId) {
+      console.log('Payment succeeded but no subscription ID found');
+      return;
+    }
+    
+    // Update subscription status to active
+    await handleSubscriptionUpdated(subscriptionId);
+    
+    console.log(`Payment succeeded for subscription ${subscriptionId}`);
+  } catch (error: any) {
+    console.error('Error handling payment success:', error);
+    throw error;
+  }
+}
+
+// Handle failed payment
+async function handlePaymentFailed(invoice: any) {
+  try {
+    const subscriptionId = invoice.subscription;
+    
+    if (!subscriptionId) {
+      console.log('Payment failed but no subscription ID found');
+      return;
+    }
+    
+    const user = await storage.getUserByStripeSubscriptionId(subscriptionId);
+    
+    if (!user) {
+      console.warn(`No user found with subscription ID: ${subscriptionId}`);
+      return;
+    }
+    
+    // Update user subscription status to past due
+    await storage.updateUserStripeInfo(user.id, {
+      subscriptionStatus: 'past_due',
+    });
+    
+    console.log(`Payment failed for user ${user.id}, subscription ${subscriptionId}`);
+  } catch (error: any) {
+    console.error('Error handling payment failure:', error);
+    throw error;
+  }
+}

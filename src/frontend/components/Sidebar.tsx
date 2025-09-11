@@ -76,8 +76,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const { user, logout, updateUser, updateProfile, uploadProfileImage } = useUser();
   const isUnivUser = useIsUniversityUser();
   const isAdmin = useIsAdminUser();
-  // Check if user is on free plan and not a university admin
-  const isFreeUser = user?.subscriptionPlan === 'free' && user?.role !== 'university_admin';
+  // Check if user is on free plan and not a university admin or premium user
+  const isFreeUser = user?.subscriptionPlan === 'free' && user?.role !== 'university_admin' && user?.userType !== 'university_user';
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [hoverSection, setHoverSection] = useState<string | null>(null);
@@ -629,14 +629,14 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       <div className="border-t py-4">
         {/* Upgrade Button - Only shown for free users */}
         {isFreeUser && (
-          <Link 
-            href="/upgrade"
-            className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm mb-2 bg-primary text-white hover:bg-primary/90 transition-colors cursor-pointer rounded-md ${expanded ? 'mx-3' : 'mx-1'} w-full text-left`}
+          <button 
+            onClick={() => window.location.href = '/pricing'}
+            className={`flex items-center ${expanded ? 'px-4' : 'px-2 justify-center'} py-2 text-sm mb-2 bg-primary text-white hover:bg-primary/90 transition-colors cursor-pointer rounded-lg ${expanded ? 'mx-3' : 'mx-1'} w-auto`}
             title={!expanded ? 'Upgrade' : undefined}
           >
             <Zap className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />
             {expanded && 'Upgrade'}
-          </Link>
+          </button>
         )}
         
         <button 
@@ -657,14 +657,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
           {expanded && 'Support'}
         </button>
         
-        <a 
+        <Link 
           href="/account" 
-          className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm hover:bg-primary/5 transition-colors cursor-pointer rounded-md ${expanded ? 'mx-3' : 'mx-1'}`}
+          className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm hover:bg-primary/5 transition-colors cursor-pointer rounded-md ${expanded ? 'mx-3' : 'mx-1'}
+            ${location === '/account' ? 'text-primary bg-primary/10' : ''}`}
           title={!expanded ? 'Account Settings' : undefined}
         >
           <Settings className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />
           {expanded && 'Account Settings'}
-        </a>
+        </Link>
         <button 
           className={`flex items-center ${expanded ? 'px-6 text-left' : 'px-2 justify-center'} py-2 text-sm text-red-500 hover:bg-red-50 transition-colors w-full rounded-md ${expanded ? 'mx-3' : 'mx-1'}`}
           onClick={() => logout()}

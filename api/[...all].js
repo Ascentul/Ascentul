@@ -780,8 +780,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // UPDATE USER PROFILE - Critical for onboarding completion
-    if (path === "/users/profile" && req.method === "PUT") {
+    // USER PROFILE ROUTES - Critical for onboarding completion
+    if (path === "/users/profile" && (req.method === "PUT" || req.method === "POST")) {
       try {
         const authResult = await verifySupabaseToken(req.headers.authorization)
         if (authResult.error) {
@@ -791,7 +791,7 @@ export default async function handler(req, res) {
           })
         }
 
-        const { onboardingCompleted, onboardingData } = req.body
+        const { onboardingCompleted, onboardingData, profileImage, ...otherData } = req.body
 
         // Update the user profile with onboarding completion
         const updateData = {}
@@ -801,6 +801,18 @@ export default async function handler(req, res) {
         if (onboardingData) {
           updateData.onboarding_data = onboardingData
         }
+        if (profileImage !== undefined) {
+          updateData.profile_image = profileImage
+        }
+        
+        // Handle other profile updates
+        Object.keys(otherData).forEach(key => {
+          if (otherData[key] !== undefined) {
+            // Convert camelCase to snake_case for database fields
+            const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase()
+            updateData[dbKey] = otherData[key]
+          }
+        })
 
         const { data: updatedUser, error } = await supabaseAdmin
           .from("users")
@@ -811,7 +823,10 @@ export default async function handler(req, res) {
 
         if (error || !updatedUser) {
           console.error("Error updating user profile:", error)
-          return res.status(500).json({ message: "Failed to update profile" })
+          return res.status(500).json({ 
+            error: "Failed to update user profile",
+            details: error?.message || "Unknown error"
+          })
         }
 
         // Map user data to expected format
@@ -837,7 +852,65 @@ export default async function handler(req, res) {
         return res.status(200).json(mappedUser)
       } catch (error) {
         console.error("Error updating user profile:", error)
-        return res.status(500).json({ message: "Error updating profile" })
+        return res.status(500).json({ 
+          error: "Error updating profile",
+          details: error.message
+        })
+      }
+    }
+
+    // GET USER PROFILE
+    if (path === "/users/profile" && req.method === "GET") {
+      try {
+        const authResult = await verifySupabaseToken(req.headers.authorization)
+        if (authResult.error) {
+          return res.status(authResult.status).json({
+            error: authResult.error,
+            message: "Please log in to view profile"
+          })
+        }
+
+        const { data: user, error } = await supabaseAdmin
+          .from("users")
+          .select("*")
+          .eq("id", authResult.userId)
+          .single()
+
+        if (error || !user) {
+          console.error("Error fetching user profile:", error)
+          return res.status(404).json({ 
+            error: "User profile not found",
+            details: error?.message || "Unknown error"
+          })
+        }
+
+        // Map user data to expected format
+        const mappedUser = {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          email: user.email,
+          userType: user.user_type,
+          role: user.role,
+          universityId: user.university_id,
+          universityName: user.university_name,
+          needsUsername: user.needs_username,
+          onboardingCompleted: user.onboarding_completed,
+          xp: user.xp || 0,
+          level: user.level || 1,
+          rank: user.rank || "Beginner",
+          profileImage: user.profile_image,
+          subscriptionPlan: user.subscription_plan || "free",
+          subscriptionStatus: user.subscription_status || "inactive"
+        }
+
+        return res.status(200).json(mappedUser)
+      } catch (error) {
+        console.error("Error fetching user profile:", error)
+        return res.status(500).json({ 
+          error: "Error fetching profile",
+          details: error.message
+        })
       }
     }
 
@@ -4534,6 +4607,88 @@ Sincerely,
           } catch (error) {
             console.error("Error creating university admin support ticket:", error)
             return res.status(500).json({ error: "Failed to create support request" })
+          }
+        }
+
+        // STRIPE PAYMENT API ROUTES
+        if (path === "/payments/create-subscription" && req.method === "POST") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to create subscription"
+            })
+          }
+
+          try {
+            const { plan, interval, email, userId, userName } = req.body
+
+            if (!plan || !interval) {
+              return res.status(400).json({ error: "Plan and interval are required" })
+            }
+
+            // Import Stripe service
+            const { createSubscription } = await import('../src/backend/services/stripe.ts')
+            
+            // Create subscription with Stripe
+            const subscription = await createSubscription({
+              userId: authResult.userId,
+              email: authResult.user.email,
+              plan,
+              interval,
+              customerName: authResult.user.name
+            })
+
+            return res.status(200).json(subscription)
+          } catch (error) {
+            console.error("Error creating subscription:", error)
+            return res.status(500).json({ error: "Failed to create subscription" })
+          }
+        }
+
+        // CANCEL SUBSCRIPTION
+        if (path === "/payments/cancel-subscription" && req.method === "POST") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to cancel subscription"
+            })
+          }
+
+          try {
+            // Import Stripe service
+            const { cancelSubscription } = await import('../src/backend/services/stripe.ts')
+            
+            // Cancel subscription with Stripe
+            const result = await cancelSubscription(authResult.userId)
+
+            return res.status(200).json(result)
+          } catch (error) {
+            console.error("Error canceling subscription:", error)
+            return res.status(500).json({ error: "Failed to cancel subscription" })
+          }
+        }
+
+        // STRIPE WEBHOOK HANDLER
+        if (path === "/webhooks/stripe" && req.method === "POST") {
+          try {
+            const { handleStripeWebhook } = await import('../src/backend/services/stripe.ts')
+            
+            // Get the raw body and signature for webhook verification
+            const signature = req.headers['stripe-signature']
+            
+            if (!signature) {
+              return res.status(400).json({ error: "Missing Stripe signature" })
+            }
+            
+            // Handle Stripe webhook
+            const result = await handleStripeWebhook(req.body, signature)
+
+            return res.status(200).json(result)
+          } catch (error) {
+            console.error("Error handling Stripe webhook:", error)
+            return res.status(400).json({ error: "Webhook handler failed" })
           }
         }
 
