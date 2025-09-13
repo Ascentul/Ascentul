@@ -1,0 +1,290 @@
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({
+  // Users table - core user profiles
+  users: defineTable({
+    clerkId: v.string(), // Clerk user ID
+    email: v.string(),
+    name: v.string(),
+    username: v.optional(v.string()),
+    role: v.union(v.literal("user"), v.literal("admin"), v.literal("super_admin"), v.literal("university_admin"), v.literal("staff")),
+    subscription_plan: v.union(v.literal("free"), v.literal("premium"), v.literal("university")),
+    subscription_status: v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due")),
+    university_id: v.optional(v.id("universities")),
+    profile_image: v.optional(v.string()),
+    stripe_customer_id: v.optional(v.string()),
+    stripe_subscription_id: v.optional(v.string()),
+    onboarding_completed: v.optional(v.boolean()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_email", ["email"])
+    .index("by_university", ["university_id"])
+    .index("by_role", ["role"]),
+
+  // Universities table for institutional licensing
+  universities: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    license_plan: v.union(v.literal("Starter"), v.literal("Basic"), v.literal("Pro"), v.literal("Enterprise")),
+    license_seats: v.number(),
+    license_used: v.number(),
+    license_start: v.number(), // timestamp
+    license_end: v.optional(v.number()), // timestamp
+    status: v.union(v.literal("active"), v.literal("expired"), v.literal("trial"), v.literal("suspended")),
+    admin_email: v.optional(v.string()),
+    created_by_id: v.optional(v.id("users")),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"]),
+
+  // Projects table for portfolio functionality
+  projects: defineTable({
+    user_id: v.id("users"),
+    title: v.string(),
+    role: v.optional(v.string()),
+    start_date: v.optional(v.number()), // timestamp
+    end_date: v.optional(v.number()), // timestamp
+    company: v.optional(v.string()),
+    url: v.optional(v.string()),
+    description: v.optional(v.string()),
+    type: v.string(), // default: 'personal'
+    image_url: v.optional(v.string()),
+    technologies: v.array(v.string()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_created_at", ["created_at"]),
+
+  // Cover letters table
+  cover_letters: defineTable({
+    user_id: v.id("users"),
+    name: v.string(),
+    job_title: v.string(),
+    company_name: v.optional(v.string()),
+    template: v.string(), // default: 'standard'
+    content: v.optional(v.string()),
+    closing: v.string(), // default: 'Sincerely,'
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_created_at", ["created_at"]),
+
+  // Support tickets table
+  support_tickets: defineTable({
+    user_id: v.id("users"),
+    subject: v.string(),
+    category: v.string(), // default: 'general'
+    priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
+    department: v.string(), // default: 'support'
+    contact_person: v.optional(v.string()),
+    description: v.string(),
+    status: v.union(v.literal("open"), v.literal("in_progress"), v.literal("resolved"), v.literal("closed")),
+    ticket_type: v.string(), // default: 'regular'
+    assigned_to: v.optional(v.id("users")),
+    resolution: v.optional(v.string()),
+    resolved_at: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_status", ["status"])
+    .index("by_created_at", ["created_at"]),
+
+  // Career paths table for generated career paths
+  career_paths: defineTable({
+    user_id: v.id("users"),
+    target_role: v.string(),
+    current_level: v.optional(v.string()),
+    estimated_timeframe: v.optional(v.string()),
+    steps: v.any(), // JSON data
+    status: v.string(), // default: 'active'
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_status", ["status"]),
+
+  // Interview stages linked to applications
+  interview_stages: defineTable({
+    user_id: v.id("users"),
+    application_id: v.id("applications"),
+    title: v.string(),
+    scheduled_at: v.optional(v.number()),
+    outcome: v.union(
+      v.literal("pending"),
+      v.literal("scheduled"),
+      v.literal("passed"),
+      v.literal("failed")
+    ),
+    location: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_application", ["application_id"]) 
+    .index("by_user", ["user_id"]) 
+    .index("by_scheduled_at", ["scheduled_at"]),
+
+  // Job searches table to track user job searches
+  job_searches: defineTable({
+    user_id: v.id("users"),
+    keywords: v.optional(v.string()),
+    location: v.optional(v.string()),
+    remote_only: v.boolean(),
+    results_count: v.number(),
+    search_data: v.any(), // JSON data
+    created_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_created_at", ["created_at"]),
+
+  // Resumes table
+  resumes: defineTable({
+    user_id: v.id("users"),
+    title: v.string(),
+    content: v.any(), // JSON data
+    visibility: v.union(v.literal("private"), v.literal("public")),
+    // Analysis data
+    extracted_text: v.optional(v.string()), // Text extracted from uploaded PDF/DOCX
+    job_description: v.optional(v.string()), // Job description for analysis
+    analysis_result: v.optional(v.any()), // Analysis results (score, strengths, gaps, suggestions)
+    ai_suggestions: v.optional(v.any()), // AI-generated suggestions (summary, skills)
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"]),
+
+  // Applications table
+  applications: defineTable({
+    user_id: v.id("users"),
+    company: v.string(),
+    job_title: v.string(),
+    status: v.union(v.literal("saved"), v.literal("applied"), v.literal("interview"), v.literal("offer"), v.literal("rejected")),
+    source: v.optional(v.string()),
+    url: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    applied_at: v.optional(v.number()),
+    resume_id: v.optional(v.id("resumes")),
+    cover_letter_id: v.optional(v.id("cover_letters")),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_status", ["status"]),
+
+  // Followup actions table
+  followup_actions: defineTable({
+    user_id: v.id("users"),
+    application_id: v.id("applications"),
+    contact_id: v.optional(v.id("networking_contacts")),
+    type: v.string(), // default: 'follow_up'
+    description: v.optional(v.string()),
+    due_date: v.optional(v.number()),
+    completed: v.boolean(),
+    notes: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_application", ["application_id"])
+    .index("by_contact", ["contact_id"])
+    .index("by_due_date", ["due_date"]),
+
+  // Achievements table
+  achievements: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    category: v.string(), // default: 'general'
+    points: v.number(),
+    created_at: v.number(),
+  })
+    .index("by_category", ["category"]),
+
+  // User achievements table for tracking user achievements
+  user_achievements: defineTable({
+    user_id: v.id("users"),
+    achievement_id: v.id("achievements"),
+    earned_at: v.number(),
+    progress: v.number(), // default: 100
+  })
+    .index("by_user", ["user_id"])
+    .index("by_achievement", ["achievement_id"])
+    .index("by_user_achievement", ["user_id", "achievement_id"]),
+
+  // Daily recommendations table
+  daily_recommendations: defineTable({
+    user_id: v.id("users"),
+    text: v.string(),
+    type: v.string(), // default: 'ai_generated'
+    completed: v.boolean(),
+    completed_at: v.optional(v.number()),
+    priority: v.number(),
+    related_entity_id: v.optional(v.string()),
+    related_entity_type: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_created_at", ["created_at"])
+    .index("by_completed", ["completed"])
+    .index("by_type", ["type"]),
+
+  // Networking contacts table (referenced in followup_actions)
+  networking_contacts: defineTable({
+    user_id: v.id("users"),
+    name: v.string(),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    company: v.optional(v.string()),
+    position: v.optional(v.string()),
+    linkedin_url: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    relationship: v.optional(v.string()),
+    last_contact: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_company", ["company"]),
+
+  // Goals table (referenced in achievements)
+  goals: defineTable({
+    user_id: v.id("users"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    category: v.optional(v.string()),
+    target_date: v.optional(v.number()),
+    status: v.union(
+      v.literal("not_started"),
+      v.literal("in_progress"),
+      v.literal("active"),
+      v.literal("completed"),
+      v.literal("paused"),
+      v.literal("cancelled"),
+    ),
+    progress: v.number(), // 0-100
+    checklist: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          text: v.string(),
+          completed: v.boolean(),
+        })
+      )
+    ),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_status", ["status"])
+    .index("by_target_date", ["target_date"]),
+});

@@ -1,0 +1,42 @@
+{
+  "../node_modules/@clerk/nextjs/dist/esm/app-router/client/ClerkProvider.js -> ./keyless-creator-reader.js": {
+    "id": "../node_modules/@clerk/nextjs/dist/esm/app-router/client/ClerkProvider.js -> ./keyless-creator-reader.js",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_clerk_nextjs_dist_esm_app-router_client_keyless-creator-reader_js.js"
+    ]
+  },
+  "../node_modules/@clerk/nextjs/dist/esm/app-router/client/keyless-cookie-sync.js -> ../keyless-actions.js": {
+    "id": "../node_modules/@clerk/nextjs/dist/esm/app-router/client/keyless-cookie-sync.js -> ../keyless-actions.js",
+    "files": []
+  },
+  "../node_modules/@tanstack/query-devtools/build/dev.js -> ./DevtoolsComponent/6ELMOJL2.js": {
+    "id": "../node_modules/@tanstack/query-devtools/build/dev.js -> ./DevtoolsComponent/6ELMOJL2.js",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_tanstack_query-devtools_build_DevtoolsComponent_6ELMOJL2_js.js"
+    ]
+  },
+  "../node_modules/@tanstack/query-devtools/build/dev.js -> ./DevtoolsPanelComponent/PULY4AJ7.js": {
+    "id": "../node_modules/@tanstack/query-devtools/build/dev.js -> ./DevtoolsPanelComponent/PULY4AJ7.js",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_tanstack_query-devtools_build_DevtoolsPanelComponent_PULY4AJ7_js.js"
+    ]
+  },
+  "../node_modules/jspdf/dist/jspdf.es.min.js -> canvg": {
+    "id": "../node_modules/jspdf/dist/jspdf.es.min.js -> canvg",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_canvg_lib_index_es_js.js"
+    ]
+  },
+  "../node_modules/jspdf/dist/jspdf.es.min.js -> dompurify": {
+    "id": "../node_modules/jspdf/dist/jspdf.es.min.js -> dompurify",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_dompurify_dist_purify_es_mjs.js"
+    ]
+  },
+  "../node_modules/jspdf/dist/jspdf.es.min.js -> html2canvas": {
+    "id": "../node_modules/jspdf/dist/jspdf.es.min.js -> html2canvas",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_html2canvas_dist_html2canvas_js.js"
+    ]
+  }
+}

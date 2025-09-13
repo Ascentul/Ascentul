@@ -1,12 +1,14 @@
 import type { Config } from "tailwindcss"
 import { fontFamily } from "tailwindcss/defaultTheme"
-import jsonTheme from "./theme.json"
-
-// @replit/vite-plugin-shadcn-theme-json will give us access to all of our variables on the json file
 
 const config = {
   darkMode: ["class"],
-  content: ["./src/frontend/**/*.{js,ts,jsx,tsx}"],
+  content: [
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+  ],
   prefix: "",
   theme: {
     container: {

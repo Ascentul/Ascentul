@@ -1,0 +1,62 @@
+import { PenSquare, Clock, CalendarClock, ThumbsUp, X } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+
+export type ApplicationStatusLabel =
+  | 'Not Started'
+  | 'In Progress'
+  | 'Applied'
+  | 'Interviewing'
+  | 'Offer'
+  | 'Rejected'
+
+interface ApplicationStatusBadgeProps {
+  status: ApplicationStatusLabel | string
+  size?: 'sm' | 'default'
+  className?: string
+  showIcon?: boolean
+}
+
+const statusConfig: Record<string, { color: string; icon: React.ReactNode; label?: string }> = {
+  'Not Started': {
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+    icon: <PenSquare className="h-3 w-3 mr-1" />,
+  },
+  'In Progress': {
+    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    icon: <PenSquare className="h-3 w-3 mr-1" />,
+  },
+  Applied: {
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    icon: <Clock className="h-3 w-3 mr-1" />,
+  },
+  Interviewing: {
+    color: 'bg-amber-100 text-amber-800 border-amber-200',
+    icon: <CalendarClock className="h-3 w-3 mr-1" />,
+  },
+  Offer: {
+    color: 'bg-green-100 text-green-800 border-green-200',
+    icon: <ThumbsUp className="h-3 w-3 mr-1" />,
+  },
+  Rejected: {
+    color: 'bg-red-100 text-red-800 border-red-200',
+    icon: <X className="h-3 w-3 mr-1" />,
+  },
+  default: {
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+    icon: <PenSquare className="h-3 w-3 mr-1" />,
+  },
+}
+
+export function ApplicationStatusBadge({ status, size = 'default', className, showIcon = true }: ApplicationStatusBadgeProps) {
+  const config = statusConfig[status] || statusConfig.default
+  return (
+    <Badge
+      variant="outline"
+      className={cn(config.color, size === 'sm' ? 'text-xs py-0 px-1.5' : '', 'flex items-center', className)}
+    >
+      {showIcon && config.icon}
+      <span>{config.label || status}</span>
+    </Badge>
+  )
+}
