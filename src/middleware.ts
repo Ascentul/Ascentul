@@ -1,4 +1,4 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { clerkMiddleware, createRouteMatcher, redirectToSignIn } from '@clerk/nextjs/server'
 
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
@@ -17,19 +17,26 @@ const isProtectedRoute = createRouteMatcher([
 
 export default clerkMiddleware((auth, req) => {
   if (isProtectedRoute(req)) {
-    auth.protect()
+    const { userId } = auth()
+    if (!userId) {
+      return redirectToSignIn({ returnBackUrl: req.url })
+    }
   }
 })
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/dashboard/:path*',
+    '/onboarding/:path*',
+    '/admin/:path*',
+    '/account/:path*',
+    '/goals/:path*',
+    '/api/goals/:path*',
+    '/applications/:path*',
+    '/networking/:path*',
+    '/resumes/:path*',
+    '/cover-letters/:path*',
+    '/career-path/:path*',
+    '/projects/:path*',
   ],
 }
