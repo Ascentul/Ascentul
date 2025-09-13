@@ -1,12 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import '../styles/globals.css'
-import {
-  ClerkProvider,
-  SignInButton,
-  SignUpButton,
-  SignedOut,
-} from '@clerk/nextjs'
+import { ClerkProvider } from '@clerk/nextjs'
 import ConvexClientProvider from '@/providers/ConvexClientProvider'
 import { ClerkAuthProvider } from '@/contexts/ClerkAuthProvider'
 import { QueryProvider } from '@/providers/QueryProvider'
@@ -33,16 +28,7 @@ export default function RootLayout({
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         </head>
         <body className={inter.className}>
-          <SignedOut>
-            <header className="flex justify-end items-center p-4 gap-4 h-16">
-              <SignInButton />
-              <SignUpButton>
-                <button className="bg-[#6c47ff] text-white rounded-full font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 cursor-pointer">
-                  Sign Up
-                </button>
-              </SignUpButton>
-            </header>
-          </SignedOut>
+          {/* Header removed: SignIn/SignUp bar for signed-out users */}
           <ConvexClientProvider>
             <ClerkAuthProvider>
               <QueryProvider>
