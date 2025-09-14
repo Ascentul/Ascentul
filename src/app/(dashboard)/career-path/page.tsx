@@ -102,6 +102,33 @@ function getIconComponent(name?: string): JSX.Element {
   }
 }
 
+// Local storage keys for persistence
+const LS_KEYS = {
+  path: "careerPathExplorer_saved_path",
+  source: "careerPathExplorer_source",
+  jobTitle: "careerPathExplorer_job_title",
+} as const
+
+// Convert a raw path (with icon string) into a UI path (with icon JSX)
+function hydratePath(raw: any): CareerPath | null {
+  if (!raw || !Array.isArray(raw.nodes)) return null
+  return {
+    id: String(raw.id || "path"),
+    name: String(raw.name || "Path"),
+    nodes: raw.nodes.map((n: any) => ({
+      id: String(n.id),
+      title: String(n.title),
+      level: n.level,
+      salaryRange: String(n.salaryRange || ""),
+      yearsExperience: String(n.yearsExperience || ""),
+      skills: Array.isArray(n.skills) ? n.skills : [],
+      description: String(n.description || ""),
+      growthPotential: n.growthPotential,
+      icon: getIconComponent(n.icon),
+    })),
+  }
+}
+
 // Certification UI pieces
 type CertificationRecommendation = {
   name: string
@@ -181,6 +208,23 @@ export default function CareerPathPage() {
   const [isLoadingCerts, setIsLoadingCerts] = useState(false)
   const [roleCerts, setRoleCerts] = useState<Record<string, CertificationRecommendation[]>>({})
 
+  // Restore previously generated path and job title on initial load
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEYS.path)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        const hydrated = hydratePath(parsed)
+        if (hydrated) {
+          setGeneratedPath(hydrated)
+          setActivePath(hydrated)
+        }
+      }
+      const savedTitle = localStorage.getItem(LS_KEYS.jobTitle)
+      if (savedTitle) setJobTitle(savedTitle)
+    } catch {}
+  }, [])
+
   const fetchCertifications = async (nodeId: string) => {
     const node = activePath?.nodes.find(n => n.id === nodeId)
     if (!node) return
@@ -229,6 +273,12 @@ export default function CareerPathPage() {
         }
         setGeneratedPath(processed)
         setActivePath(processed)
+        // Persist raw path JSON and job title for future sessions
+        try {
+          localStorage.setItem(LS_KEYS.path, JSON.stringify(mainPath))
+          localStorage.setItem(LS_KEYS.source, "job")
+          localStorage.setItem(LS_KEYS.jobTitle, jobTitle.trim())
+        } catch {}
         toast({ title: "Career Path Generated", description: `Career path for "${jobTitle}" is ready.` })
       } else {
         throw new Error("No paths returned")
@@ -253,6 +303,11 @@ export default function CareerPathPage() {
         // Show first path
         setGeneratedPath(processed[0])
         setActivePath(processed[0])
+        // Persist the first raw path
+        try {
+          localStorage.setItem(LS_KEYS.path, JSON.stringify(data.paths[0]))
+          localStorage.setItem(LS_KEYS.source, "profile")
+        } catch {}
         toast({ title: "Paths Generated", description: "We created personalized paths from your profile." })
       } else {
         toast({ title: "No paths generated", description: "Please enrich your profile and try again.", variant: "destructive" })
