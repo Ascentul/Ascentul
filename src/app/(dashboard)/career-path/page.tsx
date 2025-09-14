@@ -101,25 +101,6 @@ function getIconComponent(name?: string): JSX.Element {
     default:
       return <BriefcaseBusiness className={iconSize} />
   }
-
-  const openRenameFor = (raw: any) => {
-    const p = hydratePath(raw)
-    if (!p) return
-    const id = String(p.id)
-    const docId = String(raw?.docId ?? raw?._id)
-    setModalTarget({ id, docId, name: p.name })
-    setRenameValue(p.name)
-    setRenameOpen(true)
-  }
-
-  const openDeleteFor = (raw: any) => {
-    const p = hydratePath(raw)
-    if (!p) return
-    const id = String(p.id)
-    const docId = String(raw?.docId ?? raw?._id)
-    setModalTarget({ id, docId, name: p.name })
-    setDeleteOpen(true)
-  }
 }
 
 // Local storage keys for persistence
@@ -318,6 +299,27 @@ export default function CareerPathPage() {
     } catch {}
   }
 
+  // Open rename dialog for a saved path
+  const openRenameFor = (raw: any) => {
+    const p = hydratePath(raw)
+    if (!p) return
+    const id = String(p.id)
+    const docId = String(raw?.docId ?? raw?._id)
+    setModalTarget({ id, docId, name: p.name })
+    setRenameValue(p.name)
+    setRenameOpen(true)
+  }
+
+  // Open delete dialog for a saved path
+  const openDeleteFor = (raw: any) => {
+    const p = hydratePath(raw)
+    if (!p) return
+    const id = String(p.id)
+    const docId = String(raw?.docId ?? raw?._id)
+    setModalTarget({ id, docId, name: p.name })
+    setDeleteOpen(true)
+  }
+
   const fetchCertifications = async (nodeId: string) => {
     const node = activePath?.nodes.find(n => n.id === nodeId)
     if (!node) return
@@ -492,7 +494,7 @@ export default function CareerPathPage() {
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            {Array.isArray(savedData?.paths) && savedData.paths.map((raw: any) => {
+            {Array.isArray(savedList) && savedList.map((raw: any) => {
               const p = hydratePath(raw)
               if (!p) return null
               const id = String(p.id)
@@ -535,6 +537,9 @@ export default function CareerPathPage() {
                 <Button variant="outline" size="sm" onClick={handleLoadMore}>Load more</Button>
               </div>
             )}
+          </div>
+        </div>
+      )}
 
       {explorationMode === "target" && (
         <motion.div variants={subtleUp} className="mb-6 space-y-2">
