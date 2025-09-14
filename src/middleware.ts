@@ -13,6 +13,7 @@ const isProtectedRoute = createRouteMatcher([
   '/cover-letters(.*)',
   '/career-path(.*)',
   '/projects(.*)',
+  '/achievements(.*)',
 ])
 
 export default clerkMiddleware(async (auth, req) => {
@@ -38,5 +39,8 @@ export const config = {
     '/cover-letters/:path*',
     '/career-path/:path*',
     '/projects/:path*',
+    '/achievements/:path*',
+    // Ensure Clerk runs for API routes so auth() works in route handlers
+    '/api/:path*',
   ],
 }

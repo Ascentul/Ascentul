@@ -1,24 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null
+export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = getAuth(request)
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json().catch(() => ({}))
     const profileData = body?.profileData || {}
 
     // Try OpenAI to generate a couple of tailored paths
-    if (openai) {
+    let client: OpenAI | null = null
+    if (process.env.OPENAI_API_KEY) {
+      try { client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) } catch { client = null }
+    }
+    if (client) {
       try {
         const prompt = `Given this user's profile JSON, propose 2 realistic career paths. Return strictly JSON with { paths: Path[] } where Path = { id: string; name: string; nodes: Node[] } and Node = { id: string; title: string; level: 'entry'|'mid'|'senior'|'lead'|'executive'; salaryRange: string; yearsExperience: string; skills: { name: string; level: 'basic'|'intermediate'|'advanced' }[]; description: string; growthPotential: 'low'|'medium'|'high'; icon: string }.
 Profile JSON: ${JSON.stringify(profileData).slice(0, 4000)}
 `;
-        const completion = await openai.chat.completions.create({
+        const completion = await client.chat.completions.create({
           model: 'gpt-5',
           temperature: 0.5,
           messages: [

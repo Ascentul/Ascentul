@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 
 // POST /api/achievements/award { achievement_id }
 export async function POST(request: Request) {
-  const { userId } = getAuth(request as any)
+  const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const url = process.env.NEXT_PUBLIC_CONVEX_URL
   if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
@@ -24,3 +24,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status })
   }
 }
+

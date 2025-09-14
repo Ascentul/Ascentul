@@ -10,6 +10,68 @@ export const getAllAchievements = query({
   },
 });
 
+// Seed default achievements if none exist
+export const seedDefaults = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db.query("achievements").order("asc").collect();
+    if (existing.length > 0) {
+      return { seeded: false, count: existing.length };
+    }
+
+    const now = Date.now();
+    const defaults = [
+      {
+        name: "Welcome Aboard",
+        description: "Log in to Ascentul for the first time.",
+        icon: "👋",
+        category: "general",
+        points: 10,
+        created_at: now,
+      },
+      {
+        name: "Profile Starter",
+        description: "Complete your basic profile information.",
+        icon: "🧑",
+        category: "profile",
+        points: 20,
+        created_at: now,
+      },
+      {
+        name: "First Application",
+        description: "Create your first job application entry.",
+        icon: "💼",
+        category: "applications",
+        points: 25,
+        created_at: now,
+      },
+      {
+        name: "Resume Uploaded",
+        description: "Upload a resume to your library.",
+        icon: "📄",
+        category: "resumes",
+        points: 25,
+        created_at: now,
+      },
+      {
+        name: "Goal Setter",
+        description: "Create your first goal.",
+        icon: "🎯",
+        category: "goals",
+        points: 15,
+        created_at: now,
+      },
+    ];
+
+    for (const a of defaults) {
+      await ctx.db.insert("achievements", a as any);
+    }
+
+    const after = await ctx.db.query("achievements").order("asc").collect();
+    return { seeded: true, count: after.length };
+  },
+});
+
 // Achievements earned by current user
 export const getUserAchievements = query({
   args: { clerkId: v.string() },

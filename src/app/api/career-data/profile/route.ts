@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
+export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = getAuth(request)
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const client = getClient()
+    // Try to fetch user profile from Convex, but gracefully degrade if unavailable
     let user: any = null
-    try {
-      user = await client.query(api.users.getUserByClerkId, { clerkId: userId })
-    } catch {
-      // ignore; can still return a mock profile
+    const url = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (url) {
+      try {
+        const client = new ConvexHttpClient(url)
+        user = await client.query(api.users.getUserByClerkId, { clerkId: userId })
+      } catch {
+        // ignore; can still return a mock profile
+      }
     }
 
     // Build a lightweight profile shape used by the generator

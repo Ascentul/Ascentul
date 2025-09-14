@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null
+export const runtime = 'nodejs'
 
 function mockPath(jobTitle: string) {
   const baseId = jobTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)
@@ -72,7 +72,7 @@ function mockPath(jobTitle: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = getAuth(request)
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json().catch(() => ({}))
@@ -80,7 +80,11 @@ export async function POST(request: NextRequest) {
     if (!jobTitle) return NextResponse.json({ error: 'jobTitle is required' }, { status: 400 })
 
     // Try OpenAI, fall back to mock
-    if (openai) {
+    let client: OpenAI | null = null
+    if (process.env.OPENAI_API_KEY) {
+      try { client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) } catch { client = null }
+    }
+    if (client) {
       try {
         const prompt = `Create a single structured JSON career path for the target job title "${jobTitle}".
 Return JSON with the following TypeScript shape without extra commentary:
@@ -103,7 +107,7 @@ Return JSON with the following TypeScript shape without extra commentary:
     }
   ]
 }`
-        const completion = await openai.chat.completions.create({
+        const completion = await client.chat.completions.create({
           model: 'gpt-5',
           temperature: 0.5,
           messages: [

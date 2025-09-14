@@ -8,7 +8,12 @@ export async function GET() {
   if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
   const client = new ConvexHttpClient(url)
   try {
-    const achievements = await client.query(api.achievements.getAllAchievements, {})
+    let achievements = await client.query(api.achievements.getAllAchievements, {})
+    if (!achievements || achievements.length === 0) {
+      // Seed defaults if empty, then reload
+      await client.mutation(api.achievements.seedDefaults, {})
+      achievements = await client.query(api.achievements.getAllAchievements, {})
+    }
     return NextResponse.json({ achievements })
   } catch (e: any) {
     return NextResponse.json({ error: 'Failed to load achievements' }, { status: 500 })

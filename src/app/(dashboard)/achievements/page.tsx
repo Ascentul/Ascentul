@@ -7,30 +7,31 @@ import { Button } from '@/components/ui/button'
 import { Loader2, Award } from 'lucide-react'
 
 interface Achievement {
-  id: number
+  _id: string
   name: string
-  description: string
-  icon: string
-  xp_reward: number
-  required_action: string
-  required_value: number
+  description?: string
+  icon?: string
+  category: string
+  points: number
+  created_at: number
 }
 
 interface UserAchievement {
-  id: number
-  achievement_id: number
-  earned_at: string
-  achievements?: Achievement
+  _id?: string
+  achievement_id: string
+  earned_at: number
+  progress?: number
+  achievement?: Achievement
 }
 
 export default function AchievementsPage() {
   const [achievements, setAchievements] = useState<Achievement[]>([])
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([])
   const [loading, setLoading] = useState(true)
-  const [awarding, setAwarding] = useState<number | null>(null)
+  const [awarding, setAwarding] = useState<string | null>(null)
 
   const earnedMap = useMemo(() => {
-    const m = new Map<number, UserAchievement>()
+    const m = new Map<string, UserAchievement>()
     userAchievements.forEach(ua => m.set(ua.achievement_id, ua))
     return m
   }, [userAchievements])
@@ -42,10 +43,24 @@ export default function AchievementsPage() {
         fetch('/api/achievements'),
         fetch('/api/achievements/user'),
       ])
-      const aJson = await aRes.json()
-      const uaJson = await uaRes.json()
-      if (aRes.ok) setAchievements(aJson.achievements || [])
-      if (uaRes.ok) setUserAchievements(uaJson.userAchievements || [])
+      let aJson: any = {}
+      let uaJson: any = {}
+      try {
+        if (aRes.headers.get('content-type')?.includes('application/json')) {
+          aJson = await aRes.json()
+        }
+      } catch (e) {
+        // ignore JSON parse errors, will handle via ok checks below
+      }
+      try {
+        if (uaRes.headers.get('content-type')?.includes('application/json')) {
+          uaJson = await uaRes.json()
+        }
+      } catch (e) {
+        // ignore JSON parse errors, will handle via ok checks below
+      }
+      if (aRes.ok && Array.isArray(aJson?.achievements)) setAchievements(aJson.achievements || [])
+      if (uaRes.ok && Array.isArray(uaJson?.userAchievements)) setUserAchievements(uaJson.userAchievements || [])
     } finally {
       setLoading(false)
     }
@@ -53,7 +68,7 @@ export default function AchievementsPage() {
 
   useEffect(() => { load() }, [])
 
-  const testAward = async (achievement_id: number) => {
+  const testAward = async (achievement_id: string) => {
     setAwarding(achievement_id)
     try {
       const res = await fetch('/api/achievements/award', {
@@ -85,9 +100,9 @@ export default function AchievementsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {achievements.map((a) => {
-            const earned = earnedMap.get(a.id)
+            const earned = earnedMap.get(a._id)
             return (
-              <Card key={a.id} className={earned ? 'border-green-500/40' : ''}>
+              <Card key={a._id} className={earned ? 'border-green-500/40' : ''}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-yellow-100 text-yellow-700 text-sm">
@@ -97,21 +112,23 @@ export default function AchievementsPage() {
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge variant={earned ? 'default' : 'outline'}>{earned ? 'Earned' : 'Locked'}</Badge>
-                    <Badge variant="outline">+{a.xp_reward} XP</Badge>
+                    <Badge variant="outline">+{a.points} XP</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground">{a.description}</p>
+                  {a.description ? (
+                    <p className="text-sm text-muted-foreground">{a.description}</p>
+                  ) : null}
                   <p className="text-xs text-muted-foreground">
-                    Requirement: <span className="font-medium">{a.required_action}</span> × {a.required_value}
+                    Category: <span className="font-medium">{a.category}</span>
                   </p>
                   {earned && (
                     <p className="text-xs text-green-600">Earned {new Date(earned.earned_at).toLocaleString()}</p>
                   )}
                   {!earned && (
                     <div className="pt-1">
-                      <Button size="sm" variant="outline" disabled={awarding === a.id} onClick={() => testAward(a.id)}>
-                        {awarding === a.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      <Button size="sm" variant="outline" disabled={awarding === a._id} onClick={() => testAward(a._id)}>
+                        {awarding === a._id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                         Test Award
                       </Button>
                     </div>
