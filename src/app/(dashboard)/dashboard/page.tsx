@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
+import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -25,6 +26,14 @@ import Link from 'next/link'
 export default function DashboardPage() {
   const { user: clerkUser, isLoaded } = useUser()
   const { user } = useAuth()
+  const router = useRouter()
+
+  // Redirect university admins to the University dashboard
+  useEffect(() => {
+    if (user?.role === 'university_admin') {
+      router.replace('/university')
+    }
+  }, [user, router])
 
   if (!isLoaded) {
     return (

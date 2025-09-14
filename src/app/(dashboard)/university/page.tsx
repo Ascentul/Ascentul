@@ -12,6 +12,10 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/hooks/use-toast'
 import { GraduationCap, Users, BookOpen, Award } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -31,6 +35,7 @@ export default function UniversityDashboardPage() {
   const { user: clerkUser } = useUser()
   const { user, isAdmin } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
+  const { toast } = useToast()
 
   const canAccess = !!user && (isAdmin || user.subscription_plan === 'university' || user.role === 'university_admin')
 
@@ -46,6 +51,14 @@ export default function UniversityDashboardPage() {
   const [deptForm, setDeptForm] = useState<{ name: string; code?: string }>({ name: '' })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editing, setEditing] = useState<{ name: string; code?: string }>({ name: '' })
+
+  // Assign student licenses
+  const assignStudent = useMutation(api.university_admin.assignStudentByEmail)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [assignText, setAssignText] = useState('')
+  const [assignRole, setAssignRole] = useState<'user' | 'staff'>('user')
+  const [assigning, setAssigning] = useState(false)
+  const [importingEmails, setImportingEmails] = useState(false)
 
   if (!canAccess) {
     return (
@@ -81,7 +94,12 @@ export default function UniversityDashboardPage() {
         </div>
         <div className="flex gap-3">
           <button className="inline-flex items-center rounded-md border px-3 py-2 text-sm">Export Reports</button>
-          <button className="inline-flex items-center rounded-md bg-primary text-white px-3 py-2 text-sm">Add Student Licenses</button>
+          <button
+            className="inline-flex items-center rounded-md bg-primary text-white px-3 py-2 text-sm"
+            onClick={() => setAssignOpen(true)}
+          >
+            Add Student Licenses
+          </button>
         </div>
       </div>
 
@@ -384,6 +402,85 @@ export default function UniversityDashboardPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Assign Licenses Modal */}
+      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Student Licenses</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-sm">Emails</Label>
+              <Textarea
+                placeholder="Enter one email per line or comma-separated"
+                rows={6}
+                value={assignText}
+                onChange={(e) => setAssignText(e.target.value)}
+              />
+              <div className="text-xs text-muted-foreground mt-1">We'll assign these users to your university. New users will need to sign in once to appear fully.</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm">Assign role:</Label>
+              <div className="flex gap-2">
+                <Button variant={assignRole === 'user' ? 'default' : 'outline'} size="sm" onClick={() => setAssignRole('user')}>User</Button>
+                <Button variant={assignRole === 'staff' ? 'default' : 'outline'} size="sm" onClick={() => setAssignRole('staff')}>Staff</Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="studentEmailsCsv"
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0]
+                  if (!f) return
+                  setImportingEmails(true)
+                  try {
+                    const text = await f.text()
+                    // Basic parse: collect tokens that look like emails
+                    const emailsFromCsv = Array.from(text.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)).map(m => m[0])
+                    const combined = [assignText, emailsFromCsv.join('\n')].filter(Boolean).join('\n')
+                    setAssignText(combined)
+                  } finally {
+                    setImportingEmails(false)
+                  }
+                }}
+              />
+              <Button variant="outline" size="sm" onClick={() => document.getElementById('studentEmailsCsv')?.click()} disabled={importingEmails}>
+                {importingEmails ? 'Parsing...' : 'Import CSV'}
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignOpen(false)}>Cancel</Button>
+            <Button
+              onClick={async () => {
+                if (!clerkUser?.id) return
+                const emails = Array.from(new Set(assignText.split(/[\n,]+/).map(e => e.trim()).filter(Boolean)))
+                if (emails.length === 0) return
+                setAssigning(true)
+                try {
+                  for (const email of emails) {
+                    await assignStudent({ clerkId: clerkUser.id, email, role: assignRole })
+                  }
+                  toast({ title: 'Licenses assigned', description: `${emails.length} user(s) updated` })
+                  setAssignOpen(false)
+                  setAssignText('')
+                } catch (e: any) {
+                  toast({ title: 'Failed to assign licenses', description: e?.message || String(e), variant: 'destructive' })
+                } finally {
+                  setAssigning(false)
+                }
+              }}
+              disabled={assigning || !assignText.trim()}
+            >
+              {assigning ? 'Assigning...' : 'Assign'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

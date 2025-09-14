@@ -215,7 +215,8 @@ export const getAllUsers = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin", "university_admin"].includes(currentUser.role)) {
+    // Only Admin and Super Admin can access global user list
+    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
       throw new Error("Unauthorized");
     }
 

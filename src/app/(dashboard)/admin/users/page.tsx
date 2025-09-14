@@ -32,7 +32,7 @@ interface UserRow {
 
 export default function AdminUsersPage() {
   const { user: clerkUser } = useUser()
-  const { isAdmin } = useAuth()
+  const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | UserRow['role']>('all')
   const [planFilter, setPlanFilter] = useState<'all' | UserRow['subscription_plan']>('all')
@@ -89,7 +89,9 @@ export default function AdminUsersPage() {
     }
   }
 
-  if (!isAdmin) {
+  const role = user?.role
+  const isSuperOrAdmin = role === 'super_admin' || role === 'admin'
+  if (!isSuperOrAdmin) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <Card>
@@ -97,7 +99,7 @@ export default function AdminUsersPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">You do not have access to User Management.</p>
+            <p className="text-muted-foreground">Only Admin and Super Admin can access User Management.</p>
           </CardContent>
         </Card>
       </div>

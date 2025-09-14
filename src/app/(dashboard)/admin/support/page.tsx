@@ -11,7 +11,7 @@ import { Loader2, HelpCircle } from 'lucide-react'
 
 export default function AdminSupportPage() {
   const { user: clerkUser } = useUser()
-  const { isAdmin } = useAuth()
+  const { user } = useAuth()
 
   const tickets = useQuery(
     api.support_tickets.listTickets,
@@ -28,7 +28,9 @@ export default function AdminSupportPage() {
     return byStatus
   }, [tickets])
 
-  if (!isAdmin) {
+  const role = user?.role
+  const isSuperOrAdmin = role === 'super_admin' || role === 'admin'
+  if (!isSuperOrAdmin) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <Card>
@@ -36,7 +38,7 @@ export default function AdminSupportPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">You do not have access to Support Tickets.</p>
+            <p className="text-muted-foreground">Only Admin and Super Admin can access Support Tickets.</p>
           </CardContent>
         </Card>
       </div>

@@ -192,11 +192,22 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   ]
 
   // Combine sections based on user role
-  // Admin roles (admin, super_admin, university_admin) should NOT see user-facing sections
+  // Admin roles should NOT see user-facing sections. University Admins have limited admin menu.
+  const isUniAdmin = user?.role === 'university_admin'
+  const filteredAdminSections: SidebarSection[] = adminSections.map((sec) => {
+    if (sec.id !== 'admin') return sec
+    const filteredItems = (sec.items || []).filter((it) => {
+      // Hide super admin routes from university admins
+      if (isUniAdmin && (it.href === '/admin/analytics' || it.href === '/admin/support')) return false
+      return true
+    })
+    return { ...sec, items: filteredItems }
+  })
+
   const allSections = isAdmin
     ? [
         ...(isUniversityUser ? universitySections : []),
-        ...adminSections,
+        ...filteredAdminSections,
       ]
     : [
         ...sidebarSections,

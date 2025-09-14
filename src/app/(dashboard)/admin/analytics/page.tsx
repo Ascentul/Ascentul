@@ -10,11 +10,13 @@ import { Loader2, ShieldCheck, BarChart } from 'lucide-react'
 
 export default function AdminAnalyticsPage() {
   const { user: clerkUser } = useUser()
-  const { isAdmin } = useAuth()
+  const { user } = useAuth()
 
+  const role = user?.role
+  const isSuperOrAdmin = role === 'super_admin' || role === 'admin'
   const usersResult = useQuery(
     api.users.getAllUsers,
-    clerkUser?.id ? { clerkId: clerkUser.id, limit: 500 } : 'skip'
+    clerkUser?.id && isSuperOrAdmin ? { clerkId: clerkUser.id, limit: 500 } : 'skip'
   )
 
   const metrics = useMemo(() => {
@@ -37,7 +39,7 @@ export default function AdminAnalyticsPage() {
     return { total, byRole, byPlan, byStatus, topRoles, topPlans }
   }, [usersResult])
 
-  if (!isAdmin) {
+  if (!isSuperOrAdmin) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <Card>
@@ -45,7 +47,7 @@ export default function AdminAnalyticsPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">You do not have access to admin analytics.</p>
+            <p className="text-muted-foreground">Only Admin and Super Admin can access Analytics.</p>
           </CardContent>
         </Card>
       </div>
