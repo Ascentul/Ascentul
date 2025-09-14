@@ -1,64 +1,66 @@
 import { NextResponse } from 'next/server'
-import { createClient, hasSupabaseEnv } from '@/lib/supabase/server'
+import { getAuth } from '@clerk/nextjs/server'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../../../../convex/_generated/api'
 
 // GET /api/contacts/[id]
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
-  if (!hasSupabaseEnv()) {
-    return NextResponse.json({ error: 'Contact not found (mock)' }, { status: 404 })
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const { userId } = getAuth(request as any)
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+  const client = new ConvexHttpClient(url)
+  try {
+    const contact = await client.query(api.contacts.getContactById, { clerkId: userId, contactId: params.id as any })
+    return NextResponse.json({ contact })
+  } catch (e: any) {
+    return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
   }
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data, error } = await supabase
-    .from('networking_contacts')
-    .select('*')
-    .eq('id', Number(params.id))
-    .eq('user_id', user.id)
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 404 })
-  return NextResponse.json({ contact: data })
 }
 
 // PUT /api/contacts/[id]
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  if (!hasSupabaseEnv()) {
-    return NextResponse.json({ error: 'Not implemented in mock mode' }, { status: 501 })
-  }
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { userId } = getAuth(request as any)
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+  const client = new ConvexHttpClient(url)
 
   const body = await request.json().catch(() => ({} as any))
-
-  const { data, error } = await supabase
-    .from('networking_contacts')
-    .update(body)
-    .eq('id', Number(params.id))
-    .eq('user_id', user.id)
-    .select()
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ contact: data })
+  try {
+    await client.mutation(api.contacts.updateContact, {
+      clerkId: userId,
+      contactId: params.id as any,
+      updates: {
+        name: body.full_name ?? body.name,
+        company: body.company,
+        position: body.position,
+        email: body.email,
+        phone: body.phone,
+        linkedin_url: body.linkedin_url,
+        notes: body.notes,
+        relationship: body.relationship_type,
+        last_contact: body.last_contact_date ? Date.parse(body.last_contact_date) || undefined : undefined,
+      },
+    })
+    const contact = await client.query(api.contacts.getContactById, { clerkId: userId, contactId: params.id as any })
+    return NextResponse.json({ contact })
+  } catch (e: any) {
+    return NextResponse.json({ error: 'Failed to update contact' }, { status: 500 })
+  }
 }
 
 // DELETE /api/contacts/[id]
-export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
-  if (!hasSupabaseEnv()) {
-    return NextResponse.json({ error: 'Not implemented in mock mode' }, { status: 501 })
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  const { userId } = getAuth(request as any)
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+  const client = new ConvexHttpClient(url)
+  try {
+    await client.mutation(api.contacts.deleteContact, { clerkId: userId, contactId: params.id as any })
+    return NextResponse.json({ success: true })
+  } catch (e: any) {
+    return NextResponse.json({ error: 'Failed to delete contact' }, { status: 500 })
   }
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { error } = await supabase
-    .from('networking_contacts')
-    .delete()
-    .eq('id', Number(params.id))
-    .eq('user_id', user.id)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ success: true })
 }

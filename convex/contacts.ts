@@ -31,6 +31,10 @@ export const createContact = mutation({
     position: v.optional(v.string()),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
+    linkedin_url: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    relationship: v.optional(v.string()),
+    last_contact: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -48,11 +52,16 @@ export const createContact = mutation({
       position: args.position,
       email: args.email,
       phone: args.phone,
+      linkedin_url: args.linkedin_url,
+      notes: args.notes,
+      relationship: args.relationship,
+      last_contact: args.last_contact,
       created_at: now,
       updated_at: now,
     });
 
-    return id;
+    const doc = await ctx.db.get(id);
+    return doc;
   },
 });
 
@@ -67,6 +76,10 @@ export const updateContact = mutation({
       position: v.optional(v.string()),
       email: v.optional(v.string()),
       phone: v.optional(v.string()),
+      linkedin_url: v.optional(v.string()),
+      notes: v.optional(v.string()),
+      relationship: v.optional(v.string()),
+      last_contact: v.optional(v.number()),
     }),
   },
   handler: async (ctx, args) => {

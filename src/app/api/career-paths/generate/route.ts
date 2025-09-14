@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 Profile JSON: ${JSON.stringify(profileData).slice(0, 4000)}
 `;
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5',
           temperature: 0.5,
           messages: [
             { role: 'system', content: 'Respond with strictly valid JSON only.' },

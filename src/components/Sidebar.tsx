@@ -370,7 +370,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                 </div>
                 <Progress value={60} className="h-2" />
                 <Link
-                  href="/upgrade"
+                  href="/account#subscription"
                   className="text-xs text-primary hover:underline mt-1 block"
                 >
                   Upgrade to Pro

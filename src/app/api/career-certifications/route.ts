@@ -25,7 +25,7 @@ Role: ${role}
 Level: ${level}
 Skills: ${skills.map((s) => `${s.name}(${s.level})`).join(', ')}`
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5',
           temperature: 0.4,
           messages: [
             { role: 'system', content: 'Respond with strictly valid JSON that matches the requested schema.' },

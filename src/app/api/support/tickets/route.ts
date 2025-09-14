@@ -1,29 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth } from '@/lib/auth'
+import { getAuth } from '@clerk/nextjs/server'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../../../../convex/_generated/api'
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await verifyAuth(request)
-    if ('error' in auth) {
-      return NextResponse.json({ error: auth.error }, { status: auth.status })
-    }
-    const { supabase, userId, user } = auth
-
-    // Check if user is admin to see all tickets or just their own
-    const isAdmin = user.role === 'super_admin' || user.role === 'university_admin'
-    
-    let query = supabase.from('support_tickets').select('*')
-    
-    if (!isAdmin) {
-      query = query.eq('user_id', userId)
-    }
-    
-    const { data: tickets, error } = await query.order('created_at', { ascending: false })
-
-    if (error) {
-      return NextResponse.json({ error: 'Error fetching support tickets' }, { status: 500 })
-    }
-
+    const { userId } = getAuth(request)
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const url = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+    const client = new ConvexHttpClient(url)
+    const tickets = await client.query(api.support_tickets.listTickets, { clerkId: userId })
     return NextResponse.json({ tickets })
   } catch (error) {
     console.error('Error fetching support tickets:', error)
@@ -33,11 +20,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await verifyAuth(request)
-    if ('error' in auth) {
-      return NextResponse.json({ error: auth.error }, { status: auth.status })
-    }
-    const { supabase, userId, user } = auth
+    const { userId } = getAuth(request)
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const url = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+    const client = new ConvexHttpClient(url)
 
     const body = await request.json()
     const { subject, description, issueType, source } = body
@@ -46,25 +33,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Subject and description are required' }, { status: 400 })
     }
 
-    const { data: ticket, error } = await supabase
-      .from('support_tickets')
-      .insert({
-        user_id: userId,
-        user_email: user.email,
-        subject,
-        description,
-        issue_type: issueType || 'Other',
-        source: source || 'in-app',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single()
-
-    if (error) {
-      return NextResponse.json({ error: 'Error creating support ticket' }, { status: 500 })
-    }
+    const ticket = await client.mutation(api.support_tickets.createTicket, {
+      clerkId: userId,
+      subject: String(subject),
+      description: String(description),
+      issue_type: issueType ? String(issueType) : undefined,
+      source: source ? String(source) : 'in-app',
+    })
 
     return NextResponse.json({ 
       ticket,

@@ -1,43 +1,26 @@
 import { NextResponse } from 'next/server'
-import { createClient, hasSupabaseEnv } from '@/lib/supabase/server'
+import { getAuth } from '@clerk/nextjs/server'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../../../../../convex/_generated/api'
 
 // POST /api/achievements/award { achievement_id }
 export async function POST(request: Request) {
-  if (!hasSupabaseEnv()) {
-    const body = await request.json().catch(() => ({} as any))
-    const achievement_id = Number(body.achievement_id)
-    if (!achievement_id) return NextResponse.json({ error: 'achievement_id is required' }, { status: 400 })
-    return NextResponse.json({ userAchievement: { id: Math.floor(Math.random()*1e9), achievement_id, user_id: 'mock', earned_at: new Date().toISOString() }, mock: true }, { status: 201 })
-  }
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { userId } = getAuth(request as any)
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+  const client = new ConvexHttpClient(url)
 
   const body = await request.json().catch(() => ({} as any))
-  const achievement_id = Number(body.achievement_id)
-  if (!achievement_id) return NextResponse.json({ error: 'achievement_id is required' }, { status: 400 })
+  const achievementId = body.achievement_id as string
+  if (!achievementId) return NextResponse.json({ error: 'achievement_id is required' }, { status: 400 })
 
-  // ensure achievement exists
-  const { data: ach, error: achErr } = await supabase
-    .from('achievements')
-    .select('id')
-    .eq('id', achievement_id)
-    .single()
-  if (achErr) return NextResponse.json({ error: 'Achievement not found' }, { status: 404 })
-
-  // insert avoid duplicate via unique constraint
-  const { data, error } = await supabase
-    .from('user_achievements')
-    .insert({ user_id: user.id, achievement_id })
-    .select()
-    .single()
-
-  if (error) {
-    if (error.message.includes('user_achievements_user_id_achievement_id_key')) {
-      return NextResponse.json({ error: 'Already earned' }, { status: 409 })
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  try {
+    const id = await client.mutation(api.achievements.awardAchievement, { clerkId: userId, achievement_id: achievementId as any })
+    return NextResponse.json({ userAchievementId: id }, { status: 201 })
+  } catch (e: any) {
+    const message = typeof e?.message === 'string' && e.message.includes('Already') ? 'Already earned' : 'Failed to award achievement'
+    const status = message === 'Already earned' ? 409 : 500
+    return NextResponse.json({ error: message }, { status })
   }
-
-  return NextResponse.json({ userAchievement: data }, { status: 201 })
 }

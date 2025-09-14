@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server'
-import { createClient, hasSupabaseEnv } from '@/lib/supabase/server'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../../../../convex/_generated/api'
 
 // GET /api/achievements - list all available achievements (public read)
 export async function GET() {
-  if (!hasSupabaseEnv()) {
-    return NextResponse.json({ achievements: [] })
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+  const client = new ConvexHttpClient(url)
+  try {
+    const achievements = await client.query(api.achievements.getAllAchievements, {})
+    return NextResponse.json({ achievements })
+  } catch (e: any) {
+    return NextResponse.json({ error: 'Failed to load achievements' }, { status: 500 })
   }
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('achievements')
-    .select('*')
-    .order('id', { ascending: true })
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ achievements: data ?? [] })
 }

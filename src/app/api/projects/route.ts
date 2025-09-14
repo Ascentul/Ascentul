@@ -1,24 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth } from '@/lib/auth'
+import { getAuth } from '@clerk/nextjs/server'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../../../convex/_generated/api'
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await verifyAuth(request)
-    if ('error' in auth) {
-      return NextResponse.json({ error: auth.error }, { status: auth.status })
-    }
-    const { supabase, userId } = auth
-
-    const { data: projects, error } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      return NextResponse.json({ error: 'Error fetching projects' }, { status: 500 })
-    }
-
+    const { userId } = getAuth(request)
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const url = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+    const client = new ConvexHttpClient(url)
+    const projects = await client.query(api.projects.getUserProjects, { clerkId: userId })
     return NextResponse.json({ projects })
   } catch (error) {
     console.error('Error fetching projects:', error)
@@ -28,40 +20,34 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await verifyAuth(request)
-    if ('error' in auth) {
-      return NextResponse.json({ error: auth.error }, { status: auth.status })
-    }
-    const { supabase, userId } = auth
+    const { userId } = getAuth(request)
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const url = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+    const client = new ConvexHttpClient(url)
 
     const body = await request.json()
-    const { title, description, technologies, github_url, live_url, image_url } = body
+    const { title, description, technologies, github_url, live_url, image_url, role, start_date, end_date, company } = body
 
     if (!title) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
-    const { data: project, error } = await supabase
-      .from('projects')
-      .insert({
-        user_id: userId,
-        title,
-        description,
-        technologies: technologies || [],
-        github_url,
-        live_url,
-        image_url,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single()
+    const projectId = await client.mutation(api.projects.createProject, {
+      clerkId: userId,
+      title: String(title),
+      role: role ? String(role) : undefined,
+      start_date: start_date ? Number(start_date) : undefined,
+      end_date: end_date ? Number(end_date) : undefined,
+      company: company ? String(company) : undefined,
+      url: live_url ? String(live_url) : github_url ? String(github_url) : undefined,
+      description: description ? String(description) : undefined,
+      type: 'personal',
+      image_url: image_url ? String(image_url) : undefined,
+      technologies: Array.isArray(technologies) ? technologies.map(String) : [],
+    })
 
-    if (error) {
-      return NextResponse.json({ error: 'Error creating project' }, { status: 500 })
-    }
-
-    return NextResponse.json({ project }, { status: 201 })
+    return NextResponse.json({ projectId }, { status: 201 })
   } catch (error) {
     console.error('Error creating project:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

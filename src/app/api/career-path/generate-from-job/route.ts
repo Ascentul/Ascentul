@@ -104,7 +104,7 @@ Return JSON with the following TypeScript shape without extra commentary:
   ]
 }`
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5',
           temperature: 0.5,
           messages: [
             { role: 'system', content: 'You produce strictly valid JSON for apps to consume.' },

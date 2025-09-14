@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../../../../convex/_generated/api'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
-const supabaseUrl = process.env.SUPABASE_URL
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
 
 // Minimal mapping function
 function mapStripeStatus(status: string): 'active' | 'inactive' | 'cancelled' | 'past_due' {
@@ -37,6 +37,10 @@ export async function POST(request: NextRequest) {
     }
 
     const stripe = new Stripe(stripeSecret, { apiVersion: '2023-10-16' as any })
+    if (!convexUrl) {
+      console.error('Missing NEXT_PUBLIC_CONVEX_URL')
+    }
+    const convex = convexUrl ? new ConvexHttpClient(convexUrl) : null
 
     let event: Stripe.Event
     if (webhookSecret) {
@@ -46,73 +50,70 @@ export async function POST(request: NextRequest) {
       event = JSON.parse(rawBody)
     }
 
-    // Only create admin client if needed
-    const admin = supabaseUrl && serviceRoleKey
-      ? createSupabaseAdmin(supabaseUrl, serviceRoleKey)
-      : null
-
     switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session
+        // For payment links, pull email and customer directly from session
+        const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id
+        const email = session.customer_details?.email || (session.customer as any)?.email || undefined
+        const clerkIdFromRef = typeof session.client_reference_id === 'string' ? session.client_reference_id : undefined
+        // If this created a subscription, session.mode may be 'subscription'
+        const subscriptionId = typeof session.subscription === 'string' ? session.subscription : undefined
+        if (convex && (email || customerId)) {
+          await convex.mutation(api.users.updateSubscriptionByIdentifier, {
+            clerkId: clerkIdFromRef,
+            email,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            subscription_plan: 'premium',
+            subscription_status: 'active',
+            setStripeIds: true,
+          })
+        }
+        break
+      }
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
         const status = mapStripeStatus(subscription.status)
         const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
         const intervalFromPrice = subscription.items.data[0]?.price?.recurring?.interval || null
-        const metaPlan = (subscription.metadata && (subscription.metadata as any)['plan']) as string | undefined
-        const metaInterval = (subscription.metadata && (subscription.metadata as any)['interval']) as string | undefined
+        // Try to fetch customer to get email if needed
+        let email: string | undefined
+        try {
+          const cust = await stripe.customers.retrieve(customerId)
+          if (!('deleted' in cust)) email = (cust.email || undefined) as string | undefined
+        } catch {}
 
-        if (admin) {
-          // Find user by stripe_subscription_id or stripe_customer_id or metadata
-          // Prefer metadata.user_id if set
-          const userIdMeta = (subscription.metadata && subscription.metadata['user_id']) || null
-
-          let userId = userIdMeta
-          if (!userId) {
-            // Try lookup by stripe_subscription_id or stripe_customer_id
-            const { data: userBySub } = await admin
-              .from('users')
-              .select('id')
-              .eq('stripe_subscription_id', subscription.id)
-              .single()
-            if (userBySub?.id) userId = userBySub.id
-            if (!userId) {
-              const { data: userByCust } = await admin
-                .from('users')
-                .select('id')
-                .eq('stripe_customer_id', customerId)
-                .single()
-              if (userByCust?.id) userId = userByCust.id
-            }
-          }
-
-          if (userId) {
-            await admin
-              .from('users')
-              .update({
-                stripe_customer_id: customerId,
-                stripe_subscription_id: subscription.id,
-                subscription_status: status,
-                subscription_plan: metaPlan || 'premium',
-                subscription_cycle: metaInterval || intervalFromPrice,
-              })
-              .eq('id', userId)
-          }
+        if (convex) {
+          await convex.mutation(api.users.updateSubscriptionByIdentifier, {
+            email,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscription.id,
+            subscription_plan: 'premium',
+            subscription_status: status,
+            setStripeIds: true,
+          })
         }
         break
       }
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
         const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
-        if (admin) {
-          // Mark user as cancelled and free
-          await admin
-            .from('users')
-            .update({
-              subscription_status: 'cancelled',
-              subscription_plan: 'free',
-              subscription_cycle: null,
-            })
-            .or(`stripe_subscription_id.eq.${subscription.id},stripe_customer_id.eq.${customerId}`)
+        let email: string | undefined
+        try {
+          const cust = await stripe.customers.retrieve(customerId)
+          if (!('deleted' in cust)) email = (cust.email || undefined) as string | undefined
+        } catch {}
+        if (convex) {
+          await convex.mutation(api.users.updateSubscriptionByIdentifier, {
+            email,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscription.id,
+            subscription_plan: 'free',
+            subscription_status: 'cancelled',
+            setStripeIds: true,
+          })
         }
         break
       }

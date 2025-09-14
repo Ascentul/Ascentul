@@ -13,6 +13,82 @@ export const getUserByClerkId = query({
   },
 });
 
+// Set Stripe customer ID by Clerk ID (helper for server routes)
+export const setStripeCustomer = mutation({
+  args: { clerkId: v.string(), stripeCustomerId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(user._id, {
+      stripe_customer_id: args.stripeCustomerId,
+      updated_at: Date.now(),
+    });
+
+    return user._id;
+  },
+});
+
+// Update user subscription fields based on Stripe identifiers
+export const updateSubscriptionByIdentifier = mutation({
+  args: {
+    clerkId: v.optional(v.string()),
+    email: v.optional(v.string()),
+    stripeCustomerId: v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+    subscription_plan: v.union(v.literal("free"), v.literal("premium"), v.literal("university")),
+    subscription_status: v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due")),
+    setStripeIds: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    let user = null as any;
+
+    // Prefer Clerk ID if provided
+    if (args.clerkId) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId!))
+        .unique();
+    }
+
+    // Fallback to email (indexed)
+    if (!user && args.email) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.email!))
+        .unique();
+    }
+
+    // As a last resort, try scanning by Stripe IDs (no index)
+    if (!user && (args.stripeCustomerId || args.stripeSubscriptionId)) {
+      const all = await ctx.db.query("users").collect();
+      user = all.find(
+        (u: any) =>
+          (args.stripeCustomerId && u.stripe_customer_id === args.stripeCustomerId) ||
+          (args.stripeSubscriptionId && u.stripe_subscription_id === args.stripeSubscriptionId)
+      );
+    }
+
+    if (!user) throw new Error("User not found for Stripe update");
+
+    await ctx.db.patch(user._id, {
+      subscription_plan: args.subscription_plan,
+      subscription_status: args.subscription_status,
+      ...(args.setStripeIds ? {
+        stripe_customer_id: args.stripeCustomerId ?? user.stripe_customer_id,
+        stripe_subscription_id: args.stripeSubscriptionId ?? user.stripe_subscription_id,
+      } : {}),
+      updated_at: Date.now(),
+    });
+
+    return user._id;
+  },
+});
+
 // Create or update user from Clerk webhook
 export const createUser = mutation({
   args: {
@@ -70,6 +146,9 @@ export const updateUser = mutation({
       subscription_plan: v.optional(v.union(v.literal("free"), v.literal("premium"), v.literal("university"))),
       subscription_status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due"))),
       university_id: v.optional(v.id("universities")),
+      // Allow updating Stripe IDs via this mutation as well
+      stripe_customer_id: v.optional(v.string()),
+      stripe_subscription_id: v.optional(v.string()),
     }),
   },
   handler: async (ctx, args) => {

@@ -48,7 +48,7 @@ Return JSON with: score (0-100), summary (1-2 sentences), strengths (array), gap
 Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}`
 
         const response = await client.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5',
           messages: [
             { role: 'system', content: 'You produce concise JSON only. No markdown.' },
             { role: 'user', content: prompt },

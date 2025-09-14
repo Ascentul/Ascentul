@@ -71,6 +71,7 @@ export default function AccountPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
+  const [prices, setPrices] = useState<{ monthly?: { unit_amount: number; currency: string }; annual?: { unit_amount: number; currency: string } }>({})
   const [isPortalLoading, setIsPortalLoading] = useState(false)
 
   // Calculate profile completion
@@ -96,26 +97,49 @@ export default function AccountPage() {
     },
   })
   
-  // Stripe: Upgrade to Premium (MVP: premium monthly)
-  const handleUpgrade = async () => {
+  // Stripe: Payment Links for upgrade
+  const openPaymentLink = (interval: 'monthly' | 'annual') => {
     try {
       setIsCheckoutLoading(true)
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'premium', interval: 'monthly' })
-      })
-      const data = await res.json()
-      if (res.ok && data?.url) {
-        window.location.href = data.url
+      const monthlyUrl = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY
+      const annualUrl = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ANNUAL
+      const base = interval === 'monthly' ? monthlyUrl : annualUrl
+      if (base) {
+        const url = new URL(base)
+        // Help Stripe link the session to the current user for webhook reconciliation
+        const email = userProfile?.email || clerkUser?.emailAddresses?.[0]?.emailAddress
+        if (email) url.searchParams.set('prefilled_email', email)
+        if (clerkUser?.id) url.searchParams.set('client_reference_id', clerkUser.id)
+        window.location.href = url.toString()
         return
       }
-      throw new Error(data?.error || 'Failed to start checkout')
-    } catch (e) {
-      console.error(e)
-      toast({ title: 'Checkout failed', description: 'Please try again later.', variant: 'destructive' })
+      toast({ title: 'Payment link not configured', description: 'Please contact support.', variant: 'destructive' })
     } finally {
       setIsCheckoutLoading(false)
+    }
+  }
+
+  // Fetch dynamic pricing from Stripe via API route
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const res = await fetch('/api/stripe/prices', { method: 'GET' })
+        if (!res.ok) return
+        const data = await res.json()
+        setPrices(data || {})
+      } catch (e) {
+        // Silently fail; we can still show upgrade without amount
+      }
+    }
+    fetchPrices()
+  }, [])
+
+  const formatAmount = (cents?: number, currency?: string) => {
+    if (typeof cents !== 'number' || !currency) return ''
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(cents / 100)
+    } catch {
+      return `$${(cents / 100).toFixed(2)}`
     }
   }
 
@@ -366,16 +390,25 @@ export default function AccountPage() {
               {userProfile.subscription_plan === 'free' ? (
                 <div className="p-4 border rounded-lg bg-muted/50">
                   <h4 className="font-medium mb-2">Upgrade to Premium</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Get access to advanced features, unlimited resumes, and priority support.
                   </p>
-                  <Button onClick={handleUpgrade} disabled={isCheckoutLoading}>
-                    {isCheckoutLoading ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Starting checkout...</>
-                    ) : (
-                      'Upgrade Now'
-                    )}
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button onClick={() => openPaymentLink('monthly')} disabled={isCheckoutLoading}>
+                      {isCheckoutLoading ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Redirecting...</>
+                      ) : (
+                        `Upgrade Monthly ${prices.monthly ? `- ${formatAmount(prices.monthly.unit_amount, prices.monthly.currency)}/mo` : ''}`
+                      )}
+                    </Button>
+                    <Button variant="secondary" onClick={() => openPaymentLink('annual')} disabled={isCheckoutLoading}>
+                      {isCheckoutLoading ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Redirecting...</>
+                      ) : (
+                        `Upgrade Annual ${prices.annual ? `- ${formatAmount(prices.annual.unit_amount, prices.annual.currency)}/yr` : ''}`
+                      )}
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="p-4 border rounded-lg bg-muted/50">

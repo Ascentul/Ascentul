@@ -57,7 +57,8 @@ export const createCoverLetter = mutation({
       updated_at: Date.now(),
     });
 
-    return coverLetterId;
+    const doc = await ctx.db.get(coverLetterId);
+    return doc;
   },
 });
 
