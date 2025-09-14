@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { motion, AnimatePresence } from "framer-motion"
+// Removed framer-motion import to fix build issues
 import {
   ArrowRight,
   Award,
@@ -457,9 +457,7 @@ export default function CareerPathPage() {
     }
   }
 
-  // Animations
-  const fadeIn = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.3 } } }
-  const subtleUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3 } } }
+  // Removed animation objects
 
   return (
     <div className="container mx-auto">
