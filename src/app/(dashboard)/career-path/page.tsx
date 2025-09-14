@@ -43,8 +43,7 @@ import { apiRequest } from "@/lib/queryClient"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 
-// Framer Motion alias to avoid JSX member expression parsing issues on some builds
-const MotionDiv = motion.div
+// Removed framer-motion animations to fix build issues
 
 // Types
 interface CareerSkill { name: string; level: "basic" | "intermediate" | "advanced" }
@@ -463,7 +462,7 @@ export default function CareerPathPage() {
   const subtleUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3 } } }
 
   return (
-    <MotionDiv className="container mx-auto" initial="hidden" animate="visible" variants={fadeIn}>
+    <div className="container mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
         <div>
           <h1 className="text-3xl font-bold mb-2 text-[#0C29AB]">Career Path Explorer</h1>
@@ -545,7 +544,7 @@ export default function CareerPathPage() {
       )}
 
       {explorationMode === "target" && (
-        <MotionDiv variants={subtleUp} className="mb-6 space-y-2">
+        <div className="mb-6 space-y-2">
           <Label htmlFor="job-title-search">Quick Career Path Generator</Label>
           <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
             <div className="flex-1 w-full">
@@ -558,7 +557,7 @@ export default function CareerPathPage() {
           {!generatedPath && (
             <p className="text-sm text-muted-foreground">Quickly generate a career path based on a specific job title</p>
           )}
-        </MotionDiv>
+        </div>
       )}
 
       {/* Path selector (when generated) */}
@@ -572,13 +571,13 @@ export default function CareerPathPage() {
 
       {/* Empty state */}
       {explorationMode === "target" && !generatedPath && (
-        <MotionDiv className="text-center py-12 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-md border" variants={subtleUp}>
+        <div className="text-center py-12 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-md border">
           <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
             <MapPin className="h-8 w-8 text-blue-500" />
           </div>
           <h3 className="text-xl font-medium mb-2">You haven't generated any career paths yet</h3>
           <p className="text-neutral-500 max-w-md mx-auto">Enter a job title above and click "Generate" to explore a personalized path.</p>
-        </MotionDiv>
+        </div>
       )}
 
       {/* Career Path visualization */}
@@ -589,7 +588,7 @@ export default function CareerPathPage() {
           {/* Mobile stacked cards */}
           <div className="sm:hidden space-y-4 pb-10">
             {activePath.nodes.map((node, idx) => (
-              <MotionDiv key={node.id} className={cn("cursor-pointer transition-all relative", selectedNodeId === node.id ? "scale-[1.02]" : "hover:scale-[1.02]")} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.05 }} onClick={() => handleNodeClick(node.id)}>
+              <div key={node.id} className={cn("cursor-pointer transition-all relative", selectedNodeId === node.id ? "scale-[1.02]" : "hover:scale-[1.02]")} onClick={() => handleNodeClick(node.id)}>
                 <Card className={cn("shadow-md h-full", selectedNodeId === node.id ? "border-primary ring-1 ring-primary" : "")}> 
                   <CardContent className="p-4 flex flex-col h-full">
                     <div className="flex justify-between items-start mb-2">
@@ -610,7 +609,7 @@ export default function CareerPathPage() {
                 {idx < activePath.nodes.length - 1 && (
                   <div className="flex justify-center my-2"><div className="rotate-90 text-gray-400"><ArrowRight className="h-5 w-5" /></div></div>
                 )}
-              </MotionDiv>
+              </div>
             ))}
           </div>
 
@@ -623,7 +622,7 @@ export default function CareerPathPage() {
               <div className="absolute top-20 left-0 right-10 h-1 bg-gray-200" />
               {activePath.nodes.map((node, idx) => (
                 <div key={node.id} className="flex flex-col items-center min-w-[230px] sm:min-w-[250px] first:pl-4">
-                  <MotionDiv className={cn("cursor-pointer transition-all relative mt-4", selectedNodeId === node.id ? "scale-105" : "hover:scale-105")} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.05 }} onClick={() => handleNodeClick(node.id)}>
+                  <div className={cn("cursor-pointer transition-all relative mt-4", selectedNodeId === node.id ? "scale-105" : "hover:scale-105")} onClick={() => handleNodeClick(node.id)}>
                     <Card className={cn("w-[230px] sm:w-60 shadow-md h-full", selectedNodeId === node.id ? "border-primary ring-1 ring-primary" : "")}>
                       <CardContent className="p-4 flex flex-col h-full">
                         <div className="flex justify-between items-start mb-2">
@@ -642,7 +641,7 @@ export default function CareerPathPage() {
                       </CardContent>
                     </Card>
                     {idx < activePath.nodes.length - 1 && <div className="absolute -right-6 top-1/2 transform -translate-y-1/2 text-gray-400"><ArrowRight className="h-5 w-5" /></div>}
-                  </MotionDiv>
+                  </div>
                 </div>
               ))}
             </div>
@@ -783,6 +782,6 @@ export default function CareerPathPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </MotionDiv>
+    </div>
   )
 }
