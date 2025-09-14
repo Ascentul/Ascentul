@@ -10,13 +10,14 @@ interface OnboardingGuardProps {
 }
 
 export function OnboardingGuard({ children }: OnboardingGuardProps) {
-  const { user, isLoading, isSignedIn } = useAuth()
+  const { user, isLoading, isSignedIn, isAdmin } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!isLoading && isSignedIn && user) {
       // If user is signed in but hasn't completed onboarding, redirect to onboarding
-      if (!user.onboarding_completed) {
+      // Admin roles can skip onboarding entirely
+      if (!user.onboarding_completed && !isAdmin) {
         router.push('/onboarding')
       }
     }
@@ -32,7 +33,7 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
   }
 
   // If user is signed in but hasn't completed onboarding, show loading while redirecting
-  if (isSignedIn && user && !user.onboarding_completed) {
+  if (isSignedIn && user && !user.onboarding_completed && !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
