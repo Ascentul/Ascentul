@@ -85,8 +85,7 @@ export async function POST(request: NextRequest) {
       try { client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) } catch { client = null }
     }
     if (client) {
-      try {
-        const prompt = `Create a single structured JSON career path for the target job title "${jobTitle}".
+      const prompt = `Create a single structured JSON career path for the target job title "${jobTitle}".
 Return JSON with the following TypeScript shape without extra commentary:
 {
   paths: [
@@ -107,29 +106,33 @@ Return JSON with the following TypeScript shape without extra commentary:
     }
   ]
 }`
-        const completion = await client.chat.completions.create({
-          model: 'gpt-5',
-          temperature: 0.5,
-          messages: [
-            { role: 'system', content: 'You produce strictly valid JSON for apps to consume.' },
-            { role: 'user', content: prompt },
-          ],
-        })
-        const content = completion.choices[0]?.message?.content || ''
+      const models = ['gpt-5', 'gpt-4o-mini']
+      for (const model of models) {
         try {
-          const parsed = JSON.parse(content)
-          if (Array.isArray(parsed?.paths)) {
-            return NextResponse.json(parsed)
+          const completion = await client.chat.completions.create({
+            model,
+            temperature: 0.5,
+            messages: [
+              { role: 'system', content: 'You produce strictly valid JSON for apps to consume.' },
+              { role: 'user', content: prompt },
+            ],
+          })
+          const content = completion.choices[0]?.message?.content || ''
+          try {
+            const parsed = JSON.parse(content)
+            if (Array.isArray(parsed?.paths)) {
+              return NextResponse.json({ ...parsed, usedModel: model, usedFallback: model !== 'gpt-5' })
+            }
+          } catch {
+            // continue to next model
           }
         } catch {
-          // fall through to mock
+          // try next model
         }
-      } catch (e) {
-        // ignore and use mock
       }
     }
 
-    return NextResponse.json({ paths: [mockPath(jobTitle)] })
+    return NextResponse.json({ paths: [mockPath(jobTitle)] , usedFallback: true })
   } catch (error: any) {
     console.error('POST /api/career-path/generate-from-job error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
