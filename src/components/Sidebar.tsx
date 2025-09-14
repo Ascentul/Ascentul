@@ -192,11 +192,16 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   ]
 
   // Combine sections based on user role
-  const allSections = [
-    ...sidebarSections,
-    ...(isUniversityUser ? universitySections : []),
-    ...(isAdmin ? adminSections : [])
-  ]
+  // Admin roles (admin, super_admin, university_admin) should NOT see user-facing sections
+  const allSections = isAdmin
+    ? [
+        ...(isUniversityUser ? universitySections : []),
+        ...adminSections,
+      ]
+    : [
+        ...sidebarSections,
+        ...(isUniversityUser ? universitySections : []),
+      ]
 
   // Determine active section by matching current pathname
   const getActiveSectionId = () => {
@@ -292,12 +297,13 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     }
   }
 
-  const isActive = (href: string) => {
+  const isActive = (href: string, exact?: boolean) => {
+    if (exact) return pathname === href
     return pathname === href || pathname.startsWith(href + '/')
   }
 
-  const renderSidebarItem = (item: SidebarItem) => {
-    const active = isActive(item.href)
+  const renderSidebarItem = (item: SidebarItem, exact?: boolean) => {
+    const active = isActive(item.href, exact)
     const disabled = item.pro && isFreeUser
 
     return (
@@ -388,7 +394,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
               transition={{ duration: 0.18, ease: 'easeOut' }}
               style={{ overflow: 'hidden' }}
             >
-              {section.items?.map(renderSidebarItem)}
+              {section.items?.map((it) => renderSidebarItem(it, section.id === 'admin'))}
             </motion.div>
           )}
         </AnimatePresence>

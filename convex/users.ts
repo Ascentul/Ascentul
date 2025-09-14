@@ -96,6 +96,16 @@ export const createUser = mutation({
     email: v.string(),
     name: v.string(),
     username: v.optional(v.string()),
+    // Allow optionally setting initial role (e.g., from Clerk public metadata)
+    role: v.optional(
+      v.union(
+        v.literal("user"),
+        v.literal("admin"),
+        v.literal("super_admin"),
+        v.literal("university_admin"),
+        v.literal("staff"),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const existingUser = await ctx.db
@@ -109,6 +119,8 @@ export const createUser = mutation({
         email: args.email,
         name: args.name,
         username: args.username,
+        // If an explicit role is provided (e.g., from Clerk metadata), sync it
+        ...(args.role ? { role: args.role } : {}),
         updated_at: Date.now(),
       });
       return existingUser._id;
@@ -120,7 +132,7 @@ export const createUser = mutation({
       email: args.email,
       name: args.name,
       username: args.username || `user_${Date.now()}`,
-      role: "user",
+      role: args.role ?? "user",
       subscription_plan: "free",
       subscription_status: "active",
       onboarding_completed: false,

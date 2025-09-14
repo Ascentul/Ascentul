@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "seed:clerk": "node scripts/seed-clerk-test-users.js",
+    "sync:convex:roles": "node scripts/sync-convex-roles.js",
+    "seed:university": "node scripts/seed-university-and-assign.js",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

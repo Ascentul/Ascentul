@@ -44,8 +44,9 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
   )
 
-  // Create user mutation
+  // Create & update user mutations
   const createUser = useMutation(api.users.createUser)
+  const updateUser = useMutation(api.users.updateUser)
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -54,11 +55,17 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
       if (clerkUser && !userProfile) {
         // Create user profile in Convex if it doesn't exist
         try {
+          // Derive initial role from Clerk public metadata if present and valid
+          const allowedRoles = ['user', 'admin', 'super_admin', 'university_admin', 'staff'] as const
+          const metaRole = (clerkUser.publicMetadata as any)?.role as string | undefined
+          const initialRole = (metaRole && (allowedRoles as readonly string[]).includes(metaRole)) ? (metaRole as any) : undefined
+
           await createUser({
             clerkId: clerkUser.id,
             email: clerkUser.emailAddresses[0]?.emailAddress || '',
             name: clerkUser.fullName || clerkUser.firstName || 'User',
             username: clerkUser.username || undefined,
+            role: initialRole,
           })
         } catch (error) {
           console.error('Error creating user profile:', error)
@@ -75,6 +82,27 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeUser()
   }, [clerkUser, clerkLoaded, userProfile, createUser, toast])
+
+  // Keep Convex role in sync with Clerk publicMetadata.role for existing profiles
+  useEffect(() => {
+    const syncRole = async () => {
+      if (!clerkLoaded || !clerkUser || !userProfile) return
+      const allowedRoles = ['user', 'admin', 'super_admin', 'university_admin', 'staff'] as const
+      const metaRole = (clerkUser.publicMetadata as any)?.role as string | undefined
+      if (!metaRole || !(allowedRoles as readonly string[]).includes(metaRole)) return
+      if (userProfile.role !== metaRole) {
+        try {
+          await updateUser({
+            clerkId: clerkUser.id,
+            updates: { role: metaRole as any },
+          })
+        } catch (e) {
+          console.error('Failed to sync role from Clerk to Convex:', e)
+        }
+      }
+    }
+    void syncRole()
+  }, [clerkLoaded, clerkUser, userProfile, updateUser])
 
   const signOut = async () => {
     try {
