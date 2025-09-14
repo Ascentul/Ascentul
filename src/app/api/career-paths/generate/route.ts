@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from 'convex/_generated/api'
 
 export const runtime = 'nodejs'
 
@@ -33,7 +35,25 @@ Profile JSON: ${JSON.stringify(profileData).slice(0, 4000)}
         const content = completion.choices[0]?.message?.content || ''
         try {
           const parsed = JSON.parse(content)
-          if (Array.isArray(parsed?.paths)) return NextResponse.json(parsed)
+          if (Array.isArray(parsed?.paths)) {
+            // Save first path to Convex (best-effort)
+            try {
+              const url = process.env.NEXT_PUBLIC_CONVEX_URL
+              if (url) {
+                const clientCv = new ConvexHttpClient(url)
+                const first = parsed.paths[0]
+                await clientCv.mutation(api.career_paths.createCareerPath, {
+                  clerkId: userId,
+                  target_role: String(first?.name || profileData?.currentRole || 'Career Path'),
+                  current_level: undefined,
+                  estimated_timeframe: undefined,
+                  steps: { source: 'profile', path: first, usedModel: 'gpt-5' },
+                  status: 'active',
+                })
+              }
+            } catch {}
+            return NextResponse.json(parsed)
+          }
         } catch {}
       } catch {}
     }
@@ -62,6 +82,23 @@ Profile JSON: ${JSON.stringify(profileData).slice(0, 4000)}
         },
       ],
     }
+
+    // Save mock first path (best-effort)
+    try {
+      const url = process.env.NEXT_PUBLIC_CONVEX_URL
+      if (url) {
+        const clientCv = new ConvexHttpClient(url)
+        const first = mock.paths[0]
+        await clientCv.mutation(api.career_paths.createCareerPath, {
+          clerkId: userId,
+          target_role: String(first?.name || base),
+          current_level: undefined,
+          estimated_timeframe: undefined,
+          steps: { source: 'profile', path: first, usedModel: 'mock' },
+          status: 'active',
+        })
+      }
+    } catch {}
 
     return NextResponse.json(mock)
   } catch (error: any) {

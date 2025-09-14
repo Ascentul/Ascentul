@@ -41,6 +41,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { apiRequest } from "@/lib/queryClient"
 import { cn } from "@/lib/utils"
+import { formatDistanceToNow } from "date-fns"
 
 // Types
 interface CareerSkill { name: string; level: "basic" | "intermediate" | "advanced" }
@@ -99,6 +100,25 @@ function getIconComponent(name?: string): JSX.Element {
       return <BookOpen className={iconSize} />
     default:
       return <BriefcaseBusiness className={iconSize} />
+  }
+
+  const openRenameFor = (raw: any) => {
+    const p = hydratePath(raw)
+    if (!p) return
+    const id = String(p.id)
+    const docId = String(raw?.docId ?? raw?._id)
+    setModalTarget({ id, docId, name: p.name })
+    setRenameValue(p.name)
+    setRenameOpen(true)
+  }
+
+  const openDeleteFor = (raw: any) => {
+    const p = hydratePath(raw)
+    if (!p) return
+    const id = String(p.id)
+    const docId = String(raw?.docId ?? raw?._id)
+    setModalTarget({ id, docId, name: p.name })
+    setDeleteOpen(true)
   }
 }
 
@@ -208,6 +228,15 @@ export default function CareerPathPage() {
   const [isLoadingCerts, setIsLoadingCerts] = useState(false)
   const [roleCerts, setRoleCerts] = useState<Record<string, CertificationRecommendation[]>>({})
 
+  // Saved Paths management (rename/delete dialogs)
+  const [renameOpen, setRenameOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [modalTarget, setModalTarget] = useState<{ id: string; docId: string; name: string } | null>(null)
+  const [renameValue, setRenameValue] = useState("")
+  // Inline editing controls
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingValue, setEditingValue] = useState<string>("")
+
   // Restore previously generated path and job title on initial load
   useEffect(() => {
     try {
@@ -224,6 +253,70 @@ export default function CareerPathPage() {
       if (savedTitle) setJobTitle(savedTitle)
     } catch {}
   }, [])
+
+  // Load previously saved paths from Convex with sort + pagination
+  const [savedSort, setSavedSort] = useState<'desc' | 'asc'>(() => (typeof window !== 'undefined' ? (localStorage.getItem('careerPathExplorer_saved_sort') as any) || 'desc' : 'desc'))
+  const [savedCursor, setSavedCursor] = useState<string | null>(null)
+  const [savedList, setSavedList] = useState<any[]>([])
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+
+  const { data: savedPage, refetch: refetchSaved } = useQuery<any>({
+    queryKey: ["/api/career-paths", savedSort, savedCursor],
+    queryFn: async () => {
+      const qs = new URLSearchParams()
+      qs.set('sort', savedSort)
+      if (savedCursor) qs.set('cursor', savedCursor)
+      qs.set('limit', '10')
+      const res = await apiRequest('GET', `/api/career-paths?${qs.toString()}`)
+      return res.json()
+    },
+    staleTime: 10_000,
+  })
+
+  useEffect(() => {
+    if (!savedPage) return
+    const arr = Array.isArray(savedPage.paths) ? savedPage.paths : []
+    if (savedCursor) setSavedList(prev => [...prev, ...arr])
+    else setSavedList(arr)
+    setNextCursor(savedPage.nextCursor ?? null)
+  }, [savedPage])
+
+  const savedPaths: CareerPath[] = useMemo(() => {
+    try {
+      return savedList.map((p: any) => hydratePath(p)).filter(Boolean) as CareerPath[]
+    } catch { return [] }
+  }, [savedList])
+
+  const handleChangeSort = async (order: 'asc' | 'desc') => {
+    setSavedSort(order)
+    try { localStorage.setItem('careerPathExplorer_saved_sort', order) } catch {}
+    setSavedCursor(null)
+    setNextCursor(null)
+    // refetch will run due to queryKey change
+  }
+
+  const handleLoadMore = async () => {
+    if (!nextCursor) return
+    setSavedCursor(nextCursor)
+  }
+
+  // Select a saved path from Convex history
+  const handleSelectSavedPath = (id: string) => {
+    if (!Array.isArray(savedPaths) || savedPaths.length === 0) return
+    const ui = savedPaths.find(p => String(p.id) === String(id))
+    if (!ui) return
+    setGeneratedPath(ui)
+    setActivePath(ui)
+    // Find the raw path in the aggregated server data to persist
+    try {
+      const raw = savedList.find((p: any) => String((p?.id ?? p?._id)) === String(id))
+      if (raw) {
+        localStorage.setItem(LS_KEYS.path, JSON.stringify(raw))
+        localStorage.setItem(LS_KEYS.source, "history")
+        if (raw?.name) localStorage.setItem(LS_KEYS.jobTitle, String(raw.name))
+      }
+    } catch {}
+  }
 
   const fetchCertifications = async (nodeId: string) => {
     const node = activePath?.nodes.find(n => n.id === nodeId)
@@ -273,6 +366,8 @@ export default function CareerPathPage() {
         }
         setGeneratedPath(processed)
         setActivePath(processed)
+        // Refresh saved list from server (reset pagination)
+        setSavedCursor(null); setNextCursor(null); try { await refetchSaved() } catch {}
         // Persist raw path JSON and job title for future sessions
         try {
           localStorage.setItem(LS_KEYS.path, JSON.stringify(mainPath))
@@ -303,6 +398,8 @@ export default function CareerPathPage() {
         // Show first path
         setGeneratedPath(processed[0])
         setActivePath(processed[0])
+        // Refresh saved list from server
+        try { await refetchSaved() } catch {}
         // Persist the first raw path
         try {
           localStorage.setItem(LS_KEYS.path, JSON.stringify(data.paths[0]))
@@ -382,9 +479,63 @@ export default function CareerPathPage() {
             {isSearching ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>) : (<><Sparkles className="mr-2 h-4 w-4" />Generate Paths</>)}
           </Button>
         )}
-      </div>
 
-      {/* Job title search (target mode) */}
+      {/* Saved Paths (Convex history) */}
+      {savedPaths.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold">Saved Paths</h3>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Sort:</span>
+              <Button variant={savedSort === 'desc' ? 'default' : 'outline'} size="sm" onClick={() => handleChangeSort('desc')}>Newest first</Button>
+              <Button variant={savedSort === 'asc' ? 'default' : 'outline'} size="sm" onClick={() => handleChangeSort('asc')}>Oldest first</Button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            {Array.isArray(savedData?.paths) && savedData.paths.map((raw: any) => {
+              const p = hydratePath(raw)
+              if (!p) return null
+              const id = String(p.id)
+              const docId = String(raw?.docId ?? raw?._id)
+              return (
+                <div key={docId} className="flex items-center gap-2">
+                  {editingId === docId ? (
+                    <>
+                      <Input className="h-8 w-64" value={editingValue} onChange={(e) => setEditingValue(e.target.value)} />
+                      <Button size="sm" onClick={async () => {
+                        if (!editingValue.trim()) return
+                        try {
+                          await apiRequest('PATCH', `/api/career-paths/${encodeURIComponent(docId)}/name`, { name: editingValue.trim() })
+                          // Reset pagination and refresh list
+                          setSavedCursor(null); setNextCursor(null); await refetchSaved()
+                          // Update active path name if selected
+                          setActivePath(prev => prev && String(prev.id) === id ? { ...prev, name: editingValue.trim() } as any : prev)
+                          setEditingId(null)
+                        } catch {
+                          toast({ title: 'Rename failed', description: 'Please try again later.', variant: 'destructive' })
+                        }
+                      }}>Save</Button>
+                      <Button variant="outline" size="sm" onClick={() => { setEditingId(null); setEditingValue("") }}>Cancel</Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => handleSelectSavedPath(id)}>
+                        <Sparkles className="h-4 w-4 mr-2" /> {p.name}
+                      </Button>
+                      <span className="text-xs text-muted-foreground">Saved {raw?.savedAt ? formatDistanceToNow(new Date(raw.savedAt), { addSuffix: true }) : ''}</span>
+                      <Button variant="ghost" size="sm" onClick={() => { setEditingId(docId); setEditingValue(p.name) }}>Edit</Button>
+                    </>
+                  )}
+                  <Button variant="destructive" size="sm" onClick={() => openDeleteFor(raw)}>Delete</Button>
+                </div>
+              )
+            })}
+            {nextCursor && (
+              <div className="pt-2">
+                <Button variant="outline" size="sm" onClick={handleLoadMore}>Load more</Button>
+              </div>
+            )}
+
       {explorationMode === "target" && (
         <motion.div variants={subtleUp} className="mb-6 space-y-2">
           <Label htmlFor="job-title-search">Quick Career Path Generator</Label>
@@ -568,6 +719,61 @@ export default function CareerPathPage() {
             </div>
           </DialogContent>
         )}
+      </Dialog>
+
+      {/* Rename Saved Path Dialog */}
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Saved Path</DialogTitle>
+            <DialogDescription>Give this saved path a new name.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="rename-input">Name</Label>
+            <Input id="rename-input" value={renameValue} onChange={(e) => setRenameValue(e.target.value)} placeholder="e.g., Software Engineer Leadership" />
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setRenameOpen(false)}>Cancel</Button>
+            <Button onClick={async () => {
+              if (!modalTarget || !renameValue.trim()) return
+              try {
+                await apiRequest('PATCH', `/api/career-paths/${encodeURIComponent(modalTarget.docId)}/name`, { name: renameValue.trim() })
+                // update active path name if it's the same UI id
+                setActivePath(prev => prev && String(prev.id) === modalTarget.id ? { ...prev, name: renameValue.trim() } as any : prev)
+                await refetchSaved()
+                setRenameOpen(false)
+              } catch {
+                toast({ title: 'Rename failed', description: 'Please try again later.', variant: 'destructive' })
+              }
+            }}>Save</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Saved Path Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Saved Path</DialogTitle>
+            <DialogDescription>This action cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground">
+            {modalTarget ? <>Are you sure you want to delete <span className="font-medium">{modalTarget.name}</span>?</> : null}
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={async () => {
+              if (!modalTarget) return
+              try {
+                await apiRequest('DELETE', `/api/career-paths/${encodeURIComponent(modalTarget.docId)}`)
+                await refetchSaved()
+                setDeleteOpen(false)
+              } catch {
+                toast({ title: 'Delete failed', description: 'Please try again later.', variant: 'destructive' })
+              }
+            }}>Delete</Button>
+          </div>
+        </DialogContent>
       </Dialog>
     </motion.div>
   )

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from 'convex/_generated/api'
 
 export const runtime = 'nodejs'
 
@@ -121,6 +123,22 @@ Return JSON with the following TypeScript shape without extra commentary:
           try {
             const parsed = JSON.parse(content)
             if (Array.isArray(parsed?.paths)) {
+              // Save first path to Convex (best-effort)
+              try {
+                const url = process.env.NEXT_PUBLIC_CONVEX_URL
+                if (url) {
+                  const clientCv = new ConvexHttpClient(url)
+                  const mainPath = parsed.paths[0]
+                  await clientCv.mutation(api.career_paths.createCareerPath, {
+                    clerkId: userId,
+                    target_role: String(mainPath?.name || jobTitle),
+                    current_level: undefined,
+                    estimated_timeframe: undefined,
+                    steps: { source: 'job', path: mainPath, usedModel: model },
+                    status: 'active',
+                  })
+                }
+              } catch {}
               return NextResponse.json({ ...parsed, usedModel: model, usedFallback: model !== 'gpt-5' })
             }
           } catch {
@@ -132,7 +150,23 @@ Return JSON with the following TypeScript shape without extra commentary:
       }
     }
 
-    return NextResponse.json({ paths: [mockPath(jobTitle)] , usedFallback: true })
+    // Mock fallback + save
+    const mock = mockPath(jobTitle)
+    try {
+      const url = process.env.NEXT_PUBLIC_CONVEX_URL
+      if (url) {
+        const clientCv = new ConvexHttpClient(url)
+        await clientCv.mutation(api.career_paths.createCareerPath, {
+          clerkId: userId,
+          target_role: String(mock?.name || jobTitle),
+          current_level: undefined,
+          estimated_timeframe: undefined,
+          steps: { source: 'job', path: mock, usedModel: 'mock' },
+          status: 'active',
+        })
+      }
+    } catch {}
+    return NextResponse.json({ paths: [mock] , usedFallback: true })
   } catch (error: any) {
     console.error('POST /api/career-path/generate-from-job error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

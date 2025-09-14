@@ -87,6 +87,16 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     typeof window !== 'undefined' ? localStorage.getItem('sidebarExpanded') !== 'false' : true
   )
   const [menuPositions, setMenuPositions] = useState<Record<string, number>>({})
+  // Persisted collapsed state per section id
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('sidebarCollapsedSections')
+        return saved ? JSON.parse(saved) : {}
+      } catch {}
+    }
+    return {}
+  })
   
   // Support ticket related state
   const [showSupportModal, setShowSupportModal] = useState(false)
@@ -186,6 +196,52 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     ...(isAdmin ? adminSections : [])
   ]
 
+  // Determine active section by matching current pathname
+  const getActiveSectionId = () => {
+    for (const s of allSections) {
+      if (s.href && isActive(s.href)) return s.id
+      if (s.items) {
+        for (const it of s.items) {
+          if (isActive(it.href)) return s.id
+        }
+      }
+    }
+    return null
+  }
+
+  // On first load, default all sections with items to collapsed, but auto-expand the active one
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const initialized = localStorage.getItem('sidebarCollapsedInitialized')
+      if (!initialized) {
+        const next: Record<string, boolean> = {}
+        for (const s of allSections) {
+          if (s.items && s.items.length > 0) next[s.id] = true // collapsed by default
+        }
+        const activeId = getActiveSectionId()
+        if (activeId) next[activeId] = false // expand active section
+        setCollapsedSections(next)
+        localStorage.setItem('sidebarCollapsedSections', JSON.stringify(next))
+        localStorage.setItem('sidebarCollapsedInitialized', 'true')
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUniversityUser, isAdmin])
+
+  // Always ensure the currently active section is expanded when route changes
+  useEffect(() => {
+    const activeId = getActiveSectionId()
+    if (!activeId) return
+    setCollapsedSections(prev => {
+      if (prev && prev[activeId] === false) return prev
+      const next = { ...prev, [activeId]: false }
+      try { localStorage.setItem('sidebarCollapsedSections', JSON.stringify(next)) } catch {}
+      return next
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
   const handleLogout = async () => {
     try {
       await signOut()
@@ -273,6 +329,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const renderSection = (section: SidebarSection) => {
     const hasItems = section.items && section.items.length > 0
     const sectionActive = section.href ? isActive(section.href) : false
+    const isCollapsed = !!collapsedSections[section.id]
 
     if (!hasItems && section.href) {
       // Single item section
@@ -294,14 +351,45 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       )
     }
 
-    // Section with items
+    // Section with items (collapsible)
+    const toggleSectionItems = () => {
+      setCollapsedSections(prev => {
+        const next = { ...prev, [section.id]: !prev[section.id] }
+        try { localStorage.setItem('sidebarCollapsedSections', JSON.stringify(next)) } catch {}
+        return next
+      })
+    }
+
     return (
       <div key={section.id} className="space-y-1">
-        <div className="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <div
+          className="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-700"
+          role="button"
+          aria-expanded={!isCollapsed}
+          onClick={toggleSectionItems}
+        >
           <span className="mr-3">{section.icon}</span>
           {expanded && <span>{section.title}</span>}
+          {expanded && (
+            <ChevronRight
+              className={`ml-auto h-4 w-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+            />
+          )}
         </div>
-        {hasItems && section.items?.map(renderSidebarItem)}
+        <AnimatePresence initial={false}>
+          {hasItems && !isCollapsed && (
+            <motion.div
+              key={`${section.id}-items`}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              style={{ overflow: 'hidden' }}
+            >
+              {section.items?.map(renderSidebarItem)}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     )
   }
