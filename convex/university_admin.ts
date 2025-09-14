@@ -55,6 +55,47 @@ export const getOverview = query({
   },
 });
 
+export const getCourse = query({
+  args: { clerkId: v.string(), courseId: v.id("courses") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx, args.clerkId);
+    requireAdmin(user);
+    const course = await ctx.db.get(args.courseId);
+    if (!course) return null;
+    if (user.university_id && course.university_id !== user.university_id) {
+      throw new Error("Unauthorized");
+    }
+    return course;
+  },
+});
+
+export const assignStudentByEmail = mutation({
+  args: {
+    clerkId: v.string(),
+    email: v.string(),
+    role: v.optional(v.union(v.literal("user"), v.literal("staff"))),
+  },
+  handler: async (ctx, args) => {
+    const admin = await getCurrentUser(ctx, args.clerkId);
+    requireAdmin(admin);
+    if (!admin.university_id) throw new Error("No university assigned");
+
+    const student = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q: any) => q.eq("email", args.email))
+      .unique();
+    if (!student) throw new Error("User with that email not found");
+
+    await ctx.db.patch(student._id, {
+      university_id: admin.university_id,
+      subscription_plan: "university",
+      ...(args.role ? { role: args.role } : {}),
+      updated_at: Date.now(),
+    });
+    return student._id;
+  },
+});
+
 export const updateDepartment = mutation({
   args: {
     clerkId: v.string(),
