@@ -244,24 +244,240 @@ export default function ResumeEditorPage() {
   // PDF export using jsPDF
   const exportPdf = async () => {
     try {
-      const doc = new jsPDF()
-      const lineHeight = 8
-      let y = 10
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
+
+      // Layout helpers
+      const margin = 15
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const usableWidth = pageWidth - margin * 2
+      const pageHeight = doc.internal.pageSize.getHeight()
+      let y = margin
+
+      const moveY = (amount: number) => {
+        y += amount
+        if (y > pageHeight - margin) {
+          doc.addPage()
+          y = margin
+        }
+      }
+
+      const addSectionHeader = (text: string) => {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(12)
+        doc.text(text, margin, y)
+        moveY(6)
+      }
+
+      const addParagraph = (text: string) => {
+        if (!text) return
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(11)
+        const wrapped = doc.splitTextToSize(text, usableWidth)
+        // Add page breaks while writing lines
+        wrapped.forEach((line) => {
+          if (y > pageHeight - margin) {
+            doc.addPage()
+            y = margin
+          }
+          doc.text(line, margin, y)
+          y += 5
+        })
+        moveY(2)
+      }
+
+      const addBulletList = (items: string[] | undefined) => {
+        if (!items || items.length === 0) return
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(11)
+        items.forEach((item) => {
+          const lines = doc.splitTextToSize(item, usableWidth - 6)
+          if (y > pageHeight - margin) {
+            doc.addPage()
+            y = margin
+          }
+          doc.text('•', margin, y)
+          // First line next to bullet
+          doc.text(lines[0], margin + 6, y)
+          y += 5
+          // Remaining lines
+          for (let i = 1; i < lines.length; i++) {
+            if (y > pageHeight - margin) {
+              doc.addPage()
+              y = margin
+            }
+            doc.text(lines[i], margin + 6, y)
+            y += 5
+          }
+        })
+        moveY(2)
+      }
+
+      // Header: Name + Contact
+      const fullName = user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || ''
+      const email = user?.primaryEmailAddress?.emailAddress || ''
+      const phone = user?.phoneNumbers?.[0]?.phoneNumber || ''
+      const contactParts = [email, phone].filter(Boolean)
+
+      doc.setFont('helvetica', 'bold')
       doc.setFontSize(16)
-      doc.text(title || 'Untitled Resume', 10, y)
-      y += 10
-      doc.setFontSize(12)
-      doc.text('Professional Summary', 10, y)
-      y += 6
-      const summaryLines = doc.splitTextToSize(summary || '', 180)
-      doc.text(summaryLines, 10, y)
-      y += Math.max(lineHeight, summaryLines.length * 6) + 4
-      doc.text('Skills', 10, y)
-      y += 6
-      const skillsLine = (skillsText || '').trim()
-      const skillsLines = doc.splitTextToSize(skillsLine, 180)
-      doc.text(skillsLines, 10, y)
-      const fileName = `${(title || 'resume').replace(/\s+/g, '_')}.pdf`
+      doc.text((fullName || title || 'Untitled Resume') as string, margin, y)
+      moveY(7)
+      if (contactParts.length) {
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(10)
+        doc.text(contactParts.join('  |  '), margin, y)
+        moveY(6)
+      }
+
+      // Horizontal rule
+      doc.setLineWidth(0.3)
+      doc.line(margin, y, pageWidth - margin, y)
+      moveY(4)
+
+      // Data from resume content
+      const content = (resume?.content || {}) as any
+
+      // Summary
+      if (summary?.trim() || content?.summary) {
+        addSectionHeader('Professional Summary')
+        addParagraph((summary || content?.summary || '').trim())
+      }
+
+      // Skills
+      const skillsFromContent: string[] = Array.isArray(content?.skills) ? content.skills : []
+      const allSkills = (skillsText || '').trim() || (skillsFromContent.length ? skillsFromContent.join(', ') : '')
+      if (allSkills) {
+        addSectionHeader('Skills')
+        addParagraph(allSkills)
+      }
+
+      // Experience
+      const experiences: any[] = Array.isArray(content?.experience) ? content.experience : []
+      if (experiences.length) {
+        addSectionHeader('Experience')
+        experiences.forEach((exp) => {
+          const header = [exp.title, exp.company].filter(Boolean).join(' — ')
+          if (header) {
+            doc.setFont('helvetica', 'bold')
+            doc.setFontSize(11)
+            doc.text(header, margin, y)
+            moveY(5)
+          }
+          const meta = [exp.location, exp.startDate && exp.endDate ? `${exp.startDate} – ${exp.endDate}` : exp.startDate || exp.endDate]
+            .filter(Boolean)
+            .join('  •  ')
+          if (meta) {
+            doc.setFont('helvetica', 'normal')
+            doc.setFontSize(10)
+            doc.text(meta, margin, y)
+            moveY(5)
+          }
+          if (Array.isArray(exp.bullets) && exp.bullets.length) {
+            addBulletList(exp.bullets)
+          } else if (exp.description) {
+            addParagraph(exp.description)
+          }
+        })
+      }
+
+      // Projects
+      const projects: any[] = Array.isArray(content?.projects) ? content.projects : []
+      if (projects.length) {
+        addSectionHeader('Projects')
+        projects.forEach((p) => {
+          const header = [p.name || p.title, p.role, p.company].filter(Boolean).join(' — ')
+          if (header) {
+            doc.setFont('helvetica', 'bold')
+            doc.setFontSize(11)
+            doc.text(header, margin, y)
+            moveY(5)
+          }
+          const meta = [p.url, Array.isArray(p.technologies) ? p.technologies.join(', ') : p.technologies]
+            .filter(Boolean)
+            .join('  •  ')
+          if (meta) {
+            doc.setFont('helvetica', 'normal')
+            doc.setFontSize(10)
+            addParagraph(meta)
+          }
+          if (Array.isArray(p.bullets) && p.bullets.length) {
+            addBulletList(p.bullets)
+          } else if (p.description) {
+            addParagraph(p.description)
+          }
+        })
+      }
+
+      // Education
+      const education: any[] = Array.isArray(content?.education) ? content.education : []
+      if (education.length) {
+        addSectionHeader('Education')
+        education.forEach((e) => {
+          const header = [e.degree, e.field].filter(Boolean).join(', ')
+          const schoolLine = [e.school || e.university, e.location].filter(Boolean).join(' — ')
+          if (header) {
+            doc.setFont('helvetica', 'bold')
+            doc.setFontSize(11)
+            doc.text(header, margin, y)
+            moveY(5)
+          }
+          if (schoolLine) {
+            doc.setFont('helvetica', 'normal')
+            doc.setFontSize(10)
+            doc.text(schoolLine, margin, y)
+            moveY(5)
+          }
+          const meta = [e.startYear && e.endYear ? `${e.startYear} – ${e.endYear}` : e.graduationYear, e.gpa ? `GPA: ${e.gpa}` : null]
+            .filter(Boolean)
+            .join('  •  ')
+          if (meta) {
+            doc.setFont('helvetica', 'normal')
+            doc.setFontSize(10)
+            doc.text(meta, margin, y)
+            moveY(6)
+          }
+        })
+      }
+
+      // Certifications
+      const certs: any[] = Array.isArray(content?.certifications) ? content.certifications : []
+      if (certs.length) {
+        addSectionHeader('Certifications')
+        certs.forEach((c) => {
+          const line = [c.name, c.issuer, c.year || c.date].filter(Boolean).join(' — ')
+          addParagraph(line)
+        })
+      }
+
+      // Links
+      const links: any[] = Array.isArray(content?.links) ? content.links : []
+      if (links.length) {
+        addSectionHeader('Links')
+        links.forEach((l) => {
+          const label = l.label || l.name || l.url
+          if (!label) return
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(0, 102, 204)
+          const url = String(l.url || label)
+          const anyDoc = doc as any
+          if (typeof anyDoc.textWithLink === 'function') {
+            anyDoc.textWithLink(String(label), margin, y, { url })
+          } else {
+            doc.text(String(label), margin, y)
+          }
+          doc.setTextColor(0, 0, 0)
+          moveY(6)
+        })
+      }
+
+      // Fallback: if we only had summary/skills and we have extracted text, include a compact additional section
+      const hasStructured = experiences.length + projects.length + education.length + certs.length + links.length > 0
+      if (!hasStructured && (extractedText?.trim()?.length || 0) > 0) {
+        addSectionHeader('Additional Content (from uploaded resume)')
+        addParagraph((extractedText || '').slice(0, 3000))
+      }
+
+      const fileName = `${(title || fullName || 'resume').replace(/\s+/g, '_')}.pdf`
       doc.save(fileName)
       toast({ title: 'Exported', description: 'PDF downloaded.' })
     } catch (e: any) {
