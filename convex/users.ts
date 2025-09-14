@@ -141,6 +141,7 @@ export const updateUser = mutation({
       email: v.optional(v.string()),
       username: v.optional(v.string()),
       profile_image: v.optional(v.string()),
+      linkedin_url: v.optional(v.string()),
       onboarding_completed: v.optional(v.boolean()),
       role: v.optional(v.union(v.literal("user"), v.literal("admin"), v.literal("super_admin"), v.literal("university_admin"), v.literal("staff"))),
       subscription_plan: v.optional(v.union(v.literal("free"), v.literal("premium"), v.literal("university"))),

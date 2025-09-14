@@ -104,6 +104,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const [description, setDescription] = useState('')
   const [issueType, setIssueType] = useState('Other')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Upsell modal for Pro-only features
+  const [showUpsellModal, setShowUpsellModal] = useState(false)
 
   // Define sidebar sections
   const sidebarSections: SidebarSection[] = [
@@ -311,7 +313,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }
         `}
-        onClick={disabled ? (e) => e.preventDefault() : undefined}
+        onClick={disabled ? (e) => { e.preventDefault(); setShowUpsellModal(true) } : undefined}
       >
         <span className="mr-3">{item.icon}</span>
         {expanded && (
@@ -475,6 +477,31 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
         {/* Footer */}
         <div className="p-4 border-t space-y-2">
+          {/* Pro Upsell Modal */}
+          <Dialog open={showUpsellModal} onOpenChange={setShowUpsellModal}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Unlock Pro Features</DialogTitle>
+                <DialogDescription>
+                  This feature is available on the Pro plan. Upgrade to access LinkedIn Integration and other premium tools.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="text-sm text-gray-600">
+                • Save time with LinkedIn job search shortcuts and history
+                <br />
+                • Advanced career tools and automations
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Maybe later</Button>
+                </DialogClose>
+                <Link href="/account#subscription">
+                  <Button onClick={() => setShowUpsellModal(false)}>Upgrade Now</Button>
+                </Link>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
             <DialogTrigger asChild>
               <Button

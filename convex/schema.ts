@@ -13,6 +13,7 @@ export default defineSchema({
     subscription_status: v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due")),
     university_id: v.optional(v.id("universities")),
     profile_image: v.optional(v.string()),
+    linkedin_url: v.optional(v.string()),
     stripe_customer_id: v.optional(v.string()),
     stripe_subscription_id: v.optional(v.string()),
     onboarding_completed: v.optional(v.boolean()),
