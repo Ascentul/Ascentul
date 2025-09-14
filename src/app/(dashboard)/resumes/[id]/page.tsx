@@ -272,9 +272,9 @@ export default function ResumeEditorPage() {
         if (!text) return
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(11)
-        const wrapped = doc.splitTextToSize(text, usableWidth)
+        const wrapped: string[] = (doc.splitTextToSize(text, usableWidth) as unknown as string[])
         // Add page breaks while writing lines
-        wrapped.forEach((line) => {
+        wrapped.forEach((line: string) => {
           if (y > pageHeight - margin) {
             doc.addPage()
             y = margin
@@ -289,15 +289,15 @@ export default function ResumeEditorPage() {
         if (!items || items.length === 0) return
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(11)
-        items.forEach((item) => {
-          const lines = doc.splitTextToSize(item, usableWidth - 6)
+        items.forEach((item: string) => {
+          const lines: string[] = (doc.splitTextToSize(item, usableWidth - 6) as unknown as string[])
           if (y > pageHeight - margin) {
             doc.addPage()
             y = margin
           }
           doc.text('•', margin, y)
           // First line next to bullet
-          doc.text(lines[0], margin + 6, y)
+          doc.text(lines[0] as string, margin + 6, y)
           y += 5
           // Remaining lines
           for (let i = 1; i < lines.length; i++) {
@@ -305,7 +305,7 @@ export default function ResumeEditorPage() {
               doc.addPage()
               y = margin
             }
-            doc.text(lines[i], margin + 6, y)
+            doc.text(lines[i] as string, margin + 6, y)
             y += 5
           }
         })
