@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from '../../../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'

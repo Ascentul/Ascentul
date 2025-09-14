@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs'
 import { useQuery, useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 import { useToast } from '@/hooks/use-toast'
 
 interface UserProfile {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from '../../../../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 
 // GET /api/achievements/user - list achievements earned by current user
 export async function GET(request: Request) {

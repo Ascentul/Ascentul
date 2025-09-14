@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useQuery } from 'convex/react'
-import { api } from '../../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, Calendar } from 'lucide-react'

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, FileText, Loader2 } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { useQuery, useMutation } from 'convex/react'
-import { api } from '@/../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 
 type ResumeDoc = {
   _id: string

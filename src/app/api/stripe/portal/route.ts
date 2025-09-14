@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { getAuth } from '@clerk/nextjs/server'
 import Stripe from 'stripe'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from '../../../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth()
+    const { userId } = await getAuth(request)
     const origin = request.headers.get('origin') || new URL(request.url).origin
 
     if (!userId) {

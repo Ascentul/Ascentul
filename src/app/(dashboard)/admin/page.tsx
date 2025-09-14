@@ -4,7 +4,7 @@ import React from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery } from 'convex/react'
-import { api } from '../../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, ShieldCheck } from 'lucide-react'
 

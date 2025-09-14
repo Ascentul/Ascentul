@@ -9,7 +9,7 @@ import { ApplicationCard } from '@/components/applications/ApplicationCard'
 import { ApplicationDetails } from '@/components/applications/ApplicationDetails'
 import { useUser } from '@clerk/nextjs'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '../../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 
 interface Application {
   id: string | number
@@ -210,4 +210,3 @@ export default function ApplicationsPage() {
     </div>
   )
 }
-

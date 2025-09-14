@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useUser } from '@clerk/nextjs'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 import { Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 

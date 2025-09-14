@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from '../../../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 
 // GET /api/contacts/[id]
 export async function GET(request: Request, { params }: { params: { id: string } }) {
@@ -11,7 +11,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
   if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
   const client = new ConvexHttpClient(url)
   try {
-    const contact = await client.query(api.contacts.getContactById, { clerkId: userId, contactId: params.id as any })
+    const contacts = await client.query(api.contacts.getUserContacts, { clerkId: userId })
+    const contact = (contacts as any[]).find((c) => String(c._id) === params.id)
+    if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
     return NextResponse.json({ contact })
   } catch (e: any) {
     return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
@@ -43,7 +45,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         last_contact: body.last_contact_date ? Date.parse(body.last_contact_date) || undefined : undefined,
       },
     })
-    const contact = await client.query(api.contacts.getContactById, { clerkId: userId, contactId: params.id as any })
+    const contacts = await client.query(api.contacts.getUserContacts, { clerkId: userId })
+    const contact = (contacts as any[]).find((c) => String(c._id) === params.id)
     return NextResponse.json({ contact })
   } catch (e: any) {
     return NextResponse.json({ error: 'Failed to update contact' }, { status: 500 })

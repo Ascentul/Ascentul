@@ -12,7 +12,7 @@ import { ApplicationStatusBadge } from './ApplicationStatusBadge'
 import { Loader2, ExternalLink } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 
 export type DBApplication = {
   id: string | number

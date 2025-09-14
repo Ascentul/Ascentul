@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '../../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 
 // Import UI components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'

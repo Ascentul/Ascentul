@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from '../../../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 
 // GET /api/achievements - list all available achievements (public read)
 export async function GET() {

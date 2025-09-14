@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { useQuery, useMutation } from 'convex/react'
-import { api } from '../../../../convex/_generated/api'
+import { api } from 'convex/_generated/api'
 
 interface Contact {
   _id: string
