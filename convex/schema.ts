@@ -43,6 +43,33 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_status", ["status"]),
 
+  // University departments
+  departments: defineTable({
+    university_id: v.id("universities"),
+    name: v.string(),
+    code: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_university", ["university_id"])
+    .index("by_name", ["name"]),
+
+  // University courses (learning modules)
+  courses: defineTable({
+    university_id: v.id("universities"),
+    department_id: v.optional(v.id("departments")),
+    title: v.string(),
+    category: v.optional(v.string()),
+    level: v.optional(v.string()),
+    published: v.boolean(),
+    enrollments: v.optional(v.number()),
+    completion_rate: v.optional(v.number()), // 0-100
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_university", ["university_id"])
+    .index("by_department", ["department_id"]) ,
+
   // Projects table for portfolio functionality
   projects: defineTable({
     user_id: v.id("users"),
