@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSignIn } from '@clerk/nextjs'
+import { useSignIn, useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
@@ -13,11 +13,19 @@ import Link from 'next/link'
 export default function Page() {
   const router = useRouter()
   const { isLoaded, signIn, setActive } = useSignIn()
+  const { isLoaded: authLoaded, isSignedIn } = useAuth()
   const [tab, setTab] = useState<'regular' | 'university'>('regular')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // If a session already exists, redirect to dashboard to avoid Clerk "session_exists" errors
+  useEffect(() => {
+    if (authLoaded && isSignedIn) {
+      router.replace('/dashboard')
+    }
+  }, [authLoaded, isSignedIn, router])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,6 +41,12 @@ export default function Page() {
         setError('Additional verification required. Please continue in the next step.')
       }
     } catch (err: any) {
+      const code = err?.errors?.[0]?.code
+      if (code === 'session_exists') {
+        // A session already exists; just proceed to the dashboard
+        router.replace('/dashboard')
+        return
+      }
       const msg = err?.errors?.[0]?.longMessage || err?.message || 'Sign in failed'
       setError(msg)
     } finally {
