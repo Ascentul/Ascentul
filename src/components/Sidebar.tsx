@@ -154,12 +154,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         { href: '/linkedin', icon: <Linkedin className="h-4 w-4" />, label: 'LinkedIn Integration', pro: true },
       ]
     },
-    {
-      id: 'achievements',
-      title: 'Achievements',
-      icon: <Trophy className="h-5 w-5" />,
-      href: '/achievements'
-    }
+    
   ]
 
   // Admin sections

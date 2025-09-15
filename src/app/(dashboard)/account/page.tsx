@@ -175,11 +175,18 @@ export default function AccountPage() {
         },
       })
 
-      // Update Clerk user info if name changed
-      if (data.name !== clerkUser.firstName) {
+      // Update Clerk user info if first/last changed
+      const [first, ...rest] = data.name.trim().split(/\s+/)
+      const newFirst = first || null
+      const newLast = rest.join(' ') || null
+
+      const currentFirst = clerkUser.firstName || null
+      const currentLast = clerkUser.lastName || null
+
+      if (newFirst !== currentFirst || newLast !== currentLast) {
         await clerkUser.update({
-          firstName: data.name.split(' ')[0],
-          lastName: data.name.split(' ').slice(1).join(' ') || undefined,
+          firstName: newFirst,
+          lastName: newLast,
         })
       }
 
@@ -189,10 +196,11 @@ export default function AccountPage() {
         variant: 'success',
       })
       setIsEditingProfile(false)
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Profile update error:', error)
       toast({
         title: 'Error',
-        description: 'Failed to update profile. Please try again.',
+        description: error?.errors?.[0]?.message || 'Failed to update profile. Please try again.',
         variant: 'destructive',
       })
     } finally {
