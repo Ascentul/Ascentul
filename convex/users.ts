@@ -183,6 +183,38 @@ export const updateUser = mutation({
   },
 });
 
+// Update user profile by Convex document ID (useful for admin/dev utilities)
+export const updateUserById = mutation({
+  args: {
+    id: v.id("users"),
+    updates: v.object({
+      name: v.optional(v.string()),
+      email: v.optional(v.string()),
+      username: v.optional(v.string()),
+      profile_image: v.optional(v.string()),
+      linkedin_url: v.optional(v.string()),
+      onboarding_completed: v.optional(v.boolean()),
+      role: v.optional(v.union(v.literal("user"), v.literal("admin"), v.literal("super_admin"), v.literal("university_admin"), v.literal("staff"))),
+      subscription_plan: v.optional(v.union(v.literal("free"), v.literal("premium"), v.literal("university"))),
+      subscription_status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due"))),
+      university_id: v.optional(v.id("universities")),
+      stripe_customer_id: v.optional(v.string()),
+      stripe_subscription_id: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.id);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    await ctx.db.patch(args.id, {
+      ...args.updates,
+      updated_at: Date.now(),
+    });
+    return args.id;
+  },
+});
+
 // Delete user
 export const deleteUser = mutation({
   args: { clerkId: v.string() },
