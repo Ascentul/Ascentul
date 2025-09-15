@@ -141,6 +141,7 @@ export default function GoalForm({
         description: goal 
           ? "Your goal has been updated successfully" 
           : "Your new goal has been created successfully",
+        variant: 'success',
       })
       
       if (onSuccess) {

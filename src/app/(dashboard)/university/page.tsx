@@ -465,7 +465,7 @@ export default function UniversityDashboardPage() {
                   for (const email of emails) {
                     await assignStudent({ clerkId: clerkUser.id, email, role: assignRole })
                   }
-                  toast({ title: 'Licenses assigned', description: `${emails.length} user(s) updated` })
+                  toast({ title: 'Licenses assigned', description: `${emails.length} user(s) updated`, variant: 'success' })
                   setAssignOpen(false)
                   setAssignText('')
                 } catch (e: any) {

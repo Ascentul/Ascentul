@@ -70,6 +70,7 @@ export default function Goals() {
       toast({
         title: 'Goal Deleted',
         description: 'Your goal has been deleted successfully',
+        variant: 'success',
       })
     },
     onError: (error: any) => {
@@ -111,6 +112,7 @@ export default function Goals() {
         toast({
           title: "Goal Reopened",
           description: "The goal has been moved back to active goals.",
+          variant: 'success',
         })
       })
       .catch((error) => {
@@ -142,7 +144,7 @@ export default function Goals() {
         toast({
           title: "Goal Saved as Completed",
           description: "Your goal has been moved to the completed section.",
-          variant: "default",
+          variant: 'success',
         })
       })
       .catch((error) => {

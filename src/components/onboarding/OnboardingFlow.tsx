@@ -228,7 +228,8 @@ export function OnboardingFlow() {
 
       toast({
         title: "Welcome to Ascentul!",
-        description: "Your profile has been set up successfully."
+        description: "Your profile has been set up successfully.",
+        variant: 'success'
       })
 
       // Redirect to dashboard

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Loader2, Award } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 interface Achievement {
   _id: string
@@ -29,6 +30,7 @@ export default function AchievementsPage() {
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([])
   const [loading, setLoading] = useState(true)
   const [awarding, setAwarding] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const earnedMap = useMemo(() => {
     const m = new Map<string, UserAchievement>()
@@ -78,6 +80,22 @@ export default function AchievementsPage() {
       })
       if (res.ok) {
         await load()
+        toast({
+          title: 'Achievement awarded',
+          description: 'Great job! You just earned an achievement.',
+          variant: 'success',
+        })
+      } else {
+        let msg = 'Failed to award achievement'
+        try {
+          const data = await res.json()
+          msg = data?.error || msg
+        } catch {}
+        toast({
+          title: 'Award failed',
+          description: msg,
+          variant: 'destructive',
+        })
       }
     } finally {
       setAwarding(null)

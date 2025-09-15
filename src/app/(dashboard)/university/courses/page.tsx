@@ -105,7 +105,7 @@ export default function UniversityCoursesPage() {
           published: false,
         })
       }
-      toast({ title: 'Courses imported' })
+      toast({ title: 'Courses imported', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'Failed to import CSV', description: e?.message || String(e), variant: 'destructive' })
     } finally {
@@ -136,7 +136,7 @@ export default function UniversityCoursesPage() {
         published: false,
       })
       setForm({ title: '' })
-      toast({ title: 'Course created' })
+      toast({ title: 'Course created', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'Failed to create course', description: e?.message || String(e), variant: 'destructive' })
     } finally {
@@ -157,7 +157,7 @@ export default function UniversityCoursesPage() {
     if (!clerkUser?.id) return
     try {
       await deleteCourse({ clerkId: clerkUser.id, courseId: course._id })
-      toast({ title: 'Course deleted' })
+      toast({ title: 'Course deleted', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'Failed to delete course', description: e?.message || String(e), variant: 'destructive' })
     }

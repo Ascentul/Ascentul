@@ -46,7 +46,7 @@ export default function LinkedInIntegrationPage() {
     setSavingProfile(true)
     try {
       await updateUser({ clerkId, updates: { linkedin_url: profileUrl } })
-      toast({ title: 'Saved', description: 'Your LinkedIn profile URL was updated.' })
+      toast({ title: 'Saved', description: 'Your LinkedIn profile URL was updated.', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'Save failed', description: e?.message || 'Could not save LinkedIn URL', variant: 'destructive' })
     } finally {
@@ -97,7 +97,7 @@ export default function LinkedInIntegrationPage() {
         source: 'LinkedIn',
         url: searchUrl,
       })
-      toast({ title: 'Saved', description: 'Application saved to your tracker.' })
+      toast({ title: 'Saved', description: 'Application saved to your tracker.', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'Save failed', description: e?.message || 'Could not save application', variant: 'destructive' })
     }

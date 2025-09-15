@@ -186,6 +186,7 @@ export default function AccountPage() {
       toast({
         title: 'Profile updated',
         description: 'Your profile has been updated successfully.',
+        variant: 'success',
       })
       setIsEditingProfile(false)
     } catch (error) {
@@ -212,6 +213,7 @@ export default function AccountPage() {
       toast({
         title: 'Password changed',
         description: 'Your password has been changed successfully.',
+        variant: 'success',
       })
       setIsChangingPassword(false)
       passwordForm.reset()

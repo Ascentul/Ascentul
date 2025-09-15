@@ -109,6 +109,7 @@ export default function GoalCard({
     toast({
       title: `Goal status updated`,
       description: `Status changed to "${formattedStatus}"`,
+      variant: isCompleted ? 'success' : undefined,
     })
     
     if (isCompleted && !completionCelebratedRef.current) {
@@ -188,6 +189,7 @@ export default function GoalCard({
       toast({
         title: "Goal completed! 🎉",
         description: "Congratulations on completing your goal!",
+        variant: 'success',
       })
       
       handleDissolveAnimation(id)
@@ -200,6 +202,7 @@ export default function GoalCard({
       toast({
         title: "Goal completed! 🎉",
         description: "Congratulations on completing your goal!",
+        variant: 'success',
       })
       
       handleDissolveAnimation(id)
@@ -245,6 +248,7 @@ export default function GoalCard({
       toast({
         title: "Goal completed! 🎉",
         description: "Congratulations on completing your goal!",
+        variant: 'success',
       })
       
       handleDissolveAnimation(id)

@@ -101,7 +101,7 @@ export default function ResumeEditorPage() {
           },
         },
       } as any)
-      toast({ title: "Saved", description: "Your resume changes have been saved." })
+      toast({ title: "Saved", description: "Your resume changes have been saved.", variant: 'success' })
     } catch (e: any) {
       toast({ title: "Save failed", description: e?.message || "Please try again.", variant: "destructive" })
     } finally {
@@ -189,7 +189,7 @@ export default function ResumeEditorPage() {
       if (warning) {
         toast({ title: 'Extracted with warning', description: warning, variant: 'destructive' })
       } else {
-        toast({ title: 'Extracted', description: `Parsed ${pages ? `${pages} pages` : fileType.toUpperCase()}.` })
+        toast({ title: 'Extracted', description: `Parsed ${pages ? `${pages} pages` : fileType.toUpperCase()}.`, variant: 'success' })
       }
       // Save extracted text to DB
       if (clerkId && resume?._id) {
@@ -222,7 +222,7 @@ export default function ResumeEditorPage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Failed to analyze')
       setAnalysis(json)
-      toast({ title: 'Analysis complete', description: `Estimated match ${json.score}%` })
+      toast({ title: 'Analysis complete', description: `Estimated match ${json.score}%`, variant: 'success' })
       // Save analysis results and job description to DB
       if (clerkId && resume?._id) {
         await updateResume({
@@ -479,7 +479,7 @@ export default function ResumeEditorPage() {
 
       const fileName = `${(title || fullName || 'resume').replace(/\s+/g, '_')}.pdf`
       doc.save(fileName)
-      toast({ title: 'Exported', description: 'PDF downloaded.' })
+      toast({ title: 'Exported', description: 'PDF downloaded.', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'Export failed', description: e?.message || 'Please try again', variant: 'destructive' })
     }
@@ -503,7 +503,7 @@ export default function ResumeEditorPage() {
       if (!res.ok) throw new Error(json.error || 'Failed to get suggestions')
       setAiSummary(json.improvedSummary || '')
       setAiSkills(json.recommendedSkills || [])
-      toast({ title: 'Suggestions ready', description: 'Review and apply if you like.' })
+      toast({ title: 'Suggestions ready', description: 'Review and apply if you like.', variant: 'success' })
       // Save AI suggestions to DB
       if (clerkId && resume?._id) {
         await updateResume({
@@ -541,7 +541,7 @@ export default function ResumeEditorPage() {
             },
           },
         } as any)
-        toast({ title: "Applied", description: "AI suggestions have been applied to your resume." })
+        toast({ title: "Applied", description: "AI suggestions have been applied to your resume.", variant: 'success' })
       } catch (e: any) {
         toast({ title: "Apply failed", description: e?.message || "Please try again.", variant: "destructive" })
       }
@@ -554,7 +554,7 @@ export default function ResumeEditorPage() {
     setDeleting(true)
     try {
       await deleteResume({ clerkId, resumeId: idToDelete } as any)
-      toast({ title: "Deleted", description: "Resume removed." })
+      toast({ title: "Deleted", description: "Resume removed.", variant: 'success' })
       router.replace("/resumes")
       router.refresh()
     } catch (e: any) {
