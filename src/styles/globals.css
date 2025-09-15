@@ -44,10 +44,10 @@
     --ring: 229 87% 36%;
     --radius: 0.5rem;
   }
-  /* Global UI scaling: ~80% of default browser zoom by reducing base font-size.
+  /* Global UI scaling: ~90% of default browser zoom by reducing base font-size.
      This scales all Tailwind rem-based sizes consistently across the app. */
   html {
-    font-size: 80%;
+    font-size: 90%;
   }
   
   .dark {
