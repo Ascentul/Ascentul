@@ -100,12 +100,15 @@ async function main() {
     process.exit(1)
   }
 
-  const PASSWORD = process.env.SEED_TEST_PASSWORD || 'Test1234!'
+  const PASSWORD = process.env.SEED_TEST_PASSWORD || 'V3ry$Strong!Pa55-2025#'
   const domain = process.env.SEED_TEST_DOMAIN || 'ascentul.dev'
   const prefix = process.env.SEED_TEST_PREFIX || 'test.user'
 
   const accounts = [
+    // Base free user (will remain free)
     { role: 'user', email: `${prefix}+user@${domain}` },
+    // Dedicated pro user account (role remains 'user'; we'll set subscription to premium in Convex)
+    { role: 'user', email: `${prefix}+pro@${domain}` },
     { role: 'staff', email: `${prefix}+staff@${domain}` },
     { role: 'university_admin', email: `${prefix}+uadmin@${domain}` },
     { role: 'admin', email: `${prefix}+admin@${domain}` },
