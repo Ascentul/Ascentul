@@ -5,11 +5,15 @@ import { api } from 'convex/_generated/api'
 
 // POST /api/achievements/award { achievement_id }
 export async function POST(request: Request) {
-  const { userId } = await auth()
+  const { userId, getToken } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const url = process.env.NEXT_PUBLIC_CONVEX_URL
   if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
   const client = new ConvexHttpClient(url)
+  const token = await getToken({ template: 'convex' }).catch(() => null)
+  if (token) {
+    client.setAuth(async () => token)
+  }
 
   const body = await request.json().catch(() => ({} as any))
   const achievementId = body.achievement_id as string
