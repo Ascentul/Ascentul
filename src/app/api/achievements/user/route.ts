@@ -13,7 +13,7 @@ export async function GET() {
   // Attach Clerk-issued JWT (template: "convex") so Convex authenticates this request
   const token = await getToken({ template: 'convex' }).catch(() => null)
   if (token) {
-    client.setAuth(async () => token)
+    client.setAuth(token)
   }
   try {
     const userAchievements = await client.query(api.achievements.getUserAchievements, { clerkId: userId })

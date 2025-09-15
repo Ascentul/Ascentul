@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const client = new ConvexHttpClient(url)
   const token = await getToken({ template: 'convex' }).catch(() => null)
   if (token) {
-    client.setAuth(async () => token)
+    client.setAuth(token)
   }
 
   const body = await request.json().catch(() => ({} as any))
