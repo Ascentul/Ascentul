@@ -22,8 +22,6 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
 
 export default function DashboardPage() {
   const { user: clerkUser, isLoaded } = useUser()
@@ -52,21 +50,15 @@ export default function DashboardPage() {
     return null
   }
 
-  // Fetch real user data
-  const goals = useQuery(api.goals.getUserGoals, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
-  const applications = useQuery(api.applications.getUserApplications, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
-  const resumes = useQuery(api.resumes.getUserResumes, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
-  const achievements = useQuery(api.achievements.getUserAchievements, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
-
-  // Calculate real stats from actual data
+  // Mock stats data to match archived version - reverted for stability
   const stats = {
-    activeGoals: goals ? goals.filter(goal => goal.status === 'in_progress').length : 0,
-    achievementsCount: achievements ? achievements.length : 0,
-    resumesCount: resumes ? resumes.length : 0,
-    pendingTasks: 0, // This would need to be calculated based on application stages or other criteria
-    upcomingInterviews: 0, // Will be calculated when we have stage data
-    applications: applications ? applications.length : 0,
-    interviewRate: 0 // Will be calculated when we have stage data
+    activeGoals: 3,
+    achievementsCount: 12,
+    resumesCount: 2,
+    pendingTasks: 4,
+    upcomingInterviews: 1,
+    applications: 12,
+    interviewRate: 25
   }
 
   const fadeIn = {
@@ -211,12 +203,9 @@ export default function DashboardPage() {
                 iconColor="text-primary"
                 label="Active Goals"
                 value={stats.activeGoals}
-                change={stats.activeGoals > 0 ? {
-                  type: 'no-change',
-                  text: 'Currently tracking'
-                } : {
-                  type: 'no-change',
-                  text: 'No active goals'
+                change={{
+                  type: 'increase',
+                  text: '+1 from last month'
                 }}
               />
             </motion.div>
@@ -228,12 +217,9 @@ export default function DashboardPage() {
                 iconColor="text-blue-500"
                 label="Applications"
                 value={stats.applications}
-                change={stats.applications > 0 ? {
-                  type: 'no-change',
-                  text: 'Currently tracking'
-                } : {
-                  type: 'no-change',
-                  text: 'No applications yet'
+                change={{
+                  type: 'increase',
+                  text: '+4 this week'
                 }}
               />
             </motion.div>
@@ -244,13 +230,10 @@ export default function DashboardPage() {
                 iconBgColor="bg-green-500/20"
                 iconColor="text-green-500"
                 label="Interview Rate"
-                value={stats.applications > 0 ? `${stats.interviewRate}%` : '0%'}
-                change={stats.applications > 0 ? {
-                  type: 'no-change',
-                  text: 'Based on current apps'
-                } : {
-                  type: 'no-change',
-                  text: 'No applications yet'
+                value={`${stats.interviewRate}%`}
+                change={{
+                  type: 'increase',
+                  text: 'Above average'
                 }}
               />
             </motion.div>
@@ -263,10 +246,10 @@ export default function DashboardPage() {
                 label="Pending Tasks"
                 value={stats.pendingTasks}
                 change={{
-                  type: 'no-change',
+                  type: stats.pendingTasks > 0 ? 'increase' : 'no-change',
                   text: stats.pendingTasks > 0
                     ? `${stats.pendingTasks} item${stats.pendingTasks !== 1 ? 's' : ''} need attention`
-                    : 'All caught up!'
+                    : 'No pending tasks'
                 }}
               />
             </motion.div>
@@ -284,56 +267,27 @@ export default function DashboardPage() {
                   <p className="text-sm text-muted-foreground">Your latest career development actions</p>
                 </div>
                 <div className="space-y-4">
-                  {goals && goals.length > 0 ? (
-                    <div className="flex items-center space-x-4">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          {goals.length > 1
-                            ? `Set ${goals.length} career goals`
-                            : 'Set your first career goal'
-                          }
-                        </p>
-                        <p className="text-xs text-muted-foreground">Recent activity</p>
-                      </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Updated resume for Software Engineer position</p>
+                      <p className="text-xs text-muted-foreground">2 hours ago</p>
                     </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p className="text-sm">No recent activity yet</p>
-                      <p className="text-xs">Start by setting your first career goal!</p>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Applied to TechCorp Inc.</p>
+                      <p className="text-xs text-muted-foreground">1 day ago</p>
                     </div>
-                  )}
-
-                  {applications && applications.length > 0 && (
-                    <div className="flex items-center space-x-4">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          {applications.length > 1
-                            ? `Tracking ${applications.length} job applications`
-                            : 'Started tracking your first job application'
-                          }
-                        </p>
-                        <p className="text-xs text-muted-foreground">Recent activity</p>
-                      </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Generated cover letter with AI</p>
+                      <p className="text-xs text-muted-foreground">3 days ago</p>
                     </div>
-                  )}
-
-                  {resumes && resumes.length > 0 && (
-                    <div className="flex items-center space-x-4">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          {resumes.length > 1
-                            ? `Created ${resumes.length} resumes`
-                            : 'Created your first resume'
-                          }
-                        </p>
-                        <p className="text-xs text-muted-foreground">Recent activity</p>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
