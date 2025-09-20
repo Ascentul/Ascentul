@@ -4,7 +4,7 @@
  *
  * Usage:
  *   NEXT_PUBLIC_CONVEX_URL="https://<your-convex>.convex.cloud" \
- *   TARGET_EMAIL="test.user+pro@ascentul.dev" \
+ *   TARGET_EMAIL="test.user+pro@ascentful.io" \
  *   SUBSCRIPTION_PLAN="premium" \
  *   SUBSCRIPTION_STATUS="active" \
  *   node scripts/set-convex-subscription.js

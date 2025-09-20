@@ -19,7 +19,7 @@ const StepDiscordInvite: React.FC<StepDiscordInviteProps> = ({ onNext, onSkip })
       <div className="py-8">
         <h2 className="text-2xl font-bold mb-4">You're not building alone.</h2>
         <p className="text-muted-foreground mb-8">
-          Join the Ascentul Discord to connect with other driven professionals, get support,
+          Join the Ascentful Discord to connect with other driven professionals, get support,
           share wins, and grow alongside a high-agency community.
         </p>
 
@@ -28,7 +28,7 @@ const StepDiscordInvite: React.FC<StepDiscordInviteProps> = ({ onNext, onSkip })
           className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white font-semibold py-6 px-6 rounded-md"
           size="lg"
         >
-          Join the Ascentul Discord
+          Join the Ascentful Discord
         </Button>
 
         <div className="mt-4">

@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${encodeURIComponent(String(page))}?${params.toString()}`
     const headers: Record<string, string> = {
       'Accept': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 Ascentul/1.0',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 Ascentful/1.0',
       'X-Requested-With': 'XMLHttpRequest',
     }
     if (process.env.ADZUNA_TEST_IP) {

@@ -75,7 +75,7 @@ async function main() {
 
   const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL)
 
-  const domain = process.env.SEED_TEST_DOMAIN || 'ascentul.dev'
+  const domain = process.env.SEED_TEST_DOMAIN || 'ascentful.io'
   const prefix = process.env.SEED_TEST_PREFIX || 'test.user'
 
   const targets = [

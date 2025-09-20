@@ -21,11 +21,11 @@ CREATE TABLE public.platform_settings (
 INSERT INTO public.platform_settings (
   general, features, user_roles, university, email, api, security, xp_system, admin
 ) VALUES (
-  '{"platformName":"Ascentul","supportEmail":"support@ascentul.com","defaultTimezone":"America/New_York","maintenanceMode":false}',
+  '{"platformName":"Ascentful","supportEmail":"support@ascentful.com","defaultTimezone":"America/New_York","maintenanceMode":false}',
   '{"enableReviews":true,"enableAICoach":true,"enableResumeStudio":true,"enableVoicePractice":true,"enableCareerGoals":true,"enableApplicationTracker":true,"enableNetworkHub":true,"enableCareerPathExplorer":true,"enableProjectPortfolio":true,"enableCoverLetterStudio":true}',
   '{"defaultUserRole":"student","freeFeatures":["resume-builder","cover-letter","application-tracker"],"proFeatures":["ai-coach","voice-practice","unlimited-resumes"]}',
   '{"defaultSeatCount":100,"trialDurationDays":30,"defaultAdminPermissions":["manage-users","view-analytics"],"defaultLicenseSeats":100}',
-  '{"notifyOnReviews":true,"notifyOnSignups":true,"notifyOnErrors":true,"defaultReplyToEmail":"noreply@ascentul.com","enableMarketingEmails":false}',
+  '{"notifyOnReviews":true,"notifyOnSignups":true,"notifyOnErrors":true,"defaultReplyToEmail":"noreply@ascentful.com","enableMarketingEmails":false}',
   '{"openaiModel":"gpt-4o","maxTokensPerRequest":4000,"webhookUrls":[]}',
   '{"requireMfaForAdmins":false,"sessionTimeoutMinutes":120,"allowedIpAddresses":[]}',
   '{"goalCompletionReward":100,"goalCreationReward":50,"personalAchievementValue":100,"personalAchievementCreationReward":50,"resumeCreationReward":100,"achievementEarnedReward":100}',

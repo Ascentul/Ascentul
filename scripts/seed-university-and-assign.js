@@ -77,7 +77,7 @@ async function main() {
 
   const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL)
 
-  const domain = process.env.SEED_TEST_DOMAIN || 'ascentul.dev'
+  const domain = process.env.SEED_TEST_DOMAIN || 'ascentful.io'
   const prefix = process.env.SEED_TEST_PREFIX || 'test.user'
   const uadminEmail = `${prefix}+uadmin@${domain}`
 
@@ -88,8 +88,8 @@ async function main() {
   }
 
   const university = {
-    name: process.env.SEED_UNIVERSITY_NAME || 'Ascentul University',
-    slug: process.env.SEED_UNIVERSITY_SLUG || 'ascentul',
+    name: process.env.SEED_UNIVERSITY_NAME || 'Ascentful University',
+    slug: process.env.SEED_UNIVERSITY_SLUG || 'ascentful',
     license_plan: (process.env.SEED_UNIVERSITY_PLAN || 'Starter'),
     license_seats: Number(process.env.SEED_UNIVERSITY_SEATS || 100),
     status: (process.env.SEED_UNIVERSITY_STATUS || 'active'),

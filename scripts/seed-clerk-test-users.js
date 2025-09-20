@@ -101,7 +101,7 @@ async function main() {
   }
 
   const PASSWORD = process.env.SEED_TEST_PASSWORD || 'V3ry$Strong!Pa55-2025#'
-  const domain = process.env.SEED_TEST_DOMAIN || 'ascentul.dev'
+  const domain = process.env.SEED_TEST_DOMAIN || 'ascentful.io'
   const prefix = process.env.SEED_TEST_PREFIX || 'test.user'
 
   const accounts = [

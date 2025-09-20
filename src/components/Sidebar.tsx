@@ -424,7 +424,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         <div className="flex items-center justify-between p-4 border-b">
           {expanded && (
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-primary">Ascentul</h1>
+              <h1 className="text-xl font-bold text-primary">Ascentful</h1>
             </div>
           )}
           <Button

@@ -10,7 +10,7 @@ import { Toaster } from '@/components/ui/toaster'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Ascentul - Career Development Platform',
+  title: 'Ascentful - Career Development Platform',
   description: 'AI-powered career development and job search platform',
 }
 

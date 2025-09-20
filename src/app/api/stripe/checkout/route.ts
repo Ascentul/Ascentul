@@ -7,9 +7,9 @@ const stripeSecret = process.env.STRIPE_SECRET_KEY
 // Plan configuration for dynamic price_data
 const PLAN_CONFIG: Record<string, Record<string, { amount: number; interval: 'month' | 'year'; interval_count?: number; productName: string }>> = {
   premium: {
-    monthly: { amount: 1500, interval: 'month', interval_count: 1, productName: 'Ascentul Premium' },
-    quarterly: { amount: 3000, interval: 'month', interval_count: 3, productName: 'Ascentul Premium' },
-    annual: { amount: 7200, interval: 'year', interval_count: 1, productName: 'Ascentul Premium' },
+    monthly: { amount: 1500, interval: 'month', interval_count: 1, productName: 'Ascentful Premium' },
+    quarterly: { amount: 3000, interval: 'month', interval_count: 3, productName: 'Ascentful Premium' },
+    annual: { amount: 7200, interval: 'year', interval_count: 1, productName: 'Ascentful Premium' },
   },
 }
 

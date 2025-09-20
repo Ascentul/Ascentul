@@ -195,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       toast({
         title: 'Registration successful',
-        description: `Welcome to Ascentul, ${name}!`,
+        description: `Welcome to Ascentful, ${name}!`,
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Registration failed'

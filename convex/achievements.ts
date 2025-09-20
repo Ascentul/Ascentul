@@ -23,7 +23,7 @@ export const seedDefaults = mutation({
     const defaults = [
       {
         name: "Welcome Aboard",
-        description: "Log in to Ascentul for the first time.",
+        description: "Log in to Ascentful for the first time.",
         icon: "👋",
         category: "general",
         points: 10,

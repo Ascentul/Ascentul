@@ -60,7 +60,7 @@ export default function Page() {
       <div className="flex items-center justify-center p-6 lg:p-10 bg-white">
         <div className="w-full max-w-md">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-semibold tracking-tight">Ascentul</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Ascentful</h1>
           </div>
           <Card>
             <CardHeader>

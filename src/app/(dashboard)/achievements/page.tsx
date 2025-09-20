@@ -108,7 +108,7 @@ export default function AchievementsPage() {
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           <Award className="h-7 w-7 text-yellow-500" /> Achievements
         </h1>
-        <p className="text-muted-foreground">Complete actions in Ascentul to earn badges and XP.</p>
+        <p className="text-muted-foreground">Complete actions in Ascentful to earn badges and XP.</p>
       </div>
 
       {loading ? (

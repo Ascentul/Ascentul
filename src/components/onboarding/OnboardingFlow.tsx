@@ -227,7 +227,7 @@ export function OnboardingFlow() {
       })
 
       toast({
-        title: "Welcome to Ascentul!",
+        title: "Welcome to Ascentful!",
         description: "Your profile has been set up successfully.",
         variant: 'success'
       })
@@ -323,7 +323,7 @@ export function OnboardingFlow() {
             <CardHeader>
               <CardTitle className="text-2xl">Are you a college student, a graduate student, or an intern?</CardTitle>
               <CardDescription>
-                This helps us tailor Ascentul to your specific educational journey.
+                This helps us tailor Ascentful to your specific educational journey.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -574,7 +574,7 @@ export function OnboardingFlow() {
             <CardHeader>
               <CardTitle className="text-2xl">Which features are you most interested in?</CardTitle>
               <CardDescription>
-                Select the features you're most excited to use in Ascentul.
+                Select the features you're most excited to use in Ascentful.
               </CardDescription>
             </CardHeader>
             <CardContent>
