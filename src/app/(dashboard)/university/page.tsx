@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { GraduationCap, Users, BookOpen, Award, Target, ClipboardList, FileText, Mail, BarChart } from 'lucide-react'
+import { GraduationCap, Users, BookOpen, Award, Target, ClipboardList, FileText, Mail, BarChart as BarChartIcon } from 'lucide-react'
 import {
   ResponsiveContainer,
   BarChart,
@@ -549,7 +549,7 @@ export default function UniversityDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
-                  <BarChart className="h-5 w-5 text-muted-foreground mr-2" />
+                  <BarChartIcon className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="text-2xl font-bold">{students.length > 0 ? Math.round((students.length / departments.length) * 100) / 100 : 0}%</div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">Utilization rate</div>
