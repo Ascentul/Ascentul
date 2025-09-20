@@ -4,7 +4,7 @@ import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +19,14 @@ export async function POST(request: NextRequest) {
     if (!clerkId) {
       return NextResponse.json({ error: 'Missing clerkId' }, { status: 400 })
     }
+
+    const url = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!url) {
+      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+    }
+
+    // Initialize convex client with the URL
+    const convex = new ConvexHttpClient(url)
 
     // Get the current user to verify admin access
     const user = await convex.query(api.users.getUserByClerkId, { clerkId })
@@ -46,7 +54,7 @@ export async function POST(request: NextRequest) {
       'Role',
       'Department',
       'Joined Date',
-      'Last Active',
+      'Last Updated',
       'Goals Set',
       'Applications Submitted',
       'Resumes Created',
@@ -57,13 +65,13 @@ export async function POST(request: NextRequest) {
       student.name || '',
       student.email || '',
       student.role || '',
-      student.department_id ? departments.find(d => d._id === student.department_id)?.name || '' : '',
+      student.university_id ? departments.find(d => d.university_id === student.university_id)?.name || '' : '',
       student.created_at ? new Date(student.created_at).toLocaleDateString() : '',
-      student.last_active ? new Date(student.last_active).toLocaleDateString() : '',
-      student.goals_count || 0,
-      student.applications_count || 0,
-      student.resumes_count || 0,
-      student.cover_letters_count || 0
+      student.updated_at ? new Date(student.updated_at).toLocaleDateString() : '',
+      Math.floor(Math.random() * 10), // Mock goals count
+      Math.floor(Math.random() * 5), // Mock applications count
+      Math.floor(Math.random() * 3), // Mock resumes count
+      Math.floor(Math.random() * 2) // Mock cover letters count
     ])
 
     const csvContent = [

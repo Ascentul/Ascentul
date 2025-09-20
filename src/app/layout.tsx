@@ -14,13 +14,15 @@ export const metadata: Metadata = {
   description: 'AI-powered career development and job search platform',
 }
 
+export const dynamic = 'force-dynamic'
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en">
         <head>
           <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
