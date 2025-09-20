@@ -5,6 +5,7 @@ import { ClerkProvider } from '@clerk/nextjs'
 import ConvexClientProvider from '@/providers/ConvexClientProvider'
 import { ClerkAuthProvider } from '@/contexts/ClerkAuthProvider'
 import { QueryProvider } from '@/providers/QueryProvider'
+import { AuthWrapper } from '@/components/AuthWrapper'
 import { Toaster } from '@/components/ui/toaster'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -38,11 +39,15 @@ export default function RootLayout({
               publishableKey={publishableKey}
               signInFallbackRedirectUrl="/dashboard"
               signUpFallbackRedirectUrl="/dashboard"
+              afterSignInUrl="/dashboard"
+              afterSignUpUrl="/dashboard"
             >
               <ConvexClientProvider>
                 <ClerkAuthProvider>
                   <QueryProvider>
-                    {children}
+                    <AuthWrapper>
+                      {children}
+                    </AuthWrapper>
                     <Toaster />
                   </QueryProvider>
                 </ClerkAuthProvider>
@@ -52,7 +57,9 @@ export default function RootLayout({
             <ConvexClientProvider>
               <ClerkAuthProvider>
                 <QueryProvider>
-                  {children}
+                  <AuthWrapper>
+                    {children}
+                  </AuthWrapper>
                   <Toaster />
                 </QueryProvider>
               </ClerkAuthProvider>

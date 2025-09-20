@@ -45,6 +45,7 @@ export default function Page() {
       const result = await signIn.create({ identifier: email, password })
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId })
+        // Let AdminRedirect component handle the role-based routing
         router.replace('/dashboard')
       } else {
         setError('Additional verification required. Please continue in the next step.')
@@ -52,7 +53,7 @@ export default function Page() {
     } catch (err: any) {
       const code = err?.errors?.[0]?.code
       if (code === 'session_exists') {
-        // A session already exists; just proceed to the dashboard
+        // A session already exists; let AdminRedirect component handle routing
         router.replace('/dashboard')
         return
       }
