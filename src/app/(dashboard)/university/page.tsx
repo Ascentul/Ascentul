@@ -160,27 +160,27 @@ export default function UniversityDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Active Students (This Month)</CardTitle></CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Users className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">{Math.floor(overview.totalStudents * 0.8)}</div>
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">80% engagement rate</div>
-              </CardContent>
-            </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Active Students</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <Users className="h-5 w-5 text-muted-foreground mr-2" />
+              <div className="text-2xl font-bold">{overview.totalStudents}</div>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Total enrolled students</div>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Applications Tracked (This Semester/Month)</CardTitle></CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Award className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">{Math.floor(overview.totalStudents * 0.6)}</div>
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">Career applications submitted</div>
-              </CardContent>
-            </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Career Activity</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <Award className="h-5 w-5 text-muted-foreground mr-2" />
+              <div className="text-2xl font-bold">0</div>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Student activity will appear here</div>
+          </CardContent>
+        </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -190,31 +190,31 @@ export default function UniversityDashboardPage() {
                 <CardDescription>Feature adoption across students</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Goals Set', value: Math.floor(overview.totalStudents * 0.9) },
-                        { name: 'Applications', value: Math.floor(overview.totalStudents * 0.85) },
-                        { name: 'Resumes', value: Math.floor(overview.totalStudents * 0.7) },
-                        { name: 'Cover Letters', value: Math.floor(overview.totalStudents * 0.5) },
-                      ]}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      label
-                    >
-                      <Cell fill="#4F46E5" />
-                      <Cell fill="#10B981" />
-                      <Cell fill="#F59E0B" />
-                      <Cell fill="#EF4444" />
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Goals Set', value: 0 },
+                              { name: 'Applications', value: 0 },
+                              { name: 'Resumes', value: 0 },
+                              { name: 'Cover Letters', value: 0 },
+                            ]}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={90}
+                            label
+                          >
+                            <Cell fill="#4F46E5" />
+                            <Cell fill="#10B981" />
+                            <Cell fill="#F59E0B" />
+                            <Cell fill="#EF4444" />
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
               </CardContent>
             </Card>
 
@@ -225,11 +225,11 @@ export default function UniversityDashboardPage() {
               </CardHeader>
               <CardContent className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[
-                    { name: 'Goals', active: Math.floor(overview.totalStudents * 0.6), completed: Math.floor(overview.totalStudents * 0.3) },
-                    { name: 'Applications', active: Math.floor(overview.totalStudents * 0.4), completed: Math.floor(overview.totalStudents * 0.3) },
-                    { name: 'Interviews', active: Math.floor(overview.totalStudents * 0.1), completed: Math.floor(overview.totalStudents * 0.05) },
-                  ]}>
+                    <BarChart data={[
+                      { name: 'Goals', active: 0, completed: 0 },
+                      { name: 'Applications', active: 0, completed: 0 },
+                      { name: 'Interviews', active: 0, completed: 0 },
+                    ]}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -250,11 +250,11 @@ export default function UniversityDashboardPage() {
             </CardHeader>
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[
-                  { name: 'Goals', inProgress: Math.floor(overview.totalStudents * 0.6), completed: Math.floor(overview.totalStudents * 0.3) },
-                  { name: 'Applications', inProgress: Math.floor(overview.totalStudents * 0.4), submitted: Math.floor(overview.totalStudents * 0.3), interviewing: Math.floor(overview.totalStudents * 0.1), offers: Math.floor(overview.totalStudents * 0.05) },
-                  { name: 'Documents', resumes: Math.floor(overview.totalStudents * 0.7), coverLetters: Math.floor(overview.totalStudents * 0.5) },
-                ]}>
+                  <BarChart data={[
+                    { name: 'Goals', inProgress: 0, completed: 0 },
+                    { name: 'Applications', inProgress: 0, submitted: 0, interviewing: 0, offers: 0 },
+                    { name: 'Documents', resumes: 0, coverLetters: 0 },
+                  ]}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
@@ -419,7 +419,7 @@ export default function UniversityDashboardPage() {
                   <CardContent>
                     <div className="flex items-center">
                       <Target className="h-5 w-5 text-muted-foreground mr-2" />
-                      <div className="text-2xl font-bold">{Math.floor(overview.totalStudents * 0.3)}</div>
+                      <div className="text-2xl font-bold">{0}</div>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">Career goals achieved</div>
                   </CardContent>
@@ -432,7 +432,7 @@ export default function UniversityDashboardPage() {
                   <CardContent>
                     <div className="flex items-center">
                       <ClipboardList className="h-5 w-5 text-muted-foreground mr-2" />
-                      <div className="text-2xl font-bold">{Math.floor(overview.totalStudents * 0.3)}</div>
+                      <div className="text-2xl font-bold">{0}</div>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">Job applications</div>
                   </CardContent>
@@ -445,7 +445,7 @@ export default function UniversityDashboardPage() {
                   <CardContent>
                     <div className="flex items-center">
                       <FileText className="h-5 w-5 text-muted-foreground mr-2" />
-                      <div className="text-2xl font-bold">{Math.floor(overview.totalStudents * 0.7)}</div>
+                      <div className="text-2xl font-bold">{0}</div>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">Professional documents</div>
                   </CardContent>
@@ -458,7 +458,7 @@ export default function UniversityDashboardPage() {
                   <CardContent>
                     <div className="flex items-center">
                       <Mail className="h-5 w-5 text-muted-foreground mr-2" />
-                      <div className="text-2xl font-bold">{Math.floor(overview.totalStudents * 0.5)}</div>
+                      <div className="text-2xl font-bold">{0}</div>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">Application materials</div>
                   </CardContent>

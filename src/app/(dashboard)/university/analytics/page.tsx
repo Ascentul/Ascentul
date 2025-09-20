@@ -44,24 +44,26 @@ export default function UniversityAnalyticsPage() {
     )
   }
 
-  // Generate analytics data - using mock data for now since backend doesn't provide these yet
+  // Calculate real analytics data from actual student data
+  // Since we don't have calculated counts in the basic user query, we'll show 0s for new users
+  // This is better than showing fake inflated numbers
   const analyticsData = {
     goals: {
-      inProgress: Math.floor(overview.totalStudents * 0.6), // 60% have goals in progress
-      completed: Math.floor(overview.totalStudents * 0.3), // 30% have completed goals
-      total: Math.floor(overview.totalStudents * 0.9) // 90% have set goals
+      inProgress: 0, // Will be calculated when we have real goals data
+      completed: 0, // Will be calculated when we have real goals data
+      total: 0 // Will be calculated when we have real goals data
     },
     applications: {
-      inProgress: Math.floor(overview.totalStudents * 0.4), // 40% working on applications
-      submitted: Math.floor(overview.totalStudents * 0.3), // 30% have submitted applications
-      interviewing: Math.floor(overview.totalStudents * 0.1), // 10% in interviews
-      offers: Math.floor(overview.totalStudents * 0.05), // 5% have offers
-      total: Math.floor(overview.totalStudents * 0.85) // 85% working on job applications
+      inProgress: 0, // Will be calculated when we have real application data
+      submitted: 0, // Will be calculated when we have real application data
+      interviewing: 0, // Will be calculated when we have real application data
+      offers: 0, // Will be calculated when we have real application data
+      total: 0 // Will be calculated when we have real application data
     },
     documents: {
-      resumes: Math.floor(overview.totalStudents * 0.7), // 70% have created resumes
-      coverLetters: Math.floor(overview.totalStudents * 0.5), // 50% have created cover letters
-      total: Math.floor(overview.totalStudents * 0.85) // 85% have created documents
+      resumes: 0, // Will be calculated when we have real resume data
+      coverLetters: 0, // Will be calculated when we have real cover letter data
+      total: 0 // Will be calculated when we have real document data
     }
   }
 
