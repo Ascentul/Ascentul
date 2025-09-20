@@ -21,9 +21,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // Handle missing Clerk key during build
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
-      <html lang="en">
+    <html lang="en">
         <head>
           <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -31,16 +33,28 @@ export default function RootLayout({
         </head>
         <body className={inter.className}>
           {/* Header removed: SignIn/SignUp bar for signed-out users */}
-          <ConvexClientProvider>
-            <ClerkAuthProvider>
-              <QueryProvider>
-                {children}
-                <Toaster />
-              </QueryProvider>
-            </ClerkAuthProvider>
-          </ConvexClientProvider>
+          {publishableKey ? (
+            <ClerkProvider publishableKey={publishableKey}>
+              <ConvexClientProvider>
+                <ClerkAuthProvider>
+                  <QueryProvider>
+                    {children}
+                    <Toaster />
+                  </QueryProvider>
+                </ClerkAuthProvider>
+              </ConvexClientProvider>
+            </ClerkProvider>
+          ) : (
+            <ConvexClientProvider>
+              <ClerkAuthProvider>
+                <QueryProvider>
+                  {children}
+                  <Toaster />
+                </QueryProvider>
+              </ClerkAuthProvider>
+            </ConvexClientProvider>
+          )}
         </body>
       </html>
-    </ClerkProvider>
   )
 }
