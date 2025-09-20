@@ -157,46 +157,68 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     
   ]
 
-  // Admin sections
+  // Admin sections (top-level for super admins)
   const adminSections: SidebarSection[] = [
     {
-      id: 'admin',
-      title: 'Admin',
+      id: 'admin-dashboard',
+      title: 'Admin Dashboard',
       icon: <ShieldCheck className="h-5 w-5" />,
-      items: [
-        { href: '/admin', icon: <ShieldCheck className="h-4 w-4" />, label: 'Admin Dashboard' },
-        { href: '/admin/users', icon: <UserIcon className="h-4 w-4" />, label: 'User Management' },
-        { href: '/admin/analytics', icon: <BarChart className="h-4 w-4" />, label: 'Analytics' },
-        { href: '/admin/support', icon: <HelpCircle className="h-4 w-4" />, label: 'Support Tickets' },
-      ]
+      href: '/admin'
+    },
+    {
+      id: 'user-management',
+      title: 'User Management',
+      icon: <UserIcon className="h-5 w-5" />,
+      href: '/admin/users'
+    },
+    {
+      id: 'analytics',
+      title: 'Analytics',
+      icon: <BarChart className="h-5 w-5" />,
+      href: '/admin/analytics'
     }
   ]
 
   // University sections
   const universitySections: SidebarSection[] = [
     {
-      id: 'university',
-      title: 'University',
-      icon: <GraduationCap className="h-5 w-5" />,
+      id: 'university-dashboard',
+      title: 'Dashboard',
+      icon: <LayoutDashboard className="h-5 w-5" />,
+      href: '/university'
+    },
+    {
+      id: 'university-students',
+      title: 'Students',
+      icon: <UserIcon className="h-5 w-5" />,
       items: [
-        { href: '/university', icon: <School className="h-4 w-4" />, label: 'University Dashboard' },
-        { href: '/university/courses', icon: <BookOpen className="h-4 w-4" />, label: 'Course Management' },
-        { href: '/university/students', icon: <UserIcon className="h-4 w-4" />, label: 'Student Progress' },
+        { href: '/university/students', icon: <UserIcon className="h-4 w-4" />, label: 'Student Overview' },
+        { href: '/university/students/progress', icon: <BarChart className="h-4 w-4" />, label: 'Student Progress' },
+        { href: '/university/students/licenses', icon: <ShieldCheck className="h-4 w-4" />, label: 'Add Student Licenses' },
       ]
+    },
+    {
+      id: 'university-departments',
+      title: 'Departments',
+      icon: <Building className="h-5 w-5" />,
+      href: '/university/departments'
+    },
+    {
+      id: 'university-analytics',
+      title: 'Usage Analytics',
+      icon: <LineChart className="h-5 w-5" />,
+      href: '/university/analytics'
     }
   ]
 
   // Combine sections based on user role
-  // Admin roles should NOT see user-facing sections. University Admins have limited admin menu.
+  // Admin roles should NOT see user-facing sections. University Admins should NOT see admin menu at all.
   const isUniAdmin = user?.role === 'university_admin'
-  const filteredAdminSections: SidebarSection[] = adminSections.map((sec) => {
-    if (sec.id !== 'admin') return sec
-    const filteredItems = (sec.items || []).filter((it) => {
-      // Hide super admin routes from university admins
-      if (isUniAdmin && (it.href === '/admin/analytics' || it.href === '/admin/support')) return false
-      return true
-    })
-    return { ...sec, items: filteredItems }
+  const filteredAdminSections: SidebarSection[] = adminSections.filter((sec) => {
+    // University admins should not see any admin sections
+    if (isUniAdmin) return false
+    // Super admins see all admin sections
+    return true
   })
 
   const allSections = isAdmin

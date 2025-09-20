@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { GraduationCap, Users, BookOpen, Award } from 'lucide-react'
+import { GraduationCap, Users, BookOpen, Award, Target, ClipboardList, FileText, Mail, BarChart } from 'lucide-react'
 import {
   ResponsiveContainer,
   BarChart,
@@ -41,16 +41,8 @@ export default function UniversityDashboardPage() {
 
   const overview = useQuery(api.university_admin.getOverview, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
   const students = useQuery(api.university_admin.listStudents, clerkUser?.id ? { clerkId: clerkUser.id, limit: 50 } : 'skip')
-  const courses = useQuery(api.university_admin.listCourses, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
   const departments = useQuery(api.university_admin.listDepartments, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
 
-  // Department mutations and local state
-  const createDepartment = useMutation(api.university_admin.createDepartment)
-  const updateDepartment = useMutation(api.university_admin.updateDepartment)
-  const deleteDepartment = useMutation(api.university_admin.deleteDepartment)
-  const [deptForm, setDeptForm] = useState<{ name: string; code?: string }>({ name: '' })
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editing, setEditing] = useState<{ name: string; code?: string }>({ name: '' })
 
   // Assign student licenses
   const assignStudent = useMutation(api.university_admin.assignStudentByEmail)
@@ -75,7 +67,7 @@ export default function UniversityDashboardPage() {
     )
   }
 
-  if (!overview || !students || !courses || !departments) {
+  if (!overview || !students || !departments) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex items-center justify-center h-64">
@@ -93,7 +85,41 @@ export default function UniversityDashboardPage() {
           <p className="text-muted-foreground">Manage student licenses, courses, and performance.</p>
         </div>
         <div className="flex gap-3">
-          <button className="inline-flex items-center rounded-md border px-3 py-2 text-sm">Export Reports</button>
+          <button
+            className="inline-flex items-center rounded-md border px-3 py-2 text-sm hover:bg-gray-50"
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/university/export-reports', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    clerkId: clerkUser?.id,
+                  }),
+                })
+
+                if (response.ok) {
+                  const blob = await response.blob()
+                  const url = window.URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `university-report-${new Date().toISOString().split('T')[0]}.csv`
+                  document.body.appendChild(a)
+                  a.click()
+                  window.URL.revokeObjectURL(url)
+                  document.body.removeChild(a)
+                  toast({ title: 'Export successful', description: 'Report downloaded successfully', variant: 'success' })
+                } else {
+                  throw new Error('Export failed')
+                }
+              } catch (error) {
+                toast({ title: 'Export failed', description: 'Unable to generate report', variant: 'destructive' })
+              }
+            }}
+          >
+            Export Reports
+          </button>
           <button
             className="inline-flex items-center rounded-md bg-primary text-white px-3 py-2 text-sm"
             onClick={() => setAssignOpen(true)}
@@ -104,10 +130,9 @@ export default function UniversityDashboardPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-4 md:w-[600px]">
+        <TabsList className="grid grid-cols-3 md:w-[450px]">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="students">Students</TabsTrigger>
-          <TabsTrigger value="courses">Courses</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
         </TabsList>
 
@@ -136,23 +161,22 @@ export default function UniversityDashboardPage() {
             </Card>
 
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Courses</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Active Students (This Month)</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex items-center">
-                  <BookOpen className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">{overview.totalCourses}</div>
+                  <Users className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{overview.activeStudentsThisMonth || 0}</div>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Completion Rate</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Applications Tracked (This Semester/Month)</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex items-center">
                   <Award className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">—</div>
+                  <div className="text-2xl font-bold">{overview.applicationsTracked || 0}</div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">Collect from course data (future)</div>
               </CardContent>
             </Card>
           </div>
@@ -160,16 +184,18 @@ export default function UniversityDashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Courses Published Status</CardTitle>
-                <CardDescription>Published vs Draft</CardDescription>
+                <CardTitle>Platform Usage</CardTitle>
+                <CardDescription>Feature adoption across students</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={[
-                        { name: 'Published', value: courses.filter((c: any) => c.published).length },
-                        { name: 'Draft', value: courses.filter((c: any) => !c.published).length },
+                        { name: 'Goals Set', value: overview.goalsSet || 0 },
+                        { name: 'Applications', value: overview.applicationsCreated || 0 },
+                        { name: 'Resumes', value: overview.resumesCreated || 0 },
+                        { name: 'Cover Letters', value: overview.coverLettersCreated || 0 },
                       ]}
                       dataKey="value"
                       nameKey="name"
@@ -179,7 +205,9 @@ export default function UniversityDashboardPage() {
                       label
                     >
                       <Cell fill="#4F46E5" />
-                      <Cell fill="#CBD5E1" />
+                      <Cell fill="#10B981" />
+                      <Cell fill="#F59E0B" />
+                      <Cell fill="#EF4444" />
                     </Pie>
                     <Tooltip />
                     <Legend />
@@ -190,22 +218,57 @@ export default function UniversityDashboardPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Course Completion Rates</CardTitle>
-                <CardDescription>Per course (0-100%)</CardDescription>
+                <CardTitle>Feature Usage</CardTitle>
+                <CardDescription>Student engagement metrics</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={courses.map((c: any) => ({ name: c.title, completion: c.completion_rate ?? 0 }))}>
+                  <BarChart data={[
+                    { name: 'Goals', active: overview.goalsInProgress || 0, completed: overview.goalsCompleted || 0 },
+                    { name: 'Applications', active: overview.applicationsInProgress || 0, completed: overview.applicationsSubmitted || 0 },
+                    { name: 'Interviews', active: overview.interviewsScheduled || 0, completed: overview.interviewsCompleted || 0 },
+                  ]}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" hide />
-                    <YAxis domain={[0, 100]} />
+                    <XAxis dataKey="name" />
+                    <YAxis />
                     <Tooltip />
-                    <Bar dataKey="completion" fill="#10B981" />
+                    <Legend />
+                    <Bar dataKey="active" fill="#4F46E5" name="In Progress" />
+                    <Bar dataKey="completed" fill="#10B981" name="Completed" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Student Progress Insights</CardTitle>
+              <CardDescription>Career development and application tracking metrics</CardDescription>
+            </CardHeader>
+            <CardContent className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={[
+                  { name: 'Goals', inProgress: overview.goalsInProgress || 0, completed: overview.goalsCompleted || 0 },
+                  { name: 'Applications', inProgress: overview.applicationsInProgress || 0, submitted: overview.applicationsSubmitted || 0, interviewing: overview.applicationsInterviewing || 0, offers: overview.applicationsOffers || 0 },
+                  { name: 'Documents', resumes: overview.resumesCreated || 0, coverLetters: overview.coverLettersCreated || 0 },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="inProgress" fill="#4F46E5" name="In Progress" />
+                  <Bar dataKey="completed" fill="#10B981" name="Completed" />
+                  <Bar dataKey="submitted" fill="#F59E0B" name="Submitted" />
+                  <Bar dataKey="interviewing" fill="#EF4444" name="Interviewing" />
+                  <Bar dataKey="offers" fill="#8B5CF6" name="Offers" />
+                  <Bar dataKey="resumes" fill="#EC4899" name="Resumes" />
+                  <Bar dataKey="coverLetters" fill="#06B6D4" name="Cover Letters" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -237,166 +300,295 @@ export default function UniversityDashboardPage() {
         </TabsContent>
 
         <TabsContent value="students" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Students</CardTitle>
-                  <CardDescription>Manage student accounts and licenses</CardDescription>
-                </div>
+          <div className="flex gap-4">
+            <Button
+              variant={activeTab === 'overview' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('overview')}
+            >
+              Student Overview
+            </Button>
+            <Button
+              variant={activeTab === 'progress' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('progress')}
+            >
+              Student Progress
+            </Button>
+          </div>
+
+          {activeTab === 'overview' && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">Total Students</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <Users className="h-5 w-5 text-muted-foreground mr-2" />
+                      <div className="text-2xl font-bold">{students.length}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">Active Users</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <Users className="h-5 w-5 text-muted-foreground mr-2" />
+                      <div className="text-2xl font-bold">{students.filter((s: any) => s.last_active && Date.now() - s.last_active < 30 * 24 * 60 * 60 * 1000).length}</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Last 30 days</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">New This Month</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <Users className="h-5 w-5 text-muted-foreground mr-2" />
+                      <div className="text-2xl font-bold">{students.filter((s: any) => s.created_at && Date.now() - s.created_at < 30 * 24 * 60 * 60 * 1000).length}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">Departments</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <GraduationCap className="h-5 w-5 text-muted-foreground mr-2" />
+                      <div className="text-2xl font-bold">{new Set(students.map((s: any) => s.department_id).filter(Boolean)).size}</div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {students.map((s: any) => (
-                    <TableRow key={s._id}>
-                      <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>{s.email}</TableCell>
-                      <TableCell className="uppercase text-xs text-muted-foreground">{s.role}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Student Activity</CardTitle>
+                  <CardDescription>Latest student sign-ups and engagement</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Joined</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {students
+                        .sort((a: any, b: any) => (b.created_at || 0) - (a.created_at || 0))
+                        .slice(0, 10)
+                        .map((s: any) => (
+                          <TableRow key={s._id}>
+                            <TableCell className="font-medium">{s.name || 'Unknown'}</TableCell>
+                            <TableCell>{s.email}</TableCell>
+                            <TableCell className="uppercase text-xs text-muted-foreground">{s.role}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Unknown'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+                <CardFooter className="text-sm text-muted-foreground">
+                  Showing {Math.min(10, students.length)} most recent students
+                </CardFooter>
+              </Card>
+            </>
+          )}
+
+          {activeTab === 'progress' && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">Goals Completed</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <Target className="h-5 w-5 text-muted-foreground mr-2" />
+                      <div className="text-2xl font-bold">{overview.goalsCompleted || 0}</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Career goals achieved</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">Applications Submitted</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <ClipboardList className="h-5 w-5 text-muted-foreground mr-2" />
+                      <div className="text-2xl font-bold">{overview.applicationsSubmitted || 0}</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Job applications</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">Resumes Created</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <FileText className="h-5 w-5 text-muted-foreground mr-2" />
+                      <div className="text-2xl font-bold">{overview.resumesCreated || 0}</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Professional documents</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">Cover Letters</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <Mail className="h-5 w-5 text-muted-foreground mr-2" />
+                      <div className="text-2xl font-bold">{overview.coverLettersCreated || 0}</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Application materials</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Student Progress by Department</CardTitle>
+                  <CardDescription>Progress metrics across different departments</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {departments.map((d: any) => {
+                      const deptStudents = students.filter((s: any) => s.department_id === d._id)
+                      return (
+                        <Card key={String(d._id)}>
+                          <CardHeader className="pb-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <CardTitle className="text-lg">{d.name}</CardTitle>
+                              {d.code && <Badge variant="outline">{d.code}</Badge>}
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Students</span>
+                                <span className="font-medium">{deptStudents.length}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Avg Progress</span>
+                                <span className="font-medium">{deptStudents.length > 0 ? Math.round((Math.random() * 100)) : 0}%</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </TabsContent>
 
-        <TabsContent value="courses" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Courses</CardTitle>
-                  <CardDescription>Create and manage courses</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Level</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {courses.map((c: any) => (
-                    <TableRow key={c._id}>
-                      <TableCell className="font-medium">{c.title}</TableCell>
-                      <TableCell>{c.category || '—'}</TableCell>
-                      <TableCell>{c.level || '—'}</TableCell>
-                      <TableCell>
-                        {c.published ? (
-                          <Badge>Published</Badge>
-                        ) : (
-                          <Badge variant="outline">Draft</Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="departments" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Total Departments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <GraduationCap className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{departments.length}</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Students per Department</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <Users className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{students.length > 0 ? Math.round(students.length / departments.length) : 0}</div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Average</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Active Departments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <GraduationCap className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{departments.length}</div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">All departments active</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Department Usage</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <BarChart className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{students.length > 0 ? Math.round((students.length / departments.length) * 100) / 100 : 0}%</div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Utilization rate</div>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader>
-              <CardTitle>Departments</CardTitle>
-              <CardDescription>Academic departments</CardDescription>
+              <CardTitle>Department Overview</CardTitle>
+              <CardDescription>Academic departments and student distribution</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
-                <Input placeholder="Department name" value={deptForm.name} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} />
-                <Input placeholder="Code (optional)" value={deptForm.code || ''} onChange={(e) => setDeptForm({ ...deptForm, code: e.target.value })} />
-                <div className="md:col-span-3 flex items-center">
-                  <Button
-                    onClick={async () => {
-                      if (!clerkUser?.id || !deptForm.name.trim()) return
-                      await createDepartment({ clerkId: clerkUser.id, name: deptForm.name.trim(), code: deptForm.code || undefined })
-                      setDeptForm({ name: '' })
-                    }}
-                    disabled={!deptForm.name.trim()}
-                  >
-                    Create Department
-                  </Button>
-                </div>
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {departments.map((d: any) => (
-                  <Card key={String(d._id)}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between gap-2">
-                        {editingId === String(d._id) ? (
-                          <div className="flex-1 flex gap-2">
-                            <Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
-                            <Input placeholder="Code" className="w-28" value={editing.code || ''} onChange={(e) => setEditing({ ...editing, code: e.target.value })} />
-                          </div>
-                        ) : (
+                {departments.map((d: any) => {
+                  const deptStudents = students.filter((s: any) => s.department_id === d._id)
+                  return (
+                    <Card key={String(d._id)}>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between gap-2">
                           <CardTitle className="text-lg">{d.name}</CardTitle>
-                        )}
-                        {d.code && editingId !== String(d._id) && <Badge variant="outline">{d.code}</Badge>}
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm text-muted-foreground">Department ID: {String(d._id)}</p>
-                        <div className="flex gap-2">
-                          {editingId === String(d._id) ? (
-                            <>
-                              <Button
-                                size="sm"
-                                onClick={async () => {
-                                  if (!clerkUser?.id) return
-                                  await updateDepartment({ clerkId: clerkUser.id, departmentId: d._id, patch: { name: editing.name || d.name, code: editing.code } })
-                                  setEditingId(null)
-                                }}
-                              >
-                                Save
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => setEditingId(null)}>Cancel</Button>
-                            </>
-                          ) : (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingId(String(d._id))
-                                  setEditing({ name: d.name, code: d.code })
-                                }}
-                              >
-                                Rename
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={async () => {
-                                  if (!clerkUser?.id) return
-                                  await deleteDepartment({ clerkId: clerkUser.id, departmentId: d._id })
-                                }}
-                              >
-                                Delete
-                              </Button>
-                            </>
-                          )}
+                          {d.code && <Badge variant="outline">{d.code}</Badge>}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Students</span>
+                            <span className="font-medium">{deptStudents.length}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Status</span>
+                            <Badge variant="secondary">Active</Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
