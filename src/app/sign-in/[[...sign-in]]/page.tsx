@@ -27,6 +27,15 @@ export default function Page() {
     }
   }, [authLoaded, isSignedIn, router])
 
+  // Clear any cached authentication data on component mount
+  useEffect(() => {
+    // Clear localStorage and sessionStorage to prevent cached auth issues
+    if (typeof window !== 'undefined') {
+      localStorage.clear()
+      sessionStorage.clear()
+    }
+  }, [])
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)

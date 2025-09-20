@@ -34,7 +34,11 @@ export default function RootLayout({
         <body className={inter.className}>
           {/* Header removed: SignIn/SignUp bar for signed-out users */}
           {publishableKey ? (
-            <ClerkProvider publishableKey={publishableKey}>
+            <ClerkProvider
+              publishableKey={publishableKey}
+              signInFallbackRedirectUrl="/dashboard"
+              signUpFallbackRedirectUrl="/dashboard"
+            >
               <ConvexClientProvider>
                 <ClerkAuthProvider>
                   <QueryProvider>
