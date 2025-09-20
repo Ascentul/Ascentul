@@ -21,6 +21,8 @@ const mapGoal = (doc: any) => ({
   updated_at: doc.updated_at,
 })
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { userId } = getAuth(request)
