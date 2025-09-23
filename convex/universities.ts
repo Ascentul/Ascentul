@@ -90,6 +90,53 @@ export const assignUniversityToUser = mutation({
   }
 });
 
+// Get all universities for admin management
+export const getAllUniversities = query({
+  args: { clerkId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    // TODO: Add proper admin authorization check
+    return await ctx.db
+      .query("universities")
+      .collect();
+  }
+});
+
+// Update a university (admin only)
+export const updateUniversity = mutation({
+  args: {
+    universityId: v.id("universities"),
+    updates: v.object({
+      name: v.optional(v.string()),
+      slug: v.optional(v.string()),
+      license_plan: v.optional(v.union(
+        v.literal("Starter"),
+        v.literal("Basic"),
+        v.literal("Pro"),
+        v.literal("Enterprise"),
+      )),
+      license_seats: v.optional(v.number()),
+      status: v.optional(v.union(
+        v.literal("active"),
+        v.literal("expired"),
+        v.literal("trial"),
+        v.literal("suspended"),
+      )),
+      admin_email: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    // TODO: Add proper admin authorization check
+    const { universityId, updates } = args;
+
+    await ctx.db.patch(universityId, {
+      ...updates,
+      updated_at: Date.now(),
+    });
+
+    return universityId;
+  }
+});
+
 // Optional helper to fetch by slug
 export const getUniversityBySlug = query({
   args: { slug: v.string() },
