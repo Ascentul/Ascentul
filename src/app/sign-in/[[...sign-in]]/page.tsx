@@ -130,16 +130,17 @@ export default function Page() {
 
       {/* Right: Marketing Panel */}
       <div className="hidden lg:flex items-center justify-center bg-primary text-primary-foreground p-10">
-        <div className="max-w-md">
-          <h2 className="text-3xl font-bold mb-4">Accelerate Your Career Journey</h2>
-          <p className="opacity-90 mb-6">
-            Your all-in-one platform for career development, resume building, interview preparation, and professional growth.
+        <div className="max-w-lg">
+          <h2 className="text-4xl font-bold mb-4">Accelerate Your Career Path</h2>
+          <p className="opacity-90 mb-6 text-lg">
+          Your all-in-one platform to plan, build, and launch your career.
           </p>
-          <ul className="space-y-3 text-sm">
-            <li>✔ AI-powered career coaching and goal tracking</li>
-            <li>✔ Resume and cover letter builder with AI suggestions</li>
-            <li>✔ Interactive interview preparation tools</li>
-            <li>✔ Gamified learning with XP and achievements</li>
+          <ul className="space-y-3 text-md">
+            <li>✔ AI-powered coaching to guide your next steps</li>
+            <li>✔ Create polished resumes and tailored cover letters</li>
+            <li>✔ Track and achieve your career goals with clarity</li>
+            <li>✔ Explore career paths and opportunities with confidence</li>
+            <li>✔ Organize your projects, skills, and experiences in one place</li>
           </ul>
         </div>
       </div>

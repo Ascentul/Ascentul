@@ -20,8 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
-  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles,
-  Building, GraduationCap, Trophy, BookOpen, Award, Languages, MapPin, Users, Settings
+  User, ShieldCheck, Edit, CheckCircle2, Loader2, Settings, Brain
 } from 'lucide-react'
 
 // Profile form schema
@@ -48,35 +47,22 @@ const passwordChangeSchema = z.object({
 
 type PasswordChangeFormValues = z.infer<typeof passwordChangeSchema>
 
-// Profile sections for completion tracking
-const profileSections = [
-  { id: 'work-history', title: 'Work History', icon: Building, completed: false },
-  { id: 'education', title: 'Education', icon: GraduationCap, completed: false },
-  { id: 'achievements', title: 'Achievements', icon: Trophy, completed: false },
-  { id: 'skills', title: 'Skills', icon: BookOpen, completed: false },
-  { id: 'certifications', title: 'Certifications', icon: Award, completed: false },
-  { id: 'languages', title: 'Languages', icon: Languages, completed: false },
-  { id: 'summary', title: 'Career Summary', icon: Users, completed: false },
-  { id: 'location', title: 'Location Preferences', icon: MapPin, completed: false },
-]
 
 export default function AccountPage() {
   const { user: clerkUser } = useUser()
   const { user: userProfile, signOut } = useAuth()
   const { toast } = useToast()
   const updateUser = useMutation(api.users.updateUser)
+  const updatePlatformSettings = useMutation(api.platform_settings.updatePlatformSettings)
+  const platformSettings = useQuery(api.platform_settings.getPlatformSettings)
+  const availableModels = useQuery(api.platform_settings.getAvailableOpenAIModels)
 
-  // State for dialogs
+  // State for dialogs and settings
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
-  const [prices, setPrices] = useState<{ monthly?: { unit_amount: number; currency: string }; annual?: { unit_amount: number; currency: string } }>({})
-  const [isPortalLoading, setIsPortalLoading] = useState(false)
-
-  // Calculate profile completion
-  const completedSections = profileSections.filter(section => section.completed).length
-  const completionPercentage = (completedSections / profileSections.length) * 100
+  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini')
+  const [isSavingModel, setIsSavingModel] = useState(false)
 
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
@@ -97,70 +83,12 @@ export default function AccountPage() {
     },
   })
   
-  // Stripe: Payment Links for upgrade
-  const openPaymentLink = (interval: 'monthly' | 'annual') => {
-    try {
-      setIsCheckoutLoading(true)
-      const monthlyUrl = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY
-      const annualUrl = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ANNUAL
-      const base = interval === 'monthly' ? monthlyUrl : annualUrl
-      if (base) {
-        const url = new URL(base)
-        // Help Stripe link the session to the current user for webhook reconciliation
-        const email = userProfile?.email || clerkUser?.emailAddresses?.[0]?.emailAddress
-        if (email) url.searchParams.set('prefilled_email', email)
-        if (clerkUser?.id) url.searchParams.set('client_reference_id', clerkUser.id)
-        window.location.href = url.toString()
-        return
-      }
-      toast({ title: 'Payment link not configured', description: 'Please contact support.', variant: 'destructive' })
-    } finally {
-      setIsCheckoutLoading(false)
-    }
-  }
-
-  // Fetch dynamic pricing from Stripe via API route
+  // Load current OpenAI model setting from platform settings
   useEffect(() => {
-    const fetchPrices = async () => {
-      try {
-        const res = await fetch('/api/stripe/prices', { method: 'GET' })
-        if (!res.ok) return
-        const data = await res.json()
-        setPrices(data || {})
-      } catch (e) {
-        // Silently fail; we can still show upgrade without amount
-      }
+    if (platformSettings) {
+      setSelectedModel(platformSettings.openai_model)
     }
-    fetchPrices()
-  }, [])
-
-  const formatAmount = (cents?: number, currency?: string) => {
-    if (typeof cents !== 'number' || !currency) return ''
-    try {
-      return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(cents / 100)
-    } catch {
-      return `$${(cents / 100).toFixed(2)}`
-    }
-  }
-
-  // Stripe: Open billing portal
-  const handleManageBilling = async () => {
-    try {
-      setIsPortalLoading(true)
-      const res = await fetch('/api/stripe/portal', { method: 'POST' })
-      const data = await res.json()
-      if (res.ok && data?.url) {
-        window.location.href = data.url
-        return
-      }
-      throw new Error(data?.error || 'Failed to open billing portal')
-    } catch (e) {
-      console.error(e)
-      toast({ title: 'Billing portal error', description: 'Please try again later.', variant: 'destructive' })
-    } finally {
-      setIsPortalLoading(false)
-    }
-  }
+  }, [platformSettings])
   
   const handleProfileUpdate = async (data: ProfileFormValues) => {
     setIsLoading(true)
@@ -236,16 +164,6 @@ export default function AccountPage() {
     }
   }
 
-  const getSubscriptionBadgeVariant = (plan: string) => {
-    switch (plan) {
-      case 'premium':
-        return 'default'
-      case 'pro':
-        return 'secondary'
-      default:
-        return 'outline'
-    }
-  }
 
   if (isLoading) {
     return (
@@ -276,9 +194,8 @@ export default function AccountPage() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="subscription">Subscription</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
 
@@ -324,120 +241,137 @@ export default function AccountPage() {
             </CardContent>
           </Card>
 
-          {/* Career Profile Completion */}
+          {/* Current AI Model Information - For All Users */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5" />
-                Career Profile Completion
+                <Brain className="h-5 w-5" />
+                AI Model Information
               </CardTitle>
               <CardDescription>
-                Complete your career profile to get better recommendations
+                Current AI model configuration for the platform
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Profile Completion</span>
-                  <span>{Math.round(completionPercentage)}%</span>
-                </div>
-                <Progress value={completionPercentage} className="h-2" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {profileSections.map((section) => {
-                  const IconComponent = section.icon
-                  return (
-                    <div key={section.id} className="flex items-center gap-2 p-2 rounded-lg border">
-                      <IconComponent className="h-4 w-4" />
-                      <span className="text-sm flex-1">{section.title}</span>
-                      {section.completed ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30" />
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="subscription" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Subscription Plan
-              </CardTitle>
-              <CardDescription>
-                Manage your subscription and billing information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Current Plan</h3>
-                  <p className="text-sm text-muted-foreground">
-                    You are currently on the {userProfile.subscription_plan} plan
-                  </p>
-                </div>
-                <Badge variant={getSubscriptionBadgeVariant(userProfile.subscription_plan)}>
-                  {userProfile.subscription_plan.charAt(0).toUpperCase() + userProfile.subscription_plan.slice(1)}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Status</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Your subscription is {userProfile.subscription_status}
-                  </p>
-                </div>
-                <Badge variant={userProfile.subscription_status === 'active' ? 'default' : 'destructive'}>
-                  {userProfile.subscription_status}
-                </Badge>
-              </div>
-              {userProfile.subscription_plan === 'free' ? (
-                <div className="p-4 border rounded-lg bg-muted/50">
-                  <h4 className="font-medium mb-2">Upgrade to Premium</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Get access to advanced features, unlimited resumes, and priority support.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button onClick={() => openPaymentLink('monthly')} disabled={isCheckoutLoading}>
-                      {isCheckoutLoading ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Redirecting...</>
-                      ) : (
-                        `Upgrade Monthly ${prices.monthly ? `- ${formatAmount(prices.monthly.unit_amount, prices.monthly.currency)}/mo` : ''}`
-                      )}
-                    </Button>
-                    <Button variant="secondary" onClick={() => openPaymentLink('annual')} disabled={isCheckoutLoading}>
-                      {isCheckoutLoading ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Redirecting...</>
-                      ) : (
-                        `Upgrade Annual ${prices.annual ? `- ${formatAmount(prices.annual.unit_amount, prices.annual.currency)}/yr` : ''}`
-                      )}
-                    </Button>
-                  </div>
+              {!platformSettings ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span>Loading model information...</span>
                 </div>
               ) : (
-                <div className="p-4 border rounded-lg bg-muted/50">
-                  <h4 className="font-medium mb-2">Manage Billing</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Update payment methods, view invoices, or change your plan.
-                  </p>
-                  <Button variant="outline" onClick={handleManageBilling} disabled={isPortalLoading}>
-                    {isPortalLoading ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Opening...</>
-                    ) : (
-                      'Open Billing Portal'
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">Current Model</div>
+                      <div className="text-sm text-muted-foreground">
+                        {availableModels?.find(m => m.id === platformSettings.openai_model)?.name || 'Unknown Model'}
+                      </div>
+                    </div>
+                    {userProfile?.role === 'super_admin' && (
+                      <div className="text-xs text-muted-foreground">
+                        Super Admin: Configure below ↓
+                      </div>
                     )}
-                  </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
+
+          {/* OpenAI Model Configuration - Super Admin Only */}
+          {userProfile?.role === 'super_admin' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5" />
+                  OpenAI Model Configuration
+                </CardTitle>
+                <CardDescription>
+                  Configure which OpenAI model is used for AI features across the platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!availableModels || !platformSettings ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Loading model options...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {availableModels.map((model) => (
+                        <div
+                          key={model.id}
+                          className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                            selectedModel === model.id
+                              ? 'border-primary bg-primary/5'
+                              : 'border-muted hover:border-muted-foreground/30'
+                          }`}
+                          onClick={() => setSelectedModel(model.id)}
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium">{model.name}</div>
+                            <div className="text-sm text-muted-foreground">{model.description}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Max tokens: {model.max_tokens?.toLocaleString()} • Cost: ${model.cost_per_1k_tokens}/1K tokens
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            {selectedModel === model.id ? (
+                              <CheckCircle2 className="h-5 w-5 text-primary" />
+                            ) : (
+                              <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        onClick={async () => {
+                          if (!clerkUser?.id) return
+
+                          setIsSavingModel(true)
+                          try {
+                            await updatePlatformSettings({
+                              clerkId: clerkUser.id,
+                              settings: {
+                                openai_model: selectedModel,
+                              },
+                            })
+
+                            toast({
+                              title: 'Model Updated',
+                              description: `OpenAI model set to ${availableModels.find(m => m.id === selectedModel)?.name}`,
+                              variant: 'success',
+                            })
+                          } catch (error) {
+                            console.error('Error updating model:', error)
+                            toast({
+                              title: 'Error',
+                              description: 'Failed to update OpenAI model. Please try again.',
+                              variant: 'destructive',
+                            })
+                          } finally {
+                            setIsSavingModel(false)
+                          }
+                        }}
+                        disabled={isSavingModel || selectedModel === platformSettings.openai_model}
+                      >
+                        {isSavingModel ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
+                        ) : (
+                          'Save Model Preference'
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
+
 
         <TabsContent value="security" className="space-y-6">
           <Card>

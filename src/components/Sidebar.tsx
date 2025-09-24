@@ -116,45 +116,62 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       href: '/dashboard'
     },
     {
-      id: 'career-development',
-      title: 'Career Development',
-      icon: <Target className="h-5 w-5" />,
-      items: [
-        { href: '/goals', icon: <Target className="h-4 w-4" />, label: 'Goals' },
-        { href: '/career-path', icon: <GitBranch className="h-4 w-4" />, label: 'Career Path Explorer' },
-        { href: '/ai-coach', icon: <Bot className="h-4 w-4" />, label: 'AI Career Coach', pro: true },
-      ]
+      id: 'career-profile',
+      title: 'Career Profile',
+      icon: <UserIcon className="h-5 w-5" />,
+      href: '/career-profile'
     },
     {
-      id: 'job-search',
-      title: 'Job Search',
+      id: 'jobs',
+      title: 'Jobs',
       icon: <Search className="h-5 w-5" />,
+      href: '/job-search'
+    },
+    {
+      id: 'application-tracker',
+      title: 'Application Tracker',
+      icon: <ClipboardList className="h-5 w-5" />,
+      href: '/applications'
+    },
+    {
+      id: 'career-growth',
+      title: 'Career Growth',
+      icon: <Briefcase className="h-5 w-5" />,
       items: [
-        { href: '/job-search', icon: <Search className="h-4 w-4" />, label: 'Job Search' },
-        { href: '/applications', icon: <ClipboardList className="h-4 w-4" />, label: 'Application Tracker' },
-        { href: '/interviews', icon: <Calendar className="h-4 w-4" />, label: 'Interview Tracker' },
+        { href: '/goals', icon: <Target className="h-4 w-4" />, label: 'Career Goals' },
+        { href: '/career-path', icon: <GitBranch className="h-4 w-4" />, label: 'Career Path Explorer' },
       ]
     },
     {
-      id: 'documents',
-      title: 'Documents',
-      icon: <FileText className="h-5 w-5" />,
-      items: [
-        { href: '/resumes', icon: <FileText className="h-4 w-4" />, label: 'Resumes' },
-        { href: '/cover-letters', icon: <Mail className="h-4 w-4" />, label: 'Cover Letter Coach' },
-        { href: '/projects', icon: <FolderGit2 className="h-4 w-4" />, label: 'Project Portfolio' },
-      ]
-    },
-    {
-      id: 'networking',
-      title: 'Networking',
+      id: 'network-hub',
+      title: 'Network Hub',
       icon: <UserRound className="h-5 w-5" />,
-      items: [
-        { href: '/contacts', icon: <UserRound className="h-4 w-4" />, label: 'Network Hub' },
-        { href: '/linkedin', icon: <Linkedin className="h-4 w-4" />, label: 'LinkedIn Integration', pro: true },
-      ]
+      href: '/contacts'
     },
-    
+    {
+      id: 'resume-builder',
+      title: 'Resume Builder',
+      icon: <FileText className="h-5 w-5" />,
+      href: '/resumes'
+    },
+    {
+      id: 'cover-letter-coach',
+      title: 'Cover Letter Coach',
+      icon: <Mail className="h-5 w-5" />,
+      href: '/cover-letters'
+    },
+    {
+      id: 'project-portfolio',
+      title: 'Project Portfolio',
+      icon: <FolderGit2 className="h-5 w-5" />,
+      href: '/projects'
+    },
+    {
+      id: 'ai-career-coach',
+      title: 'AI Career Coach',
+      icon: <Bot className="h-5 w-5" />,
+      href: '/ai-coach'
+    }
   ]
 
   // Admin sections (top-level for super admins)
@@ -182,6 +199,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       title: 'Analytics',
       icon: <BarChart className="h-5 w-5" />,
       href: '/admin/analytics'
+    },
+    {
+      id: 'support-tickets',
+      title: 'Support Tickets',
+      icon: <HelpCircle className="h-5 w-5" />,
+      href: '/admin/support'
     }
   ]
 
@@ -345,9 +368,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         key={item.href}
         href={disabled ? '#' : item.href}
         className={`
-          flex items-center px-3 py-2 text-sm rounded-md transition-colors relative
-          ${active 
-            ? 'bg-primary/10 text-primary border-r-2 border-primary' 
+          flex items-center px-3 py-2 text-sm rounded-md transition-all duration-200 relative
+          ${active
+            ? 'bg-primary text-primary-foreground shadow-sm'
             : disabled
             ? 'text-gray-400 cursor-not-allowed'
             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -355,7 +378,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         `}
         onClick={disabled ? (e) => { e.preventDefault(); setShowUpsellModal(true) } : undefined}
       >
-        <span className="mr-3">{item.icon}</span>
+        <span className={`${expanded ? 'mr-3' : ''} flex-shrink-0`}>{item.icon}</span>
         {expanded && (
           <>
             <span className="flex-1">{item.label}</span>
@@ -380,14 +403,14 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
           key={section.id}
           href={section.href}
           className={`
-            flex items-center px-3 py-2 text-sm rounded-md transition-colors
-            ${sectionActive 
-              ? 'bg-primary/10 text-primary border-r-2 border-primary' 
+            flex items-center px-3 py-2 text-sm rounded-md transition-all duration-200
+            ${sectionActive
+              ? 'bg-primary text-primary-foreground shadow-sm'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
             }
           `}
         >
-          <span className="mr-3">{section.icon}</span>
+          <span className={`${expanded ? 'mr-3' : ''} flex-shrink-0`}>{section.icon}</span>
           {expanded && <span>{section.title}</span>}
         </Link>
       )
@@ -405,12 +428,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     return (
       <div key={section.id} className="space-y-1">
         <div
-          className="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-700"
+          className={`flex items-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-700 ${expanded ? '' : 'justify-center'}`}
           role="button"
           aria-expanded={!isCollapsed}
           onClick={toggleSectionItems}
         >
-          <span className="mr-3">{section.icon}</span>
+          <span className={`${expanded ? 'mr-3' : ''} flex-shrink-0`}>{section.icon}</span>
           {expanded && <span>{section.title}</span>}
           {expanded && (
             <ChevronRight
@@ -443,13 +466,13 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         className={`
           bg-white shadow-lg transition-all duration-300 ease-in-out z-30
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-          ${expanded ? 'w-64' : 'w-16'}
+          ${expanded ? 'w-64' : 'w-20'}
           md:translate-x-0 md:static md:inset-0
           fixed inset-y-0 left-0 flex flex-col
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className={`flex items-center ${expanded ? 'justify-between' : 'justify-center'} p-4 border-b`}>
           {expanded && (
             <div className="flex items-center">
               <h1 className="text-xl font-bold text-primary">Ascentful</h1>
@@ -468,8 +491,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         {/* User Profile */}
         {clerkUser && (
           <div className="p-4 border-b">
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10">
+            <div className={`flex items-center ${expanded ? 'space-x-3' : 'justify-center'}`}>
+              <div className="h-10 w-10 flex-shrink-0">
                 <UserButton
                   appearance={{
                     elements: {
@@ -511,7 +534,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-4 py-4 space-y-2">
           {allSections.map(renderSection)}
         </nav>
 
@@ -547,10 +570,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
               <DialogTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start text-gray-600 hover:text-gray-900"
+                  className={`w-full ${expanded ? 'justify-start' : 'justify-center'} text-gray-600 hover:text-gray-900`}
                 >
-                  <HelpCircle className="h-4 w-4 mr-3" />
-                  {expanded && <span>Support</span>}
+                  <HelpCircle className="h-4 w-4" />
+                  {expanded && <span className="ml-3">Support</span>}
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -611,19 +634,19 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
           <Link
             href="/account"
-            className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+            className={`flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? 'justify-start' : 'justify-center'}`}
           >
-            <Settings className="h-4 w-4 mr-3" />
-            {expanded && <span>Settings</span>}
+            <Settings className="h-4 w-4" />
+            {expanded && <span className="ml-3">Settings</span>}
           </Link>
 
           <Button
             variant="ghost"
             onClick={handleLogout}
-            className="w-full justify-start text-gray-600 hover:text-gray-900"
+            className={`w-full ${expanded ? 'justify-start' : 'justify-center'} text-gray-600 hover:text-gray-900`}
           >
-            <LogOut className="h-4 w-4 mr-3" />
-            {expanded && <span>Sign Out</span>}
+            <LogOut className="h-4 w-4" />
+            {expanded && <span className="ml-3">Sign Out</span>}
           </Button>
         </div>
       </div>

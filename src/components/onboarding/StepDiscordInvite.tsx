@@ -7,13 +7,6 @@ interface StepDiscordInviteProps {
 }
 
 const StepDiscordInvite: React.FC<StepDiscordInviteProps> = ({ onNext, onSkip }) => {
-  const handleJoinDiscord = () => {
-    // First open Discord in new tab
-    window.open("https://discord.gg/xJSSYxWt", "_blank");
-    // Then immediately continue to next step (plan selection)
-    onNext();
-  };
-
   return (
     <div className="max-w-xl mx-auto text-center space-y-6">
       <div className="py-8">
@@ -24,11 +17,11 @@ const StepDiscordInvite: React.FC<StepDiscordInviteProps> = ({ onNext, onSkip })
         </p>
 
         <Button
-          onClick={handleJoinDiscord}
+          onClick={onNext}
           className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white font-semibold py-6 px-6 rounded-md"
           size="lg"
         >
-          Join the Ascentful Discord
+          Next
         </Button>
 
         <div className="mt-4">
