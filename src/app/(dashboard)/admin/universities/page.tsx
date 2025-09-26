@@ -132,7 +132,7 @@ export default function AdminUniversitiesPage() {
     setSaving(true)
     try {
       await updateUniversity({
-        universityId: editing._id,
+        universityId: editing._id as any,
         updates: {
           name: form.name,
           slug: form.slug,

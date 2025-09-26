@@ -360,7 +360,7 @@ export default function AdminAnalyticsPage() {
                 {Object.entries(universityGrowth.licenseDistribution).map(([plan, count]) => (
                   <div key={plan} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <span className="text-sm">{plan}</span>
-                    <span className="font-medium">{count}</span>
+                    <span className="font-medium">{String(count)}</span>
                   </div>
                 ))}
               </div>

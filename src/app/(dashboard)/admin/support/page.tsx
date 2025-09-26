@@ -74,7 +74,7 @@ export default function AdminSupportPage() {
     try {
       await updateTicketStatus({
         clerkId: clerkUser.id,
-        ticketId,
+        ticketId: ticketId as any,
         status: status as any,
       })
     } catch (error) {
@@ -87,7 +87,7 @@ export default function AdminSupportPage() {
     try {
       await bulkUpdateTickets({
         clerkId: clerkUser.id,
-        ticketIds: selectedTickets,
+        ticketIds: selectedTickets as any,
         status: status as any,
       })
       setSelectedTickets([])

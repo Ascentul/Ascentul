@@ -14,6 +14,7 @@ import { api } from 'convex/_generated/api'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -64,15 +65,16 @@ export default function CareerProfilePage() {
   // Load user data into form when available
   useEffect(() => {
     if (userProfile) {
+      const profile = userProfile as any
       careerProfileForm.reset({
-        currentPosition: userProfile.current_position || '',
-        currentCompany: userProfile.current_company || '',
-        location: userProfile.location || '',
-        industry: userProfile.industry || '',
-        experienceLevel: (userProfile.experience_level as 'entry' | 'mid' | 'senior' | 'executive') || 'mid',
-        bio: userProfile.bio || '',
-        skills: userProfile.skills || '',
-        careerGoals: userProfile.career_goals || '',
+        currentPosition: profile.current_position || '',
+        currentCompany: profile.current_company || '',
+        location: profile.location || '',
+        industry: profile.industry || '',
+        experienceLevel: (profile.experience_level as 'entry' | 'mid' | 'senior' | 'executive') || 'mid',
+        bio: profile.bio || '',
+        skills: profile.skills || '',
+        careerGoals: profile.career_goals || '',
       })
     }
   }, [userProfile, careerProfileForm])
@@ -93,7 +95,7 @@ export default function CareerProfilePage() {
           bio: data.bio,
           skills: data.skills,
           career_goals: data.careerGoals,
-        },
+        } as any,
       })
 
       toast({
@@ -172,20 +174,20 @@ export default function CareerProfilePage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium">Current Position</label>
-                  <p className="text-sm text-muted-foreground">{userProfile.current_position || 'Not specified'}</p>
+                  <p className="text-sm text-muted-foreground">{(userProfile as any).current_position || 'Not specified'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Current Company</label>
-                  <p className="text-sm text-muted-foreground">{userProfile.current_company || 'Not specified'}</p>
+                  <p className="text-sm text-muted-foreground">{(userProfile as any).current_company || 'Not specified'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Location</label>
-                  <p className="text-sm text-muted-foreground">{userProfile.location || 'Not specified'}</p>
+                  <p className="text-sm text-muted-foreground">{(userProfile as any).location || 'Not specified'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Experience Level</label>
                   <Badge variant="secondary" className="capitalize">
-                    {userProfile.experience_level || 'Not specified'}
+                    {(userProfile as any).experience_level || 'Not specified'}
                   </Badge>
                 </div>
               </div>
@@ -199,7 +201,7 @@ export default function CareerProfilePage() {
           </Card>
 
           {/* Professional Bio */}
-          {userProfile.bio && (
+          {(userProfile as any).bio && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -209,14 +211,14 @@ export default function CareerProfilePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {userProfile.bio}
+                  {(userProfile as any).bio}
                 </p>
               </CardContent>
             </Card>
           )}
 
           {/* Skills */}
-          {userProfile.skills && (
+          {(userProfile as any).skills && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -226,7 +228,7 @@ export default function CareerProfilePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {userProfile.skills}
+                  {(userProfile as any).skills}
                 </p>
               </CardContent>
             </Card>
@@ -235,7 +237,7 @@ export default function CareerProfilePage() {
 
         <TabsContent value="details" className="space-y-6">
           {/* Career Goals */}
-          {userProfile.career_goals && (
+          {(userProfile as any).career_goals && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -245,7 +247,7 @@ export default function CareerProfilePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {userProfile.career_goals}
+                  {(userProfile as any).career_goals}
                 </p>
               </CardContent>
             </Card>

@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       student.name || '',
       student.email || '',
       student.role || '',
-      student.university_id ? departments.find(d => d._id === student.university_id)?.name || d.name || '' : '',
+      student.university_id ? departments.find(d => d._id === student.university_id as any)?.name || '' : '',
       student.created_at ? new Date(student.created_at).toLocaleDateString() : '',
       student.updated_at ? new Date(student.updated_at).toLocaleDateString() : '',
       Math.floor(Math.random() * 10), // Mock goals count
@@ -98,11 +98,12 @@ export async function POST(request: NextRequest) {
     ])
 
     // Escape CSV cells to handle commas and quotes
-    const escapeCSV = (field: string) => {
-      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
-        return `"${field.replace(/"/g, '""')}"`
+    const escapeCSV = (field: string | number) => {
+      const stringField = String(field)
+      if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+        return `"${stringField.replace(/"/g, '""')}"`
       }
-      return field
+      return stringField
     }
 
     const csvContent = [

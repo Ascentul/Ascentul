@@ -31,7 +31,7 @@ export default clerkMiddleware(async (auth, req) => {
     // If user is on dashboard and is an admin, redirect to appropriate admin dashboard
     if (pathname.startsWith('/dashboard')) {
       try {
-        const token = await auth.getToken()
+        const token = await (auth as any).getToken()
         if (token) {
           // Decode the JWT token to get user metadata
           const payload = JSON.parse(atob(token.split('.')[1]))
