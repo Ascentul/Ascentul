@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
+import { SimpleOnboardingChecklist } from '@/components/SimpleOnboardingChecklist'
+import { CareerGoalsSummary } from '@/components/CareerGoalsSummary'
+import { ActiveInterviewsSummary } from '@/components/ActiveInterviewsSummary'
+import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
+import { AICareerCoach } from '@/components/AICareerCoach'
+import { TodaysRecommendations } from '@/components/TodaysRecommendations'
 import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
 import { Button } from '@/components/ui/button'
@@ -128,15 +134,17 @@ export default function DashboardPage() {
                     <DialogTitle className="text-center">Quick Actions</DialogTitle>
                   </DialogHeader>
                   <div className="grid grid-cols-1 gap-2 py-4">
-                    <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
-                        <Target className="h-5 w-5 text-primary" />
+                    <Link href="/goals" className="w-full">
+                      <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
+                          <Target className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Create a Goal</div>
+                          <div className="text-xs text-muted-foreground">Track your career objectives</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium">Create a Goal</div>
-                        <div className="text-xs text-muted-foreground">Track your career objectives</div>
-                      </div>
-                    </div>
+                    </Link>
 
                     <Link href="/resumes" className="w-full">
                       <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
@@ -174,17 +182,6 @@ export default function DashboardPage() {
                       </div>
                     </Link>
 
-                    <Link href="/projects" className="w-full">
-                      <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                        <div className="h-9 w-9 rounded-full bg-amber-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                          <Briefcase className="h-5 w-5 text-amber-500" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Add Work History</div>
-                          <div className="text-xs text-muted-foreground">Record your work experience</div>
-                        </div>
-                      </div>
-                    </Link>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -255,6 +252,11 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
+          {/* Onboarding Checklist */}
+          <motion.div variants={cardAnimation}>
+            <SimpleOnboardingChecklist />
+          </motion.div>
+
           {/* Recent Activity */}
           <motion.div 
             className="mb-6"
@@ -291,6 +293,31 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
+          </motion.div>
+
+          {/* Career Goals Summary */}
+          <motion.div variants={cardAnimation}>
+            <CareerGoalsSummary />
+          </motion.div>
+
+          {/* Active Interviews Summary */}
+          <motion.div variants={cardAnimation}>
+            <ActiveInterviewsSummary />
+          </motion.div>
+
+          {/* Follow-up Actions Summary */}
+          <motion.div variants={cardAnimation}>
+            <FollowupActionsSummary />
+          </motion.div>
+
+          {/* AI Career Coach */}
+          <motion.div variants={cardAnimation}>
+            <AICareerCoach />
+          </motion.div>
+
+          {/* Today's Recommendations */}
+          <motion.div variants={cardAnimation}>
+            <TodaysRecommendations />
           </motion.div>
         </motion.div>
     </OnboardingGuard>

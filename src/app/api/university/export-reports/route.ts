@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { getAuth } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    // Get authentication from request
+    const { userId } = getAuth(request)
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -20,6 +21,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing clerkId' }, { status: 400 })
     }
 
+    // For additional security, verify the clerkId matches the authenticated user
+    if (userId !== clerkId) {
+      return NextResponse.json({ error: 'ClerkId mismatch' }, { status: 403 })
+    }
+
     const url = process.env.NEXT_PUBLIC_CONVEX_URL
     if (!url) {
       return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
@@ -29,23 +35,40 @@ export async function POST(request: NextRequest) {
     const convex = new ConvexHttpClient(url)
 
     // Get the current user to verify admin access
-    const user = await convex.query(api.users.getUserByClerkId, { clerkId })
-    if (!user || !['admin', 'super_admin', 'university_admin'].includes(user.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    let user
+    try {
+      user = await convex.query(api.users.getUserByClerkId, { clerkId })
+    } catch (error) {
+      console.error('Error fetching user by clerkId:', error)
+      return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 })
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    if (!['admin', 'super_admin', 'university_admin'].includes(user.role)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
     // Get university data
     const universityId = user.university_id
     if (!universityId) {
-      return NextResponse.json({ error: 'No university assigned' }, { status: 400 })
+      return NextResponse.json({ error: 'No university assigned to user' }, { status: 400 })
     }
 
     // Fetch all relevant data
-    const [students, departments, overview] = await Promise.all([
-      convex.query(api.university_admin.listStudents, { clerkId, limit: 1000 }),
-      convex.query(api.university_admin.listDepartments, { clerkId }),
-      convex.query(api.university_admin.getOverview, { clerkId })
-    ])
+    let students, departments, overview
+    try {
+      [students, departments, overview] = await Promise.all([
+        convex.query(api.university_admin.listStudents, { clerkId, limit: 1000 }),
+        convex.query(api.university_admin.listDepartments, { clerkId }),
+        convex.query(api.university_admin.getOverview, { clerkId })
+      ])
+    } catch (error) {
+      console.error('Error fetching university data:', error)
+      return NextResponse.json({ error: 'Failed to fetch university data' }, { status: 500 })
+    }
 
     // Generate CSV content
     const csvHeaders = [
@@ -65,7 +88,7 @@ export async function POST(request: NextRequest) {
       student.name || '',
       student.email || '',
       student.role || '',
-      student.university_id ? departments.find(d => d.university_id === student.university_id)?.name || '' : '',
+      student.university_id ? departments.find(d => d._id === student.university_id)?.name || d.name || '' : '',
       student.created_at ? new Date(student.created_at).toLocaleDateString() : '',
       student.updated_at ? new Date(student.updated_at).toLocaleDateString() : '',
       Math.floor(Math.random() * 10), // Mock goals count
@@ -74,21 +97,35 @@ export async function POST(request: NextRequest) {
       Math.floor(Math.random() * 2) // Mock cover letters count
     ])
 
+    // Escape CSV cells to handle commas and quotes
+    const escapeCSV = (field: string) => {
+      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+        return `"${field.replace(/"/g, '""')}"`
+      }
+      return field
+    }
+
     const csvContent = [
       csvHeaders.join(','),
-      ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...csvRows.map(row => row.map(escapeCSV).join(','))
     ].join('\n')
+
+    const filename = `university-report-${new Date().toISOString().split('T')[0]}.csv`
 
     return new NextResponse(csvContent, {
       status: 200,
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="university-report-${new Date().toISOString().split('T')[0]}.csv"`
+        'Content-Disposition': `attachment; filename="${filename}"`
       }
     })
 
   } catch (error) {
     console.error('Export reports error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+    }, { status: 500 })
   }
 }

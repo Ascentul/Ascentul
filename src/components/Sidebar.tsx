@@ -243,22 +243,20 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   // Combine sections based on user role
   // Admin roles should NOT see user-facing sections. University Admins should NOT see admin menu at all.
   const isUniAdmin = user?.role === 'university_admin'
-  const filteredAdminSections: SidebarSection[] = adminSections.filter((sec) => {
-    // University admins should not see any admin sections
-    if (isUniAdmin) return false
-    // Super admins see all admin sections
-    return true
-  })
 
-  const allSections = isAdmin
-    ? [
-        ...(isUniversityUser ? universitySections : []),
-        ...filteredAdminSections,
-      ]
-    : [
-        ...sidebarSections,
-        ...(isUniversityUser ? universitySections : []),
-      ]
+  // Determine which sections to show based on user role
+  let allSections: SidebarSection[] = []
+
+  if (isUniAdmin) {
+    // University admins only see university sections
+    allSections = [...universitySections]
+  } else if (isAdmin) {
+    // Super admins and regular admins see admin sections
+    allSections = [...adminSections]
+  } else {
+    // Regular users see standard sections
+    allSections = [...sidebarSections]
+  }
 
   // Determine active section by matching current pathname
   const getActiveSectionId = () => {
@@ -291,7 +289,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       }
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUniversityUser, isAdmin])
+  }, [user?.role])
 
   // Always ensure the currently active section is expanded when route changes
   useEffect(() => {
