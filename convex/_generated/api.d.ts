@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as achievements from "../achievements.js";
+import type * as analytics from "../analytics.js";
 import type * as applications from "../applications.js";
 import type * as career_paths from "../career_paths.js";
 import type * as contacts from "../contacts.js";
@@ -22,6 +23,7 @@ import type * as followups from "../followups.js";
 import type * as goals from "../goals.js";
 import type * as interviews from "../interviews.js";
 import type * as jobs from "../jobs.js";
+import type * as platform_settings from "../platform_settings.js";
 import type * as projects from "../projects.js";
 import type * as resumes from "../resumes.js";
 import type * as support_tickets from "../support_tickets.js";
@@ -39,6 +41,7 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   achievements: typeof achievements;
+  analytics: typeof analytics;
   applications: typeof applications;
   career_paths: typeof career_paths;
   contacts: typeof contacts;
@@ -47,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   goals: typeof goals;
   interviews: typeof interviews;
   jobs: typeof jobs;
+  platform_settings: typeof platform_settings;
   projects: typeof projects;
   resumes: typeof resumes;
   support_tickets: typeof support_tickets;

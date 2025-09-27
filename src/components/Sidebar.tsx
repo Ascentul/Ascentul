@@ -80,7 +80,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const isUniversityUser = user?.role === 'university_admin' || user?.subscription_plan === 'university'
   
   // Check if user is on free plan and not a university admin or premium user
-  const isFreeUser = user?.subscription_plan === 'free' && user?.role !== 'university_admin'
+  const isFreeUser = user?.subscription_plan === 'free' && user?.role !== 'university_admin' && !isAdmin
   const sidebarRef = useRef<HTMLDivElement>(null)
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const [hoverSection, setHoverSection] = useState<string | null>(null)
@@ -120,13 +120,18 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       id: 'career-profile',
       title: 'Career Profile',
       icon: <UserIcon className="h-5 w-5" />,
+<<<<<<< HEAD
       href: '/account'
+=======
+      href: '/career-profile'
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
     },
     {
       id: 'jobs',
       title: 'Jobs',
       icon: <Search className="h-5 w-5" />,
       href: '/job-search'
+<<<<<<< HEAD
     },
     {
       id: 'application-tracker',
@@ -153,10 +158,30 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       href: '/career-path'
     },
     {
+=======
+    },
+    {
+      id: 'application-tracker',
+      title: 'Application Tracker',
+      icon: <ClipboardList className="h-5 w-5" />,
+      href: '/applications'
+    },
+    {
+      id: 'career-growth',
+      title: 'Career Growth',
+      icon: <Briefcase className="h-5 w-5" />,
+      items: [
+        { href: '/goals', icon: <Target className="h-4 w-4" />, label: 'Career Goals' },
+        { href: '/career-path', icon: <GitBranch className="h-4 w-4" />, label: 'Career Path Explorer' },
+      ]
+    },
+    {
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
       id: 'network-hub',
       title: 'Network Hub',
       icon: <UserRound className="h-5 w-5" />,
       href: '/contacts'
+<<<<<<< HEAD
     },
     {
       id: 'career-portfolio',
@@ -189,14 +214,42 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       href: '/ai-coach',
       pro: true
     },
+=======
+    },
+    {
+      id: 'resume-builder',
+      title: 'Resume Builder',
+      icon: <FileText className="h-5 w-5" />,
+      href: '/resumes'
+    },
+    {
+      id: 'cover-letter-coach',
+      title: 'Cover Letter Coach',
+      icon: <Mail className="h-5 w-5" />,
+      href: '/cover-letters'
+    },
+    {
+      id: 'project-portfolio',
+      title: 'Project Portfolio',
+      icon: <FolderGit2 className="h-5 w-5" />,
+      href: '/projects'
+    },
+    {
+      id: 'ai-career-coach',
+      title: 'AI Career Coach',
+      icon: <Bot className="h-5 w-5" />,
+      href: '/ai-coach'
+    }
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
   ]
 
-  // Admin sections
+  // Admin sections (top-level for super admins)
   const adminSections: SidebarSection[] = [
     {
-      id: 'admin',
-      title: 'Admin',
+      id: 'admin-dashboard',
+      title: 'Admin Dashboard',
       icon: <ShieldCheck className="h-5 w-5" />,
+<<<<<<< HEAD
       items: [
         { href: '/admin', icon: <ShieldCheck className="h-4 w-4" />, label: 'Admin Dashboard' },
         { href: '/admin/users', icon: <UserIcon className="h-4 w-4" />, label: 'User Management' },
@@ -205,6 +258,33 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         { href: '/admin/support', icon: <HelpCircle className="h-4 w-4" />, label: 'Support Tickets' },
         { href: '/admin/settings', icon: <Settings className="h-4 w-4" />, label: 'Settings' },
       ]
+=======
+      href: '/admin'
+    },
+    {
+      id: 'universities',
+      title: 'Universities',
+      icon: <School className="h-5 w-5" />,
+      href: '/admin/universities'
+    },
+    {
+      id: 'user-management',
+      title: 'User Management',
+      icon: <UserIcon className="h-5 w-5" />,
+      href: '/admin/users'
+    },
+    {
+      id: 'analytics',
+      title: 'Analytics',
+      icon: <BarChart className="h-5 w-5" />,
+      href: '/admin/analytics'
+    },
+    {
+      id: 'support-tickets',
+      title: 'Support Tickets',
+      icon: <HelpCircle className="h-5 w-5" />,
+      href: '/admin/support'
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
     }
   ]
 
@@ -212,6 +292,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const universitySections: SidebarSection[] = [
     {
       id: 'university-dashboard',
+<<<<<<< HEAD
       title: 'University Dashboard',
       icon: <School className="h-5 w-5" />,
       href: '/university'
@@ -227,31 +308,53 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       title: 'Settings',
       icon: <Settings className="h-5 w-5" />,
       href: '/university/settings'
+=======
+      title: 'Dashboard',
+      icon: <LayoutDashboard className="h-5 w-5" />,
+      href: '/university'
+    },
+    {
+      id: 'university-students',
+      title: 'Students',
+      icon: <UserIcon className="h-5 w-5" />,
+      items: [
+        { href: '/university/students', icon: <UserIcon className="h-4 w-4" />, label: 'Student Overview' },
+        { href: '/university/students/progress', icon: <BarChart className="h-4 w-4" />, label: 'Student Progress' },
+        { href: '/university/students/licenses', icon: <ShieldCheck className="h-4 w-4" />, label: 'Add Student Licenses' },
+      ]
+    },
+    {
+      id: 'university-departments',
+      title: 'Departments',
+      icon: <Building className="h-5 w-5" />,
+      href: '/university/departments'
+    },
+    {
+      id: 'university-analytics',
+      title: 'Usage Analytics',
+      icon: <LineChart className="h-5 w-5" />,
+      href: '/university/analytics'
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
     }
   ]
 
   // Combine sections based on user role
-  // Admin roles should NOT see user-facing sections. University Admins have limited admin menu.
+  // Admin roles should NOT see user-facing sections. University Admins should NOT see admin menu at all.
   const isUniAdmin = user?.role === 'university_admin'
-  const filteredAdminSections: SidebarSection[] = adminSections.map((sec) => {
-    if (sec.id !== 'admin') return sec
-    const filteredItems = (sec.items || []).filter((it) => {
-      // Hide super admin routes from university admins
-      if (isUniAdmin && (it.href === '/admin/analytics' || it.href === '/admin/support')) return false
-      return true
-    })
-    return { ...sec, items: filteredItems }
-  })
 
-  const allSections = isAdmin
-    ? [
-        ...(isUniversityUser ? universitySections : []),
-        ...filteredAdminSections,
-      ]
-    : [
-        ...sidebarSections,
-        ...(isUniversityUser ? universitySections : []),
-      ]
+  // Determine which sections to show based on user role
+  let allSections: SidebarSection[] = []
+
+  if (isUniAdmin) {
+    // University admins only see university sections
+    allSections = [...universitySections]
+  } else if (isAdmin) {
+    // Super admins and regular admins see admin sections
+    allSections = [...adminSections]
+  } else {
+    // Regular users see standard sections
+    allSections = [...sidebarSections]
+  }
 
   // Determine active section by matching current pathname
   const getActiveSectionId = () => {
@@ -284,7 +387,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       }
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUniversityUser, isAdmin])
+  }, [user?.role])
 
   // Always ensure the currently active section is expanded when route changes
   useEffect(() => {
@@ -361,9 +464,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         key={item.href}
         href={disabled ? '#' : item.href}
         className={`
-          flex items-center px-3 py-2 text-sm rounded-md transition-colors relative
-          ${active 
-            ? 'bg-primary/10 text-primary border-r-2 border-primary' 
+          flex items-center px-3 py-2 text-sm rounded-md transition-all duration-200 relative
+          ${active
+            ? 'bg-primary text-primary-foreground shadow-sm'
             : disabled
             ? 'text-gray-400 cursor-not-allowed'
             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -371,7 +474,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         `}
         onClick={disabled ? (e) => { e.preventDefault(); setShowUpsellModal(true) } : undefined}
       >
-        <span className="mr-3">{item.icon}</span>
+        <span className={`${expanded ? 'mr-3' : ''} flex-shrink-0`}>{item.icon}</span>
         {expanded && (
           <>
             <span className="flex-1">{item.label}</span>
@@ -400,16 +503,23 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
           key={section.id}
           href={disabled ? '#' : section.href}
           className={`
+<<<<<<< HEAD
             flex items-center px-3 py-2 mx-2 text-sm rounded-lg transition-colors
             ${sectionActive
               ? 'bg-primary/10 text-primary'
               : disabled
               ? 'text-gray-400 cursor-not-allowed'
+=======
+            flex items-center px-3 py-2 text-sm rounded-md transition-all duration-200
+            ${sectionActive
+              ? 'bg-primary text-primary-foreground shadow-sm'
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
             }
           `}
           onClick={disabled ? (e) => { e.preventDefault(); setShowUpsellModal(true) } : undefined}
         >
+<<<<<<< HEAD
           <span className="mr-3">{section.icon}</span>
           {expanded && (
             <>
@@ -419,6 +529,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
               )}
             </>
           )}
+=======
+          <span className={`${expanded ? 'mr-3' : ''} flex-shrink-0`}>{section.icon}</span>
+          {expanded && <span>{section.title}</span>}
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
         </Link>
       )
     }
@@ -435,12 +549,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     return (
       <div key={section.id} className="space-y-1">
         <div
-          className="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-700"
+          className={`flex items-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-700 ${expanded ? '' : 'justify-center'}`}
           role="button"
           aria-expanded={!isCollapsed}
           onClick={toggleSectionItems}
         >
-          <span className="mr-3">{section.icon}</span>
+          <span className={`${expanded ? 'mr-3' : ''} flex-shrink-0`}>{section.icon}</span>
           {expanded && <span>{section.title}</span>}
           {expanded && (
             <ChevronRight
@@ -479,7 +593,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className={`flex items-center ${expanded ? 'justify-between' : 'justify-center'} p-4 border-b`}>
           {expanded && (
             <div className="flex items-center">
               <h1 className="text-xl font-bold text-primary">Ascentful</h1>
@@ -498,7 +612,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         {/* User Profile */}
         {clerkUser && (
           <div className="p-4 border-b">
+<<<<<<< HEAD
             <div className="flex items-center space-x-3">
+=======
+            <div className={`flex items-center ${expanded ? 'space-x-3' : 'justify-center'}`}>
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
               <div className="h-10 w-10 flex-shrink-0">
                 <UserButton
                   appearance={{
@@ -541,7 +659,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         )}
 
         {/* Navigation */}
+<<<<<<< HEAD
         <nav className="flex-1 px-2 py-4 space-y-1">
+=======
+        <nav className="flex-1 px-4 py-4 space-y-2">
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
           {allSections.map(renderSection)}
         </nav>
 
@@ -572,86 +694,88 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-gray-600 hover:text-gray-900"
-              >
-                <HelpCircle className="h-4 w-4 mr-3" />
-                {expanded && <span>Support</span>}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Contact Support</DialogTitle>
-                <DialogDescription>
-                  Describe your issue and we'll help you resolve it.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Issue Type</label>
-                  <Select value={issueType} onValueChange={setIssueType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Bug">Bug Report</SelectItem>
-                      <SelectItem value="Feature">Feature Request</SelectItem>
-                      <SelectItem value="Account">Account Issue</SelectItem>
-                      <SelectItem value="Billing">Billing Question</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Subject</label>
-                  <Input
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Brief description of your issue"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Please provide details about your issue"
-                    rows={4}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button 
-                  onClick={handleSupportSubmit}
-                  disabled={isSubmitting || !subject.trim() || !description.trim()}
+          {!isAdmin && (
+            <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className={`w-full ${expanded ? 'justify-start' : 'justify-center'} text-gray-600 hover:text-gray-900`}
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
+                  <HelpCircle className="h-4 w-4" />
+                  {expanded && <span className="ml-3">Support</span>}
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Contact Support</DialogTitle>
+                  <DialogDescription>
+                    Describe your issue and we'll help you resolve it.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Issue Type</label>
+                    <Select value={issueType} onValueChange={setIssueType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Bug">Bug Report</SelectItem>
+                        <SelectItem value="Feature">Feature Request</SelectItem>
+                        <SelectItem value="Account">Account Issue</SelectItem>
+                        <SelectItem value="Billing">Billing Question</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Subject</label>
+                    <Input
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="Brief description of your issue"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Description</label>
+                    <Textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Please provide details about your issue"
+                      rows={4}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button
+                    onClick={handleSupportSubmit}
+                    disabled={isSubmitting || !subject.trim() || !description.trim()}
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
 
           <Link
             href="/account"
-            className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+            className={`flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? 'justify-start' : 'justify-center'}`}
           >
-            <Settings className="h-4 w-4 mr-3" />
-            {expanded && <span>Settings</span>}
+            <Settings className="h-4 w-4" />
+            {expanded && <span className="ml-3">Settings</span>}
           </Link>
 
           <Button
             variant="ghost"
             onClick={handleLogout}
-            className="w-full justify-start text-gray-600 hover:text-gray-900"
+            className={`w-full ${expanded ? 'justify-start' : 'justify-center'} text-gray-600 hover:text-gray-900`}
           >
-            <LogOut className="h-4 w-4 mr-3" />
-            {expanded && <span>Sign Out</span>}
+            <LogOut className="h-4 w-4" />
+            {expanded && <span className="ml-3">Sign Out</span>}
           </Button>
         </div>
       </div>

@@ -80,19 +80,26 @@ export const assignStudentByEmail = mutation({
     requireAdmin(admin);
     if (!admin.university_id) throw new Error("No university assigned");
 
-    const student = await ctx.db
+    // Check if user already exists
+    const existingStudent = await ctx.db
       .query("users")
       .withIndex("by_email", (q: any) => q.eq("email", args.email))
-      .unique();
-    if (!student) throw new Error("User with that email not found");
+      .first();
 
-    await ctx.db.patch(student._id, {
-      university_id: admin.university_id,
-      subscription_plan: "university",
-      ...(args.role ? { role: args.role } : {}),
-      updated_at: Date.now(),
-    });
-    return student._id;
+    if (existingStudent) {
+      // Update existing user
+      await ctx.db.patch(existingStudent._id, {
+        university_id: admin.university_id,
+        subscription_plan: "university",
+        ...(args.role ? { role: args.role } : {}),
+        updated_at: Date.now(),
+      });
+      return existingStudent._id;
+    } else {
+      // For now, we'll still require the user to exist
+      // In a real implementation, you might want to create an invite system
+      throw new Error("User with that email not found. Users must sign up first before being assigned licenses.");
+    }
   },
 });
 

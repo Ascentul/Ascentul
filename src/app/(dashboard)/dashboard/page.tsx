@@ -4,20 +4,26 @@ import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
+import { SimpleOnboardingChecklist } from '@/components/SimpleOnboardingChecklist'
+import { CareerGoalsSummary } from '@/components/CareerGoalsSummary'
+import { ActiveInterviewsSummary } from '@/components/ActiveInterviewsSummary'
+import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
+import { AICareerCoach } from '@/components/AICareerCoach'
+import { TodaysRecommendations } from '@/components/TodaysRecommendations'
 import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
 } from '@/components/ui/dialog'
-import { 
+import {
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
-  Briefcase, Mail, Users, Eye, Edit, Calendar, ChevronDown, ChevronUp, 
+  Briefcase, Mail, Users, Eye, Edit, Calendar, ChevronDown, ChevronUp,
   Square, CheckSquare, RefreshCw
 } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -50,7 +56,11 @@ export default function DashboardPage() {
     return null
   }
 
+<<<<<<< HEAD
   // Updated stats data per testing requirements
+=======
+  // Mock stats data to match archived version - reverted for stability
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
   const stats = {
     nextInterview: "Tomorrow 2PM",
     activeApplications: 12,
@@ -175,6 +185,7 @@ export default function DashboardPage() {
                       </div>
                     </Link>
 
+<<<<<<< HEAD
                     <Link href="/contacts" className="w-full">
                       <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                         <div className="h-9 w-9 rounded-full bg-orange-500/10 flex items-center justify-center mr-3 flex-shrink-0">
@@ -187,6 +198,8 @@ export default function DashboardPage() {
                       </div>
                     </Link>
 
+=======
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
                   </div>
                 </DialogContent>
               </Dialog>
@@ -200,7 +213,11 @@ export default function DashboardPage() {
           >
             <motion.div variants={cardAnimation}>
               <StatCard
+<<<<<<< HEAD
                 icon={<Calendar className="h-5 w-5 text-primary" />}
+=======
+                icon={<Target className="h-5 w-5 text-primary" />}
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
                 iconBgColor="bg-primary/20"
                 iconColor="text-primary"
                 label="Next Interview"
@@ -228,6 +245,23 @@ export default function DashboardPage() {
 
             <motion.div variants={cardAnimation}>
               <StatCard
+<<<<<<< HEAD
+=======
+                icon={<Award className="h-5 w-5 text-green-500" />}
+                iconBgColor="bg-green-500/20"
+                iconColor="text-green-500"
+                label="Interview Rate"
+                value={`${stats.interviewRate}%`}
+                change={{
+                  type: 'increase',
+                  text: 'Above average'
+                }}
+              />
+            </motion.div>
+
+            <motion.div variants={cardAnimation}>
+              <StatCard
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
                 icon={<Clock className="h-5 w-5 text-orange-500" />}
                 iconBgColor="bg-orange-500/20"
                 iconColor="text-orange-500"
@@ -255,6 +289,11 @@ export default function DashboardPage() {
                 }}
               />
             </motion.div>
+          </motion.div>
+
+          {/* Onboarding Checklist */}
+          <motion.div variants={cardAnimation}>
+            <SimpleOnboardingChecklist />
           </motion.div>
 
           {/* Recent Activity */}
@@ -295,6 +334,7 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
 
+<<<<<<< HEAD
           {/* Missing Dashboard Components Grid */}
           <motion.div
             className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"
@@ -468,6 +508,31 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </motion.div>
+=======
+          {/* Career Goals Summary */}
+          <motion.div variants={cardAnimation}>
+            <CareerGoalsSummary />
+          </motion.div>
+
+          {/* Active Interviews Summary */}
+          <motion.div variants={cardAnimation}>
+            <ActiveInterviewsSummary />
+          </motion.div>
+
+          {/* Follow-up Actions Summary */}
+          <motion.div variants={cardAnimation}>
+            <FollowupActionsSummary />
+          </motion.div>
+
+          {/* AI Career Coach */}
+          <motion.div variants={cardAnimation}>
+            <AICareerCoach />
+          </motion.div>
+
+          {/* Today's Recommendations */}
+          <motion.div variants={cardAnimation}>
+            <TodaysRecommendations />
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
           </motion.div>
         </motion.div>
     </OnboardingGuard>

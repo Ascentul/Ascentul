@@ -1,5 +1,6 @@
 'use client'
 
+<<<<<<< HEAD
 import React, { useState, useMemo } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useQuery, useMutation } from 'convex/react'
@@ -32,14 +33,37 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Label } from '@/components/ui/label'
+=======
+import React, { useState } from 'react'
+import { useUser } from '@clerk/nextjs'
+import { useAuth } from '@/contexts/ClerkAuthProvider'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/hooks/use-toast'
+import { Plus, ExternalLink, Github, Calendar, User } from 'lucide-react'
+import { useQuery } from 'convex/react'
+import { api } from 'convex/_generated/api'
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
 
 interface Project {
   _id: string
   title: string
+<<<<<<< HEAD
+=======
+  description?: string
+  technologies: string[]
+  url?: string
+  github_url?: string
+  image_url?: string
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
   role?: string
   start_date?: number
   end_date?: number
   company?: string
+<<<<<<< HEAD
   url?: string
   description?: string
   type: string
@@ -205,20 +229,100 @@ export default function ProjectsPage() {
         title: "Error",
         description: error?.message || "Failed to delete project. Please try again.",
         variant: "destructive",
+=======
+}
+
+export default function ProjectsPage() {
+  const { user: clerkUser } = useUser()
+  const { user } = useAuth()
+  const { toast } = useToast()
+
+  const projects = useQuery(api.projects.getUserProjects, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
+
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    technologies: '',
+    github_url: '',
+    live_url: '',
+    role: '',
+    company: '',
+    start_date: '',
+    end_date: ''
+  })
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!clerkUser?.id) return
+
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          technologies: formData.technologies.split(',').map(t => t.trim()).filter(Boolean)
+        })
+      })
+
+      if (response.ok) {
+        toast({
+          title: 'Project created',
+          description: 'Your project has been added successfully.'
+        })
+        setShowCreateForm(false)
+        setFormData({
+          title: '',
+          description: '',
+          technologies: '',
+          github_url: '',
+          live_url: '',
+          role: '',
+          company: '',
+          start_date: '',
+          end_date: ''
+        })
+      } else {
+        throw new Error('Failed to create project')
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to create project. Please try again.',
+        variant: 'destructive'
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
       })
     }
   }
 
+<<<<<<< HEAD
   const formatDate = (timestamp?: number) => {
     if (!timestamp) return ''
     return new Date(timestamp).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short'
     })
+=======
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Unauthorized</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">You do not have access to the Projects page.</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
   }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
+<<<<<<< HEAD
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Project Portfolio</h1>
@@ -241,13 +345,39 @@ export default function ProjectsPage() {
 
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
+=======
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Project Portfolio</h1>
+          <p className="text-muted-foreground">Showcase your projects and technical work.</p>
+        </div>
+        <Button onClick={() => setShowCreateForm(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Project
+        </Button>
+      </div>
+
+      {showCreateForm && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Add New Project</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
                 <div>
                   <Label htmlFor="title">Project Title *</Label>
                   <Input
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+<<<<<<< HEAD
                     placeholder="E-commerce Platform"
+=======
+                    placeholder="My Awesome Project"
+                    required
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
                   />
                 </div>
                 <div>
@@ -261,13 +391,38 @@ export default function ProjectsPage() {
                 </div>
               </div>
 
+<<<<<<< HEAD
               <div className="grid grid-cols-2 gap-4">
+=======
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe your project, technologies used, and your contributions..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="technologies">Technologies</Label>
+                  <Input
+                    id="technologies"
+                    value={formData.technologies}
+                    onChange={(e) => setFormData({ ...formData, technologies: e.target.value })}
+                    placeholder="React, Node.js, MongoDB"
+                  />
+                </div>
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
                 <div>
                   <Label htmlFor="company">Company/Organization</Label>
                   <Input
                     id="company"
                     value={formData.company}
                     onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+<<<<<<< HEAD
                     placeholder="TechCorp Inc."
                   />
                 </div>
@@ -278,11 +433,41 @@ export default function ProjectsPage() {
                     value={formData.url}
                     onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                     placeholder="https://project-demo.com"
+=======
+                    placeholder="Personal Project"
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
                   />
                 </div>
               </div>
 
+<<<<<<< HEAD
               <div className="grid grid-cols-2 gap-4">
+=======
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="github_url">GitHub URL</Label>
+                  <Input
+                    id="github_url"
+                    type="url"
+                    value={formData.github_url}
+                    onChange={(e) => setFormData({ ...formData, github_url: e.target.value })}
+                    placeholder="https://github.com/username/project"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="live_url">Live Demo URL</Label>
+                  <Input
+                    id="live_url"
+                    type="url"
+                    value={formData.live_url}
+                    onChange={(e) => setFormData({ ...formData, live_url: e.target.value })}
+                    placeholder="https://myproject.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
                 <div>
                   <Label htmlFor="start_date">Start Date</Label>
                   <Input
@@ -303,6 +488,7 @@ export default function ProjectsPage() {
                 </div>
               </div>
 
+<<<<<<< HEAD
               <div>
                 <Label htmlFor="technologies">Technologies</Label>
                 <Input
@@ -447,11 +633,48 @@ export default function ProjectsPage() {
 
                 {project.description && (
                   <p className="text-sm text-muted-foreground line-clamp-3">
+=======
+              <div className="flex gap-2">
+                <Button type="submit">Create Project</Button>
+                <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {projects ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project: Project) => (
+            <Card key={project._id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{project.title}</CardTitle>
+                    {project.role && (
+                      <p className="text-sm text-muted-foreground flex items-center mt-1">
+                        <User className="h-3 w-3 mr-1" />
+                        {project.role}
+                      </p>
+                    )}
+                    {project.company && (
+                      <p className="text-sm text-muted-foreground">{project.company}</p>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {project.description && (
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
                     {project.description}
                   </p>
                 )}
 
                 {project.technologies.length > 0 && (
+<<<<<<< HEAD
                   <div className="flex flex-wrap gap-1">
                     {project.technologies.slice(0, 3).map((tech) => (
                       <Badge key={tech} variant="secondary" className="text-xs">
@@ -481,11 +704,68 @@ export default function ProjectsPage() {
                     </Button>
                   </div>
                 )}
+=======
+                  <div className="mb-4">
+                    <div className="flex flex-wrap gap-1">
+                      {project.technologies.map((tech, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded"
+                        >
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  {project.url && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={project.url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Live Demo
+                      </a>
+                    </Button>
+                  )}
+                  {project.github_url && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={project.github_url} target="_blank" rel="noopener noreferrer">
+                        <Github className="h-3 w-3 mr-1" />
+                        Code
+                      </a>
+                    </Button>
+                  )}
+                </div>
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
               </CardContent>
             </Card>
           ))}
         </div>
+<<<<<<< HEAD
       )}
     </div>
   )
 }
+=======
+      ) : (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <div className="text-muted-foreground mb-4">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                <span className="text-2xl">📁</span>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
+              <p className="text-sm mb-4">Start building your portfolio by adding your first project.</p>
+            </div>
+            <Button onClick={() => setShowCreateForm(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Your First Project
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378

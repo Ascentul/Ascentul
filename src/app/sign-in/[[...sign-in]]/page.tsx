@@ -39,6 +39,15 @@ export default function Page() {
     }
   }, [authLoaded, isSignedIn, router])
 
+  // Clear any cached authentication data on component mount
+  useEffect(() => {
+    // Clear localStorage and sessionStorage to prevent cached auth issues
+    if (typeof window !== 'undefined') {
+      localStorage.clear()
+      sessionStorage.clear()
+    }
+  }, [])
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -55,10 +64,14 @@ export default function Page() {
       const result = await signIn.create({ identifier: email, password })
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId })
+<<<<<<< HEAD
         toast({
           title: "Welcome back!",
           description: "You have been successfully signed in.",
         })
+=======
+        // Let AdminRedirect component handle the role-based routing
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
         router.replace('/dashboard')
       } else {
         setError('Additional verification required. Please continue in the next step.')
@@ -66,7 +79,7 @@ export default function Page() {
     } catch (err: any) {
       const code = err?.errors?.[0]?.code
       if (code === 'session_exists') {
-        // A session already exists; just proceed to the dashboard
+        // A session already exists; let AdminRedirect component handle routing
         router.replace('/dashboard')
         return
       } else if (code === 'form_identifier_not_found') {
@@ -579,6 +592,7 @@ export default function Page() {
 
       {/* Right: Marketing Panel */}
       <div className="hidden lg:flex items-center justify-center bg-primary text-primary-foreground p-10">
+<<<<<<< HEAD
         <div className="max-w-md">
           <h2 className="text-3xl font-bold mb-4">Welcome Back!</h2>
           <p className="opacity-90 mb-6">
@@ -604,6 +618,20 @@ export default function Page() {
               <span>Secure, encrypted login</span>
             </div>
           </div>
+=======
+        <div className="max-w-lg">
+          <h2 className="text-4xl font-bold mb-4">Accelerate Your Career Path</h2>
+          <p className="opacity-90 mb-6 text-lg">
+          Your all-in-one platform to plan, build, and launch your career.
+          </p>
+          <ul className="space-y-3 text-md">
+            <li>✔ AI-powered coaching to guide your next steps</li>
+            <li>✔ Create polished resumes and tailored cover letters</li>
+            <li>✔ Track and achieve your career goals with clarity</li>
+            <li>✔ Explore career paths and opportunities with confidence</li>
+            <li>✔ Organize your projects, skills, and experiences in one place</li>
+          </ul>
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
         </div>
       </div>
     </div>

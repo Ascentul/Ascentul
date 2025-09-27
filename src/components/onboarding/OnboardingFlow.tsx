@@ -100,7 +100,11 @@ export function OnboardingFlow() {
 
   // Update progress bar based on current step
   useEffect(() => {
+<<<<<<< HEAD
     setProgress(Math.floor((step / 2) * 100)) // 2 steps total
+=======
+    setProgress(Math.floor((step / 4) * 100)) // 4 steps total
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
   }, [step])
 
   const handleCareerStageSelect = (stage: CareerStage) => {
@@ -139,6 +143,13 @@ export function OnboardingFlow() {
 
   const handleNext = async () => {
     if (step === 2) {
+<<<<<<< HEAD
+=======
+      setStep(3) // Skip features page, go to Discord
+    } else if (step === 3) {
+      setStep(4) // Go to plan selection
+    } else if (step === 4) {
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
       const success = await saveOnboardingData()
       if (!success) {
         toast({
@@ -147,7 +158,11 @@ export function OnboardingFlow() {
           variant: "destructive"
         })
       }
+<<<<<<< HEAD
     } else if (step < 2) {
+=======
+    } else if (step < 4) {
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
       setStep(step + 1)
     }
   }
@@ -545,6 +560,163 @@ export function OnboardingFlow() {
           </div>
         )
 
+<<<<<<< HEAD
+=======
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <CardContent className="pt-6">
+              <StepDiscordInvite onNext={handleNext} onSkip={handleNext} />
+            </CardContent>
+          </div>
+        )
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <CardHeader>
+              <CardTitle className="text-2xl">Choose your plan</CardTitle>
+              <CardDescription>
+                Select the plan that best fits your needs and goals.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="relative">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xl font-bold">Free</h3>
+                        <p className="text-sm text-muted-foreground mt-1">Organize your career</p>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <span className="text-3xl font-bold">$0</span>
+                      <span className="text-muted-foreground">/month</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Upgrade when you're ready to move faster.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      onClick={async () => {
+                        const success = await saveOnboardingData()
+                        if (success) {
+                          router.push('/dashboard')
+                        }
+                      }}
+                      variant="outline"
+                      className="w-full"
+                      disabled={isSavingOnboarding}
+                    >
+                      {isSavingOnboarding ? "Creating Account..." : "Create Account"}
+                    </Button>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Track one application
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Track one career goal
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Add one network contact
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Generate one career path
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Add one project
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Resume Studio
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Cover Letter Studio
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="relative border-primary bg-primary/5">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xl font-bold">Pro</h3>
+                        <p className="text-sm text-muted-foreground mt-1">Level up faster with unlimited access</p>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <span className="text-3xl font-bold">$20</span>
+                      <span className="text-muted-foreground">/month</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Upgrade when you're ready to move faster.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      onClick={() => {
+                        // Redirect to Stripe for Pro plan
+                        window.location.href = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY || '/account'
+                      }}
+                      className="w-full"
+                    >
+                      Create Account
+                    </Button>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Everything in free
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Track unlimited applications
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Set unlimited career goals
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Save unlimited network contacts
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Generate unlimited career paths
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Add unlimited projects
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Full access to resume studio
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        Full access to cover letter studio
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        AI Career Coach (unlocked)
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </div>
+        )
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
 
       default:
         return null
@@ -558,7 +730,11 @@ export function OnboardingFlow() {
           <div className="mb-8">
             <Progress value={progress} className="w-full" />
             <p className="text-sm text-muted-foreground mt-2 text-center">
+<<<<<<< HEAD
               Step {step} of 2
+=======
+              Step {step} of 4
+>>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
             </p>
           </div>
 
