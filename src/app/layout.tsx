@@ -39,8 +39,6 @@ export default function RootLayout({
               publishableKey={publishableKey}
               signInFallbackRedirectUrl="/dashboard"
               signUpFallbackRedirectUrl="/dashboard"
-              afterSignInUrl="/dashboard"
-              afterSignUpUrl="/dashboard"
             >
               <ConvexClientProvider>
                 <ClerkAuthProvider>
