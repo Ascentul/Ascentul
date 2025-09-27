@@ -137,9 +137,9 @@ export default function GoalTemplates({ onSelectTemplate }: GoalTemplatesProps) 
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex overflow-x-auto space-x-4 pb-4">
           {goalTemplates.map((template) => (
-            <Card key={template.id} className="hover:shadow-md transition-shadow cursor-pointer">
+            <Card key={template.id} className="hover:shadow-md transition-shadow cursor-pointer flex-shrink-0 w-64">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-2">
@@ -154,11 +154,11 @@ export default function GoalTemplates({ onSelectTemplate }: GoalTemplatesProps) 
                     </div>
                   </div>
                 </div>
-                
+
                 <p className="text-xs text-muted-foreground mb-3">
                   {template.description}
                 </p>
-                
+
                 <Button
                   size="sm"
                   variant="outline"

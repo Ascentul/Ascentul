@@ -21,7 +21,6 @@ import {
   UserCog,
   Crown
 } from "lucide-react"
-import StepDiscordInvite from "./StepDiscordInvite"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -60,7 +59,6 @@ interface OnboardingData {
     industry: string
     role: JobRole | null
   }
-  interests: string[]
   username?: string
 }
 
@@ -75,8 +73,7 @@ const defaultOnboardingData: OnboardingData = {
   professionalInfo: {
     industry: "",
     role: null
-  },
-  interests: []
+  }
 }
 
 const industries = [
@@ -87,44 +84,6 @@ const industries = [
   "Telecommunications", "Other"
 ]
 
-const features = [
-  {
-    id: "resume-builder",
-    title: "Resume Builder",
-    description: "Create and customize professional resumes",
-    icon: FileText
-  },
-  {
-    id: "cover-letter",
-    title: "Cover Letter Generator", 
-    description: "Generate tailored cover letters",
-    icon: FileText
-  },
-  {
-    id: "interview-prep",
-    title: "Interview Preparation",
-    description: "Practice with AI-generated questions",
-    icon: BarChart
-  },
-  {
-    id: "goal-tracking",
-    title: "Goal Tracking",
-    description: "Set and track professional goals",
-    icon: Target
-  },
-  {
-    id: "ai-coach",
-    title: "AI Career Coach",
-    description: "Get personalized career advice",
-    icon: MessageSquare
-  },
-  {
-    id: "work-history",
-    title: "Work History Tracker",
-    description: "Organize your work experience",
-    icon: Briefcase
-  }
-]
 
 export function OnboardingFlow() {
   const { user } = useAuth()
@@ -141,7 +100,7 @@ export function OnboardingFlow() {
 
   // Update progress bar based on current step
   useEffect(() => {
-    setProgress(Math.floor((step / 5) * 100)) // 5 steps total
+    setProgress(Math.floor((step / 2) * 100)) // 2 steps total
   }, [step])
 
   const handleCareerStageSelect = (stage: CareerStage) => {
@@ -177,23 +136,9 @@ export function OnboardingFlow() {
     })
   }
 
-  const handleInterestToggle = (featureId: string) => {
-    const interests = [...data.interests]
-    const index = interests.indexOf(featureId)
-    if (index === -1) {
-      interests.push(featureId)
-    } else {
-      interests.splice(index, 1)
-    }
-    setData({ ...data, interests })
-  }
 
   const handleNext = async () => {
-    if (step === 3) {
-      setStep(4)
-    } else if (step === 4) {
-      setStep(5)
-    } else if (step === 5) {
+    if (step === 2) {
       const success = await saveOnboardingData()
       if (!success) {
         toast({
@@ -202,7 +147,7 @@ export function OnboardingFlow() {
           variant: "destructive"
         })
       }
-    } else if (step < 5) {
+    } else if (step < 2) {
       setStep(step + 1)
     }
   }
@@ -335,7 +280,7 @@ export function OnboardingFlow() {
                   onClick={() => {
                     handleStudentInfoChange("isCollegeStudent", true)
                     handleStudentInfoChange("isGraduateStudent", "undergraduate")
-                    handleNext()
+                    setStep(2)
                   }}
                 >
                   <CardHeader className="text-center pt-6">
@@ -358,7 +303,7 @@ export function OnboardingFlow() {
                   onClick={() => {
                     handleStudentInfoChange("isCollegeStudent", true)
                     handleStudentInfoChange("isGraduateStudent", "graduate")
-                    handleNext()
+                    setStep(2)
                   }}
                 >
                   <CardHeader className="text-center pt-6">
@@ -381,7 +326,7 @@ export function OnboardingFlow() {
                   onClick={() => {
                     handleStudentInfoChange("isCollegeStudent", true)
                     handleStudentInfoChange("isGraduateStudent", "none")
-                    handleNext()
+                    setStep(2)
                   }}
                 >
                   <CardHeader className="text-center pt-6">
@@ -437,9 +382,28 @@ export function OnboardingFlow() {
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex justify-start">
+            <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={handleBack}>
                 <ChevronLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <Button
+                onClick={async () => {
+                  const success = await saveOnboardingData()
+                  if (success) {
+                    router.push('/dashboard')
+                  }
+                }}
+                disabled={isSavingOnboarding || !data.studentInfo.school || !data.studentInfo.graduationYear}
+                className="min-w-[140px]"
+              >
+                {isSavingOnboarding ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Setting up...
+                  </>
+                ) : (
+                  'Complete Setup'
+                )}
               </Button>
             </CardFooter>
           </div>
@@ -559,166 +523,28 @@ export function OnboardingFlow() {
                 <ChevronLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <Button
-                onClick={handleNext}
-                disabled={!data.professionalInfo.industry || !data.professionalInfo.role}
+                onClick={async () => {
+                  const success = await saveOnboardingData()
+                  if (success) {
+                    router.push('/dashboard')
+                  }
+                }}
+                disabled={isSavingOnboarding || !data.professionalInfo.industry || !data.professionalInfo.role}
+                className="min-w-[140px]"
               >
-                Next <ChevronRight className="ml-2 h-4 w-4" />
+                {isSavingOnboarding ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Setting up...
+                  </>
+                ) : (
+                  'Complete Setup'
+                )}
               </Button>
             </CardFooter>
           </div>
         )
 
-      case 3:
-        return (
-          <div className="space-y-6">
-            <CardHeader>
-              <CardTitle className="text-2xl">Which features are you most interested in?</CardTitle>
-              <CardDescription>
-                Select the features you're most excited to use in Ascentful.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {features.map((feature) => {
-                  const Icon = feature.icon
-                  const isSelected = data.interests.includes(feature.id)
-                  return (
-                    <Card
-                      key={feature.id}
-                      className={`cursor-pointer ${
-                        isSelected ? "border-primary bg-primary/5" : "hover:bg-muted/50"
-                      }`}
-                      onClick={() => handleInterestToggle(feature.id)}
-                    >
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <div className="bg-primary/10 w-10 h-10 rounded-full flex items-center justify-center">
-                            <Icon className="h-5 w-5 text-primary" />
-                          </div>
-                          <Checkbox checked={isSelected} />
-                        </div>
-                        <CardTitle className="text-base mt-2">{feature.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-muted-foreground text-sm">{feature.description}</p>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={handleBack}>
-                <ChevronLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button onClick={handleNext} disabled={data.interests.length === 0}>
-                Join Discord <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardFooter>
-          </div>
-        )
-
-      case 4:
-        return (
-          <div className="space-y-6">
-            <CardContent className="pt-6">
-              <StepDiscordInvite onNext={handleNext} onSkip={handleNext} />
-            </CardContent>
-          </div>
-        )
-
-      case 5:
-        return (
-          <div className="space-y-6">
-            <CardHeader>
-              <CardTitle className="text-2xl">Choose your plan</CardTitle>
-              <CardDescription>
-                Select the plan that best fits your needs and goals.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="border rounded-md p-6 hover:shadow-md transition-shadow">
-                  <h3 className="text-lg font-semibold mb-1">Free Plan</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Basic features for personal use</p>
-                  <p className="text-3xl font-bold mb-4">
-                    $0<span className="text-sm font-normal text-muted-foreground">/mo</span>
-                  </p>
-                  <ul className="space-y-2 mb-6">
-                    <li className="flex items-center">
-                      <Check className="h-4 w-4 mr-2 text-green-500" />
-                      <span className="text-sm">Basic career tracking</span>
-                    </li>
-                    <li className="flex items-center">
-                      <Check className="h-4 w-4 mr-2 text-green-500" />
-                      <span className="text-sm">Limited AI suggestions</span>
-                    </li>
-                    <li className="flex items-center">
-                      <Check className="h-4 w-4 mr-2 text-green-500" />
-                      <span className="text-sm">Job application tracker</span>
-                    </li>
-                  </ul>
-                  <Button
-                    onClick={async () => {
-                      const success = await saveOnboardingData()
-                      if (success) {
-                        router.push('/dashboard')
-                      }
-                    }}
-                    variant="outline"
-                    className="w-full"
-                    disabled={isSavingOnboarding}
-                  >
-                    {isSavingOnboarding ? "Saving..." : "Get Started"}
-                  </Button>
-                </div>
-
-                <div className="border border-primary rounded-md p-6 bg-primary/5 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-center mb-1">
-                    <h3 className="text-lg font-semibold">Pro Plan</h3>
-                    <span className="bg-[#1333c2] text-white text-xs px-2 py-1 rounded-full">
-                      RECOMMENDED
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">Advanced features for career growth</p>
-                  <p className="text-3xl font-bold mb-4">
-                    $9.99<span className="text-sm font-normal text-muted-foreground">/mo</span>
-                  </p>
-                  <ul className="space-y-2 mb-6">
-                    <li className="flex items-center">
-                      <Check className="h-4 w-4 mr-2 text-green-500" />
-                      <span className="text-sm">Everything in Free plan</span>
-                    </li>
-                    <li className="flex items-center">
-                      <Check className="h-4 w-4 mr-2 text-green-500" />
-                      <span className="text-sm">Unlimited AI career suggestions</span>
-                    </li>
-                    <li className="flex items-center">
-                      <Check className="h-4 w-4 mr-2 text-green-500" />
-                      <span className="text-sm">Advanced network management</span>
-                    </li>
-                    <li className="flex items-center">
-                      <Check className="h-4 w-4 mr-2 text-green-500" />
-                      <span className="text-sm">Priority support</span>
-                    </li>
-                  </ul>
-                  <Button
-                    onClick={async () => {
-                      const success = await saveOnboardingData()
-                      if (success) {
-                        router.push('/dashboard')
-                      }
-                    }}
-                    className="w-full"
-                    disabled={isSavingOnboarding}
-                  >
-                    {isSavingOnboarding ? "Saving..." : "Choose Pro Plan"}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </div>
-        )
 
       default:
         return null
@@ -732,7 +558,7 @@ export function OnboardingFlow() {
           <div className="mb-8">
             <Progress value={progress} className="w-full" />
             <p className="text-sm text-muted-foreground mt-2 text-center">
-              Step {step} of 5
+              Step {step} of 2
             </p>
           </div>
 

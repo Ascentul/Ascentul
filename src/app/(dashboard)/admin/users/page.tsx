@@ -37,6 +37,7 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState<'all' | UserRow['role']>('all')
   const [planFilter, setPlanFilter] = useState<'all' | UserRow['subscription_plan']>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | UserRow['subscription_status']>('all')
+  const [universityFilter, setUniversityFilter] = useState<'all' | string>('all')
 
   // Fetch users (first page only for MVP)
   const usersResult = useQuery(
@@ -56,9 +57,10 @@ export default function AdminUsersPage() {
       const matchesRole = roleFilter === 'all' || u.role === roleFilter
       const matchesPlan = planFilter === 'all' || u.subscription_plan === planFilter
       const matchesStatus = statusFilter === 'all' || u.subscription_status === statusFilter
-      return matchesText && matchesRole && matchesPlan && matchesStatus
+      const matchesUniversity = universityFilter === 'all' || u.university_id === universityFilter
+      return matchesText && matchesRole && matchesPlan && matchesStatus && matchesUniversity
     })
-  }, [users, search, roleFilter, planFilter, statusFilter])
+  }, [users, search, roleFilter, planFilter, statusFilter, universityFilter])
 
   const [editing, setEditing] = useState<UserRow | null>(null)
   const [saving, setSaving] = useState(false)
@@ -126,47 +128,66 @@ export default function AdminUsersPage() {
         <CardHeader>
           <CardTitle>Search & Filters</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-4">
-          <div className="relative col-span-2">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, email, username" className="pl-8" />
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-5">
+            <div className="relative md:col-span-2">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, email, username" className="pl-8" />
+            </div>
+            <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="staff">Staff</SelectItem>
+                <SelectItem value="university_admin">University Admin</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="super_admin">Super Admin</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={universityFilter} onValueChange={(v: any) => setUniversityFilter(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="University" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Universities</SelectItem>
+                <SelectItem value="harvard">Harvard University</SelectItem>
+                <SelectItem value="stanford">Stanford University</SelectItem>
+                <SelectItem value="mit">MIT</SelectItem>
+                <SelectItem value="berkeley">UC Berkeley</SelectItem>
+                <SelectItem value="yale">Yale University</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={planFilter} onValueChange={(v: any) => setPlanFilter(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Plan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Plans</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
+                <SelectItem value="university">University</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="user">User</SelectItem>
-              <SelectItem value="staff">Staff</SelectItem>
-              <SelectItem value="university_admin">University Admin</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="super_admin">Super Admin</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={planFilter} onValueChange={(v: any) => setPlanFilter(v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Plan" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Plans</SelectItem>
-              <SelectItem value="free">Free</SelectItem>
-              <SelectItem value="premium">Premium</SelectItem>
-              <SelectItem value="university">University</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="past_due">Past Due</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="past_due">Past Due</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              Showing {filtered.length} of {users.length} users
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -176,27 +197,50 @@ export default function AdminUsersPage() {
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
-            <div className="grid grid-cols-6 gap-2 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="grid grid-cols-7 gap-2 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
               <div>Name</div>
-              <div className="hidden md:block">Email</div>
+              <div className="hidden lg:block">Email</div>
               <div>Role</div>
-              <div className="hidden md:block">Plan</div>
-              <div className="hidden md:block">Status</div>
+              <div className="hidden md:block">University</div>
+              <div className="hidden lg:block">Plan</div>
+              <div className="hidden lg:block">Status</div>
               <div className="text-right">Actions</div>
             </div>
             <div className="divide-y">
               {filtered.map(u => (
-                <div key={u._id} className="grid grid-cols-6 gap-2 px-4 py-3 items-center">
+                <div key={u._id} className="grid grid-cols-7 gap-2 px-4 py-3 items-center">
                   <div className="truncate">
                     <div className="font-medium flex items-center gap-2"><UserIcon className="h-4 w-4" /> {u.name}</div>
-                    <div className="text-xs text-muted-foreground md:hidden truncate">{u.email}</div>
+                    <div className="text-xs text-muted-foreground lg:hidden truncate">{u.email}</div>
                   </div>
-                  <div className="hidden md:block truncate">{u.email}</div>
+                  <div className="hidden lg:block truncate">{u.email}</div>
                   <div>
-                    <Badge variant="outline" className="capitalize">{u.role.replace('_', ' ')}</Badge>
+                    <Badge variant="outline" className="capitalize text-xs">{u.role.replace('_', ' ')}</Badge>
                   </div>
-                  <div className="hidden md:block"><Badge variant={u.subscription_plan === 'premium' ? 'default' : 'secondary'} className="capitalize">{u.subscription_plan}</Badge></div>
-                  <div className="hidden md:block"><Badge variant={u.subscription_status === 'active' ? 'default' : 'destructive'} className="capitalize">{u.subscription_status}</Badge></div>
+                  <div className="hidden md:block truncate">
+                    {u.university_id ? (
+                      <Badge variant="secondary" className="text-xs">
+                        {u.university_id === 'harvard' ? 'Harvard University' :
+                         u.university_id === 'stanford' ? 'Stanford University' :
+                         u.university_id === 'mit' ? 'MIT' :
+                         u.university_id === 'berkeley' ? 'UC Berkeley' :
+                         u.university_id === 'yale' ? 'Yale University' :
+                         u.university_id}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No University</span>
+                    )}
+                  </div>
+                  <div className="hidden lg:block">
+                    <Badge variant={u.subscription_plan === 'university' ? 'default' : 'secondary'} className="capitalize text-xs">
+                      {u.subscription_plan}
+                    </Badge>
+                  </div>
+                  <div className="hidden lg:block">
+                    <Badge variant={u.subscription_status === 'active' ? 'default' : 'destructive'} className="capitalize text-xs">
+                      {u.subscription_status}
+                    </Badge>
+                  </div>
                   <div className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -206,9 +250,6 @@ export default function AdminUsersPage() {
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => openEdit(u)}>Edit</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {u.subscription_plan !== 'premium' && (
-                          <DropdownMenuItem onClick={() => updateUser({ clerkId: u.clerkId, updates: { subscription_plan: 'premium', subscription_status: 'active' } })}>Upgrade to Premium</DropdownMenuItem>
-                        )}
                         <DropdownMenuItem onClick={() => updateUser({ clerkId: u.clerkId, updates: { subscription_status: u.subscription_status === 'active' ? 'inactive' : 'active' } })}>
                           {u.subscription_status === 'active' ? 'Mark Inactive' : 'Mark Active'}
                         </DropdownMenuItem>
@@ -257,7 +298,6 @@ export default function AdminUsersPage() {
                   <Select value={form.plan} onValueChange={(v: any) => setForm({ ...form, plan: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="free">Free</SelectItem>
                       <SelectItem value="premium">Premium</SelectItem>
                       <SelectItem value="university">University</SelectItem>
                     </SelectContent>

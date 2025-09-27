@@ -123,27 +123,27 @@ export default function GoalForm({
     mutationFn: async (data: GoalFormValues) => {
       const url = goal ? `/api/goals/${goal.id}` : '/api/goals'
       const method = goal ? 'PUT' : 'POST'
-      
+
       const payload = {
         ...data,
         dueDate: data.dueDate?.toISOString(),
         progress: 0
       }
-      
+
       return apiRequest(method, url, payload)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/goals'] })
       queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] })
-      
+
       toast({
         title: goal ? "Goal Updated" : "Goal Created",
-        description: goal 
-          ? "Your goal has been updated successfully" 
+        description: goal
+          ? "Your goal has been updated successfully"
           : "Your new goal has been created successfully",
         variant: 'success',
       })
-      
+
       if (onSuccess) {
         onSuccess()
       }
@@ -152,6 +152,33 @@ export default function GoalForm({
       toast({
         title: "Error",
         description: error.message || "Failed to save goal. Please try again.",
+        variant: "destructive",
+      })
+    },
+  })
+
+  const deleteGoalMutation = useMutation({
+    mutationFn: async (goalId: number) => {
+      return apiRequest('DELETE', `/api/goals/${goalId}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/goals'] })
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] })
+
+      toast({
+        title: "Goal Deleted",
+        description: "Your goal has been deleted successfully",
+        variant: 'success',
+      })
+
+      if (onSuccess) {
+        onSuccess()
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete goal. Please try again.",
         variant: "destructive",
       })
     },
@@ -378,7 +405,41 @@ export default function GoalForm({
           )}
         </div>
 
-        <div className="flex justify-end space-x-2 pt-4">
+        <div className="flex justify-between items-center pt-4">
+          {goal ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={isSubmitting}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Goal
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Goal</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this goal? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteGoalMutation.mutate(goal.id)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            <div></div>
+          )}
+
           <Button
             type="submit"
             disabled={isSubmitting}

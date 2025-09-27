@@ -57,6 +57,7 @@ type SidebarSection = {
   icon: React.ReactNode
   items?: SidebarItem[]
   href?: string
+  pro?: boolean
 }
 
 type SidebarItem = {
@@ -107,7 +108,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   // Upsell modal for Pro-only features
   const [showUpsellModal, setShowUpsellModal] = useState(false)
 
-  // Define sidebar sections
+  // Define sidebar sections - New structure per testing requirements
   const sidebarSections: SidebarSection[] = [
     {
       id: 'dashboard',
@@ -116,45 +117,78 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       href: '/dashboard'
     },
     {
-      id: 'career-development',
-      title: 'Career Development',
-      icon: <Target className="h-5 w-5" />,
-      items: [
-        { href: '/goals', icon: <Target className="h-4 w-4" />, label: 'Goals' },
-        { href: '/career-path', icon: <GitBranch className="h-4 w-4" />, label: 'Career Path Explorer' },
-        { href: '/ai-coach', icon: <Bot className="h-4 w-4" />, label: 'AI Career Coach', pro: true },
-      ]
+      id: 'career-profile',
+      title: 'Career Profile',
+      icon: <UserIcon className="h-5 w-5" />,
+      href: '/account'
     },
     {
-      id: 'job-search',
-      title: 'Job Search',
+      id: 'jobs',
+      title: 'Jobs',
       icon: <Search className="h-5 w-5" />,
-      items: [
-        { href: '/job-search', icon: <Search className="h-4 w-4" />, label: 'Job Search' },
-        { href: '/applications', icon: <ClipboardList className="h-4 w-4" />, label: 'Application Tracker' },
-        { href: '/interviews', icon: <Calendar className="h-4 w-4" />, label: 'Interview Tracker' },
-      ]
+      href: '/job-search'
     },
     {
-      id: 'documents',
-      title: 'Documents',
-      icon: <FileText className="h-5 w-5" />,
-      items: [
-        { href: '/resumes', icon: <FileText className="h-4 w-4" />, label: 'Resumes' },
-        { href: '/cover-letters', icon: <Mail className="h-4 w-4" />, label: 'Cover Letter Coach' },
-        { href: '/projects', icon: <FolderGit2 className="h-4 w-4" />, label: 'Project Portfolio' },
-      ]
+      id: 'application-tracker',
+      title: 'Application Tracker',
+      icon: <ClipboardList className="h-5 w-5" />,
+      href: '/applications'
     },
     {
-      id: 'networking',
-      title: 'Networking',
+      id: 'career-growth',
+      title: 'Career Growth',
+      icon: <Briefcase className="h-5 w-5" />,
+      href: '/career-development'
+    },
+    {
+      id: 'career-goals',
+      title: 'Career Goals',
+      icon: <Target className="h-5 w-5" />,
+      href: '/goals'
+    },
+    {
+      id: 'career-path-explorer',
+      title: 'Career Path Explorer',
+      icon: <GitBranch className="h-5 w-5" />,
+      href: '/career-path'
+    },
+    {
+      id: 'network-hub',
+      title: 'Network Hub',
       icon: <UserRound className="h-5 w-5" />,
-      items: [
-        { href: '/contacts', icon: <UserRound className="h-4 w-4" />, label: 'Network Hub' },
-        { href: '/linkedin', icon: <Linkedin className="h-4 w-4" />, label: 'LinkedIn Integration', pro: true },
-      ]
+      href: '/contacts'
     },
-    
+    {
+      id: 'career-portfolio',
+      title: 'Career Portfolio',
+      icon: <FolderGit2 className="h-5 w-5" />,
+      href: '/documents'
+    },
+    {
+      id: 'resume-builder',
+      title: 'Resume Builder',
+      icon: <FileText className="h-5 w-5" />,
+      href: '/resumes'
+    },
+    {
+      id: 'cover-letter-coach',
+      title: 'Cover Letter Coach',
+      icon: <Mail className="h-5 w-5" />,
+      href: '/cover-letters'
+    },
+    {
+      id: 'project-portfolio',
+      title: 'Project Portfolio',
+      icon: <Building className="h-5 w-5" />,
+      href: '/projects'
+    },
+    {
+      id: 'ai-career-coach',
+      title: 'AI Career Coach',
+      icon: <Bot className="h-5 w-5" />,
+      href: '/ai-coach',
+      pro: true
+    },
   ]
 
   // Admin sections
@@ -166,23 +200,33 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       items: [
         { href: '/admin', icon: <ShieldCheck className="h-4 w-4" />, label: 'Admin Dashboard' },
         { href: '/admin/users', icon: <UserIcon className="h-4 w-4" />, label: 'User Management' },
+        { href: '/admin/universities', icon: <School className="h-4 w-4" />, label: 'Universities' },
         { href: '/admin/analytics', icon: <BarChart className="h-4 w-4" />, label: 'Analytics' },
         { href: '/admin/support', icon: <HelpCircle className="h-4 w-4" />, label: 'Support Tickets' },
+        { href: '/admin/settings', icon: <Settings className="h-4 w-4" />, label: 'Settings' },
       ]
     }
   ]
 
-  // University sections
+  // University sections - streamlined for University Admins
   const universitySections: SidebarSection[] = [
     {
-      id: 'university',
-      title: 'University',
-      icon: <GraduationCap className="h-5 w-5" />,
-      items: [
-        { href: '/university', icon: <School className="h-4 w-4" />, label: 'University Dashboard' },
-        { href: '/university/courses', icon: <BookOpen className="h-4 w-4" />, label: 'Course Management' },
-        { href: '/university/students', icon: <UserIcon className="h-4 w-4" />, label: 'Student Progress' },
-      ]
+      id: 'university-dashboard',
+      title: 'University Dashboard',
+      icon: <School className="h-5 w-5" />,
+      href: '/university'
+    },
+    {
+      id: 'university-analytics',
+      title: 'Analytics',
+      icon: <BarChart className="h-5 w-5" />,
+      href: '/university/analytics'
+    },
+    {
+      id: 'university-settings',
+      title: 'Settings',
+      icon: <Settings className="h-5 w-5" />,
+      href: '/university/settings'
     }
   ]
 
@@ -345,27 +389,41 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     const sectionActive = section.href ? isActive(section.href) : false
     const isCollapsed = !!collapsedSections[section.id]
 
+    // Check if this is a pro feature
+    const isPro = 'pro' in section && section.pro
+    const disabled = isPro && isFreeUser
+
     if (!hasItems && section.href) {
-      // Single item section
+      // Single item section - new flat structure
       return (
         <Link
           key={section.id}
-          href={section.href}
+          href={disabled ? '#' : section.href}
           className={`
-            flex items-center px-3 py-2 text-sm rounded-md transition-colors
-            ${sectionActive 
-              ? 'bg-primary/10 text-primary border-r-2 border-primary' 
+            flex items-center px-3 py-2 mx-2 text-sm rounded-lg transition-colors
+            ${sectionActive
+              ? 'bg-primary/10 text-primary'
+              : disabled
+              ? 'text-gray-400 cursor-not-allowed'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
             }
           `}
+          onClick={disabled ? (e) => { e.preventDefault(); setShowUpsellModal(true) } : undefined}
         >
           <span className="mr-3">{section.icon}</span>
-          {expanded && <span>{section.title}</span>}
+          {expanded && (
+            <>
+              <span className="flex-1">{section.title}</span>
+              {isPro && isFreeUser && (
+                <Zap className="h-3 w-3 text-yellow-500" />
+              )}
+            </>
+          )}
         </Link>
       )
     }
 
-    // Section with items (collapsible)
+    // Section with items (collapsible) - for admin sections
     const toggleSectionItems = () => {
       setCollapsedSections(prev => {
         const next = { ...prev, [section.id]: !prev[section.id] }
@@ -415,7 +473,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         className={`
           bg-white shadow-lg transition-all duration-300 ease-in-out z-30
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-          ${expanded ? 'w-64' : 'w-16'}
+          ${expanded ? 'w-64' : 'w-20'}
           md:translate-x-0 md:static md:inset-0
           fixed inset-y-0 left-0 flex flex-col
         `}
@@ -441,7 +499,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         {clerkUser && (
           <div className="p-4 border-b">
             <div className="flex items-center space-x-3">
-              <div className="h-10 w-10">
+              <div className="h-10 w-10 flex-shrink-0">
                 <UserButton
                   appearance={{
                     elements: {
@@ -483,7 +541,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-2 py-4 space-y-1">
           {allSections.map(renderSection)}
         </nav>
 
