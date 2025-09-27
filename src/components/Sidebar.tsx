@@ -138,7 +138,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       id: 'career-growth',
       title: 'Career Growth',
       icon: <Briefcase className="h-5 w-5" />,
-      href: '/career-development'
+      href: '/career-profile'
     },
     {
       id: 'career-goals',
@@ -162,7 +162,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       id: 'career-portfolio',
       title: 'Career Portfolio',
       icon: <FolderGit2 className="h-5 w-5" />,
-      href: '/documents'
+      href: '/projects'
     },
     {
       id: 'resume-builder',
