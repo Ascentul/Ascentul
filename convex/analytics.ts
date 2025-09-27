@@ -185,6 +185,128 @@ async function getUniversityGrowth(ctx: any) {
   };
 }
 
+// Get user dashboard analytics
+export const getUserDashboardAnalytics = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Get user's applications
+    const applications = await ctx.db
+      .query("applications")
+      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .collect();
+
+    // Get user's goals
+    const goals = await ctx.db
+      .query("goals")
+      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .collect();
+
+    // Get user's interview stages
+    const interviewStages = await ctx.db
+      .query("interview_stages")
+      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .collect();
+
+    // Get user's followup actions
+    const followupActions = await ctx.db
+      .query("followup_actions")
+      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .collect();
+
+    // Calculate stats
+    const applicationStats = {
+      total: applications.length,
+      applied: applications.filter(app => app.status === "applied").length,
+      interview: applications.filter(app => app.status === "interview").length,
+      offer: applications.filter(app => app.status === "offer").length,
+      rejected: applications.filter(app => app.status === "rejected").length,
+    };
+
+    const activeGoals = goals.filter(goal =>
+      goal.status === "active" || goal.status === "in_progress"
+    ).length;
+
+    const pendingTasks = followupActions.filter(followup =>
+      !followup.completed && followup.due_date && followup.due_date <= Date.now()
+    ).length;
+
+    // Find next upcoming interview
+    const upcomingInterviews = interviewStages
+      .filter(stage => stage.scheduled_at && stage.scheduled_at > Date.now())
+      .sort((a, b) => (a.scheduled_at || 0) - (b.scheduled_at || 0));
+
+    const nextInterview = upcomingInterviews.length > 0
+      ? formatNextInterview(upcomingInterviews[0].scheduled_at)
+      : "No upcoming interviews";
+
+    // Recent activity (last 30 days)
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const recentActivity = [
+      ...applications.filter(app => app.created_at >= thirtyDaysAgo).map(app => ({
+        id: app._id,
+        type: "application",
+        description: `Applied to ${app.job_title} at ${app.company}`,
+        timestamp: app.created_at,
+      })),
+      ...interviewStages.filter(stage => stage.created_at >= thirtyDaysAgo).map(stage => ({
+        id: stage._id,
+        type: "interview",
+        description: `Interview scheduled: ${stage.title}`,
+        timestamp: stage.created_at,
+      }))
+    ].sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+
+    // Calculate interview rate
+    const interviewRate = applicationStats.total > 0
+      ? Math.round((applicationStats.interview / applicationStats.total) * 100)
+      : 0;
+
+    return {
+      applicationStats,
+      activeGoals,
+      pendingTasks,
+      nextInterview,
+      upcomingInterviews: upcomingInterviews.length,
+      interviewRate,
+      recentActivity,
+    };
+  },
+});
+
+// Helper function to format next interview date
+function formatNextInterview(timestamp: number | undefined): string {
+  if (!timestamp) return "No upcoming interviews";
+
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffTime = date.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 1) {
+    return `Tomorrow ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+  } else if (diffDays === 0) {
+    return `Today ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+  } else {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+}
+
 // Get session analytics (placeholder - would need actual session tracking)
 export const getSessionAnalytics = query({
   args: { clerkId: v.string() },

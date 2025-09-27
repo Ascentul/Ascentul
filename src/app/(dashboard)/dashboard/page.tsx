@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
+import { useQuery } from 'convex/react'
+import { api } from 'convex/_generated/api'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
 import { SimpleOnboardingChecklist } from '@/components/SimpleOnboardingChecklist'
 import { CareerGoalsSummary } from '@/components/CareerGoalsSummary'
@@ -29,10 +31,35 @@ import {
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 
+// Helper function to format time ago
+function formatTimeAgo(timestamp: number): string {
+  const now = Date.now()
+  const diffTime = now - timestamp
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+  const diffMinutes = Math.floor(diffTime / (1000 * 60))
+
+  if (diffDays > 0) {
+    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
+  } else if (diffHours > 0) {
+    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
+  } else if (diffMinutes > 0) {
+    return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`
+  } else {
+    return 'Just now'
+  }
+}
+
 export default function DashboardPage() {
   const { user: clerkUser, isLoaded } = useUser()
   const { user } = useAuth()
   const router = useRouter()
+
+  // Get real dashboard analytics from database - must be called before any returns
+  const dashboardData = useQuery(
+    api.analytics.getUserDashboardAnalytics,
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+  )
 
   // Redirect university admins to the University dashboard
   useEffect(() => {
@@ -56,14 +83,14 @@ export default function DashboardPage() {
     return null
   }
 
-  // Mock stats data to match archived version - reverted for stability
+  // Use real data or fallback to default values
   const stats = {
-    nextInterview: "Tomorrow 2PM",
-    activeApplications: 12,
-    pendingTasks: 4,
-    activeGoals: 3,
-    upcomingInterviews: 1,
-    interviewRate: 25
+    nextInterview: dashboardData?.nextInterview || "No upcoming interviews",
+    activeApplications: dashboardData?.applicationStats?.total || 0,
+    pendingTasks: dashboardData?.pendingTasks || 0,
+    activeGoals: dashboardData?.activeGoals || 0,
+    upcomingInterviews: dashboardData?.upcomingInterviews || 0,
+    interviewRate: dashboardData?.interviewRate || 0
   }
 
   const fadeIn = {
@@ -282,27 +309,30 @@ export default function DashboardPage() {
                   <p className="text-sm text-muted-foreground">Your latest career development actions</p>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Updated resume for Software Engineer position</p>
-                      <p className="text-xs text-muted-foreground">2 hours ago</p>
+                  {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 ? (
+                    dashboardData.recentActivity.map((activity, index) => (
+                      <div key={activity.id} className="flex items-center space-x-4">
+                        <div className={`w-2 h-2 rounded-full ${
+                          activity.type === 'application' ? 'bg-green-500' :
+                          activity.type === 'interview' ? 'bg-blue-500' :
+                          'bg-yellow-500'
+                        }`}></div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{activity.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatTimeAgo(activity.timestamp)}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-muted-foreground">No recent activity</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Start by creating an application or updating your profile
+                      </p>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Applied to TechCorp Inc.</p>
-                      <p className="text-xs text-muted-foreground">1 day ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Generated cover letter with AI</p>
-                      <p className="text-xs text-muted-foreground">3 days ago</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
