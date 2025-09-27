@@ -315,4 +315,26 @@ export default defineSchema({
     .index("by_user", ["user_id"])
     .index("by_status", ["status"])
     .index("by_target_date", ["target_date"]),
+
+  // AI Coach conversations table
+  ai_coach_conversations: defineTable({
+    user_id: v.id("users"),
+    title: v.string(),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_created_at", ["created_at"]),
+
+  // AI Coach messages table
+  ai_coach_messages: defineTable({
+    conversation_id: v.id("ai_coach_conversations"),
+    user_id: v.id("users"),
+    is_user: v.boolean(),
+    message: v.string(),
+    timestamp: v.number(),
+  })
+    .index("by_conversation", ["conversation_id"])
+    .index("by_user", ["user_id"])
+    .index("by_timestamp", ["timestamp"]),
 });
