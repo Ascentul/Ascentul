@@ -56,32 +56,12 @@ export default function UniversityDashboardPage() {
   const overview = useQuery(api.university_admin.getOverview, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
   const students = useQuery(api.university_admin.listStudents, clerkUser?.id ? { clerkId: clerkUser.id, limit: 50 } : 'skip')
   const departments = useQuery(api.university_admin.listDepartments, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
+  const analytics = useQuery(api.university_admin.getUniversityAnalytics, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
 
-  // Mock data for enhanced analytics
-  const studentGrowthData = [
-    { month: 'Aug', students: 42 },
-    { month: 'Sep', students: 58 },
-    { month: 'Oct', students: 73 },
-    { month: 'Nov', students: 89 },
-    { month: 'Dec', students: 104 },
-    { month: 'Jan', students: 126 },
-  ]
-
-  const activityData = [
-    { day: 'Mon', logins: 67, assignments: 23 },
-    { day: 'Tue', logins: 89, assignments: 34 },
-    { day: 'Wed', logins: 76, assignments: 28 },
-    { day: 'Thu', logins: 93, assignments: 41 },
-    { day: 'Fri', logins: 85, assignments: 36 },
-    { day: 'Sat', logins: 45, assignments: 12 },
-    { day: 'Sun', logins: 38, assignments: 8 },
-  ]
-
-  const departmentStats = departments ? departments.map((dept: any) => ({
-    name: dept.name,
-    students: Math.floor(Math.random() * 50) + 10,
-    courses: Math.floor(Math.random() * 15) + 3,
-  })) : []
+  // Use real analytics data from database
+  const studentGrowthData = analytics?.studentGrowthData || []
+  const activityData = analytics?.activityData || []
+  const departmentStats = analytics?.departmentStats || []
 
   // Filter students based on current filters
   const filteredStudents = useMemo(() => {

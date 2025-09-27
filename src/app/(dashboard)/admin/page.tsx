@@ -46,58 +46,50 @@ export default function AdminDashboardPage() {
   const { user } = useAuth()
 
   const users = useQuery(api.users.getAllUsers, clerkUser?.id ? { clerkId: clerkUser.id, limit: 100 } : 'skip')
+  const analytics = useQuery(api.analytics.getAdminAnalytics, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
 
-  // Mock data for comprehensive analytics
-  const systemStats = {
-    totalUsers: 2847,
-    totalUniversities: 23,
-    activeUsers: 1924,
-    systemHealth: 98.5,
-    monthlyGrowth: 15.3,
-    supportTickets: 45,
-    systemUptime: 99.9
+  // Use real analytics data from database
+  const systemStats = analytics?.systemStats || {
+    totalUsers: 0,
+    totalUniversities: 0,
+    activeUsers: 0,
+    systemHealth: 0,
+    monthlyGrowth: 0,
+    supportTickets: 0,
+    systemUptime: 0
   }
 
-  const userGrowthData = [
-    { month: 'Jul', users: 1856, universities: 18 },
-    { month: 'Aug', users: 2134, universities: 19 },
-    { month: 'Sep', users: 2387, universities: 21 },
-    { month: 'Oct', users: 2542, universities: 22 },
-    { month: 'Nov', users: 2743, universities: 23 },
-    { month: 'Dec', users: 2847, universities: 23 },
-  ]
+  const userGrowthData = analytics?.userGrowth || []
+  const subscriptionData = analytics?.subscriptionData || []
+  const universityData = analytics?.universityData || []
+  const activityData = analytics?.activityData || []
 
-  const subscriptionData = [
-    { name: 'University', value: 1824, color: '#4F46E5' },
-    { name: 'Premium', value: 923, color: '#10B981' },
-    { name: 'Free', value: 100, color: '#F59E0B' },
-  ]
+  // Use real recent users data instead of mock activity
+  const recentActivity = analytics?.recentUsers ? analytics.recentUsers.map((user: any) => ({
+    type: 'registration',
+    user: user.name,
+    university: user.university_id ? 'University User' : 'Individual User',
+    time: formatTimeAgo(user.created_at)
+  })) : []
 
-  const universityData = [
-    { name: 'Harvard University', users: 287, status: 'Active' },
-    { name: 'Stanford University', users: 245, status: 'Active' },
-    { name: 'MIT', users: 198, status: 'Active' },
-    { name: 'UC Berkeley', users: 176, status: 'Active' },
-    { name: 'Yale University', users: 134, status: 'Active' },
-  ]
+  // Helper function to format time ago
+  function formatTimeAgo(timestamp: number): string {
+    const now = Date.now()
+    const diffTime = now - timestamp
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+    const diffMinutes = Math.floor(diffTime / (1000 * 60))
 
-  const activityData = [
-    { day: 'Mon', logins: 1247, registrations: 23 },
-    { day: 'Tue', logins: 1389, registrations: 34 },
-    { day: 'Wed', logins: 1156, registrations: 28 },
-    { day: 'Thu', logins: 1423, registrations: 41 },
-    { day: 'Fri', logins: 1285, registrations: 36 },
-    { day: 'Sat', logins: 845, registrations: 12 },
-    { day: 'Sun', logins: 738, registrations: 8 },
-  ]
-
-  const recentActivity = [
-    { type: 'registration', user: 'John Smith', university: 'Harvard University', time: '2 minutes ago' },
-    { type: 'support', user: 'Sarah Johnson', issue: 'Login issues', time: '5 minutes ago' },
-    { type: 'university', action: 'New university registered', name: 'Princeton University', time: '1 hour ago' },
-    { type: 'alert', message: 'High API usage detected', severity: 'warning', time: '2 hours ago' },
-    { type: 'registration', user: 'Mike Chen', university: 'Stanford University', time: '3 hours ago' },
-  ]
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
+    } else if (diffHours > 0) {
+      return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
+    } else if (diffMinutes > 0) {
+      return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`
+    } else {
+      return 'Just now'
+    }
+  }
 
   const role = user?.role
   const canAccess = role === 'super_admin' || role === 'admin'
@@ -310,18 +302,8 @@ export default function AdminDashboardPage() {
                       </div>
                       <div className="flex-1">
                         <div className="text-sm">
-                          {activity.type === 'registration' && (
-                            <>New user <strong>{activity.user}</strong> registered at {activity.university}</>
-                          )}
-                          {activity.type === 'support' && (
-                            <>Support ticket from <strong>{activity.user}</strong>: {activity.issue}</>
-                          )}
-                          {activity.type === 'university' && (
-                            <>{activity.action}: <strong>{activity.name}</strong></>
-                          )}
-                          {activity.type === 'alert' && (
-                            <>System alert: {activity.message}</>
-                          )}
+                          <>New user <strong>{activity.user}</strong> registered ({activity.university})</>
+
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />

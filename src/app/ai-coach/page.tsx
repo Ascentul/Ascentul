@@ -45,11 +45,9 @@ export default function AICoachPage() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | number | null>(null)
   const [message, setMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [messages, setMessages] = useState<Message[]>([])
 
   // Fetch conversations
-  const { data: conversationsData = [] } = useQuery({
+  const { data: conversations = [] } = useQuery({
     queryKey: ['/api/ai-coach/conversations'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/ai-coach/conversations')
@@ -59,7 +57,7 @@ export default function AICoachPage() {
   })
 
   // Fetch messages for selected conversation
-  const { data: messagesData = [] } = useQuery({
+  const { data: messages = [] } = useQuery({
     queryKey: ['/api/ai-coach/messages', selectedConversationId],
     queryFn: async () => {
       if (!selectedConversationId) return []
@@ -69,18 +67,6 @@ export default function AICoachPage() {
     enabled: !!selectedConversationId && !!user?.clerkId
   })
 
-  useEffect(() => {
-    if (conversationsData) {
-      setConversations(conversationsData)
-    }
-  }, [conversationsData])
-
-  useEffect(() => {
-    if (messagesData) {
-      setMessages(messagesData)
-    }
-  }, [messagesData])
-
   // Create new conversation
   const createConversationMutation = useMutation({
     mutationFn: async (title: string) => {
@@ -88,9 +74,8 @@ export default function AICoachPage() {
       return await response.json()
     },
     onSuccess: (newConversation) => {
-      setConversations(prev => [newConversation, ...prev])
+      queryClient.invalidateQueries({ queryKey: ['/api/ai-coach/conversations'] })
       setSelectedConversationId(newConversation.id)
-      setMessages([])
       toast({
         title: 'New conversation created',
         description: 'Start chatting with your AI career coach!'
@@ -111,7 +96,7 @@ export default function AICoachPage() {
     onSuccess: (newMessages) => {
       console.log('Mutation Success - newMessages:', newMessages) // Debug log
       if (Array.isArray(newMessages)) {
-        setMessages(prev => [...prev, ...newMessages])
+        queryClient.invalidateQueries({ queryKey: ['/api/ai-coach/messages', selectedConversationId] })
         queryClient.invalidateQueries({ queryKey: ['/api/ai-coach/conversations'] })
       } else {
         console.error('Expected array but got:', newMessages)
@@ -202,7 +187,7 @@ export default function AICoachPage() {
                 <p className="text-sm">Create one to start chatting</p>
               </div>
             ) : (
-              conversations.map((conversation) => (
+              conversations.map((conversation: Conversation) => (
                 <Card
                   key={conversation.id}
                   className={`cursor-pointer mb-2 ${
@@ -248,7 +233,7 @@ export default function AICoachPage() {
                     <p>Start a conversation by typing your career question below</p>
                   </div>
                 ) : (
-                  messages.map((msg) => (
+                  messages.map((msg: Message) => (
                     <div
                       key={msg.id}
                       className={`flex gap-3 ${msg.isUser ? 'justify-end' : 'justify-start'}`}

@@ -15,6 +15,8 @@ const customJestConfig = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^convex/react$': 'identity-obj-proxy',
+    '^convex/_generated/(.*)$': 'identity-obj-proxy',
   },
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
