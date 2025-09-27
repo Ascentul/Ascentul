@@ -10,7 +10,6 @@ import { SimpleOnboardingChecklist } from '@/components/SimpleOnboardingChecklis
 import { CareerGoalsSummary } from '@/components/CareerGoalsSummary'
 import { ActiveInterviewsSummary } from '@/components/ActiveInterviewsSummary'
 import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
-import { AICareerCoach } from '@/components/AICareerCoach'
 import { TodaysRecommendations } from '@/components/TodaysRecommendations'
 import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
@@ -353,10 +352,6 @@ export default function DashboardPage() {
             <FollowupActionsSummary />
           </motion.div>
 
-          {/* AI Career Coach */}
-          <motion.div variants={cardAnimation}>
-            <AICareerCoach />
-          </motion.div>
 
           {/* Today's Recommendations */}
           <motion.div variants={cardAnimation}>
