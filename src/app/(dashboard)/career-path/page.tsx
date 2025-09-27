@@ -99,7 +99,7 @@ export default function CareerPathPage() {
     }
   });
 
-  const paths = savedPaths?.paths || [];
+  const paths = (savedPaths as any)?.paths || [];
 
   return (
     <div className="container mx-auto p-6 space-y-6">

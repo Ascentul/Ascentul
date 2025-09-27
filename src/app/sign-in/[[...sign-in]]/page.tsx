@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import Link from 'next/link'
-import { Eye, EyeOff, Mail, ArrowLeft, KeyRound } from 'lucide-react'
+import { Eye, EyeOff, Mail, ArrowLeft, KeyRound, Chrome, Users, Clock, Shield } from 'lucide-react'
 
 export default function Page() {
   const router = useRouter()
@@ -28,6 +28,7 @@ export default function Page() {
   const [sendingReset, setSendingReset] = useState(false)
   const [resettingPassword, setResettingPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)

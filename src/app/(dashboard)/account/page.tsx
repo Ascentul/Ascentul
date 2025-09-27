@@ -24,7 +24,9 @@ import { Switch } from '@/components/ui/switch'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import {
-  User, ShieldCheck, Edit, CheckCircle2, Loader2, Settings, Brain
+  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles,
+  Building, GraduationCap, Trophy, BookOpen, Award, Languages, MapPin, Users, Settings,
+  Bell, Upload, Camera, Trash2, Download, AlertTriangle, Globe, Lock, Brain
 } from 'lucide-react'
 
 // Profile form schema
@@ -72,6 +74,8 @@ export default function AccountPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedModel, setSelectedModel] = useState('gpt-4o-mini')
   const [isSavingModel, setIsSavingModel] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   // Profile form
   const profileForm = useForm<ProfileFormValues>({

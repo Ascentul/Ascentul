@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useToast } from '@/hooks/use-toast'
-import { GraduationCap, Users, BookOpen, Award, Target, ClipboardList, FileText, Mail, BarChart as BarChartIcon } from 'lucide-react'
+import { GraduationCap, Users, BookOpen, Award, Target, ClipboardList, FileText, Mail, BarChart as BarChartIcon, TrendingUp } from 'lucide-react'
 import {
   ResponsiveContainer,
   BarChart,
@@ -34,6 +34,8 @@ import {
   Legend,
   LineChart,
   Line,
+  AreaChart,
+  Area,
 } from 'recharts'
 
 export default function UniversityDashboardPage() {
@@ -43,7 +45,17 @@ export default function UniversityDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const { toast } = useToast()
 
+  // Filter states
+  const [roleFilter, setRoleFilter] = useState<'all' | 'undergraduate' | 'graduate' | 'staff'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'pending'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+
   const canAccess = !!user && (isAdmin || user.subscription_plan === 'university' || user.role === 'university_admin')
+
+  // Data fetching
+  const overview = useQuery(api.university_admin.getOverview, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
+  const students = useQuery(api.university_admin.listStudents, clerkUser?.id ? { clerkId: clerkUser.id, limit: 50 } : 'skip')
+  const departments = useQuery(api.university_admin.listDepartments, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
 
   // Mock data for enhanced analytics
   const studentGrowthData = [
@@ -95,10 +107,6 @@ export default function UniversityDashboardPage() {
     })
   }, [students, roleFilter, statusFilter, searchQuery])
 
-  const overview = useQuery(api.university_admin.getOverview, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
-  const students = useQuery(api.university_admin.listStudents, clerkUser?.id ? { clerkId: clerkUser.id, limit: 50 } : 'skip')
-  const departments = useQuery(api.university_admin.listDepartments, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
-
 
   // Assign student licenses
   const assignStudent = useMutation(api.university_admin.assignStudentByEmail)
@@ -109,10 +117,7 @@ export default function UniversityDashboardPage() {
   const [importingEmails, setImportingEmails] = useState(false)
 
   // Student filtering state
-  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'staff'>('all')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending'>('all')
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
-  const [searchQuery, setSearchQuery] = useState('')
 
   // Student management state
   const [editingStudent, setEditingStudent] = useState<any>(null)

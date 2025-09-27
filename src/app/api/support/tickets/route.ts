@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         const msg = {
           to: user.email,
           from: process.env.SENDGRID_FROM_EMAIL || 'support@ascentful.com',
-          subject: `Support Ticket Submitted - #${ticket._id}`,
+          subject: `Support Ticket Submitted - #${ticket?._id || 'Unknown'}`,
           html: `
             <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
               <h2 style="color: #0C29AB;">Hi ${user.name || 'there'},</h2>
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
               <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <h3 style="margin-top: 0; color: #333;">Ticket Details:</h3>
-                <p><strong>Ticket ID:</strong> #${ticket._id}</p>
+                <p><strong>Ticket ID:</strong> #${ticket?._id || 'Unknown'}</p>
                 <p><strong>Subject:</strong> ${subject}</p>
                 <p><strong>Type:</strong> ${issueType}</p>
                 <p><strong>Description:</strong> ${description}</p>

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import Link from 'next/link'
-import { Mail, CheckCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react'
+import { Mail, CheckCircle, ArrowLeft, Eye, EyeOff, Chrome, Users, Zap, BookOpen, Shield } from 'lucide-react'
 
 export default function Page() {
   const router = useRouter()
@@ -28,8 +28,45 @@ export default function Page() {
   const [submitting, setSubmitting] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [passwordStrength, setPasswordStrength] = useState(0)
+  const [acceptTerms, setAcceptTerms] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [resending, setResending] = useState(false)
+
+  // Password strength functions
+  const calculatePasswordStrength = (password: string) => {
+    let strength = 0
+    if (password.length >= 8) strength += 1
+    if (password.match(/[a-z]/)) strength += 1
+    if (password.match(/[A-Z]/)) strength += 1
+    if (password.match(/[0-9]/)) strength += 1
+    if (password.match(/[^a-zA-Z0-9]/)) strength += 1
+    return strength
+  }
+
+  const getPasswordStrengthColor = (strength: number) => {
+    switch (strength) {
+      case 0:
+      case 1: return 'bg-red-500'
+      case 2: return 'bg-orange-500'
+      case 3: return 'bg-yellow-500'
+      case 4: return 'bg-blue-500'
+      case 5: return 'bg-green-500'
+      default: return 'bg-gray-300'
+    }
+  }
+
+  const getPasswordStrengthText = (strength: number) => {
+    switch (strength) {
+      case 0:
+      case 1: return 'Very weak'
+      case 2: return 'Weak'
+      case 3: return 'Fair'
+      case 4: return 'Good'
+      case 5: return 'Strong'
+      default: return ''
+    }
+  }
 
   // If a session already exists, redirect to dashboard
   useEffect(() => {
