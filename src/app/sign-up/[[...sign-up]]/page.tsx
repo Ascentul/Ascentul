@@ -270,7 +270,6 @@ export default function Page() {
   }
 
   return (
-<<<<<<< HEAD
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
       {/* Left: Form */}
       <div className="flex items-center justify-center p-6 lg:p-10 bg-white">
@@ -621,12 +620,6 @@ export default function Page() {
           </div>
         </div>
       </div>
-=======
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <SignUp
-        signInFallbackRedirectUrl="/dashboard"
-      />
->>>>>>> 7d0ff6b7c4ca3dc303c1956e6edcb0af82c2b378
     </div>
   )
 }
