@@ -12,10 +12,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
 import { useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import { useRouter } from 'next/navigation'
 
 interface Conversation {
   id: string | number
@@ -26,6 +27,7 @@ interface Conversation {
 
 export function AICareerCoach() {
   const { toast } = useToast()
+  const router = useRouter()
   const [quickQuestion, setQuickQuestion] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -46,31 +48,49 @@ export function AICareerCoach() {
   const conversationsArray = Array.isArray(conversations) ? conversations : []
   const recentConversation = conversationsArray[0]
 
+  // Create conversation mutation
+  const createConversationMutation = useMutation({
+    mutationFn: async (title: string) => {
+      const response = await apiRequest('POST', '/api/ai-coach/conversations', { title })
+      return await response.json()
+    },
+    onSuccess: async (newConversation) => {
+      // Send the initial message to the new conversation
+      try {
+        await apiRequest('POST', `/api/ai-coach/conversations/${newConversation.id}/messages`, {
+          content: quickQuestion.trim()
+        })
+
+        // Redirect to the AI coach page with the new conversation
+        router.push('/ai-coach')
+        setQuickQuestion('')
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to send message. Please try again.',
+          variant: 'destructive'
+        })
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create conversation. Please try again.',
+        variant: 'destructive'
+      })
+    }
+  })
+
   const handleQuickQuestion = async () => {
     if (!quickQuestion.trim()) return
 
     setIsSubmitting(true)
     try {
-      const response = await apiRequest('POST', '/api/ai-coach/generate-response', {
-        query: quickQuestion.trim(),
-        conversationHistory: []
-      })
-
-      const data = await response.json()
-
-      toast({
-        title: 'AI Response',
-        description: data.response,
-        duration: 5000
-      })
-
-      setQuickQuestion('')
+      // Create a new conversation with the question as the title (truncated)
+      const title = quickQuestion.trim().slice(0, 50) + (quickQuestion.trim().length > 50 ? '...' : '')
+      await createConversationMutation.mutateAsync(title)
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to get AI response. Please try again.',
-        variant: 'destructive'
-      })
+      // Error handling is done in the mutation
     } finally {
       setIsSubmitting(false)
     }

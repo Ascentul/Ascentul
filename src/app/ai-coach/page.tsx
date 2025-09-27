@@ -104,11 +104,31 @@ export default function AICoachPage() {
       const response = await apiRequest('POST', `/api/ai-coach/conversations/${data.conversationId}/messages`, {
         content: data.content
       })
-      return await response.json()
+      const result = await response.json()
+      console.log('API Response:', result) // Debug log
+      return result
     },
     onSuccess: (newMessages) => {
-      setMessages(prev => [...prev, ...newMessages])
-      queryClient.invalidateQueries({ queryKey: ['/api/ai-coach/conversations'] })
+      console.log('Mutation Success - newMessages:', newMessages) // Debug log
+      if (Array.isArray(newMessages)) {
+        setMessages(prev => [...prev, ...newMessages])
+        queryClient.invalidateQueries({ queryKey: ['/api/ai-coach/conversations'] })
+      } else {
+        console.error('Expected array but got:', newMessages)
+        toast({
+          title: 'Error',
+          description: 'Unexpected response format from server',
+          variant: 'destructive'
+        })
+      }
+    },
+    onError: (error: any) => {
+      console.error('Mutation Error:', error) // Debug log
+      toast({
+        title: 'Failed to send message',
+        description: error.message || 'Please try again',
+        variant: 'destructive'
+      })
     }
   })
 
@@ -123,11 +143,8 @@ export default function AICoachPage() {
       })
       setMessage('')
     } catch (error) {
-      toast({
-        title: 'Failed to send message',
-        description: 'Please try again',
-        variant: 'destructive'
-      })
+      // Error is already handled by mutation onError
+      console.log('Message send error handled by mutation')
     } finally {
       setIsLoading(false)
     }
