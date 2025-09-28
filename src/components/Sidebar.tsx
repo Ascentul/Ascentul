@@ -217,6 +217,23 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       href: '/university'
     },
     {
+      id: 'university-students',
+      title: 'Students',
+      icon: <UserIcon className="h-5 w-5" />,
+      items: [
+        { href: '/university/students', icon: <UserIcon className="h-4 w-4" />, label: 'Students' },
+        { href: '/university/students/progress', icon: <LineChart className="h-4 w-4" />, label: 'Student Progress' },
+        { href: '/university/students/invite', icon: <Mail className="h-4 w-4" />, label: 'Invite Students' },
+        { href: '/university/students/licenses', icon: <ShieldCheck className="h-4 w-4" />, label: 'Add Licenses' },
+      ]
+    },
+    {
+      id: 'university-departments',
+      title: 'Departments',
+      icon: <Building className="h-5 w-5" />,
+      href: '/university/departments'
+    },
+    {
       id: 'university-analytics',
       title: 'Analytics',
       icon: <BarChart className="h-5 w-5" />,
@@ -254,7 +271,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       if (s.href && isActive(s.href)) return s.id
       if (s.items) {
         for (const it of s.items) {
-          if (isActive(it.href)) return s.id
+          // Use exact matching for admin dashboard items to avoid conflicts
+          const shouldUseExact = s.id === 'admin-dashboard' && it.href === '/admin'
+          if (isActive(it.href, shouldUseExact)) return s.id
         }
       }
     }
@@ -344,11 +363,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return pathname === href
+    // For non-exact matches, use prefix matching to handle nested routes
     return pathname === href || pathname.startsWith(href + '/')
   }
 
-  const renderSidebarItem = (item: SidebarItem, exact?: boolean) => {
-    const active = isActive(item.href, exact)
+  const renderSidebarItem = (item: SidebarItem, sectionId?: string, forceExact?: boolean) => {
+    // Use exact matching for the main admin dashboard item to avoid highlighting conflicts
+    // when on sub-pages like /admin/analytics - only highlight the specific item, not the parent
+    const shouldUseExact = forceExact || (sectionId === 'admin-dashboard' && item.href === '/admin')
+    const active = isActive(item.href, shouldUseExact)
     const disabled = item.pro && isFreeUser
 
     return (
@@ -384,6 +407,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     const sectionActive = section.href ? isActive(section.href) : false
     const isCollapsed = !!collapsedSections[section.id]
 
+    // Check if any child items are active (but not the first item in admin sections to avoid double-highlighting)
+    const hasActiveItem = hasItems && section.items?.some(item => {
+      const shouldUseExact = section.id === 'admin-dashboard' && item.href === '/admin'
+      return isActive(item.href, shouldUseExact)
+    })
+
     // Check if this is a pro feature
     const isPro = 'pro' in section && section.pro
     const disabled = isPro && isFreeUser
@@ -396,7 +425,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
           href={disabled ? '#' : section.href}
           className={`
             flex items-center px-3 py-2 mx-2 text-sm rounded-lg transition-colors
-            ${sectionActive
+            ${(sectionActive || hasActiveItem)
               ? 'bg-primary/10 text-primary'
               : disabled
               ? 'text-gray-400 cursor-not-allowed'
@@ -430,7 +459,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     return (
       <div key={section.id} className="space-y-1">
         <div
-          className={`flex items-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-700 ${expanded ? '' : 'justify-center'}`}
+          className={`flex items-center px-3 py-2 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition-colors ${expanded ? '' : 'justify-center'} ${
+            (sectionActive || hasActiveItem)
+              ? 'text-primary bg-primary/10'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
           role="button"
           aria-expanded={!isCollapsed}
           onClick={toggleSectionItems}
@@ -453,7 +486,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
               transition={{ duration: 0.18, ease: 'easeOut' }}
               style={{ overflow: 'hidden' }}
             >
-              {section.items?.map((it) => renderSidebarItem(it, section.id === 'admin'))}
+              {section.items?.map((it) => renderSidebarItem(it, section.id))}
             </motion.div>
           )}
         </AnimatePresence>
@@ -511,9 +544,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {clerkUser.firstName || clerkUser.emailAddresses[0]?.emailAddress?.split('@')[0] || 'User'}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {user?.subscription_plan || 'free'} plan
-                  </p>
+                  {!isAdmin && (
+                    <p className="text-xs text-gray-500 truncate">
+                      {user?.subscription_plan || 'free'} plan
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -636,7 +671,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
 
           <Link
             href="/account"
-            className={`flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? 'justify-start' : 'justify-center'}`}
+            className={`flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? '' : 'justify-center'}`}
           >
             <Settings className="h-4 w-4" />
             {expanded && <span className="ml-3">Settings</span>}
@@ -645,7 +680,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
           <Button
             variant="ghost"
             onClick={handleLogout}
-            className={`w-full ${expanded ? 'justify-start' : 'justify-center'} text-gray-600 hover:text-gray-900`}
+            className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? '' : 'justify-center'}`}
           >
             <LogOut className="h-4 w-4" />
             {expanded && <span className="ml-3">Sign Out</span>}

@@ -172,6 +172,7 @@ export const assignStudentByEmail = mutation({
     clerkId: v.string(),
     email: v.string(),
     role: v.optional(v.union(v.literal("user"), v.literal("staff"))),
+    departmentId: v.optional(v.id("departments")),
   },
   handler: async (ctx, args) => {
     const admin = await getCurrentUser(ctx, args.clerkId);
@@ -190,6 +191,7 @@ export const assignStudentByEmail = mutation({
         university_id: admin.university_id,
         subscription_plan: "university",
         ...(args.role ? { role: args.role } : {}),
+        ...(args.departmentId ? { department_id: args.departmentId } : {}),
         updated_at: Date.now(),
       });
       return existingStudent._id;

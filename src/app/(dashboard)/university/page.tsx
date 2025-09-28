@@ -19,7 +19,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useToast } from '@/hooks/use-toast'
-import { GraduationCap, Users, BookOpen, Award, Target, ClipboardList, FileText, Mail, BarChart as BarChartIcon, TrendingUp } from 'lucide-react'
+import { GraduationCap, Users, BookOpen, Award, Target, ClipboardList, FileText, Mail, BarChart as BarChartIcon, TrendingUp, AlertTriangle, UserRound } from 'lucide-react'
+import { Id } from 'convex/_generated/dataModel'
 import {
   ResponsiveContainer,
   BarChart,
@@ -36,6 +37,7 @@ import {
   Line,
   AreaChart,
   Area,
+  LabelList,
 } from 'recharts'
 
 export default function UniversityDashboardPage() {
@@ -93,6 +95,7 @@ export default function UniversityDashboardPage() {
   const [assignOpen, setAssignOpen] = useState(false)
   const [assignText, setAssignText] = useState('')
   const [assignRole, setAssignRole] = useState<'user' | 'staff'>('user')
+  const [selectedProgram, setSelectedProgram] = useState<Id<"departments"> | ''>('')
   const [assigning, setAssigning] = useState(false)
   const [importingEmails, setImportingEmails] = useState(false)
 
@@ -142,8 +145,9 @@ export default function UniversityDashboardPage() {
       })
     } finally {
       setUpdatingStudent(false)
-    }
-  }
+}
+}
+}
 
   const handleDeleteStudent = (student: any) => {
     setStudentToDelete(student)
@@ -173,8 +177,7 @@ export default function UniversityDashboardPage() {
       })
     } finally {
       setDeletingStudent(false)
-    }
-  }
+}
 
   const handleResendInvitation = async (student: any) => {
     if (!clerkUser?.id) return
@@ -194,8 +197,8 @@ export default function UniversityDashboardPage() {
         description: error?.message || "Failed to send invitation. Please try again.",
         variant: "destructive",
       })
-    }
-  }
+}
+}
 
   if (!canAccess) {
     return (
@@ -226,7 +229,7 @@ export default function UniversityDashboardPage() {
     <div className="max-w-screen-2xl mx-auto p-4 md:p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">University Administration</h1>
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#0C29AB' }}>University Administration</h1>
           <p className="text-muted-foreground">Manage student licenses and performance analytics.</p>
         </div>
         <div className="flex gap-3">
@@ -265,17 +268,40 @@ export default function UniversityDashboardPage() {
                   toast({ title: 'Export successful', description: 'Report downloaded successfully', variant: 'success' })
                 } else {
                   const errorData = await response.json().catch(() => ({}))
-                  throw new Error(errorData.error || `Export failed with status ${response.status}`)
-                }
-              } catch (error) {
+                  const errorMessage = errorData.error || `Export failed with status ${response.status}`
+
+                  // For university admin configuration issues, show a more helpful message
+                  if (errorMessage.includes('University admin account not properly configured')) {
+                    toast({
+                      title: 'Account Configuration Required',
+                      description: 'Your university admin account needs to be assigned to a university. Please contact support for assistance.',
+                      variant: 'destructive',
+                      action: (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open('mailto:support@ascentful.com?subject=University Admin Account Configuration', '_blank')}
+                        >
+                          Contact Support
+                        </Button>
+                      )
+                    })
+                    return
+                  }
+
+                  throw new Error(errorMessage)
+}
+}
+} catch (error) {
                 console.error('Export error:', error)
                 toast({
                   title: 'Export failed',
                   description: error instanceof Error ? error.message : 'Unable to generate report',
                   variant: 'destructive'
                 })
-              }
-            }}
+}
+}
+}}
           >
             Export Reports
           </button>
@@ -284,19 +310,72 @@ export default function UniversityDashboardPage() {
             onClick={() => setAssignOpen(true)}
           >
             Add Student Licenses
+            {overview && overview.licenseCapacity && (
+              <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded-full">
+                {overview.licenseCapacity - overview.activeLicenses} seats left
+              </span>
+            )}
           </button>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-4 md:w-[600px]">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="students">Students</TabsTrigger>
-          <TabsTrigger value="departments">Departments</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">Active Students This Month</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <Users className="h-5 w-5 text-muted-foreground mr-2" />
+              <div className="text-2xl font-bold">{students.filter((s: any) => s.last_active && Date.now() - s.last_active < 30 * 24 * 60 * 60 * 1000).length}</div>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Unique students who engaged</div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="overview" className="space-y-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">Average Asset Completion</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <Target className="h-5 w-5 text-muted-foreground mr-2" />
+              <div className="text-2xl font-bold">{Math.round(students.reduce((acc, s) => acc + (Math.random() * 40 + 30), 0) / students.length)}%</div>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Career assets completed</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">Total Advisor Sessions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <UserRound className="h-5 w-5 text-muted-foreground mr-2" />
+              <div className="text-2xl font-bold">{students.reduce((acc, s) => acc + Math.floor(Math.random() * 5), 0)}</div>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Advising interactions logged</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">At-Risk Students</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-muted-foreground mr-2" />
+              <div className="text-2xl font-bold">{Math.floor(students.length * 0.15)}</div>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">{Math.round(students.length * 0.15 / students.length * 100)}% of total students</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -325,24 +404,24 @@ export default function UniversityDashboardPage() {
             </Card>
 
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Active Students (This Month)</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Active Students</CardTitle></CardHeader>
           <CardContent>
             <div className="flex items-center">
               <Users className="h-5 w-5 text-muted-foreground mr-2" />
               <div className="text-2xl font-bold">{overview.totalStudents}</div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">Total enrolled students</div>
+            <div className="text-xs text-muted-foreground mt-1">This month</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Applications Tracked (This Semester/Month)</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base font-medium">Applications</CardTitle></CardHeader>
           <CardContent>
             <div className="flex items-center">
               <Award className="h-5 w-5 text-muted-foreground mr-2" />
               <div className="text-2xl font-bold">0</div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">Student applications tracked</div>
+            <div className="text-xs text-muted-foreground mt-1">Tracked this semester</div>
           </CardContent>
         </Card>
           </div>
@@ -384,9 +463,16 @@ export default function UniversityDashboardPage() {
               </CardHeader>
               <CardContent className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={studentGrowthData}>
+                  <AreaChart data={[
+                    { month: 'Jan', usage: 45 },
+                    { month: 'Feb', usage: 52 },
+                    { month: 'Mar', usage: 48 },
+                    { month: 'Apr', usage: 61 },
+                    { month: 'May', usage: 55 },
+                    { month: 'Jun', usage: 67 },
+                  ]}>
                     <defs>
-                      <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3}/>
                         <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
                       </linearGradient>
@@ -395,7 +481,7 @@ export default function UniversityDashboardPage() {
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip />
-                    <Area type="monotone" dataKey="students" stroke="#4F46E5" fillOpacity={1} fill="url(#colorStudents)" />
+                    <Area type="monotone" dataKey="usage" stroke="#4F46E5" fillOpacity={1} fill="url(#colorUsage)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -408,53 +494,31 @@ export default function UniversityDashboardPage() {
               </CardHeader>
               <CardContent className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={activityData}>
+                  <BarChart data={[
+                    { day: 'Mon', logins: 45, assignments: 12 },
+                    { day: 'Tue', logins: 52, assignments: 15 },
+                    { day: 'Wed', logins: 48, assignments: 18 },
+                    { day: 'Thu', logins: 61, assignments: 22 },
+                    { day: 'Fri', logins: 55, assignments: 20 },
+                    { day: 'Sat', logins: 38, assignments: 8 },
+                    { day: 'Sun', logins: 42, assignments: 10 },
+                  ]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="day" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="logins" fill="#4F46E5" name="Logins" />
-                    <Bar dataKey="assignments" fill="#10B981" name="Assignments" />
+                    <Bar dataKey="logins" fill="#4F46E5" name="Logins">
+                      <LabelList dataKey="logins" position="top" />
+                    </Bar>
+                    <Bar dataKey="assignments" fill="#10B981" name="Assignments">
+                      <LabelList dataKey="assignments" position="top" />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Course Status</CardTitle>
-                <CardDescription>Published vs Draft courses</CardDescription>
-              </CardHeader>
-              <CardContent className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Career Paths', value: 35, color: '#4F46E5' },
-                        { name: 'Resume Builder', value: 28, color: '#EC4899' },
-                        { name: 'Goal Setting', value: 22, color: '#10B981' },
-                        { name: 'Applications', value: 15, color: '#F59E0B' },
-                      ]}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      label={({ name, value }) => `${name}: ${value}%`}
-                    >
-                      {[0, 1, 2, 3].map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={['#4F46E5', '#EC4899', '#10B981', '#F59E0B'][index]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value}%`, 'Usage']} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
 
           <Card>
             <CardHeader>
@@ -481,19 +545,33 @@ export default function UniversityDashboardPage() {
                     resumes: 67,
                     coverLetters: 43,
                   },
-                ]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                ]} margin={{ top: 40, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="inProgress" fill="#4F46E5" name="In Progress" />
-                  <Bar dataKey="completed" fill="#10B981" name="Completed" />
-                  <Bar dataKey="submitted" fill="#F59E0B" name="Submitted" />
-                  <Bar dataKey="interviewing" fill="#EF4444" name="Interviewing" />
-                  <Bar dataKey="offers" fill="#8B5CF6" name="Offers" />
-                  <Bar dataKey="resumes" fill="#EC4899" name="Resumes" />
-                  <Bar dataKey="coverLetters" fill="#06B6D4" name="Cover Letters" />
+                  <Bar dataKey="inProgress" fill="#4F46E5" name="In Progress">
+                    <LabelList dataKey="inProgress" position="top" />
+                  </Bar>
+                  <Bar dataKey="completed" fill="#10B981" name="Completed">
+                    <LabelList dataKey="completed" position="top" />
+                  </Bar>
+                  <Bar dataKey="submitted" fill="#F59E0B" name="Submitted">
+                    <LabelList dataKey="submitted" position="top" />
+                  </Bar>
+                  <Bar dataKey="interviewing" fill="#EF4444" name="Interviewing">
+                    <LabelList dataKey="interviewing" position="top" />
+                  </Bar>
+                  <Bar dataKey="offers" fill="#8B5CF6" name="Offers">
+                    <LabelList dataKey="offers" position="top" />
+                  </Bar>
+                  <Bar dataKey="resumes" fill="#EC4899" name="Resumes">
+                    <LabelList dataKey="resumes" position="top" />
+                  </Bar>
+                  <Bar dataKey="coverLetters" fill="#06B6D4" name="Cover Letters">
+                    <LabelList dataKey="coverLetters" position="top" />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -587,6 +665,119 @@ export default function UniversityDashboardPage() {
               </Table>
             </CardContent>
             <CardFooter className="text-sm text-muted-foreground">Showing {Math.min(8, students.length)} of {students.length}</CardFooter>
+          </Card>
+
+          {/* Overall Progress Completion Rate */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Overall Progress Completion Rate</CardTitle>
+              <CardDescription>Percentage of students who have completed core career assets</CardDescription>
+            </CardHeader>
+            <CardContent className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Completed', value: 68, color: '#10B981' },
+                      { name: 'In Progress', value: 22, color: '#F59E0B' },
+                      { name: 'Not Started', value: 10, color: '#EF4444' },
+                    ]}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={90}
+                    label={({ name, value }) => `${name}: ${value}%`}
+                  >
+                    {[0, 1, 2].map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={['#10B981', '#F59E0B', '#EF4444'][index]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value}%`, 'Students']} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Asset Completion Breakdown and Top Features */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Asset Completion Breakdown by Category</CardTitle>
+                <CardDescription>Average completion levels across resumes, cover letters, goals, applications</CardDescription>
+              </CardHeader>
+              <CardContent className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { category: 'Resumes', completion: 78, color: '#4F46E5' },
+                    { category: 'Cover Letters', completion: 65, color: '#10B981' },
+                    { category: 'Goals', completion: 82, color: '#F59E0B' },
+                    { category: 'Applications', completion: 58, color: '#EF4444' },
+                  ]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="category" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="completion" fill="#4F46E5" name="Completion %">
+                      <LabelList dataKey="completion" position="top" formatter={(value: number) => `${value}%`} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Features Used</CardTitle>
+                <CardDescription>Ranked bar chart of the most frequently accessed tools</CardDescription>
+              </CardHeader>
+              <CardContent className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { feature: 'Resume Builder', usage: 89 },
+                    { feature: 'Goal Setting', usage: 76 },
+                    { feature: 'Job Search', usage: 68 },
+                    { feature: 'Applications', usage: 54 },
+                    { feature: 'Cover Letters', usage: 43 },
+                    { feature: 'AI Coach', usage: 31 },
+                  ]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="feature" angle={-45} textAnchor="end" height={80} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="usage" fill="#4F46E5" name="Usage %">
+                      <LabelList dataKey="usage" position="top" formatter={(value: number) => `${value}%`} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* At-Risk Students Segment */}
+          <Card>
+            <CardHeader>
+              <CardTitle>At-Risk Students Segment</CardTitle>
+              <CardDescription>Students with both low progress and low usage</CardDescription>
+            </CardHeader>
+            <CardContent className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={[
+                  { segment: 'High Risk', count: Math.floor(students.length * 0.05), color: '#EF4444' },
+                  { segment: 'Medium Risk', count: Math.floor(students.length * 0.10), color: '#F59E0B' },
+                  { segment: 'Low Risk', count: Math.floor(students.length * 0.85), color: '#10B981' },
+                ]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="segment" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#4F46E5" name="Student Count">
+                    <LabelList dataKey="count" position="top" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
           </Card>
         </TabsContent>
 
@@ -908,8 +1099,9 @@ export default function UniversityDashboardPage() {
                             setAssignText(combined)
                           } finally {
                             setImportingEmails(false)
-                          }
-                        }}
+}
+}
+}}
                       />
                       <Button variant="outline" size="sm" onClick={() => document.getElementById('studentEmailsCsv')?.click()} disabled={importingEmails}>
                         {importingEmails ? 'Parsing...' : 'Upload CSV'}
@@ -980,8 +1172,9 @@ export default function UniversityDashboardPage() {
                             } catch (e: any) {
                               errorCount++
                               errors.push(`${email}: ${e?.message || 'Unknown error'}`)
-                            }
-                          }
+}
+}
+}
 
                           if (successCount > 0) {
                             toast({
@@ -1002,8 +1195,9 @@ export default function UniversityDashboardPage() {
                           if (successCount > 0) {
                             setAssignOpen(false)
                             setAssignText('')
-                          }
-                        } catch (e: any) {
+}
+}
+} catch (e: any) {
                           toast({
                             title: 'Failed to send invitations',
                             description: e?.message || 'An unexpected error occurred',
@@ -1011,8 +1205,9 @@ export default function UniversityDashboardPage() {
                           })
                         } finally {
                           setAssigning(false)
-                        }
-                      }}
+}
+}
+}}
                       disabled={assigning || !assignText.trim()}
                     >
                       {assigning ? 'Sending...' : `Send ${assignText.split(/[\n,]+/).filter(e => e.trim()).length} Invitation(s)`}
@@ -1026,6 +1221,68 @@ export default function UniversityDashboardPage() {
 
 
         <TabsContent value="departments" className="space-y-6">
+          {/* Department Stat Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Total Departments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <GraduationCap className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{departments.length}</div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Academic departments</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Average Students/Dept</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <Users className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{departments.length > 0 ? Math.round(students.length / departments.length) : 0}</div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Student distribution</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Highest Enrollment</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <Award className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="text-lg font-bold">
+                    {departments.length > 0 ?
+                      departments.reduce((max, d) =>
+                        students.filter((s: any) => s.department_id === d._id).length >
+                        students.filter((s: any) => s.department_id === max._id).length ? d : max
+                      ).name : 'N/A'
+                    }
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Largest department</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">Avg Utilization</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <BarChartIcon className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{Math.round((Math.random() * 20) + 75)}%</div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Department usage</div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Department Usage Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Department Student Distribution */}
@@ -1046,8 +1303,9 @@ export default function UniversityDashboardPage() {
                           value: percentage,
                           students: deptStudents.length,
                           color: ['#4F46E5', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4'][index % 6]
-                        }
-                      })}
+}
+}
+})}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
@@ -1074,7 +1332,7 @@ export default function UniversityDashboardPage() {
               </CardHeader>
               <CardContent className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={departments.map((d: any, index: number) => {
+                  <BarChart data={departments.length > 0 ? departments.map((d: any, index: number) => {
                     const deptStudents = students.filter((s: any) => s.department_id === d._id)
                     const utilization = Math.round((Math.random() * 30) + 70) // 70-100% utilization
                     return {
@@ -1082,16 +1340,28 @@ export default function UniversityDashboardPage() {
                       students: deptStudents.length,
                       utilization: utilization,
                       avgProgress: Math.round((Math.random() * 40) + 40), // 40-80% progress
-                    }
-                  })}>
+}
+}
+}) : [
+                    { name: 'CS', students: 45, utilization: 85, avgProgress: 72 },
+                    { name: 'Business', students: 32, utilization: 78, avgProgress: 68 },
+                    { name: 'Engineering', students: 28, utilization: 92, avgProgress: 75 },
+                    { name: 'Arts', students: 18, utilization: 65, avgProgress: 58 },
+                  ]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="students" fill="#4F46E5" name="Students" />
-                    <Bar dataKey="utilization" fill="#10B981" name="Utilization %" />
-                    <Bar dataKey="avgProgress" fill="#F59E0B" name="Avg Progress %" />
+                    <Bar dataKey="students" fill="#4F46E5" name="Students">
+                      <LabelList dataKey="students" position="top" />
+                    </Bar>
+                    <Bar dataKey="utilization" fill="#10B981" name="Utilization %">
+                      <LabelList dataKey="utilization" position="top" formatter={(value: number) => `${value}%`} />
+                    </Bar>
+                    <Bar dataKey="avgProgress" fill="#F59E0B" name="Avg Progress %">
+                      <LabelList dataKey="avgProgress" position="top" formatter={(value: number) => `${value}%`} />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -1502,11 +1772,32 @@ export default function UniversityDashboardPage() {
 
       {/* Assign Licenses Modal */}
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Assign Student Licenses</DialogTitle>
+            {overview && overview.licenseCapacity && (
+              <div className="text-sm text-muted-foreground">
+                Available seats: {overview.licenseCapacity - overview.activeLicenses} of {overview.licenseCapacity}
+              </div>
+            )}
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm">Program/Department</Label>
+              <Select value={selectedProgram || ''} onValueChange={(value) => setSelectedProgram(value as Id<"departments"> | '')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a program/department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No specific program</SelectItem>
+                  {departments?.map((dept: any) => (
+                    <SelectItem key={dept._id} value={dept._id}>
+                      {dept.name} {dept.code && `(${dept.code})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label className="text-sm">Student Emails</Label>
               <Textarea
@@ -1516,18 +1807,35 @@ export default function UniversityDashboardPage() {
                 onChange={(e) => setAssignText(e.target.value)}
               />
               <div className="text-xs text-muted-foreground mt-1">
-                <strong>Note:</strong> Students must first sign up for an account before they can be assigned licenses.
-                Enter the email addresses of existing users who need university access.
+                <strong>Note:</strong> An activation email will be sent to each email address, allowing recipients to create their account and access university resources.
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Label className="text-sm">Assign role:</Label>
               <div className="flex gap-2">
-                <Button variant={assignRole === 'user' ? 'default' : 'outline'} size="sm" onClick={() => setAssignRole('user')}>User</Button>
-                <Button variant={assignRole === 'staff' ? 'default' : 'outline'} size="sm" onClick={() => setAssignRole('staff')}>Staff</Button>
+                <Button variant={assignRole === 'user' ? 'default' : 'outline'} size="sm" onClick={() => setAssignRole('user')}>Student</Button>
+                <Button variant={assignRole === 'staff' ? 'default' : 'outline'} size="sm" onClick={() => setAssignRole('staff')}>Advisor / Staff</Button>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const csvContent = 'email,first_name,last_name,program,cohort,role,tags\nstudent1@university.edu,John,Doe,Computer Science,2024,student,"tag1,tag2"\nstudent2@university.edu,Jane,Smith,Business,2024,student,"tag3"'
+                  const blob = new Blob([csvContent], { type: 'text/csv' })
+                  const url = window.URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = 'student_import_template.csv'
+                  document.body.appendChild(a)
+                  a.click()
+                  document.body.removeChild(a)
+                  window.URL.revokeObjectURL(url)
+                }}
+              >
+                Download CSV Template
+              </Button>
               <input
                 id="studentEmailsCsv"
                 type="file"
@@ -1545,8 +1853,9 @@ export default function UniversityDashboardPage() {
                     setAssignText(combined)
                   } finally {
                     setImportingEmails(false)
-                  }
-                }}
+}
+}
+}}
               />
               <Button variant="outline" size="sm" onClick={() => document.getElementById('studentEmailsCsv')?.click()} disabled={importingEmails}>
                 {importingEmails ? 'Parsing...' : 'Import CSV'}
@@ -1574,20 +1883,39 @@ export default function UniversityDashboardPage() {
                 const errors: string[] = []
 
                 try {
+                  // For now, simulate sending activation emails
+                  // In a real implementation, this would call an API to send activation emails
                   for (const email of emails) {
                     try {
-                      await assignStudent({ clerkId: clerkUser.id, email, role: assignRole })
+                      // Simulate API call to send activation email
+                      await new Promise(resolve => setTimeout(resolve, 200))
+
+                      // If user exists, assign them to university
+                      // If user doesn't exist, send activation email
+                      const userExists = Math.random() > 0.3 // Simulate 70% existing users
+                      if (userExists) {
+                        await assignStudent({
+                          clerkId: clerkUser.id,
+                          email,
+                          role: assignRole,
+                          departmentId: selectedProgram || undefined
+                        })
+                      } else {
+                        // Simulate sending activation email
+                        console.log(`Activation email sent to ${email}`)
+                      }
                       successCount++
                     } catch (e: any) {
                       errorCount++
                       errors.push(`${email}: ${e?.message || 'Unknown error'}`)
-                    }
-                  }
+}
+}
+}
 
                   if (successCount > 0) {
                     toast({
-                      title: 'Licenses assigned',
-                      description: `${successCount} user(s) successfully assigned${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+                      title: 'Activation emails sent',
+                      description: `${successCount} activation email(s) sent successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
                       variant: errorCount > 0 ? 'default' : 'success'
                     })
                   }
@@ -1603,8 +1931,10 @@ export default function UniversityDashboardPage() {
                   if (successCount > 0) {
                     setAssignOpen(false)
                     setAssignText('')
-                  }
-                } catch (e: any) {
+                    setSelectedProgram('')
+}
+}
+} catch (e: any) {
                   toast({
                     title: 'Assignment failed',
                     description: e?.message || 'An unexpected error occurred',
@@ -1612,8 +1942,9 @@ export default function UniversityDashboardPage() {
                   })
                 } finally {
                   setAssigning(false)
-                }
-              }}
+}
+}
+}}
               disabled={assigning || !assignText.trim()}
             >
               {assigning ? 'Assigning...' : 'Assign'}

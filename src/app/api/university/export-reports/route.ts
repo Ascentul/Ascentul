@@ -52,8 +52,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Get university data
-    const universityId = user.university_id
+    let universityId = user.university_id
+
+    // If university admin user doesn't have university_id, try to find university by admin_email
+    if (!universityId && user.role === 'university_admin' && user.email) {
+      try {
+        const universities = await convex.query(api.universities.getAllUniversities, {}) as any[];
+
+        // Find university where admin_email matches user's email
+        const matchingUniversity = universities.find((uni: any) => uni.admin_email === user.email);
+
+        if (matchingUniversity) {
+          universityId = matchingUniversity._id;
+
+          // Update user's university_id for future requests
+          await convex.mutation(api.users.updateUser, {
+            clerkId,
+            updates: { university_id: universityId }
+          });
+        }
+      } catch (error) {
+        console.error('Error finding university for admin:', error);
+      }
+    }
+
     if (!universityId) {
+      // For university admin users, they should have a university_id
+      // If they don't, provide a helpful error message
+      if (user.role === 'university_admin') {
+        return NextResponse.json({
+          error: 'University admin account not properly configured. Please contact support to assign your account to a university.'
+        }, { status: 400 })
+      }
       return NextResponse.json({ error: 'No university assigned to user' }, { status: 400 })
     }
 
