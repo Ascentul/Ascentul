@@ -304,135 +304,113 @@ export default function AccountPage() {
             </CardContent>
           </Card>
 
-          {/* Current AI Model Information - For All Users */}
+          {/* AI Model Configuration */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Brain className="h-5 w-5" />
-                AI Model Information
+                AI Model Configuration
               </CardTitle>
               <CardDescription>
-                Current AI model configuration for the platform
+                {userProfile?.role === 'super_admin' 
+                  ? 'Configure which OpenAI model is used for AI features across the platform'
+                  : 'Current AI model configuration for the platform'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!platformSettings ? (
+              {!availableModels || !platformSettings ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
                   <span>Loading model information...</span>
                 </div>
               ) : (
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">Current Model</div>
-                      <div className="text-sm text-muted-foreground">
-                        {availableModels?.find(m => m.id === platformSettings.openai_model)?.name || 'Unknown Model'}
+                <>
+                  {userProfile?.role === 'super_admin' ? (
+                    <>
+                      <div className="space-y-3">
+                        {availableModels.map((model) => (
+                          <div
+                            key={model.id}
+                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                              selectedModel === model.id
+                                ? 'border-primary bg-primary/5'
+                                : 'border-muted hover:border-muted-foreground/30'
+                            }`}
+                            onClick={() => setSelectedModel(model.id)}
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium">{model.name}</div>
+                              <div className="text-sm text-muted-foreground">{model.description}</div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Max tokens: {model.max_tokens?.toLocaleString()} • Cost: ${model.cost_per_1k_tokens}/1K tokens
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              {selectedModel === model.id ? (
+                                <CheckCircle2 className="h-5 w-5 text-primary" />
+                              ) : (
+                                <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-end pt-2">
+                        <Button
+                          onClick={async () => {
+                            if (!clerkUser?.id) return
+
+                            setIsSavingModel(true)
+                            try {
+                              await updatePlatformSettings({
+                                clerkId: clerkUser.id,
+                                settings: {
+                                  openai_model: selectedModel,
+                                },
+                              })
+
+                              toast({
+                                title: 'Model Updated',
+                                description: `OpenAI model set to ${availableModels.find(m => m.id === selectedModel)?.name}`,
+                                variant: 'success',
+                              })
+                            } catch (error) {
+                              console.error('Error updating model:', error)
+                              toast({
+                                title: 'Error',
+                                description: 'Failed to update OpenAI model. Please try again.',
+                                variant: 'destructive',
+                              })
+                            } finally {
+                              setIsSavingModel(false)
+                            }
+                          }}
+                          disabled={isSavingModel || selectedModel === platformSettings.openai_model}
+                        >
+                          {isSavingModel ? (
+                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
+                          ) : (
+                            'Save Model Preference'
+                          )}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-4 rounded-lg bg-muted/50">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">Current Model</div>
+                          <div className="text-sm text-muted-foreground">
+                            {availableModels?.find(m => m.id === platformSettings.openai_model)?.name || 'Unknown Model'}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    {userProfile?.role === 'super_admin' && (
-                      <div className="text-xs text-muted-foreground">
-                        Super Admin: Configure below ↓
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
-
-          {/* OpenAI Model Configuration - Super Admin Only */}
-          {userProfile?.role === 'super_admin' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5" />
-                  OpenAI Model Configuration
-                </CardTitle>
-                <CardDescription>
-                  Configure which OpenAI model is used for AI features across the platform
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {!availableModels || !platformSettings ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <span>Loading model options...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-3">
-                      {availableModels.map((model) => (
-                        <div
-                          key={model.id}
-                          className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                            selectedModel === model.id
-                              ? 'border-primary bg-primary/5'
-                              : 'border-muted hover:border-muted-foreground/30'
-                          }`}
-                          onClick={() => setSelectedModel(model.id)}
-                        >
-                          <div className="flex-1">
-                            <div className="font-medium">{model.name}</div>
-                            <div className="text-sm text-muted-foreground">{model.description}</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Max tokens: {model.max_tokens?.toLocaleString()} • Cost: ${model.cost_per_1k_tokens}/1K tokens
-                            </div>
-                          </div>
-                          <div className="ml-3">
-                            {selectedModel === model.id ? (
-                              <CheckCircle2 className="h-5 w-5 text-primary" />
-                            ) : (
-                              <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex justify-end pt-2">
-                      <Button
-                        onClick={async () => {
-                          if (!clerkUser?.id) return
-
-                          setIsSavingModel(true)
-                          try {
-                            await updatePlatformSettings({
-                              clerkId: clerkUser.id,
-                              settings: {
-                                openai_model: selectedModel,
-                              },
-                            })
-
-                            toast({
-                              title: 'Model Updated',
-                              description: `OpenAI model set to ${availableModels.find(m => m.id === selectedModel)?.name}`,
-                              variant: 'success',
-                            })
-                          } catch (error) {
-                            console.error('Error updating model:', error)
-                            toast({
-                              title: 'Error',
-                              description: 'Failed to update OpenAI model. Please try again.',
-                              variant: 'destructive',
-                            })
-                          } finally {
-                            setIsSavingModel(false)
-                          }
-                        }}
-                        disabled={isSavingModel || selectedModel === platformSettings.openai_model}
-                      >
-                        {isSavingModel ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
-                        ) : (
-                          'Save Model Preference'
-                        )}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
 
 

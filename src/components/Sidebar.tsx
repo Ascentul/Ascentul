@@ -159,8 +159,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       href: '/contacts'
     },
     {
-      id: 'career-portfolio',
-      title: 'Career Portfolio',
+      id: 'projects',
+      title: 'Projects',
       icon: <FolderGit2 className="h-5 w-5" />,
       href: '/projects'
     },
@@ -175,12 +175,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       title: 'Cover Letter Coach',
       icon: <Mail className="h-5 w-5" />,
       href: '/cover-letters'
-    },
-    {
-      id: 'project-portfolio',
-      title: 'Project Portfolio',
-      icon: <Building className="h-5 w-5" />,
-      href: '/projects'
     },
     {
       id: 'ai-career-coach',

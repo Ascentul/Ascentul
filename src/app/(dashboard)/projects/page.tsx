@@ -109,7 +109,7 @@ export default function ProjectsPage() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Project Portfolio</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
           <p className="text-muted-foreground">Showcase your projects and technical work.</p>
         </div>
         <Button onClick={() => setShowCreateForm(true)}>
