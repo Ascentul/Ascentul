@@ -581,7 +581,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
               <DialogTrigger asChild>
                 <Button
                   variant="ghost"
-                  className={`w-full ${expanded ? 'justify-start' : 'justify-center'} text-gray-600 hover:text-gray-900`}
+                  className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? 'justify-start' : 'justify-center'}`}
                 >
                   <HelpCircle className="h-4 w-4" />
                   {expanded && <span className="ml-3">Support</span>}
@@ -643,18 +643,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
             </Dialog>
           )}
 
-          <Link
-            href="/account"
-            className={`flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? '' : 'justify-center'}`}
-          >
-            <Settings className="h-4 w-4" />
-            {expanded && <span className="ml-3">Settings</span>}
-          </Link>
-
           <Button
             variant="ghost"
             onClick={handleLogout}
-            className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? '' : 'justify-center'}`}
+            className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? 'justify-start' : 'justify-center'}`}
           >
             <LogOut className="h-4 w-4" />
             {expanded && <span className="ml-3">Sign Out</span>}
