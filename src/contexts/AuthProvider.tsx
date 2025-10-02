@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { useToast } from '@/hooks/use-toast'
 import { createClient } from '@/lib/supabase/client'
@@ -38,6 +38,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast()
   const supabase = createClient()
 
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('Error fetching user profile:', error)
+        // If user profile doesn't exist, create a basic one
+        if (error.code === 'PGRST116') {
+          console.log('User profile not found, creating one...')
+          const { data: authUser } = await supabase.auth.getUser()
+          if (authUser.user) {
+            const newProfile = {
+              id: authUser.user.id,
+              email: authUser.user.email,
+              name: authUser.user.user_metadata?.name || authUser.user.email?.split('@')[0] || 'User',
+              role: 'user',
+              subscription_plan: 'free',
+              subscription_status: 'active',
+              username: `user_${Date.now()}`,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+
+            console.log('Creating profile:', newProfile)
+            const { data: createdProfile, error: createError } = await supabase
+              .from('users')
+              .insert(newProfile)
+              .select()
+              .single()
+
+            console.log('Profile creation result:', { createdProfile, createError })
+
+            if (!createError && createdProfile) {
+              setUser(createdProfile)
+              return
+            } else {
+              console.error('Failed to create profile:', createError)
+            }
+          }
+        }
+        return
+      }
+
+      setUser(data)
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+    }
+  }, [supabase])
+
   useEffect(() => {
     const initializeAuth = async () => {
       try {
@@ -74,60 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase])
-
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        console.error('Error fetching user profile:', error)
-        // If user profile doesn't exist, create a basic one
-        if (error.code === 'PGRST116') {
-          console.log('User profile not found, creating one...')
-          const { data: authUser } = await supabase.auth.getUser()
-          if (authUser.user) {
-            const newProfile = {
-              id: authUser.user.id,
-              email: authUser.user.email,
-              name: authUser.user.user_metadata?.name || authUser.user.email?.split('@')[0] || 'User',
-              role: 'user',
-              subscription_plan: 'free',
-              subscription_status: 'active',
-              username: `user_${Date.now()}`,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            }
-            
-            console.log('Creating profile:', newProfile)
-            const { data: createdProfile, error: createError } = await supabase
-              .from('users')
-              .insert(newProfile)
-              .select()
-              .single()
-              
-            console.log('Profile creation result:', { createdProfile, createError })
-            
-            if (!createError && createdProfile) {
-              setUser(createdProfile)
-              return
-            } else {
-              console.error('Failed to create profile:', createError)
-            }
-          }
-        }
-        return
-      }
-
-      setUser(data)
-    } catch (error) {
-      console.error('Error fetching user profile:', error)
-    }
-  }
+  }, [supabase, fetchUserProfile])
 
   const signIn = async (email: string, password: string) => {
     try {

@@ -55,10 +55,6 @@ export default function AICoachPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
   // Fetch conversations
   const { data: conversations = [] } = useQuery({
     queryKey: ['/api/ai-coach/conversations'],
@@ -79,6 +75,11 @@ export default function AICoachPage() {
     },
     enabled: !!selectedConversationId && !!user?.clerkId
   })
+
+  // Auto-scroll when messages change
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   // Create new conversation
   const createConversationMutation = useMutation({

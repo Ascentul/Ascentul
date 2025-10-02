@@ -21,7 +21,7 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
         router.push('/onboarding')
       }
     }
-  }, [user, isLoading, isSignedIn, router])
+  }, [user, isLoading, isSignedIn, router, isAdmin])
 
   // Show loading state while checking authentication and user data
   if (isLoading) {

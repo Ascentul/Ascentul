@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { format, formatDistanceToNow } from 'date-fns'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
 import { useToast } from '@/hooks/use-toast'
@@ -49,12 +49,12 @@ export default function GoalCard({
   
   const completionCelebratedRef = useRef(false)
   const cardRef = useRef<HTMLDivElement>(null)
-  
-  const handleDissolveAnimation = (goalId: string | number) => {
+
+  const handleDissolveAnimation = useCallback((goalId: string | number) => {
     if (onComplete) {
       onComplete(goalId)
     }
-  }
+  }, [onComplete])
 
   const getBadgeStyles = () => {
     switch (status.toLowerCase()) {
@@ -214,7 +214,7 @@ export default function GoalCard({
         checklist: checklist
       })
     }
-  }, [checklist, status, id, onComplete, updateChecklistMutation.isPending])
+  }, [checklist, status, id, onComplete, updateChecklistMutation.isPending, handleDissolveAnimation, toast, updateChecklistMutation])
 
   const toggleChecklistItem = (itemId: string) => {
     if (!checklist) return

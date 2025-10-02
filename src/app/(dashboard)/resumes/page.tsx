@@ -185,9 +185,9 @@ export default function ResumesPage() {
       }
 
       // Header
-      const fullName = user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || ''
-      const email = user?.primaryEmailAddress?.emailAddress || ''
-      const phone = user?.phoneNumbers?.[0]?.phoneNumber || ''
+      const fullName = clerkUser?.fullName || [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') || ''
+      const email = clerkUser?.primaryEmailAddress?.emailAddress || ''
+      const phone = clerkUser?.phoneNumbers?.[0]?.phoneNumber || ''
       const contactParts = [email, phone].filter(Boolean)
 
       doc.setFont('helvetica', 'bold')

@@ -183,7 +183,7 @@ export default function UniversityCoursesPage() {
           title: form.title.trim(),
           category: form.category || undefined,
           level: form.level || undefined,
-          departmentId: form.departmentId ? (form.departmentId as any) : undefined,
+          department_id: form.departmentId ? (form.departmentId as any) : undefined,
         }
       })
       setEditDialogOpen(false)

@@ -25,8 +25,9 @@ export default function UniversityStudentsPage() {
   const canAccess = !!user && (isAdmin || user.subscription_plan === 'university' || user.role === 'university_admin')
 
   const students = useQuery(api.university_admin.listStudents, clerkUser?.id ? { clerkId: clerkUser.id, limit: 1000 } : 'skip') as any[] | undefined
-  const inviteStudentMutation = useMutation(api.university_admin.inviteStudent)
-  const bulkInviteStudentsMutation = useMutation(api.university_admin.bulkInviteStudents)
+  // TODO: Implement inviteStudent and bulkInviteStudents mutations
+  // const inviteStudentMutation = useMutation(api.university_admin.inviteStudent)
+  // const bulkInviteStudentsMutation = useMutation(api.university_admin.bulkInviteStudents)
 
   // State
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
@@ -128,15 +129,16 @@ export default function UniversityStudentsPage() {
 
     setInviting(true)
     try {
-      await inviteStudentMutation({
-        clerkId: clerkUser.id,
-        name: singleInviteForm.name.trim(),
-        email: singleInviteForm.email.trim()
-      })
+      // TODO: Implement inviteStudent mutation
+      // await inviteStudentMutation({
+      //   clerkId: clerkUser.id,
+      //   name: singleInviteForm.name.trim(),
+      //   email: singleInviteForm.email.trim()
+      // })
       toast({
-        title: 'Invitation Sent',
-        description: `Invitation email sent to ${singleInviteForm.email}`,
-        variant: 'success'
+        title: 'Feature Not Available',
+        description: 'Student invitation feature is not yet implemented',
+        variant: 'destructive'
       })
       setInviteDialogOpen(false)
       setSingleInviteForm({ name: '', email: '' })
@@ -157,14 +159,15 @@ export default function UniversityStudentsPage() {
 
     setInviting(true)
     try {
-      await bulkInviteStudentsMutation({
-        clerkId: clerkUser.id,
-        students: csvData
-      })
+      // TODO: Implement bulkInviteStudents mutation
+      // await bulkInviteStudentsMutation({
+      //   clerkId: clerkUser.id,
+      //   students: csvData
+      // })
       toast({
-        title: 'Bulk Invitations Sent',
-        description: `Successfully sent ${csvData.length} invitation emails`,
-        variant: 'success'
+        title: 'Feature Not Available',
+        description: 'Bulk student invitation feature is not yet implemented',
+        variant: 'destructive'
       })
       setCsvDialogOpen(false)
       setCsvFile(null)
