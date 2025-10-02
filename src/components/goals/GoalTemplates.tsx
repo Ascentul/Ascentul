@@ -137,22 +137,20 @@ export default function GoalTemplates({ onSelectTemplate }: GoalTemplatesProps) 
           </p>
         </div>
         
-        <div className="flex overflow-x-auto space-x-4 pb-4">
+        <div
+          className="flex overflow-x-auto space-x-4 pb-4 scrollbar-hide"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
           {goalTemplates.map((template) => (
             <Card key={template.id} className="hover:shadow-md transition-shadow cursor-pointer flex-shrink-0 w-64">
               <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    <div className="p-2 bg-primary/10 rounded-lg">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-[#0C29AB] rounded-lg flex-shrink-0">
+                    <div className="text-white">
                       {template.icon}
                     </div>
-                    <div>
-                      <h4 className="font-medium text-sm">{template.title}</h4>
-                      <Badge variant="outline" className="text-xs mt-1">
-                        {template.category}
-                      </Badge>
-                    </div>
                   </div>
+                  <h4 className="font-medium text-sm">{template.title}</h4>
                 </div>
 
                 <p className="text-xs text-muted-foreground mb-3">
@@ -171,6 +169,11 @@ export default function GoalTemplates({ onSelectTemplate }: GoalTemplatesProps) 
             </Card>
           ))}
         </div>
+        <style jsx>{`
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
       </CardContent>
     </Card>
   )

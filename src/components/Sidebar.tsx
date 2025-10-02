@@ -108,7 +108,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   // Upsell modal for Pro-only features
   const [showUpsellModal, setShowUpsellModal] = useState(false)
 
-  // Define sidebar sections - New structure per testing requirements
+  // Define sidebar sections - Grouped navigation structure
   const sidebarSections: SidebarSection[] = [
     {
       id: 'dashboard',
@@ -117,71 +117,50 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       href: '/dashboard'
     },
     {
-      id: 'career-profile',
-      title: 'Career Profile',
-      icon: <UserIcon className="h-5 w-5" />,
-      href: '/account'
-    },
-    {
-      id: 'jobs',
-      title: 'Jobs',
-      icon: <Search className="h-5 w-5" />,
-      href: '/job-search'
-    },
-    {
-      id: 'application-tracker',
-      title: 'Application Tracker',
+      id: 'applications',
+      title: 'Applications',
       icon: <ClipboardList className="h-5 w-5" />,
       href: '/applications'
     },
     {
-      id: 'career-growth',
-      title: 'Career Growth',
-      icon: <Briefcase className="h-5 w-5" />,
-      href: '/career-profile'
-    },
-    {
-      id: 'career-goals',
-      title: 'Career Goals',
+      id: 'my-path',
+      title: 'My Path',
       icon: <Target className="h-5 w-5" />,
-      href: '/goals'
+      items: [
+        { href: '/goals', icon: <Target className="h-4 w-4" />, label: 'Goals' },
+        { href: '/career-path', icon: <GitBranch className="h-4 w-4" />, label: 'Career Path Explorer' },
+      ]
     },
     {
-      id: 'career-path-explorer',
-      title: 'Career Path Explorer',
-      icon: <GitBranch className="h-5 w-5" />,
-      href: '/career-path'
-    },
-    {
-      id: 'network-hub',
-      title: 'Network Hub',
-      icon: <UserRound className="h-5 w-5" />,
-      href: '/contacts'
-    },
-    {
-      id: 'projects',
-      title: 'Projects',
+      id: 'portfolio',
+      title: 'Portfolio',
       icon: <FolderGit2 className="h-5 w-5" />,
-      href: '/projects'
+      items: [
+        { href: '/resumes', icon: <FileText className="h-4 w-4" />, label: 'Resume Studio' },
+        { href: '/cover-letters', icon: <Mail className="h-4 w-4" />, label: 'Cover Letter Coach' },
+        { href: '/projects', icon: <FolderGit2 className="h-4 w-4" />, label: 'Projects' },
+      ]
     },
     {
-      id: 'resume-builder',
-      title: 'Resume Builder',
-      icon: <FileText className="h-5 w-5" />,
-      href: '/resumes'
-    },
-    {
-      id: 'cover-letter-coach',
-      title: 'Cover Letter Coach',
-      icon: <Mail className="h-5 w-5" />,
-      href: '/cover-letters'
+      id: 'connections',
+      title: 'Connections',
+      icon: <UserRound className="h-5 w-5" />,
+      items: [
+        { href: '/contacts', icon: <UserRound className="h-4 w-4" />, label: 'Network Hub' },
+      ]
     },
     {
       id: 'ai-career-coach',
-      title: 'AI Career Coach',
+      title: 'Coach',
       icon: <Bot className="h-5 w-5" />,
       href: '/ai-coach',
       pro: true
+    },
+    {
+      id: 'profile',
+      title: 'Profile',
+      icon: <UserIcon className="h-5 w-5" />,
+      href: '/account'
     },
   ]
 
@@ -441,7 +420,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       )
     }
 
-    // Section with items (collapsible) - for admin sections
+    // Section with items (collapsible)
     const toggleSectionItems = () => {
       setCollapsedSections(prev => {
         const next = { ...prev, [section.id]: !prev[section.id] }
@@ -453,20 +432,20 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     return (
       <div key={section.id} className="space-y-1">
         <div
-          className={`flex items-center px-3 py-2 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition-colors ${expanded ? '' : 'justify-center'} ${
+          className={`flex items-center px-3 py-2 mx-2 text-sm rounded-lg cursor-pointer select-none transition-colors ${
             (sectionActive || hasActiveItem)
-              ? 'text-primary bg-primary/10'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'bg-primary/10 text-primary'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
           role="button"
           aria-expanded={!isCollapsed}
           onClick={toggleSectionItems}
         >
-          <span className={`${expanded ? 'mr-3' : ''} flex-shrink-0`}>{section.icon}</span>
-          {expanded && <span>{section.title}</span>}
+          <span className="mr-3 flex-shrink-0">{section.icon}</span>
+          {expanded && <span className="flex-1">{section.title}</span>}
           {expanded && (
             <ChevronRight
-              className={`ml-auto h-4 w-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+              className={`h-4 w-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
             />
           )}
         </div>
@@ -479,6 +458,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
               style={{ overflow: 'hidden' }}
+              className="ml-2 space-y-1"
             >
               {section.items?.map((it) => renderSidebarItem(it, section.id))}
             </motion.div>
@@ -521,7 +501,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         {clerkUser && (
           <div className="p-4 border-b">
             <div className={`flex items-center ${expanded ? 'space-x-3' : 'justify-center'}`}>
-              <div className="h-10 w-10 flex-shrink-0">
+              <Link href="/account" className="h-10 w-10 flex-shrink-0 cursor-pointer">
                 <UserButton
                   appearance={{
                     elements: {
@@ -532,7 +512,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                     },
                   }}
                 />
-              </div>
+              </Link>
               {expanded && (
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">

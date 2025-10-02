@@ -97,7 +97,19 @@ export const updateGoal = mutation({
     const goal = await ctx.db.get(args.goalId);
     if (!goal || goal.user_id !== user._id) throw new Error("Goal not found or unauthorized");
 
-    await ctx.db.patch(args.goalId, { ...args.updates, updated_at: Date.now() });
+    const updates: any = { ...args.updates, updated_at: Date.now() };
+
+    // Set completed_at timestamp when status is changed to completed
+    if (args.updates.status === 'completed' && goal.status !== 'completed') {
+      updates.completed_at = Date.now();
+    }
+
+    // Clear completed_at if status is changed from completed to something else
+    if (goal.status === 'completed' && args.updates.status && args.updates.status !== 'completed') {
+      updates.completed_at = undefined;
+    }
+
+    await ctx.db.patch(args.goalId, updates);
     return args.goalId;
   },
 });

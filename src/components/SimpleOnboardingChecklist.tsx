@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { useEffect, useMemo } from 'react'
 import {
   CheckCircle,
   Circle,
@@ -10,45 +11,91 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
+import { useUser } from '@clerk/nextjs'
+import { useQuery, useMutation } from 'convex/react'
+import { api } from 'convex/_generated/api'
 
 export function SimpleOnboardingChecklist() {
-  const checklistItems = [
-    {
-      id: 'career-profile',
-      title: 'Complete your career profile',
-      description: 'Add your work history, education, and skills',
-      completed: false,
-      href: '/career-profile'
-    },
-    {
-      id: 'career-goal',
-      title: 'Set your first career goal',
-      description: 'Define what you want to achieve next',
-      completed: false,
-      href: '/goals'
-    },
-    {
-      id: 'resume-creation',
-      title: 'Create a resume draft',
-      description: 'Start building your professional resume',
-      completed: false,
-      href: '/resumes'
-    },
-    {
-      id: 'job-application',
-      title: 'Track your first application',
-      description: 'Start managing your job applications',
-      completed: false,
-      href: '/applications'
-    },
-    {
-      id: 'network-contact',
-      title: 'Add 1 contact to your network',
-      description: 'Start building your professional network',
-      completed: false,
-      href: '/contacts'
+  const { user } = useUser()
+  const clerkId = user?.id
+
+  // Fetch user's onboarding progress
+  const onboardingProgress = useQuery(
+    api.users.getOnboardingProgress,
+    clerkId ? { clerkId } : 'skip'
+  ) as { completed_tasks?: string[] } | undefined
+
+  const updateOnboarding = useMutation(api.users.updateOnboardingProgress)
+
+  // Also check actual data to determine completion
+  const resumes = useQuery(api.resumes.getUserResumes, clerkId ? { clerkId } : 'skip')
+  const goals = useQuery(api.goals.getUserGoals, clerkId ? { clerkId } : 'skip')
+  const applications = useQuery(api.applications.getUserApplications, clerkId ? { clerkId } : 'skip')
+  const contacts = useQuery(api.contacts.getUserContacts, clerkId ? { clerkId } : 'skip')
+
+  const checklistItems = useMemo(() => {
+    const completedTasks = onboardingProgress?.completed_tasks || []
+
+    // Auto-detect completion based on actual data
+    const hasResume = (resumes && resumes.length > 0) || completedTasks.includes('resume-creation')
+    const hasGoal = (goals && goals.length > 0) || completedTasks.includes('career-goal')
+    const hasApplication = (applications && applications.length > 0) || completedTasks.includes('job-application')
+    const hasContact = (contacts && contacts.length > 0) || completedTasks.includes('network-contact')
+    const hasProfile = completedTasks.includes('career-profile')
+
+    return [
+      {
+        id: 'career-profile',
+        title: 'Complete your career profile',
+        description: 'Add your work history, education, and skills',
+        completed: hasProfile,
+        href: '/career-profile'
+      },
+      {
+        id: 'career-goal',
+        title: 'Set your first career goal',
+        description: 'Define what you want to achieve next',
+        completed: hasGoal,
+        href: '/goals'
+      },
+      {
+        id: 'resume-creation',
+        title: 'Create a resume draft',
+        description: 'Start building your professional resume',
+        completed: hasResume,
+        href: '/resumes'
+      },
+      {
+        id: 'job-application',
+        title: 'Track your first application',
+        description: 'Start managing your job applications',
+        completed: hasApplication,
+        href: '/applications'
+      },
+      {
+        id: 'network-contact',
+        title: 'Add 1 contact to your network',
+        description: 'Start building your professional network',
+        completed: hasContact,
+        href: '/contacts'
+      }
+    ]
+  }, [onboardingProgress, resumes, goals, applications, contacts])
+
+  // Auto-update onboarding progress when items are completed
+  useEffect(() => {
+    if (!clerkId || !onboardingProgress) return
+
+    const completedIds = checklistItems.filter(item => item.completed).map(item => item.id)
+    const currentCompleted = onboardingProgress.completed_tasks || []
+
+    // Check if there are new completions
+    const hasNewCompletions = completedIds.some(id => !currentCompleted.includes(id))
+
+    if (hasNewCompletions) {
+      updateOnboarding({ clerkId, completed_tasks: completedIds }).catch(console.error)
     }
-  ]
+  }, [clerkId, checklistItems, onboardingProgress, updateOnboarding])
 
   const completedCount = checklistItems.filter(item => item.completed).length
   const progressPercentage = (completedCount / checklistItems.length) * 100

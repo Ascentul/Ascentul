@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { useState } from 'react'
 import {
   CheckCircle,
   Circle,
@@ -10,7 +11,9 @@ import {
   Lightbulb,
   Target,
   Users,
-  FileText
+  FileText,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,6 +34,7 @@ interface Recommendation {
 
 export function TodaysRecommendations() {
   const { toast } = useToast()
+  const [showAll, setShowAll] = useState(false)
 
   const {
     data: recommendations = [],
@@ -59,6 +63,11 @@ export function TodaysRecommendations() {
       ? a.type.localeCompare(b.type)
       : a.completed ? 1 : -1
   })
+
+  // Show only first incomplete recommendation by default, or all if showAll is true
+  const displayedRecommendations = showAll
+    ? sortedRecommendations
+    : sortedRecommendations.slice(0, 1)
 
   // Function to determine correct link for recommendation type
   const getRecommendationLink = (recommendation: Recommendation): string | null => {
@@ -198,59 +207,84 @@ export function TodaysRecommendations() {
               </Button>
             </div>
           ) : (
-            <ul className="space-y-3">
-              {sortedRecommendations.map((recommendation) => {
-                const link = getRecommendationLink(recommendation)
+            <>
+              <ul className="space-y-3">
+                {displayedRecommendations.map((recommendation) => {
+                  const link = getRecommendationLink(recommendation)
 
-                return (
-                  <li
-                    key={recommendation.id}
-                    className={`flex items-start p-3 rounded-lg border transition-all duration-300 ${
-                      recommendation.completed
-                        ? 'bg-green-50/50 text-muted-foreground border-border/50'
-                        : 'bg-background border-border hover:border-primary/30'
-                    }`}
-                  >
-                    <div className="mt-0.5 mr-3 flex-shrink-0">
-                      <div className="h-4 w-4 bg-muted rounded-full flex items-center justify-center">
-                        {getTypeIcon(recommendation.type)}
-                      </div>
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-start">
-                        <span
-                          className={`text-sm ${recommendation.completed ? 'line-through' : ''}`}
-                        >
-                          {recommendation.text}
-                        </span>
-
-                        {link && !recommendation.completed && (
-                          <Link href={link} className="ml-2 inline-flex">
-                            <Button variant="ghost" size="icon" className="h-5 w-5 -mr-1" title="Go to related item">
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </Button>
-                          </Link>
-                        )}
+                  return (
+                    <li
+                      key={recommendation.id}
+                      className={`flex items-start p-3 rounded-lg border transition-all duration-300 ${
+                        recommendation.completed
+                          ? 'bg-green-50/50 text-muted-foreground border-border/50'
+                          : 'bg-background border-border hover:border-primary/30'
+                      }`}
+                    >
+                      <div className="mt-0.5 mr-3 flex-shrink-0">
+                        <div className="h-4 w-4 bg-muted rounded-full flex items-center justify-center">
+                          {getTypeIcon(recommendation.type)}
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs bg-muted px-2 py-1 rounded-full">
-                          {getTypeLabel(recommendation.type)}
-                        </span>
-
-                        {recommendation.completed && (
-                          <span className="text-xs text-green-600 flex items-center gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            Completed
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-start">
+                          <span
+                            className={`text-sm ${recommendation.completed ? 'line-through' : ''}`}
+                          >
+                            {recommendation.text}
                           </span>
-                        )}
+
+                          {link && !recommendation.completed && (
+                            <Link href={link} className="ml-2 inline-flex">
+                              <Button variant="ghost" size="icon" className="h-5 w-5 -mr-1" title="Go to related item">
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs bg-muted px-2 py-1 rounded-full">
+                            {getTypeLabel(recommendation.type)}
+                          </span>
+
+                          {recommendation.completed && (
+                            <span className="text-xs text-green-600 flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              Completed
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
+                    </li>
+                  )
+                })}
+              </ul>
+
+              {sortedRecommendations.length > 1 && (
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAll(!showAll)}
+                    className="text-xs"
+                  >
+                    {showAll ? (
+                      <>
+                        <ChevronUp className="h-4 w-4 mr-1" />
+                        Show Less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 mr-1" />
+                        Show All ({sortedRecommendations.length})
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

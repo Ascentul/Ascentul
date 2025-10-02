@@ -167,44 +167,45 @@ export default function GoalCard({
 
   useEffect(() => {
     if (!checklist || checklist.length === 0) return
-    
+    if (updateChecklistMutation.isPending) return // Prevent updates while mutation is in progress
+
     const allCompleted = checklist.every(item => item.completed)
     const hasAtLeastOneChecked = checklist.some(item => item.completed)
     const totalItems = checklist.length
     const hasAtLeastTwoItems = totalItems >= 2
     const isNotStarted = status.toLowerCase() === 'not_started' || status.toLowerCase() === 'active'
-    
+
     if (allCompleted && totalItems > 0 && status.toLowerCase() !== 'completed' && !completionCelebratedRef.current) {
       completionCelebratedRef.current = true
-      
+
       setShowConfetti(true)
-      
+
       updateChecklistMutation.mutate({
         status: 'completed',
         progress: 100,
         checklist: checklist,
         completed: true
       })
-      
+
       toast({
         title: "Goal completed! 🎉",
         description: "Congratulations on completing your goal!",
         variant: 'success',
       })
-      
+
       handleDissolveAnimation(id)
     }
     else if (allCompleted && totalItems > 0 && status.toLowerCase() === 'completed' && !completionCelebratedRef.current) {
       completionCelebratedRef.current = true
-      
+
       setShowConfetti(true)
-      
+
       toast({
         title: "Goal completed! 🎉",
         description: "Congratulations on completing your goal!",
         variant: 'success',
       })
-      
+
       handleDissolveAnimation(id)
     }
     else if (hasAtLeastTwoItems && hasAtLeastOneChecked && !allCompleted && isNotStarted) {
@@ -213,7 +214,7 @@ export default function GoalCard({
         checklist: checklist
       })
     }
-  }, [checklist, status, id, onComplete])
+  }, [checklist, status, id, onComplete, updateChecklistMutation.isPending])
 
   const toggleChecklistItem = (itemId: string) => {
     if (!checklist) return

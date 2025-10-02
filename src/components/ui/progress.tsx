@@ -6,21 +6,26 @@ import { cn } from "@/lib/utils"
 const Progress = React.forwardRef<
   React.ElementRef<typeof ProgressPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
->(({ className, value, ...props }, ref) => (
-  <ProgressPrimitive.Root
-    ref={ref}
-    className={cn(
-      "relative h-4 w-full overflow-hidden rounded-full bg-secondary",
-      className
-    )}
-    {...props}
-  >
-    <ProgressPrimitive.Indicator
-      className="h-full flex-1 bg-primary transition-all"
-      style={{ width: `${value || 0}%` }}
-    />
-  </ProgressPrimitive.Root>
-))
+>(({ className, value, ...props }, ref) => {
+  // Show at least 2% width when value is 0 but defined (not null/undefined)
+  const displayValue = value !== null && value !== undefined && value === 0 ? 2 : (value || 0)
+
+  return (
+    <ProgressPrimitive.Root
+      ref={ref}
+      className={cn(
+        "relative h-4 w-full overflow-hidden rounded-full bg-secondary",
+        className
+      )}
+      {...props}
+    >
+      <ProgressPrimitive.Indicator
+        className="h-full flex-1 bg-primary transition-all"
+        style={{ width: `${displayValue}%` }}
+      />
+    </ProgressPrimitive.Root>
+  )
+})
 Progress.displayName = ProgressPrimitive.Root.displayName
 
 export { Progress }

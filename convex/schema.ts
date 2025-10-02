@@ -13,15 +13,26 @@ export default defineSchema({
     subscription_status: v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due")),
     university_id: v.optional(v.id("universities")),
     profile_image: v.optional(v.string()),
+    cover_image: v.optional(v.string()),
     linkedin_url: v.optional(v.string()),
+    github_url: v.optional(v.string()),
     bio: v.optional(v.string()),
     job_title: v.optional(v.string()),
     company: v.optional(v.string()),
     location: v.optional(v.string()),
     website: v.optional(v.string()),
+    skills: v.optional(v.string()), // Comma-separated skills
+    current_position: v.optional(v.string()),
+    current_company: v.optional(v.string()),
+    education: v.optional(v.string()),
+    university_name: v.optional(v.string()),
+    career_goals: v.optional(v.string()),
+    experience_level: v.optional(v.string()),
+    industry: v.optional(v.string()),
     stripe_customer_id: v.optional(v.string()),
     stripe_subscription_id: v.optional(v.string()),
     onboarding_completed: v.optional(v.boolean()),
+    completed_tasks: v.optional(v.array(v.string())), // Array of completed onboarding task IDs
     // Account activation fields
     account_status: v.optional(v.union(v.literal("pending_activation"), v.literal("active"), v.literal("suspended"))),
     activation_token: v.optional(v.string()),
@@ -296,6 +307,8 @@ export default defineSchema({
     notes: v.optional(v.string()),
     relationship: v.optional(v.string()),
     last_contact: v.optional(v.number()),
+    saved: v.optional(v.boolean()), // For saved contacts filter
+    tags: v.optional(v.array(v.string())), // Tags for organizing contacts
     created_at: v.number(),
     updated_at: v.number(),
   })

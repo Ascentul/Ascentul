@@ -5,15 +5,16 @@ import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { BookOpen } from 'lucide-react'
-import Link from 'next/link'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
+import { BookOpen, Plus, Upload, Download, Edit, Trash2, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 
 export default function UniversityCoursesPage() {
   const { user, isAdmin } = useAuth()
@@ -35,6 +36,12 @@ export default function UniversityCoursesPage() {
     return map
   }, [departments])
 
+  // State
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [editingCourse, setEditingCourse] = useState<any>(null)
+  const [deletingCourse, setDeletingCourse] = useState<any>(null)
   const [form, setForm] = useState<{ title: string; category?: string; level?: string; departmentId?: string }>({ title: '' })
   const [submitting, setSubmitting] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -47,30 +54,41 @@ export default function UniversityCoursesPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">You do not have access to University Courses.</p>
+            <p className="text-muted-foreground">You do not have access to Programs Management.</p>
           </CardContent>
         </Card>
       </div>
     )
   }
 
+  if (!courses || !departments) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    )
+  }
+
   const exportCoursesCsv = () => {
-    const headers = ['title','department','category','level','published']
+    const headers = ['Title','Department','Category','Level','Published']
     const rows = (courses || []).map((c: any) => [
-      JSON.stringify(c.title ?? ''),
-      JSON.stringify((c.department_id && deptById.get(String(c.department_id))?.name) || ''),
-      JSON.stringify(c.category ?? ''),
-      JSON.stringify(c.level ?? ''),
-      JSON.stringify(c.published ? 'yes' : 'no'),
+      `"${c.title ?? ''}"`,
+      `"${(c.department_id && deptById.get(String(c.department_id))?.name) || ''}"`,
+      `"${c.category ?? ''}"`,
+      `"${c.level ?? ''}"`,
+      c.published ? 'Yes' : 'No',
     ].join(','))
     const csv = [headers.join(','), ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'courses.csv'
+    a.download = 'programs_export.csv'
     a.click()
     URL.revokeObjectURL(url)
+    toast({ title: 'Exported', description: 'Programs exported to CSV', variant: 'success' })
   }
 
   const handleImportCsv = async (file: File) => {
@@ -79,23 +97,30 @@ export default function UniversityCoursesPage() {
     try {
       const text = await file.text()
       const lines = text.split(/\r?\n/).filter(Boolean)
-      if (lines.length <= 1) return
+      if (lines.length <= 1) {
+        toast({ title: 'Empty file', variant: 'destructive' })
+        return
+      }
       const header = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
-      const idx = (name: string) => header.findIndex(h => h.toLowerCase() === name)
+      const idx = (name: string) => header.findIndex(h => h.toLowerCase() === name.toLowerCase())
       const iTitle = idx('title')
       const iCategory = idx('category')
       const iLevel = idx('level')
       const iDepartment = idx('department')
+
+      let imported = 0
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].match(/\"[^\"]*\"|[^,]+/g)?.map(c => c.replace(/^\"|\"$/g, '')) || []
         const title = cols[iTitle]?.trim()
         if (!title) continue
+
         const departmentName = iDepartment >= 0 ? cols[iDepartment]?.trim() : ''
         let departmentId: string | undefined
         if (departmentName) {
           const found = (departments || []).find((d: any) => (d.name || '').toLowerCase() === departmentName.toLowerCase())
           if (found) departmentId = String(found._id)
         }
+
         await createCourse({
           clerkId: clerkUser.id,
           title,
@@ -104,29 +129,20 @@ export default function UniversityCoursesPage() {
           departmentId: departmentId ? (departmentId as any) : undefined,
           published: false,
         })
+        imported++
       }
-      toast({ title: 'Courses imported', variant: 'success' })
+      toast({ title: 'Import Complete', description: `Successfully imported ${imported} programs`, variant: 'success' })
     } catch (e: any) {
-      toast({ title: 'Failed to import CSV', description: e?.message || String(e), variant: 'destructive' })
+      toast({ title: 'Import Failed', description: e?.message || String(e), variant: 'destructive' })
     } finally {
       setImporting(false)
     }
   }
 
-  if (!courses || !departments) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        </div>
-      </div>
-    )
-  }
-
   const handleCreate = async () => {
     if (!clerkUser?.id || !form.title.trim()) return
+    setSubmitting(true)
     try {
-      setSubmitting(true)
       await createCourse({
         clerkId: clerkUser.id,
         title: form.title.trim(),
@@ -136,9 +152,46 @@ export default function UniversityCoursesPage() {
         published: false,
       })
       setForm({ title: '' })
-      toast({ title: 'Course created', variant: 'success' })
+      setCreateDialogOpen(false)
+      toast({ title: 'Program Created', variant: 'success' })
     } catch (e: any) {
-      toast({ title: 'Failed to create course', description: e?.message || String(e), variant: 'destructive' })
+      toast({ title: 'Failed to create program', description: e?.message || String(e), variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openEditDialog = (course: any) => {
+    setEditingCourse(course)
+    setForm({
+      title: course.title,
+      category: course.category || '',
+      level: course.level || '',
+      departmentId: course.department_id ? String(course.department_id) : ''
+    })
+    setEditDialogOpen(true)
+  }
+
+  const handleEdit = async () => {
+    if (!clerkUser?.id || !editingCourse || !form.title.trim()) return
+    setSubmitting(true)
+    try {
+      await updateCourse({
+        clerkId: clerkUser.id,
+        courseId: editingCourse._id,
+        patch: {
+          title: form.title.trim(),
+          category: form.category || undefined,
+          level: form.level || undefined,
+          departmentId: form.departmentId ? (form.departmentId as any) : undefined,
+        }
+      })
+      setEditDialogOpen(false)
+      setEditingCourse(null)
+      setForm({ title: '' })
+      toast({ title: 'Program Updated', variant: 'success' })
+    } catch (e: any) {
+      toast({ title: 'Failed to update program', description: e?.message || String(e), variant: 'destructive' })
     } finally {
       setSubmitting(false)
     }
@@ -148,27 +201,44 @@ export default function UniversityCoursesPage() {
     if (!clerkUser?.id) return
     try {
       await updateCourse({ clerkId: clerkUser.id, courseId: course._id, patch: { published: !course.published } })
+      toast({
+        title: course.published ? 'Program Unpublished' : 'Program Published',
+        variant: 'success'
+      })
     } catch (e: any) {
-      toast({ title: 'Failed to update course', description: e?.message || String(e), variant: 'destructive' })
+      toast({ title: 'Failed to update status', description: e?.message || String(e), variant: 'destructive' })
     }
   }
 
-  const handleDelete = async (course: any) => {
-    if (!clerkUser?.id) return
+  const openDeleteDialog = (course: any) => {
+    setDeletingCourse(course)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!clerkUser?.id || !deletingCourse) return
+    setSubmitting(true)
     try {
-      await deleteCourse({ clerkId: clerkUser.id, courseId: course._id })
-      toast({ title: 'Course deleted', variant: 'success' })
+      await deleteCourse({ clerkId: clerkUser.id, courseId: deletingCourse._id })
+      setDeleteDialogOpen(false)
+      setDeletingCourse(null)
+      toast({ title: 'Program Deleted', variant: 'success' })
     } catch (e: any) {
-      toast({ title: 'Failed to delete course', description: e?.message || String(e), variant: 'destructive' })
+      toast({ title: 'Failed to delete program', description: e?.message || String(e), variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
     }
   }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <BookOpen className="h-6 w-6" /> Courses
-        </h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB] flex items-center gap-2">
+            <BookOpen className="h-7 w-7" /> Programs Management
+          </h1>
+          <p className="text-muted-foreground">Create and manage academic programs and courses</p>
+        </div>
         <div className="flex gap-2">
           <input
             id="coursesCsv"
@@ -178,43 +248,77 @@ export default function UniversityCoursesPage() {
             onChange={(e) => e.target.files && e.target.files[0] && handleImportCsv(e.target.files[0])}
           />
           <Button variant="outline" onClick={() => document.getElementById('coursesCsv')?.click()} disabled={importing}>
-            {importing ? 'Importing...' : 'Import CSV'}
+            {importing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+            Import CSV
           </Button>
-          <Button variant="outline" onClick={exportCoursesCsv}>Export CSV</Button>
+          <Button variant="outline" onClick={exportCoursesCsv}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Program
+          </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create Course</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            <Input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-            <Input placeholder="Category" value={form.category || ''} onChange={(e) => setForm({ ...form, category: e.target.value })} />
-            <Input placeholder="Level" value={form.level || ''} onChange={(e) => setForm({ ...form, level: e.target.value })} />
-            <Select value={form.departmentId || ''} onValueChange={(v) => setForm({ ...form, departmentId: v })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Department (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {departments.map((d: any) => (
-                  <SelectItem key={String(d._id)} value={String(d._id)}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={handleCreate} disabled={!form.title.trim() || submitting}>Create</Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Programs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{courses.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Published</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {courses.filter(c => c.published).length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Draft</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">
+              {courses.filter(c => !c.published).length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Departments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{departments.length}</div>
+          </CardContent>
+        </Card>
+      </div>
 
+      {/* Programs Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Courses</CardTitle>
+          <CardTitle>All Programs</CardTitle>
+          <CardDescription>Manage academic programs, courses, and department assignments</CardDescription>
         </CardHeader>
         <CardContent>
           {courses.length === 0 ? (
-            <p className="text-muted-foreground">No courses yet.</p>
+            <div className="text-center py-12">
+              <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground mb-4">No programs found.</p>
+              <p className="text-sm text-muted-foreground mb-4">Create your first program to get started</p>
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Program
+              </Button>
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -236,15 +340,31 @@ export default function UniversityCoursesPage() {
                       <TableCell>{dept?.name || '—'}</TableCell>
                       <TableCell>{c.category || '—'}</TableCell>
                       <TableCell>{c.level || '—'}</TableCell>
-                      <TableCell>{c.published ? <Badge>Published</Badge> : <Badge variant="outline">Draft</Badge>}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Link href={`/university/courses/${String(c._id)}`} className="inline-block">
-                          <Button variant="outline" size="sm">Open</Button>
-                        </Link>
-                        <Button variant="outline" size="sm" onClick={() => handleTogglePublished(c)}>
-                          {c.published ? 'Unpublish' : 'Publish'}
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDelete(c)}>Delete</Button>
+                      <TableCell>
+                        {c.published ? (
+                          <Badge variant="default" className="bg-green-600">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Published
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Draft
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleTogglePublished(c)}>
+                            {c.published ? 'Unpublish' : 'Publish'}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(c)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => openDeleteDialog(c)}>
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
@@ -254,6 +374,147 @@ export default function UniversityCoursesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Create Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Program</DialogTitle>
+            <DialogDescription>Create a new academic program or course</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="create-title">Program Title *</Label>
+              <Input
+                id="create-title"
+                placeholder="e.g., Introduction to Computer Science"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="create-category">Category</Label>
+                <Input
+                  id="create-category"
+                  placeholder="e.g., Technology"
+                  value={form.category || ''}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-level">Level</Label>
+                <Input
+                  id="create-level"
+                  placeholder="e.g., Undergraduate"
+                  value={form.level || ''}
+                  onChange={(e) => setForm({ ...form, level: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="create-dept">Department</Label>
+              <Select value={form.departmentId || ''} onValueChange={(v) => setForm({ ...form, departmentId: v })}>
+                <SelectTrigger id="create-dept">
+                  <SelectValue placeholder="Select department (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((d: any) => (
+                    <SelectItem key={String(d._id)} value={String(d._id)}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreate} disabled={!form.title.trim() || submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Create Program
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Program</DialogTitle>
+            <DialogDescription>Update program details</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-title">Program Title *</Label>
+              <Input
+                id="edit-title"
+                placeholder="e.g., Introduction to Computer Science"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-category">Category</Label>
+                <Input
+                  id="edit-category"
+                  placeholder="e.g., Technology"
+                  value={form.category || ''}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-level">Level</Label>
+                <Input
+                  id="edit-level"
+                  placeholder="e.g., Undergraduate"
+                  value={form.level || ''}
+                  onChange={(e) => setForm({ ...form, level: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit-dept">Department</Label>
+              <Select value={form.departmentId || ''} onValueChange={(v) => setForm({ ...form, departmentId: v })}>
+                <SelectTrigger id="edit-dept">
+                  <SelectValue placeholder="Select department (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((d: any) => (
+                    <SelectItem key={String(d._id)} value={String(d._id)}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleEdit} disabled={!form.title.trim() || submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Program</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deletingCourse?.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete Program
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

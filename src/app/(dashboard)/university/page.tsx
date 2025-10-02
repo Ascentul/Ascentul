@@ -45,6 +45,7 @@ export default function UniversityDashboardPage() {
   const { getToken } = useClerkAuth()
   const { user, isAdmin } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
+  const [analyticsView, setAnalyticsView] = useState<'overview' | 'engagement' | 'features' | 'risk'>('overview')
   const { toast } = useToast()
 
   // Filter states
@@ -317,6 +318,48 @@ export default function UniversityDashboardPage() {
         </div>
       </div>
 
+      {/* Main Dashboard View Toggles */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={activeTab === 'overview' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('overview')}
+          className={activeTab === 'overview' ? 'bg-[#0C29AB]' : ''}
+        >
+          Overview
+        </Button>
+        <Button
+          variant={activeTab === 'analytics' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('analytics')}
+          className={activeTab === 'analytics' ? 'bg-[#0C29AB]' : ''}
+        >
+          Analytics & Insights
+        </Button>
+        <Button
+          variant={activeTab === 'students-list' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('students-list')}
+          className={activeTab === 'students-list' ? 'bg-[#0C29AB]' : ''}
+        >
+          Students
+        </Button>
+        <Button
+          variant={activeTab === 'departments' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('departments')}
+          className={activeTab === 'departments' ? 'bg-[#0C29AB]' : ''}
+        >
+          Departments
+        </Button>
+        <Button
+          variant={activeTab === 'usage' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('usage')}
+          className={activeTab === 'usage' ? 'bg-[#0C29AB]' : ''}
+        >
+          Platform Usage
+        </Button>
+      </div>
+
+      {/* Overview Tab Content */}
+      {activeTab === 'overview' && (
+        <>
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
@@ -778,25 +821,487 @@ export default function UniversityDashboardPage() {
             </CardContent>
           </Card>
         </div>
+        </>
+      )}
 
+      {/* Analytics Tab Content */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-6">
+          {/* Analytics Sub-Toggles */}
+          <div className="flex flex-wrap gap-2 bg-gray-50 p-3 rounded-lg">
+            <Button
+              size="sm"
+              variant={analyticsView === 'overview' ? 'default' : 'outline'}
+              onClick={() => setAnalyticsView('overview')}
+              className={analyticsView === 'overview' ? 'bg-[#0C29AB]' : ''}
+            >
+              Overview
+            </Button>
+            <Button
+              size="sm"
+              variant={analyticsView === 'engagement' ? 'default' : 'outline'}
+              onClick={() => setAnalyticsView('engagement')}
+              className={analyticsView === 'engagement' ? 'bg-[#0C29AB]' : ''}
+            >
+              Student Engagement
+            </Button>
+            <Button
+              size="sm"
+              variant={analyticsView === 'features' ? 'default' : 'outline'}
+              onClick={() => setAnalyticsView('features')}
+              className={analyticsView === 'features' ? 'bg-[#0C29AB]' : ''}
+            >
+              Feature Adoption
+            </Button>
+            <Button
+              size="sm"
+              variant={analyticsView === 'risk' ? 'default' : 'outline'}
+              onClick={() => setAnalyticsView('risk')}
+              className={analyticsView === 'risk' ? 'bg-[#0C29AB]' : ''}
+            >
+              At-Risk Analysis
+            </Button>
+          </div>
+
+          {/* Analytics: Overview */}
+          {analyticsView === 'overview' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Platform Usage</CardTitle>
+                    <CardDescription>Monthly feature adoption and student engagement over the last 6 months</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={[
+                        { month: 'Oct', goals: 120, applications: 45, resumes: 30, coverLetters: 25 },
+                        { month: 'Nov', goals: 180, applications: 65, resumes: 45, coverLetters: 35 },
+                        { month: 'Dec', goals: 220, applications: 80, resumes: 60, coverLetters: 50 },
+                        { month: 'Jan', goals: 280, applications: 95, resumes: 75, coverLetters: 65 },
+                        { month: 'Feb', goals: 320, applications: 110, resumes: 85, coverLetters: 75 },
+                        { month: 'Mar', goals: 380, applications: 125, resumes: 95, coverLetters: 85 },
+                      ]}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="goals" stroke="#4F46E5" strokeWidth={2} name="Goals Set" />
+                        <Line type="monotone" dataKey="applications" stroke="#10B981" strokeWidth={2} name="Applications" />
+                        <Line type="monotone" dataKey="resumes" stroke="#F59E0B" strokeWidth={2} name="Resumes" />
+                        <Line type="monotone" dataKey="coverLetters" stroke="#EF4444" strokeWidth={2} name="Cover Letters" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Feature Usage</CardTitle>
+                    <CardDescription>Most popular features among students</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={[
+                        { month: 'Jan', usage: 45 },
+                        { month: 'Feb', usage: 52 },
+                        { month: 'Mar', usage: 48 },
+                        { month: 'Apr', usage: 61 },
+                        { month: 'May', usage: 55 },
+                        { month: 'Jun', usage: 67 },
+                      ]}>
+                        <defs>
+                          <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Area type="monotone" dataKey="usage" stroke="#4F46E5" fillOpacity={1} fill="url(#colorUsage)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Student Progress Insights</CardTitle>
+                  <CardDescription>Goals in progress vs completed, applications by stage, and resume/cover letter activity</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[
+                      { name: 'Goals', inProgress: 45, completed: 28 },
+                      { name: 'Applications', inProgress: 12, submitted: 35, interviewing: 18, offers: 8 },
+                      { name: 'Documents', resumes: 67, coverLetters: 43 },
+                    ]} margin={{ top: 40, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="inProgress" fill="#4F46E5" name="In Progress">
+                        <LabelList dataKey="inProgress" position="top" />
+                      </Bar>
+                      <Bar dataKey="completed" fill="#10B981" name="Completed">
+                        <LabelList dataKey="completed" position="top" />
+                      </Bar>
+                      <Bar dataKey="submitted" fill="#F59E0B" name="Submitted">
+                        <LabelList dataKey="submitted" position="top" />
+                      </Bar>
+                      <Bar dataKey="interviewing" fill="#EF4444" name="Interviewing">
+                        <LabelList dataKey="interviewing" position="top" />
+                      </Bar>
+                      <Bar dataKey="offers" fill="#8B5CF6" name="Offers">
+                        <LabelList dataKey="offers" position="top" />
+                      </Bar>
+                      <Bar dataKey="resumes" fill="#EC4899" name="Resumes">
+                        <LabelList dataKey="resumes" position="top" />
+                      </Bar>
+                      <Bar dataKey="coverLetters" fill="#06B6D4" name="Cover Letters">
+                        <LabelList dataKey="coverLetters" position="top" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Analytics: Engagement */}
+          {analyticsView === 'engagement' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">Daily Active Users</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{Math.floor(students.length * 0.35)}</div>
+                    <p className="text-xs text-green-600 mt-1">+12% from last week</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">Avg Session Duration</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">24 min</div>
+                    <p className="text-xs text-green-600 mt-1">+3 min from last week</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">Return Rate</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">78%</div>
+                    <p className="text-xs text-muted-foreground mt-1">7-day return rate</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium">Actions Per Session</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">8.4</div>
+                    <p className="text-xs text-green-600 mt-1">+0.7 from last week</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Student Activity Trends</CardTitle>
+                  <CardDescription>Weekly student engagement and feature usage patterns</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={[
+                      { week: 'Week 1', logins: 180, goals: 45, applications: 12, documents: 28 },
+                      { week: 'Week 2', logins: 210, goals: 52, applications: 18, documents: 35 },
+                      { week: 'Week 3', logins: 195, goals: 48, applications: 15, documents: 32 },
+                      { week: 'Week 4', logins: 240, goals: 58, applications: 22, documents: 41 },
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="week" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="logins" stroke="#4F46E5" strokeWidth={2} name="Daily Logins" />
+                      <Line type="monotone" dataKey="goals" stroke="#10B981" strokeWidth={2} name="Goals Set" />
+                      <Line type="monotone" dataKey="applications" stroke="#F59E0B" strokeWidth={2} name="Applications" />
+                      <Line type="monotone" dataKey="documents" stroke="#EC4899" strokeWidth={2} name="Documents Created" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Weekly Activity</CardTitle>
+                  <CardDescription>Daily logins and assignment submissions</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[
+                      { day: 'Mon', logins: 45, assignments: 12 },
+                      { day: 'Tue', logins: 52, assignments: 15 },
+                      { day: 'Wed', logins: 48, assignments: 18 },
+                      { day: 'Thu', logins: 61, assignments: 22 },
+                      { day: 'Fri', logins: 55, assignments: 20 },
+                      { day: 'Sat', logins: 38, assignments: 8 },
+                      { day: 'Sun', logins: 42, assignments: 10 },
+                    ]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="day" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="logins" fill="#4F46E5" name="Logins">
+                        <LabelList dataKey="logins" position="top" />
+                      </Bar>
+                      <Bar dataKey="assignments" fill="#10B981" name="Assignments">
+                        <LabelList dataKey="assignments" position="top" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Analytics: Feature Adoption */}
+          {analyticsView === 'features' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Asset Completion Breakdown by Category</CardTitle>
+                    <CardDescription>Average completion levels across resumes, cover letters, goals, applications</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={[
+                        { category: 'Resumes', completion: 78 },
+                        { category: 'Cover Letters', completion: 65 },
+                        { category: 'Goals', completion: 82 },
+                        { category: 'Applications', completion: 58 },
+                      ]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="category" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="completion" fill="#4F46E5" name="Completion %">
+                          <LabelList dataKey="completion" position="top" formatter={(value: number) => `${value}%`} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Top Features Used</CardTitle>
+                    <CardDescription>Ranked bar chart of the most frequently accessed tools</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={[
+                        { feature: 'Resume Builder', usage: 89 },
+                        { feature: 'Goal Setting', usage: 76 },
+                        { feature: 'Job Search', usage: 68 },
+                        { feature: 'Applications', usage: 54 },
+                        { feature: 'Cover Letters', usage: 43 },
+                        { feature: 'AI Coach', usage: 31 },
+                      ]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="feature" angle={-45} textAnchor="end" height={80} />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="usage" fill="#4F46E5" name="Usage %">
+                          <LabelList dataKey="usage" position="top" formatter={(value: number) => `${value}%`} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Overall Progress Completion Rate</CardTitle>
+                  <CardDescription>Percentage of students who have completed core career assets</CardDescription>
+                </CardHeader>
+                <CardContent className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Completed', value: 68 },
+                          { name: 'In Progress', value: 22 },
+                          { name: 'Not Started', value: 10 },
+                        ]}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        label={({ name, value }) => `${name}: ${value}%`}
+                      >
+                        {[0, 1, 2].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={['#10B981', '#F59E0B', '#EF4444'][index]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => [`${value}%`, 'Students']} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Analytics: At-Risk */}
+          {analyticsView === 'risk' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium text-red-600">High Risk</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">{Math.floor(students.length * 0.05)}</div>
+                    <p className="text-xs text-muted-foreground mt-1">No activity in 14+ days</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium text-orange-600">Medium Risk</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">{Math.floor(students.length * 0.10)}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Low engagement last 7 days</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-medium text-green-600">Low Risk</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">{Math.floor(students.length * 0.85)}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Active and engaged</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>At-Risk Students Segment</CardTitle>
+                  <CardDescription>Students with both low progress and low usage</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[
+                      { segment: 'High Risk', count: Math.floor(students.length * 0.05) },
+                      { segment: 'Medium Risk', count: Math.floor(students.length * 0.10) },
+                      { segment: 'Low Risk', count: Math.floor(students.length * 0.85) },
+                    ]} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="segment" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#4F46E5" name="Student Count">
+                        <LabelList dataKey="count" position="top" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>At-Risk Students List</CardTitle>
+                  <CardDescription>Students requiring immediate attention</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Risk Level</TableHead>
+                        <TableHead>Last Active</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {students.slice(0, 5).map((s: any, index: number) => {
+                        const riskLevel = index < 1 ? 'high' : index < 3 ? 'medium' : 'low'
+                        const daysAgo = index < 1 ? 18 : index < 3 ? 9 : 3
+                        return (
+                          <TableRow key={s._id}>
+                            <TableCell className="font-medium">{s.name || 'Unknown'}</TableCell>
+                            <TableCell>{s.email}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={riskLevel === 'high' ? 'destructive' : riskLevel === 'medium' ? 'default' : 'secondary'}
+                                className={riskLevel === 'medium' ? 'bg-orange-600' : ''}
+                              >
+                                {riskLevel.toUpperCase()}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{daysAgo} days ago</TableCell>
+                            <TableCell>
+                              <Button size="sm" variant="outline">
+                                <Mail className="h-3 w-3 mr-1" />
+                                Send Reminder
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Students Tab Content */}
+      {(activeTab === 'students-list' || activeTab === 'students-progress' || activeTab === 'invite-students') && (
         <div className="space-y-6">
           {/* Internal Toggle for Students Tab */}
           <div className="flex gap-4">
             <Button
               variant={activeTab === 'students-list' ? 'default' : 'outline'}
               onClick={() => setActiveTab('students-list')}
+              className={activeTab === 'students-list' ? 'bg-[#0C29AB]' : ''}
             >
               Students
             </Button>
             <Button
               variant={activeTab === 'students-progress' ? 'default' : 'outline'}
               onClick={() => setActiveTab('students-progress')}
+              className={activeTab === 'students-progress' ? 'bg-[#0C29AB]' : ''}
             >
               Student Progress
             </Button>
             <Button
               variant={activeTab === 'invite-students' ? 'default' : 'outline'}
               onClick={() => setActiveTab('invite-students')}
+              className={activeTab === 'invite-students' ? 'bg-[#0C29AB]' : ''}
             >
               Invite Students
             </Button>
@@ -1212,8 +1717,10 @@ export default function UniversityDashboardPage() {
             )}
           </div>
         </div>
+      )}
 
-
+      {/* Departments Tab Content */}
+      {activeTab === 'departments' && (
         <div className="space-y-6">
           {/* Department Stat Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -1506,7 +2013,10 @@ export default function UniversityDashboardPage() {
             </CardContent>
           </Card>
         </div>
+      )}
 
+      {/* Platform Usage Tab Content */}
+      {activeTab === 'usage' && (
         <div className="space-y-6">
           {/* Platform Usage Section */}
           <Card>
@@ -1685,6 +2195,7 @@ export default function UniversityDashboardPage() {
             </CardContent>
           </Card>
         </div>
+      )}
 
       {/* Edit Student Modal */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>

@@ -110,7 +110,9 @@ export default function GoalForm({
       description: goal?.description || selectedTemplate?.description || "",
       status: goal?.status || "not_started",
       dueDate: goal?.dueDate ? new Date(goal.dueDate) : undefined,
-      checklist: goal?.checklist || templateChecklist || []
+      checklist: goal?.checklist || templateChecklist || [
+        { id: `item-${Date.now()}`, text: "", completed: false }
+      ]
     }
   })
 

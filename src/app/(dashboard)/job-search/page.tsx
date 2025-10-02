@@ -9,6 +9,8 @@ import { ApplicationWizard } from '@/components/applications/ApplicationWizard'
 import { useUser } from '@clerk/nextjs'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { useRouter } from 'next/navigation'
+import { Briefcase, Search } from 'lucide-react'
 
 interface JobResult {
   id: string
@@ -27,8 +29,10 @@ interface JobResult {
 }
 
 export default function JobSearchPage() {
+  const router = useRouter()
   const { user } = useUser()
   const clerkId = user?.id
+  const [activeTab, setActiveTab] = useState<'applications' | 'job-search'>('job-search')
   const [query, setQuery] = useState('Software Engineer')
   const [location, setLocation] = useState('Remote')
   const [jobType, setJobType] = useState('Full-time')
@@ -44,6 +48,15 @@ export default function JobSearchPage() {
 
   const [wizardOpen, setWizardOpen] = useState(false)
   const [wizardJob, setWizardJob] = useState<{ title: string; company: string; url?: string } | null>(null)
+
+  // Handle tab change to redirect to applications page
+  const handleTabChange = (tab: 'applications' | 'job-search') => {
+    if (tab === 'applications') {
+      router.push('/applications')
+    } else {
+      setActiveTab(tab)
+    }
+  }
 
   // Convex: save history and load recent searches
   const createSearch = useMutation((api as any).jobs.createJobSearch)
@@ -139,7 +152,27 @@ export default function JobSearchPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <h1 className="text-3xl font-bold tracking-tight mb-4">Job Search</h1>
+      <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB] mb-4">Job Search</h1>
+
+      {/* Toggle between Applications and Job Search */}
+      <div className="mb-6 flex gap-2">
+        <Button
+          variant={activeTab === 'applications' ? 'default' : 'outline'}
+          onClick={() => handleTabChange('applications')}
+          className="flex items-center gap-2"
+        >
+          <Briefcase className="h-4 w-4" />
+          Applications
+        </Button>
+        <Button
+          variant={activeTab === 'job-search' ? 'default' : 'outline'}
+          onClick={() => handleTabChange('job-search')}
+          className="flex items-center gap-2"
+        >
+          <Search className="h-4 w-4" />
+          Job Search
+        </Button>
+      </div>
 
       <div className="grid md:grid-cols-4 gap-2 mb-4">
         <Input placeholder="Role or keywords" value={query} onChange={(e) => setQuery(e.target.value)} />

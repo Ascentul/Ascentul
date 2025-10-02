@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ApplicationStatusBadge } from './ApplicationStatusBadge'
-import { Loader2, ExternalLink } from 'lucide-react'
+import { Loader2, ExternalLink, Pencil, Trash2, Check, Clock, X, Calendar } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
@@ -77,8 +77,10 @@ export function ApplicationDetails({
   // Mutations
   const createStage = useMutation(api.interviews.createStage)
   const updateStage = useMutation(api.interviews.updateStage)
+  const deleteStage = useMutation(api.interviews.deleteStage)
   const createFollowup = useMutation(api.followups.createFollowup)
   const updateFollowup = useMutation(api.followups.updateFollowup)
+  const deleteFollowup = useMutation(api.followups.deleteFollowup)
   const updateApplication = useMutation(api.applications.updateApplication)
 
   useEffect(() => setLocal(application), [application])
@@ -138,6 +140,43 @@ export function ApplicationDetails({
     await updateStage({ clerkId, stageId, updates: { outcome } } as any)
   }
 
+  const removeStage = async (stageId: any) => {
+    if (!clerkId) return
+    if (!confirm('Delete this interview stage?')) return
+    await deleteStage({ clerkId, stageId } as any)
+  }
+
+  const [editingStage, setEditingStage] = useState<any>(null)
+  const saveStageEdit = async () => {
+    if (!clerkId || !editingStage) return
+    const scheduled = editingStage.scheduled_at ? new Date(editingStage.scheduled_at).getTime() : undefined
+    await updateStage({
+      clerkId,
+      stageId: editingStage._id,
+      updates: {
+        title: editingStage.title,
+        scheduled_at: scheduled,
+        location: editingStage.location,
+        notes: editingStage.notes,
+      },
+    } as any)
+    setEditingStage(null)
+  }
+
+  // Status bubble helper
+  const getStatusBubble = (outcome: string) => {
+    switch (outcome) {
+      case 'passed':
+        return <div className="flex items-center gap-1 text-green-600 text-xs"><Check className="h-3 w-3" /> Passed</div>
+      case 'failed':
+        return <div className="flex items-center gap-1 text-red-600 text-xs"><X className="h-3 w-3" /> Rejected</div>
+      case 'scheduled':
+        return <div className="flex items-center gap-1 text-blue-600 text-xs"><Calendar className="h-3 w-3" /> Scheduled</div>
+      default:
+        return <div className="flex items-center gap-1 text-amber-600 text-xs"><Clock className="h-3 w-3" /> Pending</div>
+    }
+  }
+
   // Follow-up form state
   const [followForm, setFollowForm] = useState({ description: '', due_date: '' })
   const addFollowup = async () => {
@@ -155,6 +194,12 @@ export function ApplicationDetails({
   const toggleFollowup = async (followupId: any, current: boolean) => {
     if (!clerkId) return
     await updateFollowup({ clerkId, followupId, updates: { completed: !current } } as any)
+  }
+
+  const removeFollowup = async (followupId: any) => {
+    if (!clerkId) return
+    if (!confirm('Delete this follow-up action?')) return
+    await deleteFollowup({ clerkId, followupId } as any)
   }
 
   // Materials selection
@@ -258,27 +303,65 @@ export function ApplicationDetails({
                 <div className="text-sm text-muted-foreground">No interview stages yet.</div>
               ) : (
                 stages!.map((s: any) => (
-                  <div key={s._id} className="border rounded-md p-3 flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{s.title}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {s.scheduled_at ? new Date(s.scheduled_at).toLocaleString() : 'Not scheduled'}
+                  editingStage && editingStage._id === s._id ? (
+                    <div key={s._id} className="border rounded-md p-3 space-y-2 bg-blue-50">
+                      <Input
+                        placeholder="Stage title"
+                        value={editingStage.title}
+                        onChange={(e) => setEditingStage({ ...editingStage, title: e.target.value })}
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          type="datetime-local"
+                          value={editingStage.scheduled_at || ''}
+                          onChange={(e) => setEditingStage({ ...editingStage, scheduled_at: e.target.value })}
+                        />
+                        <Input
+                          placeholder="Location"
+                          value={editingStage.location || ''}
+                          onChange={(e) => setEditingStage({ ...editingStage, location: e.target.value })}
+                        />
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <Button size="sm" variant="outline" onClick={() => setEditingStage(null)}>Cancel</Button>
+                        <Button size="sm" onClick={saveStageEdit}>Save</Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Select value={s.outcome} onValueChange={(v) => setStageOutcome(s._id, v as any)}>
-                        <SelectTrigger className="w-36">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="scheduled">Scheduled</SelectItem>
-                          <SelectItem value="passed">Passed</SelectItem>
-                          <SelectItem value="failed">Rejected</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  ) : (
+                    <div key={s._id} className="border rounded-md p-3">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="font-medium">{s.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {s.scheduled_at ? new Date(s.scheduled_at).toLocaleString() : 'Not scheduled'}
+                            {s.location && ` • ${s.location}`}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getStatusBubble(s.outcome)}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Select value={s.outcome} onValueChange={(v) => setStageOutcome(s._id, v as any)}>
+                          <SelectTrigger className="w-36 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="scheduled">Scheduled</SelectItem>
+                            <SelectItem value="passed">Passed</SelectItem>
+                            <SelectItem value="failed">Rejected</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingStage({ ...s, scheduled_at: s.scheduled_at ? new Date(s.scheduled_at).toISOString().slice(0, 16) : '' })}>
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => removeStage(s._id)}>
+                          <Trash2 className="h-3 w-3 text-red-600" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  )
                 ))
               )}
             </div>
@@ -307,6 +390,9 @@ export function ApplicationDetails({
                     <div className="flex items-center gap-2">
                       <Button variant={f.completed ? 'default' : 'outline'} size="sm" onClick={() => toggleFollowup(f._id, f.completed)}>
                         {f.completed ? 'Completed' : 'Mark Completed'}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => removeFollowup(f._id)}>
+                        <Trash2 className="h-3 w-3 text-red-600" />
                       </Button>
                     </div>
                   </div>

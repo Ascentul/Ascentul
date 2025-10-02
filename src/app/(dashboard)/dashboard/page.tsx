@@ -143,7 +143,7 @@ export default function DashboardPage() {
             variants={subtleUp}
           >
             <div>
-              <h1 className="text-2xl font-bold font-poppins">Dashboard</h1>
+              <h1 className="text-2xl font-bold font-poppins text-[#0C29AB]">Dashboard</h1>
               <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
             </div>
             <div className="mt-4 md:mt-0">
@@ -198,11 +198,23 @@ export default function DashboardPage() {
                     <Link href="/applications" className="w-full">
                       <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                         <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                          <Users className="h-5 w-5 text-green-500" />
+                          <Briefcase className="h-5 w-5 text-green-500" />
                         </div>
                         <div>
                           <div className="font-medium">Track an Application</div>
                           <div className="text-xs text-muted-foreground">Track your job applications</div>
+                        </div>
+                      </div>
+                    </Link>
+
+                    <Link href="/contacts" className="w-full">
+                      <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                        <div className="h-9 w-9 rounded-full bg-indigo-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                          <Users className="h-5 w-5 text-indigo-500" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Add Contact</div>
+                          <div className="text-xs text-muted-foreground">Add to your Network Hub</div>
                         </div>
                       </div>
                     </Link>
@@ -213,7 +225,7 @@ export default function DashboardPage() {
             </div>
           </motion.div>
 
-          {/* Stats Overview */}
+          {/* Row 1: Stats Overview - Removed Interview Rate card */}
           <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
             variants={staggeredContainer}
@@ -248,30 +260,16 @@ export default function DashboardPage() {
 
             <motion.div variants={cardAnimation}>
               <StatCard
-                icon={<Award className="h-5 w-5 text-green-500" />}
-                iconBgColor="bg-green-500/20"
-                iconColor="text-green-500"
-                label="Interview Rate"
-                value={`${stats.interviewRate}%`}
-                change={{
-                  type: 'increase',
-                  text: 'Above average'
-                }}
-              />
-            </motion.div>
-
-            <motion.div variants={cardAnimation}>
-              <StatCard
                 icon={<Clock className="h-5 w-5 text-orange-500" />}
                 iconBgColor="bg-orange-500/20"
                 iconColor="text-orange-500"
-                label="Pending Tasks"
+                label="Pending Follow ups"
                 value={stats.pendingTasks}
                 change={{
                   type: stats.pendingTasks > 0 ? 'increase' : 'no-change',
                   text: stats.pendingTasks > 0
                     ? `${stats.pendingTasks} item${stats.pendingTasks !== 1 ? 's' : ''} need attention`
-                    : 'No pending tasks'
+                    : 'No pending follow ups'
                 }}
               />
             </motion.div>
@@ -291,16 +289,36 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
-          {/* Onboarding Checklist */}
-          <motion.div variants={cardAnimation}>
+          {/* Row 2: Onboarding Checklist */}
+          <motion.div variants={cardAnimation} className="mb-6">
             <SimpleOnboardingChecklist />
           </motion.div>
 
-          {/* Recent Activity */}
+          {/* Row 3: Recommendations */}
+          <motion.div variants={cardAnimation} className="mb-6">
+            <TodaysRecommendations />
+          </motion.div>
+
+          {/* Row 4: Active Interviews, Follow-up Actions, Goals */}
           <motion.div
-            className="mb-6"
-            variants={cardAnimation}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"
+            variants={staggeredContainer}
           >
+            <motion.div variants={cardAnimation}>
+              <ActiveInterviewsSummary />
+            </motion.div>
+
+            <motion.div variants={cardAnimation}>
+              <FollowupActionsSummary />
+            </motion.div>
+
+            <motion.div variants={cardAnimation}>
+              <CareerGoalsSummary />
+            </motion.div>
+          </motion.div>
+
+          {/* Row 5: Recent Activity */}
+          <motion.div variants={cardAnimation}>
             <Card>
               <CardContent className="p-6">
                 <div className="flex flex-col space-y-1.5 mb-6">
@@ -335,27 +353,6 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
-
-          {/* Career Goals Summary */}
-          <motion.div variants={cardAnimation}>
-            <CareerGoalsSummary />
-          </motion.div>
-
-          {/* Active Interviews Summary */}
-          <motion.div variants={cardAnimation}>
-            <ActiveInterviewsSummary />
-          </motion.div>
-
-          {/* Follow-up Actions Summary */}
-          <motion.div variants={cardAnimation}>
-            <FollowupActionsSummary />
-          </motion.div>
-
-
-          {/* Today's Recommendations */}
-          <motion.div variants={cardAnimation}>
-            <TodaysRecommendations />
           </motion.div>
         </motion.div>
     </OnboardingGuard>

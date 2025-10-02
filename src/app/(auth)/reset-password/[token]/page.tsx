@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
-import { useSignIn } from '@clerk/nextjs'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -14,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form'
 import { Loader2, Lock, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { resetUserPassword } from '@/app/actions/reset-password'
 
 const resetPasswordSchema = z.object({
   password: z.string()
@@ -33,7 +33,6 @@ export default function ResetPasswordPage() {
   const router = useRouter()
   const params = useParams()
   const token = params.token as string
-  const { signIn, setActive } = useSignIn()
 
   const verifyResetToken = useMutation(api.password_reset.verifyResetToken)
   const completePasswordReset = useMutation(api.password_reset.completePasswordReset)
@@ -90,20 +89,10 @@ export default function ResetPasswordPage() {
     setError(null)
 
     try {
-      // First, reset password in Clerk
-      if (!signIn) {
-        throw new Error('Sign in not available')
-      }
+      // Reset password using Clerk API via server action
+      await resetUserPassword(userEmail, data.password)
 
-      // Start password reset in Clerk
-      await signIn.create({
-        strategy: 'reset_password_email_code',
-        identifier: userEmail,
-      })
-
-      // For now, we'll use Clerk's built-in password reset
-      // In production, you might want to use a custom flow
-      // This completes the Convex side
+      // Complete the Convex side - clear the reset token
       await completePasswordReset({
         token,
         email: userEmail,
@@ -113,7 +102,7 @@ export default function ResetPasswordPage() {
 
       // Redirect to sign in after 3 seconds
       setTimeout(() => {
-        router.push('/sign-in')
+        router.push('/sign-in?reset=success')
       }, 3000)
     } catch (err: any) {
       console.error('Password reset failed:', err)

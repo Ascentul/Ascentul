@@ -50,7 +50,7 @@ export default function InterviewsPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Interview Tracker</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Interview Tracker</h1>
         <p className="text-muted-foreground">View and manage interviews across your applications.</p>
       </div>
 

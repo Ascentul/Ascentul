@@ -307,3 +307,52 @@ export const getUsersByUniversity = query({
     return users;
   },
 });
+
+// Get onboarding progress
+export const getOnboardingProgress = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) {
+      return { completed_tasks: [] };
+    }
+
+    return {
+      completed_tasks: (user as any).completed_tasks || [],
+      onboarding_completed: user.onboarding_completed || false,
+    };
+  },
+});
+
+// Update onboarding progress
+export const updateOnboardingProgress = mutation({
+  args: {
+    clerkId: v.string(),
+    completed_tasks: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Determine if onboarding is complete (all 5 tasks done)
+    const onboarding_completed = args.completed_tasks.length >= 5;
+
+    await ctx.db.patch(user._id, {
+      completed_tasks: args.completed_tasks,
+      onboarding_completed,
+      updated_at: Date.now(),
+    });
+
+    return user._id;
+  },
+});

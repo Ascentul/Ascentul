@@ -120,6 +120,8 @@ export const createTicket = mutation({
     clerkId: v.string(),
     subject: v.string(),
     description: v.string(),
+    category: v.optional(v.string()),
+    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"))),
     issue_type: v.optional(v.string()),
     source: v.optional(v.string()),
   },
@@ -135,8 +137,8 @@ export const createTicket = mutation({
     const id = await ctx.db.insert("support_tickets", {
       user_id: user._id,
       subject: args.subject,
-      category: args.issue_type || "general",
-      priority: "medium", // medium priority
+      category: args.category || args.issue_type || "general",
+      priority: args.priority || "medium",
       department: "support",
       contact_person: undefined,
       description: args.description + (args.source ? `\n\nSource: ${args.source}` : ""),
@@ -260,5 +262,49 @@ export const bulkUpdateTickets = mutation({
     }
 
     return updatedTickets;
+  },
+});
+
+// Add a response/comment to a ticket
+export const addTicketResponse = mutation({
+  args: {
+    clerkId: v.string(),
+    ticketId: v.id("support_tickets"),
+    message: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+    if (!currentUser) throw new Error("User not found");
+
+    const ticket = await ctx.db.get(args.ticketId);
+    if (!ticket) throw new Error("Ticket not found");
+
+    // Check if user is admin or the ticket owner
+    const isAdmin = ["admin", "super_admin", "university_admin"].includes(
+      currentUser.role
+    );
+    const isOwner = ticket.user_id === currentUser._id;
+
+    if (!isAdmin && !isOwner) {
+      throw new Error("Unauthorized");
+    }
+
+    // Update ticket with the response in the resolution field
+    // In a more complex system, you'd have a separate table for responses/comments
+    const existingResolution = ticket.resolution || "";
+    const newResponse = `[${new Date().toISOString()}] ${currentUser.name || currentUser.email}: ${args.message}`;
+    const updatedResolution = existingResolution
+      ? `${existingResolution}\n\n${newResponse}`
+      : newResponse;
+
+    await ctx.db.patch(args.ticketId, {
+      resolution: updatedResolution,
+      updated_at: Date.now(),
+    });
+
+    return await ctx.db.get(args.ticketId);
   },
 });

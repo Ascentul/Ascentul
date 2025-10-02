@@ -4,12 +4,13 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Plus } from 'lucide-react'
+import { Loader2, Plus, Briefcase, Search } from 'lucide-react'
 import { ApplicationCard } from '@/components/applications/ApplicationCard'
 import { ApplicationDetails } from '@/components/applications/ApplicationDetails'
 import { useUser } from '@clerk/nextjs'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { useRouter } from 'next/navigation'
 
 interface Application {
   id: string | number
@@ -23,9 +24,11 @@ interface Application {
 }
 
 export default function ApplicationsPage() {
+  const router = useRouter()
   const [apps, setApps] = useState<Application[]>([])
   const { user, isLoaded: clerkLoaded } = useUser()
   const [creating, setCreating] = useState(false)
+  const [activeTab, setActiveTab] = useState<'applications' | 'job-search'>('applications')
   const [form, setForm] = useState({
     company: '',
     job_title: '',
@@ -36,6 +39,15 @@ export default function ApplicationsPage() {
 
   const [showDetails, setShowDetails] = useState(false)
   const [selected, setSelected] = useState<Application | null>(null)
+
+  // Handle tab change to redirect to job-search page
+  const handleTabChange = (tab: 'applications' | 'job-search') => {
+    if (tab === 'job-search') {
+      router.push('/job-search')
+    } else {
+      setActiveTab(tab)
+    }
+  }
 
   // Convex data
   const convexApps = useQuery(api.applications.getUserApplications, user?.id ? { clerkId: user.id } : 'skip')
@@ -98,11 +110,31 @@ export default function ApplicationsPage() {
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Application Tracker</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Application Tracker</h1>
           <p className="text-muted-foreground">Track your job applications and progress.</p>
         </div>
         <Button onClick={createApp} disabled={creating}>
           {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />} Add
+        </Button>
+      </div>
+
+      {/* Toggle between Applications and Job Search */}
+      <div className="mb-6 flex gap-2">
+        <Button
+          variant={activeTab === 'applications' ? 'default' : 'outline'}
+          onClick={() => handleTabChange('applications')}
+          className="flex items-center gap-2"
+        >
+          <Briefcase className="h-4 w-4" />
+          Applications
+        </Button>
+        <Button
+          variant={activeTab === 'job-search' ? 'default' : 'outline'}
+          onClick={() => handleTabChange('job-search')}
+          className="flex items-center gap-2"
+        >
+          <Search className="h-4 w-4" />
+          Job Search
         </Button>
       </div>
 

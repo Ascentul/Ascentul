@@ -105,7 +105,7 @@ export default function LinkedInIntegrationPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <h1 className="text-3xl font-bold tracking-tight mb-6 flex items-center gap-2">
+      <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB] mb-6 flex items-center gap-2">
         <Linkedin className="h-7 w-7 text-[#0A66C2]" />
         LinkedIn Integration
       </h1>

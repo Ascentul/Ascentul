@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSignIn, useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -18,7 +17,6 @@ export default function Page() {
   const { isLoaded: authLoaded, isSignedIn } = useAuth()
   const { toast } = useToast()
 
-  const [tab, setTab] = useState<'regular' | 'university'>('regular')
   const [step, setStep] = useState<'signin' | 'forgot' | 'reset'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -28,7 +26,6 @@ export default function Page() {
   const [sendingReset, setSendingReset] = useState(false)
   const [resettingPassword, setResettingPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -391,165 +388,69 @@ export default function Page() {
               <CardTitle className="text-xl">Welcome back</CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
-                <TabsList className="grid grid-cols-2 mb-4">
-                  <TabsTrigger value="regular">Personal Login</TabsTrigger>
-                  <TabsTrigger value="university">University Login</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="regular" className="space-y-4">
-                  <form onSubmit={onSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>Password</Label>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto p-0 text-xs text-primary hover:bg-transparent"
-                          onClick={() => {
-                            setStep('forgot')
-                            setError(null)
-                            setSuccessMessage(null)
-                          }}
-                        >
-                          Forgot password?
-                        </Button>
-                      </div>
-                      <div className="relative">
-                        <Input
-                          type={showPassword ? 'text' : 'password'}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Enter your password"
-                          className="pr-10"
-                          required
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {error && (
-                      <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                        {error}
-                      </div>
-                    )}
-
-                    <Button type="submit" className="w-full" disabled={submitting}>
-                      {submitting ? 'Signing in...' : 'Sign In'}
+              <form onSubmit={onSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your.email@example.com"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Password</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 text-xs text-primary hover:bg-transparent"
+                      onClick={() => {
+                        setStep('forgot')
+                        setError(null)
+                        setSuccessMessage(null)
+                      }}
+                    >
+                      Forgot password?
                     </Button>
-                  </form>
-                </TabsContent>
-
-                <TabsContent value="university" className="space-y-4">
-                  <form onSubmit={onSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>University Email</Label>
-                      <Input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="student@university.edu"
-                        required
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Use your official university email address
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>Password</Label>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto p-0 text-xs text-primary hover:bg-transparent"
-                          onClick={() => {
-                            setStep('forgot')
-                            setError(null)
-                            setSuccessMessage(null)
-                          }}
-                        >
-                          Forgot password?
-                        </Button>
-                      </div>
-                      <div className="relative">
-                        <Input
-                          type={showPassword ? 'text' : 'password'}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Enter your password"
-                          className="pr-10"
-                          required
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {error && (
-                      <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                        {error}
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="rememberMeUniversity"
-                          checked={rememberMe}
-                          onChange={(e) => setRememberMe(e.target.checked)}
-                        />
-                        <label htmlFor="rememberMeUniversity" className="text-sm text-muted-foreground">
-                          Remember me
-                        </label>
-                      </div>
-                    </div>
-
-                    <Button type="submit" className="w-full" disabled={submitting}>
-                      {submitting ? 'Signing in...' : 'Sign In'}
-                    </Button>
-                  </form>
-
-                  <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded-md">
-                    <strong>University Login:</strong> Access your university-specific dashboard and connect with your academic community.
                   </div>
-                </TabsContent>
-              </Tabs>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="pr-10"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                    {error}
+                  </div>
+                )}
+
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? 'Signing in...' : 'Sign In'}
+                </Button>
+              </form>
 
               <div className="mt-6 space-y-4">
                 {/* Social Sign In Options */}
@@ -563,11 +464,29 @@ export default function Page() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" className="w-full" disabled>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => signIn?.authenticateWithRedirect({
+                      strategy: 'oauth_google',
+                      redirectUrl: '/sso-callback',
+                      redirectUrlComplete: '/dashboard'
+                    })}
+                    type="button"
+                  >
                     <Chrome className="h-4 w-4 mr-2" />
                     Google
                   </Button>
-                  <Button variant="outline" className="w-full" disabled>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => signIn?.authenticateWithRedirect({
+                      strategy: 'oauth_linkedin',
+                      redirectUrl: '/sso-callback',
+                      redirectUrlComplete: '/dashboard'
+                    })}
+                    type="button"
+                  >
                     <Users className="h-4 w-4 mr-2" />
                     LinkedIn
                   </Button>
@@ -590,28 +509,30 @@ export default function Page() {
       {/* Right: Marketing Panel */}
       <div className="hidden lg:flex items-center justify-center bg-primary text-primary-foreground p-10">
         <div className="max-w-md">
-          <h2 className="text-3xl font-bold mb-4">Welcome Back!</h2>
+          <h2 className="text-3xl font-bold mb-4">Accelerate Your Career Path</h2>
           <p className="opacity-90 mb-6">
-            Continue your career development journey with AI-powered tools and personalized insights.
+            Your all-in-one platform to plan, build, and launch your career.
           </p>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 text-sm opacity-90">
-              <div className="p-2 bg-primary-foreground/20 rounded-lg">
-                <Clock className="h-4 w-4" />
-              </div>
-              <span>Continue where you left off</span>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 text-sm opacity-90">
+              <span className="text-lg mt-0.5">✔</span>
+              <span>AI-powered coaching to guide your next steps</span>
             </div>
-            <div className="flex items-center gap-3 text-sm opacity-90">
-              <div className="p-2 bg-primary-foreground/20 rounded-lg">
-                <Users className="h-4 w-4" />
-              </div>
-              <span>Access your personalized dashboard</span>
+            <div className="flex items-start gap-3 text-sm opacity-90">
+              <span className="text-lg mt-0.5">✔</span>
+              <span>Create polished resumes and tailored cover letters</span>
             </div>
-            <div className="flex items-center gap-3 text-sm opacity-90">
-              <div className="p-2 bg-primary-foreground/20 rounded-lg">
-                <Shield className="h-4 w-4" />
-              </div>
-              <span>Secure, encrypted login</span>
+            <div className="flex items-start gap-3 text-sm opacity-90">
+              <span className="text-lg mt-0.5">✔</span>
+              <span>Track and achieve your career goals with clarity</span>
+            </div>
+            <div className="flex items-start gap-3 text-sm opacity-90">
+              <span className="text-lg mt-0.5">✔</span>
+              <span>Explore career paths and opportunities with confidence</span>
+            </div>
+            <div className="flex items-start gap-3 text-sm opacity-90">
+              <span className="text-lg mt-0.5">✔</span>
+              <span>Organize your projects, skills, and experiences in one place</span>
             </div>
           </div>
         </div>

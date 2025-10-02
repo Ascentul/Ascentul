@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
-import { Loader2, Plus, Pencil, Trash2, Search, Grid3X3, List, Mail, Phone, Building, User } from 'lucide-react'
+import { Loader2, Plus, Eye, Pencil, Trash2, Search, Users, Bookmark } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   AlertDialog,
@@ -16,13 +16,21 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from '@/components/ui/textarea'
 import { useUser } from '@clerk/nextjs'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 interface Contact {
   _id: string
@@ -31,7 +39,11 @@ interface Contact {
   position?: string
   email?: string
   phone?: string
+  saved?: boolean
+  notes?: string
+  tags?: string[]
   updated_at: number
+  created_at?: number
 }
 
 export default function ContactsPage() {
@@ -48,13 +60,14 @@ export default function ContactsPage() {
   const [creating, setCreating] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ full_name: '', company: '', position: '', email: '', phone: '' })
-  const [editing, setEditing] = useState(false)
-  const [editId, setEditId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', company: '', position: '', email: '', phone: '' })
   const [searchTerm, setSearchTerm] = useState('')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [deleting, setDeleting] = useState(false)
+  const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all')
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  // Detail view state
+  const [detailContact, setDetailContact] = useState<Contact | null>(null)
+  const [detailNotes, setDetailNotes] = useState('')
+  const [detailTags, setDetailTags] = useState('')
 
   const createContact = async () => {
     if (!form.full_name.trim()) return
@@ -69,7 +82,6 @@ export default function ContactsPage() {
         email: form.email || undefined,
         phone: form.phone || undefined,
       })
-      // Clear the form and close dialog
       setForm({ full_name: '', company: '', position: '', email: '', phone: '' })
       setShowAdd(false)
       toast({
@@ -88,95 +100,121 @@ export default function ContactsPage() {
     }
   }
 
-  const startEdit = (c: Contact) => {
-    setEditId(c._id)
-    setEditForm({
-      name: c.name || '',
-      company: c.company || '',
-      position: c.position || '',
-      email: c.email || '',
-      phone: c.phone || '',
-    })
-    setEditing(true)
-  }
-
-  const saveEdit = async () => {
-    if (!editId || !clerkUser?.id || !editForm.name.trim()) return
-    setCreating(true)
+  const deleteContact = async () => {
+    if (!clerkUser?.id || !deleteId) return
     try {
-      await updateContactMutation({
-        clerkId: clerkUser.id,
-        contactId: editId as any,
-        updates: {
-          name: editForm.name,
-          company: editForm.company || undefined,
-          position: editForm.position || undefined,
-          email: editForm.email || undefined,
-          phone: editForm.phone || undefined,
-        },
-      })
-      setEditing(false)
-      setEditId(null)
-      toast({
-        title: "Contact updated",
-        description: "Your contact has been updated successfully.",
-        variant: "success",
-      })
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to update contact. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const deleteContact = async (id: string) => {
-    if (!clerkUser?.id) return
-    setDeleting(true)
-    try {
-      await deleteContactMutation({ clerkId: clerkUser.id, contactId: id as any })
+      await deleteContactMutation({ clerkId: clerkUser.id, contactId: deleteId as any })
       toast({
         title: "Contact deleted",
         description: "Your contact has been deleted successfully.",
         variant: "success",
       })
+      setDeleteId(null)
     } catch (error: any) {
       toast({
         title: "Error",
         description: error?.message || "Failed to delete contact. Please try again.",
         variant: "destructive",
       })
-    } finally {
-      setDeleting(false)
     }
   }
 
-  // Filter contacts based on search term
-  const filteredContacts = contactsData?.filter(contact =>
-    contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || []
+  const toggleSaved = async (contact: Contact) => {
+    if (!clerkUser?.id) return
+    try {
+      await updateContactMutation({
+        clerkId: clerkUser.id,
+        contactId: contact._id as any,
+        updates: {
+          saved: !contact.saved,
+        },
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to update contact.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const saveDetailNotes = async () => {
+    if (!clerkUser?.id || !detailContact) return
+    try {
+      await updateContactMutation({
+        clerkId: clerkUser.id,
+        contactId: detailContact._id as any,
+        updates: {
+          notes: detailNotes,
+        },
+      })
+      toast({ title: "Notes saved", variant: "success" })
+    } catch (error: any) {
+      toast({ title: "Error", description: "Failed to save notes.", variant: "destructive" })
+    }
+  }
+
+  const saveDetailTags = async () => {
+    if (!clerkUser?.id || !detailContact) return
+    const tagsArray = detailTags.split(',').map(t => t.trim()).filter(Boolean)
+    try {
+      await updateContactMutation({
+        clerkId: clerkUser.id,
+        contactId: detailContact._id as any,
+        updates: {
+          tags: tagsArray,
+        },
+      })
+      toast({ title: "Tags saved", variant: "success" })
+    } catch (error: any) {
+      toast({ title: "Error", description: "Failed to save tags.", variant: "destructive" })
+    }
+  }
+
+  const openDetail = (contact: Contact) => {
+    setDetailContact(contact)
+    setDetailNotes(contact.notes || '')
+    setDetailTags((contact.tags || []).join(', '))
+  }
+
+  // Filter contacts
+  const filteredContacts = useMemo(() => {
+    let filtered = contactsData || []
+
+    // Filter by tab
+    if (activeTab === 'saved') {
+      filtered = filtered.filter(c => c.saved)
+    }
+
+    // Filter by search
+    if (searchTerm) {
+      filtered = filtered.filter(contact =>
+        contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contact.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contact.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contact.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    return filtered
+  }, [contactsData, activeTab, searchTerm])
 
   return (
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <div className="mb-6 space-y-4">
-        <div className="flex items-center justify-between">
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Network Hub</h1>
-            <p className="text-muted-foreground">Manage your professional contacts and connections.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Network Hub</h1>
+            <p className="text-muted-foreground">Manage your professional contacts and connections</p>
           </div>
           <Button onClick={() => setShowAdd(true)} disabled={creating}>
             <Plus className="h-4 w-4 mr-2" /> Add Contact
           </Button>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
+        {/* Search and Toggle */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search contacts..."
@@ -185,22 +223,26 @@ export default function ContactsPage() {
               className="pl-10"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
+        </div>
+
+        {/* Toggles */}
+        <div className="flex gap-2">
+          <Button
+            variant={activeTab === 'all' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('all')}
+            className="flex items-center gap-2"
+          >
+            <Users className="h-4 w-4" />
+            All Contacts
+          </Button>
+          <Button
+            variant={activeTab === 'saved' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('saved')}
+            className="flex items-center gap-2"
+          >
+            <Bookmark className="h-4 w-4" />
+            Saved Contacts
+          </Button>
         </div>
       </div>
 
@@ -220,7 +262,7 @@ export default function ContactsPage() {
                 placeholder="Jane Smith"
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="company">Company</Label>
                 <Input
@@ -240,7 +282,7 @@ export default function ContactsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -266,10 +308,7 @@ export default function ContactsPage() {
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button
-              onClick={createContact}
-              disabled={creating || !form.full_name.trim()}
-            >
+            <Button onClick={createContact} disabled={creating || !form.full_name.trim()}>
               {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Add Contact
             </Button>
@@ -277,259 +316,168 @@ export default function ContactsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Contact Dialog */}
-      <Dialog open={editing} onOpenChange={(open) => { if (!open) { setEditing(false); setEditId(null) } }}>
-        <DialogContent>
+      {/* Contact Detail Dialog */}
+      <Dialog open={!!detailContact} onOpenChange={(open) => !open && setDetailContact(null)}>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Contact</DialogTitle>
+            <DialogTitle>{detailContact?.name}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit_name">Full Name *</Label>
-              <Input
-                id="edit_name"
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                placeholder="Jane Smith"
+          <Tabs defaultValue="info">
+            <TabsList className="grid grid-cols-4">
+              <TabsTrigger value="info">Contact Info</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="notes">Notes</TabsTrigger>
+              <TabsTrigger value="tags">Tags</TabsTrigger>
+            </TabsList>
+            <TabsContent value="info" className="space-y-3 mt-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Name</Label>
+                <div className="mt-1">{detailContact?.name}</div>
+              </div>
+              {detailContact?.company && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Company</Label>
+                  <div className="mt-1">{detailContact.company}</div>
+                </div>
+              )}
+              {detailContact?.position && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Position</Label>
+                  <div className="mt-1">{detailContact.position}</div>
+                </div>
+              )}
+              {detailContact?.email && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Email</Label>
+                  <div className="mt-1">{detailContact.email}</div>
+                </div>
+              )}
+              {detailContact?.phone && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Phone</Label>
+                  <div className="mt-1">{detailContact.phone}</div>
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="activity" className="mt-4">
+              <div className="text-sm text-muted-foreground">
+                No activity recorded yet.
+              </div>
+            </TabsContent>
+            <TabsContent value="notes" className="space-y-3 mt-4">
+              <Textarea
+                placeholder="Add notes about this contact..."
+                value={detailNotes}
+                onChange={(e) => setDetailNotes(e.target.value)}
+                rows={8}
               />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit_company">Company</Label>
-                <Input
-                  id="edit_company"
-                  value={editForm.company}
-                  onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
-                  placeholder="Acme Corp"
-                />
+              <div className="flex justify-end">
+                <Button onClick={saveDetailNotes}>Save Notes</Button>
               </div>
-              <div>
-                <Label htmlFor="edit_position">Position</Label>
-                <Input
-                  id="edit_position"
-                  value={editForm.position}
-                  onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
-                  placeholder="Software Engineer"
-                />
+            </TabsContent>
+            <TabsContent value="tags" className="space-y-3 mt-4">
+              <Input
+                placeholder="Enter tags, separated by commas (e.g., recruiter, engineer, mentor)"
+                value={detailTags}
+                onChange={(e) => setDetailTags(e.target.value)}
+              />
+              {detailContact?.tags && detailContact.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {detailContact.tags.map((tag, i) => (
+                    <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button onClick={saveDetailTags}>Save Tags</Button>
               </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit_email">Email</Label>
-                <Input
-                  id="edit_email"
-                  type="email"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  placeholder="jane@example.com"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit_phone">Phone</Label>
-                <Input
-                  id="edit_phone"
-                  value={editForm.phone}
-                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                  placeholder="(555) 123-4567"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button
-              onClick={saveEdit}
-              disabled={creating || !editForm.name.trim()}
-            >
-              {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Save Changes
-            </Button>
-          </DialogFooter>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Contact</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this contact? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteContact} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Contacts Table */}
       {contactsData === undefined ? (
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : filteredContacts.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{contactsData?.length === 0 ? 'No contacts yet' : 'No contacts found'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              {contactsData?.length === 0
-                ? 'Add your first contact to start building your network.'
-                : 'Try adjusting your search terms.'}
-            </p>
-            {contactsData?.length === 0 && (
-              <Button onClick={() => setShowAdd(true)} className="mt-4">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Contact
-              </Button>
-            )}
-          </CardContent>
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground mb-4">
+            {contactsData?.length === 0 ? 'No contacts yet. Add your first contact to start building your network.' : 'No contacts found matching your search.'}
+          </p>
+          {contactsData?.length === 0 && (
+            <Button onClick={() => setShowAdd(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Your First Contact
+            </Button>
+          )}
         </Card>
       ) : (
-        <div className={viewMode === 'grid' ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
-          {filteredContacts.map((c) => (
-            <Card key={c._id} className={viewMode === 'grid' ? '' : ''}>
-              <CardContent className={viewMode === 'grid' ? 'p-4' : 'py-4 flex items-center justify-between'}>
-                {viewMode === 'grid' ? (
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-sm">{c.name}</h3>
-                          {c.position && (
-                            <p className="text-xs text-muted-foreground">{c.position}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => startEdit(c)}>
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Trash2 className="h-3 w-3 text-red-500" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Contact</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete "{c.name}"? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteContact(c._id)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-
-                    {c.company && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Building className="h-3 w-3" />
-                        {c.company}
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      {c.email && (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="flex-1 h-8 text-xs"
-                          >
-                            <a href={`mailto:${c.email}`}>
-                              <Mail className="h-3 w-3 mr-1" />
-                              Email
-                            </a>
-                          </Button>
-                        </div>
-                      )}
-                      {c.phone && (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="flex-1 h-8 text-xs"
-                          >
-                            <a href={`tel:${c.phone}`}>
-                              <Phone className="h-3 w-3 mr-1" />
-                              Call
-                            </a>
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="text-xs text-muted-foreground">
-                      Updated {new Date(c.updated_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium">{c.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {[c.position, c.company].filter(Boolean).join(' @ ')}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {c.email && (
-                        <Button variant="ghost" size="icon" asChild>
-                          <a href={`mailto:${c.email}`} title="Send email">
-                            <Mail className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                      {c.phone && (
-                        <Button variant="ghost" size="icon" asChild>
-                          <a href={`tel:${c.phone}`} title="Call">
-                            <Phone className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" onClick={() => startEdit(c)}>
-                        <Pencil className="h-4 w-4" />
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead>Position</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredContacts.map((contact) => (
+                <TableRow key={contact._id}>
+                  <TableCell className="font-medium">{contact.name}</TableCell>
+                  <TableCell>{contact.company || '—'}</TableCell>
+                  <TableCell>{contact.position || '—'}</TableCell>
+                  <TableCell className="text-sm">{contact.email || '—'}</TableCell>
+                  <TableCell className="text-sm">{contact.phone || '—'}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => openDetail(contact)} title="View details">
+                        <Eye className="h-4 w-4" />
                       </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Contact</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{c.name}"? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteContact(c._id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => toggleSaved(contact)}
+                        title={contact.saved ? "Remove from saved" : "Add to saved"}
+                      >
+                        <Bookmark className={`h-4 w-4 ${contact.saved ? 'fill-current text-blue-600' : ''}`} />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDeleteId(contact._id)} title="Delete">
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
                     </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
-      </div>
+    </div>
   )
 }
