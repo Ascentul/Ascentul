@@ -108,6 +108,9 @@ export const updateUniversity = mutation({
     updates: v.object({
       name: v.optional(v.string()),
       slug: v.optional(v.string()),
+      description: v.optional(v.string()),
+      website: v.optional(v.string()),
+      contact_email: v.optional(v.string()),
       license_plan: v.optional(v.union(
         v.literal("Starter"),
         v.literal("Basic"),
@@ -115,6 +118,7 @@ export const updateUniversity = mutation({
         v.literal("Enterprise"),
       )),
       license_seats: v.optional(v.number()),
+      max_students: v.optional(v.number()),
       status: v.optional(v.union(
         v.literal("active"),
         v.literal("expired"),
@@ -134,6 +138,69 @@ export const updateUniversity = mutation({
     });
 
     return universityId;
+  }
+});
+
+// Update university settings (for university admin to update their own institution)
+export const updateUniversitySettings = mutation({
+  args: {
+    clerkId: v.string(),
+    universityId: v.id("universities"),
+    settings: v.object({
+      name: v.optional(v.string()),
+      description: v.optional(v.string()),
+      website: v.optional(v.string()),
+      contact_email: v.optional(v.string()),
+      max_students: v.optional(v.number()),
+      license_seats: v.optional(v.number()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!currentUser) throw new Error("User not found");
+
+    // Check authorization: must be university_admin of this university or super_admin
+    const isAuthorized =
+      currentUser.role === "super_admin" ||
+      (currentUser.role === "university_admin" && currentUser.university_id === args.universityId);
+
+    if (!isAuthorized) throw new Error("Unauthorized - University admin access required");
+
+    await ctx.db.patch(args.universityId, {
+      ...args.settings,
+      updated_at: Date.now(),
+    });
+
+    return {
+      success: true,
+      message: 'University settings updated successfully',
+    };
+  }
+});
+
+// Get university settings for current user's institution
+export const getUniversitySettings = query({
+  args: {
+    clerkId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!currentUser) throw new Error("User not found");
+
+    // If user has a university_id, return that university's settings
+    if (currentUser.university_id) {
+      return await ctx.db.get(currentUser.university_id);
+    }
+
+    return null;
   }
 });
 

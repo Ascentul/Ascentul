@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useMutation, useQuery } from 'convex/react'
@@ -18,6 +18,11 @@ export default function UniversitySettingsPage() {
   const { user, isAdmin } = useAuth()
   const { toast } = useToast()
 
+  const universitySettings = useQuery(api.universities.getUniversitySettings,
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+  )
+  const updateUniversitySettings = useMutation(api.universities.updateUniversitySettings)
+
   const canAccess = !!user && (isAdmin || user.subscription_plan === 'university' || user.role === 'university_admin')
 
   const [settings, setSettings] = useState({
@@ -28,6 +33,63 @@ export default function UniversitySettingsPage() {
     maxStudents: 0,
     licenseSeats: 0
   })
+
+  const [loading, setLoading] = useState(false)
+
+  // Load university settings when data is available
+  useEffect(() => {
+    if (universitySettings) {
+      setSettings({
+        name: universitySettings.name || '',
+        description: universitySettings.description || '',
+        website: universitySettings.website || '',
+        contactEmail: universitySettings.contact_email || '',
+        maxStudents: universitySettings.max_students || 0,
+        licenseSeats: universitySettings.license_seats || 0,
+      })
+    }
+  }, [universitySettings])
+
+  const handleSaveSettings = async () => {
+    if (!clerkUser || !universitySettings?._id) {
+      toast({
+        title: 'Error',
+        description: 'Unable to save settings. Please try refreshing the page.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      await updateUniversitySettings({
+        clerkId: clerkUser.id,
+        universityId: universitySettings._id,
+        settings: {
+          name: settings.name,
+          description: settings.description,
+          website: settings.website,
+          contact_email: settings.contactEmail,
+          max_students: settings.maxStudents,
+          license_seats: settings.licenseSeats,
+        },
+      })
+
+      toast({
+        title: 'Settings saved',
+        description: 'University settings have been updated successfully.',
+      })
+    } catch (error: any) {
+      console.error('Settings save error:', error)
+      toast({
+        title: 'Error',
+        description: error?.message || 'Failed to save settings. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (!canAccess) {
     return (
@@ -195,8 +257,10 @@ export default function UniversitySettingsPage() {
       </Card>
 
       <div className="flex justify-end gap-3">
-        <Button variant="outline">Cancel</Button>
-        <Button>Save Changes</Button>
+        <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
+        <Button onClick={handleSaveSettings} disabled={loading}>
+          {loading ? 'Saving...' : 'Save Changes'}
+        </Button>
       </div>
     </div>
   )

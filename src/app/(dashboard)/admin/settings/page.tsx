@@ -42,21 +42,24 @@ export default function AdminSettingsPage() {
   const { user } = useAuth()
   const { toast } = useToast()
 
+  const updatePlatformSettings = useMutation(api.platform_settings.updatePlatformSettings)
+  const platformSettings = useQuery(api.platform_settings.getPlatformSettings)
+
   // State for various settings
   const [aiSettings, setAiSettings] = useState({
     openaiEnabled: true,
     openaiApiKey: '••••••••••••••••••••••••••••••••••••••••',
-    model: 'gpt-4',
-    maxTokens: 2000,
-    temperature: 0.7,
+    model: platformSettings?.openai_model || 'gpt-4o-mini',
+    maxTokens: platformSettings?.openai_max_tokens || 4000,
+    temperature: platformSettings?.openai_temperature || 0.7,
     rateLimitEnabled: true,
     rateLimitRequests: 100,
     rateLimitWindow: 3600
   })
 
   const [systemSettings, setSystemSettings] = useState({
-    maintenanceMode: false,
-    registrationEnabled: true,
+    maintenanceMode: platformSettings?.maintenance_mode || false,
+    registrationEnabled: platformSettings?.allow_signups ?? true,
     emailVerificationRequired: true,
     sessionTimeout: 24,
     maxFileUploadSize: 10,
@@ -105,7 +108,28 @@ export default function AdminSettingsPage() {
   const handleSaveSettings = async (settingsType: string) => {
     setLoading(true)
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (!clerkUser) throw new Error('No user found')
+
+      // Save relevant settings based on type
+      if (settingsType === 'AI') {
+        await updatePlatformSettings({
+          clerkId: clerkUser.id,
+          settings: {
+            openai_model: aiSettings.model,
+            openai_temperature: aiSettings.temperature,
+            openai_max_tokens: aiSettings.maxTokens,
+          },
+        })
+      } else if (settingsType === 'General' || settingsType === 'System') {
+        await updatePlatformSettings({
+          clerkId: clerkUser.id,
+          settings: {
+            maintenance_mode: systemSettings.maintenanceMode,
+            allow_signups: systemSettings.registrationEnabled,
+          },
+        })
+      }
+
       toast({
         title: "Settings saved",
         description: `${settingsType} settings have been updated successfully.`,

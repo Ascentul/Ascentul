@@ -14,6 +14,11 @@ export default defineSchema({
     university_id: v.optional(v.id("universities")),
     profile_image: v.optional(v.string()),
     linkedin_url: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    job_title: v.optional(v.string()),
+    company: v.optional(v.string()),
+    location: v.optional(v.string()),
+    website: v.optional(v.string()),
     stripe_customer_id: v.optional(v.string()),
     stripe_subscription_id: v.optional(v.string()),
     onboarding_completed: v.optional(v.boolean()),
@@ -29,9 +34,13 @@ export default defineSchema({
   universities: defineTable({
     name: v.string(),
     slug: v.string(),
+    description: v.optional(v.string()),
+    website: v.optional(v.string()),
+    contact_email: v.optional(v.string()),
     license_plan: v.union(v.literal("Starter"), v.literal("Basic"), v.literal("Pro"), v.literal("Enterprise")),
     license_seats: v.number(),
     license_used: v.number(),
+    max_students: v.optional(v.number()),
     license_start: v.number(), // timestamp
     license_end: v.optional(v.number()), // timestamp
     status: v.union(v.literal("active"), v.literal("expired"), v.literal("trial"), v.literal("suspended")),
@@ -337,4 +346,13 @@ export default defineSchema({
     .index("by_conversation", ["conversation_id"])
     .index("by_user", ["user_id"])
     .index("by_timestamp", ["timestamp"]),
+
+  // Platform settings table for system-wide configuration
+  platform_settings: defineTable({
+    setting_key: v.string(),
+    setting_value: v.any(),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_setting_key", ["setting_key"]),
 });

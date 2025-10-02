@@ -17,6 +17,11 @@ interface UserProfile {
   subscription_status: string
   university_id?: string
   profile_image?: string
+  bio?: string
+  job_title?: string
+  company?: string
+  location?: string
+  website?: string
   onboarding_completed?: boolean
   created_at: number
   updated_at: number

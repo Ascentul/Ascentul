@@ -83,11 +83,11 @@ export default function AccountPage() {
     defaultValues: {
       name: userProfile?.name || clerkUser?.firstName || '',
       email: userProfile?.email || clerkUser?.emailAddresses[0]?.emailAddress || '',
-      bio: '',
-      jobTitle: '',
-      company: '',
-      location: '',
-      website: '',
+      bio: userProfile?.bio || '',
+      jobTitle: userProfile?.job_title || '',
+      company: userProfile?.company || '',
+      location: userProfile?.location || '',
+      website: userProfile?.website || '',
     },
   })
 
@@ -118,6 +118,11 @@ export default function AccountPage() {
         updates: {
           name: data.name,
           email: data.email,
+          bio: data.bio || '',
+          job_title: data.jobTitle || '',
+          company: data.company || '',
+          location: data.location || '',
+          website: data.website || '',
         },
       })
 
