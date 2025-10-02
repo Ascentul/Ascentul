@@ -145,9 +145,8 @@ export default function UniversityDashboardPage() {
       })
     } finally {
       setUpdatingStudent(false)
-}
-}
-}
+    }
+  }
 
   const handleDeleteStudent = (student: any) => {
     setStudentToDelete(student)
@@ -177,7 +176,8 @@ export default function UniversityDashboardPage() {
       })
     } finally {
       setDeletingStudent(false)
-}
+    }
+  }
 
   const handleResendInvitation = async (student: any) => {
     if (!clerkUser?.id) return
@@ -197,8 +197,8 @@ export default function UniversityDashboardPage() {
         description: error?.message || "Failed to send invitation. Please try again.",
         variant: "destructive",
       })
-}
-}
+    }
+  }
 
   if (!canAccess) {
     return (
@@ -290,18 +290,16 @@ export default function UniversityDashboardPage() {
                   }
 
                   throw new Error(errorMessage)
-}
-}
-} catch (error) {
+                }
+              } catch (error) {
                 console.error('Export error:', error)
                 toast({
                   title: 'Export failed',
                   description: error instanceof Error ? error.message : 'Unable to generate report',
                   variant: 'destructive'
                 })
-}
-}
-}}
+              }
+            }}
           >
             Export Reports
           </button>
