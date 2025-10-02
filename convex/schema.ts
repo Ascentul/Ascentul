@@ -28,6 +28,9 @@ export default defineSchema({
     activation_expires_at: v.optional(v.number()),
     temp_password: v.optional(v.string()), // Encrypted temporary password for admin-created accounts
     created_by_admin: v.optional(v.boolean()),
+    // Password reset fields
+    password_reset_token: v.optional(v.string()),
+    password_reset_expires_at: v.optional(v.number()),
     created_at: v.number(),
     updated_at: v.number(),
   })
