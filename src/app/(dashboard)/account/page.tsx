@@ -77,6 +77,88 @@ export default function AccountPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
+  // Avatar mutations
+  const generateAvatarUploadUrl = useMutation(api.avatar.generateAvatarUploadUrl)
+  const updateUserAvatar = useMutation(api.avatar.updateUserAvatar)
+
+  // Handle avatar upload
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload an image file',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Please upload an image smaller than 5MB',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsUploadingAvatar(true)
+
+    try {
+      // Show preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+
+      // Get upload URL from Convex
+      const uploadUrl = await generateAvatarUploadUrl()
+
+      // Upload file to Convex storage
+      const uploadResult = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
+
+      if (!uploadResult.ok) {
+        throw new Error('Failed to upload image')
+      }
+
+      const { storageId } = await uploadResult.json()
+
+      // Update user profile with new avatar
+      if (clerkUser?.id) {
+        await updateUserAvatar({
+          clerkId: clerkUser.id,
+          storageId,
+        })
+
+        toast({
+          title: 'Avatar updated',
+          description: 'Your profile picture has been updated successfully',
+        })
+      }
+    } catch (error: any) {
+      console.error('Avatar upload error:', error)
+      toast({
+        title: 'Upload failed',
+        description: error?.message || 'Failed to upload avatar. Please try again.',
+        variant: 'destructive',
+      })
+      setPreviewUrl(null)
+    } finally {
+      setIsUploadingAvatar(false)
+      // Reset file input
+      e.target.value = ''
+    }
+  }
+
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -257,7 +339,19 @@ export default function AccountPage() {
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Profile
                   </Button>
-                  <Button variant="outline" size="sm" disabled={isUploadingAvatar}>
+                  <input
+                    type="file"
+                    id="avatar-upload"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploadingAvatar}
+                    onClick={() => document.getElementById('avatar-upload')?.click()}
+                  >
                     <Camera className="h-4 w-4 mr-2" />
                     {isUploadingAvatar ? 'Uploading...' : 'Change Avatar'}
                   </Button>

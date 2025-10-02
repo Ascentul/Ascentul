@@ -4,7 +4,7 @@
  */
 
 import { v } from "convex/values"
-import { mutation, internalMutation } from "./_generated/server"
+import { mutation } from "./_generated/server"
 import { api } from "./_generated/api"
 
 /**
@@ -97,9 +97,8 @@ export const createUserByAdmin = mutation({
       updated_at: Date.now(),
     })
 
-    // Schedule email to be sent (using internal mutation to call action)
-    await ctx.scheduler.runAfter(0, api.admin_users.sendActivationEmailInternal, {
-      userId,
+    // Schedule email to be sent
+    await ctx.scheduler.runAfter(0, api.email.sendActivationEmail, {
       email: args.email,
       name: args.name,
       tempPassword,
@@ -111,37 +110,6 @@ export const createUserByAdmin = mutation({
       activationToken,
       tempPassword, // Return for display to admin
       message: "User created successfully. Activation email will be sent shortly.",
-    }
-  },
-})
-
-/**
- * Internal mutation to trigger activation email sending
- * This is called by scheduler from createUserByAdmin
- */
-export const sendActivationEmailInternal = internalMutation({
-  args: {
-    userId: v.id("users"),
-    email: v.string(),
-    name: v.string(),
-    tempPassword: v.string(),
-    activationToken: v.string(),
-  },
-  handler: async (ctx, args) => {
-    // Call the email action
-    try {
-      await ctx.scheduler.runAfter(0, api.email.sendActivationEmail, {
-        email: args.email,
-        name: args.name,
-        tempPassword: args.tempPassword,
-        activationToken: args.activationToken,
-      })
-    } catch (error) {
-      console.error("Failed to schedule activation email:", error)
-      // Update user to indicate email failed
-      await ctx.db.patch(args.userId, {
-        updated_at: Date.now(),
-      })
     }
   },
 })

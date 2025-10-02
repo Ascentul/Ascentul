@@ -14,12 +14,15 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as achievements from "../achievements.js";
+import type * as admin_users from "../admin_users.js";
 import type * as ai_coach from "../ai_coach.js";
 import type * as analytics from "../analytics.js";
 import type * as applications from "../applications.js";
+import type * as avatar from "../avatar.js";
 import type * as career_paths from "../career_paths.js";
 import type * as contacts from "../contacts.js";
 import type * as cover_letters from "../cover_letters.js";
+import type * as email from "../email.js";
 import type * as followups from "../followups.js";
 import type * as goals from "../goals.js";
 import type * as interviews from "../interviews.js";
@@ -42,12 +45,15 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   achievements: typeof achievements;
+  admin_users: typeof admin_users;
   ai_coach: typeof ai_coach;
   analytics: typeof analytics;
   applications: typeof applications;
+  avatar: typeof avatar;
   career_paths: typeof career_paths;
   contacts: typeof contacts;
   cover_letters: typeof cover_letters;
+  email: typeof email;
   followups: typeof followups;
   goals: typeof goals;
   interviews: typeof interviews;

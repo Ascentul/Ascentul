@@ -3,6 +3,8 @@
  * Actions can call external services like Mailgun/SendGrid
  */
 
+"use node"
+
 import { action } from "./_generated/server"
 import { v } from "convex/values"
 
