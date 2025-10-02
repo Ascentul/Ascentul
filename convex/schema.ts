@@ -22,6 +22,12 @@ export default defineSchema({
     stripe_customer_id: v.optional(v.string()),
     stripe_subscription_id: v.optional(v.string()),
     onboarding_completed: v.optional(v.boolean()),
+    // Account activation fields
+    account_status: v.optional(v.union(v.literal("pending_activation"), v.literal("active"), v.literal("suspended"))),
+    activation_token: v.optional(v.string()),
+    activation_expires_at: v.optional(v.number()),
+    temp_password: v.optional(v.string()), // Encrypted temporary password for admin-created accounts
+    created_by_admin: v.optional(v.boolean()),
     created_at: v.number(),
     updated_at: v.number(),
   })
