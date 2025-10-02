@@ -169,7 +169,16 @@ function CertificationCard({ cert, onAdd, loading }: { cert: CertificationRecomm
       </div>
       <div className="mt-3 pt-2 border-t">
         <Button variant="outline" size="sm" className="w-full text-xs" onClick={onAdd} disabled={loading}>
-          {loading ? (<><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Adding as Goal...</>) : (<><Plus className="mr-1 h-3 w-3" />Add as Career Goal</>)}
+          {loading ? (
+            <>
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Adding as Goal...
+            </>
+          ) : (
+            <>
+              <Plus className="mr-1 h-3 w-3" />
+              Add as Career Goal
+            </>
+          )}
         </Button>
       </div>
     </div>
@@ -478,9 +487,20 @@ export default function CareerPathPage() {
         </Tabs>
         {explorationMode === "profile" && (
           <Button className="bg-[#1333c2] hover:bg-[#0f2aae] text-white" onClick={generateFromProfile} disabled={isSearching}>
-            {isSearching ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>) : (<><Sparkles className="mr-2 h-4 w-4" />Generate Paths</>)}
+            {isSearching ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate Paths
+              </>
+            )}
           </Button>
         )}
+      </div>
 
       {/* Saved Paths (Convex history) */}
       {savedPaths.length > 0 && (
@@ -549,7 +569,14 @@ export default function CareerPathPage() {
               <Input id="job-title-search" placeholder="Enter a job title (e.g., Software Engineer)" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
             </div>
             <Button onClick={generateFromJob} disabled={isSearching || !jobTitle.trim()} className="min-w-[120px] bg-[#1333c2] hover:bg-[#0f2aae] text-white">
-              {isSearching ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>) : (<>Generate</>)}
+              {isSearching ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>Generate</>
+              )}
             </Button>
           </div>
           {!generatedPath && (

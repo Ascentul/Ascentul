@@ -80,6 +80,8 @@ export const updateContact = mutation({
       notes: v.optional(v.string()),
       relationship: v.optional(v.string()),
       last_contact: v.optional(v.number()),
+      saved: v.optional(v.boolean()),
+      tags: v.optional(v.array(v.string())),
     }),
   },
   handler: async (ctx, args) => {

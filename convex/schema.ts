@@ -108,6 +108,7 @@ export default defineSchema({
     end_date: v.optional(v.number()), // timestamp
     company: v.optional(v.string()),
     url: v.optional(v.string()),
+    github_url: v.optional(v.string()),
     description: v.optional(v.string()),
     type: v.string(), // default: 'personal'
     image_url: v.optional(v.string()),

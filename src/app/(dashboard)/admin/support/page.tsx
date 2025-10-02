@@ -62,7 +62,7 @@ export default function AdminSupportPage() {
   // Queries
   const tickets = useQuery(
     api.support_tickets.listTickets,
-    clerkUser?.id ? { clerkId: clerkUser.id, limit: 100 } : 'skip'
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
   ) as any[] | undefined
 
   // Mutations

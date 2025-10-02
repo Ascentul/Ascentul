@@ -89,6 +89,7 @@ export default function ProjectsPage() {
         title: formData.title,
         description: formData.description || undefined,
         technologies: formData.technologies.split(',').map(t => t.trim()).filter(Boolean),
+        type: 'personal',
         url: formData.url || undefined,
         github_url: formData.github_url || undefined,
         role: formData.role || undefined,
