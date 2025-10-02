@@ -13,6 +13,11 @@ const customJestConfig = {
     '**/__tests__/**/*.(js|jsx|ts|tsx)',
     '**/*.(test|spec).(js|jsx|ts|tsx)'
   ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/convex/__tests_disabled__/',
+    '/convex/.*\\.test\\.ts$'
+  ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^convex/react$': 'identity-obj-proxy',
