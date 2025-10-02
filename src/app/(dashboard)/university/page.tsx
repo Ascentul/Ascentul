@@ -777,9 +777,9 @@ export default function UniversityDashboardPage() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="students" className="space-y-6">
+        <div className="space-y-6">
           {/* Internal Toggle for Students Tab */}
           <div className="flex gap-4">
             <Button
@@ -1097,9 +1097,8 @@ export default function UniversityDashboardPage() {
                             setAssignText(combined)
                           } finally {
                             setImportingEmails(false)
-}
-}
-}}
+                          }
+                        }}
                       />
                       <Button variant="outline" size="sm" onClick={() => document.getElementById('studentEmailsCsv')?.click()} disabled={importingEmails}>
                         {importingEmails ? 'Parsing...' : 'Upload CSV'}
@@ -1170,9 +1169,8 @@ export default function UniversityDashboardPage() {
                             } catch (e: any) {
                               errorCount++
                               errors.push(`${email}: ${e?.message || 'Unknown error'}`)
-}
-}
-}
+                            }
+                          }
 
                           if (successCount > 0) {
                             toast({
@@ -1193,9 +1191,8 @@ export default function UniversityDashboardPage() {
                           if (successCount > 0) {
                             setAssignOpen(false)
                             setAssignText('')
-}
-}
-} catch (e: any) {
+                          }
+                        } catch (e: any) {
                           toast({
                             title: 'Failed to send invitations',
                             description: e?.message || 'An unexpected error occurred',
@@ -1203,9 +1200,8 @@ export default function UniversityDashboardPage() {
                           })
                         } finally {
                           setAssigning(false)
-}
-}
-}}
+                        }
+                      }}
                       disabled={assigning || !assignText.trim()}
                     >
                       {assigning ? 'Sending...' : `Send ${assignText.split(/[\n,]+/).filter(e => e.trim()).length} Invitation(s)`}
@@ -1215,10 +1211,10 @@ export default function UniversityDashboardPage() {
               </>
             )}
           </div>
-        </TabsContent>
+        </div>
 
 
-        <TabsContent value="departments" className="space-y-6">
+        <div className="space-y-6">
           {/* Department Stat Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Card>
@@ -1301,9 +1297,8 @@ export default function UniversityDashboardPage() {
                           value: percentage,
                           students: deptStudents.length,
                           color: ['#4F46E5', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4'][index % 6]
-}
-}
-})}
+                        }
+                      })}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
@@ -1338,9 +1333,8 @@ export default function UniversityDashboardPage() {
                       students: deptStudents.length,
                       utilization: utilization,
                       avgProgress: Math.round((Math.random() * 40) + 40), // 40-80% progress
-}
-}
-}) : [
+                    }
+                  }) : [
                     { name: 'CS', students: 45, utilization: 85, avgProgress: 72 },
                     { name: 'Business', students: 32, utilization: 78, avgProgress: 68 },
                     { name: 'Engineering', students: 28, utilization: 92, avgProgress: 75 },
@@ -1511,9 +1505,9 @@ export default function UniversityDashboardPage() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="analytics" className="space-y-6">
+        <div className="space-y-6">
           {/* Platform Usage Section */}
           <Card>
             <CardHeader>
@@ -1690,8 +1684,7 @@ export default function UniversityDashboardPage() {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
 
       {/* Edit Student Modal */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -1851,9 +1844,8 @@ export default function UniversityDashboardPage() {
                     setAssignText(combined)
                   } finally {
                     setImportingEmails(false)
-}
-}
-}}
+                  }
+                }}
               />
               <Button variant="outline" size="sm" onClick={() => document.getElementById('studentEmailsCsv')?.click()} disabled={importingEmails}>
                 {importingEmails ? 'Parsing...' : 'Import CSV'}
@@ -1906,9 +1898,8 @@ export default function UniversityDashboardPage() {
                     } catch (e: any) {
                       errorCount++
                       errors.push(`${email}: ${e?.message || 'Unknown error'}`)
-}
-}
-}
+                    }
+                  }
 
                   if (successCount > 0) {
                     toast({
@@ -1930,9 +1921,8 @@ export default function UniversityDashboardPage() {
                     setAssignOpen(false)
                     setAssignText('')
                     setSelectedProgram('')
-}
-}
-} catch (e: any) {
+                  }
+                } catch (e: any) {
                   toast({
                     title: 'Assignment failed',
                     description: e?.message || 'An unexpected error occurred',
@@ -1940,9 +1930,8 @@ export default function UniversityDashboardPage() {
                   })
                 } finally {
                   setAssigning(false)
-}
-}
-}}
+                }
+              }}
               disabled={assigning || !assignText.trim()}
             >
               {assigning ? 'Assigning...' : 'Assign'}
