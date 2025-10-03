@@ -97,9 +97,9 @@ export function ActiveInterviewsSummary() {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
       }}
-      className="mb-6"
+      className="mb-6 h-full"
     >
-      <Card>
+      <Card className="h-full flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
             <CardTitle className="text-base font-medium">Active Interviews</CardTitle>
@@ -115,7 +115,7 @@ export function ActiveInterviewsSummary() {
           </Link>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="flex-1">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (

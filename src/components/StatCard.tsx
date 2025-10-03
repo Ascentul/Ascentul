@@ -23,9 +23,9 @@ export default function StatCard({
   change 
 }: StatCardProps) {
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center">
+    <Card className="h-full">
+      <CardContent className="p-4 h-full">
+        <div className="flex items-center h-full">
           <div className={cn("flex-shrink-0 p-3 rounded-full", iconBgColor)}>
             {icon}
           </div>

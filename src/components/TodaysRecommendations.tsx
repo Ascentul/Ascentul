@@ -130,10 +130,14 @@ export function TodaysRecommendations() {
 
   const handleRefresh = async () => {
     try {
-      await refetch()
+      const result = await refetch()
+      const newRecommendations = result.data || []
+
       toast({
         title: 'Recommendations refreshed',
-        description: 'New AI-powered recommendations have been generated.'
+        description: newRecommendations.length > 0
+          ? `Found ${newRecommendations.length} recommendation${newRecommendations.length !== 1 ? 's' : ''} based on your current activity.`
+          : 'No new recommendations at this time. Keep making progress on your goals!'
       })
     } catch (error) {
       toast({

@@ -30,6 +30,7 @@ import type * as jobs from "../jobs.js";
 import type * as password_reset from "../password_reset.js";
 import type * as platform_settings from "../platform_settings.js";
 import type * as projects from "../projects.js";
+import type * as recommendations from "../recommendations.js";
 import type * as resumes from "../resumes.js";
 import type * as support_tickets from "../support_tickets.js";
 import type * as universities from "../universities.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   password_reset: typeof password_reset;
   platform_settings: typeof platform_settings;
   projects: typeof projects;
+  recommendations: typeof recommendations;
   resumes: typeof resumes;
   support_tickets: typeof support_tickets;
   universities: typeof universities;

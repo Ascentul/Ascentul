@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { apiRequest } from '@/lib/queryClient'
+import { auth } from '@clerk/nextjs/server'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from 'convex/_generated/api'
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
 
 export async function GET(request: NextRequest) {
   try {
-    // For now, return empty array as daily recommendations functionality might not be fully implemented
-    // In a real implementation, this would fetch from a database or generate AI recommendations
-    return NextResponse.json([])
+    const { userId } = await auth()
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Fetch recommendations from Convex
+    const recommendations = await convex.query(api.recommendations.getDailyRecommendations, {
+      clerkId: userId,
+    })
+
+    return NextResponse.json(recommendations)
   } catch (error) {
     console.error('Error fetching daily recommendations:', error)
     return NextResponse.json({ error: 'Failed to fetch daily recommendations' }, { status: 500 })

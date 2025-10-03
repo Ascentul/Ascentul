@@ -177,6 +177,9 @@ export function OnboardingFlow() {
         variant: 'success'
       })
 
+      // Wait for Convex to propagate the update before redirecting
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       // Redirect to dashboard
       router.push('/dashboard')
       return true

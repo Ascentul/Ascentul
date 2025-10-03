@@ -7,7 +7,8 @@ import {
   Plus,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -82,9 +83,9 @@ export function CareerGoalsSummary() {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
       }}
-      className="mb-6"
+      className="mb-6 h-full"
     >
-      <Card>
+      <Card className="h-full flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
             <CardTitle className="text-base font-medium">Career Goals</CardTitle>
@@ -94,13 +95,13 @@ export function CareerGoalsSummary() {
           </div>
           <Link href="/goals">
             <Button variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
+              <ExternalLink className="h-4 w-4 mr-2" />
               View All
             </Button>
           </Link>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="flex-1">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
