@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react'
 import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
@@ -109,7 +109,7 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
     void syncRole()
   }, [clerkLoaded, clerkUser, userProfile, updateUser])
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await clerkSignOut()
       toast({
@@ -125,20 +125,27 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
       })
       throw error
     }
-  }
+  }, [clerkSignOut, toast])
 
-  // Check if user is admin
-  const isAdmin = userProfile?.role === 'super_admin' || 
-                  userProfile?.role === 'university_admin' || 
-                  userProfile?.role === 'admin'
+  // Check if user is admin (memoized)
+  const isAdmin = useMemo(
+    () => userProfile?.role === 'super_admin' ||
+          userProfile?.role === 'university_admin' ||
+          userProfile?.role === 'admin',
+    [userProfile?.role]
+  )
 
-  const value = {
-    user: userProfile || null,
-    isLoading: isLoading || !clerkLoaded,
-    isSignedIn: !!clerkUser,
-    signOut,
-    isAdmin,
-  }
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo(
+    () => ({
+      user: userProfile || null,
+      isLoading: isLoading || !clerkLoaded,
+      isSignedIn: !!clerkUser,
+      signOut,
+      isAdmin,
+    }),
+    [userProfile, isLoading, clerkLoaded, clerkUser, signOut, isAdmin]
+  )
 
   return (
     <AuthContext.Provider value={value}>

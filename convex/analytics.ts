@@ -44,33 +44,52 @@ export const getAdminAnalytics = query({
       usersQuery = usersQuery.filter((q) => q.eq(q.field("subscription_plan"), args.subscriptionFilter));
     }
 
-    const users = await usersQuery.collect();
+    // Paginate user collection (limit to 10k users for performance)
+    const users = await usersQuery.take(10000);
 
     // Calculate metrics
     const totalUsers = users.length;
     const activeUsers = users.filter(u => u.subscription_status === "active").length;
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
     const newUsersThisMonth = users.filter(u => {
       const userDate = new Date(u.created_at);
-      const now = new Date();
-      return userDate.getMonth() === now.getMonth() && userDate.getFullYear() === now.getFullYear();
+      return userDate.getMonth() === currentMonth && userDate.getFullYear() === currentYear;
     }).length;
 
-    // User growth data (last 12 months)
-    const userGrowth = [];
+    // User growth data (last 12 months) - optimized with single pass
+    const userGrowth: Array<{ month: string; users: number; monthStart: number }> = [];
+    const monthCounts: Record<string, number> = {};
+
+    // Pre-calculate month boundaries
+    const monthBoundaries: Array<{ start: number; end: number; label: string }> = [];
     for (let i = 11; i >= 0; i--) {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
       const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0).getTime();
+      const label = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      monthBoundaries.push({ start: monthStart, end: monthEnd, label });
+      monthCounts[label] = 0;
+    }
 
-      const monthUsers = users.filter(u =>
-        u.created_at >= monthStart && u.created_at <= monthEnd
-      ).length;
+    // Single pass through users for growth calculation
+    for (const user of users) {
+      for (const boundary of monthBoundaries) {
+        if (user.created_at >= boundary.start && user.created_at <= boundary.end) {
+          monthCounts[boundary.label]++;
+          break;
+        }
+      }
+    }
 
+    // Build userGrowth array
+    for (const boundary of monthBoundaries) {
       userGrowth.push({
-        month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        users: monthUsers,
-        monthStart,
+        month: boundary.label,
+        users: monthCounts[boundary.label],
+        monthStart: boundary.start,
       });
     }
 
@@ -142,36 +161,45 @@ export const getAdminAnalytics = query({
       })
     );
 
-    // Calculate activity data (last 7 days)
-    const activityData = [];
+    // Calculate activity data (last 7 days) - optimized
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+
+    // Fetch all applications from last 7 days in one query
+    const recentApplications = await ctx.db
+      .query("applications")
+      .filter((q) => q.gte(q.field("created_at"), sevenDaysAgo))
+      .take(1000);
+
+    // Pre-calculate day boundaries
+    const dayBoundaries: Array<{ start: number; end: number; label: string }> = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
       const dayEnd = dayStart + (24 * 60 * 60 * 1000) - 1;
-
-      // Get registrations on this day
-      const dayRegistrations = users.filter(user =>
-        user.created_at >= dayStart && user.created_at <= dayEnd
-      ).length;
-
-      // Estimate logins based on activity (this would come from session tracking in real implementation)
-      const dayApplications = await ctx.db
-        .query("applications")
-        .filter((q) =>
-          q.and(
-            q.gte(q.field("created_at"), dayStart),
-            q.lte(q.field("created_at"), dayEnd)
-          )
-        )
-        .collect();
-
-      activityData.push({
-        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        logins: Math.max(dayApplications.length * 3, dayRegistrations * 5), // Estimate based on activity
-        registrations: dayRegistrations,
+      dayBoundaries.push({
+        start: dayStart,
+        end: dayEnd,
+        label: date.toLocaleDateString('en-US', { weekday: 'short' })
       });
     }
+
+    // Single pass through users and applications to build activity data
+    const activityData = dayBoundaries.map(day => {
+      const dayRegistrations = users.filter(user =>
+        user.created_at >= day.start && user.created_at <= day.end
+      ).length;
+
+      const dayApplicationsCount = recentApplications.filter(app =>
+        app.created_at >= day.start && app.created_at <= day.end
+      ).length;
+
+      return {
+        day: day.label,
+        logins: Math.max(dayApplicationsCount * 3, dayRegistrations * 5),
+        registrations: dayRegistrations,
+      };
+    });
 
     return {
       overview: {
@@ -201,65 +229,74 @@ export const getAdminAnalytics = query({
 
 // Helper function to calculate feature usage
 async function getFeatureUsage(ctx: any, users: any[]) {
-  // Count various features used by users
-  const resumes = await ctx.db
-    .query("resumes")
-    .collect();
+  const userCount = users.length || 1; // Prevent division by zero
 
-  const applications = await ctx.db
-    .query("applications")
-    .collect();
-
-  const coverLetters = await ctx.db
-    .query("cover_letters")
-    .collect();
-
-  const goals = await ctx.db
-    .query("goals")
-    .collect();
-
-  const projects = await ctx.db
-    .query("projects")
-    .collect();
+  // Parallelize all feature queries
+  const [resumes, applications, coverLetters, goals, projects] = await Promise.all([
+    ctx.db.query("resumes").take(10000),
+    ctx.db.query("applications").take(10000),
+    ctx.db.query("cover_letters").take(10000),
+    ctx.db.query("goals").take(10000),
+    ctx.db.query("projects").take(10000),
+  ]);
 
   return [
-    { feature: "Resume Builder", count: resumes.length, percentage: Math.round((resumes.length / users.length) * 100) },
-    { feature: "Job Applications", count: applications.length, percentage: Math.round((applications.length / users.length) * 100) },
-    { feature: "Cover Letters", count: coverLetters.length, percentage: Math.round((coverLetters.length / users.length) * 100) },
-    { feature: "Career Goals", count: goals.length, percentage: Math.round((goals.length / users.length) * 100) },
-    { feature: "Projects", count: projects.length, percentage: Math.round((projects.length / users.length) * 100) },
+    { feature: "Resume Builder", count: resumes.length, percentage: Math.round((resumes.length / userCount) * 100) },
+    { feature: "Job Applications", count: applications.length, percentage: Math.round((applications.length / userCount) * 100) },
+    { feature: "Cover Letters", count: coverLetters.length, percentage: Math.round((coverLetters.length / userCount) * 100) },
+    { feature: "Career Goals", count: goals.length, percentage: Math.round((goals.length / userCount) * 100) },
+    { feature: "Projects", count: projects.length, percentage: Math.round((projects.length / userCount) * 100) },
   ].sort((a, b) => b.count - a.count);
 }
 
 // Helper function to get university growth metrics
 async function getUniversityGrowth(ctx: any) {
-  const universities = await ctx.db.query("universities").collect();
+  const universities = await ctx.db.query("universities").take(1000);
 
-  const universityGrowth = [];
+  // Pre-calculate month boundaries
+  const monthBoundaries: Array<{ start: number; end: number; label: string }> = [];
   for (let i = 11; i >= 0; i--) {
     const date = new Date();
     date.setMonth(date.getMonth() - i);
     const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
     const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0).getTime();
-
-    const monthUniversities = universities.filter((u: any) =>
-      u.created_at >= monthStart && u.created_at <= monthEnd
-    ).length;
-
-    universityGrowth.push({
-      month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-      universities: monthUniversities,
+    monthBoundaries.push({
+      start: monthStart,
+      end: monthEnd,
+      label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     });
   }
 
+  // Single pass to build all metrics
+  let activeCount = 0;
+  const monthCounts: Record<string, number> = {};
+  const licenseDistribution: Record<string, number> = {};
+
+  monthBoundaries.forEach(m => monthCounts[m.label] = 0);
+
+  for (const uni of universities) {
+    if (uni.status === "active") activeCount++;
+
+    for (const boundary of monthBoundaries) {
+      if (uni.created_at >= boundary.start && uni.created_at <= boundary.end) {
+        monthCounts[boundary.label]++;
+        break;
+      }
+    }
+
+    licenseDistribution[uni.license_plan] = (licenseDistribution[uni.license_plan] || 0) + 1;
+  }
+
+  const universityGrowth = monthBoundaries.map(m => ({
+    month: m.label,
+    universities: monthCounts[m.label],
+  }));
+
   return {
     totalUniversities: universities.length,
-    activeUniversities: universities.filter((u: any) => u.status === "active").length,
+    activeUniversities: activeCount,
     universityGrowth,
-    licenseDistribution: universities.reduce((acc: Record<string, number>, uni: any) => {
-      acc[uni.license_plan] = (acc[uni.license_plan] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
+    licenseDistribution,
   };
 }
 
@@ -276,29 +313,13 @@ export const getUserDashboardAnalytics = query({
       throw new Error("User not found");
     }
 
-    // Get user's applications
-    const applications = await ctx.db
-      .query("applications")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
-
-    // Get user's goals
-    const goals = await ctx.db
-      .query("goals")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
-
-    // Get user's interview stages
-    const interviewStages = await ctx.db
-      .query("interview_stages")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
-
-    // Get user's followup actions
-    const followupActions = await ctx.db
-      .query("followup_actions")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
+    // Parallelize all user data queries
+    const [applications, goals, interviewStages, followupActions] = await Promise.all([
+      ctx.db.query("applications").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
+      ctx.db.query("goals").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
+      ctx.db.query("interview_stages").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
+      ctx.db.query("followup_actions").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
+    ]);
 
     // Calculate stats
     const applicationStats = {

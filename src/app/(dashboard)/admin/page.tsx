@@ -49,8 +49,8 @@ export default function AdminDashboardPage() {
   const users = useQuery(api.users.getAllUsers, clerkUser?.id ? { clerkId: clerkUser.id, limit: 100 } : 'skip')
   const analytics = useQuery(api.analytics.getAdminAnalytics, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
 
-  // Use real analytics data from database
-  const systemStats = analytics?.systemStats || {
+  // Memoize analytics data
+  const systemStats = useMemo(() => analytics?.systemStats || {
     totalUsers: 0,
     totalUniversities: 0,
     activeUsers: 0,
@@ -58,68 +58,101 @@ export default function AdminDashboardPage() {
     monthlyGrowth: 0,
     supportTickets: 0,
     systemUptime: 0
-  }
+  }, [analytics?.systemStats])
 
-  const userGrowthData = analytics?.userGrowth || []
-  const subscriptionData = analytics?.subscriptionData || []
-  const universityData = analytics?.universityData || []
-  const activityData = analytics?.activityData || []
+  const userGrowthData = useMemo(() => analytics?.userGrowth || [], [analytics?.userGrowth])
+  const subscriptionData = useMemo(() => analytics?.subscriptionData || [], [analytics?.subscriptionData])
+  const universityData = useMemo(() => analytics?.universityData || [], [analytics?.universityData])
+  const activityData = useMemo(() => analytics?.activityData || [], [analytics?.activityData])
 
-  // Use real recent users data instead of mock activity
-  const recentActivity = analytics?.recentUsers ? analytics.recentUsers.map((user: any) => ({
-    type: 'registration',
-    user: user.name,
-    university: user.university_id ? 'University User' : 'Individual User',
-    time: formatTimeAgo(user.created_at)
-  })) : []
+  // Use real recent users data instead of mock activity - memoized
+  const recentActivity = useMemo(() =>
+    analytics?.recentUsers ? analytics.recentUsers.map((user: any) => ({
+      type: 'registration',
+      user: user.name,
+      university: user.university_id ? 'University User' : 'Individual User',
+      time: formatTimeAgo(user.created_at)
+    })) : []
+  , [analytics?.recentUsers])
 
-  // Helper function to format time ago
-  function formatTimeAgo(timestamp: number): string {
-    const now = Date.now()
-    const diffTime = now - timestamp
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
-    const diffMinutes = Math.floor(diffTime / (1000 * 60))
-
-    if (diffDays > 0) {
-      return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
-    } else if (diffHours > 0) {
-      return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
-    } else if (diffMinutes > 0) {
-      return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`
-    } else {
-      return 'Just now'
-    }
-  }
-
-  const role = user?.role
-  const canAccess = role === 'super_admin' || role === 'admin'
+  const role = useMemo(() => user?.role, [user?.role])
+  const canAccess = useMemo(() => role === 'super_admin' || role === 'admin', [role])
 
   if (!canAccess) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Unauthorized</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">You do not have access to the admin dashboard.</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (!users) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Unauthorized</h1>
+          <p className="text-gray-600">You do not have permission to access this page.</p>
         </div>
       </div>
     )
   }
 
+  if (!analytics) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    )
+  }
+
+  return <AdminDashboardContent
+    systemStats={systemStats}
+    userGrowthData={userGrowthData}
+    subscriptionData={subscriptionData}
+    universityData={universityData}
+    activityData={activityData}
+    recentActivity={recentActivity}
+    activeView={activeView}
+    setActiveView={setActiveView}
+    users={users}
+  />
+}
+
+// Extract helper function outside component
+function formatTimeAgo(timestamp: number): string {
+  const now = Date.now()
+  const diffTime = now - timestamp
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+  const diffMinutes = Math.floor(diffTime / (1000 * 60))
+
+  if (diffDays > 0) {
+    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
+  } else if (diffHours > 0) {
+    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
+  } else if (diffMinutes > 0) {
+    return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`
+  } else {
+    return 'Just now'
+  }
+}
+
+// Memoized content component to prevent unnecessary re-renders
+const AdminDashboardContent = React.memo(function AdminDashboardContent({
+  systemStats,
+  userGrowthData,
+  subscriptionData,
+  universityData,
+  activityData,
+  recentActivity,
+  activeView,
+  setActiveView,
+  users
+}: {
+  systemStats: any
+  userGrowthData: any[]
+  subscriptionData: any[]
+  universityData: any[]
+  activityData: any[]
+  recentActivity: any[]
+  activeView: 'system' | 'universities' | 'users' | 'revenue'
+  setActiveView: (view: 'system' | 'universities' | 'users' | 'revenue') => void
+  users: any
+}) {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
       <div className="flex items-center justify-between">
@@ -188,7 +221,7 @@ export default function AdminDashboardPage() {
                 <div className="text-2xl font-bold">{systemStats.activeUsers.toLocaleString()}</div>
                 <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                   <Activity className="h-3 w-3" />
-                  <span>{Math.round((systemStats.activeUsers / systemStats.totalUsers) * 100)}% active</span>
+                  <span>{systemStats.totalUsers > 0 ? Math.round((systemStats.activeUsers / systemStats.totalUsers) * 100) : 0}% active</span>
                 </div>
               </CardContent>
             </Card>
@@ -1074,4 +1107,4 @@ export default function AdminDashboardPage() {
       </Tabs>
     </div>
   )
-}
+})

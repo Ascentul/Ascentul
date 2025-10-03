@@ -25,7 +25,6 @@ interface Application {
 
 export default function ApplicationsPage() {
   const router = useRouter()
-  const [apps, setApps] = useState<Application[]>([])
   const { user, isLoaded: clerkLoaded } = useUser()
   const [creating, setCreating] = useState(false)
   const [activeTab, setActiveTab] = useState<'applications' | 'job-search'>('applications')
@@ -49,15 +48,15 @@ export default function ApplicationsPage() {
     }
   }
 
-  // Convex data
+  // Convex data - use directly without state duplication
   const convexApps = useQuery(api.applications.getUserApplications, user?.id ? { clerkId: user.id } : 'skip')
   const createMutation = useMutation(api.applications.createApplication)
   const updateMutation = useMutation(api.applications.updateApplication)
   const deleteMutation = useMutation(api.applications.deleteApplication)
 
-  // Map Convex docs to local Application shape
-  const mapped = useMemo(() => {
-    if (!convexApps) return undefined
+  // Map Convex docs to local Application shape - memoized
+  const apps = useMemo(() => {
+    if (!convexApps) return []
     return convexApps.map((d: any) => ({
       id: d._id,
       company: d.company ?? '',
@@ -70,16 +69,12 @@ export default function ApplicationsPage() {
     })) as Application[]
   }, [convexApps])
 
-  useEffect(() => {
-    if (mapped) setApps(mapped)
-  }, [mapped])
-
   const createApp = async () => {
     if (!form.company.trim() || !form.job_title.trim()) return
     setCreating(true)
     try {
       if (!user?.id) return
-      const id = await createMutation({
+      await createMutation({
         clerkId: user.id,
         company: form.company,
         job_title: form.job_title,
@@ -87,20 +82,7 @@ export default function ApplicationsPage() {
         url: form.url || undefined,
         notes: form.notes || undefined,
       } as any)
-      // Optimistically add minimal record; Convex query will refresh automatically
-      setApps((prev) => [
-        {
-          id: id as any,
-          company: form.company,
-          job_title: form.job_title,
-          status: form.status,
-          url: form.url || null,
-          notes: form.notes || null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        ...prev,
-      ])
+      // Convex query will refresh automatically - no need for optimistic updates
     } finally {
       setCreating(false)
     }
@@ -172,7 +154,7 @@ export default function ApplicationsPage() {
         </div>
       </div>
 
-      {!clerkLoaded || mapped === undefined ? (
+      {!clerkLoaded || !convexApps ? (
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
@@ -185,12 +167,8 @@ export default function ApplicationsPage() {
               <ApplicationCard
                 key={a.id}
                 application={a}
-                onChanged={(updated) => {
-                  if (updated === null) {
-                    setApps((prev) => prev.filter((x) => x.id !== a.id))
-                  } else {
-                    setApps((prev) => prev.map((x) => (x.id === a.id ? { ...x, ...updated } : x)))
-                  }
+                onChanged={() => {
+                  // Convex query will refresh automatically - no need for optimistic updates
                 }}
                 onClick={() => {
                   setSelected(a)
@@ -228,8 +206,9 @@ export default function ApplicationsPage() {
           onOpenChange={setShowDetails}
           application={selected}
           onChanged={(updated) => {
-            setApps((prev) => prev.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)))
+            // Update selected state for immediate UI feedback
             setSelected((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev))
+            // Convex query will refresh automatically
           }}
           saveFn={async (id, values) => {
             if (!user?.id) throw new Error('Not signed in')

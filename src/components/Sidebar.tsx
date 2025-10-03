@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useUser, UserButton } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
@@ -72,15 +72,22 @@ interface SidebarProps {
   onToggle?: () => void
 }
 
-export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
+const Sidebar = React.memo(function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const pathname = usePathname()
   const router = useRouter()
   const { user: clerkUser } = useUser()
   const { user, signOut, isAdmin } = useAuth()
-  const isUniversityUser = user?.role === 'university_admin' || user?.subscription_plan === 'university'
-  
+  const isUniversityUser = useMemo(
+    () => user?.role === 'university_admin' || user?.subscription_plan === 'university',
+    [user?.role, user?.subscription_plan]
+  )
+
   // Check if user is on free plan and not a university admin or premium user
-  const isFreeUser = user?.subscription_plan === 'free' && user?.role !== 'university_admin' && !isAdmin
+  const isFreeUser = useMemo(
+    () => user?.subscription_plan === 'free' && user?.role !== 'university_admin' && !isAdmin,
+    [user?.subscription_plan, user?.role, isAdmin]
+  )
+
   const sidebarRef = useRef<HTMLDivElement>(null)
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const [hoverSection, setHoverSection] = useState<string | null>(null)
@@ -98,7 +105,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     }
     return {}
   })
-  
+
   // Support ticket related state
   const [showSupportModal, setShowSupportModal] = useState(false)
   const [subject, setSubject] = useState('')
@@ -108,8 +115,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   // Upsell modal for Pro-only features
   const [showUpsellModal, setShowUpsellModal] = useState(false)
 
-  // Define sidebar sections - Grouped navigation structure
-  const sidebarSections: SidebarSection[] = [
+  // Memoize sidebar sections - Grouped navigation structure
+  const sidebarSections: SidebarSection[] = useMemo(() => [
     {
       id: 'dashboard',
       title: 'Dashboard',
@@ -162,10 +169,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       icon: <UserIcon className="h-5 w-5" />,
       href: '/account'
     },
-  ]
+  ], [])
 
   // Admin sections (top-level for super admins)
-  const adminSections: SidebarSection[] = [
+  const adminSections: SidebarSection[] = useMemo(() => [
     {
       id: 'admin-dashboard',
       title: 'Admin Dashboard',
@@ -179,10 +186,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         { href: '/admin/settings', icon: <Settings className="h-4 w-4" />, label: 'Settings' },
       ]
     }
-  ]
+  ], [])
 
   // University sections - streamlined for University Admins
-  const universitySections: SidebarSection[] = [
+  const universitySections: SidebarSection[] = useMemo(() => [
     {
       id: 'university-dashboard',
       title: 'University Dashboard',
@@ -218,28 +225,31 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       icon: <Settings className="h-5 w-5" />,
       href: '/university/settings'
     }
-  ]
+  ], [])
 
-  // Combine sections based on user role
-  // Admin roles should NOT see user-facing sections. University Admins should NOT see admin menu at all.
-  const isUniAdmin = user?.role === 'university_admin'
+  // Combine sections based on user role - memoized
+  const isUniAdmin = useMemo(() => user?.role === 'university_admin', [user?.role])
 
-  // Determine which sections to show based on user role
-  let allSections: SidebarSection[] = []
+  // Determine which sections to show based on user role - memoized
+  const allSections: SidebarSection[] = useMemo(() => {
+    if (isUniAdmin) {
+      return universitySections
+    } else if (isAdmin) {
+      return adminSections
+    } else {
+      return sidebarSections
+    }
+  }, [isUniAdmin, isAdmin, universitySections, adminSections, sidebarSections])
 
-  if (isUniAdmin) {
-    // University admins only see university sections
-    allSections = [...universitySections]
-  } else if (isAdmin) {
-    // Super admins and regular admins see admin sections
-    allSections = [...adminSections]
-  } else {
-    // Regular users see standard sections
-    allSections = [...sidebarSections]
-  }
+  // Memoize isActive function
+  const isActive = useCallback((href: string, exact?: boolean) => {
+    if (exact) return pathname === href
+    // For non-exact matches, use prefix matching to handle nested routes
+    return pathname === href || pathname.startsWith(href + '/')
+  }, [pathname])
 
-  // Determine active section by matching current pathname
-  const getActiveSectionId = () => {
+  // Determine active section by matching current pathname - memoized
+  const getActiveSectionId = useCallback(() => {
     for (const s of allSections) {
       if (s.href && isActive(s.href)) return s.id
       if (s.items) {
@@ -251,7 +261,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       }
     }
     return null
-  }
+  }, [allSections, isActive])
 
   // On first load, default all sections with items to collapsed, but auto-expand the active one
   useEffect(() => {
@@ -286,16 +296,16 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await signOut()
       router.push('/sign-in')
     } catch (error) {
       console.error('Logout error:', error)
     }
-  }
+  }, [signOut, router])
 
-  const handleSupportSubmit = async () => {
+  const handleSupportSubmit = useCallback(async () => {
     if (!subject.trim() || !description.trim()) return
 
     setIsSubmitting(true)
@@ -324,23 +334,17 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     } finally {
       setIsSubmitting(false)
     }
-  }
+  }, [subject, description, issueType])
 
-  const toggleExpanded = () => {
+  const toggleExpanded = useCallback(() => {
     const newExpanded = !expanded
     setExpanded(newExpanded)
     if (typeof window !== 'undefined') {
       localStorage.setItem('sidebarExpanded', newExpanded.toString())
     }
-  }
+  }, [expanded])
 
-  const isActive = (href: string, exact?: boolean) => {
-    if (exact) return pathname === href
-    // For non-exact matches, use prefix matching to handle nested routes
-    return pathname === href || pathname.startsWith(href + '/')
-  }
-
-  const renderSidebarItem = (item: SidebarItem, sectionId?: string, forceExact?: boolean) => {
+  const renderSidebarItem = useCallback((item: SidebarItem, sectionId?: string, forceExact?: boolean) => {
     // Use exact matching for the main admin dashboard item to avoid highlighting conflicts
     // when on sub-pages like /admin/analytics - only highlight the specific item, not the parent
     const shouldUseExact = forceExact || (sectionId === 'admin-dashboard' && item.href === '/admin')
@@ -373,9 +377,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         )}
       </Link>
     )
-  }
+  }, [isActive, isFreeUser, expanded])
 
-  const renderSection = (section: SidebarSection) => {
+  const renderSection = useCallback((section: SidebarSection) => {
     const hasItems = section.items && section.items.length > 0
     const sectionActive = section.href ? isActive(section.href) : false
     const isCollapsed = !!collapsedSections[section.id]
@@ -466,7 +470,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         </AnimatePresence>
       </div>
     )
-  }
+  }, [isActive, collapsedSections, expanded, isFreeUser, renderSidebarItem])
 
   return (
     <>
@@ -533,12 +537,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                   <span>3/5 goals</span>
                 </div>
                 <Progress value={60} className="h-2" />
-                <Link
-                  href="/account#subscription"
-                  className="text-xs text-primary hover:underline mt-1 block"
+                <button
+                  onClick={() => router.push('/account')}
+                  className="text-xs text-primary hover:underline mt-1 block cursor-pointer"
                 >
                   Upgrade to Pro
-                </Link>
+                </button>
               </div>
             )}
           </div>
@@ -655,4 +659,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       </div>
     </>
   )
-}
+})
+
+export default Sidebar

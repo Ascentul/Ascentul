@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useParams } from 'next/navigation'
+import Image from 'next/image'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -68,10 +69,11 @@ export default function PublicProfilePage() {
       {/* Cover Image */}
       <div className="relative h-64 bg-gradient-to-r from-blue-600 to-indigo-700">
         {(coverImage || user.cover_image) && (
-          <img
+          <Image
             src={coverImage || user.cover_image}
             alt="Cover"
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
           />
         )}
         {isOwnProfile && (
@@ -98,12 +100,13 @@ export default function PublicProfilePage() {
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-end">
             {/* Profile Image */}
             <div className="relative">
-              <div className="w-40 h-40 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden">
+              <div className="w-40 h-40 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden relative">
                 {(profileImage || user.profile_image) ? (
-                  <img
+                  <Image
                     src={profileImage || user.profile_image}
                     alt={user.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-4xl font-bold">

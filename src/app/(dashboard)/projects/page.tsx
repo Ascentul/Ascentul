@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useUser } from '@clerk/nextjs'
+import Image from 'next/image'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -286,8 +287,8 @@ export default function ProjectsPage() {
                   className="flex-1"
                 />
                 {formData.image_url && (
-                  <div className="w-16 h-16 rounded border overflow-hidden flex-shrink-0">
-                    <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="w-16 h-16 rounded border overflow-hidden flex-shrink-0 relative">
+                    <Image src={formData.image_url} alt="Preview" fill className="object-cover" />
                   </div>
                 )}
               </div>
@@ -423,7 +424,7 @@ export default function ProjectsPage() {
             <Card key={project._id} className="hover:shadow-lg transition-shadow overflow-hidden">
               {project.image_url && (
                 <div className="w-full h-48 bg-muted relative">
-                  <img src={project.image_url} alt={project.title} className="w-full h-full object-cover" />
+                  <Image src={project.image_url} alt={project.title} fill className="object-cover" />
                 </div>
               )}
               <CardHeader>

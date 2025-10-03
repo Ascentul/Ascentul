@@ -271,7 +271,7 @@ export default function CareerPathPage() {
     if (savedCursor) setSavedList(prev => [...prev, ...arr])
     else setSavedList(arr)
     setNextCursor(savedPage.nextCursor ?? null)
-  }, [savedPage])
+  }, [savedPage, savedCursor])
 
   const savedPaths: CareerPath[] = useMemo(() => {
     try {
