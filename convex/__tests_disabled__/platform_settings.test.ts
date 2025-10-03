@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test"
 import { expect, test, describe } from "vitest"
-import schema from "./schema"
-import { api } from "./_generated/api"
+import schema from "../schema"
+import { api } from "../_generated/api"
 
 describe("platform_settings", () => {
   describe("updatePlatformSettings", () => {

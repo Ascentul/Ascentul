@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test"
 import { expect, test, describe, beforeEach } from "vitest"
-import schema from "./schema"
-import { api } from "./_generated/api"
+import schema from "../schema"
+import { api } from "../_generated/api"
 
 describe("users mutations", () => {
   describe("updateUser", () => {

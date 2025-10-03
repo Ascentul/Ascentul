@@ -374,7 +374,7 @@ export default function AccountPage() {
                     </div>
                     <div>
                       <label className="text-sm font-medium">Bio</label>
-                      <p className="text-sm text-muted-foreground">No bio added yet</p>
+                      <p className="text-sm text-muted-foreground">{userProfile.bio || 'No bio added yet'}</p>
                     </div>
                   </div>
                 </div>
@@ -383,19 +383,19 @@ export default function AccountPage() {
                   <div className="space-y-3">
                     <div>
                       <label className="text-sm font-medium">Job Title</label>
-                      <p className="text-sm text-muted-foreground">Not specified</p>
+                      <p className="text-sm text-muted-foreground">{userProfile.job_title || 'Not specified'}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium">Company</label>
-                      <p className="text-sm text-muted-foreground">Not specified</p>
+                      <p className="text-sm text-muted-foreground">{userProfile.company || 'Not specified'}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium">Location</label>
-                      <p className="text-sm text-muted-foreground">Not specified</p>
+                      <p className="text-sm text-muted-foreground">{userProfile.location || 'Not specified'}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium">Website</label>
-                      <p className="text-sm text-muted-foreground">Not specified</p>
+                      <p className="text-sm text-muted-foreground">{userProfile.website || 'Not specified'}</p>
                     </div>
                   </div>
                 </div>

@@ -4,8 +4,8 @@
 
 import { convexTest } from "convex-test"
 import { expect, test, describe, beforeEach } from "vitest"
-import { api } from "./_generated/api"
-import schema from "./schema"
+import { api } from "../_generated/api"
+import schema from "../schema"
 
 describe("Admin User Creation", () => {
   let t: any
