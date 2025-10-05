@@ -267,8 +267,8 @@ export default function UniversityStudentsPage() {
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB] flex items-center gap-2">
-            <UserIcon className="h-7 w-7" /> Student Management
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
+            Student Management
           </h1>
           <p className="text-muted-foreground">
             Invite and manage student accounts

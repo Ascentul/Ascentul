@@ -168,6 +168,7 @@ export const updateUser = mutation({
       email: v.optional(v.string()),
       username: v.optional(v.string()),
       profile_image: v.optional(v.string()),
+      cover_image: v.optional(v.string()),
       linkedin_url: v.optional(v.string()),
       bio: v.optional(v.string()),
       job_title: v.optional(v.string()),

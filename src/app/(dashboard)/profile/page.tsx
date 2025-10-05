@@ -100,12 +100,6 @@ export default function ProfilePage() {
   const targetUserId = viewingUserId || clerkUser?.id;
   const isViewingOwnProfile = !viewingUserId || viewingUserId === clerkUser?.id;
 
-  // Check if current user can view this profile
-  const canView =
-    isViewingOwnProfile ||
-    isAdmin ||
-    displayProfile?.role === "university_admin";
-
   // Query the target user's data
   const targetUserProfile = useQuery(
     api.users.getUserByClerkId,
@@ -114,6 +108,12 @@ export default function ProfilePage() {
 
   // Use target user's data or fallback to current user
   const displayProfile = viewingUserId ? targetUserProfile : userProfile;
+
+  // Check if current user can view this profile
+  const canView =
+    isViewingOwnProfile ||
+    isAdmin ||
+    displayProfile?.role === "university_admin";
 
   // Queries for user data
   const goals = useQuery(
@@ -589,9 +589,7 @@ export default function ProfilePage() {
               <div className="text-3xl font-bold">{projects?.length || 0}</div>
               <div className="text-sm text-muted-foreground">Projects</div>
               <div className="text-xs text-muted-foreground mt-1">
-                {projects?.filter((p) => p.status === "in_progress").length ||
-                  0}{" "}
-                in progress
+                {projects?.length || 0} total
               </div>
             </div>
           </CardContent>

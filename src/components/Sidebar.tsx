@@ -303,19 +303,14 @@ const Sidebar = React.memo(function Sidebar({
             label: "Students",
           },
           {
-            href: "/university/students/progress",
+            href: "/university/progress",
             icon: <LineChart className="h-4 w-4" />,
             label: "Student Progress",
           },
           {
-            href: "/university/students/invite",
+            href: "/university/invite",
             icon: <Mail className="h-4 w-4" />,
             label: "Invite Students",
-          },
-          {
-            href: "/university/students/licenses",
-            icon: <ShieldCheck className="h-4 w-4" />,
-            label: "Add Licenses",
           },
         ],
       },
@@ -520,7 +515,8 @@ const Sidebar = React.memo(function Sidebar({
   const renderSection = useCallback(
     (section: SidebarSection) => {
       const hasItems = section.items && section.items.length > 0;
-      const sectionActive = section.href ? isActive(section.href) : false;
+      // Use exact matching for sections with href to avoid highlighting parent when on child routes
+      const sectionActive = section.href ? isActive(section.href, true) : false;
       const isCollapsed = !!collapsedSections[section.id];
 
       // Check if any child items are active (but not the first item in admin sections to avoid double-highlighting)
@@ -591,11 +587,7 @@ const Sidebar = React.memo(function Sidebar({
       return (
         <div key={section.id} className="space-y-1">
           <div
-            className={`flex items-center px-3 py-2 mx-2 text-sm rounded-lg cursor-pointer select-none transition-colors ${
-              sectionActive
-                ? "bg-primary/10 text-primary"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            }`}
+            className="flex items-center px-3 py-2 mx-2 text-sm rounded-lg cursor-pointer select-none transition-colors text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             role="button"
             aria-expanded={!isCollapsed}
             onClick={toggleSectionItems}
@@ -784,76 +776,73 @@ const Sidebar = React.memo(function Sidebar({
             </DialogContent>
           </Dialog>
 
-          {!isAdmin && (
-            <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
-                >
-                  <HelpCircle className="h-4 w-4" />
-                  {expanded && <span className="ml-3">Support</span>}
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Contact Support</DialogTitle>
-                  <DialogDescription>
-                    Describe your issue and we'll help you resolve it.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Issue Type</label>
-                    <Select value={issueType} onValueChange={setIssueType}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Bug">Bug Report</SelectItem>
-                        <SelectItem value="Feature">Feature Request</SelectItem>
-                        <SelectItem value="Account">Account Issue</SelectItem>
-                        <SelectItem value="Billing">
-                          Billing Question
-                        </SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Subject</label>
-                    <Input
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      placeholder="Brief description of your issue"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Description</label>
-                    <Textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Please provide details about your issue"
-                      rows={4}
-                    />
-                  </div>
+          {/* Support Button for all users */}
+          <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
+              >
+                <HelpCircle className="h-4 w-4" />
+                {expanded && <span className="ml-3">Support</span>}
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Contact Support</DialogTitle>
+                <DialogDescription>
+                  Describe your issue and we'll help you resolve it.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Issue Type</label>
+                  <Select value={issueType} onValueChange={setIssueType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Bug">Bug Report</SelectItem>
+                      <SelectItem value="Feature">Feature Request</SelectItem>
+                      <SelectItem value="Account">Account Issue</SelectItem>
+                      <SelectItem value="Billing">Billing Question</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogClose>
-                  <Button
-                    onClick={handleSupportSubmit}
-                    disabled={
-                      isSubmitting || !subject.trim() || !description.trim()
-                    }
-                  >
-                    {isSubmitting ? "Submitting..." : "Submit Ticket"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+                <div>
+                  <label className="text-sm font-medium">Subject</label>
+                  <Input
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="Brief description of your issue"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Description</label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Please provide details about your issue"
+                    rows={4}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button
+                  onClick={handleSupportSubmit}
+                  disabled={
+                    isSubmitting || !subject.trim() || !description.trim()
+                  }
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Ticket"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <Button
             variant="ghost"

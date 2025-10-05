@@ -77,25 +77,9 @@ export default function CoverLettersPage() {
 
   const profileHighlights = useMemo(() => {
     if (!profile) return "";
-    const details = profile as Record<string, unknown>;
     const parts: string[] = [];
-    if (
-      typeof details.current_position === "string" &&
-      details.current_position
-    )
-      parts.push(details.current_position);
-    if (typeof details.current_company === "string" && details.current_company)
-      parts.push(`@ ${details.current_company}`);
-    if (typeof details.industry === "string" && details.industry)
-      parts.push(`(${details.industry})`);
-    if (!parts.length && typeof details.skills === "string" && details.skills)
-      parts.push(details.skills);
-    if (
-      !parts.length &&
-      typeof details.career_goals === "string" &&
-      details.career_goals
-    )
-      parts.push(details.career_goals);
+    if (profile.job_title) parts.push(profile.job_title);
+    if (profile.company) parts.push(`@ ${profile.company}`);
     return parts.join(" ");
   }, [profile]);
 

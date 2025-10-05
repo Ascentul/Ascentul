@@ -17,12 +17,36 @@ interface UserProfile {
   subscription_status: string
   university_id?: string
   profile_image?: string
+  cover_image?: string
+  linkedin_url?: string
+  github_url?: string
   bio?: string
   job_title?: string
   company?: string
   location?: string
   website?: string
+  skills?: string
+  current_position?: string
+  current_company?: string
+  education?: string
+  university_name?: string
+  major?: string
+  graduation_year?: string
+  dream_job?: string
+  career_goals?: string
+  experience_level?: string
+  industry?: string
+  stripe_customer_id?: string
+  stripe_subscription_id?: string
   onboarding_completed?: boolean
+  completed_tasks?: string[]
+  account_status?: string
+  activation_token?: string
+  activation_expires_at?: number
+  temp_password?: string
+  created_by_admin?: boolean
+  password_reset_token?: string
+  password_reset_expires_at?: number
   created_at: number
   updated_at: number
 }
