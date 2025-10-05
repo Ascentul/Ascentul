@@ -19,3 +19,4 @@ out/
 .vercel
 
 TEST_ACCOUNTS.md
+.env*.local

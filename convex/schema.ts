@@ -8,9 +8,24 @@ export default defineSchema({
     email: v.string(),
     name: v.string(),
     username: v.optional(v.string()),
-    role: v.union(v.literal("user"), v.literal("admin"), v.literal("super_admin"), v.literal("university_admin"), v.literal("staff")),
-    subscription_plan: v.union(v.literal("free"), v.literal("premium"), v.literal("university")),
-    subscription_status: v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due")),
+    role: v.union(
+      v.literal("user"),
+      v.literal("admin"),
+      v.literal("super_admin"),
+      v.literal("university_admin"),
+      v.literal("staff"),
+    ),
+    subscription_plan: v.union(
+      v.literal("free"),
+      v.literal("premium"),
+      v.literal("university"),
+    ),
+    subscription_status: v.union(
+      v.literal("active"),
+      v.literal("inactive"),
+      v.literal("cancelled"),
+      v.literal("past_due"),
+    ),
     university_id: v.optional(v.id("universities")),
     profile_image: v.optional(v.string()),
     cover_image: v.optional(v.string()),
@@ -26,6 +41,9 @@ export default defineSchema({
     current_company: v.optional(v.string()),
     education: v.optional(v.string()),
     university_name: v.optional(v.string()),
+    major: v.optional(v.string()),
+    graduation_year: v.optional(v.string()),
+    dream_job: v.optional(v.string()),
     career_goals: v.optional(v.string()),
     experience_level: v.optional(v.string()),
     industry: v.optional(v.string()),
@@ -34,7 +52,13 @@ export default defineSchema({
     onboarding_completed: v.optional(v.boolean()),
     completed_tasks: v.optional(v.array(v.string())), // Array of completed onboarding task IDs
     // Account activation fields
-    account_status: v.optional(v.union(v.literal("pending_activation"), v.literal("active"), v.literal("suspended"))),
+    account_status: v.optional(
+      v.union(
+        v.literal("pending_activation"),
+        v.literal("active"),
+        v.literal("suspended"),
+      ),
+    ),
     activation_token: v.optional(v.string()),
     activation_expires_at: v.optional(v.number()),
     temp_password: v.optional(v.string()), // Encrypted temporary password for admin-created accounts
@@ -57,13 +81,23 @@ export default defineSchema({
     description: v.optional(v.string()),
     website: v.optional(v.string()),
     contact_email: v.optional(v.string()),
-    license_plan: v.union(v.literal("Starter"), v.literal("Basic"), v.literal("Pro"), v.literal("Enterprise")),
+    license_plan: v.union(
+      v.literal("Starter"),
+      v.literal("Basic"),
+      v.literal("Pro"),
+      v.literal("Enterprise"),
+    ),
     license_seats: v.number(),
     license_used: v.number(),
     max_students: v.optional(v.number()),
     license_start: v.number(), // timestamp
     license_end: v.optional(v.number()), // timestamp
-    status: v.union(v.literal("active"), v.literal("expired"), v.literal("trial"), v.literal("suspended")),
+    status: v.union(
+      v.literal("active"),
+      v.literal("expired"),
+      v.literal("trial"),
+      v.literal("suspended"),
+    ),
     admin_email: v.optional(v.string()),
     created_by_id: v.optional(v.id("users")),
     created_at: v.number(),
@@ -97,7 +131,7 @@ export default defineSchema({
     updated_at: v.number(),
   })
     .index("by_university", ["university_id"])
-    .index("by_department", ["department_id"]) ,
+    .index("by_department", ["department_id"]),
 
   // Projects table for portfolio functionality
   projects: defineTable({
@@ -139,11 +173,21 @@ export default defineSchema({
     user_id: v.id("users"),
     subject: v.string(),
     category: v.string(), // default: 'general'
-    priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
+    priority: v.union(
+      v.literal("low"),
+      v.literal("medium"),
+      v.literal("high"),
+      v.literal("urgent"),
+    ),
     department: v.string(), // default: 'support'
     contact_person: v.optional(v.string()),
     description: v.string(),
-    status: v.union(v.literal("open"), v.literal("in_progress"), v.literal("resolved"), v.literal("closed")),
+    status: v.union(
+      v.literal("open"),
+      v.literal("in_progress"),
+      v.literal("resolved"),
+      v.literal("closed"),
+    ),
     ticket_type: v.string(), // default: 'regular'
     assigned_to: v.optional(v.id("users")),
     resolution: v.optional(v.string()),
@@ -179,15 +223,15 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("scheduled"),
       v.literal("passed"),
-      v.literal("failed")
+      v.literal("failed"),
     ),
     location: v.optional(v.string()),
     notes: v.optional(v.string()),
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_application", ["application_id"]) 
-    .index("by_user", ["user_id"]) 
+    .index("by_application", ["application_id"])
+    .index("by_user", ["user_id"])
     .index("by_scheduled_at", ["scheduled_at"]),
 
   // Job searches table to track user job searches
@@ -216,15 +260,20 @@ export default defineSchema({
     ai_suggestions: v.optional(v.any()), // AI-generated suggestions (summary, skills)
     created_at: v.number(),
     updated_at: v.number(),
-  })
-    .index("by_user", ["user_id"]),
+  }).index("by_user", ["user_id"]),
 
   // Applications table
   applications: defineTable({
     user_id: v.id("users"),
     company: v.string(),
     job_title: v.string(),
-    status: v.union(v.literal("saved"), v.literal("applied"), v.literal("interview"), v.literal("offer"), v.literal("rejected")),
+    status: v.union(
+      v.literal("saved"),
+      v.literal("applied"),
+      v.literal("interview"),
+      v.literal("offer"),
+      v.literal("rejected"),
+    ),
     source: v.optional(v.string()),
     url: v.optional(v.string()),
     notes: v.optional(v.string()),
@@ -263,8 +312,7 @@ export default defineSchema({
     category: v.string(), // default: 'general'
     points: v.number(),
     created_at: v.number(),
-  })
-    .index("by_category", ["category"]),
+  }).index("by_category", ["category"]),
 
   // User achievements table for tracking user achievements
   user_achievements: defineTable({
@@ -338,9 +386,10 @@ export default defineSchema({
           id: v.string(),
           text: v.string(),
           completed: v.boolean(),
-        })
-      )
+        }),
+      ),
     ),
+    completed_at: v.optional(v.number()),
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -376,6 +425,5 @@ export default defineSchema({
     setting_value: v.any(),
     created_at: v.number(),
     updated_at: v.number(),
-  })
-    .index("by_setting_key", ["setting_key"]),
+  }).index("by_setting_key", ["setting_key"]),
 });

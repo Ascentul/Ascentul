@@ -127,7 +127,7 @@ export default function CourseDetailPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Course Details</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Course Details</h1>
         <div className="space-x-2">
           <Button variant="outline" onClick={() => router.push('/university/courses')}>Back</Button>
           <Button variant="outline" onClick={handleDelete}>Delete</Button>

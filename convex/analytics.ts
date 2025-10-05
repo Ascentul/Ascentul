@@ -345,7 +345,7 @@ export const getUserDashboardAnalytics = query({
 
     const nextInterview = upcomingInterviews.length > 0
       ? formatNextInterview(upcomingInterviews[0].scheduled_at)
-      : "No upcoming interviews";
+      : "No Interviews";
 
     // Recent activity (last 30 days)
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
@@ -383,7 +383,7 @@ export const getUserDashboardAnalytics = query({
 
 // Helper function to format next interview date
 function formatNextInterview(timestamp: number | undefined): string {
-  if (!timestamp) return "No upcoming interviews";
+  if (!timestamp) return "No Interviews";
 
   const date = new Date(timestamp);
   const now = new Date();

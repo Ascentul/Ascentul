@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { useUser, UserButton } from '@clerk/nextjs'
+import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
@@ -437,7 +437,7 @@ const Sidebar = React.memo(function Sidebar({ isOpen, onToggle }: SidebarProps =
       <div key={section.id} className="space-y-1">
         <div
           className={`flex items-center px-3 py-2 mx-2 text-sm rounded-lg cursor-pointer select-none transition-colors ${
-            (sectionActive || hasActiveItem)
+            sectionActive
               ? 'bg-primary/10 text-primary'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
@@ -505,16 +505,11 @@ const Sidebar = React.memo(function Sidebar({ isOpen, onToggle }: SidebarProps =
         {clerkUser && (
           <div className="p-4 border-b">
             <div className={`flex items-center ${expanded ? 'space-x-3' : 'justify-center'}`}>
-              <Link href="/account" className="h-10 w-10 flex-shrink-0 cursor-pointer">
-                <UserButton
-                  appearance={{
-                    elements: {
-                      userButtonTrigger: 'h-10 w-10',
-                      userButtonAvatarBox: 'h-10 w-10',
-                      avatarBox: 'h-10 w-10',
-                      userButtonBox: 'h-10 w-10',
-                    },
-                  }}
+              <Link href="/account" className="flex-shrink-0 cursor-pointer">
+                <img
+                  src={clerkUser.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || 'User')}&background=0C29AB&color=fff`}
+                  alt="Profile"
+                  className="h-10 w-10 rounded-full object-cover hover:ring-2 hover:ring-primary transition-all"
                 />
               </Link>
               {expanded && (

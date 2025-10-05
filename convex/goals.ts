@@ -28,10 +28,14 @@ const statusValidator = v.union(
   v.literal("active"),
   v.literal("completed"),
   v.literal("paused"),
-  v.literal("cancelled")
+  v.literal("cancelled"),
 );
 
-const checklistItem = v.object({ id: v.string(), text: v.string(), completed: v.boolean() });
+const checklistItem = v.object({
+  id: v.string(),
+  text: v.string(),
+  completed: v.boolean(),
+});
 
 // Create goal
 export const createGoal = mutation({
@@ -95,17 +99,24 @@ export const updateGoal = mutation({
     if (!user) throw new Error("User not found");
 
     const goal = await ctx.db.get(args.goalId);
-    if (!goal || goal.user_id !== user._id) throw new Error("Goal not found or unauthorized");
+    if (!goal || goal.user_id !== user._id)
+      throw new Error("Goal not found or unauthorized");
 
-    const updates: any = { ...args.updates, updated_at: Date.now() };
+    // Remove 'completed' field as it's not in the schema
+    const { completed, ...restUpdates } = args.updates;
+    const updates: any = { ...restUpdates, updated_at: Date.now() };
 
     // Set completed_at timestamp when status is changed to completed
-    if (args.updates.status === 'completed' && goal.status !== 'completed') {
+    if (args.updates.status === "completed" && goal.status !== "completed") {
       updates.completed_at = Date.now();
     }
 
     // Clear completed_at if status is changed from completed to something else
-    if (goal.status === 'completed' && args.updates.status && args.updates.status !== 'completed') {
+    if (
+      goal.status === "completed" &&
+      args.updates.status &&
+      args.updates.status !== "completed"
+    ) {
       updates.completed_at = undefined;
     }
 
@@ -125,7 +136,8 @@ export const deleteGoal = mutation({
     if (!user) throw new Error("User not found");
 
     const goal = await ctx.db.get(args.goalId);
-    if (!goal || goal.user_id !== user._id) throw new Error("Goal not found or unauthorized");
+    if (!goal || goal.user_id !== user._id)
+      throw new Error("Goal not found or unauthorized");
 
     await ctx.db.delete(args.goalId);
     return args.goalId;

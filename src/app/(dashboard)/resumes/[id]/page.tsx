@@ -572,7 +572,7 @@ export default function ResumeEditorPage() {
           <Button variant="outline" onClick={() => router.push("/resumes")}> 
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Edit Resume</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Edit Resume</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="destructive" onClick={() => setConfirmOpen(true)} disabled={!resume || deleting}>

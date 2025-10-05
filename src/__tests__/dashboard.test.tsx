@@ -167,7 +167,7 @@ describe('Dashboard Page', () => {
 
     // Should still render the main structure with fallback values
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
-    expect(screen.getByText('No upcoming interviews')).toBeInTheDocument() // Fallback value
+    expect(screen.getByText('No Interviews')).toBeInTheDocument() // Fallback value
   })
 
   it('displays recent activity when available', () => {

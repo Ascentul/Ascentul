@@ -184,7 +184,7 @@ export default function AICoachPage() {
                 <Bot className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-[#0C29AB] flex items-center gap-2">
+                <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB] flex items-center gap-2">
                   AI Career Coach
                   <Badge variant="secondary" className="text-xs">
                     <Sparkles className="h-3 w-3 mr-1" />

@@ -84,7 +84,7 @@ export default function DashboardPage() {
 
   // Use real data or fallback to default values
   const stats = {
-    nextInterview: dashboardData?.nextInterview || "No upcoming interviews",
+    nextInterview: dashboardData?.nextInterview || 'No Interviews',
     activeApplications: dashboardData?.applicationStats?.total || 0,
     pendingTasks: dashboardData?.pendingTasks || 0,
     activeGoals: dashboardData?.activeGoals || 0,
@@ -143,7 +143,7 @@ export default function DashboardPage() {
             variants={subtleUp}
           >
             <div>
-              <h1 className="text-2xl font-bold font-poppins text-[#0C29AB]">Dashboard</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Dashboard</h1>
               <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
             </div>
             <div className="mt-4 md:mt-0">
@@ -237,6 +237,11 @@ export default function DashboardPage() {
                 iconColor="text-primary"
                 label="Next Interview"
                 value={stats.nextInterview}
+                fallbackOnOverflow={
+                  stats.nextInterview === 'No Interviews' || stats.nextInterview === 'No upcoming interviews'
+                    ? '-'
+                    : undefined
+                }
                 change={{
                   type: 'no-change',
                   text: 'TechCorp Inc.'
