@@ -55,16 +55,19 @@ export const getOverview = query({
         .collect(),
     ]);
 
+    // Filter to count only actual students (exclude university_admin)
+    const actualStudents = students.filter((s: any) => s.role === "user");
+
     // Use university license seats if available
     const uni = (await ctx.db.get(
       uniId as Id<"universities">,
     )) as Doc<"universities"> | null;
     const licenseCapacity =
-      (uni?.license_seats as number | undefined) ?? students.length;
+      (uni?.license_seats as number | undefined) ?? actualStudents.length;
 
     return {
-      totalStudents: students.length,
-      activeLicenses: students.length,
+      totalStudents: actualStudents.length,
+      activeLicenses: actualStudents.length,
       licenseCapacity,
       departments: departments.length,
       totalCourses: courses.length,

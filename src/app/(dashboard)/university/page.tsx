@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useUser, useAuth as useClerkAuth } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useMutation, useQuery } from "convex/react";
@@ -89,13 +90,14 @@ import {
 } from "recharts";
 
 export default function UniversityDashboardPage() {
+  const router = useRouter();
   const { user: clerkUser } = useUser();
   const { getToken } = useClerkAuth();
   const { user, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [analyticsView, setAnalyticsView] = useState<
-    "overview" | "engagement" | "features" | "risk"
-  >("overview");
+    "engagement" | "features" | "risk"
+  >("engagement");
   const { toast } = useToast();
 
   // Filter states
@@ -106,6 +108,28 @@ export default function UniversityDashboardPage() {
     "all" | "active" | "inactive" | "pending"
   >("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Platform Usage states
+  const [usageTimeFilter, setUsageTimeFilter] = useState("Last 30 days");
+  const [usageProgramFilter, setUsageProgramFilter] = useState("All Programs");
+  const [usageView, setUsageView] = useState<"overview" | "features" | "programs">("overview");
+
+  // Report handlers
+  const handleViewReport = (reportName: string, reportType: string) => {
+    toast({
+      title: "Report Viewer",
+      description: `Opening ${reportName} (${reportType})...`,
+    });
+    // TODO: Implement actual report viewing functionality
+  };
+
+  const handleDownloadReport = (reportName: string, reportType: string) => {
+    toast({
+      title: "Download Started",
+      description: `Downloading ${reportName} (${reportType})...`,
+    });
+    // TODO: Implement actual report download functionality
+  };
 
   const canAccess =
     !!user &&
@@ -741,61 +765,10 @@ export default function UniversityDashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Feature Usage</CardTitle>
-                  <CardDescription>
-                    Most popular features among students
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={[
-                        { month: "Jan", usage: 45 },
-                        { month: "Feb", usage: 52 },
-                        { month: "Mar", usage: 48 },
-                        { month: "Apr", usage: 61 },
-                        { month: "May", usage: 55 },
-                        { month: "Jun", usage: 67 },
-                      ]}
-                    >
-                      <defs>
-                        <linearGradient
-                          id="colorUsage"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="5%"
-                            stopColor="#4F46E5"
-                            stopOpacity={0.3}
-                          />
-                          <stop
-                            offset="95%"
-                            stopColor="#4F46E5"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Area
-                        type="monotone"
-                        dataKey="usage"
-                        stroke="#4F46E5"
-                        fillOpacity={1}
-                        fill="url(#colorUsage)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+            </div>
 
+            {/* Weekly Activity and Student Activity Trends side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Weekly Activity</CardTitle>
@@ -832,6 +805,85 @@ export default function UniversityDashboardPage() {
                         <LabelList dataKey="assignments" position="top" />
                       </Bar>
                     </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Student Activity Trends</CardTitle>
+                  <CardDescription>
+                    Weekly student engagement and feature usage patterns
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={[
+                        {
+                          week: "Week 1",
+                          logins: 180,
+                          goals: 45,
+                          applications: 12,
+                          documents: 28,
+                        },
+                        {
+                          week: "Week 2",
+                          logins: 210,
+                          goals: 52,
+                          applications: 18,
+                          documents: 35,
+                        },
+                        {
+                          week: "Week 3",
+                          logins: 195,
+                          goals: 48,
+                          applications: 15,
+                          documents: 32,
+                        },
+                        {
+                          week: "Week 4",
+                          logins: 240,
+                          goals: 58,
+                          applications: 22,
+                          documents: 41,
+                        },
+                      ]}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="week" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="logins"
+                        stroke="#4F46E5"
+                        strokeWidth={2}
+                        name="Daily Logins"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="goals"
+                        stroke="#10B981"
+                        strokeWidth={2}
+                        name="Goals Set"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="applications"
+                        stroke="#F59E0B"
+                        strokeWidth={2}
+                        name="Applications"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="documents"
+                        stroke="#EC4899"
+                        strokeWidth={2}
+                        name="Documents Created"
+                      />
+                    </LineChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
@@ -908,88 +960,9 @@ export default function UniversityDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Additional Student Activity Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Student Activity Trends</CardTitle>
-                <CardDescription>
-                  Weekly student engagement and feature usage patterns
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={[
-                      {
-                        week: "Week 1",
-                        logins: 180,
-                        goals: 45,
-                        applications: 12,
-                        documents: 28,
-                      },
-                      {
-                        week: "Week 2",
-                        logins: 210,
-                        goals: 52,
-                        applications: 18,
-                        documents: 35,
-                      },
-                      {
-                        week: "Week 3",
-                        logins: 195,
-                        goals: 48,
-                        applications: 15,
-                        documents: 32,
-                      },
-                      {
-                        week: "Week 4",
-                        logins: 240,
-                        goals: 58,
-                        applications: 22,
-                        documents: 41,
-                      },
-                    ]}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="week" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="logins"
-                      stroke="#4F46E5"
-                      strokeWidth={2}
-                      name="Daily Logins"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="goals"
-                      stroke="#10B981"
-                      strokeWidth={2}
-                      name="Goals Set"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="applications"
-                      stroke="#F59E0B"
-                      strokeWidth={2}
-                      name="Applications"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="documents"
-                      stroke="#EC4899"
-                      strokeWidth={2}
-                      name="Documents Created"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Department Distribution Chart */}
-            <Card>
+            {/* Student Distribution by Department and Overall Progress side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
               <CardHeader>
                 <CardTitle>Student Distribution by Department</CardTitle>
                 <CardDescription>
@@ -1014,8 +987,9 @@ export default function UniversityDashboardPage() {
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={90}
-                      label={({ name, value }) => `${name}: ${value}%`}
+                      outerRadius={80}
+                      label={({ value }) => `${value}%`}
+                      labelLine={true}
                     >
                       {[0, 1, 2, 3].map((entry, index) => (
                         <Cell
@@ -1035,77 +1009,45 @@ export default function UniversityDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Students</CardTitle>
-                <CardDescription>
-                  Latest users in your institution
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {students.slice(0, 8).map((s: any) => (
-                      <TableRow key={s._id}>
-                        <TableCell className="font-medium">{s.name}</TableCell>
-                        <TableCell>{s.email}</TableCell>
-                        <TableCell className="uppercase text-xs text-muted-foreground">
-                          {s.role}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-              <CardFooter className="text-sm text-muted-foreground">
-                Showing {Math.min(8, students.length)} of {students.length}
-              </CardFooter>
-            </Card>
-
-            {/* Overall Progress Completion Rate */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Overall Progress Completion Rate</CardTitle>
-                <CardDescription>
-                  Percentage of students who have completed core career assets
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: "Completed", value: 68, color: "#10B981" },
-                        { name: "In Progress", value: 22, color: "#F59E0B" },
-                        { name: "Not Started", value: 10, color: "#EF4444" },
-                      ]}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      label={({ name, value }) => `${name}: ${value}%`}
-                    >
-                      {[0, 1, 2].map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={["#10B981", "#F59E0B", "#EF4444"][index]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value}%`, "Students"]} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+              {/* Overall Progress Completion Rate */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Overall Progress Completion Rate</CardTitle>
+                  <CardDescription>
+                    Percentage of students who have completed core career assets
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: "Completed", value: 68, color: "#10B981" },
+                          { name: "In Progress", value: 22, color: "#F59E0B" },
+                          { name: "Not Started", value: 10, color: "#EF4444" },
+                        ]}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={70}
+                        label={({ value }) => `${value}%`}
+                        labelLine={true}
+                      >
+                        {[0, 1, 2].map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={["#10B981", "#F59E0B", "#EF4444"][index]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => [`${value}%`, "Students"]} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Asset Completion Breakdown and Top Features */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1244,6 +1186,45 @@ export default function UniversityDashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Recent Students - Moved to bottom */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Students</CardTitle>
+              <CardDescription>
+                Latest users in your institution
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {students.filter((s: any) => s.role === "user").slice(0, 8).map((s: any) => (
+                    <TableRow
+                      key={s._id}
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => router.push(`/profile/${s.clerkId}`)}
+                    >
+                      <TableCell className="font-medium">{s.name}</TableCell>
+                      <TableCell>{s.email}</TableCell>
+                      <TableCell className="uppercase text-xs text-muted-foreground">
+                        {s.role}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+            <CardFooter className="text-sm text-muted-foreground">
+              Showing {Math.min(8, students.filter((s: any) => s.role === "user").length)} of {students.filter((s: any) => s.role === "user").length}
+            </CardFooter>
+          </Card>
         </>
       )}
 
@@ -1252,14 +1233,6 @@ export default function UniversityDashboardPage() {
         <div className="space-y-6">
           {/* Analytics Sub-Toggles */}
           <div className="flex flex-wrap gap-2 bg-gray-50 p-3 rounded-lg">
-            <Button
-              size="sm"
-              variant={analyticsView === "overview" ? "default" : "outline"}
-              onClick={() => setAnalyticsView("overview")}
-              className={analyticsView === "overview" ? "bg-[#0C29AB]" : ""}
-            >
-              Overview
-            </Button>
             <Button
               size="sm"
               variant={analyticsView === "engagement" ? "default" : "outline"}
@@ -1285,229 +1258,6 @@ export default function UniversityDashboardPage() {
               At-Risk Analysis
             </Button>
           </div>
-
-          {/* Analytics: Overview */}
-          {analyticsView === "overview" && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Platform Usage</CardTitle>
-                    <CardDescription>
-                      Monthly feature adoption and student engagement over the
-                      last 6 months
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={[
-                          {
-                            month: "Oct",
-                            goals: 120,
-                            applications: 45,
-                            resumes: 30,
-                            coverLetters: 25,
-                          },
-                          {
-                            month: "Nov",
-                            goals: 180,
-                            applications: 65,
-                            resumes: 45,
-                            coverLetters: 35,
-                          },
-                          {
-                            month: "Dec",
-                            goals: 220,
-                            applications: 80,
-                            resumes: 60,
-                            coverLetters: 50,
-                          },
-                          {
-                            month: "Jan",
-                            goals: 280,
-                            applications: 95,
-                            resumes: 75,
-                            coverLetters: 65,
-                          },
-                          {
-                            month: "Feb",
-                            goals: 320,
-                            applications: 110,
-                            resumes: 85,
-                            coverLetters: 75,
-                          },
-                          {
-                            month: "Mar",
-                            goals: 380,
-                            applications: 125,
-                            resumes: 95,
-                            coverLetters: 85,
-                          },
-                        ]}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="goals"
-                          stroke="#4F46E5"
-                          strokeWidth={2}
-                          name="Goals Set"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="applications"
-                          stroke="#10B981"
-                          strokeWidth={2}
-                          name="Applications"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="resumes"
-                          stroke="#F59E0B"
-                          strokeWidth={2}
-                          name="Resumes"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="coverLetters"
-                          stroke="#EF4444"
-                          strokeWidth={2}
-                          name="Cover Letters"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Feature Usage</CardTitle>
-                    <CardDescription>
-                      Most popular features among students
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={[
-                          { month: "Jan", usage: 45 },
-                          { month: "Feb", usage: 52 },
-                          { month: "Mar", usage: 48 },
-                          { month: "Apr", usage: 61 },
-                          { month: "May", usage: 55 },
-                          { month: "Jun", usage: 67 },
-                        ]}
-                      >
-                        <defs>
-                          <linearGradient
-                            id="colorUsage"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="5%"
-                              stopColor="#4F46E5"
-                              stopOpacity={0.3}
-                            />
-                            <stop
-                              offset="95%"
-                              stopColor="#4F46E5"
-                              stopOpacity={0}
-                            />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Area
-                          type="monotone"
-                          dataKey="usage"
-                          stroke="#4F46E5"
-                          fillOpacity={1}
-                          fill="url(#colorUsage)"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Student Progress Insights</CardTitle>
-                  <CardDescription>
-                    Goals in progress vs completed, applications by stage, and
-                    resume/cover letter activity
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        { name: "Goals", inProgress: 45, completed: 28 },
-                        {
-                          name: "Applications",
-                          inProgress: 12,
-                          submitted: 35,
-                          interviewing: 18,
-                          offers: 8,
-                        },
-                        { name: "Documents", resumes: 67, coverLetters: 43 },
-                      ]}
-                      margin={{ top: 40, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar
-                        dataKey="inProgress"
-                        fill="#4F46E5"
-                        name="In Progress"
-                      >
-                        <LabelList dataKey="inProgress" position="top" />
-                      </Bar>
-                      <Bar dataKey="completed" fill="#10B981" name="Completed">
-                        <LabelList dataKey="completed" position="top" />
-                      </Bar>
-                      <Bar dataKey="submitted" fill="#F59E0B" name="Submitted">
-                        <LabelList dataKey="submitted" position="top" />
-                      </Bar>
-                      <Bar
-                        dataKey="interviewing"
-                        fill="#EF4444"
-                        name="Interviewing"
-                      >
-                        <LabelList dataKey="interviewing" position="top" />
-                      </Bar>
-                      <Bar dataKey="offers" fill="#8B5CF6" name="Offers">
-                        <LabelList dataKey="offers" position="top" />
-                      </Bar>
-                      <Bar dataKey="resumes" fill="#EC4899" name="Resumes">
-                        <LabelList dataKey="resumes" position="top" />
-                      </Bar>
-                      <Bar
-                        dataKey="coverLetters"
-                        fill="#06B6D4"
-                        name="Cover Letters"
-                      >
-                        <LabelList dataKey="coverLetters" position="top" />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
           {/* Analytics: Engagement */}
           {analyticsView === "engagement" && (
@@ -1800,8 +1550,9 @@ export default function UniversityDashboardPage() {
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        outerRadius={90}
-                        label={({ name, value }) => `${name}: ${value}%`}
+                        outerRadius={70}
+                        label={({ value }) => `${value}%`}
+                        labelLine={true}
                       >
                         {[0, 1, 2].map((entry, index) => (
                           <Cell
@@ -2027,7 +1778,7 @@ export default function UniversityDashboardPage() {
                       <div className="flex items-center">
                         <Users className="h-5 w-5 text-muted-foreground mr-2" />
                         <div className="text-2xl font-bold">
-                          {students.length}
+                          {students.filter((s: any) => s.role === "user").length}
                         </div>
                       </div>
                     </CardContent>
@@ -2135,7 +1886,11 @@ export default function UniversityDashboardPage() {
                               (d: any) => d._id === s.department_id,
                             );
                             return (
-                              <TableRow key={s._id}>
+                              <TableRow
+                                key={s._id}
+                                className="cursor-pointer hover:bg-gray-50"
+                                onClick={() => router.push(`/profile/${s.clerkId}`)}
+                              >
                                 <TableCell className="font-medium">
                                   {s.name || "Unknown"}
                                 </TableCell>
@@ -2810,10 +2565,9 @@ export default function UniversityDashboardPage() {
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={90}
-                      label={({ name, value, students }) =>
-                        `${name}: ${value}% (${students} students)`
-                      }
+                      outerRadius={80}
+                      label={({ value }) => `${value}%`}
+                      labelLine={true}
                     >
                       {departments.map((entry, index) => (
                         <Cell
@@ -3207,12 +2961,20 @@ export default function UniversityDashboardPage() {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <select className="px-3 py-1 text-sm border rounded-md">
-                    <option>Last 30 days</option>
+                  <select
+                    className="px-3 py-1 text-sm border rounded-md"
+                    value={usageTimeFilter}
+                    onChange={(e) => setUsageTimeFilter(e.target.value)}
+                  >
                     <option>Last 7 days</option>
+                    <option>Last 30 days</option>
                     <option>Last 90 days</option>
                   </select>
-                  <select className="px-3 py-1 text-sm border rounded-md">
+                  <select
+                    className="px-3 py-1 text-sm border rounded-md"
+                    value={usageProgramFilter}
+                    onChange={(e) => setUsageProgramFilter(e.target.value)}
+                  >
                     <option>All Programs</option>
                     <option>Computer Science</option>
                     <option>Business</option>
@@ -3321,13 +3083,28 @@ export default function UniversityDashboardPage() {
               </div>
 
               <div className="flex gap-2 mb-4">
-                <Button variant="outline" size="sm">
+                <Button
+                  variant={usageView === "overview" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUsageView("overview")}
+                  className={usageView === "overview" ? "bg-[#0C29AB]" : ""}
+                >
                   Overview
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button
+                  variant={usageView === "features" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUsageView("features")}
+                  className={usageView === "features" ? "bg-[#0C29AB]" : ""}
+                >
                   Features
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button
+                  variant={usageView === "programs" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUsageView("programs")}
+                  className={usageView === "programs" ? "bg-[#0C29AB]" : ""}
+                >
                   Programs
                 </Button>
               </div>
@@ -3447,10 +3224,28 @@ export default function UniversityDashboardPage() {
                     <TableCell>Student Analytics</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleViewReport(
+                              "Monthly Student Activity Report",
+                              "Student Analytics"
+                            )
+                          }
+                        >
                           View
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleDownloadReport(
+                              "Monthly Student Activity Report",
+                              "Student Analytics"
+                            )
+                          }
+                        >
                           Download
                         </Button>
                       </div>
@@ -3464,10 +3259,28 @@ export default function UniversityDashboardPage() {
                     <TableCell>Department Analytics</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleViewReport(
+                              "Department Usage Summary",
+                              "Department Analytics"
+                            )
+                          }
+                        >
                           View
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleDownloadReport(
+                              "Department Usage Summary",
+                              "Department Analytics"
+                            )
+                          }
+                        >
                           Download
                         </Button>
                       </div>
@@ -3481,10 +3294,28 @@ export default function UniversityDashboardPage() {
                     <TableCell>Platform Analytics</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleViewReport(
+                              "Feature Adoption Report",
+                              "Platform Analytics"
+                            )
+                          }
+                        >
                           View
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleDownloadReport(
+                              "Feature Adoption Report",
+                              "Platform Analytics"
+                            )
+                          }
+                        >
                           Download
                         </Button>
                       </div>

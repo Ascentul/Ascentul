@@ -83,8 +83,6 @@ export default function UniversitySettingsPage() {
           description: settings.description,
           website: settings.website,
           contact_email: settings.contactEmail,
-          max_students: settings.maxStudents,
-          license_seats: settings.licenseSeats,
         },
       });
 
@@ -103,6 +101,27 @@ export default function UniversitySettingsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConfigureNotifications = () => {
+    toast({
+      title: "Email Notifications",
+      description: "Notification settings configuration coming soon.",
+    });
+  };
+
+  const handleExportData = () => {
+    toast({
+      title: "Data Export",
+      description: "Data export functionality coming soon.",
+    });
+  };
+
+  const handleConfigureSecurity = () => {
+    toast({
+      title: "Security Settings",
+      description: "Security configuration coming soon.",
+    });
   };
 
   if (!canAccess) {
@@ -213,42 +232,45 @@ export default function UniversitySettingsPage() {
               License Management
             </CardTitle>
             <CardDescription>
-              Configure student license settings
+              View your institution's license information
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="maxStudents">Maximum Students</Label>
-              <Input
-                id="maxStudents"
-                type="number"
-                placeholder="1000"
-                value={settings.maxStudents}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    maxStudents: parseInt(e.target.value) || 0,
-                  }))
-                }
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="licenseSeats">License Seats</Label>
               <Input
                 id="licenseSeats"
                 type="number"
-                placeholder="1000"
                 value={settings.licenseSeats}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    licenseSeats: parseInt(e.target.value) || 0,
-                  }))
-                }
+                disabled
+                className="bg-muted cursor-not-allowed"
               />
               <p className="text-xs text-muted-foreground">
-                Number of licenses available for students
+                Total number of licenses available for students (read-only)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>License Usage</Label>
+              <div className="flex items-center justify-between p-3 border rounded-md bg-muted">
+                <span className="text-sm font-medium">
+                  {universitySettings?.license_used || 0} / {settings.licenseSeats} seats used
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {settings.licenseSeats - (universitySettings?.license_used || 0)} available
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>License Plan</Label>
+              <Input
+                value={universitySettings?.license_plan || "N/A"}
+                disabled
+                className="bg-muted cursor-not-allowed"
+              />
+              <p className="text-xs text-muted-foreground">
+                Current subscription plan (read-only)
               </p>
             </div>
           </CardContent>
@@ -273,7 +295,7 @@ export default function UniversitySettingsPage() {
                     Receive updates about student activity
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleConfigureNotifications}>
                   Configure
                 </Button>
               </div>
@@ -285,7 +307,7 @@ export default function UniversitySettingsPage() {
                     Download student and usage data
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleExportData}>
                   Export
                 </Button>
               </div>
@@ -294,24 +316,12 @@ export default function UniversitySettingsPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-medium">API Access</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Manage API keys and integrations
-                  </p>
-                </div>
-                <Button variant="outline" size="sm">
-                  Manage
-                </Button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
                   <h4 className="text-sm font-medium">Security</h4>
                   <p className="text-xs text-muted-foreground">
                     Configure security settings
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleConfigureSecurity}>
                   Configure
                 </Button>
               </div>

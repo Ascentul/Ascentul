@@ -212,6 +212,14 @@ export const updateUser = mutation({
         ),
       ),
       university_id: v.optional(v.id("universities")),
+      department_id: v.optional(v.id("departments")),
+      account_status: v.optional(
+        v.union(
+          v.literal("active"),
+          v.literal("suspended"),
+          v.literal("pending_activation"),
+        ),
+      ),
       // Allow updating Stripe IDs via this mutation as well
       stripe_customer_id: v.optional(v.string()),
       stripe_subscription_id: v.optional(v.string()),

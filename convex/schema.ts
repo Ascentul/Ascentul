@@ -27,6 +27,7 @@ export default defineSchema({
       v.literal("past_due"),
     ),
     university_id: v.optional(v.id("universities")),
+    department_id: v.optional(v.id("departments")),
     profile_image: v.optional(v.string()),
     cover_image: v.optional(v.string()),
     linkedin_url: v.optional(v.string()),
@@ -72,6 +73,7 @@ export default defineSchema({
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"])
     .index("by_university", ["university_id"])
+    .index("by_department", ["department_id"])
     .index("by_role", ["role"]),
 
   // Universities table for institutional licensing

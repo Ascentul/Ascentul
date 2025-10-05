@@ -78,6 +78,7 @@ type SidebarSection = {
   icon: React.ReactNode;
   items?: SidebarItem[];
   href?: string;
+  onClick?: () => void;
   pro?: boolean;
 };
 
@@ -296,23 +297,7 @@ const Sidebar = React.memo(function Sidebar({
         id: "university-students",
         title: "Students",
         icon: <UserIcon className="h-5 w-5" />,
-        items: [
-          {
-            href: "/university/students",
-            icon: <UserIcon className="h-4 w-4" />,
-            label: "Students",
-          },
-          {
-            href: "/university/progress",
-            icon: <LineChart className="h-4 w-4" />,
-            label: "Student Progress",
-          },
-          {
-            href: "/university/invite",
-            icon: <Mail className="h-4 w-4" />,
-            label: "Invite Students",
-          },
-        ],
+        href: "/university/students",
       },
       {
         id: "university-departments",
@@ -531,6 +516,34 @@ const Sidebar = React.memo(function Sidebar({
       // Check if this is a pro feature
       const isPro = "pro" in section && section.pro;
       const disabled = isPro && isFreeUser;
+
+      if (!hasItems && section.onClick) {
+        // Single item section with onClick handler (e.g., Support)
+        return (
+          <button
+            key={section.id}
+            onClick={section.onClick}
+            className={`
+            w-full flex items-center px-3 py-2 mx-2 text-sm rounded-lg transition-colors
+            ${
+              disabled
+                ? "text-gray-400 cursor-not-allowed"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            }
+          `}
+          >
+            <span className="mr-3">{section.icon}</span>
+            {expanded && (
+              <>
+                <span className="flex-1">{section.title}</span>
+                {isPro && isFreeUser && (
+                  <Zap className="h-3 w-3 text-yellow-500" />
+                )}
+              </>
+            )}
+          </button>
+        );
+      }
 
       if (!hasItems && section.href) {
         // Single item section - new flat structure
