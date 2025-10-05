@@ -1,0 +1,992 @@
+"use client";
+
+import React, { useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/ClerkAuthProvider";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "convex/_generated/api";
+import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useSearchParams } from "next/navigation";
+
+// UI Components
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Edit,
+  Loader2,
+  Camera,
+  Briefcase,
+  GraduationCap,
+  Target,
+  Award,
+  FileText,
+  Users,
+  Calendar,
+  TrendingUp,
+  MapPin,
+  Mail,
+  Globe,
+  CheckCircle2,
+  Circle,
+  Linkedin,
+} from "lucide-react";
+
+// Career Profile Form Schema
+const careerProfileSchema = z.object({
+  bio: z.string().max(500, "Bio must be 500 characters or less").optional(),
+  linkedin_url: z
+    .string()
+    .url("Please enter a valid LinkedIn URL")
+    .optional()
+    .or(z.literal("")),
+  major: z.string().optional(),
+  university_name: z.string().optional(),
+  graduation_year: z.string().optional(),
+  current_position: z.string().optional(),
+  current_company: z.string().optional(),
+  experience_level: z.string().optional(),
+  industry: z.string().optional(),
+  skills: z.string().optional(),
+  career_goals: z
+    .string()
+    .max(1000, "Career goals must be 1000 characters or less")
+    .optional(),
+});
+
+type CareerProfileFormValues = z.infer<typeof careerProfileSchema>;
+
+export default function ProfilePage() {
+  const searchParams = useSearchParams();
+  const viewingUserId = searchParams.get("userId"); // If viewing another user's profile
+
+  const { user: clerkUser } = useUser();
+  const { user: userProfile, isAdmin } = useAuth();
+  const { toast } = useToast();
+  const updateUser = useMutation(api.users.updateUser);
+
+  // Determine which user we're viewing
+  const targetUserId = viewingUserId || clerkUser?.id;
+  const isViewingOwnProfile = !viewingUserId || viewingUserId === clerkUser?.id;
+
+  // Check if current user can view this profile
+  const canView =
+    isViewingOwnProfile ||
+    isAdmin ||
+    displayProfile?.role === "university_admin";
+
+  // Query the target user's data
+  const targetUserProfile = useQuery(
+    api.users.getUserByClerkId,
+    viewingUserId ? { clerkId: viewingUserId } : "skip",
+  );
+
+  // Use target user's data or fallback to current user
+  const displayProfile = viewingUserId ? targetUserProfile : userProfile;
+
+  // Queries for user data
+  const goals = useQuery(
+    api.goals.getUserGoals,
+    targetUserId ? { clerkId: targetUserId } : "skip",
+  );
+  const applications = useQuery(
+    api.applications.getUserApplications,
+    targetUserId ? { clerkId: targetUserId } : "skip",
+  );
+  const contacts = useQuery(
+    api.contacts.getUserContacts,
+    targetUserId ? { clerkId: targetUserId } : "skip",
+  );
+  const projects = useQuery(
+    api.projects.getUserProjects,
+    targetUserId ? { clerkId: targetUserId } : "skip",
+  );
+
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [profilePreview, setProfilePreview] = useState<string | null>(null);
+
+  // Avatar mutations
+  const generateAvatarUploadUrl = useMutation(
+    api.avatar.generateAvatarUploadUrl,
+  );
+  const updateUserAvatar = useMutation(api.avatar.updateUserAvatar);
+
+  // Career profile form - reset values when displayProfile changes
+  const profileForm = useForm<CareerProfileFormValues>({
+    resolver: zodResolver(careerProfileSchema),
+    defaultValues: {
+      bio: displayProfile?.bio || "",
+      linkedin_url: displayProfile?.linkedin_url || "",
+      major: displayProfile?.major || "",
+      university_name: displayProfile?.university_name || "",
+      graduation_year: displayProfile?.graduation_year || "",
+      current_position: displayProfile?.current_position || "",
+      current_company: displayProfile?.current_company || "",
+      experience_level: displayProfile?.experience_level || "",
+      industry: displayProfile?.industry || "",
+      skills: displayProfile?.skills || "",
+      career_goals: displayProfile?.career_goals || "",
+    },
+  });
+
+  // Reset form when displayProfile changes or dialog opens
+  React.useEffect(() => {
+    if (displayProfile && isEditingProfile) {
+      profileForm.reset({
+        bio: displayProfile.bio || "",
+        linkedin_url: displayProfile.linkedin_url || "",
+        major: displayProfile.major || "",
+        university_name: displayProfile.university_name || "",
+        graduation_year: displayProfile.graduation_year || "",
+        current_position: displayProfile.current_position || "",
+        current_company: displayProfile.current_company || "",
+        experience_level: displayProfile.experience_level || "",
+        industry: displayProfile.industry || "",
+        skills: displayProfile.skills || "",
+        career_goals: displayProfile.career_goals || "",
+      });
+    }
+  }, [displayProfile, isEditingProfile, profileForm]);
+
+  // Calculate profile completion
+  const calculateProfileCompletion = () => {
+    const fields = [
+      displayProfile?.bio,
+      displayProfile?.linkedin_url,
+      displayProfile?.major,
+      displayProfile?.university_name,
+      displayProfile?.graduation_year,
+      displayProfile?.current_position,
+      displayProfile?.skills,
+      displayProfile?.career_goals,
+    ];
+    const completed = fields.filter(
+      (field) => field && field.trim() !== "",
+    ).length;
+    return Math.round((completed / fields.length) * 100);
+  };
+
+  const handleProfileUpdate = async (data: CareerProfileFormValues) => {
+    setIsLoading(true);
+    try {
+      if (!clerkUser) throw new Error("No user found");
+
+      await updateUser({
+        clerkId: clerkUser.id,
+        updates: {
+          bio: data.bio || "",
+          linkedin_url: data.linkedin_url || "",
+          major: data.major || "",
+          university_name: data.university_name || "",
+          graduation_year: data.graduation_year || "",
+          current_position: data.current_position || "",
+          current_company: data.current_company || "",
+          experience_level: data.experience_level || "",
+          industry: data.industry || "",
+          skills: data.skills || "",
+          career_goals: data.career_goals || "",
+        },
+      });
+
+      toast({
+        title: "Profile updated",
+        description: "Your career profile has been updated successfully.",
+        variant: "success",
+      });
+      setIsEditingProfile(false);
+    } catch (error: any) {
+      console.error("Profile update error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File, type: "avatar" | "cover") => {
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const uploadUrl = await generateAvatarUploadUrl();
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadResult.ok) throw new Error("Failed to upload image");
+
+      const { storageId } = await uploadResult.json();
+
+      if (clerkUser?.id) {
+        if (type === "avatar") {
+          await updateUserAvatar({
+            clerkId: clerkUser.id,
+            storageId,
+          });
+          toast({
+            title: "Profile picture updated",
+            description: "Your profile picture has been updated successfully",
+          });
+        } else {
+          await updateUser({
+            clerkId: clerkUser.id,
+            updates: { cover_image: storageId },
+          });
+          toast({
+            title: "Cover image updated",
+            description: "Your cover image has been updated successfully",
+          });
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (!clerkUser || !userProfile) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  // Authorization check for viewing other profiles
+  if (!canView) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Unauthorized</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              You do not have permission to view this profile.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!displayProfile) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  const profileCompletion = calculateProfileCompletion();
+  const completedSections = {
+    careerSummary: !!(displayProfile?.bio && displayProfile?.career_goals),
+    linkedinProfile: !!displayProfile?.linkedin_url,
+    workHistory: !!(
+      displayProfile?.current_position && displayProfile?.current_company
+    ),
+    education: !!(displayProfile?.major && displayProfile?.university_name),
+    skills: !!displayProfile?.skills,
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      {/* Cover Image */}
+      <div className="relative h-48 bg-gradient-to-r from-[#0C29AB] to-[#1e40af] rounded-t-lg">
+        {displayProfile?.cover_image && (
+          <img
+            src={displayProfile.cover_image}
+            alt="Cover"
+            className="w-full h-full object-cover rounded-t-lg"
+          />
+        )}
+        {isViewingOwnProfile && (
+          <input
+            type="file"
+            id="cover-upload"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleImageUpload(file, "cover");
+            }}
+          />
+        )}
+        {isViewingOwnProfile && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="absolute bottom-4 right-4"
+            onClick={() => document.getElementById("cover-upload")?.click()}
+          >
+            <Camera className="h-4 w-4 mr-2" />
+            Edit Cover
+          </Button>
+        )}
+      </div>
+
+      {/* Profile Header */}
+      <Card className="rounded-t-none -mt-16 relative">
+        <CardContent className="pt-20 pb-6">
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            {/* Profile Picture */}
+            <div className="relative -mt-32">
+              <Avatar className="w-32 h-32 border-4 border-white">
+                <AvatarImage
+                  src={
+                    profilePreview ||
+                    displayProfile.profile_image ||
+                    clerkUser?.imageUrl
+                  }
+                />
+                <AvatarFallback className="text-2xl">
+                  {displayProfile.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              {isViewingOwnProfile && (
+                <>
+                  <input
+                    type="file"
+                    id="profile-upload"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, "avatar");
+                    }}
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="absolute bottom-0 right-0 rounded-full p-2"
+                    onClick={() =>
+                      document.getElementById("profile-upload")?.click()
+                    }
+                  >
+                    <Camera className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Profile Info */}
+            <div className="flex-1">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-[#0C29AB]">
+                    {displayProfile.name}
+                  </h1>
+                  <p className="text-lg text-muted-foreground mt-1">
+                    {displayProfile.current_position ||
+                      displayProfile.major ||
+                      "Student"}
+                    {displayProfile.current_company &&
+                      ` at ${displayProfile.current_company}`}
+                  </p>
+                  {displayProfile.location && (
+                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                      <MapPin className="h-4 w-4" />
+                      {displayProfile.location}
+                    </p>
+                  )}
+                </div>
+                {isViewingOwnProfile && (
+                  <Button onClick={() => setIsEditingProfile(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                )}
+              </div>
+
+              {/* Quick Links */}
+              <div className="flex gap-3 mt-4">
+                {displayProfile.linkedin_url && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a
+                      href={displayProfile.linkedin_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Linkedin className="h-4 w-4 mr-2" />
+                      LinkedIn
+                    </a>
+                  </Button>
+                )}
+                {displayProfile.website && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a
+                      href={displayProfile.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Globe className="h-4 w-4 mr-2" />
+                      Website
+                    </a>
+                  </Button>
+                )}
+                {displayProfile.email && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`mailto:${displayProfile.email}`}>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Profile Completion */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Profile Completion
+              </CardTitle>
+              <CardDescription>
+                Complete your career profile to maximize opportunities
+              </CardDescription>
+            </div>
+            <div className="text-3xl font-bold text-[#0C29AB]">
+              {profileCompletion}%
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Progress value={profileCompletion} className="mb-4" />
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {Object.entries(completedSections).map(([key, completed]) => (
+              <div key={key} className="flex items-center gap-2">
+                {completed ? (
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                ) : (
+                  <Circle className="h-5 w-5 text-muted-foreground" />
+                )}
+                <span className="text-sm capitalize">
+                  {key.replace(/([A-Z])/g, " $1").trim()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Activity Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Target className="h-8 w-8 mx-auto mb-2 text-[#0C29AB]" />
+              <div className="text-3xl font-bold">{goals?.length || 0}</div>
+              <div className="text-sm text-muted-foreground">Goals</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {goals?.filter((g) => g.status === "active").length || 0} active
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <FileText className="h-8 w-8 mx-auto mb-2 text-[#0C29AB]" />
+              <div className="text-3xl font-bold">
+                {applications?.length || 0}
+              </div>
+              <div className="text-sm text-muted-foreground">Applications</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {applications?.filter((a) => a.status === "applied").length ||
+                  0}{" "}
+                in progress
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Users className="h-8 w-8 mx-auto mb-2 text-[#0C29AB]" />
+              <div className="text-3xl font-bold">{contacts?.length || 0}</div>
+              <div className="text-sm text-muted-foreground">Contacts</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {contacts?.filter((c) => c.relationship === "Strong").length ||
+                  0}{" "}
+                strong
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Briefcase className="h-8 w-8 mx-auto mb-2 text-[#0C29AB]" />
+              <div className="text-3xl font-bold">{projects?.length || 0}</div>
+              <div className="text-sm text-muted-foreground">Projects</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {projects?.filter((p) => p.status === "in_progress").length ||
+                  0}{" "}
+                in progress
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6 mt-6">
+        {/* Career Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Career Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {displayProfile.bio ||
+                "No career summary added yet. Click Edit Profile to add one."}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* LinkedIn Profile */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Linkedin className="h-5 w-5" />
+              LinkedIn Profile
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {displayProfile.linkedin_url ? (
+              <a
+                href={displayProfile.linkedin_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-[#0C29AB] hover:underline break-all"
+              >
+                {displayProfile.linkedin_url}
+              </a>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No LinkedIn profile added yet. Click Edit Profile to add one.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Education */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5" />
+              Education
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {displayProfile.major || displayProfile.university_name ? (
+              <div>
+                {displayProfile.major && (
+                  <p className="font-medium">{displayProfile.major}</p>
+                )}
+                {displayProfile.university_name && (
+                  <p className="text-sm text-muted-foreground">
+                    {displayProfile.university_name}
+                  </p>
+                )}
+                {displayProfile.graduation_year && (
+                  <p className="text-sm text-muted-foreground">
+                    Class of {displayProfile.graduation_year}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No education information added yet. Click Edit Profile to add.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Work History */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Work History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {displayProfile.current_position ||
+            displayProfile.current_company ? (
+              <div>
+                {displayProfile.current_position && (
+                  <p className="font-medium">
+                    {displayProfile.current_position}
+                  </p>
+                )}
+                {displayProfile.current_company && (
+                  <p className="text-sm text-muted-foreground">
+                    {displayProfile.current_company}
+                  </p>
+                )}
+                {displayProfile.experience_level && (
+                  <Badge variant="outline" className="mt-2">
+                    {displayProfile.experience_level}
+                  </Badge>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No work history added yet. Click Edit Profile to add.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Skills */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              Skills
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {displayProfile.skills ? (
+              <div className="flex flex-wrap gap-2">
+                {displayProfile.skills.split(",").map((skill, index) => (
+                  <Badge key={index} variant="secondary">
+                    {skill.trim()}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No skills added yet. Click Edit Profile to add your skills.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Career Goals */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Career Goals
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {displayProfile.career_goals ||
+                "No career goals added yet. Click Edit Profile to add your goals."}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={isEditingProfile} onOpenChange={setIsEditingProfile}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Career Profile</DialogTitle>
+            <DialogDescription>
+              Update your career information to help advisors better assist you
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...profileForm}>
+            <form
+              onSubmit={profileForm.handleSubmit(handleProfileUpdate)}
+              className="space-y-4"
+            >
+              <FormField
+                control={profileForm.control}
+                name="bio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Career Summary</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Brief professional summary..."
+                        className="resize-none"
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      A brief summary of your professional background and
+                      aspirations
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={profileForm.control}
+                name="linkedin_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>LinkedIn Profile URL</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://linkedin.com/in/yourprofile"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={profileForm.control}
+                  name="major"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Major</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Computer Science" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={profileForm.control}
+                  name="graduation_year"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Graduation Year</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. 2025" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={profileForm.control}
+                name="university_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>University</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. Stanford University"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={profileForm.control}
+                  name="current_position"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Position</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. Software Engineer Intern"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={profileForm.control}
+                  name="current_company"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Company</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Google" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={profileForm.control}
+                  name="experience_level"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Experience Level</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. Entry Level, Mid-Level"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={profileForm.control}
+                  name="industry"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Industry</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. Technology, Finance"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={profileForm.control}
+                name="skills"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Skills</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. JavaScript, Python, React (comma-separated)"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Enter your skills separated by commas
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={profileForm.control}
+                name="career_goals"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Career Goals</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="What are your career aspirations?"
+                        className="resize-none"
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Share your short and long-term career objectives
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditingProfile(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />{" "}
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

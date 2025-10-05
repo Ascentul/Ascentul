@@ -20,6 +20,7 @@ import type * as analytics from "../analytics.js";
 import type * as applications from "../applications.js";
 import type * as avatar from "../avatar.js";
 import type * as career_paths from "../career_paths.js";
+import type * as contact_interactions from "../contact_interactions.js";
 import type * as contacts from "../contacts.js";
 import type * as cover_letters from "../cover_letters.js";
 import type * as email from "../email.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   applications: typeof applications;
   avatar: typeof avatar;
   career_paths: typeof career_paths;
+  contact_interactions: typeof contact_interactions;
   contacts: typeof contacts;
   cover_letters: typeof cover_letters;
   email: typeof email;

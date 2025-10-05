@@ -31,6 +31,15 @@ export const createResume = mutation({
     title: v.string(),
     content: v.any(),
     visibility: v.union(v.literal("private"), v.literal("public")),
+    source: v.optional(v.union(
+      v.literal("manual"),
+      v.literal("ai_generated"),
+      v.literal("ai_optimized"),
+      v.literal("pdf_upload"),
+    )),
+    job_description: v.optional(v.string()),
+    extracted_text: v.optional(v.string()),
+    analysis_result: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -47,6 +56,10 @@ export const createResume = mutation({
       title: args.title,
       content: args.content,
       visibility: args.visibility,
+      source: args.source,
+      job_description: args.job_description,
+      extracted_text: args.extracted_text,
+      analysis_result: args.analysis_result,
       created_at: Date.now(),
       updated_at: Date.now(),
     });

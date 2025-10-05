@@ -40,8 +40,17 @@ export const updateSubscriptionByIdentifier = mutation({
     email: v.optional(v.string()),
     stripeCustomerId: v.optional(v.string()),
     stripeSubscriptionId: v.optional(v.string()),
-    subscription_plan: v.union(v.literal("free"), v.literal("premium"), v.literal("university")),
-    subscription_status: v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due")),
+    subscription_plan: v.union(
+      v.literal("free"),
+      v.literal("premium"),
+      v.literal("university"),
+    ),
+    subscription_status: v.union(
+      v.literal("active"),
+      v.literal("inactive"),
+      v.literal("cancelled"),
+      v.literal("past_due"),
+    ),
     setStripeIds: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -68,8 +77,10 @@ export const updateSubscriptionByIdentifier = mutation({
       const all = await ctx.db.query("users").collect();
       user = all.find(
         (u: any) =>
-          (args.stripeCustomerId && u.stripe_customer_id === args.stripeCustomerId) ||
-          (args.stripeSubscriptionId && u.stripe_subscription_id === args.stripeSubscriptionId)
+          (args.stripeCustomerId &&
+            u.stripe_customer_id === args.stripeCustomerId) ||
+          (args.stripeSubscriptionId &&
+            u.stripe_subscription_id === args.stripeSubscriptionId),
       );
     }
 
@@ -78,10 +89,14 @@ export const updateSubscriptionByIdentifier = mutation({
     await ctx.db.patch(user._id, {
       subscription_plan: args.subscription_plan,
       subscription_status: args.subscription_status,
-      ...(args.setStripeIds ? {
-        stripe_customer_id: args.stripeCustomerId ?? user.stripe_customer_id,
-        stripe_subscription_id: args.stripeSubscriptionId ?? user.stripe_subscription_id,
-      } : {}),
+      ...(args.setStripeIds
+        ? {
+            stripe_customer_id:
+              args.stripeCustomerId ?? user.stripe_customer_id,
+            stripe_subscription_id:
+              args.stripeSubscriptionId ?? user.stripe_subscription_id,
+          }
+        : {}),
       updated_at: Date.now(),
     });
 
@@ -166,13 +181,35 @@ export const updateUser = mutation({
       industry: v.optional(v.string()),
       career_goals: v.optional(v.string()),
       education: v.optional(v.string()),
+      university_name: v.optional(v.string()),
       major: v.optional(v.string()),
       graduation_year: v.optional(v.string()),
       dream_job: v.optional(v.string()),
       onboarding_completed: v.optional(v.boolean()),
-      role: v.optional(v.union(v.literal("user"), v.literal("admin"), v.literal("super_admin"), v.literal("university_admin"), v.literal("staff"))),
-      subscription_plan: v.optional(v.union(v.literal("free"), v.literal("premium"), v.literal("university"))),
-      subscription_status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due"))),
+      role: v.optional(
+        v.union(
+          v.literal("user"),
+          v.literal("admin"),
+          v.literal("super_admin"),
+          v.literal("university_admin"),
+          v.literal("staff"),
+        ),
+      ),
+      subscription_plan: v.optional(
+        v.union(
+          v.literal("free"),
+          v.literal("premium"),
+          v.literal("university"),
+        ),
+      ),
+      subscription_status: v.optional(
+        v.union(
+          v.literal("active"),
+          v.literal("inactive"),
+          v.literal("cancelled"),
+          v.literal("past_due"),
+        ),
+      ),
       university_id: v.optional(v.id("universities")),
       // Allow updating Stripe IDs via this mutation as well
       stripe_customer_id: v.optional(v.string()),
@@ -220,13 +257,35 @@ export const updateUserById = mutation({
       industry: v.optional(v.string()),
       career_goals: v.optional(v.string()),
       education: v.optional(v.string()),
+      university_name: v.optional(v.string()),
       major: v.optional(v.string()),
       graduation_year: v.optional(v.string()),
       dream_job: v.optional(v.string()),
       onboarding_completed: v.optional(v.boolean()),
-      role: v.optional(v.union(v.literal("user"), v.literal("admin"), v.literal("super_admin"), v.literal("university_admin"), v.literal("staff"))),
-      subscription_plan: v.optional(v.union(v.literal("free"), v.literal("premium"), v.literal("university"))),
-      subscription_status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due"))),
+      role: v.optional(
+        v.union(
+          v.literal("user"),
+          v.literal("admin"),
+          v.literal("super_admin"),
+          v.literal("university_admin"),
+          v.literal("staff"),
+        ),
+      ),
+      subscription_plan: v.optional(
+        v.union(
+          v.literal("free"),
+          v.literal("premium"),
+          v.literal("university"),
+        ),
+      ),
+      subscription_status: v.optional(
+        v.union(
+          v.literal("active"),
+          v.literal("inactive"),
+          v.literal("cancelled"),
+          v.literal("past_due"),
+        ),
+      ),
       university_id: v.optional(v.id("universities")),
       stripe_customer_id: v.optional(v.string()),
       stripe_subscription_id: v.optional(v.string()),
@@ -265,7 +324,7 @@ export const deleteUser = mutation({
 
 // Get all users (admin only)
 export const getAllUsers = query({
-  args: { 
+  args: {
     clerkId: v.string(),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
@@ -296,7 +355,7 @@ export const getAllUsers = query({
 
 // Get users by university (university admin only)
 export const getUsersByUniversity = query({
-  args: { 
+  args: {
     clerkId: v.string(),
     universityId: v.id("universities"),
   },
@@ -311,9 +370,10 @@ export const getUsersByUniversity = query({
       throw new Error("User not found");
     }
 
-    const isAuthorized = 
+    const isAuthorized =
       currentUser.role === "super_admin" ||
-      (currentUser.role === "university_admin" && currentUser.university_id === args.universityId);
+      (currentUser.role === "university_admin" &&
+        currentUser.university_id === args.universityId);
 
     if (!isAuthorized) {
       throw new Error("Unauthorized");
@@ -321,7 +381,9 @@ export const getUsersByUniversity = query({
 
     const users = await ctx.db
       .query("users")
-      .withIndex("by_university", (q) => q.eq("university_id", args.universityId))
+      .withIndex("by_university", (q) =>
+        q.eq("university_id", args.universityId),
+      )
       .collect();
 
     return users;

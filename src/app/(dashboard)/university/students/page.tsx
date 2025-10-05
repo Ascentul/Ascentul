@@ -1,42 +1,83 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { useUser } from '@clerk/nextjs'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useToast } from '@/hooks/use-toast'
-import { User as UserIcon, Upload, UserPlus, Download, Mail, CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import { Textarea } from '@/components/ui/textarea'
+import React, { useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/ClerkAuthProvider";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "convex/_generated/api";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import {
+  User as UserIcon,
+  Upload,
+  UserPlus,
+  Download,
+  Mail,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Eye,
+} from "lucide-react";
+import Link from "next/link";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function UniversityStudentsPage() {
-  const { user, isAdmin } = useAuth()
-  const { user: clerkUser } = useUser()
-  const { toast } = useToast()
+  const { user, isAdmin } = useAuth();
+  const { user: clerkUser } = useUser();
+  const { toast } = useToast();
 
-  const canAccess = !!user && (isAdmin || user.subscription_plan === 'university' || user.role === 'university_admin')
+  const canAccess =
+    !!user &&
+    (isAdmin ||
+      user.subscription_plan === "university" ||
+      user.role === "university_admin");
 
-  const students = useQuery(api.university_admin.listStudents, clerkUser?.id ? { clerkId: clerkUser.id, limit: 1000 } : 'skip') as any[] | undefined
+  const students = useQuery(
+    api.university_admin.listStudents,
+    clerkUser?.id ? { clerkId: clerkUser.id, limit: 1000 } : "skip",
+  ) as any[] | undefined;
   // TODO: Implement inviteStudent and bulkInviteStudents mutations
   // const inviteStudentMutation = useMutation(api.university_admin.inviteStudent)
   // const bulkInviteStudentsMutation = useMutation(api.university_admin.bulkInviteStudents)
 
   // State
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
-  const [csvDialogOpen, setCsvDialogOpen] = useState(false)
-  const [singleInviteForm, setSingleInviteForm] = useState({ name: '', email: '' })
-  const [csvFile, setCsvFile] = useState<File | null>(null)
-  const [csvData, setCsvData] = useState<{ name: string; email: string }[]>([])
-  const [parseError, setParseError] = useState<string | null>(null)
-  const [inviting, setInviting] = useState(false)
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [singleInviteForm, setSingleInviteForm] = useState({
+    name: "",
+    email: "",
+  });
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvData, setCsvData] = useState<{ name: string; email: string }[]>([]);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
 
   if (!canAccess) {
     return (
@@ -46,11 +87,13 @@ export default function UniversityStudentsPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">You do not have access to University Student Management.</p>
+            <p className="text-muted-foreground">
+              You do not have access to University Student Management.
+            </p>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   if (!students) {
@@ -60,74 +103,82 @@ export default function UniversityStudentsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </div>
-    )
+    );
   }
 
   // Parse CSV file
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    setCsvFile(file)
-    setParseError(null)
+    setCsvFile(file);
+    setParseError(null);
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (event) => {
-      const text = event.target?.result as string
+      const text = event.target?.result as string;
       try {
-        const lines = text.split('\n').filter(line => line.trim())
+        const lines = text.split("\n").filter((line) => line.trim());
 
         // Check if first line is header
-        const hasHeader = lines[0].toLowerCase().includes('name') || lines[0].toLowerCase().includes('email')
-        const dataLines = hasHeader ? lines.slice(1) : lines
+        const hasHeader =
+          lines[0].toLowerCase().includes("name") ||
+          lines[0].toLowerCase().includes("email");
+        const dataLines = hasHeader ? lines.slice(1) : lines;
 
         const parsed = dataLines.map((line, index) => {
-          const [name, email] = line.split(',').map(s => s.trim())
+          const [name, email] = line.split(",").map((s) => s.trim());
           if (!name || !email) {
-            throw new Error(`Invalid data at line ${index + 1}`)
+            throw new Error(`Invalid data at line ${index + 1}`);
           }
-          if (!email.includes('@')) {
-            throw new Error(`Invalid email at line ${index + 1}: ${email}`)
+          if (!email.includes("@")) {
+            throw new Error(`Invalid email at line ${index + 1}: ${email}`);
           }
-          return { name, email }
-        })
+          return { name, email };
+        });
 
-        setCsvData(parsed)
+        setCsvData(parsed);
         toast({
-          title: 'CSV Parsed',
+          title: "CSV Parsed",
           description: `Successfully parsed ${parsed.length} student records`,
-          variant: 'success'
-        })
+          variant: "success",
+        });
       } catch (error: any) {
-        setParseError(error.message)
-        setCsvData([])
+        setParseError(error.message);
+        setCsvData([]);
         toast({
-          title: 'Parse Error',
+          title: "Parse Error",
           description: error.message,
-          variant: 'destructive'
-        })
+          variant: "destructive",
+        });
       }
-    }
-    reader.readAsText(file)
-  }
+    };
+    reader.readAsText(file);
+  };
 
   // Download CSV template
   const downloadTemplate = () => {
-    const template = 'Name,Email\nJohn Doe,john.doe@university.edu\nJane Smith,jane.smith@university.edu'
-    const blob = new Blob([template], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'student_import_template.csv'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+    const template =
+      "Name,Email\nJohn Doe,john.doe@university.edu\nJane Smith,jane.smith@university.edu";
+    const blob = new Blob([template], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "student_import_template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // Single invite
   const handleSingleInvite = async () => {
-    if (!singleInviteForm.name.trim() || !singleInviteForm.email.trim() || !clerkUser?.id) return
+    if (
+      !singleInviteForm.name.trim() ||
+      !singleInviteForm.email.trim() ||
+      !clerkUser?.id
+    )
+      return;
 
-    setInviting(true)
+    setInviting(true);
     try {
       // TODO: Implement inviteStudent mutation
       // await inviteStudentMutation({
@@ -136,28 +187,28 @@ export default function UniversityStudentsPage() {
       //   email: singleInviteForm.email.trim()
       // })
       toast({
-        title: 'Feature Not Available',
-        description: 'Student invitation feature is not yet implemented',
-        variant: 'destructive'
-      })
-      setInviteDialogOpen(false)
-      setSingleInviteForm({ name: '', email: '' })
+        title: "Feature Not Available",
+        description: "Student invitation feature is not yet implemented",
+        variant: "destructive",
+      });
+      setInviteDialogOpen(false);
+      setSingleInviteForm({ name: "", email: "" });
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to send invitation',
-        variant: 'destructive'
-      })
+        title: "Error",
+        description: error.message || "Failed to send invitation",
+        variant: "destructive",
+      });
     } finally {
-      setInviting(false)
+      setInviting(false);
     }
-  }
+  };
 
   // Bulk invite from CSV
   const handleBulkInvite = async () => {
-    if (csvData.length === 0 || !clerkUser?.id) return
+    if (csvData.length === 0 || !clerkUser?.id) return;
 
-    setInviting(true)
+    setInviting(true);
     try {
       // TODO: Implement bulkInviteStudents mutation
       // await bulkInviteStudentsMutation({
@@ -165,37 +216,52 @@ export default function UniversityStudentsPage() {
       //   students: csvData
       // })
       toast({
-        title: 'Feature Not Available',
-        description: 'Bulk student invitation feature is not yet implemented',
-        variant: 'destructive'
-      })
-      setCsvDialogOpen(false)
-      setCsvFile(null)
-      setCsvData([])
+        title: "Feature Not Available",
+        description: "Bulk student invitation feature is not yet implemented",
+        variant: "destructive",
+      });
+      setCsvDialogOpen(false);
+      setCsvFile(null);
+      setCsvData([]);
     } catch (error: any) {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to send bulk invitations',
-        variant: 'destructive'
-      })
+        title: "Error",
+        description: error.message || "Failed to send bulk invitations",
+        variant: "destructive",
+      });
     } finally {
-      setInviting(false)
+      setInviting(false);
     }
-  }
+  };
 
   // Get status badge
   const getStatusBadge = (accountStatus?: string) => {
     switch (accountStatus) {
-      case 'active':
-        return <Badge variant="default" className="bg-green-600"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>
-      case 'pending_activation':
-        return <Badge variant="secondary"><Mail className="h-3 w-3 mr-1" />Pending</Badge>
-      case 'suspended':
-        return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Suspended</Badge>
+      case "active":
+        return (
+          <Badge variant="default" className="bg-green-600">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Active
+          </Badge>
+        );
+      case "pending_activation":
+        return (
+          <Badge variant="secondary">
+            <Mail className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
+      case "suspended":
+        return (
+          <Badge variant="destructive">
+            <XCircle className="h-3 w-3 mr-1" />
+            Suspended
+          </Badge>
+        );
       default:
-        return <Badge variant="outline">Unknown</Badge>
+        return <Badge variant="outline">Unknown</Badge>;
     }
-  }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
@@ -204,7 +270,9 @@ export default function UniversityStudentsPage() {
           <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB] flex items-center gap-2">
             <UserIcon className="h-7 w-7" /> Student Management
           </h1>
-          <p className="text-muted-foreground">Invite and manage student accounts</p>
+          <p className="text-muted-foreground">
+            Invite and manage student accounts
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setInviteDialogOpen(true)}>
@@ -222,7 +290,9 @@ export default function UniversityStudentsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Students
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{students.length}</div>
@@ -234,7 +304,7 @@ export default function UniversityStudentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {students.filter(s => s.account_status === 'active').length}
+              {students.filter((s) => s.account_status === "active").length}
             </div>
           </CardContent>
         </Card>
@@ -244,7 +314,11 @@ export default function UniversityStudentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">
-              {students.filter(s => s.account_status === 'pending_activation').length}
+              {
+                students.filter(
+                  (s) => s.account_status === "pending_activation",
+                ).length
+              }
             </div>
           </CardContent>
         </Card>
@@ -254,7 +328,7 @@ export default function UniversityStudentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {students.filter(s => s.account_status === 'suspended').length}
+              {students.filter((s) => s.account_status === "suspended").length}
             </div>
           </CardContent>
         </Card>
@@ -264,16 +338,23 @@ export default function UniversityStudentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>All Students</CardTitle>
-          <CardDescription>Manage student accounts and track activation status</CardDescription>
+          <CardDescription>
+            Manage student accounts and track activation status
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {students.length === 0 ? (
             <div className="text-center py-12">
               <UserIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground mb-4">No students found.</p>
-              <p className="text-sm text-muted-foreground mb-4">Start by inviting students individually or via CSV import</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Start by inviting students individually or via CSV import
+              </p>
               <div className="flex gap-2 justify-center">
-                <Button variant="outline" onClick={() => setInviteDialogOpen(true)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setInviteDialogOpen(true)}
+                >
                   <UserPlus className="h-4 w-4 mr-2" />
                   Invite Student
                 </Button>
@@ -292,6 +373,7 @@ export default function UniversityStudentsPage() {
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -300,11 +382,21 @@ export default function UniversityStudentsPage() {
                     <TableCell className="font-medium">{s.name}</TableCell>
                     <TableCell>{s.email}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">{s.role}</Badge>
+                      <Badge variant="outline" className="capitalize">
+                        {s.role}
+                      </Badge>
                     </TableCell>
                     <TableCell>{getStatusBadge(s.account_status)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(s.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/profile?userId=${s.clerkId}`}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Profile
+                        </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -330,7 +422,12 @@ export default function UniversityStudentsPage() {
                 id="student-name"
                 placeholder="John Doe"
                 value={singleInviteForm.name}
-                onChange={(e) => setSingleInviteForm({ ...singleInviteForm, name: e.target.value })}
+                onChange={(e) =>
+                  setSingleInviteForm({
+                    ...singleInviteForm,
+                    name: e.target.value,
+                  })
+                }
               />
             </div>
             <div>
@@ -340,19 +437,35 @@ export default function UniversityStudentsPage() {
                 type="email"
                 placeholder="john.doe@university.edu"
                 value={singleInviteForm.email}
-                onChange={(e) => setSingleInviteForm({ ...singleInviteForm, email: e.target.value })}
+                onChange={(e) =>
+                  setSingleInviteForm({
+                    ...singleInviteForm,
+                    email: e.target.value,
+                  })
+                }
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setInviteDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button
               onClick={handleSingleInvite}
-              disabled={inviting || !singleInviteForm.name.trim() || !singleInviteForm.email.trim()}
+              disabled={
+                inviting ||
+                !singleInviteForm.name.trim() ||
+                !singleInviteForm.email.trim()
+              }
             >
-              {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
+              {inviting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Mail className="h-4 w-4 mr-2" />
+              )}
               Send Invitation
             </Button>
           </DialogFooter>
@@ -371,7 +484,9 @@ export default function UniversityStudentsPage() {
           <Tabs defaultValue="upload">
             <TabsList className="grid grid-cols-2">
               <TabsTrigger value="upload">Upload CSV</TabsTrigger>
-              <TabsTrigger value="preview">Preview ({csvData.length})</TabsTrigger>
+              <TabsTrigger value="preview">
+                Preview ({csvData.length})
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="upload" className="space-y-4">
               <div>
@@ -433,12 +548,16 @@ export default function UniversityStudentsPage() {
               onClick={handleBulkInvite}
               disabled={inviting || csvData.length === 0}
             >
-              {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
+              {inviting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Mail className="h-4 w-4 mr-2" />
+              )}
               Send {csvData.length} Invitations
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

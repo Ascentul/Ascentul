@@ -1,12 +1,37 @@
-'use client'
+"use client";
 
-import React, { useState, useMemo } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
-import { Loader2, Plus, Eye, Pencil, Trash2, Search, Users, Bookmark } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import React, { useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Loader2,
+  Plus,
+  Eye,
+  Pencil,
+  Trash2,
+  Search,
+  Users,
+  Clock,
+  MessageSquare,
+  Calendar,
+  MoreVertical,
+  Mail,
+  Phone,
+  Linkedin,
+  Building2,
+  Briefcase,
+  UserCircle2,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,13 +41,27 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from '@/components/ui/textarea'
-import { useUser } from '@clerk/nextjs'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useUser } from "@clerk/nextjs";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "convex/_generated/api";
 import {
   Table,
   TableBody,
@@ -30,116 +69,332 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 
 interface Contact {
-  _id: string
-  name: string
-  company?: string
-  position?: string
-  email?: string
-  phone?: string
-  saved?: boolean
-  notes?: string
-  tags?: string[]
-  updated_at: number
-  created_at?: number
+  _id: string;
+  name: string;
+  company?: string;
+  position?: string;
+  email?: string;
+  phone?: string;
+  linkedin_url?: string;
+  saved?: boolean;
+  notes?: string;
+  tags?: string[];
+  relationship?: string;
+  last_contact?: number;
+  updated_at: number;
+  created_at?: number;
+}
+
+interface FollowUp {
+  _id: string;
+  contact_id?: string;
+  type: string;
+  description?: string;
+  due_date?: number;
+  completed: boolean;
+  notes?: string;
+  created_at: number;
 }
 
 export default function ContactsPage() {
-  const { user: clerkUser } = useUser()
-  const { toast } = useToast()
+  const { user: clerkUser } = useUser();
+  const { toast } = useToast();
+
   const contactsData = useQuery(
     api.contacts.getUserContacts,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
-  ) as Contact[] | undefined
-  const createContactMutation = useMutation(api.contacts.createContact)
-  const updateContactMutation = useMutation(api.contacts.updateContact)
-  const deleteContactMutation = useMutation(api.contacts.deleteContact)
+    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+  ) as Contact[] | undefined;
 
-  const [creating, setCreating] = useState(false)
-  const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState({ full_name: '', company: '', position: '', email: '', phone: '' })
-  const [searchTerm, setSearchTerm] = useState('')
-  const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all')
-  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const followupsData = useQuery(
+    api.contact_interactions.getNeedFollowup,
+    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+  ) as FollowUp[] | undefined;
+
+  const createContactMutation = useMutation(api.contacts.createContact);
+  const updateContactMutation = useMutation(api.contacts.updateContact);
+  const deleteContactMutation = useMutation(api.contacts.deleteContact);
+  const logInteractionMutation = useMutation(
+    api.contact_interactions.logInteraction,
+  );
+  const createFollowupMutation = useMutation(
+    api.contact_interactions.createContactFollowup,
+  );
+  const updateFollowupMutation = useMutation(
+    api.contact_interactions.updateContactFollowup,
+  );
+
+  const [creating, setCreating] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [form, setForm] = useState({
+    full_name: "",
+    company: "",
+    position: "",
+    email: "",
+    phone: "",
+    linkedin_url: "",
+    relationship: "",
+    notes: "",
+  });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [relationshipFilter, setRelationshipFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<"all" | "companies" | "followup">(
+    "all",
+  );
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Detail view state
-  const [detailContact, setDetailContact] = useState<Contact | null>(null)
-  const [detailNotes, setDetailNotes] = useState('')
-  const [detailTags, setDetailTags] = useState('')
+  const [detailContact, setDetailContact] = useState<Contact | null>(null);
+  const [detailNotes, setDetailNotes] = useState("");
+  const [activeDetailTab, setActiveDetailTab] = useState("info");
+
+  // Interaction logging
+  const [showLogInteraction, setShowLogInteraction] = useState(false);
+  const [interactionNotes, setInteractionNotes] = useState("");
+  const [interactionContact, setInteractionContact] = useState<Contact | null>(
+    null,
+  );
+
+  // Follow-up scheduling
+  const [showScheduleFollowup, setShowScheduleFollowup] = useState(false);
+  const [followupContact, setFollowupContact] = useState<Contact | null>(null);
+  const [followupType, setFollowupType] = useState("follow_up");
+  const [followupDescription, setFollowupDescription] = useState("");
+  const [followupDueDate, setFollowupDueDate] = useState("");
+  const [followupNotes, setFollowupNotes] = useState("");
 
   const createContact = async () => {
-    if (!form.full_name.trim()) return
-    setCreating(true)
+    if (!form.full_name.trim()) return;
+    setCreating(true);
     try {
-      if (!clerkUser?.id) return
-      await createContactMutation({
+      if (!clerkUser?.id) return;
+      const result = await createContactMutation({
         clerkId: clerkUser.id,
         name: form.full_name,
         company: form.company || undefined,
         position: form.position || undefined,
         email: form.email || undefined,
         phone: form.phone || undefined,
-      })
-      setForm({ full_name: '', company: '', position: '', email: '', phone: '' })
-      setShowAdd(false)
+        linkedin_url: form.linkedin_url || undefined,
+        relationship: form.relationship || undefined,
+        notes: form.notes || undefined,
+      });
+
+      // Wait a brief moment for Convex to propagate the change
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      setForm({
+        full_name: "",
+        company: "",
+        position: "",
+        email: "",
+        phone: "",
+        linkedin_url: "",
+        relationship: "",
+        notes: "",
+      });
+      setShowAdd(false);
       toast({
         title: "Contact added",
         description: "Your contact has been added successfully.",
         variant: "success",
-      })
+      });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error?.message || "Failed to add contact. Please try again.",
+        description:
+          error?.message || "Failed to add contact. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
-  }
+  };
+
+  const updateContact = async () => {
+    if (!clerkUser?.id || !editingContact) return;
+    setCreating(true);
+    try {
+      await updateContactMutation({
+        clerkId: clerkUser.id,
+        contactId: editingContact._id as any,
+        updates: {
+          name: form.full_name,
+          company: form.company || undefined,
+          position: form.position || undefined,
+          email: form.email || undefined,
+          phone: form.phone || undefined,
+          linkedin_url: form.linkedin_url || undefined,
+          relationship: form.relationship || undefined,
+          notes: form.notes || undefined,
+        },
+      });
+      setEditingContact(null);
+      setForm({
+        full_name: "",
+        company: "",
+        position: "",
+        email: "",
+        phone: "",
+        linkedin_url: "",
+        relationship: "",
+        notes: "",
+      });
+      toast({
+        title: "Contact updated",
+        description: "Your contact has been updated successfully.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description:
+          error?.message || "Failed to update contact. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const deleteContact = async () => {
-    if (!clerkUser?.id || !deleteId) return
+    if (!clerkUser?.id || !deleteId) return;
     try {
-      await deleteContactMutation({ clerkId: clerkUser.id, contactId: deleteId as any })
+      await deleteContactMutation({
+        clerkId: clerkUser.id,
+        contactId: deleteId as any,
+      });
       toast({
         title: "Contact deleted",
         description: "Your contact has been deleted successfully.",
         variant: "success",
-      })
-      setDeleteId(null)
+      });
+      setDeleteId(null);
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error?.message || "Failed to delete contact. Please try again.",
+        description:
+          error?.message || "Failed to delete contact. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
-  const toggleSaved = async (contact: Contact) => {
-    if (!clerkUser?.id) return
+  const openDetail = (contact: Contact) => {
+    setDetailContact(contact);
+    setDetailNotes(contact.notes || "");
+    setActiveDetailTab("info");
+  };
+
+  const startEdit = (contact: Contact) => {
+    setEditingContact(contact);
+    setForm({
+      full_name: contact.name,
+      company: contact.company || "",
+      position: contact.position || "",
+      email: contact.email || "",
+      phone: contact.phone || "",
+      linkedin_url: contact.linkedin_url || "",
+      relationship: contact.relationship || "",
+      notes: contact.notes || "",
+    });
+    setShowAdd(true);
+  };
+
+  const openLogInteraction = (contact: Contact) => {
+    setInteractionContact(contact);
+    setInteractionNotes("");
+    setShowLogInteraction(true);
+  };
+
+  const logInteraction = async () => {
+    if (!clerkUser?.id || !interactionContact) return;
     try {
-      await updateContactMutation({
+      await logInteractionMutation({
         clerkId: clerkUser.id,
-        contactId: contact._id as any,
-        updates: {
-          saved: !contact.saved,
-        },
-      })
+        contactId: interactionContact._id as any,
+        notes: interactionNotes || undefined,
+      });
+      toast({
+        title: "Interaction logged",
+        description: "Your interaction has been recorded.",
+        variant: "success",
+      });
+      setShowLogInteraction(false);
+      setInteractionContact(null);
+      setInteractionNotes("");
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update contact.",
+        description: "Failed to log interaction.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
+
+  const openScheduleFollowup = (contact: Contact) => {
+    setFollowupContact(contact);
+    setFollowupType("follow_up");
+    setFollowupDescription("");
+    setFollowupDueDate("");
+    setFollowupNotes("");
+    setShowScheduleFollowup(true);
+  };
+
+  const scheduleFollowup = async () => {
+    if (!clerkUser?.id || !followupContact || !followupDueDate) return;
+    try {
+      await createFollowupMutation({
+        clerkId: clerkUser.id,
+        contactId: followupContact._id as any,
+        type: followupType,
+        description: followupDescription,
+        due_date: new Date(followupDueDate).getTime(),
+        notes: followupNotes || undefined,
+      });
+      toast({
+        title: "Follow-up scheduled",
+        description: "Your follow-up has been scheduled successfully.",
+        variant: "success",
+      });
+      setShowScheduleFollowup(false);
+      setFollowupContact(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to schedule follow-up.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const completeFollowup = async (followupId: string) => {
+    if (!clerkUser?.id) return;
+    try {
+      await updateFollowupMutation({
+        clerkId: clerkUser.id,
+        followupId: followupId as any,
+        updates: { completed: true },
+      });
+      toast({
+        title: "Follow-up completed",
+        description: "The follow-up has been marked as completed.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to complete follow-up.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const saveDetailNotes = async () => {
-    if (!clerkUser?.id || !detailContact) return
+    if (!clerkUser?.id || !detailContact) return;
     try {
       await updateContactMutation({
         clerkId: clerkUser.id,
@@ -147,120 +402,236 @@ export default function ContactsPage() {
         updates: {
           notes: detailNotes,
         },
-      })
-      toast({ title: "Notes saved", variant: "success" })
+      });
+      toast({ title: "Notes saved", variant: "success" });
+      setDetailContact({ ...detailContact, notes: detailNotes });
     } catch (error: any) {
-      toast({ title: "Error", description: "Failed to save notes.", variant: "destructive" })
+      toast({
+        title: "Error",
+        description: "Failed to save notes.",
+        variant: "destructive",
+      });
     }
-  }
-
-  const saveDetailTags = async () => {
-    if (!clerkUser?.id || !detailContact) return
-    const tagsArray = detailTags.split(',').map(t => t.trim()).filter(Boolean)
-    try {
-      await updateContactMutation({
-        clerkId: clerkUser.id,
-        contactId: detailContact._id as any,
-        updates: {
-          tags: tagsArray,
-        },
-      })
-      toast({ title: "Tags saved", variant: "success" })
-    } catch (error: any) {
-      toast({ title: "Error", description: "Failed to save tags.", variant: "destructive" })
-    }
-  }
-
-  const openDetail = (contact: Contact) => {
-    setDetailContact(contact)
-    setDetailNotes(contact.notes || '')
-    setDetailTags((contact.tags || []).join(', '))
-  }
+  };
 
   // Filter contacts
   const filteredContacts = useMemo(() => {
-    let filtered = contactsData || []
+    let filtered = contactsData || [];
 
-    // Filter by tab
-    if (activeTab === 'saved') {
-      filtered = filtered.filter(c => c.saved)
+    // Filter by relationship
+    if (relationshipFilter && relationshipFilter !== "all") {
+      filtered = filtered.filter((c) => c.relationship === relationshipFilter);
     }
 
     // Filter by search
     if (searchTerm) {
-      filtered = filtered.filter(contact =>
-        contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.email?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      filtered = filtered.filter(
+        (contact) =>
+          contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          contact.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          contact.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          contact.email?.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
     }
 
-    return filtered
-  }, [contactsData, activeTab, searchTerm])
+    return filtered;
+  }, [contactsData, relationshipFilter, searchTerm]);
+
+  // Group contacts by company
+  const companiesData = useMemo(() => {
+    const companies: Record<string, Contact[]> = {};
+    filteredContacts.forEach((contact) => {
+      const companyName = contact.company || "No Company";
+      if (!companies[companyName]) {
+        companies[companyName] = [];
+      }
+      companies[companyName].push(contact);
+    });
+    return Object.entries(companies).sort((a, b) => b[1].length - a[1].length);
+  }, [filteredContacts]);
+
+  // Get contacts needing follow-up
+  const contactsNeedingFollowup = useMemo(() => {
+    if (!followupsData || !contactsData) return [];
+
+    const contactMap = new Map(contactsData.map((c) => [c._id, c]));
+    const followupContacts: Array<Contact & { followup: FollowUp }> = [];
+
+    followupsData.forEach((followup) => {
+      if (followup.contact_id) {
+        const contact = contactMap.get(followup.contact_id);
+        if (contact) {
+          followupContacts.push({ ...contact, followup });
+        }
+      }
+    });
+
+    return followupContacts.sort(
+      (a, b) => (a.followup.due_date || 0) - (b.followup.due_date || 0),
+    );
+  }, [followupsData, contactsData]);
+
+  const formatDate = (timestamp?: number) => {
+    if (!timestamp) return "Never";
+    return new Date(timestamp).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Network Hub</h1>
-            <p className="text-muted-foreground">Manage your professional contacts and connections</p>
+            <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
+              Network Hub
+            </h1>
+            <p className="text-muted-foreground">
+              Manage your professional network and foster strategic
+              relationships
+            </p>
           </div>
-          <Button onClick={() => setShowAdd(true)} disabled={creating}>
+          <Button
+            onClick={() => {
+              setEditingContact(null);
+              setShowAdd(true);
+              setForm({
+                full_name: "",
+                company: "",
+                position: "",
+                email: "",
+                phone: "",
+                linkedin_url: "",
+                relationship: "",
+                notes: "",
+              });
+            }}
+            disabled={creating}
+          >
             <Plus className="h-4 w-4 mr-2" /> Add Contact
           </Button>
         </div>
 
-        {/* Search and Toggle */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search contacts..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+        {/* Search and Filter */}
+        <div className="bg-white rounded-lg border shadow-sm p-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search contacts by name, company, or role..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="w-full md:w-64">
+              <Select
+                value={relationshipFilter}
+                onValueChange={setRelationshipFilter}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by relationship" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Relationships</SelectItem>
+                  <SelectItem value="Client">Client</SelectItem>
+                  <SelectItem value="Colleague">Colleague</SelectItem>
+                  <SelectItem value="Mentor">Mentor</SelectItem>
+                  <SelectItem value="Recruiter">Recruiter</SelectItem>
+                  <SelectItem value="Friend">Friend</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
         {/* Toggles */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-6">
           <Button
-            variant={activeTab === 'all' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('all')}
+            variant={activeTab === "all" ? "default" : "outline"}
+            onClick={() => setActiveTab("all")}
             className="flex items-center gap-2"
           >
             <Users className="h-4 w-4" />
             All Contacts
           </Button>
           <Button
-            variant={activeTab === 'saved' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('saved')}
+            variant={activeTab === "companies" ? "default" : "outline"}
+            onClick={() => setActiveTab("companies")}
             className="flex items-center gap-2"
           >
-            <Bookmark className="h-4 w-4" />
-            Saved Contacts
+            <Building2 className="h-4 w-4" />
+            Companies
+          </Button>
+          <Button
+            variant={activeTab === "followup" ? "default" : "outline"}
+            onClick={() => setActiveTab("followup")}
+            className="flex items-center gap-2"
+          >
+            <Clock className="h-4 w-4" />
+            Need Follow-up
+            {contactsNeedingFollowup.length > 0 && (
+              <Badge variant="destructive" className="ml-1">
+                {contactsNeedingFollowup.length}
+              </Badge>
+            )}
           </Button>
         </div>
       </div>
 
-      {/* Add Contact Dialog */}
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent>
+      {/* Add/Edit Contact Dialog */}
+      <Dialog
+        open={showAdd}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowAdd(false);
+            setEditingContact(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Add Contact</DialogTitle>
+            <DialogTitle>
+              {editingContact ? "Edit Contact" : "Add Contact"}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="full_name">Full Name *</Label>
-              <Input
-                id="full_name"
-                value={form.full_name}
-                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                placeholder="Jane Smith"
-              />
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="full_name">Full Name *</Label>
+                <Input
+                  id="full_name"
+                  value={form.full_name}
+                  onChange={(e) =>
+                    setForm({ ...form, full_name: e.target.value })
+                  }
+                  placeholder="Jane Smith"
+                />
+              </div>
+              <div>
+                <Label htmlFor="relationship">Relationship</Label>
+                <Select
+                  value={form.relationship}
+                  onValueChange={(value) =>
+                    setForm({ ...form, relationship: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select relationship" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Client">Client</SelectItem>
+                    <SelectItem value="Colleague">Colleague</SelectItem>
+                    <SelectItem value="Mentor">Mentor</SelectItem>
+                    <SelectItem value="Recruiter">Recruiter</SelectItem>
+                    <SelectItem value="Friend">Friend</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -268,7 +639,9 @@ export default function ContactsPage() {
                 <Input
                   id="company"
                   value={form.company}
-                  onChange={(e) => setForm({ ...form, company: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, company: e.target.value })
+                  }
                   placeholder="Acme Corp"
                 />
               </div>
@@ -277,7 +650,9 @@ export default function ContactsPage() {
                 <Input
                   id="position"
                   value={form.position}
-                  onChange={(e) => setForm({ ...form, position: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, position: e.target.value })
+                  }
                   placeholder="Software Engineer"
                 />
               </div>
@@ -303,67 +678,197 @@ export default function ContactsPage() {
                 />
               </div>
             </div>
+            <div>
+              <Label htmlFor="linkedin_url">LinkedIn URL</Label>
+              <Input
+                id="linkedin_url"
+                value={form.linkedin_url}
+                onChange={(e) =>
+                  setForm({ ...form, linkedin_url: e.target.value })
+                }
+                placeholder="https://linkedin.com/in/username"
+              />
+            </div>
+            <div>
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                placeholder="Add notes about this contact..."
+                rows={4}
+              />
+            </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button onClick={createContact} disabled={creating || !form.full_name.trim()}>
-              {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Add Contact
+            <Button
+              onClick={editingContact ? updateContact : createContact}
+              disabled={creating || !form.full_name.trim()}
+            >
+              {creating ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              {editingContact ? "Update Contact" : "Add Contact"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Contact Detail Dialog */}
-      <Dialog open={!!detailContact} onOpenChange={(open) => !open && setDetailContact(null)}>
-        <DialogContent className="sm:max-w-2xl">
+      <Dialog
+        open={!!detailContact}
+        onOpenChange={(open) => !open && setDetailContact(null)}
+      >
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{detailContact?.name}</DialogTitle>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-[#0C29AB] text-white flex items-center justify-center text-xl font-bold">
+                {detailContact?.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-xl">
+                  {detailContact?.name}
+                </DialogTitle>
+                {detailContact?.position && detailContact?.company && (
+                  <p className="text-sm text-muted-foreground">
+                    {detailContact.position} @ {detailContact.company}
+                  </p>
+                )}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => detailContact && startEdit(detailContact)}
+              >
+                <Pencil className="h-3 w-3 mr-1" /> Edit
+              </Button>
+            </div>
           </DialogHeader>
-          <Tabs defaultValue="info">
+
+          <Tabs value={activeDetailTab} onValueChange={setActiveDetailTab}>
             <TabsList className="grid grid-cols-4">
-              <TabsTrigger value="info">Contact Info</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="info">Info</TabsTrigger>
+              <TabsTrigger value="interactions">Interactions</TabsTrigger>
+              <TabsTrigger value="followups">Follow-ups</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
-              <TabsTrigger value="tags">Tags</TabsTrigger>
             </TabsList>
-            <TabsContent value="info" className="space-y-3 mt-4">
-              <div>
-                <Label className="text-xs text-muted-foreground">Name</Label>
-                <div className="mt-1">{detailContact?.name}</div>
+
+            <TabsContent value="info" className="space-y-4 mt-4">
+              <div className="space-y-3">
+                <div className="text-sm font-medium text-muted-foreground">
+                  Contact Information
+                </div>
+
+                {detailContact?.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <a
+                      href={`mailto:${detailContact.email}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {detailContact.email}
+                    </a>
+                  </div>
+                )}
+
+                {detailContact?.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{detailContact.phone}</span>
+                  </div>
+                )}
+
+                {detailContact?.linkedin_url && (
+                  <div className="flex items-center gap-2">
+                    <Linkedin className="h-4 w-4 text-muted-foreground" />
+                    <a
+                      href={detailContact.linkedin_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      LinkedIn Profile
+                    </a>
+                  </div>
+                )}
               </div>
-              {detailContact?.company && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Company</Label>
-                  <div className="mt-1">{detailContact.company}</div>
+
+              {detailContact?.relationship && (
+                <div className="pt-4 border-t">
+                  <div className="text-sm font-medium text-muted-foreground mb-2">
+                    Relationship
+                  </div>
+                  <Badge variant="secondary">
+                    {detailContact.relationship}
+                  </Badge>
                 </div>
               )}
-              {detailContact?.position && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Position</Label>
-                  <div className="mt-1">{detailContact.position}</div>
+
+              <div className="pt-4 border-t">
+                <div className="text-sm font-medium text-muted-foreground mb-2">
+                  Follow-up Information
                 </div>
-              )}
-              {detailContact?.email && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Email</Label>
-                  <div className="mt-1">{detailContact.email}</div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Last Contact:</span>
+                  <span>
+                    {detailContact?.last_contact
+                      ? formatDate(detailContact.last_contact)
+                      : "Never"}
+                  </span>
                 </div>
-              )}
-              {detailContact?.phone && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Phone</Label>
-                  <div className="mt-1">{detailContact.phone}</div>
-                </div>
-              )}
+                {detailContact?.last_contact && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="px-0 h-auto mt-2 text-red-600"
+                    onClick={() =>
+                      detailContact && openScheduleFollowup(detailContact)
+                    }
+                  >
+                    Needs follow-up
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t">
+                <Button
+                  onClick={() =>
+                    detailContact && openLogInteraction(detailContact)
+                  }
+                  className="flex-1"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Log Interaction
+                </Button>
+                <Button
+                  onClick={() =>
+                    detailContact && openScheduleFollowup(detailContact)
+                  }
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Schedule Follow-up
+                </Button>
+              </div>
             </TabsContent>
-            <TabsContent value="activity" className="mt-4">
+
+            <TabsContent value="interactions" className="mt-4">
               <div className="text-sm text-muted-foreground">
-                No activity recorded yet.
+                No interactions recorded yet.
               </div>
             </TabsContent>
+
+            <TabsContent value="followups" className="mt-4">
+              <div className="text-sm text-muted-foreground">
+                No follow-ups scheduled yet.
+              </div>
+            </TabsContent>
+
             <TabsContent value="notes" className="space-y-3 mt-4">
               <Textarea
                 placeholder="Add notes about this contact..."
@@ -375,41 +880,138 @@ export default function ContactsPage() {
                 <Button onClick={saveDetailNotes}>Save Notes</Button>
               </div>
             </TabsContent>
-            <TabsContent value="tags" className="space-y-3 mt-4">
-              <Input
-                placeholder="Enter tags, separated by commas (e.g., recruiter, engineer, mentor)"
-                value={detailTags}
-                onChange={(e) => setDetailTags(e.target.value)}
-              />
-              {detailContact?.tags && detailContact.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {detailContact.tags.map((tag, i) => (
-                    <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="flex justify-end">
-                <Button onClick={saveDetailTags}>Save Tags</Button>
-              </div>
-            </TabsContent>
           </Tabs>
+
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" onClick={() => setDetailContact(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Log Interaction Dialog */}
+      <Dialog open={showLogInteraction} onOpenChange={setShowLogInteraction}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log Interaction</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Contact</Label>
+              <p className="text-sm font-medium mt-1">
+                {interactionContact?.name}
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="interaction_notes">Notes</Label>
+              <Textarea
+                id="interaction_notes"
+                placeholder="What did you discuss?"
+                value={interactionNotes}
+                onChange={(e) => setInteractionNotes(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={logInteraction}>Log Interaction</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Follow-up Dialog */}
+      <Dialog
+        open={showScheduleFollowup}
+        onOpenChange={setShowScheduleFollowup}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule Follow-up</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Contact</Label>
+              <p className="text-sm font-medium mt-1">
+                {followupContact?.name}
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="followup_type">Type</Label>
+              <Select value={followupType} onValueChange={setFollowupType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="follow_up">Follow-up</SelectItem>
+                  <SelectItem value="meeting">Meeting</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="call">Call</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="followup_description">Description</Label>
+              <Input
+                id="followup_description"
+                placeholder="Brief description"
+                value={followupDescription}
+                onChange={(e) => setFollowupDescription(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="followup_due_date">Due Date *</Label>
+              <Input
+                id="followup_due_date"
+                type="date"
+                value={followupDueDate}
+                onChange={(e) => setFollowupDueDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="followup_notes">Notes</Label>
+              <Textarea
+                id="followup_notes"
+                placeholder="Additional notes"
+                value={followupNotes}
+                onChange={(e) => setFollowupNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={scheduleFollowup} disabled={!followupDueDate}>
+              Schedule Follow-up
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Contact</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this contact? This action cannot be undone.
+              Are you sure you want to delete this contact? This action cannot
+              be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={deleteContact} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={deleteContact}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -421,63 +1023,248 @@ export default function ContactsPage() {
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
-      ) : filteredContacts.length === 0 ? (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground mb-4">
-            {contactsData?.length === 0 ? 'No contacts yet. Add your first contact to start building your network.' : 'No contacts found matching your search.'}
-          </p>
-          {contactsData?.length === 0 && (
-            <Button onClick={() => setShowAdd(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Your First Contact
-            </Button>
-          )}
-        </Card>
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Position</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredContacts.map((contact) => (
-                <TableRow key={contact._id}>
-                  <TableCell className="font-medium">{contact.name}</TableCell>
-                  <TableCell>{contact.company || '—'}</TableCell>
-                  <TableCell>{contact.position || '—'}</TableCell>
-                  <TableCell className="text-sm">{contact.email || '—'}</TableCell>
-                  <TableCell className="text-sm">{contact.phone || '—'}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => openDetail(contact)} title="View details">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => toggleSaved(contact)}
-                        title={contact.saved ? "Remove from saved" : "Add to saved"}
-                      >
-                        <Bookmark className={`h-4 w-4 ${contact.saved ? 'fill-current text-blue-600' : ''}`} />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setDeleteId(contact._id)} title="Delete">
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+        <>
+          {/* All Contacts Tab */}
+          {activeTab === "all" && (
+            <>
+              {filteredContacts.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground mb-4">
+                    {contactsData?.length === 0
+                      ? "No contacts yet. Add your first contact to start building your network."
+                      : "No contacts found matching your search."}
+                  </p>
+                  {contactsData?.length === 0 && (
+                    <Button onClick={() => setShowAdd(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Your First Contact
+                    </Button>
+                  )}
+                </Card>
+              ) : (
+                <Card>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Relationship</TableHead>
+                        <TableHead>Last Contact</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredContacts.map((contact) => (
+                        <TableRow
+                          key={contact._id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => openDetail(contact)}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-[#0C29AB] text-white flex items-center justify-center font-semibold">
+                                {contact.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="font-medium text-blue-600 hover:underline">
+                                  {contact.name}
+                                </div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                  {contact.email && (
+                                    <span className="flex items-center gap-1">
+                                      <Mail className="h-3 w-3" />
+                                      {contact.email}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {contact.company && contact.position ? (
+                              <div>
+                                <div className="font-medium">
+                                  {contact.position}
+                                </div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Building2 className="h-3 w-3" />
+                                  {contact.company}
+                                </div>
+                              </div>
+                            ) : contact.position ? (
+                              <div className="font-medium">
+                                {contact.position}
+                              </div>
+                            ) : contact.company ? (
+                              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Building2 className="h-3 w-3" />
+                                {contact.company}
+                              </div>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {contact.relationship ? (
+                              <Badge variant="secondary">
+                                {contact.relationship}
+                              </Badge>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              {formatDate(contact.last_contact)}
+                            </div>
+                          </TableCell>
+                          <TableCell
+                            className="text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="ghost">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => openDetail(contact)}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Contact
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => startEdit(contact)}
+                                >
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Edit Contact
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => openLogInteraction(contact)}
+                                >
+                                  <MessageSquare className="h-4 w-4 mr-2" />
+                                  Log Interaction
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => openScheduleFollowup(contact)}
+                                >
+                                  <Calendar className="h-4 w-4 mr-2" />
+                                  Schedule Follow-up
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteId(contact._id)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+              )}
+            </>
+          )}
+
+          {/* Companies Tab */}
+          {activeTab === "companies" && (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Company</TableHead>
+                    <TableHead className="text-right">Contacts</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {companiesData.map(([company, contacts]) => (
+                    <TableRow key={company}>
+                      <TableCell className="font-medium flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        {company}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {contacts.length}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+
+          {/* Need Follow-up Tab */}
+          {activeTab === "followup" && (
+            <>
+              {contactsNeedingFollowup.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">All caught up!</h3>
+                  <p className="text-muted-foreground">
+                    No pending follow-ups at the moment.
+                  </p>
+                </Card>
+              ) : (
+                <Card>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {contactsNeedingFollowup.map((item) => (
+                        <TableRow key={item._id}>
+                          <TableCell
+                            className="font-medium text-blue-600 hover:underline cursor-pointer"
+                            onClick={() => openDetail(item)}
+                          >
+                            {item.name}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {item.followup.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {formatDate(item.followup.due_date)}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {item.followup.description || "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                completeFollowup(item.followup._id)
+                              }
+                            >
+                              Complete
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+              )}
+            </>
+          )}
+        </>
       )}
     </div>
-  )
+  );
 }

@@ -162,6 +162,14 @@ export default defineSchema({
     template: v.string(), // default: 'standard'
     content: v.optional(v.string()),
     closing: v.string(), // default: 'Sincerely,'
+    source: v.optional(
+      v.union(
+        v.literal("manual"),
+        v.literal("ai_generated"),
+        v.literal("ai_optimized"),
+        v.literal("pdf_upload"),
+      ),
+    ),
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -253,6 +261,12 @@ export default defineSchema({
     title: v.string(),
     content: v.any(), // JSON data
     visibility: v.union(v.literal("private"), v.literal("public")),
+    source: v.optional(v.union(
+      v.literal("manual"),
+      v.literal("ai_generated"),
+      v.literal("ai_optimized"),
+      v.literal("pdf_upload"),
+    )), // Source of resume creation
     // Analysis data
     extracted_text: v.optional(v.string()), // Text extracted from uploaded PDF/DOCX
     job_description: v.optional(v.string()), // Job description for analysis

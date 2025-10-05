@@ -29,11 +29,20 @@ export async function POST(request: NextRequest) {
     const client = new ConvexHttpClient(url)
 
     const body = await request.json()
-    const { title, content, company_name, position, job_description } = body
+    const { title, content, company_name, position, job_description, source } = body as {
+      title?: string
+      content?: string
+      company_name?: string
+      position?: string
+      job_description?: string
+      source?: string
+    }
 
     if (!title || !content) {
       return NextResponse.json({ error: 'Title and content are required' }, { status: 400 })
     }
+
+    const allowedSources = new Set(['manual', 'ai_generated', 'ai_optimized', 'pdf_upload'])
 
     const coverLetter = await client.mutation(api.cover_letters.createCoverLetter, {
       clerkId: userId,
@@ -43,6 +52,7 @@ export async function POST(request: NextRequest) {
       template: 'standard',
       content: String(content),
       closing: 'Sincerely,',
+      source: allowedSources.has(source ?? '') ? (source as any) : 'manual',
     })
 
     return NextResponse.json({ coverLetter }, { status: 201 })

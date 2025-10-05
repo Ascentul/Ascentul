@@ -21,24 +21,59 @@ export async function POST(request: NextRequest) {
     const client = getClient()
 
     const body = await request.json()
-    const { jobDescription, companyName, position, userProfile } = body
+    const { jobDescription, companyName, position } = body as {
+      jobDescription?: string
+      companyName?: string
+      position?: string
+    }
 
     if (!jobDescription || !companyName || !position) {
-      return NextResponse.json({ 
-        error: 'Job description, company name, and position are required' 
+      return NextResponse.json({
+        error: 'Job description, company name, and position are required',
       }, { status: 400 })
     }
 
+    // Fetch the user career profile so generation stays grounded in real data
+    let profile: any | null = null
+    try {
+      profile = await client.query(api.users.getUserByClerkId, { clerkId: userId })
+    } catch (error) {
+      console.error('Failed to load career profile for letter generation', error)
+    }
+
+    const profileSummary: string[] = []
+    if (profile) {
+      if (profile.current_position) profileSummary.push(`Current position: ${profile.current_position}`)
+      if (profile.current_company) profileSummary.push(`Current company: ${profile.current_company}`)
+      if (profile.industry) profileSummary.push(`Industry: ${profile.industry}`)
+      if (profile.experience_level) profileSummary.push(`Experience level: ${profile.experience_level}`)
+      if (profile.location) profileSummary.push(`Location: ${profile.location}`)
+      if (profile.skills) profileSummary.push(`Skills: ${profile.skills}`)
+      if (profile.bio) profileSummary.push(`Bio: ${profile.bio}`)
+      if (profile.career_goals) profileSummary.push(`Career goals: ${profile.career_goals}`)
+      if (profile.education) profileSummary.push(`Education: ${profile.education}`)
+    }
+
+    const userProfileSummary = profileSummary.length
+      ? profileSummary.join('\n')
+      : 'No additional career profile data provided.'
+
     // Generate cover letter using OpenAI with graceful fallback
-    const prompt = `Generate a professional cover letter for the following:
+    const prompt = `You are creating a tailored cover letter.
 
 Company: ${companyName}
-Position: ${position}
-Job Description: ${jobDescription}
+Role: ${position}
+Job Description:
+${jobDescription}
 
-User Profile: ${userProfile || 'Professional with relevant experience'}
+Career Profile (ground truth):
+${userProfileSummary}
 
-Create a compelling, personalized cover letter that highlights relevant skills and experience for this specific role. Keep it professional, concise, and engaging.`
+Instructions:
+- Produce a complete cover letter that includes: a greeting, opening paragraph, at least two body paragraphs, and a closing paragraph with signature.
+- Weave in the candidate's verified career profile details wherever relevant. Do not invent facts. If specific information is missing, acknowledge that briefly rather than fabricating it.
+- Keep the tone professional, confident, and specific to the role and company.
+- Return only the final cover letter text, ready for the user to send.`
 
     let generatedContent: string | null = null
     let usedFallback = false
@@ -66,8 +101,14 @@ Create a compelling, personalized cover letter that highlights relevant skills a
 
     if (!generatedContent) {
       usedFallback = true
-      const userLine = userProfile ? `As a ${userProfile}, ` : ''
-      generatedContent = `Dear Hiring Manager,\n\n${userLine}I am excited to apply for the ${position} role at ${companyName}. My background and experience align well with your needs.\n\nIn reviewing the job description, I noted several key requirements where I can contribute immediately. I have demonstrated success collaborating across teams, communicating clearly, and delivering high-quality results.\n\nI would welcome the opportunity to discuss how my skills can support ${companyName}'s goals. Thank you for your time and consideration.\n\nSincerely,\nYour Name`
+      const profileName = profile?.name || 'Your Name'
+      const currentRoleLine = profile?.current_position
+        ? `I currently serve as ${profile.current_position}${profile.current_company ? ` at ${profile.current_company}` : ''}. `
+        : ''
+      const bodyLine = profile?.skills
+        ? `I am confident that my background in ${profile.skills} will translate well to the priorities you outlined.`
+        : 'I am confident that my experience will translate well to the priorities you outlined.'
+      generatedContent = `Dear Hiring Manager,\n\n${currentRoleLine || ''}I am excited to apply for the ${position} role at ${companyName}. Your description resonates strongly with my background and the impact I strive to deliver.\n\n${bodyLine}\n\nI would welcome the opportunity to learn more about how I can support ${companyName}'s goals and continue growing in this capacity.\n\nThank you for your consideration, and I look forward to the possibility of speaking with you soon.\n\nSincerely,\n${profileName}`
     }
 
     // Save the generated cover letter to Convex, degrade gracefully if persistence fails
@@ -82,6 +123,7 @@ Create a compelling, personalized cover letter that highlights relevant skills a
         template: 'standard',
         content: generatedContent,
         closing: 'Sincerely,',
+        source: 'ai_generated',
       })
     } catch {
       saveWarning = 'Cover letter generated but could not be saved.'

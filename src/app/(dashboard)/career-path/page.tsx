@@ -183,11 +183,13 @@ function CertificationCard({
         </div>
         <Badge
           className={
-            cert.relevance === "highly relevant"
-              ? "bg-green-100 text-green-800"
-              : cert.relevance === "relevant"
-                ? "bg-blue-100 text-blue-800"
-                : "bg-amber-100 text-amber-800"
+            (
+              cert.relevance === "highly relevant"
+                ? "bg-green-100 text-green-800"
+                : cert.relevance === "relevant"
+                  ? "bg-blue-100 text-blue-800"
+                  : "bg-amber-100 text-amber-800"
+            ) + " rounded-md whitespace-nowrap px-2 py-0 text-xs leading-5"
           }
         >
           {cert.relevance}

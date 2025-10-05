@@ -1,100 +1,96 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/ClerkAuthProvider"
-import { useMutation } from "convex/react"
-import { api } from "convex/_generated/api"
-import {
-  ChevronRight,
-  ChevronLeft,
-  Loader2
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/ClerkAuthProvider";
+import { useMutation } from "convex/react";
+import { api } from "convex/_generated/api";
+import { ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 interface OnboardingData {
-  major: string
-  graduationYear: string
-  dreamJob: string
+  major: string;
+  graduationYear: string;
+  dreamJob: string;
 }
 
 const defaultOnboardingData: OnboardingData = {
   major: "",
   graduationYear: "",
-  dreamJob: ""
-}
+  dreamJob: "",
+};
 
 export function OnboardingFlow() {
-  const { user } = useAuth()
-  const router = useRouter()
-  const { toast } = useToast()
-  
-  // Convex mutations
-  const updateUser = useMutation(api.users.updateUser)
+  const { user } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
 
-  const [step, setStep] = useState<number>(1)
-  const [data, setData] = useState<OnboardingData>(defaultOnboardingData)
-  const [progress, setProgress] = useState<number>(20)
-  const [isSavingOnboarding, setIsSavingOnboarding] = useState<boolean>(false)
+  // Convex mutations
+  const updateUser = useMutation(api.users.updateUser);
+
+  const [step, setStep] = useState<number>(1);
+  const [data, setData] = useState<OnboardingData>(defaultOnboardingData);
+  const [progress, setProgress] = useState<number>(20);
+  const [isSavingOnboarding, setIsSavingOnboarding] = useState<boolean>(false);
 
   // Update progress bar based on current step
   useEffect(() => {
-    setProgress(Math.floor((step / 2) * 100)) // 2 steps total
-  }, [step])
+    setProgress(Math.floor((step / 2) * 100)); // 2 steps total
+  }, [step]);
 
   const handleDataChange = (key: keyof OnboardingData, value: string) => {
     setData((prevData) => ({
       ...prevData,
-      [key]: value
-    }))
-  }
-
+      [key]: value,
+    }));
+  };
 
   const handleNext = async () => {
     if (step === 2) {
-      const success = await saveOnboardingData()
+      const success = await saveOnboardingData();
       if (!success) {
         toast({
           title: "Error saving onboarding data",
-          description: "There was an error saving your profile information. Please try again.",
-          variant: "destructive"
-        })
+          description:
+            "There was an error saving your profile information. Please try again.",
+          variant: "destructive",
+        });
       }
     } else if (step < 2) {
-      setStep(step + 1)
+      setStep(step + 1);
     }
-  }
+  };
 
   const handleBack = () => {
     if (step > 1) {
-      setStep(step - 1)
+      setStep(step - 1);
     }
-  }
+  };
 
   const saveOnboardingData = async () => {
-    if (!user) return false
+    if (!user) return false;
 
     try {
-      setIsSavingOnboarding(true)
+      setIsSavingOnboarding(true);
 
       await updateUser({
         clerkId: user.clerkId,
@@ -102,29 +98,29 @@ export function OnboardingFlow() {
           major: data.major,
           graduation_year: data.graduationYear,
           dream_job: data.dreamJob,
-          onboarding_completed: true
-        }
-      })
+          onboarding_completed: true,
+        },
+      });
 
       toast({
         title: "Welcome to Ascentful!",
         description: "Your profile has been set up successfully.",
-        variant: 'success'
-      })
+        variant: "success",
+      });
 
-      // Wait for Convex to propagate the update before redirecting
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Wait longer for Convex to propagate the update and the query to refresh
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Redirect to dashboard
-      router.push('/dashboard')
-      return true
+      // Force a hard redirect to ensure the user data is fully refreshed
+      window.location.href = "/dashboard";
+      return true;
     } catch (error) {
-      console.error("Error saving onboarding data:", error)
-      return false
+      console.error("Error saving onboarding data:", error);
+      return false;
     } finally {
-      setIsSavingOnboarding(false)
+      setIsSavingOnboarding(false);
     }
-  }
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -132,9 +128,12 @@ export function OnboardingFlow() {
         return (
           <div className="space-y-6">
             <CardHeader>
-              <CardTitle className="text-2xl">Tell us about your education</CardTitle>
+              <CardTitle className="text-2xl">
+                Tell us about your education
+              </CardTitle>
               <CardDescription>
-                Help us personalize your experience by sharing your academic details.
+                Help us personalize your experience by sharing your academic
+                details.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -151,7 +150,9 @@ export function OnboardingFlow() {
                 <Label htmlFor="grad-year">Expected graduation year</Label>
                 <Select
                   value={data.graduationYear}
-                  onValueChange={(value) => handleDataChange("graduationYear", value)}
+                  onValueChange={(value) =>
+                    handleDataChange("graduationYear", value)
+                  }
                 >
                   <SelectTrigger id="grad-year">
                     <SelectValue placeholder="Select graduation year" />
@@ -164,7 +165,7 @@ export function OnboardingFlow() {
                       new Date().getFullYear() + 3,
                       new Date().getFullYear() + 4,
                       new Date().getFullYear() + 5,
-                      new Date().getFullYear() + 6
+                      new Date().getFullYear() + 6,
                     ].map((year) => (
                       <SelectItem key={year} value={year.toString()}>
                         {year}
@@ -183,7 +184,7 @@ export function OnboardingFlow() {
               </Button>
             </CardFooter>
           </div>
-        )
+        );
 
       case 2:
         return (
@@ -191,7 +192,8 @@ export function OnboardingFlow() {
             <CardHeader>
               <CardTitle className="text-2xl">What's your dream job?</CardTitle>
               <CardDescription>
-                Tell us about your career aspirations so we can help you get there.
+                Tell us about your career aspirations so we can help you get
+                there.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -204,7 +206,8 @@ export function OnboardingFlow() {
                   onChange={(e) => handleDataChange("dreamJob", e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Be as specific or general as you'd like - this helps us tailor your experience.
+                  Be as specific or general as you'd like - this helps us tailor
+                  your experience.
                 </p>
               </div>
             </CardContent>
@@ -214,9 +217,9 @@ export function OnboardingFlow() {
               </Button>
               <Button
                 onClick={async () => {
-                  const success = await saveOnboardingData()
+                  const success = await saveOnboardingData();
                   if (success) {
-                    router.push('/dashboard')
+                    router.push("/dashboard");
                   }
                 }}
                 disabled={isSavingOnboarding || !data.dreamJob}
@@ -228,17 +231,17 @@ export function OnboardingFlow() {
                     Setting up...
                   </>
                 ) : (
-                  'Complete Setup'
+                  "Complete Setup"
                 )}
               </Button>
             </CardFooter>
           </div>
-        )
+        );
 
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
@@ -251,11 +254,9 @@ export function OnboardingFlow() {
             </p>
           </div>
 
-          <Card className="w-full">
-            {renderStep()}
-          </Card>
+          <Card className="w-full">{renderStep()}</Card>
         </div>
       </div>
     </div>
-  )
+  );
 }
