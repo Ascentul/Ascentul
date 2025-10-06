@@ -49,6 +49,7 @@ export default function AdminUsersPage() {
   const universities = useQuery(api.universities.getAllUniversities, {})
 
   const updateUser = useMutation(api.users.updateUser)
+  const createUserByAdmin = useMutation(api.admin_users.createUserByAdmin)
 
   // Create user mutation for adding new staff users
   const createUser = useMutation(api.users.createUser)
@@ -95,12 +96,11 @@ export default function AdminUsersPage() {
     setCreatingUser(true)
     try {
       // Use createUserByAdmin mutation which sends activation email
-      const createUserByAdmin = useMutation(api.admin_users.createUserByAdmin)
       await createUserByAdmin({
         adminClerkId: clerkUser.id,
         email: newUserForm.email,
         name: newUserForm.name,
-        role: newUserForm.role,
+        role: newUserForm.role as "user" | "staff" | "university_admin" | "advisor",
       })
 
       // Reset form
@@ -130,7 +130,7 @@ export default function AdminUsersPage() {
         updates: {
           name: form.name,
           email: form.email,
-          role: form.role,
+          role: form.role as any,
           subscription_plan: form.plan,
           subscription_status: form.status,
         },

@@ -155,7 +155,7 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = useMemo(
     () => userProfile?.role === 'super_admin' ||
           userProfile?.role === 'university_admin' ||
-          userProfile?.role === 'admin',
+          userProfile?.role === 'advisor',
     [userProfile?.role]
   )
 
