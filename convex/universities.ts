@@ -204,6 +204,14 @@ export const getUniversitySettings = query({
   }
 });
 
+// Get university by ID
+export const getUniversity = query({
+  args: { universityId: v.id("universities") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.universityId);
+  }
+});
+
 // Optional helper to fetch by slug
 export const getUniversityBySlug = query({
   args: { slug: v.string() },

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from 'convex/_generated/api';
+import { sendUniversityInvitationEmail } from '@/lib/email';
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,28 +20,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No emails provided' }, { status: 400 });
     }
 
-    // Send activation emails via Clerk magic link
+    // Get the university admin's info to fetch university name
+    const adminUser = await convex.query(api.users.getUserByClerkId, { clerkId: userId });
+
+    if (!adminUser || !adminUser.university_id) {
+      return NextResponse.json({ error: 'University admin not found' }, { status: 404 });
+    }
+
+    // Get the university details
+    const university = await convex.query(api.universities.getUniversity, {
+      universityId: adminUser.university_id
+    });
+
+    if (!university) {
+      return NextResponse.json({ error: 'University not found' }, { status: 404 });
+    }
+
+    // Send invitation emails
     const results = await Promise.allSettled(
       emails.map(async (email: string) => {
         try {
-          // Use Clerk's magic link API to send activation email
-          const response = await fetch('https://api.clerk.com/v1/magic_links', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${process.env.CLERK_SECRET_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              email_address: email,
-              redirect_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/university-activation`,
-            }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.errors?.[0]?.message || `Failed to send invitation to ${email}`);
-          }
-
+          await sendUniversityInvitationEmail(email, university.name);
           return { email, success: true };
         } catch (error: any) {
           console.error(`Error sending invitation to ${email}:`, error);

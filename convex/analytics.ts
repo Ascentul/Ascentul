@@ -133,7 +133,7 @@ export const getAdminAnalytics = query({
       activeUsers: users.filter(u => u.subscription_status === "active").length,
       systemHealth: 98.5, // Would be calculated from actual monitoring
       monthlyGrowth: userGrowth.length > 1 ?
-        ((userGrowth[userGrowth.length - 1].users / userGrowth[userGrowth.length - 2].users - 1) * 100) : 0,
+        Math.floor((userGrowth[userGrowth.length - 1].users / userGrowth[userGrowth.length - 2].users - 1) * 100) : 0,
       supportTickets: supportTickets.length,
       systemUptime: 99.9 // Would come from monitoring system
     };

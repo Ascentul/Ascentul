@@ -119,29 +119,112 @@ export async function sendActivationEmail(
   tempPassword: string,
   activationUrl: string
 ): Promise<EmailResult> {
-  const subject = 'Welcome to Ascentul - Activate Your Account'
+  const firstName = name.split(' ')[0]
+  const subject = 'Welcome to Ascentful - Set Your Password'
 
-  const text = `Hello ${name},
+  const text = `Hi ${firstName},
 
-An account has been created for you on Ascentul, your career growth partner.
+Your Ascentful account has been created. To get started, please set your password using the secure link below:
 
-To get started, please activate your account using the following information:
+Set Your Password
 
-Email: ${email}
-Temporary Password: ${tempPassword}
+This link will expire in 24 hours for your security. Once your password is set, you can log in anytime at https://app.ascentful.io.
 
-Click here to activate your account and set your password:
-${activationUrl}
+If you did not expect this email, please ignore it or contact our support team.
 
-This activation link will expire in 7 days.
+Welcome to Ascentful. We're excited to support your journey and help you get the most out of your account.
 
-Once activated, you'll have access to:
-• AI-powered resume and cover letter tools
-• Career path guidance
+Best,
+The Ascentful Team`
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+
+      <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
+
+      <p style="font-size: 16px; margin-bottom: 24px;">Your Ascentful account has been created. To get started, please set your password using the secure link below:</p>
+
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="${activationUrl}"
+           style="background-color: #0C29AB;
+                  color: white;
+                  padding: 14px 32px;
+                  text-decoration: none;
+                  border-radius: 6px;
+                  font-weight: 600;
+                  font-size: 16px;
+                  display: inline-block;">
+          Set Your Password
+        </a>
+      </div>
+
+      <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
+        This link will expire in 24 hours for your security. Once your password is set, you can log in anytime at <a href="https://app.ascentful.io" style="color: #0C29AB; text-decoration: none;">https://app.ascentful.io</a>.
+      </p>
+
+      <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
+        If you did not expect this email, please ignore it or contact our support team.
+      </p>
+
+      <p style="font-size: 16px; margin-top: 32px; margin-bottom: 8px;">
+        Welcome to Ascentful. We're excited to support your journey and help you get the most out of your account.
+      </p>
+
+      <p style="font-size: 16px; margin-top: 24px;">
+        Best,<br>
+        <strong>The Ascentful Team</strong>
+      </p>
+
+      <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
+        <p>© ${new Date().getFullYear()} Ascentful, Inc. All rights reserved.</p>
+        <p style="margin-top: 10px;">
+          <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentful.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
+        </p>
+      </div>
+    </div>
+  `
+
+  return sendEmail({
+    to: email,
+    subject,
+    text,
+    html,
+  })
+}
+
+/**
+ * Send university invitation email to students
+ */
+export async function sendUniversityInvitationEmail(
+  email: string,
+  universityName: string
+): Promise<EmailResult> {
+  const signUpUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sign-up?email=${encodeURIComponent(email)}`
+
+  const subject = `You're Invited to Join ${universityName} on Ascentul`
+
+  const text = `Hello,
+
+You've been invited to join ${universityName} on Ascentul - your career development platform.
+
+Your university has provided you with access to Ascentul's comprehensive career tools and resources at no cost.
+
+To get started, please create your account using this email address: ${email}
+
+Click here to sign up:
+${signUpUrl}
+
+Once you create your account, you'll have access to:
+• AI-powered resume and cover letter builder
+• Career path guidance and goal setting
 • Job application tracking
+• Interview preparation resources
+• Professional networking tools
 • And much more!
 
-If you have any questions, please contact our support team.
+If you have any questions, please contact your university's career services or reach out to our support team.
 
 Best regards,
 The Ascentul Team`
@@ -152,28 +235,20 @@ The Ascentul Team`
         <img src="https://ascentul.io/logo.png" alt="Ascentul" style="max-width: 180px;">
       </div>
 
-      <h1 style="color: #0C29AB; font-size: 26px; margin-bottom: 20px;">Welcome to Ascentul!</h1>
+      <h1 style="color: #0C29AB; font-size: 26px; margin-bottom: 20px;">You're Invited!</h1>
 
-      <p>Hello ${name},</p>
+      <p>Hello,</p>
 
-      <p>An account has been created for you on <strong>Ascentul</strong>, your career growth partner.</p>
+      <p>Great news! <strong>${universityName}</strong> has invited you to join <strong>Ascentul</strong>, a comprehensive career development platform designed to help you succeed in your professional journey.</p>
 
       <div style="background-color: #f0f2ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 25px 0; border-radius: 4px;">
-        <h3 style="margin-top: 0; color: #0C29AB; font-size: 18px;">Your Account Details</h3>
-        <table style="width: 100%;">
-          <tr>
-            <td style="padding: 8px 0; font-weight: 600;">Email:</td>
-            <td style="padding: 8px 0;">${email}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; font-weight: 600;">Temporary Password:</td>
-            <td style="padding: 8px 0; font-family: monospace; background: white; padding: 4px 8px; border-radius: 3px;">${tempPassword}</td>
-          </tr>
-        </table>
+        <h3 style="margin-top: 0; color: #0C29AB; font-size: 18px;">Your Access Details</h3>
+        <p style="margin: 8px 0;">Use this email address to sign up: <strong>${email}</strong></p>
+        <p style="margin: 8px 0; font-size: 14px; color: #666;">Your university has provided you with complimentary access to all premium features.</p>
       </div>
 
       <div style="text-align: center; margin: 35px 0;">
-        <a href="${activationUrl}"
+        <a href="${signUpUrl}"
            style="background-color: #0C29AB;
                   color: white;
                   padding: 14px 32px;
@@ -182,31 +257,28 @@ The Ascentul Team`
                   font-weight: 600;
                   font-size: 16px;
                   display: inline-block;">
-          Activate Your Account
+          Create Your Account
         </a>
       </div>
-
-      <p style="font-size: 14px; color: #666; margin-top: 25px;">
-        <strong>Note:</strong> This activation link will expire in <strong>7 days</strong>.
-        After activation, you'll be prompted to create a new password.
-      </p>
 
       <div style="background-color: #f9fafb; padding: 20px; margin: 25px 0; border-radius: 6px;">
         <h3 style="margin-top: 0; font-size: 16px; color: #333;">What you'll have access to:</h3>
         <ul style="margin: 10px 0; padding-left: 20px;">
-          <li style="margin: 8px 0;">AI-powered resume and cover letter optimization</li>
-          <li style="margin: 8px 0;">Personalized career path guidance</li>
+          <li style="margin: 8px 0;">AI-powered resume and cover letter builder</li>
+          <li style="margin: 8px 0;">Personalized career path guidance and goal setting</li>
           <li style="margin: 8px 0;">Job application tracking and management</li>
-          <li style="margin: 8px 0;">Interview preparation resources</li>
-          <li style="margin: 8px 0;">Networking tools and recommendations</li>
+          <li style="margin: 8px 0;">Interview preparation resources and tips</li>
+          <li style="margin: 8px 0;">Professional networking tools</li>
+          <li style="margin: 8px 0;">Career coaching and mentorship</li>
         </ul>
       </div>
 
-      <p>If you have any questions or need assistance, don't hesitate to reach out to our support team at
-         <a href="mailto:support@ascentul.io" style="color: #0C29AB; text-decoration: none;">support@ascentul.io</a>
+      <p style="font-size: 14px; color: #666; margin-top: 25px;">
+        If you have any questions about this invitation, please contact your university's career services department or reach out to our support team at
+        <a href="mailto:support@ascentul.io" style="color: #0C29AB; text-decoration: none;">support@ascentul.io</a>
       </p>
 
-      <p>We're excited to help you achieve your career goals!</p>
+      <p>We're excited to support your career development journey!</p>
 
       <p style="margin-top: 30px;">Best regards,<br><strong>The Ascentul Team</strong></p>
 

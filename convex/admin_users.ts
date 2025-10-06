@@ -73,7 +73,7 @@ export const createUserByAdmin = mutation({
     // Generate activation token and temp password
     const activationToken = generateActivationToken()
     const tempPassword = generateTempPassword()
-    const activationExpiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+    const activationExpiresAt = Date.now() + (24 * 60 * 60 * 1000) // 24 hours
 
     // Create user with pending activation status
     // Note: This creates a placeholder in Convex. Actual Clerk account

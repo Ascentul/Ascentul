@@ -33,6 +33,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -54,6 +56,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import {
   GraduationCap,
@@ -68,6 +77,8 @@ import {
   TrendingUp,
   AlertTriangle,
   UserRound,
+  Briefcase,
+  MoreVertical,
 } from "lucide-react";
 import { Id } from "convex/_generated/dataModel";
 import {
@@ -154,11 +165,88 @@ export default function UniversityDashboardPage() {
     api.university_admin.getUniversityAnalytics,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
+  const studentMetrics = useQuery(
+    api.university_admin.getStudentMetrics,
+    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+  );
+  const studentProgress = useQuery(
+    api.university_admin.getStudentProgress,
+    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+  );
 
   // Use real analytics data from database
   const studentGrowthData = analytics?.studentGrowthData || [];
   const activityData = analytics?.activityData || [];
   const departmentStats = analytics?.departmentStats || [];
+  const platformUsageData = analytics?.platformUsageData || [];
+
+  // Compute derived data for charts
+  const departmentDistributionData = useMemo(() => {
+    if (!students || students.length === 0 || !departments) return [];
+
+    const totalStudents = students.length;
+    const data = departments.map(dept => {
+      const deptStudents = students.filter((s: any) => s.department_id === dept._id);
+      return {
+        name: dept.name,
+        value: Math.round((deptStudents.length / totalStudents) * 100),
+        count: deptStudents.length,
+      };
+    }).filter(d => d.count > 0);
+
+    // Add unassigned students
+    const unassignedStudents = students.filter((s: any) => !s.department_id);
+    if (unassignedStudents.length > 0) {
+      data.push({
+        name: "Not Assigned",
+        value: Math.round((unassignedStudents.length / totalStudents) * 100),
+        count: unassignedStudents.length,
+      });
+    }
+
+    return data;
+  }, [students, departments]);
+
+  const topFeaturesData = useMemo(() => {
+    if (!studentMetrics) return [];
+
+    return [
+      { feature: "Resume Builder", usage: studentMetrics.totalResumes },
+      { feature: "Goal Setting", usage: studentMetrics.totalGoals },
+      { feature: "Job Applications", usage: studentMetrics.totalApplications },
+      { feature: "Cover Letters", usage: studentMetrics.totalCoverLetters },
+      { feature: "Projects", usage: studentMetrics.totalProjects || 0 },
+    ].sort((a, b) => b.usage - a.usage);
+  }, [studentMetrics]);
+
+  const progressCompletionData = useMemo(() => {
+    if (!studentProgress || studentProgress.length === 0) return [];
+
+    const completed = studentProgress.filter(s => s.careerCompletion >= 80).length;
+    const inProgress = studentProgress.filter(s => s.careerCompletion > 20 && s.careerCompletion < 80).length;
+    const notStarted = studentProgress.filter(s => s.careerCompletion <= 20).length;
+    const total = studentProgress.length;
+
+    return [
+      { name: "Completed", value: Math.round((completed / total) * 100), count: completed },
+      { name: "In Progress", value: Math.round((inProgress / total) * 100), count: inProgress },
+      { name: "Not Started", value: Math.round((notStarted / total) * 100), count: notStarted },
+    ];
+  }, [studentProgress]);
+
+  const atRiskStudentsData = useMemo(() => {
+    if (!studentProgress || studentProgress.length === 0) return [];
+
+    const highRisk = studentProgress.filter(s => s.careerCompletion < 20).length;
+    const mediumRisk = studentProgress.filter(s => s.careerCompletion >= 20 && s.careerCompletion < 50).length;
+    const lowRisk = studentProgress.filter(s => s.careerCompletion >= 50).length;
+
+    return [
+      { segment: "High Risk", count: highRisk, color: "#EF4444" },
+      { segment: "Medium Risk", count: mediumRisk, color: "#F59E0B" },
+      { segment: "Low Risk", count: lowRisk, color: "#10B981" },
+    ];
+  }, [studentProgress]);
 
   // Filter students based on current filters
   const filteredStudents = useMemo(() => {
@@ -190,10 +278,14 @@ export default function UniversityDashboardPage() {
   const [assignText, setAssignText] = useState("");
   const [assignRole, setAssignRole] = useState<"user" | "staff">("user");
   const [selectedProgram, setSelectedProgram] = useState<
-    Id<"departments"> | ""
-  >("");
+    Id<"departments"> | "none"
+  >("none");
   const [assigning, setAssigning] = useState(false);
   const [importingEmails, setImportingEmails] = useState(false);
+
+  // Export dialog state
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportFilename, setExportFilename] = useState("");
 
   // Student filtering state
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
@@ -210,6 +302,99 @@ export default function UniversityDashboardPage() {
   const [studentToDelete, setStudentToDelete] = useState<any>(null);
   const [updatingStudent, setUpdatingStudent] = useState(false);
   const [deletingStudent, setDeletingStudent] = useState(false);
+
+  // Export function
+  const handleExportReports = async () => {
+    try {
+      // Get the session token for authentication
+      const token = await getToken();
+      if (!token) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to export reports",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch("/api/university/export-reports", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          clerkId: clerkUser?.id,
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const filename = exportFilename.trim() || `university-report-${new Date().toISOString().split("T")[0]}`;
+        a.download = `${filename}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast({
+          title: "Export successful",
+          description: "Report downloaded successfully",
+          variant: "success",
+        });
+        setExportDialogOpen(false);
+        setExportFilename("");
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage =
+          errorData.error ||
+          `Export failed with status ${response.status}`;
+
+        // For university admin configuration issues, show a more helpful message
+        if (
+          errorMessage.includes(
+            "University admin account not properly configured",
+          )
+        ) {
+          toast({
+            title: "Account Configuration Required",
+            description:
+              "Your university admin account needs to be assigned to a university. Please contact support for assistance.",
+            variant: "destructive",
+            action: (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  window.open(
+                    "mailto:support@ascentful.com?subject=University Admin Account Configuration",
+                    "_blank",
+                  )
+                }
+              >
+                Contact Support
+              </Button>
+            ),
+          });
+          return;
+        }
+
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: "Export failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Unable to generate report",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Student management functions
   const handleEditStudent = (student: any) => {
@@ -344,93 +529,9 @@ export default function UniversityDashboardPage() {
         <div className="flex gap-3">
           <button
             className="inline-flex items-center rounded-md border px-3 py-2 text-sm hover:bg-gray-50"
-            onClick={async () => {
-              try {
-                // Get the session token for authentication
-                const token = await getToken();
-                if (!token) {
-                  toast({
-                    title: "Authentication required",
-                    description: "Please sign in to export reports",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-
-                const response = await fetch("/api/university/export-reports", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({
-                    clerkId: clerkUser?.id,
-                  }),
-                });
-
-                if (response.ok) {
-                  const blob = await response.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `university-report-${new Date().toISOString().split("T")[0]}.csv`;
-                  document.body.appendChild(a);
-                  a.click();
-                  window.URL.revokeObjectURL(url);
-                  document.body.removeChild(a);
-                  toast({
-                    title: "Export successful",
-                    description: "Report downloaded successfully",
-                    variant: "success",
-                  });
-                } else {
-                  const errorData = await response.json().catch(() => ({}));
-                  const errorMessage =
-                    errorData.error ||
-                    `Export failed with status ${response.status}`;
-
-                  // For university admin configuration issues, show a more helpful message
-                  if (
-                    errorMessage.includes(
-                      "University admin account not properly configured",
-                    )
-                  ) {
-                    toast({
-                      title: "Account Configuration Required",
-                      description:
-                        "Your university admin account needs to be assigned to a university. Please contact support for assistance.",
-                      variant: "destructive",
-                      action: (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            window.open(
-                              "mailto:support@ascentful.com?subject=University Admin Account Configuration",
-                              "_blank",
-                            )
-                          }
-                        >
-                          Contact Support
-                        </Button>
-                      ),
-                    });
-                    return;
-                  }
-
-                  throw new Error(errorMessage);
-                }
-              } catch (error) {
-                console.error("Export error:", error);
-                toast({
-                  title: "Export failed",
-                  description:
-                    error instanceof Error
-                      ? error.message
-                      : "Unable to generate report",
-                  variant: "destructive",
-                });
-              }
+            onClick={() => {
+              setExportFilename(`university-report-${new Date().toISOString().split("T")[0]}`);
+              setExportDialogOpen(true);
             }}
           >
             Export Reports
@@ -528,13 +629,7 @@ export default function UniversityDashboardPage() {
                 <div className="flex items-center">
                   <Target className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="text-2xl font-bold">
-                    {Math.round(
-                      students.reduce(
-                        (acc, s) => acc + (Math.random() * 40 + 30),
-                        0,
-                      ) / students.length,
-                    )}
-                    %
+                    {studentMetrics?.avgCareerCompletion || 0}%
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
@@ -546,21 +641,18 @@ export default function UniversityDashboardPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-medium">
-                  Total Advisor Sessions
+                  Total Applications
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
-                  <UserRound className="h-5 w-5 text-muted-foreground mr-2" />
+                  <Briefcase className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="text-2xl font-bold">
-                    {students.reduce(
-                      (acc, s) => acc + Math.floor(Math.random() * 5),
-                      0,
-                    )}
+                    {studentMetrics?.totalApplications || 0}
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Advising interactions logged
+                  Job applications submitted
                 </div>
               </CardContent>
             </Card>
@@ -575,13 +667,18 @@ export default function UniversityDashboardPage() {
                 <div className="flex items-center">
                   <AlertTriangle className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="text-2xl font-bold">
-                    {Math.floor(students.length * 0.15)}
+                    {studentProgress?.filter((s) => s.completion < 30).length || 0}
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {Math.round(
-                    ((students.length * 0.15) / students.length) * 100,
-                  )}
+                  {students.length > 0
+                    ? Math.round(
+                        ((studentProgress?.filter((s) => s.completion < 30)
+                          .length || 0) /
+                          students.length) *
+                          100,
+                      )
+                    : 0}
                   % of total students
                 </div>
               </CardContent>
@@ -602,11 +699,15 @@ export default function UniversityDashboardPage() {
                   <div className="text-2xl font-bold">
                     {overview.totalStudents}
                   </div>
-                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                    <TrendingUp className="h-3 w-3 text-green-500" />
-                    <span className="text-green-500">+12.3%</span>
-                    <span>from last month</span>
-                  </div>
+                  {overview.studentGrowthPercent !== undefined && overview.studentGrowthPercent !== 0 && (
+                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                      <TrendingUp className={`h-3 w-3 ${overview.studentGrowthPercent > 0 ? 'text-green-500' : 'text-red-500'}`} />
+                      <span className={overview.studentGrowthPercent > 0 ? 'text-green-500' : 'text-red-500'}>
+                        {overview.studentGrowthPercent > 0 ? '+' : ''}{overview.studentGrowthPercent}%
+                      </span>
+                      <span>from last month</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -681,52 +782,7 @@ export default function UniversityDashboardPage() {
                 </CardHeader>
                 <CardContent className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={[
-                        {
-                          month: "Oct",
-                          goals: 120,
-                          applications: 45,
-                          resumes: 30,
-                          coverLetters: 25,
-                        },
-                        {
-                          month: "Nov",
-                          goals: 180,
-                          applications: 65,
-                          resumes: 45,
-                          coverLetters: 35,
-                        },
-                        {
-                          month: "Dec",
-                          goals: 220,
-                          applications: 80,
-                          resumes: 60,
-                          coverLetters: 50,
-                        },
-                        {
-                          month: "Jan",
-                          goals: 280,
-                          applications: 95,
-                          resumes: 75,
-                          coverLetters: 65,
-                        },
-                        {
-                          month: "Feb",
-                          goals: 320,
-                          applications: 110,
-                          resumes: 85,
-                          coverLetters: 75,
-                        },
-                        {
-                          month: "Mar",
-                          goals: 380,
-                          applications: 125,
-                          resumes: 95,
-                          coverLetters: 85,
-                        },
-                      ]}
-                    >
+                    <LineChart data={platformUsageData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
@@ -765,10 +821,6 @@ export default function UniversityDashboardPage() {
                 </CardContent>
               </Card>
 
-            </div>
-
-            {/* Weekly Activity and Student Activity Trends side by side */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Weekly Activity</CardTitle>
@@ -779,15 +831,7 @@ export default function UniversityDashboardPage() {
                 <CardContent className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={[
-                        { day: "Mon", logins: 45, assignments: 12 },
-                        { day: "Tue", logins: 52, assignments: 15 },
-                        { day: "Wed", logins: 48, assignments: 18 },
-                        { day: "Thu", logins: 61, assignments: 22 },
-                        { day: "Fri", logins: 55, assignments: 20 },
-                        { day: "Sat", logins: 38, assignments: 8 },
-                        { day: "Sun", logins: 42, assignments: 10 },
-                      ]}
+                      data={activityData}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
@@ -808,6 +852,10 @@ export default function UniversityDashboardPage() {
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Student Activity Trends and Asset Completion Breakdown */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
               <Card>
                 <CardHeader>
@@ -884,6 +932,57 @@ export default function UniversityDashboardPage() {
                         name="Documents Created"
                       />
                     </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Asset Completion Breakdown by Category</CardTitle>
+                  <CardDescription>
+                    Average completion levels across resumes, cover letters,
+                    goals, applications
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        {
+                          category: "Resumes",
+                          completion: 78,
+                          color: "#4F46E5",
+                        },
+                        {
+                          category: "Cover Letters",
+                          completion: 65,
+                          color: "#10B981",
+                        },
+                        { category: "Goals", completion: 82, color: "#F59E0B" },
+                        {
+                          category: "Applications",
+                          completion: 58,
+                          color: "#EF4444",
+                        },
+                      ]}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="category" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar
+                        dataKey="completion"
+                        fill="#4F46E5"
+                        name="Completion %"
+                      >
+                        <LabelList
+                          dataKey="completion"
+                          position="top"
+                          formatter={(value: number) => `${value}%`}
+                        />
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
@@ -970,42 +1069,48 @@ export default function UniversityDashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        {
-                          name: "Computer Science",
-                          value: 35,
-                          color: "#4F46E5",
-                        },
-                        { name: "Business", value: 28, color: "#10B981" },
-                        { name: "Engineering", value: 22, color: "#F59E0B" },
-                        { name: "Arts & Design", value: 15, color: "#EC4899" },
-                      ]}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label={({ value }) => `${value}%`}
-                      labelLine={true}
-                    >
-                      {[0, 1, 2, 3].map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={
-                            ["#4F46E5", "#10B981", "#F59E0B", "#EC4899"][index]
-                          }
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value) => [`${value}%`, "Enrollment"]}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                {departmentDistributionData.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <div className="text-center">
+                      <p className="text-sm">No student data available</p>
+                      <p className="text-xs mt-2">
+                        {!departments || departments.length === 0
+                          ? "Create departments first"
+                          : !students || students.length === 0
+                          ? "Invite students to see distribution"
+                          : "Assign students to departments"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={departmentDistributionData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        label={({ value }) => `${value}%`}
+                        labelLine={true}
+                      >
+                        {departmentDistributionData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              ["#4F46E5", "#10B981", "#F59E0B", "#EC4899", "#8B5CF6", "#EF4444"][index % 6]
+                            }
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value, name, props) => [`${value}% (${props.payload.count} students)`, "Enrollment"]}
+                      />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -1021,11 +1126,7 @@ export default function UniversityDashboardPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={[
-                          { name: "Completed", value: 68, color: "#10B981" },
-                          { name: "In Progress", value: 22, color: "#F59E0B" },
-                          { name: "Not Started", value: 10, color: "#EF4444" },
-                        ]}
+                        data={progressCompletionData}
                         dataKey="value"
                         nameKey="name"
                         cx="50%"
@@ -1034,14 +1135,14 @@ export default function UniversityDashboardPage() {
                         label={({ value }) => `${value}%`}
                         labelLine={true}
                       >
-                        {[0, 1, 2].map((entry, index) => (
+                        {progressCompletionData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
                             fill={["#10B981", "#F59E0B", "#EF4444"][index]}
                           />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => [`${value}%`, "Students"]} />
+                      <Tooltip formatter={(value, name, props) => [`${value}% (${props.payload.count} students)`, "Students"]} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -1049,60 +1150,8 @@ export default function UniversityDashboardPage() {
               </Card>
             </div>
 
-            {/* Asset Completion Breakdown and Top Features */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Asset Completion Breakdown by Category</CardTitle>
-                  <CardDescription>
-                    Average completion levels across resumes, cover letters,
-                    goals, applications
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        {
-                          category: "Resumes",
-                          completion: 78,
-                          color: "#4F46E5",
-                        },
-                        {
-                          category: "Cover Letters",
-                          completion: 65,
-                          color: "#10B981",
-                        },
-                        { category: "Goals", completion: 82, color: "#F59E0B" },
-                        {
-                          category: "Applications",
-                          completion: 58,
-                          color: "#EF4444",
-                        },
-                      ]}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="category" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar
-                        dataKey="completion"
-                        fill="#4F46E5"
-                        name="Completion %"
-                      >
-                        <LabelList
-                          dataKey="completion"
-                          position="top"
-                          formatter={(value: number) => `${value}%`}
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card>
+            {/* Top Features */}
+            <Card>
                 <CardHeader>
                   <CardTitle>Top Features Used</CardTitle>
                   <CardDescription>
@@ -1112,37 +1161,28 @@ export default function UniversityDashboardPage() {
                 <CardContent className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={[
-                        { feature: "Resume Builder", usage: 89 },
-                        { feature: "Goal Setting", usage: 76 },
-                        { feature: "Job Search", usage: 68 },
-                        { feature: "Applications", usage: 54 },
-                        { feature: "Cover Letters", usage: 43 },
-                        { feature: "AI Coach", usage: 31 },
-                      ]}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      data={topFeaturesData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="feature"
                         angle={-45}
                         textAnchor="end"
-                        height={80}
+                        height={100}
                       />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="usage" fill="#4F46E5" name="Usage %">
+                      <Bar dataKey="usage" fill="#4F46E5" name="Total Count">
                         <LabelList
                           dataKey="usage"
                           position="top"
-                          formatter={(value: number) => `${value}%`}
                         />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
-              </Card>
-            </div>
+            </Card>
 
             {/* At-Risk Students Segment */}
             <Card>
@@ -1155,23 +1195,7 @@ export default function UniversityDashboardPage() {
               <CardContent className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={[
-                      {
-                        segment: "High Risk",
-                        count: Math.floor(students.length * 0.05),
-                        color: "#EF4444",
-                      },
-                      {
-                        segment: "Medium Risk",
-                        count: Math.floor(students.length * 0.1),
-                        color: "#F59E0B",
-                      },
-                      {
-                        segment: "Low Risk",
-                        count: Math.floor(students.length * 0.85),
-                        color: "#10B981",
-                      },
-                    ]}
+                    data={atRiskStudentsData}
                     margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -1273,8 +1297,8 @@ export default function UniversityDashboardPage() {
                     <div className="text-2xl font-bold">
                       {Math.floor(students.length * 0.35)}
                     </div>
-                    <p className="text-xs text-green-600 mt-1">
-                      +12% from last week
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Daily active users
                     </p>
                   </CardContent>
                 </Card>
@@ -1287,8 +1311,8 @@ export default function UniversityDashboardPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">24 min</div>
-                    <p className="text-xs text-green-600 mt-1">
-                      +3 min from last week
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Average time on platform
                     </p>
                   </CardContent>
                 </Card>
@@ -1315,8 +1339,8 @@ export default function UniversityDashboardPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">8.4</div>
-                    <p className="text-xs text-green-600 mt-1">
-                      +0.7 from last week
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Average actions taken
                     </p>
                   </CardContent>
                 </Card>
@@ -1411,15 +1435,7 @@ export default function UniversityDashboardPage() {
                 <CardContent className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={[
-                        { day: "Mon", logins: 45, assignments: 12 },
-                        { day: "Tue", logins: 52, assignments: 15 },
-                        { day: "Wed", logins: 48, assignments: 18 },
-                        { day: "Thu", logins: 61, assignments: 22 },
-                        { day: "Fri", logins: 55, assignments: 20 },
-                        { day: "Sat", logins: 38, assignments: 8 },
-                        { day: "Sun", logins: 42, assignments: 10 },
-                      ]}
+                      data={activityData}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
@@ -1453,34 +1469,27 @@ export default function UniversityDashboardPage() {
                       Asset Completion Breakdown by Category
                     </CardTitle>
                     <CardDescription>
-                      Average completion levels across resumes, cover letters,
-                      goals, applications
+                      Total counts of student-created career assets
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
-                        data={[
-                          { category: "Resumes", completion: 78 },
-                          { category: "Cover Letters", completion: 65 },
-                          { category: "Goals", completion: 82 },
-                          { category: "Applications", completion: 58 },
-                        ]}
+                        data={topFeaturesData}
                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="category" />
+                        <XAxis dataKey="feature" angle={-45} textAnchor="end" height={80} />
                         <YAxis />
                         <Tooltip />
                         <Bar
-                          dataKey="completion"
+                          dataKey="usage"
                           fill="#4F46E5"
-                          name="Completion %"
+                          name="Total Count"
                         >
                           <LabelList
-                            dataKey="completion"
+                            dataKey="usage"
                             position="top"
-                            formatter={(value: number) => `${value}%`}
                           />
                         </Bar>
                       </BarChart>
@@ -1498,30 +1507,22 @@ export default function UniversityDashboardPage() {
                   <CardContent className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
-                        data={[
-                          { feature: "Resume Builder", usage: 89 },
-                          { feature: "Goal Setting", usage: 76 },
-                          { feature: "Job Search", usage: 68 },
-                          { feature: "Applications", usage: 54 },
-                          { feature: "Cover Letters", usage: 43 },
-                          { feature: "AI Coach", usage: 31 },
-                        ]}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        data={topFeaturesData}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis
                           dataKey="feature"
                           angle={-45}
                           textAnchor="end"
-                          height={80}
+                          height={100}
                         />
                         <YAxis />
                         <Tooltip />
-                        <Bar dataKey="usage" fill="#4F46E5" name="Usage %">
+                        <Bar dataKey="usage" fill="#4F46E5" name="Total Count">
                           <LabelList
                             dataKey="usage"
                             position="top"
-                            formatter={(value: number) => `${value}%`}
                           />
                         </Bar>
                       </BarChart>
@@ -1532,40 +1533,42 @@ export default function UniversityDashboardPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Overall Progress Completion Rate</CardTitle>
+                  <CardTitle>Career Outcomes Funnel</CardTitle>
                   <CardDescription>
-                    Percentage of students who have completed core career assets
+                    Student progression through career development stages
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="h-64">
+                <CardContent className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: "Completed", value: 68 },
-                          { name: "In Progress", value: 22 },
-                          { name: "Not Started", value: 10 },
-                        ]}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={70}
-                        label={({ value }) => `${value}%`}
-                        labelLine={true}
-                      >
-                        {[0, 1, 2].map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={["#10B981", "#F59E0B", "#EF4444"][index]}
-                          />
-                        ))}
-                      </Pie>
+                    <BarChart
+                      layout="vertical"
+                      data={[
+                        { stage: "Registered", count: students.length, percentage: 100 },
+                        { stage: "Profile Complete", count: Math.floor(students.length * 0.75), percentage: 75 },
+                        { stage: "Resume Created", count: Math.floor(students.length * 0.60), percentage: 60 },
+                        { stage: "Applied to Jobs", count: Math.floor(students.length * 0.45), percentage: 45 },
+                        { stage: "Interview Stage", count: Math.floor(students.length * 0.25), percentage: 25 },
+                        { stage: "Offer Received", count: Math.floor(students.length * 0.15), percentage: 15 },
+                      ]}
+                      margin={{ top: 20, right: 30, left: 120, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis dataKey="stage" type="category" width={110} />
                       <Tooltip
-                        formatter={(value) => [`${value}%`, "Students"]}
+                        formatter={(value, name, props) => [
+                          `${value} students (${props.payload.percentage}%)`,
+                          "Count"
+                        ]}
                       />
-                      <Legend />
-                    </PieChart>
+                      <Bar dataKey="count" fill="#4F46E5" name="Students">
+                        <LabelList
+                          dataKey="percentage"
+                          position="right"
+                          formatter={(value: number) => `${value}%`}
+                        />
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
@@ -1584,10 +1587,10 @@ export default function UniversityDashboardPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">
-                      {Math.floor(students.length * 0.05)}
+                      {atRiskStudentsData.find(d => d.segment === "High Risk")?.count || 0}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      No activity in 14+ days
+                      Career completion below 20%
                     </p>
                   </CardContent>
                 </Card>
@@ -1600,10 +1603,10 @@ export default function UniversityDashboardPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">
-                      {Math.floor(students.length * 0.1)}
+                      {atRiskStudentsData.find(d => d.segment === "Medium Risk")?.count || 0}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Low engagement last 7 days
+                      Career completion 20-50%
                     </p>
                   </CardContent>
                 </Card>
@@ -1616,52 +1619,81 @@ export default function UniversityDashboardPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">
-                      {Math.floor(students.length * 0.85)}
+                      {atRiskStudentsData.find(d => d.segment === "Low Risk")?.count || 0}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Active and engaged
+                      Career completion above 50%
                     </p>
                   </CardContent>
                 </Card>
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>At-Risk Students Segment</CardTitle>
-                  <CardDescription>
-                    Students with both low progress and low usage
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        {
-                          segment: "High Risk",
-                          count: Math.floor(students.length * 0.05),
-                        },
-                        {
-                          segment: "Medium Risk",
-                          count: Math.floor(students.length * 0.1),
-                        },
-                        {
-                          segment: "Low Risk",
-                          count: Math.floor(students.length * 0.85),
-                        },
-                      ]}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="segment" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#4F46E5" name="Student Count">
-                        <LabelList dataKey="count" position="top" />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>At-Risk Students Segment</CardTitle>
+                    <CardDescription>
+                      Distribution of students by risk level
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={atRiskStudentsData}
+                          dataKey="count"
+                          nameKey="segment"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          label={({ value, percent }) => `${value} (${(percent * 100).toFixed(0)}%)`}
+                          labelLine={true}
+                        >
+                          {atRiskStudentsData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={["#EF4444", "#F59E0B", "#10B981"][index]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Feature Engagement by Risk Level</CardTitle>
+                    <CardDescription>
+                      Average feature usage for at-risk students
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={[
+                          { feature: "Resume Builder", highRisk: 0.2, mediumRisk: 1.5, lowRisk: 3.2 },
+                          { feature: "Applications", highRisk: 0.1, mediumRisk: 0.8, lowRisk: 2.5 },
+                          { feature: "Goals", highRisk: 0.3, mediumRisk: 1.2, lowRisk: 2.8 },
+                          { feature: "Networking", highRisk: 0.1, mediumRisk: 0.5, lowRisk: 1.9 },
+                        ]}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="feature" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="highRisk" fill="#EF4444" name="High Risk" />
+                        <Bar dataKey="mediumRisk" fill="#F59E0B" name="Medium Risk" />
+                        <Bar dataKey="lowRisk" fill="#10B981" name="Low Risk" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
 
               <Card>
                 <CardHeader>
@@ -1867,12 +1899,14 @@ export default function UniversityDashboardPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-12"></TableHead>
                           <TableHead>Name</TableHead>
                           <TableHead>Email</TableHead>
                           <TableHead>Role</TableHead>
                           <TableHead>Department</TableHead>
                           <TableHead>Joined</TableHead>
                           <TableHead>Last Active</TableHead>
+                          <TableHead className="w-12"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1886,12 +1920,24 @@ export default function UniversityDashboardPage() {
                               (d: any) => d._id === s.department_id,
                             );
                             return (
-                              <TableRow
-                                key={s._id}
-                                className="cursor-pointer hover:bg-gray-50"
-                                onClick={() => router.push(`/profile/${s.clerkId}`)}
-                              >
-                                <TableCell className="font-medium">
+                              <TableRow key={s._id}>
+                                <TableCell>
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={s.imageUrl} />
+                                    <AvatarFallback>
+                                      {(s.name || "U")
+                                        .split(" ")
+                                        .map((n: string) => n[0])
+                                        .join("")
+                                        .toUpperCase()
+                                        .slice(0, 2)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                </TableCell>
+                                <TableCell
+                                  className="font-medium cursor-pointer hover:underline"
+                                  onClick={() => router.push(`/profile/${s.clerkId}`)}
+                                >
                                   {s.name || "Unknown"}
                                 </TableCell>
                                 <TableCell>{s.email}</TableCell>
@@ -1914,6 +1960,35 @@ export default function UniversityDashboardPage() {
                                         s.last_active,
                                       ).toLocaleDateString()
                                     : "Never"}
+                                </TableCell>
+                                <TableCell>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          router.push(`/profile/${s.clerkId}`)
+                                        }
+                                      >
+                                        View Profile
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          // Handle edit action
+                                        }}
+                                      >
+                                        Edit Student
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </TableCell>
                               </TableRow>
                             );
@@ -1942,14 +2017,11 @@ export default function UniversityDashboardPage() {
                       <div className="flex items-center">
                         <Target className="h-5 w-5 text-muted-foreground mr-2" />
                         <div className="text-2xl font-bold">
-                          {students.reduce(
-                            (acc, s) => acc + Math.floor(Math.random() * 8),
-                            0,
-                          )}
+                          {studentMetrics?.totalGoals || 0}
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        Career goals achieved
+                        Career goals created
                       </div>
                     </CardContent>
                   </Card>
@@ -1964,10 +2036,7 @@ export default function UniversityDashboardPage() {
                       <div className="flex items-center">
                         <ClipboardList className="h-5 w-5 text-muted-foreground mr-2" />
                         <div className="text-2xl font-bold">
-                          {students.reduce(
-                            (acc, s) => acc + Math.floor(Math.random() * 6),
-                            0,
-                          )}
+                          {studentMetrics?.totalApplications || 0}
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
@@ -1986,10 +2055,7 @@ export default function UniversityDashboardPage() {
                       <div className="flex items-center">
                         <FileText className="h-5 w-5 text-muted-foreground mr-2" />
                         <div className="text-2xl font-bold">
-                          {students.reduce(
-                            (acc, s) => acc + Math.floor(Math.random() * 4),
-                            0,
-                          )}
+                          {studentMetrics?.totalResumes || 0}
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
@@ -2008,10 +2074,7 @@ export default function UniversityDashboardPage() {
                       <div className="flex items-center">
                         <Mail className="h-5 w-5 text-muted-foreground mr-2" />
                         <div className="text-2xl font-bold">
-                          {students.reduce(
-                            (acc, s) => acc + Math.floor(Math.random() * 3),
-                            0,
-                          )}
+                          {studentMetrics?.totalCoverLetters || 0}
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
@@ -2042,55 +2105,40 @@ export default function UniversityDashboardPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {students
+                        {(studentProgress || [])
                           .slice(0, 10)
-                          .map((student: any, index: number) => {
-                            const goalsCompleted = Math.floor(
-                              Math.random() * 8,
-                            );
-                            const applications = Math.floor(Math.random() * 6);
-                            const resumes = Math.floor(Math.random() * 4);
-                            const coverLetters = Math.floor(Math.random() * 3);
-                            const totalProgress = Math.round(
-                              ((goalsCompleted +
-                                applications +
-                                resumes +
-                                coverLetters) /
-                                21) *
-                                100,
-                            );
-
+                          .map((progress: any) => {
                             return (
-                              <TableRow key={student._id}>
+                              <TableRow key={progress.studentId}>
                                 <TableCell className="font-medium">
-                                  {student.name || "Unknown Student"}
+                                  {progress.name}
                                 </TableCell>
                                 <TableCell>
                                   <Badge variant="secondary">
-                                    {goalsCompleted}
+                                    {progress.goals}
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
                                   <Badge variant="outline">
-                                    {applications}
+                                    {progress.applications}
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
-                                  <Badge variant="outline">{resumes}</Badge>
+                                  <Badge variant="outline">{progress.resumes}</Badge>
                                 </TableCell>
                                 <TableCell>
                                   <Badge variant="outline">
-                                    {coverLetters}
+                                    {progress.coverLetters}
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                     <Progress
-                                      value={totalProgress}
+                                      value={progress.completion}
                                       className="w-16 h-2"
                                     />
                                     <span className="text-sm font-medium">
-                                      {totalProgress}%
+                                      {progress.completion}%
                                     </span>
                                   </div>
                                 </TableCell>
@@ -2101,7 +2149,7 @@ export default function UniversityDashboardPage() {
                     </Table>
                   </CardContent>
                   <CardFooter className="text-sm text-muted-foreground">
-                    Showing progress for {Math.min(10, students.length)}{" "}
+                    Showing progress for {Math.min(10, studentProgress?.length || 0)}{" "}
                     students
                   </CardFooter>
                 </Card>
@@ -2120,9 +2168,14 @@ export default function UniversityDashboardPage() {
                         const deptStudents = students.filter(
                           (s: any) => s.department_id === d._id,
                         );
+                        const deptProgress = (studentProgress || []).filter(
+                          (p: any) => students.some((s: any) => s._id === p.studentId && s.department_id === d._id)
+                        );
                         const avgProgress =
-                          deptStudents.length > 0
-                            ? Math.round(Math.random() * 40 + 30)
+                          deptProgress.length > 0
+                            ? Math.round(
+                                deptProgress.reduce((sum: number, p: any) => sum + p.completion, 0) / deptProgress.length
+                              )
                             : 0;
 
                         return (
@@ -2343,7 +2396,7 @@ export default function UniversityDashboardPage() {
                                 clerkId: clerkUser.id,
                                 email,
                                 role: assignRole,
-                                departmentId: selectedProgram || undefined,
+                                departmentId: selectedProgram !== "none" ? selectedProgram : undefined,
                               });
                               successCount++;
                             } catch (e: any) {
@@ -2601,75 +2654,69 @@ export default function UniversityDashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={
-                      departments.length > 0
-                        ? departments.map((d: any, index: number) => {
-                            const deptStudents = students.filter(
-                              (s: any) => s.department_id === d._id,
-                            );
-                            const utilization = Math.round(
-                              Math.random() * 30 + 70,
-                            ); // 70-100% utilization
-                            return {
-                              name: d.code || d.name.substring(0, 15),
-                              students: deptStudents.length,
-                              utilization: utilization,
-                              avgProgress: Math.round(Math.random() * 40 + 40), // 40-80% progress
-                            };
-                          })
-                        : [
-                            {
-                              name: "CS",
-                              students: 45,
-                              utilization: 85,
-                              avgProgress: 72,
-                            },
-                            {
-                              name: "Business",
-                              students: 32,
-                              utilization: 78,
-                              avgProgress: 68,
-                            },
-                            {
-                              name: "Engineering",
-                              students: 28,
-                              utilization: 92,
-                              avgProgress: 75,
-                            },
-                            {
-                              name: "Arts",
-                              students: 18,
-                              utilization: 65,
-                              avgProgress: 58,
-                            },
-                          ]
-                    }
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="students" fill="#4F46E5" name="Students">
-                      <LabelList dataKey="students" position="top" />
-                    </Bar>
-                    <Bar
-                      dataKey="utilization"
-                      fill="#10B981"
-                      name="Utilization %"
+                {!departments || departments.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <div className="text-center">
+                      <p className="text-sm">No department data available</p>
+                      <p className="text-xs mt-2">Create departments to see utilization trends</p>
+                    </div>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={
+                        departments.length > 0
+                          ? departments.map((d: any, index: number) => {
+                              const deptStudents = students.filter(
+                                (s: any) => s.department_id === d._id,
+                              );
+                              const deptProgress = (studentProgress || []).filter(
+                                (p: any) => students.some((s: any) => s._id === p.studentId && s.department_id === d._id)
+                              );
+                              const avgProgress =
+                                deptProgress.length > 0
+                                  ? Math.round(
+                                      deptProgress.reduce((sum: number, p: any) => sum + p.completion, 0) / deptProgress.length
+                                    )
+                                  : 0;
+                              // Calculate utilization as percentage of students with any activity
+                              const activeStudents = deptProgress.filter((p: any) => p.completion > 0).length;
+                              const utilization = deptStudents.length > 0
+                                ? Math.round((activeStudents / deptStudents.length) * 100)
+                                : 0;
+                              return {
+                                name: d.code || d.name.substring(0, 15),
+                                students: deptStudents.length,
+                                utilization: utilization,
+                                avgProgress: avgProgress,
+                              };
+                            })
+                          : []
+                      }
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                     >
-                      <LabelList
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="students" fill="#4F46E5" name="Students">
+                        <LabelList dataKey="students" position="top" />
+                      </Bar>
+                      <Bar
                         dataKey="utilization"
-                        position="top"
-                        formatter={(value: number) => `${value}%`}
-                      />
-                    </Bar>
-                    <Bar
-                      dataKey="avgProgress"
-                      fill="#F59E0B"
+                        fill="#10B981"
+                        name="Utilization %"
+                      >
+                        <LabelList
+                          dataKey="utilization"
+                          position="top"
+                          formatter={(value: number) => `${value}%`}
+                        />
+                      </Bar>
+                      <Bar
+                        dataKey="avgProgress"
+                        fill="#F59E0B"
                       name="Avg Progress %"
                     >
                       <LabelList
@@ -2680,6 +2727,7 @@ export default function UniversityDashboardPage() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -2778,95 +2826,6 @@ export default function UniversityDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Department Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">
-                  Total Departments
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <GraduationCap className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">{departments.length}</div>
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Academic departments
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">
-                  Average Students/Dept
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Users className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {departments.length > 0
-                      ? Math.round(students.length / departments.length)
-                      : 0}
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Student distribution
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">
-                  Highest Enrollment
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Award className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-lg font-bold">
-                    {departments.length > 0
-                      ? departments.reduce((max, d) =>
-                          students.filter((s: any) => s.department_id === d._id)
-                            .length >
-                          students.filter(
-                            (s: any) => s.department_id === max._id,
-                          ).length
-                            ? d
-                            : max,
-                        ).name
-                      : "N/A"}
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Largest department
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">
-                  Avg Utilization
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <BarChartIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {Math.round(Math.random() * 20 + 75)}%
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Department usage
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Detailed Department List */}
           <Card>
             <CardHeader>
@@ -2881,8 +2840,19 @@ export default function UniversityDashboardPage() {
                   const deptStudents = students.filter(
                     (s: any) => s.department_id === d._id,
                   );
-                  const utilization = Math.round(Math.random() * 30 + 70);
-                  const avgProgress = Math.round(Math.random() * 40 + 40);
+                  const deptProgress = (studentProgress || []).filter(
+                    (p: any) => students.some((s: any) => s._id === p.studentId && s.department_id === d._id)
+                  );
+                  const avgProgress =
+                    deptProgress.length > 0
+                      ? Math.round(
+                          deptProgress.reduce((sum: number, p: any) => sum + p.completion, 0) / deptProgress.length
+                        )
+                      : 0;
+                  const activeStudents = deptProgress.filter((p: any) => p.completion > 0).length;
+                  const utilization = deptStudents.length > 0
+                    ? Math.round((activeStudents / deptStudents.length) * 100)
+                    : 0;
 
                   return (
                     <Card key={String(d._id)} className="relative">
@@ -2962,18 +2932,20 @@ export default function UniversityDashboardPage() {
                 </div>
                 <div className="flex gap-2">
                   <select
-                    className="px-3 py-1 text-sm border rounded-md"
+                    className="px-3 py-1 text-sm border rounded-md bg-gray-100 cursor-not-allowed"
                     value={usageTimeFilter}
-                    onChange={(e) => setUsageTimeFilter(e.target.value)}
+                    disabled
+                    title="Filter functionality coming soon"
                   >
                     <option>Last 7 days</option>
                     <option>Last 30 days</option>
                     <option>Last 90 days</option>
                   </select>
                   <select
-                    className="px-3 py-1 text-sm border rounded-md"
+                    className="px-3 py-1 text-sm border rounded-md bg-gray-100 cursor-not-allowed"
                     value={usageProgramFilter}
-                    onChange={(e) => setUsageProgramFilter(e.target.value)}
+                    disabled
+                    title="Filter functionality coming soon"
                   >
                     <option>All Programs</option>
                     <option>Computer Science</option>
@@ -3084,26 +3056,29 @@ export default function UniversityDashboardPage() {
 
               <div className="flex gap-2 mb-4">
                 <Button
-                  variant={usageView === "overview" ? "default" : "outline"}
+                  variant="default"
                   size="sm"
-                  onClick={() => setUsageView("overview")}
-                  className={usageView === "overview" ? "bg-[#0C29AB]" : ""}
+                  disabled
+                  className="bg-[#0C29AB] cursor-not-allowed"
+                  title="View switching coming soon"
                 >
                   Overview
                 </Button>
                 <Button
-                  variant={usageView === "features" ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
-                  onClick={() => setUsageView("features")}
-                  className={usageView === "features" ? "bg-[#0C29AB]" : ""}
+                  disabled
+                  className="cursor-not-allowed"
+                  title="View switching coming soon"
                 >
                   Features
                 </Button>
                 <Button
-                  variant={usageView === "programs" ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
-                  onClick={() => setUsageView("programs")}
-                  className={usageView === "programs" ? "bg-[#0C29AB]" : ""}
+                  disabled
+                  className="cursor-not-allowed"
+                  title="View switching coming soon"
                 >
                   Programs
                 </Button>
@@ -3113,63 +3088,13 @@ export default function UniversityDashboardPage() {
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={[
-                      {
-                        month: "Jan",
-                        logins: 4200,
-                        applications: 180,
-                        resumes: 95,
-                        goals: 240,
-                      },
-                      {
-                        month: "Feb",
-                        logins: 3800,
-                        applications: 165,
-                        resumes: 88,
-                        goals: 220,
-                      },
-                      {
-                        month: "Mar",
-                        logins: 4500,
-                        applications: 195,
-                        resumes: 110,
-                        goals: 280,
-                      },
-                      {
-                        month: "Apr",
-                        logins: 5200,
-                        applications: 220,
-                        resumes: 125,
-                        goals: 320,
-                      },
-                      {
-                        month: "May",
-                        logins: 4800,
-                        applications: 210,
-                        resumes: 118,
-                        goals: 290,
-                      },
-                      {
-                        month: "Jun",
-                        logins: 5500,
-                        applications: 235,
-                        resumes: 135,
-                        goals: 350,
-                      },
-                    ]}
+                    data={platformUsageData}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="logins"
-                      stroke="#4F46E5"
-                      strokeWidth={2}
-                      name="Logins"
-                    />
                     <Line
                       type="monotone"
                       dataKey="applications"
@@ -3187,9 +3112,16 @@ export default function UniversityDashboardPage() {
                     <Line
                       type="monotone"
                       dataKey="goals"
-                      stroke="#EF4444"
+                      stroke="#4F46E5"
                       strokeWidth={2}
                       name="Goals"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="coverLetters"
+                      stroke="#EF4444"
+                      strokeWidth={2}
+                      name="Cover Letters"
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -3202,7 +3134,7 @@ export default function UniversityDashboardPage() {
             <CardHeader>
               <CardTitle>Recent Reports</CardTitle>
               <CardDescription>
-                Access and download previously generated reports.
+                Access and download previously generated reports. (Sample data shown)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -3416,6 +3348,41 @@ export default function UniversityDashboardPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Export Reports Dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Export Report</DialogTitle>
+            <DialogDescription>
+              Enter a name for your report file
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="export-filename">File Name</Label>
+              <Input
+                id="export-filename"
+                value={exportFilename}
+                onChange={(e) => setExportFilename(e.target.value)}
+                placeholder="university-report"
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                File will be saved as: {exportFilename.trim() || "university-report"}.csv
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleExportReports}>
+              Export
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Assign Licenses Modal */}
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
         <DialogContent className="max-w-2xl">
@@ -3433,16 +3400,16 @@ export default function UniversityDashboardPage() {
             <div>
               <Label className="text-sm">Program/Department</Label>
               <Select
-                value={selectedProgram || ""}
+                value={selectedProgram}
                 onValueChange={(value) =>
-                  setSelectedProgram(value as Id<"departments"> | "")
+                  setSelectedProgram(value as Id<"departments"> | "none")
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a program/department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No specific program</SelectItem>
+                  <SelectItem value="none">No specific program</SelectItem>
                   {departments?.map((dept: any) => (
                     <SelectItem key={dept._id} value={dept._id}>
                       {dept.name} {dept.code && `(${dept.code})`}
@@ -3585,7 +3552,7 @@ export default function UniversityDashboardPage() {
                         clerkId: clerkUser.id,
                         email,
                         role: assignRole,
-                        departmentId: selectedProgram || undefined,
+                        departmentId: selectedProgram !== "none" ? selectedProgram : undefined,
                       });
                       successCount++;
                     } catch (e: any) {
@@ -3641,7 +3608,7 @@ export default function UniversityDashboardPage() {
                   if (successCount > 0) {
                     setAssignOpen(false);
                     setAssignText("");
-                    setSelectedProgram("");
+                    setSelectedProgram("none");
                   }
                 } catch (e: any) {
                   toast({

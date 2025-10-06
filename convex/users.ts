@@ -235,8 +235,13 @@ export const updateUser = mutation({
       throw new Error("User not found");
     }
 
+    // Filter out undefined values from updates
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(args.updates).filter(([_, value]) => value !== undefined)
+    );
+
     await ctx.db.patch(user._id, {
-      ...args.updates,
+      ...cleanUpdates,
       updated_at: Date.now(),
     });
 
@@ -305,8 +310,14 @@ export const updateUserById = mutation({
     if (!user) {
       throw new Error("User not found");
     }
+
+    // Filter out undefined values from updates
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(args.updates).filter(([_, value]) => value !== undefined)
+    );
+
     await ctx.db.patch(args.id, {
-      ...args.updates,
+      ...cleanUpdates,
       updated_at: Date.now(),
     });
     return args.id;

@@ -82,7 +82,7 @@ export default function UniversityStudentsPage() {
   const { toast } = useToast();
 
   // View toggle state
-  const [activeView, setActiveView] = useState<"students" | "progress" | "invite">("students");
+  const [activeView, setActiveView] = useState<"students" | "progress">("students");
 
   const canAccess =
     !!user &&
@@ -101,9 +101,8 @@ export default function UniversityStudentsPage() {
   ) as any[] | undefined;
 
   const updateUserMutation = useMutation(api.users.updateUser);
-  // TODO: Implement inviteStudent and bulkInviteStudents mutations
-  // const inviteStudentMutation = useMutation(api.university_admin.inviteStudent)
-  // const bulkInviteStudentsMutation = useMutation(api.university_admin.bulkInviteStudents)
+  const assignStudentMutation = useMutation(api.university_admin.assignStudentByEmail);
+  const createUserMutation = useMutation(api.admin_users.createUserByAdmin);
 
   // State
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -111,6 +110,7 @@ export default function UniversityStudentsPage() {
   const [singleInviteForm, setSingleInviteForm] = useState({
     name: "",
     email: "",
+    departmentId: "" as string,
   });
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<{ name: string; email: string }[]>([]);
@@ -124,6 +124,7 @@ export default function UniversityStudentsPage() {
   const [newStatus, setNewStatus] = useState<string>("");
   const [editingDepartment, setEditingDepartment] = useState(false);
   const [newDepartmentId, setNewDepartmentId] = useState<string>("");
+  const [resendingInvite, setResendingInvite] = useState(false);
 
   // Parse CSV file
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,29 +193,32 @@ export default function UniversityStudentsPage() {
     if (
       !singleInviteForm.name.trim() ||
       !singleInviteForm.email.trim() ||
-      !clerkUser?.id
+      !clerkUser?.id ||
+      !user?.university_id
     )
       return;
 
     setInviting(true);
     try {
-      // TODO: Implement inviteStudent mutation
-      // await inviteStudentMutation({
-      //   clerkId: clerkUser.id,
-      //   name: singleInviteForm.name.trim(),
-      //   email: singleInviteForm.email.trim()
-      // })
+      // Create user with activation email (instead of just inviting to sign up)
+      const result = await createUserMutation({
+        adminClerkId: clerkUser.id,
+        email: singleInviteForm.email.trim(),
+        name: singleInviteForm.name.trim(),
+        role: "user",
+        university_id: user.university_id,
+      });
+
       toast({
-        title: "Feature Not Available",
-        description: "Student invitation feature is not yet implemented",
-        variant: "destructive",
+        title: "Student Created",
+        description: `Activation email sent to ${singleInviteForm.email}`,
       });
       setInviteDialogOpen(false);
-      setSingleInviteForm({ name: "", email: "" });
+      setSingleInviteForm({ name: "", email: "", departmentId: "" });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to send invitation",
+        description: error.message || "Failed to create student",
         variant: "destructive",
       });
     } finally {
@@ -224,27 +228,53 @@ export default function UniversityStudentsPage() {
 
   // Bulk invite from CSV
   const handleBulkInvite = async () => {
-    if (csvData.length === 0 || !clerkUser?.id) return;
+    if (csvData.length === 0 || !clerkUser?.id || !user?.university_id) return;
 
     setInviting(true);
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+
     try {
-      // TODO: Implement bulkInviteStudents mutation
-      // await bulkInviteStudentsMutation({
-      //   clerkId: clerkUser.id,
-      //   students: csvData
-      // })
-      toast({
-        title: "Feature Not Available",
-        description: "Bulk student invitation feature is not yet implemented",
-        variant: "destructive",
-      });
+      // Create all students with activation emails
+      for (const student of csvData) {
+        try {
+          await createUserMutation({
+            adminClerkId: clerkUser.id,
+            email: student.email.trim(),
+            name: student.name.trim(),
+            role: "user",
+            university_id: user.university_id,
+          });
+          successCount++;
+        } catch (e: any) {
+          errorCount++;
+          errors.push(`${student.email}: ${e?.message || "Unknown error"}`);
+        }
+      }
+
+      if (successCount > 0) {
+        toast({
+          title: "Students Created",
+          description: `Successfully created ${successCount} student${successCount > 1 ? "s" : ""} and sent activation emails${errorCount > 0 ? `. ${errorCount} failed.` : ""}`,
+        });
+      }
+
+      if (errorCount > 0 && successCount === 0) {
+        toast({
+          title: "All Failed",
+          description: errors.join("; "),
+          variant: "destructive",
+        });
+      }
+
       setCsvDialogOpen(false);
       setCsvFile(null);
       setCsvData([]);
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to send bulk invitations",
+        description: error.message || "Failed to create students",
         variant: "destructive",
       });
     } finally {
@@ -347,6 +377,38 @@ export default function UniversityStudentsPage() {
     }
   };
 
+  const handleResendInvite = async () => {
+    if (!selectedStudent?.email) return;
+
+    setResendingInvite(true);
+    try {
+      const response = await fetch("/api/university/send-invitations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emails: [selectedStudent.email],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send invitation email");
+      }
+
+      toast({
+        title: "Invitation Resent",
+        description: `Invitation email has been resent to ${selectedStudent.email}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to resend invitation",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingInvite(false);
+    }
+  };
+
   // Early return checks
   if (!canAccess) {
     return (
@@ -386,6 +448,16 @@ export default function UniversityStudentsPage() {
             Manage student accounts, track progress, and invite new students
           </p>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setInviteDialogOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Invite Student
+          </Button>
+          <Button onClick={() => setCsvDialogOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Bulk Import
+          </Button>
+        </div>
       </div>
 
       {/* View Toggle Buttons */}
@@ -408,31 +480,11 @@ export default function UniversityStudentsPage() {
           <LineChart className="h-4 w-4 mr-2" />
           Student Progress
         </Button>
-        <Button
-          size="sm"
-          variant={activeView === "invite" ? "default" : "outline"}
-          onClick={() => setActiveView("invite")}
-          className={activeView === "invite" ? "bg-[#0C29AB]" : ""}
-        >
-          <Mail className="h-4 w-4 mr-2" />
-          Invite Students
-        </Button>
       </div>
 
       {activeView === "students" && (
         <>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setInviteDialogOpen(true)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Invite Student
-            </Button>
-            <Button onClick={() => setCsvDialogOpen(true)}>
-              <Upload className="h-4 w-4 mr-2" />
-              Bulk Import
-            </Button>
-          </div>
-
-      {/* Stats */}
+          {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -616,6 +668,30 @@ export default function UniversityStudentsPage() {
                 }
               />
             </div>
+            <div>
+              <Label htmlFor="student-department">Department (Optional)</Label>
+              <Select
+                value={singleInviteForm.departmentId || "none"}
+                onValueChange={(value) =>
+                  setSingleInviteForm({
+                    ...singleInviteForm,
+                    departmentId: value === "none" ? "" : value,
+                  })
+                }
+              >
+                <SelectTrigger id="student-department">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {departments?.map((dept: any) => (
+                    <SelectItem key={dept._id} value={dept._id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -787,7 +863,7 @@ export default function UniversityStudentsPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-medium">
-                  Total Advisor Sessions Logged
+                  Total Advisor Sessions
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -995,37 +1071,6 @@ export default function UniversityStudentsPage() {
         </div>
       )}
 
-      {/* Invite Students View */}
-      {activeView === "invite" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Invite Students</CardTitle>
-            <CardDescription>
-              Send invitations to new students to join your university
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2 mb-6">
-              <Button variant="outline" onClick={() => setInviteDialogOpen(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Invite Student
-              </Button>
-              <Button variant="outline" onClick={() => setCsvDialogOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Bulk Upload CSV
-              </Button>
-              <Button variant="outline" onClick={downloadTemplate}>
-                <Download className="h-4 w-4 mr-2" />
-                Download Template
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Use the buttons above to invite individual students or upload a CSV file for bulk invitations.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Student Details Dialog */}
       <Dialog open={studentDetailsOpen} onOpenChange={setStudentDetailsOpen}>
         <DialogContent className="max-w-2xl">
@@ -1140,6 +1185,28 @@ export default function UniversityStudentsPage() {
                       )}
                     </Button>
                   </div>
+                  {selectedStudent.account_status === "pending_activation" && (
+                    <div className="mt-3">
+                      <Button
+                        onClick={handleResendInvite}
+                        disabled={resendingInvite}
+                        size="sm"
+                        variant="outline"
+                      >
+                        {resendingInvite ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="h-4 w-4 mr-2" />
+                            Resend Invite Email
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

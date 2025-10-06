@@ -240,45 +240,44 @@ const Sidebar = React.memo(function Sidebar({
     [],
   );
 
-  // Admin sections (top-level for super admins)
+  // Admin sections (top-level for super admins) - flattened for direct access
   const adminSections: SidebarSection[] = useMemo(
     () => [
       {
         id: "admin-dashboard",
         title: "Admin Dashboard",
         icon: <ShieldCheck className="h-5 w-5" />,
-        items: [
-          {
-            href: "/admin",
-            icon: <ShieldCheck className="h-4 w-4" />,
-            label: "Admin Dashboard",
-          },
-          {
-            href: "/admin/users",
-            icon: <UserIcon className="h-4 w-4" />,
-            label: "User Management",
-          },
-          {
-            href: "/admin/universities",
-            icon: <School className="h-4 w-4" />,
-            label: "Universities",
-          },
-          {
-            href: "/admin/analytics",
-            icon: <BarChart className="h-4 w-4" />,
-            label: "Analytics",
-          },
-          {
-            href: "/admin/support",
-            icon: <HelpCircle className="h-4 w-4" />,
-            label: "Support Tickets",
-          },
-          {
-            href: "/admin/settings",
-            icon: <Settings className="h-4 w-4" />,
-            label: "Settings",
-          },
-        ],
+        href: "/admin",
+      },
+      {
+        id: "admin-users",
+        title: "User Management",
+        icon: <UserIcon className="h-5 w-5" />,
+        href: "/admin/users",
+      },
+      {
+        id: "admin-universities",
+        title: "Universities",
+        icon: <School className="h-5 w-5" />,
+        href: "/admin/universities",
+      },
+      {
+        id: "admin-analytics",
+        title: "Analytics",
+        icon: <BarChart className="h-5 w-5" />,
+        href: "/admin/analytics",
+      },
+      {
+        id: "admin-support",
+        title: "Support Tickets",
+        icon: <HelpCircle className="h-5 w-5" />,
+        href: "/admin/support",
+      },
+      {
+        id: "admin-settings",
+        title: "Settings",
+        icon: <Settings className="h-5 w-5" />,
+        href: "/admin/settings",
       },
     ],
     [],
@@ -289,7 +288,7 @@ const Sidebar = React.memo(function Sidebar({
     () => [
       {
         id: "university-dashboard",
-        title: "University Dashboard",
+        title: "Dashboard",
         icon: <School className="h-5 w-5" />,
         href: "/university",
       },
@@ -310,12 +309,6 @@ const Sidebar = React.memo(function Sidebar({
         title: "Analytics",
         icon: <BarChart className="h-5 w-5" />,
         href: "/university/analytics",
-      },
-      {
-        id: "university-settings",
-        title: "Settings",
-        icon: <Settings className="h-5 w-5" />,
-        href: "/university/settings",
       },
     ],
     [],
@@ -465,7 +458,7 @@ const Sidebar = React.memo(function Sidebar({
           flex items-center px-3 py-2 text-sm rounded-md transition-all duration-200 relative
           ${
             active
-              ? "bg-primary text-primary-foreground shadow-sm"
+              ? "bg-[#f0f2ff] text-[#616ef6]"
               : disabled
                 ? "text-gray-400 cursor-not-allowed"
                 : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -555,7 +548,7 @@ const Sidebar = React.memo(function Sidebar({
             flex items-center px-3 py-2 mx-2 text-sm rounded-lg transition-colors
             ${
               sectionActive || hasActiveItem
-                ? "bg-primary/10 text-primary"
+                ? "bg-[#f0f2ff] text-[#616ef6]"
                 : disabled
                   ? "text-gray-400 cursor-not-allowed"
                   : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -788,6 +781,19 @@ const Sidebar = React.memo(function Sidebar({
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Settings Button for university admins */}
+          {isUniAdmin && (
+            <Link href="/university/settings">
+              <Button
+                variant="ghost"
+                className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
+              >
+                <Settings className="h-4 w-4" />
+                {expanded && <span className="ml-3">Settings</span>}
+              </Button>
+            </Link>
+          )}
 
           {/* Support Button for all users */}
           <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>

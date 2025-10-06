@@ -49,22 +49,39 @@ export default function AdminSettingsPage() {
   const [aiSettings, setAiSettings] = useState({
     openaiEnabled: true,
     openaiApiKey: '••••••••••••••••••••••••••••••••••••••••',
-    model: platformSettings?.openai_model || 'gpt-4o-mini',
-    maxTokens: platformSettings?.openai_max_tokens || 4000,
-    temperature: platformSettings?.openai_temperature || 0.7,
+    model: 'gpt-4o-mini',
+    maxTokens: 4000,
+    temperature: 0.7,
     rateLimitEnabled: true,
     rateLimitRequests: 100,
     rateLimitWindow: 3600
   })
 
   const [systemSettings, setSystemSettings] = useState({
-    maintenanceMode: platformSettings?.maintenance_mode || false,
-    registrationEnabled: platformSettings?.allow_signups ?? true,
+    maintenanceMode: false,
+    registrationEnabled: true,
     emailVerificationRequired: true,
     sessionTimeout: 24,
     maxFileUploadSize: 10,
     debugMode: false
   })
+
+  // Update state when platformSettings loads
+  React.useEffect(() => {
+    if (platformSettings) {
+      setAiSettings(prev => ({
+        ...prev,
+        model: platformSettings.openai_model || 'gpt-4o-mini',
+        maxTokens: platformSettings.openai_max_tokens || 4000,
+        temperature: platformSettings.openai_temperature || 0.7,
+      }))
+      setSystemSettings(prev => ({
+        ...prev,
+        maintenanceMode: platformSettings.maintenance_mode || false,
+        registrationEnabled: platformSettings.allow_signups ?? true,
+      }))
+    }
+  }, [platformSettings])
 
   const [notificationSettings, setNotificationSettings] = useState({
     emailNotifications: true,
