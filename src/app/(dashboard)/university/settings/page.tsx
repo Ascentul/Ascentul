@@ -1,66 +1,79 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { useUser } from '@clerk/nextjs'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { useMutation, useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/hooks/use-toast'
-import { Settings, Building, Users, Mail, Globe } from 'lucide-react'
+import React, { useState, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/ClerkAuthProvider";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "convex/_generated/api";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { Settings, Building, Users, Mail, Globe } from "lucide-react";
 
 export default function UniversitySettingsPage() {
-  const { user: clerkUser } = useUser()
-  const { user, isAdmin } = useAuth()
-  const { toast } = useToast()
+  const { user: clerkUser } = useUser();
+  const { user, isAdmin } = useAuth();
+  const { toast } = useToast();
 
-  const universitySettings = useQuery(api.universities.getUniversitySettings,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
-  )
-  const updateUniversitySettings = useMutation(api.universities.updateUniversitySettings)
+  const universitySettings = useQuery(
+    api.universities.getUniversitySettings,
+    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+  );
+  const updateUniversitySettings = useMutation(
+    api.universities.updateUniversitySettings,
+  );
 
-  const canAccess = !!user && (isAdmin || user.subscription_plan === 'university' || user.role === 'university_admin')
+  const canAccess =
+    !!user &&
+    (isAdmin ||
+      user.subscription_plan === "university" ||
+      user.role === "university_admin");
 
   const [settings, setSettings] = useState({
-    name: '',
-    description: '',
-    website: '',
-    contactEmail: '',
+    name: "",
+    description: "",
+    website: "",
+    contactEmail: "",
     maxStudents: 0,
-    licenseSeats: 0
-  })
+    licenseSeats: 0,
+  });
 
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
   // Load university settings when data is available
   useEffect(() => {
     if (universitySettings) {
       setSettings({
-        name: universitySettings.name || '',
-        description: universitySettings.description || '',
-        website: universitySettings.website || '',
-        contactEmail: universitySettings.contact_email || '',
+        name: universitySettings.name || "",
+        description: universitySettings.description || "",
+        website: universitySettings.website || "",
+        contactEmail: universitySettings.contact_email || "",
         maxStudents: universitySettings.max_students || 0,
         licenseSeats: universitySettings.license_seats || 0,
-      })
+      });
     }
-  }, [universitySettings])
+  }, [universitySettings]);
 
   const handleSaveSettings = async () => {
     if (!clerkUser || !universitySettings?._id) {
       toast({
-        title: 'Error',
-        description: 'Unable to save settings. Please try refreshing the page.',
-        variant: 'destructive',
-      })
-      return
+        title: "Error",
+        description: "Unable to save settings. Please try refreshing the page.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       await updateUniversitySettings({
         clerkId: clerkUser.id,
@@ -70,26 +83,46 @@ export default function UniversitySettingsPage() {
           description: settings.description,
           website: settings.website,
           contact_email: settings.contactEmail,
-          max_students: settings.maxStudents,
-          license_seats: settings.licenseSeats,
         },
-      })
+      });
 
       toast({
-        title: 'Settings saved',
-        description: 'University settings have been updated successfully.',
-      })
+        title: "Settings saved",
+        description: "University settings have been updated successfully.",
+      });
     } catch (error: any) {
-      console.error('Settings save error:', error)
+      console.error("Settings save error:", error);
       toast({
-        title: 'Error',
-        description: error?.message || 'Failed to save settings. Please try again.',
-        variant: 'destructive',
-      })
+        title: "Error",
+        description:
+          error?.message || "Failed to save settings. Please try again.",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  const handleConfigureNotifications = () => {
+    toast({
+      title: "Email Notifications",
+      description: "Notification settings configuration coming soon.",
+    });
+  };
+
+  const handleExportData = () => {
+    toast({
+      title: "Data Export",
+      description: "Data export functionality coming soon.",
+    });
+  };
+
+  const handleConfigureSecurity = () => {
+    toast({
+      title: "Security Settings",
+      description: "Security configuration coming soon.",
+    });
+  };
 
   if (!canAccess) {
     return (
@@ -99,19 +132,25 @@ export default function UniversitySettingsPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">You do not have access to University Settings.</p>
+            <p className="text-muted-foreground">
+              You do not have access to University Settings.
+            </p>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
     <div className="max-w-screen-2xl mx-auto p-4 md:p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">University Settings</h1>
-          <p className="text-muted-foreground">Manage your institution's configuration and preferences.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
+            University Settings
+          </h1>
+          <p className="text-muted-foreground">
+            Manage your institution's configuration and preferences.
+          </p>
         </div>
       </div>
 
@@ -122,7 +161,9 @@ export default function UniversitySettingsPage() {
               <Building className="h-5 w-5" />
               Institution Information
             </CardTitle>
-            <CardDescription>Update your university's basic information</CardDescription>
+            <CardDescription>
+              Update your university's basic information
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -131,7 +172,9 @@ export default function UniversitySettingsPage() {
                 id="name"
                 placeholder="Enter university name"
                 value={settings.name}
-                onChange={(e) => setSettings(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, name: e.target.value }))
+                }
               />
             </div>
 
@@ -142,7 +185,12 @@ export default function UniversitySettingsPage() {
                 placeholder="Brief description of your institution"
                 rows={3}
                 value={settings.description}
-                onChange={(e) => setSettings(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
               />
             </div>
 
@@ -153,7 +201,9 @@ export default function UniversitySettingsPage() {
                 type="url"
                 placeholder="https://university.edu"
                 value={settings.website}
-                onChange={(e) => setSettings(prev => ({ ...prev, website: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, website: e.target.value }))
+                }
               />
             </div>
 
@@ -164,7 +214,12 @@ export default function UniversitySettingsPage() {
                 type="email"
                 placeholder="admin@university.edu"
                 value={settings.contactEmail}
-                onChange={(e) => setSettings(prev => ({ ...prev, contactEmail: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    contactEmail: e.target.value,
+                  }))
+                }
               />
             </div>
           </CardContent>
@@ -176,31 +231,46 @@ export default function UniversitySettingsPage() {
               <Users className="h-5 w-5" />
               License Management
             </CardTitle>
-            <CardDescription>Configure student license settings</CardDescription>
+            <CardDescription>
+              View your institution's license information
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="maxStudents">Maximum Students</Label>
-              <Input
-                id="maxStudents"
-                type="number"
-                placeholder="1000"
-                value={settings.maxStudents}
-                onChange={(e) => setSettings(prev => ({ ...prev, maxStudents: parseInt(e.target.value) || 0 }))}
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="licenseSeats">License Seats</Label>
               <Input
                 id="licenseSeats"
                 type="number"
-                placeholder="1000"
                 value={settings.licenseSeats}
-                onChange={(e) => setSettings(prev => ({ ...prev, licenseSeats: parseInt(e.target.value) || 0 }))}
+                disabled
+                className="bg-muted cursor-not-allowed"
               />
               <p className="text-xs text-muted-foreground">
-                Number of licenses available for students
+                Total number of licenses available for students (read-only)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>License Usage</Label>
+              <div className="flex items-center justify-between p-3 border rounded-md bg-muted">
+                <span className="text-sm font-medium">
+                  {universitySettings?.license_used || 0} / {settings.licenseSeats} seats used
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {settings.licenseSeats - (universitySettings?.license_used || 0)} available
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>License Plan</Label>
+              <Input
+                value={universitySettings?.license_plan || "N/A"}
+                disabled
+                className="bg-muted cursor-not-allowed"
+              />
+              <p className="text-xs text-muted-foreground">
+                Current subscription plan (read-only)
               </p>
             </div>
           </CardContent>
@@ -221,35 +291,39 @@ export default function UniversitySettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-medium">Email Notifications</h4>
-                  <p className="text-xs text-muted-foreground">Receive updates about student activity</p>
+                  <p className="text-xs text-muted-foreground">
+                    Receive updates about student activity
+                  </p>
                 </div>
-                <Button variant="outline" size="sm">Configure</Button>
+                <Button variant="outline" size="sm" onClick={handleConfigureNotifications}>
+                  Configure
+                </Button>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-medium">Data Export</h4>
-                  <p className="text-xs text-muted-foreground">Download student and usage data</p>
+                  <p className="text-xs text-muted-foreground">
+                    Download student and usage data
+                  </p>
                 </div>
-                <Button variant="outline" size="sm">Export</Button>
+                <Button variant="outline" size="sm" onClick={handleExportData}>
+                  Export
+                </Button>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-medium">API Access</h4>
-                  <p className="text-xs text-muted-foreground">Manage API keys and integrations</p>
-                </div>
-                <Button variant="outline" size="sm">Manage</Button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
                   <h4 className="text-sm font-medium">Security</h4>
-                  <p className="text-xs text-muted-foreground">Configure security settings</p>
+                  <p className="text-xs text-muted-foreground">
+                    Configure security settings
+                  </p>
                 </div>
-                <Button variant="outline" size="sm">Configure</Button>
+                <Button variant="outline" size="sm" onClick={handleConfigureSecurity}>
+                  Configure
+                </Button>
               </div>
             </div>
           </div>
@@ -257,11 +331,13 @@ export default function UniversitySettingsPage() {
       </Card>
 
       <div className="flex justify-end gap-3">
-        <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Cancel
+        </Button>
         <Button onClick={handleSaveSettings} disabled={loading}>
-          {loading ? 'Saving...' : 'Save Changes'}
+          {loading ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>
-  )
+  );
 }

@@ -49,22 +49,62 @@ export default function AdminSettingsPage() {
   const [aiSettings, setAiSettings] = useState({
     openaiEnabled: true,
     openaiApiKey: '••••••••••••••••••••••••••••••••••••••••',
-    model: platformSettings?.openai_model || 'gpt-4o-mini',
-    maxTokens: platformSettings?.openai_max_tokens || 4000,
-    temperature: platformSettings?.openai_temperature || 0.7,
+    model: 'gpt-4o-mini',
+    maxTokens: 4000,
+    temperature: 0.7,
     rateLimitEnabled: true,
     rateLimitRequests: 100,
     rateLimitWindow: 3600
   })
 
   const [systemSettings, setSystemSettings] = useState({
-    maintenanceMode: platformSettings?.maintenance_mode || false,
-    registrationEnabled: platformSettings?.allow_signups ?? true,
+    maintenanceMode: false,
+    registrationEnabled: true,
     emailVerificationRequired: true,
     sessionTimeout: 24,
     maxFileUploadSize: 10,
     debugMode: false
   })
+
+  // Update state when platformSettings loads
+  React.useEffect(() => {
+    if (platformSettings) {
+      setAiSettings({
+        openaiEnabled: platformSettings.openai_enabled ?? true,
+        openaiApiKey: '••••••••••••••••••••••••••••••••••••••••',
+        model: platformSettings.openai_model || 'gpt-5',
+        maxTokens: platformSettings.openai_max_tokens || 4000,
+        temperature: platformSettings.openai_temperature || 0.7,
+        rateLimitEnabled: platformSettings.rate_limit_enabled ?? true,
+        rateLimitRequests: platformSettings.rate_limit_requests || 100,
+        rateLimitWindow: platformSettings.rate_limit_window || 3600,
+      })
+      setSystemSettings({
+        maintenanceMode: platformSettings.maintenance_mode ?? false,
+        registrationEnabled: platformSettings.allow_signups ?? true,
+        emailVerificationRequired: platformSettings.email_verification_required ?? true,
+        sessionTimeout: platformSettings.session_timeout || 24,
+        maxFileUploadSize: platformSettings.max_file_upload_size || 10,
+        debugMode: platformSettings.debug_mode ?? false,
+      })
+      setSecuritySettings({
+        twoFactorRequired: platformSettings.two_factor_required ?? false,
+        passwordComplexity: platformSettings.password_complexity || 'medium',
+        loginAttemptLimit: platformSettings.login_attempt_limit || 5,
+        ipWhitelistEnabled: platformSettings.ip_whitelist_enabled ?? false,
+        auditLogging: platformSettings.audit_logging ?? true,
+        sessionEncryption: platformSettings.session_encryption ?? true,
+      })
+      setNotificationSettings({
+        emailNotifications: platformSettings.email_notifications ?? true,
+        slackIntegration: platformSettings.slack_integration ?? false,
+        webhookUrl: platformSettings.slack_webhook_url || '',
+        criticalAlertsOnly: platformSettings.critical_alerts_only ?? false,
+        dailyReports: platformSettings.daily_reports ?? true,
+        weeklyAnalytics: platformSettings.weekly_analytics ?? true,
+      })
+    }
+  }, [platformSettings])
 
   const [notificationSettings, setNotificationSettings] = useState({
     emailNotifications: true,
@@ -110,25 +150,52 @@ export default function AdminSettingsPage() {
     try {
       if (!clerkUser) throw new Error('No user found')
 
-      // Save relevant settings based on type
+      let settingsToSave = {}
+
+      // Map settings based on type
       if (settingsType === 'AI') {
-        await updatePlatformSettings({
-          clerkId: clerkUser.id,
-          settings: {
-            openai_model: aiSettings.model,
-            openai_temperature: aiSettings.temperature,
-            openai_max_tokens: aiSettings.maxTokens,
-          },
-        })
-      } else if (settingsType === 'General' || settingsType === 'System') {
-        await updatePlatformSettings({
-          clerkId: clerkUser.id,
-          settings: {
-            maintenance_mode: systemSettings.maintenanceMode,
-            allow_signups: systemSettings.registrationEnabled,
-          },
-        })
+        settingsToSave = {
+          openai_enabled: aiSettings.openaiEnabled,
+          openai_model: aiSettings.model,
+          openai_temperature: aiSettings.temperature,
+          openai_max_tokens: aiSettings.maxTokens,
+          rate_limit_enabled: aiSettings.rateLimitEnabled,
+          rate_limit_requests: aiSettings.rateLimitRequests,
+          rate_limit_window: aiSettings.rateLimitWindow,
+        }
+      } else if (settingsType === 'System') {
+        settingsToSave = {
+          maintenance_mode: systemSettings.maintenanceMode,
+          allow_signups: systemSettings.registrationEnabled,
+          email_verification_required: systemSettings.emailVerificationRequired,
+          session_timeout: systemSettings.sessionTimeout,
+          max_file_upload_size: systemSettings.maxFileUploadSize,
+          debug_mode: systemSettings.debugMode,
+        }
+      } else if (settingsType === 'Security') {
+        settingsToSave = {
+          two_factor_required: securitySettings.twoFactorRequired,
+          password_complexity: securitySettings.passwordComplexity,
+          login_attempt_limit: securitySettings.loginAttemptLimit,
+          ip_whitelist_enabled: securitySettings.ipWhitelistEnabled,
+          audit_logging: securitySettings.auditLogging,
+          session_encryption: securitySettings.sessionEncryption,
+        }
+      } else if (settingsType === 'Notification') {
+        settingsToSave = {
+          email_notifications: notificationSettings.emailNotifications,
+          slack_integration: notificationSettings.slackIntegration,
+          slack_webhook_url: notificationSettings.webhookUrl,
+          critical_alerts_only: notificationSettings.criticalAlertsOnly,
+          daily_reports: notificationSettings.dailyReports,
+          weekly_analytics: notificationSettings.weeklyAnalytics,
+        }
       }
+
+      await updatePlatformSettings({
+        clerkId: clerkUser.id,
+        settings: settingsToSave,
+      })
 
       toast({
         title: "Settings saved",

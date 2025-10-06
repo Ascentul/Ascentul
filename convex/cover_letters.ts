@@ -34,6 +34,14 @@ export const createCoverLetter = mutation({
     template: v.string(),
     content: v.optional(v.string()),
     closing: v.string(),
+    source: v.optional(
+      v.union(
+        v.literal("manual"),
+        v.literal("ai_generated"),
+        v.literal("ai_optimized"),
+        v.literal("pdf_upload"),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -53,6 +61,7 @@ export const createCoverLetter = mutation({
       template: args.template,
       content: args.content,
       closing: args.closing,
+      source: args.source ?? "manual",
       created_at: Date.now(),
       updated_at: Date.now(),
     });
@@ -74,6 +83,14 @@ export const updateCoverLetter = mutation({
       template: v.optional(v.string()),
       content: v.optional(v.string()),
       closing: v.optional(v.string()),
+      source: v.optional(
+        v.union(
+          v.literal("manual"),
+          v.literal("ai_generated"),
+          v.literal("ai_optimized"),
+          v.literal("pdf_upload"),
+        ),
+      ),
     }),
   },
   handler: async (ctx, args) => {

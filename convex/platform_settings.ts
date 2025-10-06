@@ -15,12 +15,47 @@ export const getPlatformSettings = query({
   args: {},
   handler: async (ctx) => {
     return {
-      openai_model: await getSetting(ctx, "openai_model", process.env.OPENAI_MODEL || 'gpt-4o-mini'),
+      // AI Settings
+      openai_model: await getSetting(ctx, "openai_model", process.env.OPENAI_MODEL || 'gpt-5'),
       openai_temperature: await getSetting(ctx, "openai_temperature", 0.7),
       openai_max_tokens: await getSetting(ctx, "openai_max_tokens", 4000),
+      openai_enabled: await getSetting(ctx, "openai_enabled", true),
+      rate_limit_enabled: await getSetting(ctx, "rate_limit_enabled", true),
+      rate_limit_requests: await getSetting(ctx, "rate_limit_requests", 100),
+      rate_limit_window: await getSetting(ctx, "rate_limit_window", 3600),
+
+      // System Settings
       maintenance_mode: await getSetting(ctx, "maintenance_mode", false),
       allow_signups: await getSetting(ctx, "allow_signups", true),
+      email_verification_required: await getSetting(ctx, "email_verification_required", true),
+      session_timeout: await getSetting(ctx, "session_timeout", 24),
+      max_file_upload_size: await getSetting(ctx, "max_file_upload_size", 10),
+      debug_mode: await getSetting(ctx, "debug_mode", false),
       default_user_role: await getSetting(ctx, "default_user_role", 'user'),
+
+      // General Settings
+      platform_name: await getSetting(ctx, "platform_name", 'Ascentul'),
+      support_email: await getSetting(ctx, "support_email", 'support@ascentul.io'),
+      base_url: await getSetting(ctx, "base_url", 'https://app.ascentul.io'),
+      default_timezone: await getSetting(ctx, "default_timezone", 'UTC'),
+      university_plan_limit: await getSetting(ctx, "university_plan_limit", 1000),
+      premium_plan_limit: await getSetting(ctx, "premium_plan_limit", 100),
+
+      // Security Settings
+      two_factor_required: await getSetting(ctx, "two_factor_required", false),
+      password_complexity: await getSetting(ctx, "password_complexity", 'medium'),
+      login_attempt_limit: await getSetting(ctx, "login_attempt_limit", 5),
+      ip_whitelist_enabled: await getSetting(ctx, "ip_whitelist_enabled", false),
+      audit_logging: await getSetting(ctx, "audit_logging", true),
+      session_encryption: await getSetting(ctx, "session_encryption", true),
+
+      // Notification Settings
+      email_notifications: await getSetting(ctx, "email_notifications", true),
+      slack_integration: await getSetting(ctx, "slack_integration", false),
+      slack_webhook_url: await getSetting(ctx, "slack_webhook_url", ''),
+      critical_alerts_only: await getSetting(ctx, "critical_alerts_only", false),
+      daily_reports: await getSetting(ctx, "daily_reports", true),
+      weekly_analytics: await getSetting(ctx, "weekly_analytics", true),
     };
   },
 });
@@ -51,14 +86,7 @@ async function upsertSetting(ctx: any, key: string, value: any) {
 export const updatePlatformSettings = mutation({
   args: {
     clerkId: v.string(),
-    settings: v.object({
-      openai_model: v.optional(v.string()),
-      openai_temperature: v.optional(v.number()),
-      openai_max_tokens: v.optional(v.number()),
-      maintenance_mode: v.optional(v.boolean()),
-      allow_signups: v.optional(v.boolean()),
-      default_user_role: v.optional(v.string()),
-    }),
+    settings: v.any(), // Accept any settings object to be flexible
   },
   handler: async (ctx, args) => {
     const currentUser = await ctx.db
@@ -68,42 +96,18 @@ export const updatePlatformSettings = mutation({
 
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["admin", "super_admin"].includes(currentUser.role);
-    if (!isAdmin) throw new Error("Unauthorized - Admin access required");
+    const isAdmin = currentUser.role === "super_admin";
+    if (!isAdmin) throw new Error("Unauthorized - Super Admin access required");
 
     // Save each setting to database
-    if (args.settings.openai_model !== undefined) {
-      await upsertSetting(ctx, "openai_model", args.settings.openai_model);
+    for (const [key, value] of Object.entries(args.settings)) {
+      if (value !== undefined) {
+        await upsertSetting(ctx, key, value);
+      }
     }
-    if (args.settings.openai_temperature !== undefined) {
-      await upsertSetting(ctx, "openai_temperature", args.settings.openai_temperature);
-    }
-    if (args.settings.openai_max_tokens !== undefined) {
-      await upsertSetting(ctx, "openai_max_tokens", args.settings.openai_max_tokens);
-    }
-    if (args.settings.maintenance_mode !== undefined) {
-      await upsertSetting(ctx, "maintenance_mode", args.settings.maintenance_mode);
-    }
-    if (args.settings.allow_signups !== undefined) {
-      await upsertSetting(ctx, "allow_signups", args.settings.allow_signups);
-    }
-    if (args.settings.default_user_role !== undefined) {
-      await upsertSetting(ctx, "default_user_role", args.settings.default_user_role);
-    }
-
-    // Get current settings to return
-    const updatedSettings = {
-      openai_model: await getSetting(ctx, "openai_model", 'gpt-4o-mini'),
-      openai_temperature: await getSetting(ctx, "openai_temperature", 0.7),
-      openai_max_tokens: await getSetting(ctx, "openai_max_tokens", 4000),
-      maintenance_mode: await getSetting(ctx, "maintenance_mode", false),
-      allow_signups: await getSetting(ctx, "allow_signups", true),
-      default_user_role: await getSetting(ctx, "default_user_role", 'user'),
-    };
 
     return {
       success: true,
-      settings: updatedSettings,
       message: 'Settings updated successfully',
     };
   },
@@ -115,31 +119,38 @@ export const getAvailableOpenAIModels = query({
   handler: async (ctx) => {
     return [
       {
+        id: 'gpt-5',
+        name: 'GPT-5',
+        description: 'Most intelligent model, best for complex reasoning, coding, and agentic tasks',
+        cost_per_1k_tokens: 0.0125, // $1.25 per million input tokens
+        max_tokens: 32768,
+      },
+      {
+        id: 'gpt-5-mini',
+        name: 'GPT-5 Mini',
+        description: 'Cost-optimized reasoning and chat, balances speed, cost, and capability',
+        cost_per_1k_tokens: 0.004,
+        max_tokens: 16384,
+      },
+      {
+        id: 'gpt-5-nano',
+        name: 'GPT-5 Nano',
+        description: 'High-throughput for simple instruction-following or classification',
+        cost_per_1k_tokens: 0.001,
+        max_tokens: 8192,
+      },
+      {
         id: 'gpt-4o',
         name: 'GPT-4o',
-        description: 'Most advanced model, best quality responses',
+        description: 'Previous generation model with multimodal capabilities',
         cost_per_1k_tokens: 0.03,
         max_tokens: 4096,
       },
       {
         id: 'gpt-4o-mini',
         name: 'GPT-4o Mini',
-        description: 'Fast and cost-effective for most tasks',
+        description: 'Legacy cost-effective variant',
         cost_per_1k_tokens: 0.0015,
-        max_tokens: 4096,
-      },
-      {
-        id: 'gpt-4-turbo',
-        name: 'GPT-4 Turbo',
-        description: 'Latest GPT-4 with improved performance',
-        cost_per_1k_tokens: 0.03,
-        max_tokens: 4096,
-      },
-      {
-        id: 'gpt-3.5-turbo',
-        name: 'GPT-3.5 Turbo',
-        description: 'Legacy model, fastest response times',
-        cost_per_1k_tokens: 0.002,
         max_tokens: 4096,
       },
     ];

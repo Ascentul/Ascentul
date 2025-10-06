@@ -33,6 +33,7 @@ interface CoverLetterDoc {
   closing: string
   created_at: number
   updated_at: number
+  source?: 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload'
 }
 
 export default function CoverLetterDetailPage() {

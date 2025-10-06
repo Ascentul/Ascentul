@@ -1,8 +1,8 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CheckCircle,
   Circle,
@@ -35,6 +35,8 @@ interface Recommendation {
 export function TodaysRecommendations() {
   const { toast } = useToast()
   const [showAll, setShowAll] = useState(false)
+  const [localRecommendations, setLocalRecommendations] = useState<Recommendation[]>([])
+  const removalTimeouts = useRef<Map<string | number, ReturnType<typeof setTimeout>>>(new Map())
 
   const {
     data: recommendations = [],
@@ -56,18 +58,42 @@ export function TodaysRecommendations() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
-  // Ensure recommendations is an array and sort by completion status
-  const recommendationsArray = Array.isArray(recommendations) ? recommendations : []
-  const sortedRecommendations = [...recommendationsArray].sort((a, b) => {
-    return a.completed === b.completed
-      ? a.type.localeCompare(b.type)
-      : a.completed ? 1 : -1
-  })
+  const recommendationsArray = useMemo(
+    () => (Array.isArray(recommendations) ? recommendations : []),
+    [recommendations]
+  )
+
+  useEffect(() => {
+    removalTimeouts.current.forEach(timeout => clearTimeout(timeout))
+    removalTimeouts.current.clear()
+    setLocalRecommendations(recommendationsArray.map(rec => ({ ...rec })))
+  }, [recommendationsArray])
+
+  useEffect(() => () => {
+    removalTimeouts.current.forEach(timeout => clearTimeout(timeout))
+    removalTimeouts.current.clear()
+  }, [])
+
+  const sortedRecommendations = useMemo(() => {
+    return [...localRecommendations].sort((a, b) => {
+      return a.completed === b.completed
+        ? a.type.localeCompare(b.type)
+        : a.completed
+        ? 1
+        : -1
+    })
+  }, [localRecommendations])
 
   // Show only first incomplete recommendation by default, or all if showAll is true
   const displayedRecommendations = showAll
     ? sortedRecommendations
     : sortedRecommendations.slice(0, 1)
+
+  useEffect(() => {
+    if (showAll && sortedRecommendations.length <= 1) {
+      setShowAll(false)
+    }
+  }, [showAll, sortedRecommendations.length])
 
   // Function to determine correct link for recommendation type
   const getRecommendationLink = (recommendation: Recommendation): string | null => {
@@ -93,23 +119,6 @@ export function TodaysRecommendations() {
     }
   }
 
-  const getTypeIcon = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'resume':
-        return <FileText className="h-3 w-3" />
-      case 'networking':
-      case 'contact':
-        return <Users className="h-3 w-3" />
-      case 'goal':
-        return <Target className="h-3 w-3" />
-      case 'application':
-      case 'interview':
-        return <CheckCircle className="h-3 w-3" />
-      default:
-        return <Lightbulb className="h-3 w-3" />
-    }
-  }
-
   const getTypeLabel = (type: string) => {
     switch (type.toLowerCase()) {
       case 'resume':
@@ -125,6 +134,23 @@ export function TodaysRecommendations() {
         return 'Interview'
       default:
         return 'General'
+    }
+  }
+
+  const getTypePillIcon = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'resume':
+        return <FileText className="h-3 w-3" />
+      case 'networking':
+      case 'contact':
+        return <Users className="h-3 w-3" />
+      case 'goal':
+        return <Target className="h-3 w-3" />
+      case 'application':
+      case 'interview':
+        return <CheckCircle className="h-3 w-3" />
+      default:
+        return <Lightbulb className="h-3 w-3" />
     }
   }
 
@@ -146,6 +172,40 @@ export function TodaysRecommendations() {
         variant: 'destructive'
       })
     }
+  }
+
+  const markCompleted = (recommendationId: Recommendation['id']) => {
+    let didUpdate = false
+
+    setLocalRecommendations(prev => {
+      let hasChanged = false
+      const next = prev.map(rec => {
+        if (rec.id !== recommendationId || rec.completed) return rec
+        hasChanged = true
+        return {
+          ...rec,
+          completed: true,
+          completedAt: new Date().toISOString()
+        }
+      })
+      if (hasChanged) {
+        didUpdate = true
+        return next
+      }
+      return prev
+    })
+
+    if (!didUpdate) return
+
+    const existingTimeout = removalTimeouts.current.get(recommendationId)
+    if (existingTimeout) clearTimeout(existingTimeout)
+
+    const timeout = setTimeout(() => {
+      setLocalRecommendations(prev => prev.filter(rec => rec.id !== recommendationId))
+      removalTimeouts.current.delete(recommendationId)
+    }, 400)
+
+    removalTimeouts.current.set(recommendationId, timeout)
   }
 
   return (
@@ -213,57 +273,85 @@ export function TodaysRecommendations() {
           ) : (
             <>
               <ul className="space-y-3">
-                {displayedRecommendations.map((recommendation) => {
-                  const link = getRecommendationLink(recommendation)
+                <AnimatePresence initial={false}>
+                  {displayedRecommendations.map((recommendation) => {
+                    const link = getRecommendationLink(recommendation)
 
-                  return (
-                    <li
-                      key={recommendation.id}
-                      className={`flex items-start p-3 rounded-lg border transition-all duration-300 ${
-                        recommendation.completed
-                          ? 'bg-green-50/50 text-muted-foreground border-border/50'
-                          : 'bg-background border-border hover:border-primary/30'
-                      }`}
-                    >
-                      <div className="mt-0.5 mr-3 flex-shrink-0">
-                        <div className="h-4 w-4 bg-muted rounded-full flex items-center justify-center">
-                          {getTypeIcon(recommendation.type)}
-                        </div>
-                      </div>
-
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-start">
-                          <span
-                            className={`text-sm ${recommendation.completed ? 'line-through' : ''}`}
-                          >
-                            {recommendation.text}
-                          </span>
-
-                          {link && !recommendation.completed && (
-                            <Link href={link} className="ml-2 inline-flex">
-                              <Button variant="ghost" size="icon" className="h-5 w-5 -mr-1" title="Go to related item">
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </Button>
-                            </Link>
+                    return (
+                      <motion.li
+                        key={recommendation.id}
+                        layout
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0, borderWidth: 0 }}
+                        transition={{ duration: 0.25 }}
+                        onClick={() => markCompleted(recommendation.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            markCompleted(recommendation.id)
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={recommendation.completed}
+                        className={`flex items-start p-3 rounded-lg border cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all duration-300 ${
+                          recommendation.completed
+                            ? 'bg-green-50/70 text-muted-foreground border-green-100'
+                            : 'bg-background border-border hover:border-primary/30'
+                        }`}
+                      >
+                        <div
+                          className="flex-shrink-0 mt-0.5"
+                          aria-label={`Recommendation ${recommendation.completed ? 'complete' : 'incomplete'}`}
+                        >
+                          {recommendation.completed ? (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <Circle className="h-4 w-4 text-muted-foreground opacity-60" />
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-xs bg-muted px-2 py-1 rounded-full">
-                            {getTypeLabel(recommendation.type)}
-                          </span>
-
-                          {recommendation.completed && (
-                            <span className="text-xs text-green-600 flex items-center gap-1">
-                              <CheckCircle className="h-3 w-3" />
-                              Completed
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-start">
+                            <span
+                              className={`text-sm ${recommendation.completed ? 'line-through' : ''}`}
+                            >
+                              {recommendation.text}
                             </span>
-                          )}
+
+                            {link && !recommendation.completed && (
+                              <Link
+                                href={link}
+                                className="ml-2 inline-flex"
+                                onClick={(event) => event.stopPropagation()}
+                                onKeyDown={(event) => event.stopPropagation()}
+                              >
+                                <Button variant="ghost" size="icon" className="h-5 w-5 -mr-1" title="Go to related item">
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Button>
+                              </Link>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs bg-muted px-2 py-1 rounded-full flex items-center gap-1">
+                              {getTypePillIcon(recommendation.type)}
+                              {getTypeLabel(recommendation.type)}
+                            </span>
+
+                            {recommendation.completed && (
+                              <span className="text-xs text-green-600 flex items-center gap-1">
+                                <CheckCircle className="h-3 w-3" />
+                                Completed
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </li>
-                  )
-                })}
+                      </motion.li>
+                    )
+                  })}
+                </AnimatePresence>
               </ul>
 
               {sortedRecommendations.length > 1 && (

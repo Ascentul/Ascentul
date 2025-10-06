@@ -48,6 +48,7 @@ export default function AdminDashboardPage() {
 
   const users = useQuery(api.users.getAllUsers, clerkUser?.id ? { clerkId: clerkUser.id, limit: 100 } : 'skip')
   const analytics = useQuery(api.analytics.getAdminAnalytics, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
+  const revenueData = useQuery(api.analytics.getRevenueAnalytics, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
 
   // Memoize analytics data
   const systemStats = useMemo(() => analytics?.systemStats || {
@@ -63,7 +64,16 @@ export default function AdminDashboardPage() {
   const userGrowthData = useMemo(() => analytics?.userGrowth || [], [analytics?.userGrowth])
   const subscriptionData = useMemo(() => analytics?.subscriptionData || [], [analytics?.subscriptionData])
   const universityData = useMemo(() => analytics?.universityData || [], [analytics?.universityData])
+  const mauTrends = useMemo(() => analytics?.mauTrends || [], [analytics?.mauTrends])
   const activityData = useMemo(() => analytics?.activityData || [], [analytics?.activityData])
+  const supportMetrics = useMemo(() => analytics?.supportMetrics || {
+    openTickets: 0,
+    resolvedToday: 0,
+    avgResponseTime: '0.0',
+    totalTickets: 0,
+    resolvedTickets: 0,
+    inProgressTickets: 0,
+  }, [analytics?.supportMetrics])
 
   // Use real recent users data instead of mock activity - memoized
   const recentActivity = useMemo(() =>
@@ -89,7 +99,7 @@ export default function AdminDashboardPage() {
     )
   }
 
-  if (!analytics) {
+  if (!analytics || !revenueData) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="flex items-center justify-center py-16">
@@ -104,11 +114,14 @@ export default function AdminDashboardPage() {
     userGrowthData={userGrowthData}
     subscriptionData={subscriptionData}
     universityData={universityData}
+    mauTrends={mauTrends}
     activityData={activityData}
     recentActivity={recentActivity}
     activeView={activeView}
     setActiveView={setActiveView}
     users={users}
+    revenueData={revenueData}
+    supportMetrics={supportMetrics}
   />
 }
 
@@ -137,21 +150,27 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
   userGrowthData,
   subscriptionData,
   universityData,
+  mauTrends,
   activityData,
   recentActivity,
   activeView,
   setActiveView,
-  users
+  users,
+  revenueData,
+  supportMetrics
 }: {
   systemStats: any
   userGrowthData: any[]
   subscriptionData: any[]
   universityData: any[]
+  mauTrends: any[]
   activityData: any[]
   recentActivity: any[]
   activeView: 'system' | 'universities' | 'users' | 'revenue'
   setActiveView: (view: 'system' | 'universities' | 'users' | 'revenue') => void
   users: any
+  revenueData: any
+  supportMetrics: any
 }) {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
@@ -205,9 +224,8 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
               <CardContent>
                 <div className="text-2xl font-bold">{systemStats.totalUniversities}</div>
                 <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                  <TrendingUp className="h-3 w-3 text-green-500" />
-                  <span className="text-green-500">+2 new</span>
-                  <span>this month</span>
+                  <School className="h-3 w-3" />
+                  <span>Active institutions</span>
                 </div>
               </CardContent>
             </Card>
@@ -393,14 +411,26 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
           {/* System Metrics View */}
           {activeView === 'system' && (
             <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-blue-900">System Monitoring Integration Required</h4>
+                    <p className="text-sm text-blue-700 mt-1">
+                      The metrics below are placeholder values. For real-time system monitoring, integrate with services like Datadog, New Relic, or Vercel Analytics.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">Platform Uptime</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-green-600">99.98%</div>
-                    <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
+                    <div className="text-2xl font-bold text-green-600">--</div>
+                    <p className="text-xs text-muted-foreground mt-1">Requires monitoring</p>
                   </CardContent>
                 </Card>
 
@@ -409,8 +439,8 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">API Response Time</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">142ms</div>
-                    <p className="text-xs text-green-600 mt-1">-8ms from last week</p>
+                    <div className="text-2xl font-bold">--</div>
+                    <p className="text-xs text-muted-foreground mt-1">Requires monitoring</p>
                   </CardContent>
                 </Card>
 
@@ -419,8 +449,8 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">0.03%</div>
-                    <p className="text-xs text-green-600 mt-1">Within acceptable range</p>
+                    <div className="text-2xl font-bold">--</div>
+                    <p className="text-xs text-muted-foreground mt-1">Requires monitoring</p>
                   </CardContent>
                 </Card>
 
@@ -429,75 +459,43 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Database Load</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">42%</div>
-                    <p className="text-xs text-muted-foreground mt-1">Optimal performance</p>
+                    <div className="text-2xl font-bold">--</div>
+                    <p className="text-xs text-muted-foreground mt-1">Requires monitoring</p>
                   </CardContent>
                 </Card>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>System Performance Over Time</CardTitle>
-                    <CardDescription>API response time and error rate trends</CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={[
-                        { day: 'Mon', responseTime: 145, errors: 0.02 },
-                        { day: 'Tue', responseTime: 152, errors: 0.03 },
-                        { day: 'Wed', responseTime: 138, errors: 0.01 },
-                        { day: 'Thu', responseTime: 142, errors: 0.04 },
-                        { day: 'Fri', responseTime: 148, errors: 0.02 },
-                        { day: 'Sat', responseTime: 135, errors: 0.01 },
-                        { day: 'Sun', responseTime: 140, errors: 0.03 },
-                      ]}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="day" />
-                        <YAxis yAxisId="left" />
-                        <YAxis yAxisId="right" orientation="right" />
-                        <Tooltip />
-                        <Legend />
-                        <Line yAxisId="left" type="monotone" dataKey="responseTime" stroke="#4F46E5" strokeWidth={2} name="Response Time (ms)" />
-                        <Line yAxisId="right" type="monotone" dataKey="errors" stroke="#EF4444" strokeWidth={2} name="Error Rate (%)" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Traffic Distribution</CardTitle>
-                    <CardDescription>Requests by endpoint type</CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'API Calls', value: 45, color: '#4F46E5' },
-                            { name: 'Page Loads', value: 30, color: '#10B981' },
-                            { name: 'Static Assets', value: 15, color: '#F59E0B' },
-                            { name: 'Webhooks', value: 10, color: '#EC4899' },
-                          ]}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={90}
-                          label={({ name, value }) => `${name}: ${value}%`}
-                        >
-                          {[0, 1, 2, 3].map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={['#4F46E5', '#10B981', '#F59E0B', '#EC4899'][index]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Monitoring Setup</CardTitle>
+                  <CardDescription>Configure monitoring services for real-time metrics</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Performance Monitoring</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Track API response times, error rates, and system health</p>
+                      </div>
+                      <Badge variant="outline">Not Configured</Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Uptime Monitoring</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Monitor platform availability and downtime</p>
+                      </div>
+                      <Badge variant="outline">Not Configured</Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Database Metrics</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Monitor database load, query performance, and storage</p>
+                      </div>
+                      <Badge variant="outline">Not Configured</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -507,21 +505,11 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Top Performing</CardTitle>
+                    <CardTitle className="text-sm font-medium">Total Universities</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">Stanford</div>
-                    <p className="text-xs text-muted-foreground mt-1">95% engagement rate</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Avg License Utilization</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">78%</div>
-                    <p className="text-xs text-green-600 mt-1">+5% from last month</p>
+                    <div className="text-2xl font-bold">{systemStats.totalUniversities}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Active institutions</p>
                   </CardContent>
                 </Card>
 
@@ -530,62 +518,115 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Total Students</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{systemStats.totalUsers.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">
+                      {universityData.reduce((sum, uni) => sum + (uni.students || 0), 0).toLocaleString()}
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">Across all universities</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Avg License Utilization</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {universityData.length > 0
+                        ? Math.round(universityData.reduce((sum, uni) => sum + (uni.licenseUtilization || 0), 0) / universityData.length)
+                        : 0}%
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Average across all institutions</p>
                   </CardContent>
                 </Card>
               </div>
 
+              {/* License Utilization Chart */}
               <Card>
                 <CardHeader>
-                  <CardTitle>University Comparison</CardTitle>
-                  <CardDescription>Engagement and license utilization by institution</CardDescription>
+                  <CardTitle>License Utilization by University</CardTitle>
+                  <CardDescription>Percentage of licenses activated (students & advisors)</CardDescription>
                 </CardHeader>
                 <CardContent className="h-96">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[
-                      { name: 'Stanford', students: 450, engagement: 95, utilization: 88 },
-                      { name: 'MIT', students: 380, engagement: 92, utilization: 85 },
-                      { name: 'Berkeley', students: 520, engagement: 88, utilization: 82 },
-                      { name: 'Harvard', students: 410, engagement: 90, utilization: 80 },
-                      { name: 'Cornell', students: 340, engagement: 85, utilization: 75 },
-                    ]}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="students" fill="#4F46E5" name="Students" />
-                      <Bar dataKey="engagement" fill="#10B981" name="Engagement %" />
-                      <Bar dataKey="utilization" fill="#F59E0B" name="License Util %" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {universityData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={universityData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" domain={[0, 100]} label={{ value: 'Utilization %', position: 'insideBottom', offset: -5 }} />
+                        <YAxis type="category" dataKey="name" width={120} />
+                        <Tooltip />
+                        <Bar dataKey="licenseUtilization" fill="#4F46E5" name="License Utilization %" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-muted-foreground">No university data available</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
+              {/* MAU Trends Chart */}
               <Card>
                 <CardHeader>
-                  <CardTitle>University Growth Trends</CardTitle>
-                  <CardDescription>Student enrollment over time by university</CardDescription>
+                  <CardTitle>Monthly Active Students (MAU) per University</CardTitle>
+                  <CardDescription>Student engagement trends over the last 6 months</CardDescription>
                 </CardHeader>
-                <CardContent className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={[
-                      { month: 'Jan', stanford: 420, mit: 350, berkeley: 480 },
-                      { month: 'Feb', stanford: 430, mit: 360, berkeley: 490 },
-                      { month: 'Mar', stanford: 440, mit: 370, berkeley: 505 },
-                      { month: 'Apr', stanford: 450, mit: 380, berkeley: 520 },
-                    ]}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="stanford" stroke="#4F46E5" strokeWidth={2} name="Stanford" />
-                      <Line type="monotone" dataKey="mit" stroke="#10B981" strokeWidth={2} name="MIT" />
-                      <Line type="monotone" dataKey="berkeley" stroke="#F59E0B" strokeWidth={2} name="Berkeley" />
-                    </LineChart>
-                  </ResponsiveContainer>
+                <CardContent className="h-96">
+                  {mauTrends.length > 0 && universityData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={mauTrends}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        {universityData.map((uni, index) => (
+                          <Line
+                            key={uni.name}
+                            type="monotone"
+                            dataKey={uni.name}
+                            stroke={['#4F46E5', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4'][index % 6]}
+                            strokeWidth={2}
+                            name={uni.name}
+                          />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-muted-foreground">No MAU data available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Feature Usage by University */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Feature Usage by University</CardTitle>
+                  <CardDescription>Comparing engagement depth across schools</CardDescription>
+                </CardHeader>
+                <CardContent className="h-96">
+                  {universityData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={universityData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                        <YAxis label={{ value: 'Feature Usage Count', angle: -90, position: 'insideLeft' }} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="featureUsage.applications" stackId="a" fill="#4F46E5" name="Applications" />
+                        <Bar dataKey="featureUsage.resumes" stackId="a" fill="#10B981" name="Resumes" />
+                        <Bar dataKey="featureUsage.goals" stackId="a" fill="#F59E0B" name="Goals" />
+                        <Bar dataKey="featureUsage.projects" stackId="a" fill="#EC4899" name="Projects" />
+                        <Bar dataKey="featureUsage.coverLetters" stackId="a" fill="#8B5CF6" name="Cover Letters" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-muted-foreground">No feature usage data available</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -597,120 +638,79 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Avg Session Duration</CardTitle>
+                    <CardTitle className="text-sm font-medium">Total Users</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">28 min</div>
-                    <p className="text-xs text-green-600 mt-1">+4 min from last month</p>
+                    <div className="text-2xl font-bold">{systemStats.totalUsers.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-1">All-time registrations</p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Daily Active Users</CardTitle>
+                    <CardTitle className="text-sm font-medium">Active Users</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{Math.floor(systemStats.totalUsers * 0.32).toLocaleString()}</div>
-                    <p className="text-xs text-muted-foreground mt-1">32% of total users</p>
+                    <div className="text-2xl font-bold">{systemStats.activeUsers.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {systemStats.totalUsers > 0 ? Math.round((systemStats.activeUsers / systemStats.totalUsers) * 100) : 0}% of total
+                    </p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Feature Adoption</CardTitle>
+                    <CardTitle className="text-sm font-medium">Premium Users</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">84%</div>
-                    <p className="text-xs text-green-600 mt-1">Users using 3+ features</p>
+                    <div className="text-2xl font-bold">{revenueData.payingUsersCount.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {systemStats.totalUsers > 0 ? Math.round((revenueData.payingUsersCount / systemStats.totalUsers) * 100) : 0}% conversion
+                    </p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Retention Rate</CardTitle>
+                    <CardTitle className="text-sm font-medium">Monthly Growth</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">76%</div>
-                    <p className="text-xs text-muted-foreground mt-1">30-day retention</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>User Journey Funnel</CardTitle>
-                    <CardDescription>From registration to active usage</CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={[
-                        { stage: 'Registered', users: 1000 },
-                        { stage: 'Onboarded', users: 850 },
-                        { stage: 'Created Asset', users: 720 },
-                        { stage: 'Active User', users: 680 },
-                      ]} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis type="category" dataKey="stage" />
-                        <Tooltip />
-                        <Bar dataKey="users" fill="#4F46E5" name="Users" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Most Used Features</CardTitle>
-                    <CardDescription>Feature usage breakdown</CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={[
-                        { feature: 'Resume Builder', usage: 92 },
-                        { feature: 'Job Search', usage: 78 },
-                        { feature: 'Goals', usage: 71 },
-                        { feature: 'Applications', usage: 65 },
-                        { feature: 'AI Coach', usage: 48 },
-                      ]}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="feature" angle={-45} textAnchor="end" height={80} />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="usage" fill="#10B981" name="Usage %" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <div className="text-2xl font-bold">{systemStats.monthlyGrowth}%</div>
+                    <p className="text-xs text-muted-foreground mt-1">User growth rate</p>
                   </CardContent>
                 </Card>
               </div>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>User Activity Heatmap</CardTitle>
-                  <CardDescription>Peak usage times by day of week</CardDescription>
+                  <CardTitle>User Activity Summary</CardTitle>
+                  <CardDescription>Overview of user engagement metrics</CardDescription>
                 </CardHeader>
-                <CardContent className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={[
-                      { day: 'Mon', morning: 120, afternoon: 280, evening: 180 },
-                      { day: 'Tue', morning: 145, afternoon: 310, evening: 195 },
-                      { day: 'Wed', morning: 138, afternoon: 295, evening: 188 },
-                      { day: 'Thu', morning: 152, afternoon: 320, evening: 205 },
-                      { day: 'Fri', morning: 135, afternoon: 270, evening: 175 },
-                      { day: 'Sat', morning: 85, afternoon: 140, evening: 95 },
-                      { day: 'Sun', morning: 90, afternoon: 150, evening: 105 },
-                    ]}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="day" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Area type="monotone" dataKey="morning" stackId="1" stroke="#4F46E5" fill="#4F46E5" name="Morning" />
-                      <Area type="monotone" dataKey="afternoon" stackId="1" stroke="#10B981" fill="#10B981" name="Afternoon" />
-                      <Area type="monotone" dataKey="evening" stackId="1" stroke="#F59E0B" fill="#F59E0B" name="Evening" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Weekly Activity</h4>
+                        <p className="text-sm text-muted-foreground mt-1">User registrations and logins over the past 7 days</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Subscription Status</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {revenueData.payingUsersCount} active subscriptions
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Note</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Detailed user behavior analytics require session tracking implementation
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -725,8 +725,10 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">$42,850</div>
-                    <p className="text-xs text-green-600 mt-1">+12% from last month</p>
+                    <div className="text-2xl font-bold">${revenueData.monthlyRevenue.toLocaleString()}</div>
+                    <p className={`text-xs mt-1 ${revenueData.monthlyGrowthPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {revenueData.monthlyGrowthPercent >= 0 ? '+' : ''}{revenueData.monthlyGrowthPercent}% from last month
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -735,8 +737,8 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Avg Revenue Per User</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">$8.50</div>
-                    <p className="text-xs text-green-600 mt-1">+$0.40 MoM</p>
+                    <div className="text-2xl font-bold">${revenueData.arpu}</div>
+                    <p className="text-xs text-muted-foreground mt-1">{revenueData.payingUsersCount} paying users</p>
                   </CardContent>
                 </Card>
 
@@ -745,8 +747,8 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Churn Rate</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">2.8%</div>
-                    <p className="text-xs text-green-600 mt-1">-0.3% from last month</p>
+                    <div className="text-2xl font-bold">{revenueData.churnRate}%</div>
+                    <p className="text-xs text-muted-foreground mt-1">Last month</p>
                   </CardContent>
                 </Card>
 
@@ -755,7 +757,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Lifetime Value</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">$245</div>
+                    <div className="text-2xl font-bold">${revenueData.estimatedLTV}</div>
                     <p className="text-xs text-muted-foreground mt-1">Avg LTV per user</p>
                   </CardContent>
                 </Card>
@@ -769,14 +771,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                   </CardHeader>
                   <CardContent className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={[
-                        { month: 'Oct', revenue: 32500, users: 3850 },
-                        { month: 'Nov', revenue: 35200, users: 4120 },
-                        { month: 'Dec', revenue: 38100, users: 4480 },
-                        { month: 'Jan', revenue: 39800, users: 4650 },
-                        { month: 'Feb', revenue: 41200, users: 4820 },
-                        { month: 'Mar', revenue: 42850, users: 5040 },
-                      ]}>
+                      <AreaChart data={revenueData.revenueGrowth}>
                         <defs>
                           <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
@@ -834,14 +829,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 </CardHeader>
                 <CardContent className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[
-                      { month: 'Oct', new: 45, renewals: 320, cancellations: 12 },
-                      { month: 'Nov', new: 52, renewals: 335, cancellations: 15 },
-                      { month: 'Dec', new: 48, renewals: 348, cancellations: 10 },
-                      { month: 'Jan', new: 58, renewals: 360, cancellations: 14 },
-                      { month: 'Feb', new: 62, renewals: 375, cancellations: 11 },
-                      { month: 'Mar', new: 68, renewals: 388, cancellations: 13 },
-                    ]}>
+                    <BarChart data={revenueData.subscriptionLifecycle}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
@@ -1056,24 +1044,29 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
             <Card>
               <CardHeader>
                 <CardTitle>System Metrics</CardTitle>
-                <CardDescription>Real-time system performance</CardDescription>
+                <CardDescription>Infrastructure monitoring (requires integration)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">CPU Usage</span>
-                  <span className="text-sm font-medium">23%</span>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <p className="text-sm text-muted-foreground">
+                    System metrics require external monitoring integration (Datadog, New Relic, etc.)
+                  </p>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Memory Usage</span>
-                  <span className="text-sm font-medium">67%</span>
+                  <span className="text-sm text-muted-foreground">CPU Usage</span>
+                  <span className="text-sm font-medium text-muted-foreground">--</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Database Response</span>
-                  <span className="text-sm font-medium">45ms</span>
+                  <span className="text-sm text-muted-foreground">Memory Usage</span>
+                  <span className="text-sm font-medium text-muted-foreground">--</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Active Connections</span>
-                  <span className="text-sm font-medium">1,247</span>
+                  <span className="text-sm text-muted-foreground">Database Response</span>
+                  <span className="text-sm font-medium text-muted-foreground">--</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Active Connections</span>
+                  <span className="text-sm font-medium text-muted-foreground">--</span>
                 </div>
               </CardContent>
             </Card>
@@ -1081,24 +1074,38 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
             <Card>
               <CardHeader>
                 <CardTitle>Support Metrics</CardTitle>
-                <CardDescription>Support ticket overview</CardDescription>
+                <CardDescription>Real-time support ticket data</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Open Tickets</span>
-                  <span className="text-sm font-medium text-orange-500">45</span>
+                  <span className={`text-sm font-medium ${supportMetrics.openTickets > 0 ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                    {supportMetrics.openTickets}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">In Progress</span>
+                  <span className="text-sm font-medium text-blue-500">
+                    {supportMetrics.inProgressTickets}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Resolved Today</span>
-                  <span className="text-sm font-medium text-green-500">23</span>
+                  <span className="text-sm font-medium text-green-500">
+                    {supportMetrics.resolvedToday}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Avg Response Time</span>
-                  <span className="text-sm font-medium">2.3 hours</span>
+                  <span className="text-sm font-medium">
+                    {supportMetrics.avgResponseTime} hours
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Customer Satisfaction</span>
-                  <span className="text-sm font-medium text-green-500">94%</span>
+                  <span className="text-sm">Total Resolved</span>
+                  <span className="text-sm font-medium">
+                    {supportMetrics.resolvedTickets}
+                  </span>
                 </div>
               </CardContent>
             </Card>

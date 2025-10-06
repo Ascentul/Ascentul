@@ -7,8 +7,7 @@ const Progress = React.forwardRef<
   React.ElementRef<typeof ProgressPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
 >(({ className, value, ...props }, ref) => {
-  // Show at least 2% width when value is 0 but defined (not null/undefined)
-  const displayValue = value !== null && value !== undefined && value === 0 ? 2 : (value || 0)
+  const clampedValue = Math.min(Math.max(value ?? 0, 0), 100)
 
   return (
     <ProgressPrimitive.Root
@@ -20,8 +19,8 @@ const Progress = React.forwardRef<
       {...props}
     >
       <ProgressPrimitive.Indicator
-        className="h-full flex-1 bg-primary transition-all"
-        style={{ width: `${displayValue}%` }}
+        className="h-full bg-primary transition-all"
+        style={{ width: `${clampedValue}%` }}
       />
     </ProgressPrimitive.Root>
   )

@@ -40,8 +40,17 @@ export const updateSubscriptionByIdentifier = mutation({
     email: v.optional(v.string()),
     stripeCustomerId: v.optional(v.string()),
     stripeSubscriptionId: v.optional(v.string()),
-    subscription_plan: v.union(v.literal("free"), v.literal("premium"), v.literal("university")),
-    subscription_status: v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due")),
+    subscription_plan: v.union(
+      v.literal("free"),
+      v.literal("premium"),
+      v.literal("university"),
+    ),
+    subscription_status: v.union(
+      v.literal("active"),
+      v.literal("inactive"),
+      v.literal("cancelled"),
+      v.literal("past_due"),
+    ),
     setStripeIds: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -68,8 +77,10 @@ export const updateSubscriptionByIdentifier = mutation({
       const all = await ctx.db.query("users").collect();
       user = all.find(
         (u: any) =>
-          (args.stripeCustomerId && u.stripe_customer_id === args.stripeCustomerId) ||
-          (args.stripeSubscriptionId && u.stripe_subscription_id === args.stripeSubscriptionId)
+          (args.stripeCustomerId &&
+            u.stripe_customer_id === args.stripeCustomerId) ||
+          (args.stripeSubscriptionId &&
+            u.stripe_subscription_id === args.stripeSubscriptionId),
       );
     }
 
@@ -78,10 +89,14 @@ export const updateSubscriptionByIdentifier = mutation({
     await ctx.db.patch(user._id, {
       subscription_plan: args.subscription_plan,
       subscription_status: args.subscription_status,
-      ...(args.setStripeIds ? {
-        stripe_customer_id: args.stripeCustomerId ?? user.stripe_customer_id,
-        stripe_subscription_id: args.stripeSubscriptionId ?? user.stripe_subscription_id,
-      } : {}),
+      ...(args.setStripeIds
+        ? {
+            stripe_customer_id:
+              args.stripeCustomerId ?? user.stripe_customer_id,
+            stripe_subscription_id:
+              args.stripeSubscriptionId ?? user.stripe_subscription_id,
+          }
+        : {}),
       updated_at: Date.now(),
     });
 
@@ -100,10 +115,10 @@ export const createUser = mutation({
     role: v.optional(
       v.union(
         v.literal("user"),
-        v.literal("admin"),
-        v.literal("super_admin"),
-        v.literal("university_admin"),
         v.literal("staff"),
+        v.literal("university_admin"),
+        v.literal("advisor"),
+        v.literal("super_admin"),
       ),
     ),
   },
@@ -153,17 +168,58 @@ export const updateUser = mutation({
       email: v.optional(v.string()),
       username: v.optional(v.string()),
       profile_image: v.optional(v.string()),
+      cover_image: v.optional(v.string()),
       linkedin_url: v.optional(v.string()),
       bio: v.optional(v.string()),
       job_title: v.optional(v.string()),
       company: v.optional(v.string()),
       location: v.optional(v.string()),
       website: v.optional(v.string()),
+      skills: v.optional(v.string()),
+      current_company: v.optional(v.string()),
+      current_position: v.optional(v.string()),
+      experience_level: v.optional(v.string()),
+      industry: v.optional(v.string()),
+      career_goals: v.optional(v.string()),
+      education: v.optional(v.string()),
+      university_name: v.optional(v.string()),
+      major: v.optional(v.string()),
+      graduation_year: v.optional(v.string()),
+      dream_job: v.optional(v.string()),
       onboarding_completed: v.optional(v.boolean()),
-      role: v.optional(v.union(v.literal("user"), v.literal("admin"), v.literal("super_admin"), v.literal("university_admin"), v.literal("staff"))),
-      subscription_plan: v.optional(v.union(v.literal("free"), v.literal("premium"), v.literal("university"))),
-      subscription_status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due"))),
+      role: v.optional(
+        v.union(
+          v.literal("user"),
+          v.literal("admin"),
+          v.literal("super_admin"),
+          v.literal("university_admin"),
+          v.literal("staff"),
+        ),
+      ),
+      subscription_plan: v.optional(
+        v.union(
+          v.literal("free"),
+          v.literal("premium"),
+          v.literal("university"),
+        ),
+      ),
+      subscription_status: v.optional(
+        v.union(
+          v.literal("active"),
+          v.literal("inactive"),
+          v.literal("cancelled"),
+          v.literal("past_due"),
+        ),
+      ),
       university_id: v.optional(v.id("universities")),
+      department_id: v.optional(v.id("departments")),
+      account_status: v.optional(
+        v.union(
+          v.literal("active"),
+          v.literal("suspended"),
+          v.literal("pending_activation"),
+        ),
+      ),
       // Allow updating Stripe IDs via this mutation as well
       stripe_customer_id: v.optional(v.string()),
       stripe_subscription_id: v.optional(v.string()),
@@ -179,8 +235,13 @@ export const updateUser = mutation({
       throw new Error("User not found");
     }
 
+    // Filter out undefined values from updates
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(args.updates).filter(([_, value]) => value !== undefined)
+    );
+
     await ctx.db.patch(user._id, {
-      ...args.updates,
+      ...cleanUpdates,
       updated_at: Date.now(),
     });
 
@@ -203,10 +264,42 @@ export const updateUserById = mutation({
       company: v.optional(v.string()),
       location: v.optional(v.string()),
       website: v.optional(v.string()),
+      skills: v.optional(v.string()),
+      current_company: v.optional(v.string()),
+      current_position: v.optional(v.string()),
+      experience_level: v.optional(v.string()),
+      industry: v.optional(v.string()),
+      career_goals: v.optional(v.string()),
+      education: v.optional(v.string()),
+      university_name: v.optional(v.string()),
+      major: v.optional(v.string()),
+      graduation_year: v.optional(v.string()),
+      dream_job: v.optional(v.string()),
       onboarding_completed: v.optional(v.boolean()),
-      role: v.optional(v.union(v.literal("user"), v.literal("admin"), v.literal("super_admin"), v.literal("university_admin"), v.literal("staff"))),
-      subscription_plan: v.optional(v.union(v.literal("free"), v.literal("premium"), v.literal("university"))),
-      subscription_status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("cancelled"), v.literal("past_due"))),
+      role: v.optional(
+        v.union(
+          v.literal("user"),
+          v.literal("admin"),
+          v.literal("super_admin"),
+          v.literal("university_admin"),
+          v.literal("staff"),
+        ),
+      ),
+      subscription_plan: v.optional(
+        v.union(
+          v.literal("free"),
+          v.literal("premium"),
+          v.literal("university"),
+        ),
+      ),
+      subscription_status: v.optional(
+        v.union(
+          v.literal("active"),
+          v.literal("inactive"),
+          v.literal("cancelled"),
+          v.literal("past_due"),
+        ),
+      ),
       university_id: v.optional(v.id("universities")),
       stripe_customer_id: v.optional(v.string()),
       stripe_subscription_id: v.optional(v.string()),
@@ -217,8 +310,14 @@ export const updateUserById = mutation({
     if (!user) {
       throw new Error("User not found");
     }
+
+    // Filter out undefined values from updates
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(args.updates).filter(([_, value]) => value !== undefined)
+    );
+
     await ctx.db.patch(args.id, {
-      ...args.updates,
+      ...cleanUpdates,
       updated_at: Date.now(),
     });
     return args.id;
@@ -245,7 +344,7 @@ export const deleteUser = mutation({
 
 // Get all users (admin only)
 export const getAllUsers = query({
-  args: { 
+  args: {
     clerkId: v.string(),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
@@ -257,8 +356,8 @@ export const getAllUsers = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    // Only Admin and Super Admin can access global user list
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    // Only Super Admin can access global user list
+    if (!currentUser || currentUser.role !== "super_admin") {
       throw new Error("Unauthorized");
     }
 
@@ -276,7 +375,7 @@ export const getAllUsers = query({
 
 // Get users by university (university admin only)
 export const getUsersByUniversity = query({
-  args: { 
+  args: {
     clerkId: v.string(),
     universityId: v.id("universities"),
   },
@@ -291,9 +390,10 @@ export const getUsersByUniversity = query({
       throw new Error("User not found");
     }
 
-    const isAuthorized = 
+    const isAuthorized =
       currentUser.role === "super_admin" ||
-      (currentUser.role === "university_admin" && currentUser.university_id === args.universityId);
+      ((currentUser.role === "university_admin" || currentUser.role === "advisor") &&
+        currentUser.university_id === args.universityId);
 
     if (!isAuthorized) {
       throw new Error("Unauthorized");
@@ -301,7 +401,9 @@ export const getUsersByUniversity = query({
 
     const users = await ctx.db
       .query("users")
-      .withIndex("by_university", (q) => q.eq("university_id", args.universityId))
+      .withIndex("by_university", (q) =>
+        q.eq("university_id", args.universityId),
+      )
       .collect();
 
     return users;

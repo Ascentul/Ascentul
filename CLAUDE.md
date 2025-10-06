@@ -97,6 +97,8 @@ Copy `.env.example` to `.env.local` and configure:
 @/components  → ./src/components/*
 @/lib         → ./src/lib/*
 @/utils       → ./src/utils/*
+@/types       → ./src/types/*
+@/styles      → ./src/styles/*
 convex/*      → ./convex/*
 ```
 
@@ -153,3 +155,11 @@ if (!userId) return new Response("Unauthorized", { status: 401 });
 - Set all env vars in hosting provider
 - Configure Stripe webhook endpoint: `/api/stripe/webhook`
 - Convex deployment: Use `CONVEX_DEPLOYMENT` env var or deploy via `npx convex deploy`
+
+---
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

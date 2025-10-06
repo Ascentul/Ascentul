@@ -1,78 +1,91 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher([
-  '/dashboard(.*)',
-  '/onboarding(.*)',
-  '/admin(.*)',
-  '/account(.*)',
-  '/goals(.*)',
-  '/api/goals(.*)',
-  '/applications(.*)',
-  '/networking(.*)',
-  '/resumes(.*)',
-  '/cover-letters(.*)',
-  '/career-path(.*)',
-  '/projects(.*)',
-  '/achievements(.*)',
-])
+  "/dashboard(.*)",
+  "/onboarding(.*)",
+  "/admin(.*)",
+  "/university(.*)",
+  "/account(.*)",
+  "/goals(.*)",
+  "/api/goals(.*)",
+  "/applications(.*)",
+  "/networking(.*)",
+  "/contacts(.*)",
+  "/career-coach(.*)",
+  "/resumes(.*)",
+  "/cover-letters(.*)",
+  "/career-path(.*)",
+  "/projects(.*)",
+  "/achievements(.*)",
+]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
-    const { userId, redirectToSignIn } = await auth()
+    const { userId, redirectToSignIn } = await auth();
     if (!userId) {
-      return redirectToSignIn({ returnBackUrl: req.url })
+      return redirectToSignIn({ returnBackUrl: req.url });
     }
 
-    // Handle role-based redirects for admin users
-    const url = new URL(req.url)
-    const pathname = url.pathname
+    // Handle role-based redirects
+    const url = new URL(req.url);
+    const pathname = url.pathname;
 
+    // Get user role from JWT token
     try {
-      const token = await (auth as any).getToken()
+      const token = await (auth as any).getToken();
       if (token) {
         // Decode the JWT token to get user metadata
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        const userRole = payload.public_metadata?.role
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        const userRole = payload.public_metadata?.role;
 
         if (userRole) {
-          let redirectPath = null
+          let redirectPath = null;
 
-          if (userRole === 'super_admin' || userRole === 'admin') {
-            redirectPath = '/admin'
-          } else if (userRole === 'university_admin') {
-            redirectPath = '/university'
+          // Redirect admins to their respective dashboards
+          if (userRole === "super_admin" || userRole === "admin") {
+            // If admin is trying to access non-admin routes, redirect to admin
+            if (!pathname.startsWith("/admin")) {
+              redirectPath = "/admin";
+            }
+          } else if (userRole === "university_admin") {
+            // If university admin is trying to access non-university routes, redirect to university
+            if (!pathname.startsWith("/university")) {
+              redirectPath = "/university";
+            }
           }
 
-          // Redirect admin users to their portal from any protected route
-          if (redirectPath && !pathname.startsWith(redirectPath)) {
-            return NextResponse.redirect(new URL(redirectPath, req.url))
+          if (redirectPath) {
+            return NextResponse.redirect(new URL(redirectPath, req.url));
           }
         }
       }
     } catch (error) {
       // If there's an error parsing the token, continue normally
-      console.error('Error parsing user token in middleware:', error)
+      console.error("Error parsing user token in middleware:", error);
     }
   }
-})
+});
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/onboarding/:path*',
-    '/admin/:path*',
-    '/account/:path*',
-    '/goals/:path*',
-    '/api/goals/:path*',
-    '/applications/:path*',
-    '/networking/:path*',
-    '/resumes/:path*',
-    '/cover-letters/:path*',
-    '/career-path/:path*',
-    '/projects/:path*',
-    '/achievements/:path*',
+    "/dashboard/:path*",
+    "/onboarding/:path*",
+    "/admin/:path*",
+    "/university/:path*",
+    "/account/:path*",
+    "/goals/:path*",
+    "/api/goals/:path*",
+    "/applications/:path*",
+    "/networking/:path*",
+    "/contacts/:path*",
+    "/career-coach/:path*",
+    "/resumes/:path*",
+    "/cover-letters/:path*",
+    "/career-path/:path*",
+    "/projects/:path*",
+    "/achievements/:path*",
     // Ensure Clerk runs for API routes so auth() works in route handlers
-    '/api/:path*',
+    "/api/:path*",
   ],
-}
+};

@@ -46,6 +46,48 @@ export const sendActivationEmail = action({
 })
 
 /**
+ * Send support ticket response email
+ */
+export const sendSupportTicketResponseEmail = action({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    ticketSubject: v.string(),
+    responseMessage: v.string(),
+    ticketId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { sendSupportTicketResponseEmail: sendEmail } = await import("../src/lib/email")
+
+    const ticketUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentul.io'}/support/${args.ticketId}`
+
+    try {
+      const result = await sendEmail(
+        args.email,
+        args.name,
+        args.ticketSubject,
+        args.responseMessage,
+        ticketUrl
+      )
+
+      return {
+        success: true,
+        messageId: result.id,
+        message: "Support ticket response email sent successfully",
+      }
+    } catch (error) {
+      console.error("Failed to send support ticket response email:", error)
+      // Return failure but don't throw - email is non-critical
+      return {
+        success: false,
+        messageId: null,
+        message: "Email service not configured: " + (error as Error).message,
+      }
+    }
+  },
+})
+
+/**
  * Send welcome email to self-registered user
  */
 export const sendWelcomeEmail = action({

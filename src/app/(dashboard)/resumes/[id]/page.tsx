@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import { useMutation, useQuery } from "convex/react"
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Save, Trash2, ArrowLeft, Download, Sparkles } from "lucide-react"
+import { Loader2, Save, Trash2, ArrowLeft, Download, Plus, X, Upload as UploadIcon } from "lucide-react"
 import { jsPDF } from 'jspdf'
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -22,6 +22,62 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+interface ContactInfo {
+  name: string
+  email: string
+  phone: string
+  location: string
+  linkedin: string
+  github: string
+  website: string
+}
+
+interface Experience {
+  id: string
+  title: string
+  company: string
+  location: string
+  startDate: string
+  endDate: string
+  current: boolean
+  description: string
+}
+
+interface Education {
+  id: string
+  school: string
+  degree: string
+  field: string
+  location: string
+  startYear: string
+  endYear: string
+  gpa: string
+  honors: string
+}
+
+interface Project {
+  id: string
+  name: string
+  role: string
+  description: string
+  technologies: string
+  url: string
+}
+
+interface Achievement {
+  id: string
+  title: string
+  description: string
+  date: string
+}
 
 export default function ResumeEditorPage() {
   const params = useParams()
@@ -35,41 +91,62 @@ export default function ResumeEditorPage() {
     clerkId && resumeId ? ({ clerkId, resumeId } as any) : "skip"
   ) as any
 
+  const userProfile = useQuery(
+    api.users.getUserByClerkId,
+    clerkId ? { clerkId } : "skip"
+  ) as any
+
   const updateResume = useMutation(api.resumes.updateResume)
   const deleteResume = useMutation(api.resumes.deleteResume)
 
   const [title, setTitle] = useState("")
+  const [contactInfo, setContactInfo] = useState<ContactInfo>({
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+    linkedin: "",
+    github: "",
+    website: ""
+  })
   const [summary, setSummary] = useState("")
   const [skillsText, setSkillsText] = useState("")
+  const [experiences, setExperiences] = useState<Experience[]>([])
+  const [education, setEducation] = useState<Education[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [achievements, setAchievements] = useState<Achievement[]>([])
+
+  const [selectedTemplate, setSelectedTemplate] = useState<"modern" | "classic" | "minimal">("modern")
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const { toast } = useToast()
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [autoSaving, setAutoSaving] = useState(false)
-  // Upload & analyze state
-  const [uploading, setUploading] = useState(false)
-  const [extractedText, setExtractedText] = useState<string>("")
-  const [jobDescription, setJobDescription] = useState<string>("")
-  const [analyzing, setAnalyzing] = useState(false)
-  const [analysis, setAnalysis] = useState<null | { score: number; summary: string; strengths: string[]; gaps: string[]; suggestions: string[] }>(null)
-  // AI suggestions
-  const [suggesting, setSuggesting] = useState(false)
-  const [aiSummary, setAiSummary] = useState<string>("")
-  const [aiSkills, setAiSkills] = useState<string[]>([])
+  const [importing, setImporting] = useState(false)
 
-  // hydrate local state when data loads
+  // Hydrate local state when data loads
   useEffect(() => {
     if (!resume) return
     setTitle(resume.title || "")
     const content = resume.content || {}
+
+    // Contact Info
+    setContactInfo(content.contactInfo || {
+      name: "",
+      email: "",
+      phone: "",
+      location: "",
+      linkedin: "",
+      github: "",
+      website: ""
+    })
+
     setSummary(content.summary || "")
     setSkillsText((content.skills || []).join(", "))
-    // Restore analysis data
-    setExtractedText(resume.extracted_text || "")
-    setJobDescription(resume.job_description || "")
-    setAnalysis(resume.analysis_result || null)
-    setAiSummary(resume.ai_suggestions?.improvedSummary || "")
-    setAiSkills(resume.ai_suggestions?.recommendedSkills || [])
+    setExperiences(content.experiences || [])
+    setEducation(content.education || [])
+    setProjects(content.projects || [])
+    setAchievements(content.achievements || [])
+    setSelectedTemplate(content.template || "modern")
   }, [resume])
 
   const loading = resume === undefined
@@ -78,9 +155,82 @@ export default function ResumeEditorPage() {
   useEffect(() => {
     if (resume === null) {
       router.replace('/resumes')
-      router.refresh()
     }
   }, [resume, router])
+
+  const importFromProfile = async () => {
+    if (!userProfile) {
+      toast({ title: "Profile not found", description: "Please complete your career profile first", variant: "destructive" })
+      return
+    }
+
+    setImporting(true)
+    try {
+      // Import contact info
+      setContactInfo({
+        name: userProfile.name || user?.fullName || "",
+        email: userProfile.email || user?.primaryEmailAddress?.emailAddress || "",
+        phone: user?.phoneNumbers?.[0]?.phoneNumber || "",
+        location: userProfile.location || "",
+        linkedin: userProfile.linkedin_url || "",
+        github: userProfile.github_url || "",
+        website: userProfile.website || ""
+      })
+
+      // Import summary/bio
+      setSummary(userProfile.bio || "")
+
+      // Import skills
+      if (userProfile.skills) {
+        setSkillsText(userProfile.skills)
+      }
+
+      // Import current position as experience
+      if (userProfile.current_position || userProfile.current_company) {
+        const currentExp: Experience = {
+          id: Date.now().toString(),
+          title: userProfile.current_position || "",
+          company: userProfile.current_company || "",
+          location: "",
+          startDate: "",
+          endDate: "",
+          current: true,
+          description: ""
+        }
+        setExperiences(prev => [currentExp, ...prev])
+      }
+
+      // Import education
+      if (userProfile.university_name || userProfile.major) {
+        const edu: Education = {
+          id: Date.now().toString(),
+          school: userProfile.university_name || "",
+          degree: userProfile.education || "",
+          field: userProfile.major || "",
+          location: "",
+          startYear: "",
+          endYear: userProfile.graduation_year || "",
+          gpa: "",
+          honors: ""
+        }
+        setEducation(prev => [edu, ...prev])
+      }
+
+      toast({
+        title: "Profile Imported",
+        description: "Career profile data has been imported successfully",
+        variant: "success"
+      })
+    } catch (error) {
+      toast({
+        title: "Import Failed",
+        description: "Failed to import profile data",
+        variant: "destructive"
+      })
+    } finally {
+      setImporting(false)
+    }
+  }
 
   const doSave = async () => {
     if (!clerkId || !resume?._id) return
@@ -92,162 +242,139 @@ export default function ResumeEditorPage() {
         updates: {
           title: title.trim() || "Untitled Resume",
           content: {
-            ...(resume.content || {}),
+            contactInfo,
             summary,
-            skills: skillsText
-              .split(",")
-              .map((s) => s.trim())
-              .filter((s) => s.length > 0),
+            skills: skillsText.split(",").map((s) => s.trim()).filter((s) => s.length > 0),
+            experiences,
+            education,
+            projects,
+            achievements,
+            template: selectedTemplate
           },
         },
       } as any)
-      toast({ title: "Saved", description: "Your resume changes have been saved.", variant: 'success' })
+
+      toast({
+        title: "Saved",
+        description: "Your resume has been saved successfully.",
+        variant: 'success'
+      })
+
+      // Redirect back to My Resumes after saving
+      setTimeout(() => {
+        router.push('/resumes')
+      }, 500)
     } catch (e: any) {
-      toast({ title: "Save failed", description: e?.message || "Please try again.", variant: "destructive" })
+      toast({
+        title: "Save failed",
+        description: e?.message || "Please try again.",
+        variant: "destructive"
+      })
     } finally {
       setSaving(false)
     }
   }
 
-  // Debounced autosave when fields differ from server values
-  useEffect(() => {
-    if (!clerkId || !resume?._id) return
-
-    const currentTitle = resume.title || ""
-    const currentSummary = (resume.content?.summary as string) || ""
-    const currentSkills = Array.isArray(resume.content?.skills) ? (resume.content!.skills as string[]).join(", ") : ""
-
-    // Only autosave if values changed compared to server snapshot
-    const needsSave =
-      title !== currentTitle ||
-      summary !== currentSummary ||
-      skillsText !== currentSkills
-
-    if (!needsSave) return
-
-    const t = setTimeout(async () => {
-      try {
-        setAutoSaving(true)
-        await updateResume({
-          clerkId,
-          resumeId: resume._id,
-          updates: {
-            title: title.trim() || "Untitled Resume",
-            content: {
-              ...(resume.content || {}),
-              summary,
-              skills: skillsText
-                .split(",")
-                .map((s) => s.trim())
-                .filter((s) => s.length > 0),
-            },
-          },
-        } as any)
-      } catch (_) {
-        // Silent on autosave errors; user can use Save button which shows toast
-      } finally {
-        setAutoSaving(false)
-      }
-    }, 1000)
-
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, summary, skillsText, clerkId, resume?._id])
-
-  // Upload PDF -> extract text
-  const onUploadResumePdf = async (file: File) => {
-    try {
-      setUploading(true)
-      // Client-side validation: support PDF and DOCX
-      const lower = file.name.toLowerCase()
-      const type = (file.type || '').toLowerCase()
-      const isPdf = type === 'application/pdf' || lower.endsWith('.pdf')
-      const isDocx = type.includes('officedocument.wordprocessingml.document') || lower.endsWith('.docx')
-      if (!isPdf && !isDocx) {
-        throw new Error('Please upload a PDF (.pdf) or Word (.docx) file.')
-      }
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch('/api/resumes/extract', { method: 'POST', body: fd })
-      // If the route isn't available yet (dev server needs restart), this may be HTML
-      const text = await res.text()
-      let json: any
-      try { json = JSON.parse(text) } catch {
-        throw new Error('Upload endpoint not available yet. Try restarting the dev server.')
-      }
-      if (!res.ok) {
-        // Helpfully surface missing mammoth dependency for DOCX
-        if (json?.missingDependency === 'mammoth') {
-          throw new Error('DOCX support requires the mammoth package. Please run: npm install mammoth')
-        }
-        throw new Error(json.error || 'Failed to extract')
-      }
-      setExtractedText(json.text || '')
-      const pages = json?.info?.pages
-      const fileType = json?.info?.type || 'file'
-      const warning = json?.warning
-      if (warning) {
-        toast({ title: 'Extracted with warning', description: warning, variant: 'destructive' })
-      } else {
-        toast({ title: 'Extracted', description: `Parsed ${pages ? `${pages} pages` : fileType.toUpperCase()}.`, variant: 'success' })
-      }
-      // Save extracted text to DB
-      if (clerkId && resume?._id) {
-        await updateResume({
-          clerkId,
-          resumeId: resume._id,
-          updates: { extracted_text: json.text || '' }
-        } as any)
-      }
-    } catch (e: any) {
-      toast({ title: 'Upload failed', description: e?.message || 'Could not extract text', variant: 'destructive' })
-    } finally {
-      setUploading(false)
+  // Experience management
+  const addExperience = () => {
+    const newExp: Experience = {
+      id: Date.now().toString(),
+      title: "",
+      company: "",
+      location: "",
+      startDate: "",
+      endDate: "",
+      current: false,
+      description: ""
     }
+    setExperiences([...experiences, newExp])
   }
 
-  // Analyze extracted text vs job description
-  const runAnalysis = async () => {
-    if (!extractedText.trim() || !jobDescription.trim()) {
-      toast({ title: 'Missing data', description: 'Upload a resume and add a job description first.', variant: 'destructive' })
-      return
-    }
-    try {
-      setAnalyzing(true)
-      const res = await fetch('/api/resumes/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeText: extractedText, jobDescription }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Failed to analyze')
-      setAnalysis(json)
-      toast({ title: 'Analysis complete', description: `Estimated match ${json.score}%`, variant: 'success' })
-      // Save analysis results and job description to DB
-      if (clerkId && resume?._id) {
-        await updateResume({
-          clerkId,
-          resumeId: resume._id,
-          updates: { 
-            job_description: jobDescription,
-            analysis_result: json
-          }
-        } as any)
-      }
-    } catch (e: any) {
-      toast({ title: 'Analysis failed', description: e?.message || 'Please try again', variant: 'destructive' })
-    } finally {
-      setAnalyzing(false)
-    }
+  const removeExperience = (id: string) => {
+    setExperiences(experiences.filter(exp => exp.id !== id))
   }
 
-  // PDF export using jsPDF
+  const updateExperience = (id: string, field: keyof Experience, value: any) => {
+    setExperiences(experiences.map(exp =>
+      exp.id === id ? { ...exp, [field]: value } : exp
+    ))
+  }
+
+  // Education management
+  const addEducation = () => {
+    const newEdu: Education = {
+      id: Date.now().toString(),
+      school: "",
+      degree: "",
+      field: "",
+      location: "",
+      startYear: "",
+      endYear: "",
+      gpa: "",
+      honors: ""
+    }
+    setEducation([...education, newEdu])
+  }
+
+  const removeEducation = (id: string) => {
+    setEducation(education.filter(edu => edu.id !== id))
+  }
+
+  const updateEducation = (id: string, field: keyof Education, value: string) => {
+    setEducation(education.map(edu =>
+      edu.id === id ? { ...edu, [field]: value } : edu
+    ))
+  }
+
+  // Project management
+  const addProject = () => {
+    const newProject: Project = {
+      id: Date.now().toString(),
+      name: "",
+      role: "",
+      description: "",
+      technologies: "",
+      url: ""
+    }
+    setProjects([...projects, newProject])
+  }
+
+  const removeProject = (id: string) => {
+    setProjects(projects.filter(proj => proj.id !== id))
+  }
+
+  const updateProject = (id: string, field: keyof Project, value: string) => {
+    setProjects(projects.map(proj =>
+      proj.id === id ? { ...proj, [field]: value } : proj
+    ))
+  }
+
+  // Achievement management
+  const addAchievement = () => {
+    const newAchievement: Achievement = {
+      id: Date.now().toString(),
+      title: "",
+      description: "",
+      date: ""
+    }
+    setAchievements([...achievements, newAchievement])
+  }
+
+  const removeAchievement = (id: string) => {
+    setAchievements(achievements.filter(ach => ach.id !== id))
+  }
+
+  const updateAchievement = (id: string, field: keyof Achievement, value: string) => {
+    setAchievements(achievements.map(ach =>
+      ach.id === id ? { ...ach, [field]: value } : ach
+    ))
+  }
+
+  // PDF export with template support
   const exportPdf = async () => {
     try {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
-
-      // Layout helpers
-      const margin = 15
+      const margin = selectedTemplate === "minimal" ? 20 : 15
       const pageWidth = doc.internal.pageSize.getWidth()
       const usableWidth = pageWidth - margin * 2
       const pageHeight = doc.internal.pageSize.getHeight()
@@ -261,302 +388,271 @@ export default function ResumeEditorPage() {
         }
       }
 
-      const addSectionHeader = (text: string) => {
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(12)
-        doc.text(text, margin, y)
-        moveY(6)
+      // Apply template-specific styling
+      const applyTemplateStyle = () => {
+        if (selectedTemplate === "modern") {
+          doc.setTextColor(12, 41, 171) // Primary blue
+        } else if (selectedTemplate === "classic") {
+          doc.setTextColor(0, 0, 0)
+        } else {
+          doc.setTextColor(60, 60, 60)
+        }
       }
 
-      const addParagraph = (text: string) => {
-        if (!text) return
+      // Header - Contact Info
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(selectedTemplate === "modern" ? 20 : 18)
+      applyTemplateStyle()
+      doc.text(contactInfo.name || title || 'Resume', margin, y)
+      doc.setTextColor(0, 0, 0)
+      moveY(7)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(10)
+      const contactParts = [contactInfo.email, contactInfo.phone, contactInfo.location].filter(Boolean)
+      if (contactParts.length) {
+        doc.text(contactParts.join(' | '), margin, y)
+        moveY(5)
+      }
+
+      const linkParts = [contactInfo.linkedin, contactInfo.github, contactInfo.website].filter(Boolean)
+      if (linkParts.length) {
+        doc.text(linkParts.join(' | '), margin, y)
+        moveY(5)
+      }
+
+      // Divider
+      if (selectedTemplate !== "minimal") {
+        doc.setLineWidth(0.5)
+        doc.setDrawColor(12, 41, 171)
+        doc.line(margin, y, pageWidth - margin, y)
+        moveY(6)
+      } else {
+        moveY(4)
+      }
+
+      // Summary
+      if (summary) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(12)
+        applyTemplateStyle()
+        doc.text('PROFESSIONAL SUMMARY', margin, y)
+        doc.setTextColor(0, 0, 0)
+        moveY(6)
+
         doc.setFont('helvetica', 'normal')
-        doc.setFontSize(11)
-        const wrapped: string[] = (doc.splitTextToSize(text, usableWidth) as unknown as string[])
-        // Add page breaks while writing lines
-        wrapped.forEach((line: string) => {
-          if (y > pageHeight - margin) {
-            doc.addPage()
-            y = margin
-          }
+        doc.setFontSize(10)
+        const wrapped = doc.splitTextToSize(summary, usableWidth) as string[]
+        wrapped.forEach(line => {
+          if (y > pageHeight - margin) { doc.addPage(); y = margin }
           doc.text(line, margin, y)
           y += 5
         })
-        moveY(2)
-      }
-
-      const addBulletList = (items: string[] | undefined) => {
-        if (!items || items.length === 0) return
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(11)
-        items.forEach((item: string) => {
-          const lines: string[] = (doc.splitTextToSize(item, usableWidth - 6) as unknown as string[])
-          if (y > pageHeight - margin) {
-            doc.addPage()
-            y = margin
-          }
-          doc.text('•', margin, y)
-          // First line next to bullet
-          doc.text(lines[0] as string, margin + 6, y)
-          y += 5
-          // Remaining lines
-          for (let i = 1; i < lines.length; i++) {
-            if (y > pageHeight - margin) {
-              doc.addPage()
-              y = margin
-            }
-            doc.text(lines[i] as string, margin + 6, y)
-            y += 5
-          }
-        })
-        moveY(2)
-      }
-
-      // Header: Name + Contact
-      const fullName = user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || ''
-      const email = user?.primaryEmailAddress?.emailAddress || ''
-      const phone = user?.phoneNumbers?.[0]?.phoneNumber || ''
-      const contactParts = [email, phone].filter(Boolean)
-
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(16)
-      doc.text((fullName || title || 'Untitled Resume') as string, margin, y)
-      moveY(7)
-      if (contactParts.length) {
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(10)
-        doc.text(contactParts.join('  |  '), margin, y)
-        moveY(6)
-      }
-
-      // Horizontal rule
-      doc.setLineWidth(0.3)
-      doc.line(margin, y, pageWidth - margin, y)
-      moveY(4)
-
-      // Data from resume content
-      const content = (resume?.content || {}) as any
-
-      // Summary
-      if (summary?.trim() || content?.summary) {
-        addSectionHeader('Professional Summary')
-        addParagraph((summary || content?.summary || '').trim())
+        moveY(4)
       }
 
       // Skills
-      const skillsFromContent: string[] = Array.isArray(content?.skills) ? content.skills : []
-      const allSkills = (skillsText || '').trim() || (skillsFromContent.length ? skillsFromContent.join(', ') : '')
-      if (allSkills) {
-        addSectionHeader('Skills')
-        addParagraph(allSkills)
+      if (skillsText) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(12)
+        applyTemplateStyle()
+        doc.text('SKILLS', margin, y)
+        doc.setTextColor(0, 0, 0)
+        moveY(6)
+
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(10)
+        doc.text(skillsText, margin, y)
+        moveY(8)
       }
 
       // Experience
-      const experiences: any[] = Array.isArray(content?.experience) ? content.experience : []
-      if (experiences.length) {
-        addSectionHeader('Experience')
-        experiences.forEach((exp) => {
-          const header = [exp.title, exp.company].filter(Boolean).join(' — ')
-          if (header) {
-            doc.setFont('helvetica', 'bold')
-            doc.setFontSize(11)
-            doc.text(header, margin, y)
+      if (experiences.length > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(12)
+        applyTemplateStyle()
+        doc.text('EXPERIENCE', margin, y)
+        doc.setTextColor(0, 0, 0)
+        moveY(6)
+
+        experiences.forEach((exp, idx) => {
+          if (y > pageHeight - margin - 20) { doc.addPage(); y = margin }
+
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(11)
+          doc.text(exp.title || 'Position', margin, y)
+          moveY(5)
+
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(10)
+          const companyLine = [exp.company, exp.location].filter(Boolean).join(' • ')
+          if (companyLine) {
+            doc.text(companyLine, margin, y)
             moveY(5)
           }
-          const meta = [exp.location, exp.startDate && exp.endDate ? `${exp.startDate} – ${exp.endDate}` : exp.startDate || exp.endDate]
-            .filter(Boolean)
-            .join('  •  ')
-          if (meta) {
-            doc.setFont('helvetica', 'normal')
-            doc.setFontSize(10)
-            doc.text(meta, margin, y)
+
+          const dates = exp.current ? `${exp.startDate} - Present` : `${exp.startDate} - ${exp.endDate}`
+          if (exp.startDate || exp.endDate) {
+            doc.text(dates, margin, y)
             moveY(5)
           }
-          if (Array.isArray(exp.bullets) && exp.bullets.length) {
-            addBulletList(exp.bullets)
-          } else if (exp.description) {
-            addParagraph(exp.description)
+
+          if (exp.description) {
+            const descWrapped = doc.splitTextToSize(exp.description, usableWidth - 5) as string[]
+            descWrapped.forEach(line => {
+              if (y > pageHeight - margin) { doc.addPage(); y = margin }
+              doc.text(`• ${line}`, margin + 2, y)
+              y += 5
+            })
           }
+          moveY(3)
         })
       }
 
       // Projects
-      const projects: any[] = Array.isArray(content?.projects) ? content.projects : []
-      if (projects.length) {
-        addSectionHeader('Projects')
-        projects.forEach((p) => {
-          const header = [p.name || p.title, p.role, p.company].filter(Boolean).join(' — ')
-          if (header) {
-            doc.setFont('helvetica', 'bold')
-            doc.setFontSize(11)
-            doc.text(header, margin, y)
+      if (projects.length > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(12)
+        applyTemplateStyle()
+        doc.text('PROJECTS', margin, y)
+        doc.setTextColor(0, 0, 0)
+        moveY(6)
+
+        projects.forEach(proj => {
+          if (y > pageHeight - margin - 15) { doc.addPage(); y = margin }
+
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(11)
+          doc.text(proj.name || 'Project', margin, y)
+          moveY(5)
+
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(10)
+          if (proj.role) {
+            doc.text(proj.role, margin, y)
             moveY(5)
           }
-          const meta = [p.url, Array.isArray(p.technologies) ? p.technologies.join(', ') : p.technologies]
-            .filter(Boolean)
-            .join('  •  ')
-          if (meta) {
-            doc.setFont('helvetica', 'normal')
-            doc.setFontSize(10)
-            addParagraph(meta)
+
+          if (proj.technologies) {
+            doc.text(`Technologies: ${proj.technologies}`, margin, y)
+            moveY(5)
           }
-          if (Array.isArray(p.bullets) && p.bullets.length) {
-            addBulletList(p.bullets)
-          } else if (p.description) {
-            addParagraph(p.description)
+
+          if (proj.description) {
+            const projWrapped = doc.splitTextToSize(proj.description, usableWidth - 5) as string[]
+            projWrapped.forEach(line => {
+              if (y > pageHeight - margin) { doc.addPage(); y = margin }
+              doc.text(line, margin + 2, y)
+              y += 5
+            })
           }
+          moveY(3)
         })
       }
 
       // Education
-      const education: any[] = Array.isArray(content?.education) ? content.education : []
-      if (education.length) {
-        addSectionHeader('Education')
-        education.forEach((e) => {
-          const header = [e.degree, e.field].filter(Boolean).join(', ')
-          const schoolLine = [e.school || e.university, e.location].filter(Boolean).join(' — ')
-          if (header) {
-            doc.setFont('helvetica', 'bold')
-            doc.setFontSize(11)
-            doc.text(header, margin, y)
-            moveY(5)
-          }
+      if (education.length > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(12)
+        applyTemplateStyle()
+        doc.text('EDUCATION', margin, y)
+        doc.setTextColor(0, 0, 0)
+        moveY(6)
+
+        education.forEach(edu => {
+          if (y > pageHeight - margin - 15) { doc.addPage(); y = margin }
+
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(11)
+          const degreeText = [edu.degree, edu.field].filter(Boolean).join(' in ')
+          doc.text(degreeText || 'Degree', margin, y)
+          moveY(5)
+
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(10)
+          const schoolLine = [edu.school, edu.location].filter(Boolean).join(' • ')
           if (schoolLine) {
-            doc.setFont('helvetica', 'normal')
-            doc.setFontSize(10)
             doc.text(schoolLine, margin, y)
             moveY(5)
           }
-          const meta = [e.startYear && e.endYear ? `${e.startYear} – ${e.endYear}` : e.graduationYear, e.gpa ? `GPA: ${e.gpa}` : null]
-            .filter(Boolean)
-            .join('  •  ')
-          if (meta) {
+
+          const eduMeta = [
+            edu.startYear && edu.endYear ? `${edu.startYear} - ${edu.endYear}` : edu.endYear,
+            edu.gpa ? `GPA: ${edu.gpa}` : null,
+            edu.honors
+          ].filter(Boolean).join(' • ')
+
+          if (eduMeta) {
+            doc.text(eduMeta, margin, y)
+            moveY(5)
+          }
+          moveY(2)
+        })
+      }
+
+      // Achievements
+      if (achievements.length > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(12)
+        applyTemplateStyle()
+        doc.text('ACHIEVEMENTS', margin, y)
+        doc.setTextColor(0, 0, 0)
+        moveY(6)
+
+        achievements.forEach(ach => {
+          if (y > pageHeight - margin - 10) { doc.addPage(); y = margin }
+
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(10)
+          const achTitle = ach.title + (ach.date ? ` (${ach.date})` : '')
+          doc.text(achTitle, margin, y)
+          moveY(5)
+
+          if (ach.description) {
             doc.setFont('helvetica', 'normal')
-            doc.setFontSize(10)
-            doc.text(meta, margin, y)
-            moveY(6)
+            const achWrapped = doc.splitTextToSize(ach.description, usableWidth - 5) as string[]
+            achWrapped.forEach(line => {
+              if (y > pageHeight - margin) { doc.addPage(); y = margin }
+              doc.text(line, margin + 2, y)
+              y += 5
+            })
           }
+          moveY(2)
         })
       }
 
-      // Certifications
-      const certs: any[] = Array.isArray(content?.certifications) ? content.certifications : []
-      if (certs.length) {
-        addSectionHeader('Certifications')
-        certs.forEach((c) => {
-          const line = [c.name, c.issuer, c.year || c.date].filter(Boolean).join(' — ')
-          addParagraph(line)
-        })
+      // Fallback: Additional Content from uploaded resume
+      const extractedText: string | undefined = typeof (resume?.content as any)?.extractedText === 'string' ? (resume?.content as any).extractedText : undefined
+      if (extractedText && extractedText.trim().length > 0) {
+        if (y > pageHeight - margin - 20) { doc.addPage(); y = margin }
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(12)
+        applyTemplateStyle()
+        doc.text('Additional Content (from uploaded resume)', margin, y)
+        doc.setTextColor(0, 0, 0)
+        moveY(6)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(10)
+        const wrapped = doc.splitTextToSize(extractedText, usableWidth) as string[]
+        wrapped.forEach(line => { if (y > pageHeight - margin) { doc.addPage(); y = margin } doc.text(line, margin, y); y += 5 })
+        moveY(2)
       }
 
-      // Links
-      const links: any[] = Array.isArray(content?.links) ? content.links : []
-      if (links.length) {
-        addSectionHeader('Links')
-        links.forEach((l) => {
-          const label = l.label || l.name || l.url
-          if (!label) return
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(0, 102, 204)
-          const url = String(l.url || label)
-          const anyDoc = doc as any
-          if (typeof anyDoc.textWithLink === 'function') {
-            anyDoc.textWithLink(String(label), margin, y, { url })
-          } else {
-            doc.text(String(label), margin, y)
-          }
-          doc.setTextColor(0, 0, 0)
-          moveY(6)
-        })
-      }
-
-      // Fallback: if we only had summary/skills and we have extracted text, include a compact additional section
-      const hasStructured = experiences.length + projects.length + education.length + certs.length + links.length > 0
-      if (!hasStructured && (extractedText?.trim()?.length || 0) > 0) {
-        addSectionHeader('Additional Content (from uploaded resume)')
-        addParagraph((extractedText || '').slice(0, 3000))
-      }
-
-      const fileName = `${(title || fullName || 'resume').replace(/\s+/g, '_')}.pdf`
+      const fileName = `${(title || contactInfo.name || 'resume').replace(/\s+/g, '_')}.pdf`
       doc.save(fileName)
-      toast({ title: 'Exported', description: 'PDF downloaded.', variant: 'success' })
+      toast({ title: 'Exported', description: 'PDF downloaded successfully.', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'Export failed', description: e?.message || 'Please try again', variant: 'destructive' })
     }
   }
 
-  // AI suggestions (summary + skills) — simple endpoint
-  const getSuggestions = async () => {
-    try {
-      setSuggesting(true)
-      const sourceText = extractedText || `${summary}\nSkills: ${skillsText}`
-      const payload = {
-        resumeText: sourceText,
-        jobDescription: jobDescription || summary || ''
-      }
-      const res = await fetch('/api/resumes/suggestions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Failed to get suggestions')
-      setAiSummary(json.improvedSummary || '')
-      setAiSkills(json.recommendedSkills || [])
-      toast({ title: 'Suggestions ready', description: 'Review and apply if you like.', variant: 'success' })
-      // Save AI suggestions to DB
-      if (clerkId && resume?._id) {
-        await updateResume({
-          clerkId,
-          resumeId: resume._id,
-          updates: { ai_suggestions: json }
-        } as any)
-      }
-    } catch (e: any) {
-      toast({ title: 'Suggestions failed', description: e?.message || 'Please try again', variant: 'destructive' })
-    } finally {
-      setSuggesting(false)
-    }
-  }
-
-  const applySuggestions = async () => {
-    if (aiSummary) setSummary(aiSummary)
-    if (aiSkills?.length) setSkillsText(aiSkills.join(', '))
-    
-    // Immediately save the applied suggestions to the database
-    if (clerkId && resume?._id && (aiSummary || aiSkills?.length)) {
-      try {
-        await updateResume({
-          clerkId,
-          resumeId: resume._id,
-          updates: {
-            title: title.trim() || "Untitled Resume",
-            content: {
-              ...(resume.content || {}),
-              summary: aiSummary || summary,
-              skills: aiSkills?.length ? aiSkills : skillsText
-                .split(",")
-                .map((s) => s.trim())
-                .filter((s) => s.length > 0),
-            },
-          },
-        } as any)
-        toast({ title: "Applied", description: "AI suggestions have been applied to your resume.", variant: 'success' })
-      } catch (e: any) {
-        toast({ title: "Apply failed", description: e?.message || "Please try again.", variant: "destructive" })
-      }
-    }
-  }
-
   const doDelete = async () => {
     if (!clerkId || !resume?._id) return
-    const idToDelete = resume._id as any
     setDeleting(true)
     try {
-      await deleteResume({ clerkId, resumeId: idToDelete } as any)
+      await deleteResume({ clerkId, resumeId: resume._id } as any)
       toast({ title: "Deleted", description: "Resume removed.", variant: 'success' })
       router.replace("/resumes")
-      router.refresh()
     } catch (e: any) {
       toast({ title: "Delete failed", description: e?.message || "Please try again.", variant: "destructive" })
     } finally {
@@ -566,15 +662,19 @@ export default function ResumeEditorPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => router.push("/resumes")}> 
+          <Button variant="outline" onClick={() => router.push("/resumes")}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Edit Resume</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Edit Resume</h1>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={importFromProfile} disabled={importing || !userProfile}>
+            {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UploadIcon className="h-4 w-4 mr-2" />}
+            Import from Career Profile
+          </Button>
           <Button variant="destructive" onClick={() => setConfirmOpen(true)} disabled={!resume || deleting}>
             {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />} Delete
           </Button>
@@ -582,16 +682,9 @@ export default function ResumeEditorPage() {
             <Download className="h-4 w-4 mr-2" /> Export PDF
           </Button>
           <Button onClick={doSave} disabled={saving || !resume}>
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
             Save
           </Button>
-          {autoSaving && (
-            <span className="text-xs text-muted-foreground ml-2">Autosaving…</span>
-          )}
         </div>
       </div>
 
@@ -607,136 +700,447 @@ export default function ResumeEditorPage() {
         </Card>
       ) : (
         <div className="grid gap-6">
+          {/* Basic Info */}
           <Card>
             <CardHeader>
               <CardTitle>Basic Info</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm mb-1">Title</label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Professional Summary</label>
-                <Textarea rows={5} value={summary} onChange={(e) => setSummary(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Skills (comma separated)</label>
-                <Input value={skillsText} onChange={(e) => setSkillsText(e.target.value)} />
+                <label className="block text-sm font-medium mb-1">Resume Title</label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Software Engineer Resume" />
               </div>
             </CardContent>
           </Card>
 
-          {/* Upload & Analyze */}
+          {/* Contact Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Upload & Analyze</CardTitle>
+              <CardTitle>Contact Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="block text-sm">Upload Resume (PDF or DOCX)</label>
-                <input
-                  type="file"
-                  accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0]
-                    if (f) onUploadResumePdf(f)
-                  }}
-                  disabled={uploading}
-                />
-                {extractedText && (
-                  <div className="text-xs text-muted-foreground">Extracted {extractedText.length} characters</div>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Full Name</label>
+                  <Input
+                    value={contactInfo.name}
+                    onChange={(e) => setContactInfo({...contactInfo, name: e.target.value})}
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <Input
+                    type="email"
+                    value={contactInfo.email}
+                    onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})}
+                    placeholder="john@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <Input
+                    value={contactInfo.phone}
+                    onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})}
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Location</label>
+                  <Input
+                    value={contactInfo.location}
+                    onChange={(e) => setContactInfo({...contactInfo, location: e.target.value})}
+                    placeholder="San Francisco, CA"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">LinkedIn</label>
+                  <Input
+                    value={contactInfo.linkedin}
+                    onChange={(e) => setContactInfo({...contactInfo, linkedin: e.target.value})}
+                    placeholder="linkedin.com/in/johndoe"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">GitHub</label>
+                  <Input
+                    value={contactInfo.github}
+                    onChange={(e) => setContactInfo({...contactInfo, github: e.target.value})}
+                    placeholder="github.com/johndoe"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Website</label>
+                  <Input
+                    value={contactInfo.website}
+                    onChange={(e) => setContactInfo({...contactInfo, website: e.target.value})}
+                    placeholder="johndoe.com"
+                  />
+                </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <div>
-                <label className="block text-sm mb-1">Job Description</label>
-                <Textarea
-                  rows={6}
-                  placeholder="Paste the job description here"
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                />
-              </div>
+          {/* Professional Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Professional Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                rows={5}
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                placeholder="Write a compelling summary of your professional experience and career goals..."
+              />
+            </CardContent>
+          </Card>
 
-              <div>
-                <Button onClick={runAnalysis} disabled={analyzing || !extractedText || !jobDescription}>
-                  {analyzing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Analyze
-                </Button>
-              </div>
+          {/* Skills */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Skills</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <label className="block text-sm font-medium mb-2">Skills (comma separated)</label>
+              <Input
+                value={skillsText}
+                onChange={(e) => setSkillsText(e.target.value)}
+                placeholder="React, TypeScript, Node.js, Python, AWS"
+              />
+            </CardContent>
+          </Card>
 
-              {analysis && (
-                <div className="space-y-3">
-                  <div className="font-medium">Match Score: {analysis.score}%</div>
-                  <div className="text-sm">{analysis.summary}</div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <div className="font-semibold mb-1">Strengths</div>
-                      <ul className="list-disc pl-5 text-sm space-y-1">
-                        {analysis.strengths.map((s, i) => (
-                          <li key={`st-${i}`}>{s}</li>
-                        ))}
-                      </ul>
+          {/* Work Experience */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Work Experience</CardTitle>
+              <Button onClick={addExperience} size="sm">
+                <Plus className="h-4 w-4 mr-2" /> Add Experience
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {experiences.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No experience added yet. Click "Add Experience" to get started.</p>
+              ) : (
+                experiences.map((exp, idx) => (
+                  <div key={exp.id} className="border rounded-lg p-4 space-y-4 relative">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => removeExperience(exp.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Job Title</label>
+                        <Input
+                          value={exp.title}
+                          onChange={(e) => updateExperience(exp.id, 'title', e.target.value)}
+                          placeholder="Software Engineer"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Company</label>
+                        <Input
+                          value={exp.company}
+                          onChange={(e) => updateExperience(exp.id, 'company', e.target.value)}
+                          placeholder="Tech Corp"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Location</label>
+                        <Input
+                          value={exp.location}
+                          onChange={(e) => updateExperience(exp.id, 'location', e.target.value)}
+                          placeholder="San Francisco, CA"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={exp.current}
+                          onChange={(e) => updateExperience(exp.id, 'current', e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        <label className="text-sm font-medium">Current Position</label>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Start Date</label>
+                        <Input
+                          value={exp.startDate}
+                          onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)}
+                          placeholder="Jan 2020"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">End Date</label>
+                        <Input
+                          value={exp.endDate}
+                          onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)}
+                          placeholder="Dec 2023"
+                          disabled={exp.current}
+                        />
+                      </div>
                     </div>
                     <div>
-                      <div className="font-semibold mb-1">Gaps</div>
-                      <ul className="list-disc pl-5 text-sm space-y-1">
-                        {analysis.gaps.map((g, i) => (
-                          <li key={`gp-${i}`}>{g}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <div className="font-semibold mb-1">Suggestions</div>
-                      <ul className="list-disc pl-5 text-sm space-y-1">
-                        {analysis.suggestions.map((g, i) => (
-                          <li key={`sg-${i}`}>{g}</li>
-                        ))}
-                      </ul>
+                      <label className="block text-sm font-medium mb-1">Responsibilities & Achievements</label>
+                      <Textarea
+                        rows={4}
+                        value={exp.description}
+                        onChange={(e) => updateExperience(exp.id, 'description', e.target.value)}
+                        placeholder="• Led development of key features&#10;• Improved performance by 40%&#10;• Mentored junior developers"
+                      />
                     </div>
                   </div>
-                </div>
+                ))
               )}
             </CardContent>
           </Card>
 
-          {/* AI Suggestions */}
+          {/* Education */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Education</CardTitle>
+              <Button onClick={addEducation} size="sm">
+                <Plus className="h-4 w-4 mr-2" /> Add Education
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {education.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No education added yet. Click "Add Education" to get started.</p>
+              ) : (
+                education.map((edu, idx) => (
+                  <div key={edu.id} className="border rounded-lg p-4 space-y-4 relative">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => removeEducation(edu.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">School/University</label>
+                        <Input
+                          value={edu.school}
+                          onChange={(e) => updateEducation(edu.id, 'school', e.target.value)}
+                          placeholder="Stanford University"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Degree</label>
+                        <Input
+                          value={edu.degree}
+                          onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
+                          placeholder="Bachelor of Science"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Major/Field of Study</label>
+                        <Input
+                          value={edu.field}
+                          onChange={(e) => updateEducation(edu.id, 'field', e.target.value)}
+                          placeholder="Computer Science"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Location</label>
+                        <Input
+                          value={edu.location}
+                          onChange={(e) => updateEducation(edu.id, 'location', e.target.value)}
+                          placeholder="Stanford, CA"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Start Year</label>
+                        <Input
+                          value={edu.startYear}
+                          onChange={(e) => updateEducation(edu.id, 'startYear', e.target.value)}
+                          placeholder="2016"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">End Year</label>
+                        <Input
+                          value={edu.endYear}
+                          onChange={(e) => updateEducation(edu.id, 'endYear', e.target.value)}
+                          placeholder="2020"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">GPA (optional)</label>
+                        <Input
+                          value={edu.gpa}
+                          onChange={(e) => updateEducation(edu.id, 'gpa', e.target.value)}
+                          placeholder="3.8/4.0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Honors (optional)</label>
+                        <Input
+                          value={edu.honors}
+                          onChange={(e) => updateEducation(edu.id, 'honors', e.target.value)}
+                          placeholder="Cum Laude, Dean's List"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Projects */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Projects</CardTitle>
+              <Button onClick={addProject} size="sm">
+                <Plus className="h-4 w-4 mr-2" /> Add Project
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {projects.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No projects added yet. Click "Add Project" to get started.</p>
+              ) : (
+                projects.map((proj, idx) => (
+                  <div key={proj.id} className="border rounded-lg p-4 space-y-4 relative">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => removeProject(proj.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Project Name</label>
+                        <Input
+                          value={proj.name}
+                          onChange={(e) => updateProject(proj.id, 'name', e.target.value)}
+                          placeholder="E-commerce Platform"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Role</label>
+                        <Input
+                          value={proj.role}
+                          onChange={(e) => updateProject(proj.id, 'role', e.target.value)}
+                          placeholder="Lead Developer"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Technologies</label>
+                        <Input
+                          value={proj.technologies}
+                          onChange={(e) => updateProject(proj.id, 'technologies', e.target.value)}
+                          placeholder="React, Node.js, MongoDB"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">URL (optional)</label>
+                        <Input
+                          value={proj.url}
+                          onChange={(e) => updateProject(proj.id, 'url', e.target.value)}
+                          placeholder="https://project-demo.com"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Description</label>
+                      <Textarea
+                        rows={3}
+                        value={proj.description}
+                        onChange={(e) => updateProject(proj.id, 'description', e.target.value)}
+                        placeholder="Built a full-stack e-commerce platform serving 10k+ users..."
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Achievements */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Achievements & Awards</CardTitle>
+              <Button onClick={addAchievement} size="sm">
+                <Plus className="h-4 w-4 mr-2" /> Add Achievement
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {achievements.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No achievements added yet. Click "Add Achievement" to get started.</p>
+              ) : (
+                achievements.map((ach, idx) => (
+                  <div key={ach.id} className="border rounded-lg p-4 space-y-4 relative">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => removeAchievement(ach.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Achievement Title</label>
+                        <Input
+                          value={ach.title}
+                          onChange={(e) => updateAchievement(ach.id, 'title', e.target.value)}
+                          placeholder="Employee of the Year"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Date</label>
+                        <Input
+                          value={ach.date}
+                          onChange={(e) => updateAchievement(ach.id, 'date', e.target.value)}
+                          placeholder="2023"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Description</label>
+                      <Textarea
+                        rows={2}
+                        value={ach.description}
+                        onChange={(e) => updateAchievement(ach.id, 'description', e.target.value)}
+                        placeholder="Recognized for exceptional performance..."
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Template Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>AI Suggestions</CardTitle>
+              <CardTitle>PDF Template</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">Generate an improved summary and recommended skills based on your current resume text and job description.</p>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={getSuggestions} disabled={suggesting}>
-                  {suggesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                  Get Suggestions
-                </Button>
-                <Button variant="outline" onClick={applySuggestions} disabled={!aiSummary && (!aiSkills || aiSkills.length === 0)}>
-                  Apply to Resume
-                </Button>
-              </div>
-              {(aiSummary || (aiSkills && aiSkills.length > 0)) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {aiSummary && (
-                    <div>
-                      <div className="font-semibold mb-1">Suggested Summary</div>
-                      <div className="text-sm whitespace-pre-wrap border rounded p-3 bg-muted/30">{aiSummary}</div>
-                    </div>
-                  )}
-                  {aiSkills && aiSkills.length > 0 && (
-                    <div>
-                      <div className="font-semibold mb-1">Recommended Skills</div>
-                      <ul className="list-disc pl-5 text-sm space-y-1">
-                        {aiSkills.map((s, i) => (
-                          <li key={`ais-${i}`}>{s}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
+            <CardContent>
+              <label className="block text-sm font-medium mb-2">Choose a template for PDF export</label>
+              <Select value={selectedTemplate} onValueChange={(value: any) => setSelectedTemplate(value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="modern">Modern (Blue accents, professional)</SelectItem>
+                  <SelectItem value="classic">Classic (Traditional black & white)</SelectItem>
+                  <SelectItem value="minimal">Minimal (Clean, spacious layout)</SelectItem>
+                </SelectContent>
+              </Select>
             </CardContent>
           </Card>
         </div>

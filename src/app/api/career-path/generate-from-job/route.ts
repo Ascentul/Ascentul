@@ -108,7 +108,7 @@ Return JSON with the following TypeScript shape without extra commentary:
     }
   ]
 }`
-      const models = ['gpt-5', 'gpt-4o-mini']
+      const models = ['gpt-5', 'gpt-5-mini']
       for (const model of models) {
         try {
           const completion = await client.chat.completions.create({

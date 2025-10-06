@@ -1,11 +1,11 @@
-'use client'
+"use client";
 
-import { useState } from "react"
-import { useForm, useFieldArray } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { apiRequest } from "@/lib/queryClient"
+import { useState } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import {
   CalendarIcon,
   Plus,
@@ -13,9 +13,9 @@ import {
   CheckSquare,
   Square,
   Trash2,
-  Loader2
-} from "lucide-react"
-import { format } from "date-fns"
+  Loader2,
+} from "lucide-react";
+import { format } from "date-fns";
 
 import {
   Form,
@@ -23,23 +23,23 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from "@/components/ui/select"
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger
-} from "@/components/ui/popover"
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,12 +49,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger
-} from "@/components/ui/alert-dialog"
-import { Calendar } from "@/components/ui/calendar"
-import { useToast } from "@/hooks/use-toast"
-import { goalTemplates } from "@/components/goals/GoalTemplates"
-import { goalChecklistItemSchema } from "@/utils/schema"
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { useToast } from "@/hooks/use-toast";
+import { goalTemplates } from "@/components/goals/GoalTemplates";
+import { goalChecklistItemSchema } from "@/utils/schema";
 
 const goalSchema = z.object({
   title: z
@@ -64,44 +64,44 @@ const goalSchema = z.object({
   description: z.string().optional(),
   status: z.string().default("not_started"),
   dueDate: z.date().optional(),
-  checklist: z.array(goalChecklistItemSchema).default([])
-})
+  checklist: z.array(goalChecklistItemSchema).default([]),
+});
 
-type GoalFormValues = z.infer<typeof goalSchema>
+type GoalFormValues = z.infer<typeof goalSchema>;
 
 interface GoalFormProps {
   goal?: {
-    id: number
-    title: string
-    description?: string
-    status: string
-    dueDate?: string
-    checklist?: Array<{ id: string; text: string; completed: boolean }>
-  }
-  templateId?: string | null
-  onSuccess?: () => void
+    id: number;
+    title: string;
+    description?: string;
+    status: string;
+    dueDate?: string;
+    checklist?: Array<{ id: string; text: string; completed: boolean }>;
+  };
+  templateId?: string | null;
+  onSuccess?: () => void;
 }
 
 export default function GoalForm({
   goal,
   templateId,
-  onSuccess
+  onSuccess,
 }: GoalFormProps) {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedTemplate = templateId
     ? goalTemplates.find((t) => t.id === templateId)?.prefill
-    : null
+    : null;
 
   const templateChecklist = selectedTemplate?.milestones
     ? selectedTemplate.milestones.map((milestone, index) => ({
         id: `template-${index}`,
         text: milestone,
-        completed: false
+        completed: false,
       }))
-    : []
+    : [];
 
   const form = useForm<GoalFormValues>({
     resolver: zodResolver(goalSchema),
@@ -110,44 +110,54 @@ export default function GoalForm({
       description: goal?.description || selectedTemplate?.description || "",
       status: goal?.status || "not_started",
       dueDate: goal?.dueDate ? new Date(goal.dueDate) : undefined,
-      checklist: goal?.checklist || templateChecklist || [
-        { id: `item-${Date.now()}`, text: "", completed: false }
-      ]
-    }
-  })
+      checklist:
+        goal?.checklist || templateChecklist.length > 0
+          ? templateChecklist
+          : [{ id: `item-${Date.now()}`, text: "", completed: false }],
+    },
+  });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "checklist"
-  })
+    name: "checklist",
+  });
 
   const createGoalMutation = useMutation({
     mutationFn: async (data: GoalFormValues) => {
-      const url = goal ? `/api/goals/${goal.id}` : '/api/goals'
-      const method = goal ? 'PUT' : 'POST'
+      const url = goal ? `/api/goals/${goal.id}` : "/api/goals";
+      const method = goal ? "PUT" : "POST";
 
       const payload = {
         ...data,
         dueDate: data.dueDate?.toISOString(),
-        progress: 0
-      }
+        progress: 0,
+      };
 
-      return apiRequest(method, url, payload)
+      return apiRequest(method, url, payload);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/goals'] })
-      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] })
+    onSuccess: async () => {
+      // Invalidate and refetch queries
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["/api/goals"],
+          refetchType: "active",
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["/api/users/statistics"],
+          refetchType: "active",
+        }),
+      ]);
 
       toast({
         title: goal ? "Goal Updated" : "Goal Created",
         description: goal
           ? "Your goal has been updated successfully"
           : "Your new goal has been created successfully",
-        variant: 'success',
-      })
+        variant: "success",
+      });
 
       if (onSuccess) {
-        onSuccess()
+        onSuccess();
       }
     },
     onError: (error: any) => {
@@ -155,53 +165,54 @@ export default function GoalForm({
         title: "Error",
         description: error.message || "Failed to save goal. Please try again.",
         variant: "destructive",
-      })
+      });
     },
-  })
+  });
 
   const deleteGoalMutation = useMutation({
     mutationFn: async (goalId: number) => {
-      return apiRequest('DELETE', `/api/goals/${goalId}`)
+      return apiRequest("DELETE", `/api/goals/${goalId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/goals'] })
-      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] })
+      queryClient.invalidateQueries({ queryKey: ["/api/goals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/statistics"] });
 
       toast({
         title: "Goal Deleted",
         description: "Your goal has been deleted successfully",
-        variant: 'success',
-      })
+        variant: "success",
+      });
 
       if (onSuccess) {
-        onSuccess()
+        onSuccess();
       }
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete goal. Please try again.",
+        description:
+          error.message || "Failed to delete goal. Please try again.",
         variant: "destructive",
-      })
+      });
     },
-  })
+  });
 
   const onSubmit = async (data: GoalFormValues) => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      await createGoalMutation.mutateAsync(data)
+      await createGoalMutation.mutateAsync(data);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const addChecklistItem = () => {
     append({
       id: `item-${Date.now()}`,
       text: "",
-      completed: false
-    })
-  }
+      completed: false,
+    });
+  };
 
   return (
     <Form {...form}>
@@ -227,7 +238,7 @@ export default function GoalForm({
             <FormItem>
               <FormLabel>Description (Optional)</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   placeholder="Describe your goal in more detail"
                   className="resize-none"
                   rows={3}
@@ -246,7 +257,10 @@ export default function GoalForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
@@ -346,7 +360,9 @@ export default function GoalForm({
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 p-0"
-                          onClick={() => checkboxField.onChange(!checkboxField.value)}
+                          onClick={() =>
+                            checkboxField.onChange(!checkboxField.value)
+                          }
                         >
                           {checkboxField.value ? (
                             <CheckSquare className="h-4 w-4 text-primary" />
@@ -357,7 +373,7 @@ export default function GoalForm({
                       </FormControl>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name={`checklist.${index}.text`}
@@ -385,9 +401,12 @@ export default function GoalForm({
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Checklist Item</AlertDialogTitle>
+                        <AlertDialogTitle>
+                          Delete Checklist Item
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete this checklist item? This action cannot be undone.
+                          Are you sure you want to delete this checklist item?
+                          This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -424,7 +443,8 @@ export default function GoalForm({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Goal</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete this goal? This action cannot be undone.
+                    Are you sure you want to delete this goal? This action
+                    cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -452,12 +472,14 @@ export default function GoalForm({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 {goal ? "Updating..." : "Creating..."}
               </>
+            ) : goal ? (
+              "Update Goal"
             ) : (
-              goal ? "Update Goal" : "Create Goal"
+              "Create Goal"
             )}
           </Button>
         </div>
       </form>
     </Form>
-  )
+  );
 }

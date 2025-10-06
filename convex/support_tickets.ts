@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 
 // List support tickets. Admins see all; regular users see their own.
 export const listTickets = query({
@@ -11,7 +12,7 @@ export const listTickets = query({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["admin", "super_admin", "university_admin"].includes(
+    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
       currentUser.role
     );
 
@@ -52,7 +53,7 @@ export const listTicketsWithFilters = query({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["admin", "super_admin", "university_admin"].includes(
+    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
       currentUser.role
     );
 
@@ -171,7 +172,7 @@ export const updateTicketStatus = mutation({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["admin", "super_admin", "university_admin"].includes(
+    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
       currentUser.role
     );
     if (!isAdmin) throw new Error("Unauthorized");
@@ -210,7 +211,7 @@ export const assignTicket = mutation({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["admin", "super_admin", "university_admin"].includes(
+    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
       currentUser.role
     );
     if (!isAdmin) throw new Error("Unauthorized");
@@ -243,7 +244,7 @@ export const bulkUpdateTickets = mutation({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["admin", "super_admin", "university_admin"].includes(
+    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
       currentUser.role
     );
     if (!isAdmin) throw new Error("Unauthorized");
@@ -283,7 +284,7 @@ export const addTicketResponse = mutation({
     if (!ticket) throw new Error("Ticket not found");
 
     // Check if user is admin or the ticket owner
-    const isAdmin = ["admin", "super_admin", "university_admin"].includes(
+    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
       currentUser.role
     );
     const isOwner = ticket.user_id === currentUser._id;
@@ -304,6 +305,26 @@ export const addTicketResponse = mutation({
       resolution: updatedResolution,
       updated_at: Date.now(),
     });
+
+    // Send email notification to ticket submitter if response is from admin
+    if (isAdmin && !isOwner) {
+      const ticketOwner = await ctx.db.get(ticket.user_id);
+      if (ticketOwner && ticketOwner.email) {
+        // Schedule email to be sent (best-effort, won't fail if email service not configured)
+        try {
+          await ctx.scheduler.runAfter(0, api.email.sendSupportTicketResponseEmail, {
+            email: ticketOwner.email,
+            name: ticketOwner.name,
+            ticketSubject: ticket.subject,
+            responseMessage: args.message,
+            ticketId: String(args.ticketId),
+          });
+        } catch (emailError) {
+          // Log but don't fail the mutation if email scheduling fails
+          console.log("Email notification scheduling failed (non-critical):", emailError);
+        }
+      }
+    }
 
     return await ctx.db.get(args.ticketId);
   },

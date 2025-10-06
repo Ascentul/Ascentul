@@ -32,9 +32,9 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
       let targetPath = '/dashboard'
 
       // Determine the correct dashboard based on role
-      if (userRole === 'super_admin' || userRole === 'admin') {
+      if (userRole === 'super_admin') {
         targetPath = '/admin'
-      } else if (userRole === 'university_admin') {
+      } else if (userRole === 'university_admin' || userRole === 'advisor') {
         targetPath = '/university'
       }
 
