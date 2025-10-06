@@ -60,10 +60,15 @@ export default function DashboardPage() {
     clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
   )
 
-  // Redirect university admins to the University dashboard
+  // Redirect admin users immediately to prevent flash of dashboard content
   useEffect(() => {
     if (user?.role === 'university_admin') {
       router.replace('/university')
+      return
+    }
+    if (user?.role === 'super_admin' || user?.role === 'admin') {
+      router.replace('/admin')
+      return
     }
   }, [user, router])
 
@@ -80,6 +85,18 @@ export default function DashboardPage() {
 
   if (!clerkUser || !user) {
     return null
+  }
+
+  // Prevent rendering for admin users while redirect is happening
+  if (user?.role === 'university_admin' || user?.role === 'super_admin' || user?.role === 'admin') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirecting to admin portal...</p>
+        </div>
+      </div>
+    )
   }
 
   // Use real data or fallback to default values

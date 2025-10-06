@@ -646,39 +646,43 @@ export default function UniversityDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Department Distribution Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Student Distribution by Department</CardTitle>
-              <CardDescription>Enrollment breakdown across academic departments</CardDescription>
-            </CardHeader>
-            <CardContent className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Computer Science', value: 35, color: '#4F46E5' },
-                      { name: 'Business', value: 28, color: '#10B981' },
-                      { name: 'Engineering', value: 22, color: '#F59E0B' },
-                      { name: 'Arts & Design', value: 15, color: '#EC4899' },
-                    ]}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    label={({ name, value }) => `${name}: ${value}%`}
-                  >
-                    {[0, 1, 2, 3].map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={['#4F46E5', '#10B981', '#F59E0B', '#EC4899'][index]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`${value}%`, 'Enrollment']} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+           {/* Department Distribution Chart */}
+           <Card>
+             <CardHeader>
+               <CardTitle>Student Distribution by Department</CardTitle>
+               <CardDescription>Enrollment breakdown across academic departments</CardDescription>
+             </CardHeader>
+             <CardContent className="h-80">
+               <ResponsiveContainer width="100%" height="100%">
+                 <PieChart>
+                   <Pie
+                     data={departments.map((d: any, index: number) => {
+                       const deptStudents = students.filter((s: any) => s.department_id === d._id)
+                       const percentage = students.length > 0 ? Math.round((deptStudents.length / students.length) * 100) : 0
+                       return {
+                         name: d.name,
+                         value: percentage,
+                         students: deptStudents.length,
+                         color: ['#4F46E5', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4'][index % 6]
+                       }
+                     })}
+                     dataKey="value"
+                     nameKey="name"
+                     cx="50%"
+                     cy="50%"
+                     outerRadius={90}
+                     label={({ name, value, students }) => `${name}: ${value}% (${students} students)`}
+                   >
+                     {departments.map((entry, index) => (
+                       <Cell key={`cell-${index}`} fill={['#4F46E5', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4'][index % 6]} />
+                     ))}
+                   </Pie>
+                   <Tooltip formatter={(value, name) => [`${value}%`, name]} />
+                   <Legend />
+                 </PieChart>
+               </ResponsiveContainer>
+             </CardContent>
+           </Card>
 
           <Card>
             <CardHeader>
