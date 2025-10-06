@@ -157,6 +157,11 @@ export default function AdminSupportPage() {
         status: newStatus as any
       })
 
+      // Update local state to reflect the change immediately
+      if (selectedTicket && selectedTicket._id === ticketId) {
+        setSelectedTicket({ ...selectedTicket, status: newStatus })
+      }
+
       toast({
         title: 'Status updated',
         description: `Ticket status changed to ${newStatus}`,
@@ -266,10 +271,6 @@ export default function AdminSupportPage() {
           </h1>
           <p className="text-muted-foreground">Manage and respond to user support requests</p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Ticket
-        </Button>
       </div>
 
       {/* Stats Cards */}

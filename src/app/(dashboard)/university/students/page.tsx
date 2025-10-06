@@ -103,6 +103,7 @@ export default function UniversityStudentsPage() {
   const updateUserMutation = useMutation(api.users.updateUser);
   const assignStudentMutation = useMutation(api.university_admin.assignStudentByEmail);
   const createUserMutation = useMutation(api.admin_users.createUserByAdmin);
+  const deleteUserMutation = useMutation(api.users.deleteUser);
 
   // State
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -125,6 +126,10 @@ export default function UniversityStudentsPage() {
   const [editingDepartment, setEditingDepartment] = useState(false);
   const [newDepartmentId, setNewDepartmentId] = useState<string>("");
   const [resendingInvite, setResendingInvite] = useState(false);
+
+  // Delete confirmation dialog state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   // Parse CSV file
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -406,6 +411,32 @@ export default function UniversityStudentsPage() {
       });
     } finally {
       setResendingInvite(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedStudent?.clerkId) return;
+
+    setDeletingUser(true);
+    try {
+      await deleteUserMutation({ clerkId: selectedStudent.clerkId });
+
+      toast({
+        title: "Student Deleted",
+        description: `${selectedStudent.name} has been permanently removed from the system.`,
+      });
+
+      setDeleteConfirmOpen(false);
+      setStudentDetailsOpen(false);
+      setSelectedStudent(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete student",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingUser(false);
     }
   };
 
@@ -1211,20 +1242,91 @@ export default function UniversityStudentsPage() {
               </div>
             </div>
           )}
+          <DialogFooter className="flex justify-between items-center">
+            <Button
+              variant="destructive"
+              onClick={() => setDeleteConfirmOpen(true)}
+              className="mr-auto"
+            >
+              <UserX className="h-4 w-4 mr-2" />
+              Delete Student
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStudentDetailsOpen(false)}>
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedStudent?.clerkId) {
+                    handleViewProfile(selectedStudent.clerkId);
+                    setStudentDetailsOpen(false);
+                  }
+                }}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Career Profile
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Student Account
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the student account and remove all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedStudent && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 my-4">
+              <p className="text-sm font-medium text-red-900">You are about to delete:</p>
+              <p className="text-sm text-red-800 mt-2">
+                <strong>Name:</strong> {selectedStudent.name}
+              </p>
+              <p className="text-sm text-red-800">
+                <strong>Email:</strong> {selectedStudent.email}
+              </p>
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to permanently delete this student? This will:
+          </p>
+          <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 ml-2">
+            <li>Remove the student from all systems</li>
+            <li>Delete all career data (resumes, applications, goals, etc.)</li>
+            <li>Free up a license seat</li>
+            <li>Cannot be recovered</li>
+          </ul>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setStudentDetailsOpen(false)}>
-              Close
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmOpen(false)}
+              disabled={deletingUser}
+            >
+              Cancel
             </Button>
             <Button
-              onClick={() => {
-                if (selectedStudent?.clerkId) {
-                  handleViewProfile(selectedStudent.clerkId);
-                  setStudentDetailsOpen(false);
-                }
-              }}
+              variant="destructive"
+              onClick={handleDeleteUser}
+              disabled={deletingUser}
             >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              View Career Profile
+              {deletingUser ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <UserX className="h-4 w-4 mr-2" />
+                  Yes, Delete Student
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -134,7 +134,7 @@ ${optimize ? "- Include optimizedLetter (string) that rewrites the cover letter 
 
       try {
         const completion = await openai.chat.completions.create({
-          model: "gpt-4o",
+          model: "gpt-5",
           messages: [
             {
               role: "system",

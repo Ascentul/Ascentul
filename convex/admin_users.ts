@@ -39,6 +39,7 @@ export const createUserByAdmin = mutation({
       v.literal("user"),
       v.literal("staff"),
       v.literal("university_admin"),
+      v.literal("advisor"),
     )),
     university_id: v.optional(v.id("universities")),
   },
@@ -53,11 +54,11 @@ export const createUserByAdmin = mutation({
       throw new Error("Admin not found")
     }
 
-    const isSuperAdmin = admin.role === "super_admin" || admin.role === "admin"
-    const isUniversityAdmin = admin.role === "university_admin" && admin.university_id === args.university_id
+    const isSuperAdmin = admin.role === "super_admin"
+    const isUniversityAdmin = (admin.role === "university_admin" || admin.role === "advisor") && admin.university_id === args.university_id
 
     if (!isSuperAdmin && !isUniversityAdmin) {
-      throw new Error("Unauthorized - Only admins can create users")
+      throw new Error("Unauthorized - Only super admins, university admins, and advisors can create users")
     }
 
     // Check if user already exists
@@ -179,7 +180,7 @@ export const getPendingActivations = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.adminClerkId))
       .unique()
 
-    if (!admin || !["super_admin", "admin", "university_admin"].includes(admin.role)) {
+    if (!admin || !["super_admin", "university_admin", "advisor"].includes(admin.role)) {
       throw new Error("Unauthorized")
     }
 

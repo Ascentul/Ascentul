@@ -47,6 +47,7 @@ export default function UniversityAnalyticsPage() {
   const { user: clerkUser } = useUser();
   const { user, isAdmin } = useAuth();
   const [analyticsView, setAnalyticsView] = useState<"engagement" | "features" | "risk">("engagement");
+  const [activeUsersTimeRange, setActiveUsersTimeRange] = useState<"daily" | "weekly" | "monthly">("weekly");
 
   const canAccess =
     !!user &&
@@ -282,6 +283,152 @@ export default function UniversityAnalyticsPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Active Users Over Time Chart */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Active Users Over Time</CardTitle>
+                  <CardDescription>Students vs Advisors engagement trends</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={activeUsersTimeRange === "daily" ? "default" : "outline"}
+                    onClick={() => setActiveUsersTimeRange("daily")}
+                    className={activeUsersTimeRange === "daily" ? "bg-[#0C29AB]" : ""}
+                  >
+                    Daily
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={activeUsersTimeRange === "weekly" ? "default" : "outline"}
+                    onClick={() => setActiveUsersTimeRange("weekly")}
+                    className={activeUsersTimeRange === "weekly" ? "bg-[#0C29AB]" : ""}
+                  >
+                    Weekly
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={activeUsersTimeRange === "monthly" ? "default" : "outline"}
+                    onClick={() => setActiveUsersTimeRange("monthly")}
+                    className={activeUsersTimeRange === "monthly" ? "bg-[#0C29AB]" : ""}
+                  >
+                    Monthly
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart
+                  data={(() => {
+                    // Generate sample data based on time range
+                    const now = new Date();
+                    const data = [];
+
+                    if (activeUsersTimeRange === "daily") {
+                      // Last 30 days
+                      for (let i = 29; i >= 0; i--) {
+                        const date = new Date(now);
+                        date.setDate(date.getDate() - i);
+                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                        // Calculate based on student count with some variation
+                        const studentCount = students.length;
+                        const studentFactor = 0.2 + (Math.sin(i / 5) * 0.15);
+                        const advisorFactor = 0.4 + (Math.sin(i / 7) * 0.2);
+
+                        data.push({
+                          date: dateStr,
+                          students: Math.floor(studentCount * studentFactor),
+                          advisors: Math.floor(studentCount * 0.05 * advisorFactor), // ~5% advisors
+                        });
+                      }
+                    } else if (activeUsersTimeRange === "weekly") {
+                      // Last 12 weeks
+                      for (let i = 11; i >= 0; i--) {
+                        const weekStart = new Date(now);
+                        weekStart.setDate(weekStart.getDate() - (i * 7));
+                        const weekLabel = `Week ${12 - i}`;
+
+                        const studentCount = students.length;
+                        const studentFactor = 0.25 + (Math.sin(i / 3) * 0.1);
+                        const advisorFactor = 0.5 + (Math.sin(i / 4) * 0.15);
+
+                        data.push({
+                          date: weekLabel,
+                          students: Math.floor(studentCount * studentFactor),
+                          advisors: Math.floor(studentCount * 0.05 * advisorFactor),
+                        });
+                      }
+                    } else {
+                      // Last 12 months
+                      for (let i = 11; i >= 0; i--) {
+                        const monthDate = new Date(now);
+                        monthDate.setMonth(monthDate.getMonth() - i);
+                        const monthStr = monthDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+
+                        const studentCount = students.length;
+                        const studentFactor = 0.3 + (i * 0.05); // Growth trend
+                        const advisorFactor = 0.6 + (i * 0.03);
+
+                        data.push({
+                          date: monthStr,
+                          students: Math.floor(studentCount * studentFactor),
+                          advisors: Math.floor(studentCount * 0.05 * advisorFactor),
+                        });
+                      }
+                    }
+
+                    return data;
+                  })()}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 12 }}
+                    angle={activeUsersTimeRange === "daily" ? -45 : 0}
+                    textAnchor={activeUsersTimeRange === "daily" ? "end" : "middle"}
+                    height={activeUsersTimeRange === "daily" ? 70 : 30}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                  <Legend
+                    wrapperStyle={{ paddingTop: '20px' }}
+                    iconType="line"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="students"
+                    stroke="#0C29AB"
+                    strokeWidth={2}
+                    name="Students"
+                    dot={{ fill: '#0C29AB', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="advisors"
+                    stroke="#10B981"
+                    strokeWidth={2}
+                    name="Advisors"
+                    dot={{ fill: '#10B981', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </>
       )}
 

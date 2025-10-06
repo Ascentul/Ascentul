@@ -133,7 +133,7 @@ If user profile is provided, use that information. Otherwise, create a template 
 Focus on keywords from the job description. Make it ATS-friendly.`
 
         const response = await client.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5',
           messages: [
             { role: 'system', content: 'You are a professional resume writer. Output only valid JSON.' },
             { role: 'user', content: prompt },

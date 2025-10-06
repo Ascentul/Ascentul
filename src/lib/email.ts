@@ -120,29 +120,47 @@ export async function sendActivationEmail(
   activationUrl: string
 ): Promise<EmailResult> {
   const firstName = name.split(' ')[0]
-  const subject = 'Welcome to Ascentful - Set Your Password'
+  const subject = 'Welcome to Ascentul - Activate Your Account'
 
   const text = `Hi ${firstName},
 
-Your Ascentful account has been created. To get started, please set your password using the secure link below:
+Your Ascentul account has been created by your university administrator.
 
-Set Your Password
+To activate your account and set your password, please click the link below:
 
-This link will expire in 24 hours for your security. Once your password is set, you can log in anytime at https://app.ascentful.io.
+${activationUrl}
 
-If you did not expect this email, please ignore it or contact our support team.
+Your login email: ${email}
 
-Welcome to Ascentful. We're excited to support your journey and help you get the most out of your account.
+This activation link will expire in 24 hours for security. Once activated, you can:
+• Set your own secure password
+• Access all career development tools
+• Build your professional profile
+
+After activation, log in at https://app.ascentul.io
+
+If you did not expect this email or have questions, please contact your university administrator or our support team.
+
+Welcome to Ascentul - we're excited to support your career journey!
 
 Best,
-The Ascentful Team`
+The Ascentul Team`
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
 
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #0C29AB; font-size: 28px; margin: 0;">Welcome to Ascentul!</h1>
+      </div>
+
       <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
 
-      <p style="font-size: 16px; margin-bottom: 24px;">Your Ascentful account has been created. To get started, please set your password using the secure link below:</p>
+      <p style="font-size: 16px; margin-bottom: 24px;">Your Ascentul account has been created by your university administrator. To get started, please activate your account and set your password.</p>
+
+      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0; font-size: 15px;"><strong>Your login email:</strong></p>
+        <p style="margin: 8px 0 0 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${email}</p>
+      </div>
 
       <div style="text-align: center; margin: 40px 0;">
         <a href="${activationUrl}"
@@ -153,34 +171,49 @@ The Ascentful Team`
                   border-radius: 6px;
                   font-weight: 600;
                   font-size: 16px;
-                  display: inline-block;">
-          Set Your Password
+                  display: inline-block;
+                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+          Activate Account & Set Password
         </a>
       </div>
 
-      <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
-        This link will expire in 24 hours for your security. Once your password is set, you can log in anytime at <a href="https://app.ascentful.io" style="color: #0C29AB; text-decoration: none;">https://app.ascentful.io</a>.
+      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
+        <p style="margin: 0 0 12px 0; font-weight: 600; color: #374151;">What happens next:</p>
+        <ul style="margin: 0; padding-left: 20px; color: #6b7280;">
+          <li style="margin-bottom: 8px;">Click the activation button above</li>
+          <li style="margin-bottom: 8px;">Create your own secure password</li>
+          <li style="margin-bottom: 8px;">Complete your profile setup</li>
+          <li>Start using all career development tools</li>
+        </ul>
+      </div>
+
+      <p style="font-size: 14px; color: #6b7280; margin-bottom: 24px; padding: 12px; background-color: #fef3c7; border-radius: 4px; border-left: 3px solid #f59e0b;">
+        ⏰ <strong>Important:</strong> This activation link expires in 24 hours. Please activate your account soon.
       </p>
 
       <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
-        If you did not expect this email, please ignore it or contact our support team.
+        After activation, you can log in anytime at <a href="https://app.ascentul.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">https://app.ascentul.io</a>
+      </p>
+
+      <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
+        If you did not expect this email or have questions, please contact your university administrator or our support team at <a href="mailto:support@ascentul.io" style="color: #0C29AB; text-decoration: none;">support@ascentul.io</a>
       </p>
 
       <p style="font-size: 16px; margin-top: 32px; margin-bottom: 8px;">
-        Welcome to Ascentful. We're excited to support your journey and help you get the most out of your account.
+        Welcome to Ascentul. We're excited to support your career journey!
       </p>
 
       <p style="font-size: 16px; margin-top: 24px;">
         Best,<br>
-        <strong>The Ascentful Team</strong>
+        <strong>The Ascentul Team</strong>
       </p>
 
       <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
-        <p>© ${new Date().getFullYear()} Ascentful, Inc. All rights reserved.</p>
+        <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
         <p style="margin-top: 10px;">
-          <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
-          <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
-          <a href="mailto:support@ascentful.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
+          <a href="https://ascentul.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentul.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentul.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
         </p>
       </div>
     </div>
@@ -288,6 +321,97 @@ The Ascentul Team`
           <a href="https://ascentul.io/privacy" style="color: #0C29AB; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
           <a href="https://ascentul.io/terms" style="color: #0C29AB; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
           <a href="mailto:support@ascentul.io" style="color: #0C29AB; text-decoration: none; margin: 0 12px;">Support</a>
+        </p>
+      </div>
+    </div>
+  `
+
+  return sendEmail({
+    to: email,
+    subject,
+    text,
+    html,
+  })
+}
+
+/**
+ * Send support ticket response email to user
+ */
+export async function sendSupportTicketResponseEmail(
+  email: string,
+  name: string,
+  ticketSubject: string,
+  responseMessage: string,
+  ticketUrl: string
+): Promise<EmailResult> {
+  const firstName = name.split(' ')[0]
+  const subject = `Re: ${ticketSubject}`
+
+  const text = `Hi ${firstName},
+
+You have received a new response to your support ticket: "${ticketSubject}"
+
+Response:
+${responseMessage}
+
+You can view the full conversation and reply at:
+${ticketUrl}
+
+If you have any further questions, please respond through the support portal.
+
+Best regards,
+The Ascentul Support Team`
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #0C29AB; font-size: 24px; margin: 0;">Support Ticket Update</h1>
+      </div>
+
+      <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
+
+      <p style="font-size: 16px; margin-bottom: 24px;">You have received a new response to your support ticket:</p>
+
+      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 16px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0; font-size: 14px; color: #6b7280;"><strong>Ticket:</strong></p>
+        <p style="margin: 8px 0 0 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${ticketSubject}</p>
+      </div>
+
+      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
+        <p style="margin: 0 0 8px 0; font-size: 14px; color: #6b7280; font-weight: 600;">Response:</p>
+        <p style="margin: 0; font-size: 15px; color: #374151; white-space: pre-wrap;">${responseMessage}</p>
+      </div>
+
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="${ticketUrl}"
+           style="background-color: #0C29AB;
+                  color: white;
+                  padding: 14px 32px;
+                  text-decoration: none;
+                  border-radius: 6px;
+                  font-weight: 600;
+                  font-size: 16px;
+                  display: inline-block;
+                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+          View Full Conversation
+        </a>
+      </div>
+
+      <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
+        If you have any further questions, please respond through the support portal.
+      </p>
+
+      <p style="font-size: 16px; margin-top: 32px;">
+        Best regards,<br>
+        <strong>The Ascentul Support Team</strong>
+      </p>
+
+      <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
+        <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
+        <p style="margin-top: 10px;">
+          <a href="https://ascentul.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentul.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentul.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
         </p>
       </div>
     </div>

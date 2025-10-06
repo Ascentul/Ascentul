@@ -94,6 +94,21 @@ export async function POST(request: NextRequest) {
             subscription_status: status,
             setStripeIds: true,
           })
+
+          // Record subscription event
+          await convex.mutation(api.stripe.recordSubscriptionEvent, {
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscription.id,
+            event_type: event.type === 'customer.subscription.created' ? 'created' : 'updated',
+            subscription_status: status === 'active' ? 'active' : status === 'cancelled' ? 'cancelled' : status === 'past_due' ? 'past_due' : 'inactive',
+            plan_name: 'premium',
+            amount: subscription.items.data[0]?.price?.unit_amount || undefined,
+            event_date: subscription.current_period_start * 1000,
+            metadata: {
+              interval: intervalFromPrice,
+              current_period_end: subscription.current_period_end,
+            },
+          })
         }
         break
       }
@@ -114,11 +129,53 @@ export async function POST(request: NextRequest) {
             subscription_status: 'cancelled',
             setStripeIds: true,
           })
+
+          // Record subscription cancelled event
+          await convex.mutation(api.stripe.recordSubscriptionEvent, {
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscription.id,
+            event_type: 'cancelled',
+            subscription_status: 'cancelled',
+            plan_name: 'premium',
+            event_date: subscription.ended_at ? subscription.ended_at * 1000 : Date.now(),
+            metadata: {},
+          })
         }
         break
       }
       case 'invoice.payment_succeeded': {
-        // no-op for now (status handled by subscription.updated)
+        const invoice = event.data.object as Stripe.Invoice
+        const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id
+        const subscriptionId = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id
+
+        if (convex && customerId && invoice.amount_paid) {
+          // Determine payment type
+          const paymentType = subscriptionId ? 'subscription' : 'one_time'
+
+          // Get interval from invoice lines
+          const interval = invoice.lines.data[0]?.price?.recurring?.interval || undefined
+
+          // Record the payment
+          await convex.mutation(api.stripe.recordPayment, {
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            stripe_invoice_id: invoice.id,
+            stripe_payment_intent_id: typeof invoice.payment_intent === 'string' ? invoice.payment_intent : undefined,
+            amount: invoice.amount_paid,
+            currency: invoice.currency,
+            status: 'succeeded',
+            payment_type: paymentType as 'subscription' | 'one_time',
+            plan_name: 'premium',
+            interval,
+            description: invoice.description || undefined,
+            metadata: {
+              billing_reason: invoice.billing_reason,
+              period_start: invoice.period_start,
+              period_end: invoice.period_end,
+            },
+            payment_date: invoice.status_transitions?.paid_at ? invoice.status_transitions.paid_at * 1000 : Date.now(),
+          })
+        }
         break
       }
       default: {

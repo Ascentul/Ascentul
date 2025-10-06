@@ -21,7 +21,7 @@ interface UserRow {
   email: string
   name: string
   username?: string
-  role: 'user' | 'admin' | 'super_admin' | 'university_admin' | 'staff'
+  role: 'user' | 'staff' | 'university_admin' | 'advisor' | 'super_admin'
   subscription_plan: 'free' | 'premium' | 'university'
   subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due'
   university_id?: string
@@ -90,15 +90,17 @@ export default function AdminUsersPage() {
   const [creatingUser, setCreatingUser] = useState(false)
 
   const handleAddUser = async () => {
-    if (!newUserForm.name.trim() || !newUserForm.email.trim()) return
+    if (!newUserForm.name.trim() || !newUserForm.email.trim() || !clerkUser?.id) return
 
     setCreatingUser(true)
     try {
-      await createUser({
-        clerkId: `temp_${Date.now()}`, // This would normally be handled by Clerk webhook
+      // Use createUserByAdmin mutation which sends activation email
+      const createUserByAdmin = useMutation(api.admin_users.createUserByAdmin)
+      await createUserByAdmin({
+        adminClerkId: clerkUser.id,
         email: newUserForm.email,
         name: newUserForm.name,
-        role: newUserForm.role
+        role: newUserForm.role,
       })
 
       // Reset form
@@ -140,7 +142,7 @@ export default function AdminUsersPage() {
   }
 
   const role = user?.role
-  const isSuperOrAdmin = role === 'super_admin' || role === 'admin'
+  const isSuperOrAdmin = role === 'super_admin'
   if (!isSuperOrAdmin) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -149,7 +151,7 @@ export default function AdminUsersPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Only Admin and Super Admin can access User Management.</p>
+            <p className="text-muted-foreground">Only Super Admin can access User Management.</p>
           </CardContent>
         </Card>
       </div>
@@ -195,7 +197,7 @@ export default function AdminUsersPage() {
                 <SelectItem value="user">User</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="university_admin">University Admin</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="advisor">Advisor</SelectItem>
                 <SelectItem value="super_admin">Super Admin</SelectItem>
               </SelectContent>
             </Select>
@@ -205,11 +207,11 @@ export default function AdminUsersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Universities</SelectItem>
-                <SelectItem value="harvard">Harvard University</SelectItem>
-                <SelectItem value="stanford">Stanford University</SelectItem>
-                <SelectItem value="mit">MIT</SelectItem>
-                <SelectItem value="berkeley">UC Berkeley</SelectItem>
-                <SelectItem value="yale">Yale University</SelectItem>
+                {universities?.map(uni => (
+                  <SelectItem key={uni._id} value={uni._id}>
+                    {uni.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={planFilter} onValueChange={(v: any) => setPlanFilter(v)}>
@@ -218,6 +220,7 @@ export default function AdminUsersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Plans</SelectItem>
+                <SelectItem value="free">Free</SelectItem>
                 <SelectItem value="premium">Premium</SelectItem>
                 <SelectItem value="university">University</SelectItem>
               </SelectContent>
@@ -321,20 +324,30 @@ export default function AdminUsersPage() {
                       <SelectItem value="user">User</SelectItem>
                       <SelectItem value="staff">Staff</SelectItem>
                       <SelectItem value="university_admin">University Admin</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="advisor">Advisor</SelectItem>
                       <SelectItem value="super_admin">Super Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Plan</label>
-                  <Select value={form.plan} onValueChange={(v: any) => setForm({ ...form, plan: v })}>
+                  <Select
+                    value={form.plan}
+                    onValueChange={(v: any) => setForm({ ...form, plan: v })}
+                    disabled={!!editing?.university_id}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="free">Free</SelectItem>
                       <SelectItem value="premium">Premium</SelectItem>
                       <SelectItem value="university">University</SelectItem>
                     </SelectContent>
                   </Select>
+                  {editing?.university_id && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Plan locked to "university" for users belonging to a university
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium">Status</label>
@@ -390,8 +403,8 @@ export default function AdminUsersPage() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="staff">Staff</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="university_admin">University Admin</SelectItem>
+                  <SelectItem value="advisor">Advisor</SelectItem>
                 </SelectContent>
               </Select>
             </div>

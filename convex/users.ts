@@ -115,10 +115,10 @@ export const createUser = mutation({
     role: v.optional(
       v.union(
         v.literal("user"),
-        v.literal("admin"),
-        v.literal("super_admin"),
-        v.literal("university_admin"),
         v.literal("staff"),
+        v.literal("university_admin"),
+        v.literal("advisor"),
+        v.literal("super_admin"),
       ),
     ),
   },
@@ -356,8 +356,8 @@ export const getAllUsers = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    // Only Admin and Super Admin can access global user list
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    // Only Super Admin can access global user list
+    if (!currentUser || currentUser.role !== "super_admin") {
       throw new Error("Unauthorized");
     }
 
@@ -392,7 +392,7 @@ export const getUsersByUniversity = query({
 
     const isAuthorized =
       currentUser.role === "super_admin" ||
-      (currentUser.role === "university_admin" &&
+      ((currentUser.role === "university_admin" || currentUser.role === "advisor") &&
         currentUser.university_id === args.universityId);
 
     if (!isAuthorized) {

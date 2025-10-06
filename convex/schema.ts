@@ -10,10 +10,10 @@ export default defineSchema({
     username: v.optional(v.string()),
     role: v.union(
       v.literal("user"),
-      v.literal("admin"),
-      v.literal("super_admin"),
-      v.literal("university_admin"),
       v.literal("staff"),
+      v.literal("university_admin"),
+      v.literal("advisor"),
+      v.literal("super_admin"),
     ),
     subscription_plan: v.union(
       v.literal("free"),
@@ -442,4 +442,69 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   }).index("by_setting_key", ["setting_key"]),
+
+  // Stripe payments table for revenue tracking
+  stripe_payments: defineTable({
+    user_id: v.optional(v.id("users")),
+    stripe_customer_id: v.string(),
+    stripe_subscription_id: v.optional(v.string()),
+    stripe_invoice_id: v.optional(v.string()),
+    stripe_payment_intent_id: v.optional(v.string()),
+    amount: v.number(), // Amount in cents
+    currency: v.string(), // e.g., 'usd'
+    status: v.union(
+      v.literal("succeeded"),
+      v.literal("pending"),
+      v.literal("failed"),
+      v.literal("refunded"),
+    ),
+    payment_type: v.union(
+      v.literal("subscription"),
+      v.literal("one_time"),
+      v.literal("university_license"),
+    ),
+    plan_name: v.optional(v.string()), // e.g., 'premium', 'university'
+    interval: v.optional(v.string()), // e.g., 'month', 'year'
+    description: v.optional(v.string()),
+    metadata: v.optional(v.any()), // Additional Stripe metadata
+    payment_date: v.number(), // Timestamp of payment
+    created_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_customer", ["stripe_customer_id"])
+    .index("by_subscription", ["stripe_subscription_id"])
+    .index("by_payment_date", ["payment_date"])
+    .index("by_status", ["status"]),
+
+  // Stripe subscription events for churn tracking
+  stripe_subscription_events: defineTable({
+    user_id: v.optional(v.id("users")),
+    stripe_customer_id: v.string(),
+    stripe_subscription_id: v.string(),
+    event_type: v.union(
+      v.literal("created"),
+      v.literal("updated"),
+      v.literal("cancelled"),
+      v.literal("renewed"),
+      v.literal("trial_started"),
+      v.literal("trial_ended"),
+    ),
+    subscription_status: v.union(
+      v.literal("active"),
+      v.literal("inactive"),
+      v.literal("cancelled"),
+      v.literal("past_due"),
+      v.literal("trialing"),
+    ),
+    plan_name: v.optional(v.string()),
+    amount: v.optional(v.number()), // Amount in cents
+    event_date: v.number(), // Timestamp of event
+    metadata: v.optional(v.any()),
+    created_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_customer", ["stripe_customer_id"])
+    .index("by_subscription", ["stripe_subscription_id"])
+    .index("by_event_date", ["event_date"])
+    .index("by_event_type", ["event_type"]),
 });
