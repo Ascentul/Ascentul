@@ -222,9 +222,9 @@ export default function UniversityDashboardPage() {
   const progressCompletionData = useMemo(() => {
     if (!studentProgress || studentProgress.length === 0) return [];
 
-    const completed = studentProgress.filter(s => s.careerCompletion >= 80).length;
-    const inProgress = studentProgress.filter(s => s.careerCompletion > 20 && s.careerCompletion < 80).length;
-    const notStarted = studentProgress.filter(s => s.careerCompletion <= 20).length;
+    const completed = studentProgress.filter(s => s.completion >= 80).length;
+    const inProgress = studentProgress.filter(s => s.completion > 20 && s.completion < 80).length;
+    const notStarted = studentProgress.filter(s => s.completion <= 20).length;
     const total = studentProgress.length;
 
     return [
@@ -237,9 +237,9 @@ export default function UniversityDashboardPage() {
   const atRiskStudentsData = useMemo(() => {
     if (!studentProgress || studentProgress.length === 0) return [];
 
-    const highRisk = studentProgress.filter(s => s.careerCompletion < 20).length;
-    const mediumRisk = studentProgress.filter(s => s.careerCompletion >= 20 && s.careerCompletion < 50).length;
-    const lowRisk = studentProgress.filter(s => s.careerCompletion >= 50).length;
+    const highRisk = studentProgress.filter(s => s.completion < 20).length;
+    const mediumRisk = studentProgress.filter(s => s.completion >= 20 && s.completion < 50).length;
+    const lowRisk = studentProgress.filter(s => s.completion >= 50).length;
 
     return [
       { segment: "High Risk", count: highRisk, color: "#EF4444" },

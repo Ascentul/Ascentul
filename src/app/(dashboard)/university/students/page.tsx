@@ -206,7 +206,7 @@ export default function UniversityStudentsPage() {
         email: singleInviteForm.email.trim(),
         name: singleInviteForm.name.trim(),
         role: "user",
-        university_id: user.university_id,
+        university_id: user.university_id as any,
       });
 
       toast({
@@ -244,7 +244,7 @@ export default function UniversityStudentsPage() {
             email: student.email.trim(),
             name: student.name.trim(),
             role: "user",
-            university_id: user.university_id,
+            university_id: user.university_id as any,
           });
           successCount++;
         } catch (e: any) {
