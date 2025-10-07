@@ -10,9 +10,11 @@ export default defineSchema({
     username: v.optional(v.string()),
     role: v.union(
       v.literal("user"),
+      v.literal("student"), // University student with auto university plan
       v.literal("staff"),
       v.literal("university_admin"),
       v.literal("advisor"),
+      v.literal("admin"),
       v.literal("super_admin"),
     ),
     subscription_plan: v.union(

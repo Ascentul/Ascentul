@@ -782,9 +782,19 @@ const Sidebar = React.memo(function Sidebar({
             </DialogContent>
           </Dialog>
 
-          {/* Settings Button for university admins */}
-          {isUniAdmin && (
+          {/* Settings Button */}
+          {isUniAdmin ? (
             <Link href="/university/settings">
+              <Button
+                variant="ghost"
+                className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
+              >
+                <Settings className="h-4 w-4" />
+                {expanded && <span className="ml-3">Settings</span>}
+              </Button>
+            </Link>
+          ) : !isAdmin && (
+            <Link href="/account">
               <Button
                 variant="ghost"
                 className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
@@ -795,73 +805,75 @@ const Sidebar = React.memo(function Sidebar({
             </Link>
           )}
 
-          {/* Support Button for all users */}
-          <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
-              >
-                <HelpCircle className="h-4 w-4" />
-                {expanded && <span className="ml-3">Support</span>}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Contact Support</DialogTitle>
-                <DialogDescription>
-                  Describe your issue and we'll help you resolve it.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Issue Type</label>
-                  <Select value={issueType} onValueChange={setIssueType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Bug">Bug Report</SelectItem>
-                      <SelectItem value="Feature">Feature Request</SelectItem>
-                      <SelectItem value="Account">Account Issue</SelectItem>
-                      <SelectItem value="Billing">Billing Question</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Subject</label>
-                  <Input
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Brief description of your issue"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Please provide details about your issue"
-                    rows={4}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
+          {/* Support Button for non-admin users only */}
+          {!isAdmin && (
+            <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
+              <DialogTrigger asChild>
                 <Button
-                  onClick={handleSupportSubmit}
-                  disabled={
-                    isSubmitting || !subject.trim() || !description.trim()
-                  }
+                  variant="ghost"
+                  className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
                 >
-                  {isSubmitting ? "Submitting..." : "Submit Ticket"}
+                  <HelpCircle className="h-4 w-4" />
+                  {expanded && <span className="ml-3">Support</span>}
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Contact Support</DialogTitle>
+                  <DialogDescription>
+                    Describe your issue and we'll help you resolve it.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Issue Type</label>
+                    <Select value={issueType} onValueChange={setIssueType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Bug">Bug Report</SelectItem>
+                        <SelectItem value="Feature">Feature Request</SelectItem>
+                        <SelectItem value="Account">Account Issue</SelectItem>
+                        <SelectItem value="Billing">Billing Question</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Subject</label>
+                    <Input
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="Brief description of your issue"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Description</label>
+                    <Textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Please provide details about your issue"
+                      rows={4}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button
+                    onClick={handleSupportSubmit}
+                    disabled={
+                      isSubmitting || !subject.trim() || !description.trim()
+                    }
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Ticket"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
 
           <Button
             variant="ghost"

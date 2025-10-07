@@ -37,6 +37,7 @@ export const createUserByAdmin = mutation({
     name: v.string(),
     role: v.optional(v.union(
       v.literal("user"),
+      v.literal("student"),
       v.literal("staff"),
       v.literal("university_admin"),
       v.literal("advisor"),
@@ -54,11 +55,11 @@ export const createUserByAdmin = mutation({
       throw new Error("Admin not found")
     }
 
-    const isSuperAdmin = admin.role === "super_admin"
+    const isSuperAdmin = admin.role === "super_admin" || admin.role === "admin"
     const isUniversityAdmin = (admin.role === "university_admin" || admin.role === "advisor") && admin.university_id === args.university_id
 
     if (!isSuperAdmin && !isUniversityAdmin) {
-      throw new Error("Unauthorized - Only super admins, university admins, and advisors can create users")
+      throw new Error("Unauthorized - Only admins, super admins, university admins, and advisors can create users")
     }
 
     // Check if user already exists
@@ -85,7 +86,8 @@ export const createUserByAdmin = mutation({
       name: args.name,
       username: args.email.split('@')[0],
       role: args.role || "user",
-      subscription_plan: args.university_id ? "university" : "free",
+      // Students always get university plan, others get university plan if they have university_id
+      subscription_plan: args.role === "student" ? "university" : (args.university_id ? "university" : "free"),
       subscription_status: "active",
       university_id: args.university_id,
       account_status: "pending_activation",

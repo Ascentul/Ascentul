@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
@@ -32,6 +33,7 @@ interface UniversityRow {
 }
 
 export default function AdminUniversitiesPage() {
+  const router = useRouter()
   const { user: clerkUser } = useUser()
   const { user } = useAuth()
   const [search, setSearch] = useState('')
@@ -256,8 +258,8 @@ export default function AdminUniversitiesPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <ShieldCheck className="h-6 w-6" /> Universities
+        <h1 className="text-3xl font-bold tracking-tight">
+          Universities
         </h1>
         <Button onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -360,6 +362,9 @@ export default function AdminUniversitiesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => router.push(`/admin/universities/${u._id}`)}>
+                          View Details
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
                           setEditing(u)
                           setForm({

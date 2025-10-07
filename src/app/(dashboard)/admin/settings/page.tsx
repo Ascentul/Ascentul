@@ -201,6 +201,11 @@ export default function AdminSettingsPage() {
         title: "Settings saved",
         description: `${settingsType} settings have been updated successfully.`,
       })
+
+      // Reload page to fetch updated settings
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
     } catch (error) {
       toast({
         title: "Error",
@@ -234,8 +239,8 @@ export default function AdminSettingsPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <Settings className="h-6 w-6" /> System Settings
+        <h1 className="text-3xl font-bold tracking-tight">
+          System Settings
         </h1>
         <Button variant="outline" onClick={() => window.location.reload()}>
           <RefreshCw className="h-4 w-4 mr-2" />
@@ -360,22 +365,6 @@ export default function AdminSettingsPage() {
                             Test
                           </Button>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Model</Label>
-                        <Select
-                          value={aiSettings.model}
-                          onValueChange={(value) => setAiSettings(prev => ({ ...prev, model: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="gpt-4">GPT-4</SelectItem>
-                            <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                            <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                          </SelectContent>
-                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Max Tokens</Label>

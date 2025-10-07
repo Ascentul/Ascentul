@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import AICoachPage from '@/app/ai-coach/page'
+import AICoachPage from '@/app/(dashboard)/career-coach/page'
 import { AICareerCoach } from '@/components/AICareerCoach'
 
 // Mock the hooks

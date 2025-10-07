@@ -266,6 +266,30 @@ export const bulkUpdateTickets = mutation({
   },
 });
 
+// Delete a ticket (admin only)
+export const deleteTicket = mutation({
+  args: {
+    clerkId: v.string(),
+    ticketId: v.id("support_tickets"),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+    if (!currentUser) throw new Error("User not found");
+
+    const isAdmin = ["super_admin", "admin"].includes(currentUser.role);
+    if (!isAdmin) throw new Error("Unauthorized - only admins can delete tickets");
+
+    const ticket = await ctx.db.get(args.ticketId);
+    if (!ticket) throw new Error("Ticket not found");
+
+    await ctx.db.delete(args.ticketId);
+    return { success: true };
+  },
+});
+
 // Add a response/comment to a ticket
 export const addTicketResponse = mutation({
   args: {

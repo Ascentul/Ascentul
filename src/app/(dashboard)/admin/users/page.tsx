@@ -21,7 +21,7 @@ interface UserRow {
   email: string
   name: string
   username?: string
-  role: 'user' | 'staff' | 'university_admin' | 'advisor' | 'super_admin'
+  role: 'user' | 'student' | 'staff' | 'university_admin' | 'advisor' | 'admin' | 'super_admin'
   subscription_plan: 'free' | 'premium' | 'university'
   subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due'
   university_id?: string
@@ -100,7 +100,7 @@ export default function AdminUsersPage() {
         adminClerkId: clerkUser.id,
         email: newUserForm.email,
         name: newUserForm.name,
-        role: newUserForm.role as "user" | "staff" | "university_admin" | "advisor",
+        role: newUserForm.role as "user" | "student" | "staff" | "university_admin" | "advisor",
       })
 
       // Reset form
@@ -171,10 +171,10 @@ export default function AdminUsersPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2"><ShieldCheck className="h-6 w-6" /> User Management</h1>
+        <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
         <Button onClick={() => setShowAddUser(true)} className="flex items-center gap-2">
           <UserIcon className="h-4 w-4" />
-          Add Staff User
+          Add User
         </Button>
       </div>
 
@@ -195,9 +195,11 @@ export default function AdminUsersPage() {
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="user">User</SelectItem>
+                <SelectItem value="student">Student</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="university_admin">University Admin</SelectItem>
                 <SelectItem value="advisor">Advisor</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="super_admin">Super Admin</SelectItem>
               </SelectContent>
             </Select>
@@ -226,9 +228,9 @@ export default function AdminUsersPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="flex items-center justify-between gap-3">
             <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -265,7 +267,14 @@ export default function AdminUsersPage() {
               {filtered.map(u => (
                 <div key={u._id} className="grid grid-cols-[2fr_2fr_1fr_1fr_1.5fr_1fr_80px] gap-3 px-4 py-3 items-center">
                   <div className="min-w-0 truncate">
-                    <div className="font-medium flex items-center gap-2"><UserIcon className="h-4 w-4 flex-shrink-0" /> {u.name}</div>
+                    <div className="font-medium flex items-center gap-2">
+                      <img
+                        src={u.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=0C29AB&color=fff`}
+                        alt={u.name}
+                        className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+                      />
+                      {u.name}
+                    </div>
                     <div className="text-xs text-muted-foreground md:hidden truncate">{u.email}</div>
                   </div>
                   <div className="hidden md:block min-w-0 truncate">{u.email}</div>
@@ -322,9 +331,11 @@ export default function AdminUsersPage() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
                       <SelectItem value="staff">Staff</SelectItem>
                       <SelectItem value="university_admin">University Admin</SelectItem>
                       <SelectItem value="advisor">Advisor</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="super_admin">Super Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -376,8 +387,8 @@ export default function AdminUsersPage() {
       <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Staff User</DialogTitle>
-            <DialogDescription>Create a new staff user account.</DialogDescription>
+            <DialogTitle>Add User</DialogTitle>
+            <DialogDescription>Create a new user account and send activation email.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -402,6 +413,8 @@ export default function AdminUsersPage() {
               <Select value={newUserForm.role} onValueChange={(v: any) => setNewUserForm({ ...newUserForm, role: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="student">Student (University)</SelectItem>
                   <SelectItem value="staff">Staff</SelectItem>
                   <SelectItem value="university_admin">University Admin</SelectItem>
                   <SelectItem value="advisor">Advisor</SelectItem>

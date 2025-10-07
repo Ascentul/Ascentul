@@ -6,9 +6,16 @@ import { useMutation, useQuery } from 'convex/react'
 import AccountPage from '@/app/(dashboard)/account/page'
 
 // Mock dependencies
-jest.mock('@clerk/nextjs')
-jest.mock('@/contexts/ClerkAuthProvider')
-jest.mock('convex/react')
+jest.mock('@clerk/nextjs', () => ({
+  useUser: jest.fn(),
+}))
+jest.mock('@/contexts/ClerkAuthProvider', () => ({
+  useAuth: jest.fn(),
+}))
+jest.mock('convex/react', () => ({
+  useQuery: jest.fn(),
+  useMutation: jest.fn(),
+}))
 jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
     toast: jest.fn(),

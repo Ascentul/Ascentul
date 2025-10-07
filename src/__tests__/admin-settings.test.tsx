@@ -5,9 +5,16 @@ import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useMutation, useQuery } from 'convex/react'
 import AdminSettingsPage from '@/app/(dashboard)/admin/settings/page'
 
-jest.mock('@clerk/nextjs')
-jest.mock('@/contexts/ClerkAuthProvider')
-jest.mock('convex/react')
+jest.mock('@clerk/nextjs', () => ({
+  useUser: jest.fn(),
+}))
+jest.mock('@/contexts/ClerkAuthProvider', () => ({
+  useAuth: jest.fn(),
+}))
+jest.mock('convex/react', () => ({
+  useQuery: jest.fn(),
+  useMutation: jest.fn(),
+}))
 jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
     toast: jest.fn(),

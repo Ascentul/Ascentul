@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Loader2, ShieldCheck, Users, TrendingUp, Activity, Building2, FileText, Target, FolderKanban, Mail } from 'lucide-react'
+import { Loader2, ShieldCheck, Users, TrendingUp, Activity, Building2, FileText, Target, FolderKanban, Mail, MessageCircle } from 'lucide-react'
 
 export default function AdminAnalyticsPage() {
   const { user: clerkUser } = useUser()

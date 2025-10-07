@@ -29,7 +29,8 @@ import {
   Search,
   Filter,
   Mail,
-  Send
+  Send,
+  Trash2
 } from 'lucide-react'
 
 export default function AdminSupportPage() {
@@ -69,6 +70,7 @@ export default function AdminSupportPage() {
   const createTicket = useMutation(api.support_tickets.createTicket)
   const updateTicketStatus = useMutation(api.support_tickets.updateTicketStatus)
   const addResponse = useMutation(api.support_tickets.addTicketResponse)
+  const deleteTicket = useMutation(api.support_tickets.deleteTicket)
 
   // Filter tickets
   const filteredTickets = useMemo(() => {
@@ -189,7 +191,7 @@ export default function AdminSupportPage() {
 
       toast({
         title: 'Response added',
-        description: 'Your response has been posted',
+        description: 'Your response has been posted and email sent to user',
         variant: 'success'
       })
 
@@ -198,6 +200,35 @@ export default function AdminSupportPage() {
       toast({
         title: 'Error',
         description: error.message || 'Failed to add response',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  // Handle delete ticket
+  const handleDeleteTicket = async (ticketId: any) => {
+    if (!clerkUser?.id) return
+
+    if (!confirm('Are you sure you want to delete this ticket?')) return
+
+    try {
+      await deleteTicket({
+        clerkId: clerkUser.id,
+        ticketId
+      })
+
+      toast({
+        title: 'Ticket deleted',
+        description: 'The ticket has been permanently deleted',
+        variant: 'success'
+      })
+
+      setDetailDialogOpen(false)
+      setSelectedTicket(null)
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete ticket',
         variant: 'destructive'
       })
     }
@@ -579,6 +610,15 @@ export default function AdminSupportPage() {
                         onClick={() => handleUpdateStatus(selectedTicket._id, 'closed')}
                       >
                         Closed
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteTicket(selectedTicket._id)}
+                        className="ml-auto"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
                       </Button>
                     </div>
                   </div>

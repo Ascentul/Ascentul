@@ -1,7 +1,6 @@
 // Mock Convex useQuery - must be hoisted
-const mockUseQuery = jest.fn()
 jest.mock('convex/react', () => ({
-  useQuery: mockUseQuery,
+  useQuery: jest.fn(),
 }))
 
 // Mock Convex API - must be hoisted
@@ -16,6 +15,9 @@ jest.mock('convex/_generated/api', () => ({
 import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import DashboardPage from '@/app/(dashboard)/dashboard/page'
+import { useQuery } from 'convex/react'
+
+const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>
 
 jest.mock('@clerk/nextjs', () => ({
   useUser: () => ({

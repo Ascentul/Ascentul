@@ -176,8 +176,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
     <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2" style={{ color: '#0C29AB' }}>
-            <ShieldCheck className="h-7 w-7" />
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#0C29AB' }}>
             Super Admin Dashboard
           </h1>
           <p className="text-muted-foreground">System overview and platform management</p>
@@ -415,9 +414,11 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-blue-900">System Monitoring Integration Required</h4>
+                    <h4 className="font-medium text-blue-900">Connect to Vercel Analytics or Convex Dashboard</h4>
                     <p className="text-sm text-blue-700 mt-1">
-                      The metrics below are placeholder values. For real-time system monitoring, integrate with services like Datadog, New Relic, or Vercel Analytics.
+                      For real-time system monitoring, connect to <a href="https://vercel.com/docs/analytics" target="_blank" rel="noopener noreferrer" className="underline font-medium">Vercel Analytics</a> for web vitals and performance metrics,
+                      or use the <a href="https://dashboard.convex.dev" target="_blank" rel="noopener noreferrer" className="underline font-medium">Convex Dashboard</a> for database metrics.
+                      Alternatively, integrate with Datadog or New Relic for comprehensive monitoring.
                     </p>
                   </div>
                 </div>
@@ -890,8 +891,10 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 <CardTitle className="text-sm font-medium">Active Today</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{Math.floor(systemStats.totalUsers * 0.12).toLocaleString()}</div>
-                <p className="text-xs text-green-600 mt-1">+8% from yesterday</p>
+                <div className="text-2xl font-bold">{systemStats.activeUsers.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {systemStats.totalUsers > 0 ? Math.round((systemStats.activeUsers / systemStats.totalUsers) * 100) : 0}% of total
+                </p>
               </CardContent>
             </Card>
 
@@ -900,8 +903,10 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 <CardTitle className="text-sm font-medium">Premium Users</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{Math.floor(systemStats.totalUsers * 0.30).toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-1">30% conversion rate</p>
+                <div className="text-2xl font-bold">{revenueData.payingUsersCount.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {systemStats.totalUsers > 0 ? Math.round((revenueData.payingUsersCount / systemStats.totalUsers) * 100) : 0}% conversion rate
+                </p>
               </CardContent>
             </Card>
 
@@ -910,8 +915,14 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 <CardTitle className="text-sm font-medium">University Students</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{Math.floor(systemStats.totalUsers * 0.55).toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-1">55% of total users</p>
+                <div className="text-2xl font-bold">
+                  {universityData.reduce((sum, uni) => sum + (uni.students || 0), 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {systemStats.totalUsers > 0
+                    ? Math.round((universityData.reduce((sum, uni) => sum + (uni.students || 0), 0) / systemStats.totalUsers) * 100)
+                    : 0}% of total users
+                </p>
               </CardContent>
             </Card>
           </div>
