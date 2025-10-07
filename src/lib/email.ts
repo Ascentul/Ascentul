@@ -28,14 +28,14 @@ interface EmailResult {
  * Send email using Mailgun
  */
 async function sendWithMailgun(options: EmailOptions): Promise<EmailResult> {
-  if (!process.env.MAILGUN_API_KEY) {
-    throw new Error('MAILGUN_API_KEY is not configured')
+  if (!process.env.MAILGUN_SENDING_API_KEY) {
+    throw new Error('MAILGUN_SENDING_API_KEY is not configured')
   }
 
   const mailgun = new Mailgun(formData)
   const mg = mailgun.client({
     username: 'api',
-    key: process.env.MAILGUN_API_KEY,
+    key: process.env.MAILGUN_SENDING_API_KEY,
   })
 
   const emailData: any = {
@@ -97,12 +97,12 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
 
   try {
     // Try Mailgun first, fallback to SendGrid
-    if (process.env.MAILGUN_API_KEY) {
+    if (process.env.MAILGUN_SENDING_API_KEY) {
       return await sendWithMailgun(options)
     } else if (process.env.SENDGRID_API_KEY) {
       return await sendWithSendGrid(options)
     } else {
-      throw new Error('No email service configured. Set MAILGUN_API_KEY or SENDGRID_API_KEY')
+      throw new Error('No email service configured. Set MAILGUN_SENDING_API_KEY or SENDGRID_API_KEY')
     }
   } catch (error) {
     console.error('Email send error:', error)
@@ -275,7 +275,7 @@ The Ascentul Team`
       <p>Great news! <strong>${universityName}</strong> has invited you to join <strong>Ascentul</strong>, a comprehensive career development platform designed to help you succeed in your professional journey.</p>
 
       <div style="background-color: #f0f2ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 25px 0; border-radius: 4px;">
-        <h3 style="margin-top: 0; color: #0C29AB; font-size: 18px;">Your Access Details</h3>
+        <h3 style="margin-top: 0; color: #0C29AB;">Your Access Details</h3>
         <p style="margin: 8px 0;">Use this email address to sign up: <strong>${email}</strong></p>
         <p style="margin: 8px 0; font-size: 14px; color: #666;">Your university has provided you with complimentary access to all premium features.</p>
       </div>
@@ -313,14 +313,14 @@ The Ascentul Team`
 
       <p>We're excited to support your career development journey!</p>
 
-      <p style="margin-top: 30px;">Best regards,<br><strong>The Ascentul Team</strong></p>
+      <p>Best regards,<br><strong>The Ascentul Team</strong></p>
 
       <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center;">
         <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
         <p style="margin-top: 10px;">
-          <a href="https://ascentul.io/privacy" style="color: #0C29AB; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
-          <a href="https://ascentul.io/terms" style="color: #0C29AB; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
-          <a href="mailto:support@ascentul.io" style="color: #0C29AB; text-decoration: none; margin: 0 12px;">Support</a>
+          <a href="https://ascentul.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentul.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentul.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
         </p>
       </div>
     </div>
@@ -331,6 +331,21 @@ The Ascentul Team`
     subject,
     text,
     html,
+  }).catch((error) => {
+    // Handle email service not configured gracefully
+    const errorMessage = error.message
+    if (errorMessage.includes('No email service configured') ||
+        errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
+        errorMessage.includes('SENDGRID_API_KEY')) {
+      console.warn("Email service not configured - university invitation email not sent")
+      return {
+        id: `email_not_configured_${Date.now()}`,
+        message: "Email service not configured",
+        status: 200, // Return success to not break the flow
+      }
+    }
+    // Re-throw other errors
+    throw error
   })
 }
 

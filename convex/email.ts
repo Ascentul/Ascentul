@@ -40,7 +40,23 @@ export const sendActivationEmail = action({
       }
     } catch (error) {
       console.error("Failed to send activation email:", error)
-      throw new Error("Failed to send activation email: " + (error as Error).message)
+
+      // In development or when email service is not configured,
+      // don't fail the user creation - just log the error
+      const errorMessage = (error as Error).message
+      if (errorMessage.includes('No email service configured') ||
+          errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
+          errorMessage.includes('SENDGRID_API_KEY')) {
+        console.warn("Email service not configured - user created but activation email not sent")
+        return {
+          success: false,
+          messageId: null,
+          message: "User created successfully, but activation email could not be sent (email service not configured)",
+        }
+      }
+
+      // For other errors, still throw
+      throw new Error("Failed to send activation email: " + errorMessage)
     }
   },
 })

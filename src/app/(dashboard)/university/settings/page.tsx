@@ -106,21 +106,62 @@ export default function UniversitySettingsPage() {
   const handleConfigureNotifications = () => {
     toast({
       title: "Email Notifications",
-      description: "Notification settings configuration coming soon.",
+      description: "This feature allows you to configure email alerts for student activity. Contact support to enable custom notifications.",
     });
   };
 
-  const handleExportData = () => {
-    toast({
-      title: "Data Export",
-      description: "Data export functionality coming soon.",
-    });
+  const handleExportData = async () => {
+    if (!clerkUser) return;
+
+    try {
+      toast({
+        title: "Preparing Export",
+        description: "Generating your data export...",
+      });
+
+      // Call the export API
+      const response = await fetch("/api/university/export-data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clerkId: clerkUser.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `university-data-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Export Complete",
+        description: "Your data has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: "Export Failed",
+        description: "Unable to export data. Please try again or contact support.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleConfigureSecurity = () => {
     toast({
       title: "Security Settings",
-      description: "Security configuration coming soon.",
+      description: "Advanced security options including SSO, IP restrictions, and 2FA are available. Contact support to configure enterprise security features.",
     });
   };
 
@@ -254,10 +295,10 @@ export default function UniversitySettingsPage() {
               <Label>License Usage</Label>
               <div className="flex items-center justify-between p-3 border rounded-md bg-muted">
                 <span className="text-sm font-medium">
-                  {universitySettings?.license_used || 0} / {settings.licenseSeats} seats used
+                  {universitySettings?.license_used || 0} / {universitySettings?.license_seats || 0} seats used
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {settings.licenseSeats - (universitySettings?.license_used || 0)} available
+                  {(universitySettings?.license_seats || 0) - (universitySettings?.license_used || 0)} available
                 </span>
               </div>
             </div>

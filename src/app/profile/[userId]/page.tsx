@@ -3,23 +3,26 @@
 import React, { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/ui/textarea'
 import {
   MapPin, Mail, Phone, Linkedin, Github, Globe,
   Briefcase, GraduationCap, Award, FolderGit2,
-  Calendar, ExternalLink, Upload, Camera
+  Calendar, ExternalLink, Upload, Camera, Save
 } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
+import { useToast } from '@/hooks/use-toast'
 
 export default function PublicProfilePage() {
   const params = useParams()
   const userId = params.userId as string
   const { user: currentUser } = useUser()
+  const { toast } = useToast()
 
   // Check if this is the user's own profile
   const isOwnProfile = currentUser?.id === userId
@@ -29,10 +32,40 @@ export default function PublicProfilePage() {
   const projects = useQuery(api.projects.getUserProjects, { clerkId: userId })
   const achievements = useQuery(api.achievements.getUserAchievements, { clerkId: userId })
 
+  // Fetch current viewer's data to check if they're a university admin
+  const viewerData = useQuery(
+    api.users.getUserByClerkId,
+    currentUser?.id ? { clerkId: currentUser.id } : 'skip'
+  )
+
   const [coverImage, setCoverImage] = useState<string | null>(null)
   const [profileImage, setProfileImage] = useState<string | null>(null)
+  const [adminNotes, setAdminNotes] = useState<string>('')
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
 
-  if (!userData) {
+  const updateUserMutation = useMutation(api.users.updateUserById)
+
+  const user = userData as any
+  const viewer = viewerData as any
+
+  // Check if viewer is a university admin viewing a student from their university
+  const isUniversityAdminViewing =
+    viewer &&
+    viewer.role === 'university_admin' &&
+    user &&
+    user.university_id === viewer.university_id &&
+    user.role === 'user' &&
+    !isOwnProfile
+
+  // Initialize admin notes when user data loads
+  React.useEffect(() => {
+    if (user && isUniversityAdminViewing) {
+      setAdminNotes(user.university_admin_notes || '')
+    }
+  }, [user, isUniversityAdminViewing])
+
+  // Handle loading and error states
+  if (userData === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -40,7 +73,44 @@ export default function PublicProfilePage() {
     )
   }
 
-  const user = userData as any
+  if (userData === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Profile Not Found</h1>
+          <p className="text-gray-600 mb-4">The user profile you're looking for doesn't exist or you don't have permission to view it.</p>
+          <Button onClick={() => window.history.back()}>
+            Go Back
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const handleSaveAdminNotes = async () => {
+    if (!user._id) return
+    setIsSavingNotes(true)
+    try {
+      await updateUserMutation({
+        id: user._id,
+        updates: {
+          university_admin_notes: adminNotes,
+        },
+      })
+      toast({
+        title: 'Notes Saved',
+        description: 'University admin notes have been updated',
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save notes',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSavingNotes(false)
+    }
+  }
 
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -371,6 +441,47 @@ export default function PublicProfilePage() {
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* University Admin Notes - Only visible to university admins */}
+            {isUniversityAdminViewing && (
+              <Card className="border-amber-200 bg-amber-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-amber-900">
+                    <Award className="h-5 w-5" />
+                    University Admin Notes (Private)
+                  </CardTitle>
+                  <p className="text-sm text-amber-700">
+                    These notes are only visible to university administrators and will not be shown to the student.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Add notes about this student's progress, concerns, or action items..."
+                    className="min-h-[120px] bg-white"
+                  />
+                  <Button
+                    onClick={handleSaveAdminNotes}
+                    disabled={isSavingNotes}
+                    className="mt-3"
+                    size="sm"
+                  >
+                    {isSavingNotes ? (
+                      <>
+                        <span className="animate-spin mr-2">⏳</span>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Notes
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             )}

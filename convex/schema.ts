@@ -67,6 +67,8 @@ export default defineSchema({
     // Password reset fields
     password_reset_token: v.optional(v.string()),
     password_reset_expires_at: v.optional(v.number()),
+    // University admin notes (visible only to university admins, not to students)
+    university_admin_notes: v.optional(v.string()),
     created_at: v.number(),
     updated_at: v.number(),
   })

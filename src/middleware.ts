@@ -27,43 +27,8 @@ export default clerkMiddleware(async (auth, req) => {
       return redirectToSignIn({ returnBackUrl: req.url });
     }
 
-    // Handle role-based redirects
-    const url = new URL(req.url);
-    const pathname = url.pathname;
-
-    // Get user role from JWT token
-    try {
-      const token = await (auth as any).getToken();
-      if (token) {
-        // Decode the JWT token to get user metadata
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        const userRole = payload.public_metadata?.role;
-
-        if (userRole) {
-          let redirectPath = null;
-
-          // Redirect admins to their respective dashboards
-          if (userRole === "super_admin" || userRole === "admin") {
-            // If admin is trying to access non-admin routes, redirect to admin
-            if (!pathname.startsWith("/admin")) {
-              redirectPath = "/admin";
-            }
-          } else if (userRole === "university_admin") {
-            // If university admin is trying to access non-university routes, redirect to university
-            if (!pathname.startsWith("/university")) {
-              redirectPath = "/university";
-            }
-          }
-
-          if (redirectPath) {
-            return NextResponse.redirect(new URL(redirectPath, req.url));
-          }
-        }
-      }
-    } catch (error) {
-      // If there's an error parsing the token, continue normally
-      console.error("Error parsing user token in middleware:", error);
-    }
+    // Role-based redirects are now handled in components to avoid middleware complexity
+    // This ensures proper authentication without token parsing issues
   }
 });
 

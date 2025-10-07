@@ -1,5 +1,5 @@
-import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
 
 function requireAdmin(user: any) {
@@ -93,7 +93,7 @@ export const getOverview = query({
 });
 
 export const getUniversityAnalytics = query({
-  args: { clerkId: v.string() },
+  args: { clerkId: v.string(), departmentId: v.optional(v.id("departments")) },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(user);
@@ -104,6 +104,7 @@ export const getUniversityAnalytics = query({
         studentGrowthData: [],
         activityData: [],
         departmentStats: [],
+        platformUsageData: [],
       };
     }
 
@@ -123,7 +124,12 @@ export const getUniversityAnalytics = query({
     ]);
 
     // Filter to only actual students (exclude university_admin)
-    const students = allUsers.filter((s: any) => s.role === "user");
+    let students = allUsers.filter((s: any) => s.role === "user");
+
+    // Filter by department if specified
+    if (args.departmentId) {
+      students = students.filter((s: any) => s.department_id === args.departmentId);
+    }
 
     // Calculate student growth data (last 6 months)
     const studentGrowthData = [];
@@ -378,8 +384,8 @@ export const listStudents = query({
       )
       .collect();
 
-    // Filter to only actual students (exclude university_admin)
-    const students = allUsers.filter((s: any) => s.role !== "university_admin");
+    // Filter to only actual students (role === "user")
+    const students = allUsers.filter((s: any) => s.role === "user");
 
     const limit = args.limit ?? 200;
     return students.slice(0, limit);

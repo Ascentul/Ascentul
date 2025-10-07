@@ -98,13 +98,18 @@ export const createUserByAdmin = mutation({
       updated_at: Date.now(),
     })
 
-    // Schedule email to be sent
-    await ctx.scheduler.runAfter(0, api.email.sendActivationEmail, {
-      email: args.email,
-      name: args.name,
-      tempPassword,
-      activationToken,
-    })
+    // Schedule email to be sent (don't fail if email service is not configured)
+    try {
+      await ctx.scheduler.runAfter(0, api.email.sendActivationEmail, {
+        email: args.email,
+        name: args.name,
+        tempPassword,
+        activationToken,
+      })
+    } catch (emailError) {
+      console.warn("Failed to schedule activation email:", emailError)
+      // Don't fail the user creation if email scheduling fails
+    }
 
     return {
       userId,

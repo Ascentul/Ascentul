@@ -46,7 +46,7 @@ Copy `.env.example` to `.env.local` and configure:
 **Optional:**
 - `OPENAI_API_KEY` (AI features)
 - `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` (payments)
-- `SENDGRID_API_KEY`, `MAILGUN_API_KEY` (email)
+- `SENDGRID_API_KEY`, `MAILGUN_SENDING_API_KEY` (email)
 
 ⚠️ **Do not add Supabase variables** - project has migrated to Clerk + Convex.
 

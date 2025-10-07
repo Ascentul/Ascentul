@@ -49,6 +49,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   User as UserIcon,
   Upload,
@@ -100,7 +101,7 @@ export default function UniversityStudentsPage() {
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   ) as any[] | undefined;
 
-  const updateUserMutation = useMutation(api.users.updateUser);
+  const updateUserByIdMutation = useMutation(api.users.updateUserById);
   const assignStudentMutation = useMutation(api.university_admin.assignStudentByEmail);
   const createUserMutation = useMutation(api.admin_users.createUserByAdmin);
   const deleteUserMutation = useMutation(api.users.deleteUser);
@@ -333,8 +334,8 @@ export default function UniversityStudentsPage() {
 
     setEditingStatus(true);
     try {
-      await updateUserMutation({
-        clerkId: selectedStudent.clerkId,
+      await updateUserByIdMutation({
+        id: selectedStudent._id,
         updates: {
           account_status: newStatus as "active" | "suspended" | "pending_activation",
         },
@@ -360,10 +361,21 @@ export default function UniversityStudentsPage() {
 
     setEditingDepartment(true);
     try {
-      await updateUserMutation({
-        clerkId: selectedStudent.clerkId,
+      // Validate department ID if not "none"
+      let departmentIdToSet: string | undefined = undefined;
+      if (newDepartmentId !== "none") {
+        // Check if the department exists
+        const selectedDept = departments?.find((dept: any) => dept._id === newDepartmentId);
+        if (!selectedDept) {
+          throw new Error("Selected department does not exist");
+        }
+        departmentIdToSet = newDepartmentId;
+      }
+
+      await updateUserByIdMutation({
+        id: selectedStudent._id,
         updates: {
-          department_id: newDepartmentId === "none" ? undefined : (newDepartmentId as any),
+          department_id: departmentIdToSet as any,
         },
       });
       toast({
@@ -372,6 +384,7 @@ export default function UniversityStudentsPage() {
       });
       setStudentDetailsOpen(false);
     } catch (error: any) {
+      console.error("Department update error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to update department",
@@ -595,65 +608,74 @@ export default function UniversityStudentsPage() {
             </div>
           ) : (
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+               <TableHeader>
+                 <TableRow>
+                   <TableHead>Profile</TableHead>
+                   <TableHead>Name</TableHead>
+                   <TableHead>Email</TableHead>
+                   <TableHead>Department</TableHead>
+                   <TableHead>Role</TableHead>
+                   <TableHead>Status</TableHead>
+                   <TableHead>Created</TableHead>
+                   <TableHead>Actions</TableHead>
+                 </TableRow>
+               </TableHeader>
               <TableBody>
-                {students.map((s: any) => (
-                  <TableRow
-                    key={String(s._id)}
-                    className="cursor-pointer hover:bg-gray-50"
-                    onClick={() => handleStudentDetails(s)}
-                  >
-                    <TableCell className="font-medium">{s.name}</TableCell>
-                    <TableCell>{s.email}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {s.department_id
-                        ? departments?.find((d: any) => d._id === s.department_id)?.name || "Unknown"
-                        : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {s.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(s.account_status)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(s.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewProfile(s.clerkId)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Career Profile
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleStudentDetails(s)}>
-                            <Building2 className="h-4 w-4 mr-2" />
-                            Add to Department
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleStudentDetails(s)}>
-                            <UserX className="h-4 w-4 mr-2" />
-                            Change Account Status
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                 {students.map((s: any) => (
+                   <TableRow
+                     key={String(s._id)}
+                     className="cursor-pointer hover:bg-gray-50"
+                     onClick={() => handleStudentDetails(s)}
+                   >
+                     <TableCell>
+                       <Avatar className="h-8 w-8">
+                         <AvatarImage src={s.profile_image} alt={s.name} />
+                         <AvatarFallback className="text-xs">
+                           {s.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U'}
+                         </AvatarFallback>
+                       </Avatar>
+                     </TableCell>
+                     <TableCell className="font-medium">{s.name}</TableCell>
+                     <TableCell>{s.email}</TableCell>
+                     <TableCell className="text-sm text-muted-foreground">
+                       {s.department_id
+                         ? departments?.find((d: any) => d._id === s.department_id)?.name || "Unknown"
+                         : "—"}
+                     </TableCell>
+                     <TableCell>
+                       <Badge variant="outline" className="capitalize">
+                         {s.role}
+                       </Badge>
+                     </TableCell>
+                     <TableCell>{getStatusBadge(s.account_status)}</TableCell>
+                     <TableCell className="text-sm text-muted-foreground">
+                       {new Date(s.created_at).toLocaleDateString()}
+                     </TableCell>
+                     <TableCell onClick={(e) => e.stopPropagation()}>
+                       <DropdownMenu>
+                         <DropdownMenuTrigger asChild>
+                           <Button variant="ghost" size="sm">
+                             <MoreVertical className="h-4 w-4" />
+                           </Button>
+                         </DropdownMenuTrigger>
+                         <DropdownMenuContent align="end">
+                           <DropdownMenuItem onClick={() => handleViewProfile(s.clerkId)}>
+                             <Eye className="h-4 w-4 mr-2" />
+                             View Career Profile
+                           </DropdownMenuItem>
+                           <DropdownMenuItem onClick={() => handleStudentDetails(s)}>
+                             <Building2 className="h-4 w-4 mr-2" />
+                             Add to Department
+                           </DropdownMenuItem>
+                           <DropdownMenuItem onClick={() => handleStudentDetails(s)}>
+                             <UserX className="h-4 w-4 mr-2" />
+                             Change Account Status
+                           </DropdownMenuItem>
+                         </DropdownMenuContent>
+                       </DropdownMenu>
+                     </TableCell>
+                   </TableRow>
+                 ))}
               </TableBody>
             </Table>
           )}

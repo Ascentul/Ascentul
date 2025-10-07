@@ -301,6 +301,15 @@ export const updateUserById = mutation({
         ),
       ),
       university_id: v.optional(v.id("universities")),
+      department_id: v.optional(v.id("departments")),
+      account_status: v.optional(
+        v.union(
+          v.literal("active"),
+          v.literal("suspended"),
+          v.literal("pending_activation"),
+        ),
+      ),
+      university_admin_notes: v.optional(v.string()),
       stripe_customer_id: v.optional(v.string()),
       stripe_subscription_id: v.optional(v.string()),
     }),

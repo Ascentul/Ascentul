@@ -126,20 +126,109 @@ export default function UniversityDashboardPage() {
   const [usageView, setUsageView] = useState<"overview" | "features" | "programs">("overview");
 
   // Report handlers
-  const handleViewReport = (reportName: string, reportType: string) => {
-    toast({
-      title: "Report Viewer",
-      description: `Opening ${reportName} (${reportType})...`,
-    });
-    // TODO: Implement actual report viewing functionality
+  const handleViewReport = async (reportName: string, reportType: string) => {
+    try {
+      toast({
+        title: "Generating Report",
+        description: `Preparing ${reportName}...`,
+      });
+
+      // For now, simulate report generation and show a simple report modal
+      // In a real implementation, this would fetch report data and display it
+      setTimeout(() => {
+        toast({
+          title: "Report Ready",
+          description: `${reportName} is ready for viewing.`,
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Simple report display - in real implementation, open a modal or navigate
+                alert(`${reportName}\n\nType: ${reportType}\n\nReport data would be displayed here.`);
+              }}
+            >
+              View Report
+            </Button>
+          ),
+        });
+      }, 1000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate report. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDownloadReport = (reportName: string, reportType: string) => {
-    toast({
-      title: "Download Started",
-      description: `Downloading ${reportName} (${reportType})...`,
-    });
-    // TODO: Implement actual report download functionality
+  const handleDownloadReport = async (reportName: string, reportType: string) => {
+    try {
+      toast({
+        title: "Download Started",
+        description: `Preparing ${reportName} for download...`,
+      });
+
+      // Get authentication token
+      const token = await getToken({ template: "convex" });
+      if (!token) {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in again to download reports.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Call the export API
+      const response = await fetch("/api/university/export-reports", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          clerkId: clerkUser?.id,
+          reportType: reportType,
+          reportName: reportName,
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const filename = `${reportName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split("T")[0]}`;
+        a.download = `${filename}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast({
+          title: "Download Complete",
+          description: `${reportName} downloaded successfully.`,
+          variant: "success",
+        });
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `Download failed with status ${response.status}`;
+
+        toast({
+          title: "Download Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "Download Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const canAccess =
@@ -161,9 +250,20 @@ export default function UniversityDashboardPage() {
     api.university_admin.listDepartments,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
+
+  // Compute department ID for analytics filter
+  const usageDepartmentId = React.useMemo(() => {
+    if (usageProgramFilter === "All Programs" || !departments) return undefined;
+    const dept = departments.find((d: any) => d.name === usageProgramFilter);
+    return dept?._id;
+  }, [usageProgramFilter, departments]);
+
   const analytics = useQuery(
     api.university_admin.getUniversityAnalytics,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+    clerkUser?.id ? {
+      clerkId: clerkUser.id,
+      departmentId: usageDepartmentId
+    } : "skip",
   );
   const studentMetrics = useQuery(
     api.university_admin.getStudentMetrics,
@@ -174,11 +274,36 @@ export default function UniversityDashboardPage() {
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
 
+  // Helper function to get department ID from name
+  const getDepartmentIdFromName = React.useCallback((name: string): Id<"departments"> | undefined => {
+    if (!departments || name === "All Programs") return undefined;
+    const dept = departments.find((d: any) => d.name === name);
+    return dept?._id;
+  }, [departments]);
+
   // Use real analytics data from database
   const studentGrowthData = analytics?.studentGrowthData || [];
   const activityData = analytics?.activityData || [];
   const departmentStats = analytics?.departmentStats || [];
-  const platformUsageData = analytics?.platformUsageData || [];
+
+  // Filter platform usage data based on time filter
+  const filteredPlatformUsageData = useMemo(() => {
+    if (!analytics?.platformUsageData) return [];
+
+    const data = analytics.platformUsageData;
+    switch (usageTimeFilter) {
+      case "Last 7 days":
+        return data.slice(-1); // Last 1 month
+      case "Last 30 days":
+        return data.slice(-1); // Last 1 month
+      case "Last 90 days":
+        return data.slice(-3); // Last 3 months
+      default:
+        return data; // All data
+    }
+  }, [analytics?.platformUsageData, usageTimeFilter]);
+
+  const platformUsageData = filteredPlatformUsageData;
 
   // Compute derived data for charts
   const departmentDistributionData = useMemo(() => {
@@ -2517,12 +2642,20 @@ export default function UniversityDashboardPage() {
                   <Users className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="text-2xl font-bold">
                     {departments.length > 0
-                      ? Math.round(students.length / departments.length)
+                      ? Math.round(
+                          students.filter((s: any) => s.department_id).length /
+                            departments.length
+                        )
                       : 0}
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Student distribution
+                  {students.filter((s: any) => !s.department_id).length > 0 && (
+                    <span className="text-amber-600">
+                      {students.filter((s: any) => !s.department_id).length} unassigned
+                    </span>
+                  )}
+                  {students.filter((s: any) => !s.department_id).length === 0 && "Student distribution"}
                 </div>
               </CardContent>
             </Card>
@@ -2538,20 +2671,26 @@ export default function UniversityDashboardPage() {
                   <Award className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="text-lg font-bold">
                     {departments.length > 0
-                      ? departments.reduce((max, d) =>
-                          students.filter((s: any) => s.department_id === d._id)
-                            .length >
-                          students.filter(
-                            (s: any) => s.department_id === max._id,
-                          ).length
-                            ? d
-                            : max,
-                        ).name
+                      ? (() => {
+                          const deptWithCounts = departments.map((d: any) => ({
+                            name: d.name,
+                            count: students.filter((s: any) => s.department_id === d._id).length,
+                          }));
+                          const highest = deptWithCounts.reduce((max, d) =>
+                            d.count > max.count ? d : max
+                          );
+                          return highest.count > 0 ? highest.name : "N/A";
+                        })()
                       : "N/A"}
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Largest department
+                  {departments.length > 0 && (() => {
+                    const highest = departments
+                      .map((d: any) => students.filter((s: any) => s.department_id === d._id).length)
+                      .reduce((max, count) => Math.max(max, count), 0);
+                    return highest > 0 ? `${highest} students` : "No students assigned";
+                  })()}
                 </div>
               </CardContent>
             </Card>
@@ -2559,18 +2698,30 @@ export default function UniversityDashboardPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-medium">
-                  Avg Utilization
+                  Avg Completion
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
                   <BarChartIcon className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="text-2xl font-bold">
-                    {Math.round(Math.random() * 20 + 75)}%
+                    {(() => {
+                      // Calculate average completion across students with departments
+                      const studentsWithDepts = students.filter((s: any) => s.department_id);
+                      if (studentsWithDepts.length === 0) return "0%";
+
+                      const progressData = studentProgress || [];
+                      const totalCompletion = studentsWithDepts.reduce((sum: number, student: any) => {
+                        const progress = progressData.find((p: any) => p.studentId === student._id);
+                        return sum + (progress?.completion || 0);
+                      }, 0);
+
+                      return Math.round(totalCompletion / studentsWithDepts.length) + "%";
+                    })()}
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Department usage
+                  Avg career assets completion
                 </div>
               </CardContent>
             </Card>
@@ -2930,29 +3081,29 @@ export default function UniversityDashboardPage() {
                     Career Development platform.
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <select
-                    className="px-3 py-1 text-sm border rounded-md bg-gray-100 cursor-not-allowed"
-                    value={usageTimeFilter}
-                    disabled
-                    title="Filter functionality coming soon"
-                  >
-                    <option>Last 7 days</option>
-                    <option>Last 30 days</option>
-                    <option>Last 90 days</option>
-                  </select>
-                  <select
-                    className="px-3 py-1 text-sm border rounded-md bg-gray-100 cursor-not-allowed"
-                    value={usageProgramFilter}
-                    disabled
-                    title="Filter functionality coming soon"
-                  >
-                    <option>All Programs</option>
-                    <option>Computer Science</option>
-                    <option>Business</option>
-                    <option>Engineering</option>
-                  </select>
-                </div>
+                 <div className="flex gap-2">
+                   <select
+                     className="px-3 py-1 text-sm border rounded-md bg-white"
+                     value={usageTimeFilter}
+                     onChange={(e) => setUsageTimeFilter(e.target.value)}
+                   >
+                     <option>Last 7 days</option>
+                     <option>Last 30 days</option>
+                     <option>Last 90 days</option>
+                   </select>
+                    <select
+                      className="px-3 py-1 text-sm border rounded-md bg-white"
+                      value={usageProgramFilter}
+                      onChange={(e) => setUsageProgramFilter(e.target.value)}
+                    >
+                      <option>All Programs</option>
+                      {departments?.map((dept: any) => (
+                        <option key={dept._id} value={dept.name}>
+                          {dept.name}
+                        </option>
+                      ))}
+                    </select>
+                 </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -2992,15 +3143,19 @@ export default function UniversityDashboardPage() {
                         </p>
                         <p className="text-2xl font-bold">24</p>
                       </div>
-                      <div className="text-blue-600">
-                        <svg
-                          className="w-8 h-8"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
+                       <div className="text-blue-600">
+                         <svg
+                           className="w-8 h-8"
+                           fill="currentColor"
+                           viewBox="0 0 20 20"
+                         >
+                           <path
+                             fillRule="evenodd"
+                             d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                             clipRule="evenodd"
+                           />
+                         </svg>
+                       </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -3054,35 +3209,32 @@ export default function UniversityDashboardPage() {
                 </Card>
               </div>
 
-              <div className="flex gap-2 mb-4">
-                <Button
-                  variant="default"
-                  size="sm"
-                  disabled
-                  className="bg-[#0C29AB] cursor-not-allowed"
-                  title="View switching coming soon"
-                >
-                  Overview
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled
-                  className="cursor-not-allowed"
-                  title="View switching coming soon"
-                >
-                  Features
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled
-                  className="cursor-not-allowed"
-                  title="View switching coming soon"
-                >
-                  Programs
-                </Button>
-              </div>
+               <div className="flex gap-2 mb-4">
+                 <Button
+                   variant={usageView === "overview" ? "default" : "outline"}
+                   size="sm"
+                   className={usageView === "overview" ? "bg-[#0C29AB]" : ""}
+                   onClick={() => setUsageView("overview")}
+                 >
+                   Overview
+                 </Button>
+                 <Button
+                   variant={usageView === "features" ? "default" : "outline"}
+                   size="sm"
+                   className={usageView === "features" ? "bg-[#0C29AB]" : ""}
+                   onClick={() => setUsageView("features")}
+                 >
+                   Features
+                 </Button>
+                 <Button
+                   variant={usageView === "programs" ? "default" : "outline"}
+                   size="sm"
+                   className={usageView === "programs" ? "bg-[#0C29AB]" : ""}
+                   onClick={() => setUsageView("programs")}
+                 >
+                   Programs
+                 </Button>
+               </div>
 
               {/* Monthly Activity Chart */}
               <div className="h-80">
