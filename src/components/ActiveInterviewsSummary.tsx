@@ -170,7 +170,7 @@ export function ActiveInterviewsSummary() {
   const upcomingCount = useMemo(
     () =>
       stageItems.filter(
-        (item) => item.scheduledAt && item.scheduledAt > Date.now()
+        (item) => item.type === 'interview' && item.scheduledAt && item.scheduledAt > Date.now()
       ).length,
     [stageItems]
   )

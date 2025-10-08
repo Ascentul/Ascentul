@@ -93,7 +93,7 @@ const normalizeString = (value?: string | null) => {
   return trimmed.length ? trimmed : undefined
 }
 
-const hasEducationContent = (entry: ReturnType<typeof createEmptyEducationEntry>) =>
+const hasEducationContent = (entry: z.infer<typeof educationEntrySchema>) =>
   !!(
     normalizeString(entry.school) ||
     normalizeString(entry.degree) ||
@@ -103,7 +103,7 @@ const hasEducationContent = (entry: ReturnType<typeof createEmptyEducationEntry>
     normalizeString(entry.description)
   )
 
-const hasWorkContent = (entry: ReturnType<typeof createEmptyWorkEntry>) =>
+const hasWorkContent = (entry: z.infer<typeof workEntrySchema>) =>
   !!(
     normalizeString(entry.role) ||
     normalizeString(entry.company) ||
