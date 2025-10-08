@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -51,8 +51,8 @@ export default function ResumesPage() {
   const [extractedText, setExtractedText] = useState('')
 
   // Import resume state (for My Resumes tab)
-  const [importFile, setImportFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
+  const importFileInputRef = useRef<HTMLInputElement>(null)
 
   const resumes = useQuery(
     api.resumes.getUserResumes,
@@ -68,22 +68,9 @@ export default function ResumesPage() {
     return (resumes ?? []).slice().sort((a, b) => b.updated_at - a.updated_at)
   }, [resumes])
 
-  const createResume = async () => {
+  const createResume = () => {
     if (!clerkId) return
-    setCreating(true)
-    try {
-      const id = await createResumeMutation({
-        clerkId,
-        title: 'Untitled Resume',
-        content: {},
-        visibility: 'private',
-        source: 'manual',
-      })
-      // Navigate straight to the editor
-      router.push(`/resumes/${id}`)
-    } finally {
-      setCreating(false)
-    }
+    router.push('/resumes/new')
   }
 
   const getUserProfile = () => {
@@ -229,8 +216,10 @@ export default function ResumesPage() {
     router.push('/account')
   }
 
-  const importResume = async () => {
-    if (!importFile || !clerkId) return
+  const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !clerkId) return
+
     setImporting(true)
 
     try {
@@ -241,7 +230,7 @@ export default function ResumesPage() {
 
       // Extract text from PDF
       const formData = new FormData()
-      formData.append('file', importFile)
+      formData.append('file', file)
 
       const extractResponse = await fetch('/api/resumes/extract', {
         method: 'POST',
@@ -266,7 +255,7 @@ export default function ResumesPage() {
       // Create resume with extracted text
       const id = await createResumeMutation({
         clerkId,
-        title: `Imported Resume - ${importFile.name.replace('.pdf', '')}`,
+        title: `Imported Resume - ${file.name.replace('.pdf', '')}`,
         content: { extractedText: text },
         visibility: 'private',
         source: 'pdf_upload',
@@ -279,8 +268,10 @@ export default function ResumesPage() {
         variant: 'success',
       })
 
-      // Reset state
-      setImportFile(null)
+      // Reset file input
+      if (importFileInputRef.current) {
+        importFileInputRef.current.value = ''
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -290,6 +281,10 @@ export default function ResumesPage() {
     } finally {
       setImporting(false)
     }
+  }
+
+  const handleImportClick = () => {
+    importFileInputRef.current?.click()
   }
 
   const analyzeResume = async () => {
@@ -691,11 +686,20 @@ export default function ResumesPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Your Resumes</h2>
             <div className="flex gap-2">
-              <Button onClick={createResume} disabled={creating || !clerkId}>
-                {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />} New Resume
+              <Button onClick={createResume} disabled={!clerkId}>
+                <Plus className="h-4 w-4 mr-2" /> New Resume
               </Button>
             </div>
           </div>
+
+          {/* Hidden file input for import */}
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept=".pdf"
+            onChange={handleImportFileChange}
+            className="hidden"
+          />
 
           {/* Import Resume Section */}
           <Card className="mb-4 bg-blue-50 border-blue-200">
@@ -706,28 +710,20 @@ export default function ResumesPage() {
                   <h3 className="font-medium text-sm mb-1">Import Existing Resume</h3>
                   <p className="text-xs text-muted-foreground">Upload a PDF resume to scan and save it to your library</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="file"
-                    accept=".pdf"
-                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                    className="w-48"
-                  />
-                  <Button
-                    onClick={importResume}
-                    disabled={!importFile || importing}
-                    size="sm"
-                  >
-                    {importing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Importing...
-                      </>
-                    ) : (
-                      'Import'
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleImportClick}
+                  disabled={importing}
+                >
+                  {importing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Importing...
+                    </>
+                  ) : (
+                    'Import'
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -743,24 +739,24 @@ export default function ResumesPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">Create your first resume to get started.</p>
-                <Button onClick={createResume} disabled={creating || !clerkId}>
-                  {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />} New Resume
+                <Button onClick={createResume} disabled={!clerkId}>
+                  <Plus className="h-4 w-4 mr-2" /> New Resume
                 </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5">
               {sorted!.map((r) => {
                 const getSourceBadge = () => {
                   switch (r.source) {
                     case 'ai_generated':
-                      return <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">AI Generated</span>
+                      return <span className="text-[11px] bg-purple-100 text-purple-700 px-2 py-1 rounded-full">AI Generated</span>
                     case 'ai_optimized':
-                      return <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">AI Optimized</span>
+                      return <span className="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full">AI Optimized</span>
                     case 'pdf_upload':
-                      return <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">PDF Upload</span>
+                      return <span className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-full">PDF Upload</span>
                     case 'manual':
-                      return <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">Manual</span>
+                      return <span className="text-[11px] bg-gray-100 text-gray-700 px-2 py-1 rounded-full">Manual</span>
                     default:
                       return null
                   }
@@ -769,73 +765,93 @@ export default function ResumesPage() {
                 return (
                   <Card
                     key={r._id}
-                    className="hover:shadow-lg transition-all cursor-pointer group"
+                    className="group relative overflow-hidden border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-2xl"
                     onClick={() => setPreviewResume(r)}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                          <FileText className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold truncate">{r.title}</h3>
-                            {getSourceBadge()}
+                    <CardContent className="p-0 h-full flex flex-col">
+                      <div className="flex-1 space-y-4 px-5 pt-5 pb-4 bg-gradient-to-br from-blue-50/80 via-white to-white">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-blue-100 text-blue-600 shadow-sm group-hover:bg-blue-200 transition-colors">
+                              <FileText className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-sm text-slate-900 truncate">
+                                {r.title || 'Untitled Resume'}
+                              </h3>
+                              <p className="text-xs text-muted-foreground truncate">
+                                Last updated {new Date(r.updated_at).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            Updated {new Date(r.updated_at).toLocaleDateString()}
-                          </div>
+                          {getSourceBadge()}
                         </div>
-                      </div>
 
-                      {/* Inline preview button for discoverability */}
-                      <div className="mt-2">
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-white/60 px-4 py-2 text-xs text-slate-500">
+                          <p>
+                            Created {new Date(r.created_at).toLocaleDateString()}
+                          </p>
+                          <p className="mt-0.5">
+                            Visibility: <span className="font-medium capitalize">{r.visibility}</span>
+                          </p>
+                        </div>
+
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={(e) => { e.stopPropagation(); setPreviewResume(r) }}
-                          className="px-3"
+                          className="justify-center gap-2 text-sm w-full"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setPreviewResume(r)
+                          }}
                         >
+                          <Eye className="h-3.5 w-3.5" />
                           Preview
                         </Button>
                       </div>
 
-                      <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                      <div
+                        className="flex items-center justify-between gap-3 px-5 py-3 border-t bg-white/90 rounded-b-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Button
                           size="sm"
                           variant="outline"
+                          className="gap-2 px-3 text-sm"
                           onClick={() => router.push(`/resumes/${r._id}`)}
-                          title="Edit"
-                          aria-label="Edit"
                         >
-                          <Edit className="h-3 w-3" />
+                          <Edit className="h-3.5 w-3.5" />
+                          Edit
                         </Button>
                         <Button
-                          size="sm"
-                          variant="outline"
+                          size="icon"
+                          variant="ghost"
+                          className="text-slate-500 hover:text-slate-900"
                           onClick={() => duplicateResume(r._id, r.title)}
-                          title="Copy"
-                          aria-label="Copy"
+                          title="Duplicate"
+                          aria-label="Duplicate"
                         >
-                          <Copy className="h-3 w-3" />
+                          <Copy className="h-4 w-4" />
                         </Button>
                         <Button
-                          size="sm"
-                          variant="outline"
+                          size="icon"
+                          variant="ghost"
+                          className="text-slate-500 hover:text-slate-900"
                           onClick={() => exportResumePDF(r)}
-                          title="Export PDF"
-                          aria-label="Export PDF"
+                          title="Export as PDF"
+                          aria-label="Export as PDF"
                         >
-                          <Download className="h-3 w-3" />
+                          <Download className="h-4 w-4" />
                         </Button>
                         <Button
-                          size="sm"
-                          variant="outline"
+                          size="icon"
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-600"
                           onClick={() => deleteResume(r._id)}
                           title="Delete"
                           aria-label="Delete"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </CardContent>
@@ -985,7 +1001,7 @@ export default function ResumesPage() {
                   onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
                 />
                 {uploadedFile && (
-                  <p className="text-sm text-muted-foreground mt-2">Selected: {uploadedFile.name}</p>
+                  <p className="text-sm text-muted-foreground mt-2 truncate">Selected: {uploadedFile.name}</p>
                 )}
               </div>
               <div>
@@ -1019,10 +1035,10 @@ export default function ResumesPage() {
           </Card>
 
           {/* Right: Analysis Results Panel */}
-          <Card className="border-2 border-green-200 min-h-[420px]">
+          <Card className="border-2 min-h-[420px]" style={{ borderColor: '#5270ff' }}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-green-600" />
+                <AlertCircle className="h-5 w-5" style={{ color: '#5270ff' }} />
                 AI Analysis Results
               </CardTitle>
             </CardHeader>
@@ -1052,12 +1068,29 @@ export default function ResumesPage() {
                     )}
                   </div>
 
+                  {Array.isArray(analysisResult.strengthHighlights) && analysisResult.strengthHighlights.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <span className="text-green-600">✓</span> Strength Highlights
+                      </h4>
+                      <ul className="space-y-2">
+                        {analysisResult.strengthHighlights.map((highlight: string, i: number) => (
+                          <li key={i} className="text-sm text-gray-700 bg-green-50 px-3 py-2 rounded-lg border border-green-100">
+                            {highlight}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {Array.isArray(analysisResult.strengths) && analysisResult.strengths.length > 0 && (
                     <div>
-                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2"><span className="text-green-600">✓</span> Strengths</h4>
+                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <span className="text-blue-600">#</span> Matching Keywords
+                      </h4>
                       <div className="flex flex-wrap gap-2">
                         {analysisResult.strengths.map((s: string, i: number) => (
-                          <span key={i} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">{s}</span>
+                          <span key={i} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs">{s}</span>
                         ))}
                       </div>
                     </div>
@@ -1088,15 +1121,12 @@ export default function ResumesPage() {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      You can save this resume with analysis results or create an AI-optimized version addressing the gaps.
+                      Create an AI-optimized resume that addresses the gaps identified in the analysis.
                     </AlertDescription>
                   </Alert>
 
                   <div className="flex gap-3">
-                    <Button onClick={saveAnalyzedResume} disabled={creating} className="flex-1">
-                      {creating ? (<><Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving...</>) : ('Save Resume')}
-                    </Button>
-                    <Button variant="outline" onClick={optimizeAnalyzedResume} disabled={creating} className="flex-1">
+                    <Button onClick={optimizeAnalyzedResume} disabled={creating} className="w-full">
                       {creating ? (<><Loader2 className="h-4 w-4 animate-spin mr-2" /> Optimizing...</>) : ('Optimize Resume')}
                     </Button>
                   </div>

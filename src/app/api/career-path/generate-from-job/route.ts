@@ -87,7 +87,15 @@ export async function POST(request: NextRequest) {
       try { client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) } catch { client = null }
     }
     if (client) {
-      const prompt = `Create a single structured JSON career path for the target job title "${jobTitle}".
+      const prompt = `You are a career path analyst specializing in mapping realistic career progressions across industries.
+Given the target role "${jobTitle}", output a clear, data-backed career path that shows which roles typically lead to that target role, including titles that represent logical, real-world progressions rather than simple seniority prefixes.
+
+Follow these rules:
+1. Identify 3-5 distinct stages that reflect the natural professional evolution toward the target role.
+2. Include title, salary range, years of experience, and growth outlook (high / medium / low) for each stage.
+3. Each stage should be a different role, not just "Junior/Mid/Senior" of the same title.
+4. Prioritize accuracy for common industries.
+
 Return JSON with the following TypeScript shape without extra commentary:
 {
   paths: [
@@ -96,7 +104,7 @@ Return JSON with the following TypeScript shape without extra commentary:
       name: string,
       nodes: Array<{
         id: string,
-        title: string,
+        title: string, // Use realistic, distinct job titles for each stage
         level: 'entry' | 'mid' | 'senior' | 'lead' | 'executive',
         salaryRange: string,
         yearsExperience: string,

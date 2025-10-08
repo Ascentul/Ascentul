@@ -1,5 +1,14 @@
-import { PenSquare, Clock, CalendarClock, ThumbsUp, X } from 'lucide-react'
+'use client'
+
+import { useState } from 'react'
+import { PenSquare, Clock, CalendarClock, ThumbsUp, X, ChevronDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
 export type ApplicationStatusLabel =
@@ -15,6 +24,8 @@ interface ApplicationStatusBadgeProps {
   size?: 'sm' | 'default'
   className?: string
   showIcon?: boolean
+  onStatusChange?: (status: ApplicationStatusLabel) => void
+  clickable?: boolean
 }
 
 const statusConfig: Record<string, { color: string; icon: React.ReactNode; label?: string }> = {
@@ -48,15 +59,72 @@ const statusConfig: Record<string, { color: string; icon: React.ReactNode; label
   },
 }
 
-export function ApplicationStatusBadge({ status, size = 'default', className, showIcon = true }: ApplicationStatusBadgeProps) {
+const allStatuses: ApplicationStatusLabel[] = [
+  'In Progress',
+  'Applied',
+  'Interviewing',
+  'Offer',
+  'Rejected',
+]
+
+export function ApplicationStatusBadge({
+  status,
+  size = 'default',
+  className,
+  showIcon = true,
+  onStatusChange,
+  clickable = false
+}: ApplicationStatusBadgeProps) {
   const config = statusConfig[status] || statusConfig.default
+
+  if (!onStatusChange && !clickable) {
+    return (
+      <Badge
+        variant="outline"
+        className={cn(
+          config.color,
+          size === 'sm' ? 'text-xs py-0 px-1.5' : '',
+          'flex items-center',
+          className
+        )}
+      >
+        {showIcon && config.icon}
+        <span>{config.label || status}</span>
+      </Badge>
+    )
+  }
+
   return (
-    <Badge
-      variant="outline"
-      className={cn(config.color, size === 'sm' ? 'text-xs py-0 px-1.5' : '', 'flex items-center', className)}
-    >
-      {showIcon && config.icon}
-      <span>{config.label || status}</span>
-    </Badge>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={cn(
+            'inline-flex items-center gap-1 rounded-md border px-2.5 py-0.5 font-semibold transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+            config.color,
+            size === 'sm' ? 'text-xs py-0 px-1.5' : 'text-xs',
+            className
+          )}
+        >
+          {showIcon && config.icon}
+          <span>{config.label || status}</span>
+          <ChevronDown className="h-3 w-3" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {allStatuses.map((statusOption) => {
+          const optionConfig = statusConfig[statusOption]
+          return (
+            <DropdownMenuItem
+              key={statusOption}
+              onClick={() => onStatusChange?.(statusOption)}
+              className="flex items-center gap-2"
+            >
+              {showIcon && optionConfig.icon}
+              <span>{statusOption}</span>
+            </DropdownMenuItem>
+          )
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

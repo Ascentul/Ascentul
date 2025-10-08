@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useToast } from '@/hooks/use-toast'
-import { useForm } from 'react-hook-form'
+import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { v4 as uuid } from 'uuid'
 
 // Import UI components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -19,11 +20,35 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
 import {
-  User, Briefcase, MapPin, Calendar, Edit, CheckCircle2, Loader2, Settings, GraduationCap
+  User, Briefcase, Calendar, Edit, CheckCircle2, Loader2, GraduationCap, Plus, Trash2, Linkedin
 } from 'lucide-react'
 
 // Career profile form schema
+const educationEntrySchema = z.object({
+  id: z.string(),
+  school: z.string().optional(),
+  degree: z.string().optional(),
+  fieldOfStudy: z.string().optional(),
+  startYear: z.string().optional(),
+  endYear: z.string().optional(),
+  isCurrent: z.boolean().optional(),
+  description: z.string().optional(),
+})
+
+const workEntrySchema = z.object({
+  id: z.string(),
+  role: z.string().optional(),
+  company: z.string().optional(),
+  location: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  isCurrent: z.boolean().optional(),
+  summary: z.string().optional(),
+})
+
 const careerProfileFormSchema = z.object({
   currentPosition: z.string().optional(),
   currentCompany: z.string().optional(),
@@ -31,11 +56,62 @@ const careerProfileFormSchema = z.object({
   industry: z.string().optional(),
   experienceLevel: z.enum(['entry', 'mid', 'senior', 'executive']).optional(),
   bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
+  linkedinUrl: z.string().url("Enter a valid URL").optional().or(z.literal("")),
   skills: z.string().optional(),
+  education: z.array(educationEntrySchema),
+  workHistory: z.array(workEntrySchema),
   careerGoals: z.string().max(300, "Career goals must be less than 300 characters").optional(),
 })
 
 type CareerProfileFormValues = z.infer<typeof careerProfileFormSchema>
+
+const createEmptyEducationEntry = () => ({
+  id: uuid(),
+  school: '',
+  degree: '',
+  fieldOfStudy: '',
+  startYear: '',
+  endYear: '',
+  isCurrent: false,
+  description: '',
+})
+
+const createEmptyWorkEntry = () => ({
+  id: uuid(),
+  role: '',
+  company: '',
+  location: '',
+  startDate: '',
+  endDate: '',
+  isCurrent: false,
+  summary: '',
+})
+
+const normalizeString = (value?: string | null) => {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  return trimmed.length ? trimmed : undefined
+}
+
+const hasEducationContent = (entry: ReturnType<typeof createEmptyEducationEntry>) =>
+  !!(
+    normalizeString(entry.school) ||
+    normalizeString(entry.degree) ||
+    normalizeString(entry.fieldOfStudy) ||
+    normalizeString(entry.startYear) ||
+    normalizeString(entry.endYear) ||
+    normalizeString(entry.description)
+  )
+
+const hasWorkContent = (entry: ReturnType<typeof createEmptyWorkEntry>) =>
+  !!(
+    normalizeString(entry.role) ||
+    normalizeString(entry.company) ||
+    normalizeString(entry.location) ||
+    normalizeString(entry.startDate) ||
+    normalizeString(entry.endDate) ||
+    normalizeString(entry.summary)
+  )
 
 export default function CareerProfilePage() {
   const { user: clerkUser } = useUser()
@@ -57,23 +133,74 @@ export default function CareerProfilePage() {
       industry: '',
       experienceLevel: 'mid',
       bio: '',
+      linkedinUrl: '',
       skills: '',
+      education: [createEmptyEducationEntry()],
+      workHistory: [createEmptyWorkEntry()],
       careerGoals: '',
     },
+  })
+
+  const educationFieldArray = useFieldArray({
+    control: careerProfileForm.control,
+    name: 'education',
+  })
+
+  const workHistoryFieldArray = useFieldArray({
+    control: careerProfileForm.control,
+    name: 'workHistory',
   })
 
   // Load user data into form when available
   useEffect(() => {
     if (userProfile) {
       const profile = userProfile as any
+      const educationEntries = Array.isArray(profile.education_history)
+        ? profile.education_history.map((item: any) => ({
+            id: item.id || uuid(),
+            school: item.school || '',
+            degree: item.degree || '',
+            fieldOfStudy: item.field_of_study || '',
+            startYear: item.start_year || '',
+            endYear: item.end_year || '',
+            isCurrent: !!item.is_current,
+            description: item.description || '',
+          }))
+        : []
+
+      const workEntries = Array.isArray(profile.work_history)
+        ? profile.work_history.map((item: any) => ({
+            id: item.id || uuid(),
+            role: item.role || '',
+            company: item.company || '',
+            location: item.location || '',
+            startDate: item.start_date || '',
+            endDate: item.end_date || '',
+            isCurrent: !!item.is_current,
+            summary: item.summary || '',
+          }))
+        : []
+
+      if (educationEntries.length === 0) {
+        educationEntries.push(createEmptyEducationEntry())
+      }
+
+      if (workEntries.length === 0) {
+        workEntries.push(createEmptyWorkEntry())
+      }
+
       careerProfileForm.reset({
         currentPosition: profile.current_position || '',
         currentCompany: profile.current_company || '',
         location: profile.location || '',
         industry: profile.industry || '',
-        experienceLevel: (profile.experience_level as 'entry' | 'mid' | 'senior' | 'executive') || 'mid',
+        experienceLevel:
+          (profile.experience_level as 'entry' | 'mid' | 'senior' | 'executive') || 'mid',
         bio: profile.bio || '',
+        linkedinUrl: profile.linkedin_url || '',
         skills: profile.skills || '',
+        education: educationEntries,
+        workHistory: workEntries,
         careerGoals: profile.career_goals || '',
       })
     }
@@ -84,17 +211,46 @@ export default function CareerProfilePage() {
     try {
       if (!clerkUser) throw new Error('No user found')
 
+      const educationUpdates = (data.education ?? [])
+        .filter((entry) => hasEducationContent(entry))
+        .map((entry) => ({
+          id: entry.id || uuid(),
+          school: normalizeString(entry.school),
+          degree: normalizeString(entry.degree),
+          field_of_study: normalizeString(entry.fieldOfStudy),
+          start_year: normalizeString(entry.startYear),
+          end_year: entry.isCurrent ? undefined : normalizeString(entry.endYear),
+          is_current: !!entry.isCurrent,
+          description: normalizeString(entry.description),
+        }))
+
+      const workUpdates = (data.workHistory ?? [])
+        .filter((entry) => hasWorkContent(entry))
+        .map((entry) => ({
+          id: entry.id || uuid(),
+          role: normalizeString(entry.role),
+          company: normalizeString(entry.company),
+          location: normalizeString(entry.location),
+          start_date: normalizeString(entry.startDate),
+          end_date: entry.isCurrent ? undefined : normalizeString(entry.endDate),
+          is_current: !!entry.isCurrent,
+          summary: normalizeString(entry.summary),
+        }))
+
       await updateUser({
         clerkId: clerkUser.id,
         updates: {
-          current_position: data.currentPosition,
-          current_company: data.currentCompany,
-          location: data.location,
-          industry: data.industry,
+          current_position: normalizeString(data.currentPosition),
+          current_company: normalizeString(data.currentCompany),
+          location: normalizeString(data.location),
+          industry: normalizeString(data.industry),
           experience_level: data.experienceLevel,
-          bio: data.bio,
-          skills: data.skills,
-          career_goals: data.careerGoals,
+          bio: normalizeString(data.bio) || undefined,
+          linkedin_url: normalizeString(data.linkedinUrl),
+          skills: normalizeString(data.skills),
+          education_history: educationUpdates.length > 0 ? educationUpdates : undefined,
+          work_history: workUpdates.length > 0 ? workUpdates : undefined,
+          career_goals: normalizeString(data.careerGoals),
         } as any,
       })
 
@@ -135,6 +291,13 @@ export default function CareerProfilePage() {
     )
   }
 
+  const educationHistory = Array.isArray((userProfile as any).education_history)
+    ? (userProfile as any).education_history
+    : []
+  const workHistory = Array.isArray((userProfile as any).work_history)
+    ? (userProfile as any).work_history
+    : []
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
@@ -174,15 +337,21 @@ export default function CareerProfilePage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium">Current Position</label>
-                  <p className="text-sm text-muted-foreground">{(userProfile as any).current_position || 'Not specified'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(userProfile as any).current_position || 'Not specified'}
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Current Company</label>
-                  <p className="text-sm text-muted-foreground">{(userProfile as any).current_company || 'Not specified'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(userProfile as any).current_company || 'Not specified'}
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Location</label>
-                  <p className="text-sm text-muted-foreground">{(userProfile as any).location || 'Not specified'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(userProfile as any).location || 'Not specified'}
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Experience Level</label>
@@ -190,6 +359,20 @@ export default function CareerProfilePage() {
                     {(userProfile as any).experience_level || 'Not specified'}
                   </Badge>
                 </div>
+                {(userProfile as any).linkedin_url && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium">LinkedIn</label>
+                    <a
+                      href={(userProfile as any).linkedin_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline break-all inline-flex items-center gap-1"
+                    >
+                      <Linkedin className="h-4 w-4" />
+                      {(userProfile as any).linkedin_url}
+                    </a>
+                  </div>
+                )}
               </div>
               <div className="flex justify-end">
                 <Button onClick={() => setIsEditingProfile(true)}>
@@ -227,15 +410,113 @@ export default function CareerProfilePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {(userProfile as any).skills}
-                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(userProfile as any).skills
+                    .split(',')
+                    .map((skill: string, idx: number) => (
+                      <Badge key={idx} variant="secondary">
+                        {skill.trim()}
+                      </Badge>
+                    ))}
+                </div>
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
         <TabsContent value="details" className="space-y-6">
+          {/* Education */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5" />
+                Education
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {educationHistory.length > 0 ? (
+                <div className="space-y-4">
+                  {educationHistory.map((entry: any, index: number) => {
+                    const hasTimeline = entry.start_year || entry.end_year
+                    const timeline = hasTimeline
+                      ? `${entry.start_year || 'Start'} – ${
+                          entry.is_current ? 'Present' : entry.end_year || 'End'
+                        }`
+                      : null
+                    return (
+                      <div
+                        key={entry.id || `${entry.school || 'education'}-${index}`}
+                        className="space-y-1 border-b pb-3 last:border-none last:pb-0"
+                      >
+                        <p className="font-medium">
+                          {entry.school || 'Education'}
+                        </p>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          {entry.degree && <p>{entry.degree}</p>}
+                          {entry.field_of_study && <p>{entry.field_of_study}</p>}
+                          {timeline && <p>{timeline}</p>}
+                          {entry.description && (
+                            <p className="text-sm leading-relaxed">{entry.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No education history added yet. Use the editor to document your studies or training.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Work History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5" />
+                Work History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {workHistory.length > 0 ? (
+                <div className="space-y-4">
+                  {workHistory.map((entry: any, index: number) => {
+                    const hasTimeline = entry.start_date || entry.end_date
+                    const timeline = hasTimeline
+                      ? `${entry.start_date || 'Start'} – ${
+                          entry.is_current ? 'Present' : entry.end_date || 'End'
+                        }`
+                      : null
+                    return (
+                      <div
+                        key={entry.id || `${entry.role || 'role'}-${index}`}
+                        className="space-y-1 border-b pb-3 last:border-none last:pb-0"
+                      >
+                        <p className="font-medium">
+                          {entry.role || 'Role'}
+                        </p>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          {entry.company && <p>{entry.company}</p>}
+                          {entry.location && <p>{entry.location}</p>}
+                          {timeline && <p>{timeline}</p>}
+                          {entry.summary && (
+                            <p className="text-sm leading-relaxed">{entry.summary}</p>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No work history recorded. Add roles, internships, or freelance projects to showcase your experience.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Career Goals */}
           {(userProfile as any).career_goals && (
             <Card>
@@ -302,150 +583,479 @@ export default function CareerProfilePage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...careerProfileForm}>
-            <form onSubmit={careerProfileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={careerProfileForm.control}
-                  name="currentPosition"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Current Position</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Software Engineer" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={careerProfileForm.control}
-                  name="currentCompany"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Current Company</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Acme Corp" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={careerProfileForm.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. San Francisco, CA" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={careerProfileForm.control}
-                  name="industry"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Industry</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Technology" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+            <form
+              onSubmit={careerProfileForm.handleSubmit(handleProfileUpdate)}
+              className="space-y-6"
+            >
+              <section className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Professional Overview</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Share your current role, headline details, and a short summary that introduces you.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={careerProfileForm.control}
+                    name="currentPosition"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Position</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Software Engineer" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={careerProfileForm.control}
+                    name="currentCompany"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Company</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Acme Corp" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={careerProfileForm.control}
+                    name="location"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Location</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. San Francisco, CA" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={careerProfileForm.control}
+                    name="industry"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Industry</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Technology" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <FormField
-                control={careerProfileForm.control}
-                name="experienceLevel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Experience Level</FormLabel>
-                    <FormControl>
-                      <select {...field} className="w-full px-3 py-2 text-sm border rounded-md">
-                        <option value="entry">Entry Level</option>
-                        <option value="mid">Mid Level</option>
-                        <option value="senior">Senior Level</option>
-                        <option value="executive">Executive Level</option>
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={careerProfileForm.control}
+                  name="experienceLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Experience Level</FormLabel>
+                      <FormControl>
+                        <select
+                          {...field}
+                          className="w-full px-3 py-2 text-sm border rounded-md"
+                        >
+                          <option value="entry">Entry Level</option>
+                          <option value="mid">Mid Level</option>
+                          <option value="senior">Senior Level</option>
+                          <option value="executive">Executive Level</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={careerProfileForm.control}
-                name="bio"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Professional Bio</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Tell us about your professional background and experience..."
-                        rows={4}
-                        {...field}
+                <FormField
+                  control={careerProfileForm.control}
+                  name="bio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Career Summary</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Tell us about your professional background and experience..."
+                          rows={4}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Brief professional summary (max 500 characters)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={careerProfileForm.control}
+                  name="linkedinUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>LinkedIn Profile</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="https://linkedin.com/in/yourprofile"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Paste the URL to your LinkedIn profile so advisors and employers can learn more.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={careerProfileForm.control}
+                  name="skills"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Skills & Expertise</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="List your key skills, technologies, and areas of expertise..."
+                          rows={3}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Separate skills with commas (e.g. JavaScript, SQL, stakeholder management)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={careerProfileForm.control}
+                  name="careerGoals"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Career Goals</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="What are your short-term and long-term career objectives?"
+                          rows={3}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Your career aspirations and goals (max 300 characters)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </section>
+
+              <Separator />
+
+              <section className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Education</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Capture your academic background, certifications, or training programs.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  {educationFieldArray.fields.map((field, index) => (
+                    <div key={field.id} className="space-y-4 rounded-lg border p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Education #{index + 1}</span>
+                        {educationFieldArray.fields.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => educationFieldArray.remove(index)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={careerProfileForm.control}
+                          name={`education.${index}.school` as const}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>School or Program</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. Stanford University" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={careerProfileForm.control}
+                          name={`education.${index}.degree` as const}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Degree / Credential</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. B.S. Computer Science" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={careerProfileForm.control}
+                          name={`education.${index}.fieldOfStudy` as const}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Focus Area</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. Artificial Intelligence" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={careerProfileForm.control}
+                            name={`education.${index}.startYear` as const}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Start Year</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g. 2022" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={careerProfileForm.control}
+                            name={`education.${index}.endYear` as const}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Completion Year</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g. 2026" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                      <FormField
+                        control={careerProfileForm.control}
+                        name={`education.${index}.description` as const}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Highlights</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Clubs, awards, or projects worth noting..."
+                                rows={3}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                    <FormDescription>
-                      Brief professional summary (max 500 characters)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={careerProfileForm.control}
-                name="skills"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Skills & Expertise</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="List your key skills, technologies, and areas of expertise..."
-                        rows={3}
-                        {...field}
+                      <FormField
+                        control={careerProfileForm.control}
+                        name={`education.${index}.isCurrent` as const}
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value ?? false}
+                                onCheckedChange={(checked) => field.onChange(!!checked)}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              I am currently enrolled in this program
+                            </FormLabel>
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                    <FormDescription>
-                      Separate skills with commas
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => educationFieldArray.append(createEmptyEducationEntry())}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Education
+                </Button>
+              </section>
 
-              <FormField
-                control={careerProfileForm.control}
-                name="careerGoals"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Career Goals</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="What are your short-term and long-term career objectives?"
-                        rows={3}
-                        {...field}
+              <Separator />
+
+              <section className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Work History</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Document key roles, internships, or freelance engagements so mentors understand your experience.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  {workHistoryFieldArray.fields.map((field, index) => (
+                    <div key={field.id} className="space-y-4 rounded-lg border p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Role #{index + 1}</span>
+                        {workHistoryFieldArray.fields.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => workHistoryFieldArray.remove(index)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={careerProfileForm.control}
+                          name={`workHistory.${index}.role` as const}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Role / Title</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. Product Manager" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={careerProfileForm.control}
+                          name={`workHistory.${index}.company` as const}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Company / Organization</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. Dollar Bank" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={careerProfileForm.control}
+                          name={`workHistory.${index}.location` as const}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Location</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. Remote, Pittsburgh, PA" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={careerProfileForm.control}
+                            name={`workHistory.${index}.startDate` as const}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Start Date</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g. May 2023" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={careerProfileForm.control}
+                            name={`workHistory.${index}.endDate` as const}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>End Date</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g. Aug 2024" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                      <FormField
+                        control={careerProfileForm.control}
+                        name={`workHistory.${index}.summary` as const}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Impact Highlights</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Share accomplishments, scope of work, or tools used..."
+                                rows={3}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                    <FormDescription>
-                      Your career aspirations and goals (max 300 characters)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormField
+                        control={careerProfileForm.control}
+                        name={`workHistory.${index}.isCurrent` as const}
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value ?? false}
+                                onCheckedChange={(checked) => field.onChange(!!checked)}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              I currently work in this role
+                            </FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => workHistoryFieldArray.append(createEmptyWorkEntry())}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Role
+                </Button>
+              </section>
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</> : 'Save Changes'}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
                 </Button>
               </DialogFooter>
             </form>

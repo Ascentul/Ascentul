@@ -45,7 +45,7 @@ export default function JobSearchPage() {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [remoteOnly, setRemoteOnly] = useState(false);
-  const [jobType, setJobType] = useState("");
+  const [jobType, setJobType] = useState("all");
   const [experience, setExperience] = useState("Mid-level");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<JobResult[]>([]);
@@ -128,7 +128,7 @@ export default function JobSearchPage() {
         body: JSON.stringify({
           query,
           location: searchLocation,
-          jobType: jobType || undefined,
+          jobType: jobType === "all" ? undefined : jobType,
           experienceLevel: experience,
           page: nextPage,
           perPage,
@@ -174,7 +174,10 @@ export default function JobSearchPage() {
                 : Array.isArray(json.jobs)
                   ? json.jobs.length
                   : 0,
-            search_data: { jobType, experience },
+            search_data: {
+              jobType: jobType === "all" ? undefined : jobType,
+              experience
+            },
           });
         } catch (e) {
           // ignore history errors
@@ -301,7 +304,7 @@ export default function JobSearchPage() {
                     <SelectValue placeholder="All types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All types</SelectItem>
+                    <SelectItem value="all">All types</SelectItem>
                     <SelectItem value="Full-time">Full-time</SelectItem>
                     <SelectItem value="Part-time">Part-time</SelectItem>
                     <SelectItem value="Contract">Contract</SelectItem>
@@ -335,8 +338,7 @@ export default function JobSearchPage() {
                     onClick={() => {
                       setQuery(s.keywords || "");
                       setLocation(s.location || "");
-                      if (s.search_data?.jobType)
-                        setJobType(s.search_data.jobType);
+                      setJobType(s.search_data?.jobType || "all");
                       if (s.search_data?.experience)
                         setExperience(s.search_data.experience);
                       setSearchTab("search");
@@ -356,8 +358,7 @@ export default function JobSearchPage() {
                         e.stopPropagation();
                         setQuery(s.keywords || "");
                         setLocation(s.location || "");
-                        if (s.search_data?.jobType)
-                          setJobType(s.search_data.jobType);
+                        setJobType(s.search_data?.jobType || "all");
                         if (s.search_data?.experience)
                           setExperience(s.search_data.experience);
                         setSearchTab("search");

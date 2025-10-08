@@ -25,6 +25,8 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
     if (body.target_date && typeof body.target_date === 'number') updates.target_date = body.target_date
     if (typeof body.category === 'string') updates.category = body.category
     if (typeof body.completed === 'boolean') updates.completed = body.completed
+    if (body.completedAt) updates.completed_at = Date.parse(body.completedAt)
+    if (body.completedAt === null) updates.completed_at = null
 
     const client = getClient()
     await client.mutation(api.goals.updateGoal, {

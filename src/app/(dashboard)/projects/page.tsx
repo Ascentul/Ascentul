@@ -577,6 +577,21 @@ export default function ProjectsPage() {
                   </div>
                 )}
 
+                {/* Project Type Badge */}
+                <div className="absolute bottom-2 right-2">
+                  <Badge
+                    variant={
+                      project.type === "professional" ? "default" : "secondary"
+                    }
+                    className="bg-white/90 backdrop-blur-sm shadow-sm"
+                  >
+                    {project.type
+                      ? project.type.charAt(0).toUpperCase() +
+                        project.type.slice(1)
+                      : "Personal"}
+                  </Badge>
+                </div>
+
                 {/* Action Buttons */}
                 <div className="flex space-x-1 absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
@@ -610,26 +625,14 @@ export default function ProjectsPage() {
                   {project.title}
                 </h2>
 
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  <Badge
-                    variant={
-                      project.type === "professional" ? "default" : "secondary"
-                    }
-                  >
-                    {project.type
-                      ? project.type.charAt(0).toUpperCase() +
-                        project.type.slice(1)
-                      : "Personal"}
-                  </Badge>
-                  {(project.start_date || project.end_date) && (
-                    <div className="text-sm text-neutral-500">
-                      {formatDate(project.start_date)} -{" "}
-                      {project.end_date
-                        ? formatDate(project.end_date)
-                        : "Present"}
-                    </div>
-                  )}
-                </div>
+                {(project.start_date || project.end_date) && (
+                  <div className="text-sm text-neutral-500 mb-3">
+                    {formatDate(project.start_date)} -{" "}
+                    {project.end_date
+                      ? formatDate(project.end_date)
+                      : "Present"}
+                  </div>
+                )}
 
                 {project.role && (
                   <p className="text-sm text-muted-foreground mb-1">

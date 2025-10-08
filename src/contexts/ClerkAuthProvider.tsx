@@ -29,6 +29,26 @@ interface UserProfile {
   current_position?: string
   current_company?: string
   education?: string
+  education_history?: {
+    id: string
+    school?: string
+    degree?: string
+    field_of_study?: string
+    start_year?: string
+    end_year?: string
+    is_current?: boolean
+    description?: string
+  }[]
+  work_history?: {
+    id: string
+    role?: string
+    company?: string
+    start_date?: string
+    end_date?: string
+    is_current?: boolean
+    location?: string
+    summary?: string
+  }[]
   university_name?: string
   major?: string
   graduation_year?: string

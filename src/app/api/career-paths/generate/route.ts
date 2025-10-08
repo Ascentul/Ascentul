@@ -21,7 +21,17 @@ export async function POST(request: NextRequest) {
     }
     if (client) {
       try {
-        const prompt = `Given this user's profile JSON, propose 2 realistic career paths. Return strictly JSON with { paths: Path[] } where Path = { id: string; name: string; nodes: Node[] } and Node = { id: string; title: string; level: 'entry'|'mid'|'senior'|'lead'|'executive'; salaryRange: string; yearsExperience: string; skills: { name: string; level: 'basic'|'intermediate'|'advanced' }[]; description: string; growthPotential: 'low'|'medium'|'high'; icon: string }.
+        const prompt = `You are a career path analyst specializing in mapping realistic career progressions across industries.
+Given this user's profile JSON, propose 2 realistic career paths that show which roles typically lead to their target role, including titles that represent logical, real-world progressions rather than simple seniority prefixes.
+
+Follow these rules:
+1. Identify 3-5 distinct stages that reflect the natural professional evolution toward the target role.
+2. Include title, salary range, years of experience, and growth outlook (high / medium / low) for each stage.
+3. Each stage should be a different role, not just "Junior/Mid/Senior" of the same title.
+4. Prioritize accuracy for common industries.
+
+Return strictly JSON with { paths: Path[] } where Path = { id: string; name: string; nodes: Node[] } and Node = { id: string; title: string (use realistic, distinct job titles for each stage); level: 'entry'|'mid'|'senior'|'lead'|'executive'; salaryRange: string; yearsExperience: string; skills: { name: string; level: 'basic'|'intermediate'|'advanced' }[]; description: string; growthPotential: 'low'|'medium'|'high'; icon: string }.
+
 Profile JSON: ${JSON.stringify(profileData).slice(0, 4000)}
 `;
         const completion = await client.chat.completions.create({

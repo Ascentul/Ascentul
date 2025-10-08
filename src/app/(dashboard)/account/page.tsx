@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useMutation } from "convex/react";
+import { api } from "convex/_generated/api";
 
 // Import UI components
 import {
@@ -35,7 +37,8 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShieldCheck, Loader2, Key, LogOut } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ShieldCheck, Loader2, Key, LogOut, Camera, User } from "lucide-react";
 
 // Password change form schema
 const passwordChangeSchema = z
@@ -58,11 +61,18 @@ type PasswordChangeFormValues = z.infer<typeof passwordChangeSchema>;
 
 export default function AccountPage() {
   const { user: clerkUser } = useUser();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // Avatar mutations
+  const generateAvatarUploadUrl = useMutation(
+    api.avatar.generateAvatarUploadUrl,
+  );
+  const updateUserAvatar = useMutation(api.avatar.updateUserAvatar);
 
   // Password form
   const passwordForm = useForm<PasswordChangeFormValues>({
@@ -82,6 +92,7 @@ export default function AccountPage() {
       await clerkUser.updatePassword({
         newPassword: data.newPassword,
         currentPassword: data.currentPassword,
+        signOutOfOtherSessions: false,
       });
 
       toast({
@@ -91,14 +102,70 @@ export default function AccountPage() {
       });
       setIsChangingPassword(false);
       passwordForm.reset();
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Password change error:", error);
       toast({
         title: "Error",
-        description: "Failed to change password. Please try again.",
+        description: error?.errors?.[0]?.message || "Failed to change password. Please check your current password and try again.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const uploadUrl = await generateAvatarUploadUrl();
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadResult.ok) throw new Error("Failed to upload image");
+
+      const { storageId } = await uploadResult.json();
+
+      if (clerkUser?.id) {
+        await updateUserAvatar({
+          clerkId: clerkUser.id,
+          storageId,
+        });
+        toast({
+          title: "Profile picture updated",
+          description: "Your profile picture has been updated successfully",
+          variant: "success",
+        });
+      }
+    } catch (error) {
+      console.error("Image upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -122,6 +189,79 @@ export default function AccountPage() {
       </div>
 
       <div className="space-y-6">
+        {/* Profile Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Profile Settings
+            </CardTitle>
+            <CardDescription>
+              Manage your profile picture and account preferences
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16 border-2 border-gray-200">
+                  <AvatarImage
+                    src={
+                      user?.profile_image ||
+                      clerkUser?.imageUrl ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || clerkUser?.firstName || "User")}&background=0C29AB&color=fff`
+                    }
+                  />
+                  <AvatarFallback>
+                    {(user?.name || clerkUser?.firstName || "U")
+                      .charAt(0)
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Camera className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="font-medium">Profile Picture</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Update your profile picture across the app
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  id="profile-upload"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleImageUpload(file);
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    document.getElementById("profile-upload")?.click()
+                  }
+                  disabled={isUploadingImage}
+                >
+                  {isUploadingImage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Change Picture
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Security Settings */}
         <Card>
           <CardHeader>

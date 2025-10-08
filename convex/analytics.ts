@@ -482,11 +482,24 @@ export const getUserDashboardAnalytics = query({
     }
 
     // Parallelize all user data queries
-    const [applications, goals, interviewStages, followupActions] = await Promise.all([
+    const [
+      applications,
+      goals,
+      interviewStages,
+      followupActions,
+      resumes,
+      coverLetters,
+      projects,
+      contacts,
+    ] = await Promise.all([
       ctx.db.query("applications").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
       ctx.db.query("goals").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
       ctx.db.query("interview_stages").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
       ctx.db.query("followup_actions").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
+      ctx.db.query("resumes").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
+      ctx.db.query("cover_letters").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
+      ctx.db.query("projects").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
+      ctx.db.query("networking_contacts").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
     ]);
 
     // Calculate stats
@@ -502,8 +515,9 @@ export const getUserDashboardAnalytics = query({
       goal.status === "active" || goal.status === "in_progress"
     ).length;
 
+    // Count all incomplete follow-up actions (not just overdue ones)
     const pendingTasks = followupActions.filter(followup =>
-      !followup.completed && followup.due_date && followup.due_date <= Date.now()
+      !followup.completed
     ).length;
 
     // Find next upcoming interview
@@ -516,21 +530,216 @@ export const getUserDashboardAnalytics = query({
       : "No Interviews";
 
     // Recent activity (last 30 days)
-    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    const recentActivity = [
-      ...applications.filter(app => app.created_at >= thirtyDaysAgo).map(app => ({
-        id: app._id,
-        type: "application",
-        description: `Applied to ${app.job_title} at ${app.company}`,
-        timestamp: app.created_at,
-      })),
-      ...interviewStages.filter(stage => stage.created_at >= thirtyDaysAgo).map(stage => ({
-        id: stage._id,
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+    type ActivityItem = {
+      id: string;
+      type:
+        | "application"
+        | "application_update"
+        | "interview"
+        | "followup"
+        | "followup_completed"
+        | "goal"
+        | "goal_completed"
+        | "resume"
+        | "cover_letter"
+        | "project"
+        | "contact";
+      description: string;
+      timestamp: number;
+    };
+
+    const activity: ActivityItem[] = [];
+    const addActivity = (item: ActivityItem) => {
+      if (!item.timestamp || item.timestamp < thirtyDaysAgo) return;
+      activity.push(item);
+    };
+
+    for (const app of applications) {
+      if (app.created_at) {
+        addActivity({
+          id: `application-created-${app._id}`,
+          type: "application",
+          description: `Started tracking ${app.job_title} at ${app.company}`,
+          timestamp: app.created_at,
+        });
+      }
+
+      if (
+        app.status !== "saved" &&
+        app.updated_at &&
+        app.updated_at !== app.created_at
+      ) {
+        const statusText =
+          app.status === "applied"
+            ? "Applied to"
+            : app.status === "interview"
+              ? "Moved to interviews for"
+              : app.status === "offer"
+                ? "Received an offer from"
+                : app.status === "rejected"
+                  ? "Closed application for"
+                  : "Updated application for";
+
+        addActivity({
+          id: `application-update-${app._id}`,
+          type: "application_update",
+          description: `${statusText} ${app.company}`,
+          timestamp: app.updated_at,
+        });
+      }
+    }
+
+    for (const stage of interviewStages) {
+      addActivity({
+        id: `interview-${stage._id}`,
         type: "interview",
         description: `Interview scheduled: ${stage.title}`,
         timestamp: stage.created_at,
-      }))
-    ].sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+      });
+    }
+
+    for (const followup of followupActions) {
+      const label = followup.description || followup.notes || "Follow-up action";
+      addActivity({
+        id: `followup-${followup._id}`,
+        type: "followup",
+        description: `Scheduled follow-up: ${label}`,
+        timestamp: followup.created_at ?? followup.updated_at ?? 0,
+      });
+
+      if (followup.completed && followup.updated_at) {
+        addActivity({
+          id: `followup-completed-${followup._id}`,
+          type: "followup_completed",
+          description: `Completed follow-up: ${label}`,
+          timestamp: followup.updated_at,
+        });
+      }
+    }
+
+    for (const goal of goals) {
+      addActivity({
+        id: `goal-${goal._id}`,
+        type: "goal",
+        description: `Created goal: ${goal.title}`,
+        timestamp: goal.created_at,
+      });
+
+      if (goal.completed_at) {
+        addActivity({
+          id: `goal-completed-${goal._id}`,
+          type: "goal_completed",
+          description: `Completed goal: ${goal.title}`,
+          timestamp: goal.completed_at,
+        });
+      }
+    }
+
+    for (const resume of resumes) {
+      if (resume.created_at) {
+        addActivity({
+          id: `resume-created-${resume._id}`,
+          type: "resume",
+          description: `Created resume: ${resume.title ?? "Untitled resume"}`,
+          timestamp: resume.created_at,
+        });
+      }
+
+      if (
+        resume.updated_at &&
+        resume.updated_at !== resume.created_at
+      ) {
+        addActivity({
+          id: `resume-updated-${resume._id}`,
+          type: "resume",
+          description: `Updated resume: ${resume.title ?? "Untitled resume"}`,
+          timestamp: resume.updated_at,
+        });
+      }
+    }
+
+    for (const coverLetter of coverLetters) {
+      const coverLetterLabel =
+        coverLetter.job_title ??
+        coverLetter.company_name ??
+        coverLetter.name ??
+        "Cover letter";
+
+      if (coverLetter.created_at) {
+        addActivity({
+          id: `cover-letter-created-${coverLetter._id}`,
+          type: "cover_letter",
+          description: `Created cover letter for ${coverLetterLabel}`,
+          timestamp: coverLetter.created_at,
+        });
+      }
+
+      if (
+        coverLetter.updated_at &&
+        coverLetter.updated_at !== coverLetter.created_at
+      ) {
+        addActivity({
+          id: `cover-letter-updated-${coverLetter._id}`,
+          type: "cover_letter",
+          description: `Updated cover letter for ${coverLetterLabel}`,
+          timestamp: coverLetter.updated_at,
+        });
+      }
+    }
+
+    for (const project of projects) {
+      if (project.created_at) {
+        addActivity({
+          id: `project-created-${project._id}`,
+          type: "project",
+          description: `Added project: ${project.title ?? "Untitled project"}`,
+          timestamp: project.created_at,
+        });
+      }
+
+      if (
+        project.updated_at &&
+        project.updated_at !== project.created_at
+      ) {
+        addActivity({
+          id: `project-updated-${project._id}`,
+          type: "project",
+          description: `Updated project: ${project.title ?? "Untitled project"}`,
+          timestamp: project.updated_at,
+        });
+      }
+    }
+
+    for (const contact of contacts) {
+      const contactLabel = contact.name ?? contact.email ?? "Contact";
+
+      if (contact.created_at) {
+        addActivity({
+          id: `contact-created-${contact._id}`,
+          type: "contact",
+          description: `Added contact: ${contactLabel}${contact.company ? ` (${contact.company})` : ""}`,
+          timestamp: contact.created_at,
+        });
+      }
+
+      if (
+        contact.updated_at &&
+        contact.updated_at !== contact.created_at
+      ) {
+        addActivity({
+          id: `contact-updated-${contact._id}`,
+          type: "contact",
+          description: `Updated contact: ${contactLabel}`,
+          timestamp: contact.updated_at,
+        });
+      }
+    }
+
+    const recentActivity = activity
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 12);
 
     // Calculate interview rate
     const interviewRate = applicationStats.total > 0

@@ -797,6 +797,7 @@ export default function CareerPathPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => {
                                   handleSelectSavedPath(id);
@@ -909,7 +910,7 @@ export default function CareerPathPage() {
       )}
 
       {/* Career Path visualization */}
-      {activePath && (
+      {activePath && explorationMode !== "saved" && (
         <div className="relative mt-6">
           <h2 className="text-2xl font-bold mb-4">Career Path Progression</h2>
 

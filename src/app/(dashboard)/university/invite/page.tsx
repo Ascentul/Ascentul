@@ -35,12 +35,12 @@ export default function UniversityInviteStudentsPage() {
   // Form states
   const [inviteForm, setInviteForm] = useState({
     emails: '',
-    departmentId: '',
+    departmentId: 'none',
     customMessage: ''
   })
   const [manualForm, setManualForm] = useState({
     email: '',
-    departmentId: ''
+    departmentId: 'none'
   })
   const [loading, setLoading] = useState(false)
   const [csvFile, setCsvFile] = useState<File | null>(null)
@@ -113,7 +113,7 @@ export default function UniversityInviteStudentsPage() {
         variant: 'default'
       })
       setInviteModalOpen(false)
-      setInviteForm({ emails: '', departmentId: '', customMessage: '' })
+      setInviteForm({ emails: '', departmentId: 'none', customMessage: '' })
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -150,7 +150,7 @@ export default function UniversityInviteStudentsPage() {
         variant: 'success'
       })
       setManualAddModalOpen(false)
-      setManualForm({ email: '', departmentId: '' })
+      setManualForm({ email: '', departmentId: 'none' })
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -313,7 +313,7 @@ export default function UniversityInviteStudentsPage() {
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No department</SelectItem>
+                  <SelectItem value="none">No department</SelectItem>
                   {departments?.map((dept: any) => (
                     <SelectItem key={dept._id} value={dept._id}>
                       {dept.name} ({dept.code})
@@ -374,7 +374,7 @@ export default function UniversityInviteStudentsPage() {
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No department</SelectItem>
+                  <SelectItem value="none">No department</SelectItem>
                   {departments?.map((dept: any) => (
                     <SelectItem key={dept._id} value={dept._id}>
                       {dept.name} ({dept.code})

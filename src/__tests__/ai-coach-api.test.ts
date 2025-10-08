@@ -6,16 +6,37 @@ jest.mock('convex/browser', () => ({
   })),
 }))
 
-jest.mock('convex/_generated/api', () => ({
-  api: {
-    ai_coach: {
-      getConversations: 'ai_coach:getConversations',
-      getMessages: 'ai_coach:getMessages',
-      createConversation: 'ai_coach:createConversation',
-      sendMessage: 'ai_coach:sendMessage',
+jest.mock('convex/_generated/api', () => {
+  const createMockFn = (name: string) => ({ _name: name })
+  return {
+    api: {
+      ai_coach: {
+        getConversations: createMockFn('ai_coach:getConversations'),
+        getMessages: createMockFn('ai_coach:getMessages'),
+        createConversation: createMockFn('ai_coach:createConversation'),
+        addMessages: createMockFn('ai_coach:addMessages'),
+      },
+      users: {
+        getUserByClerkId: createMockFn('users:getUserByClerkId'),
+      },
+      goals: {
+        getUserGoals: createMockFn('goals:getUserGoals'),
+      },
+      applications: {
+        getUserApplications: createMockFn('applications:getUserApplications'),
+      },
+      resumes: {
+        getUserResumes: createMockFn('resumes:getUserResumes'),
+      },
+      cover_letters: {
+        getUserCoverLetters: createMockFn('cover_letters:getUserCoverLetters'),
+      },
+      projects: {
+        getUserProjects: createMockFn('projects:getUserProjects'),
+      },
     },
-  },
-}), { virtual: true })
+  }
+}, { virtual: true })
 
 import { NextRequest } from 'next/server'
 import { GET as getConversations, POST as createConversation } from '@/app/api/ai-coach/conversations/route'
@@ -23,7 +44,7 @@ import { GET as getMessages, POST as sendMessage } from '@/app/api/ai-coach/conv
 
 // Mock dependencies
 jest.mock('@clerk/nextjs/server', () => ({
-  getAuth: jest.fn(),
+  auth: jest.fn(),
 }))
 
 
@@ -37,7 +58,7 @@ jest.mock('openai', () => {
   }))
 })
 
-const mockGetAuth = require('@clerk/nextjs/server').getAuth
+const mockAuth = require('@clerk/nextjs/server').auth
 const mockConvexHttpClient = require('convex/browser').ConvexHttpClient
 
 describe('AI Coach API Routes', () => {
@@ -55,7 +76,7 @@ describe('AI Coach API Routes', () => {
   describe('/api/ai-coach/conversations', () => {
     describe('GET', () => {
       it('returns conversations for authenticated user', async () => {
-        mockGetAuth.mockReturnValue({ userId: 'test-user-id' })
+        mockAuth.mockResolvedValue({ userId: 'test-user-id' })
 
         const mockConversations = [
           { id: '1', title: 'Test Conversation', createdAt: '2024-01-01T00:00:00Z', userId: 'test-user-id' }
@@ -79,7 +100,7 @@ describe('AI Coach API Routes', () => {
       })
 
       it('returns 401 for unauthenticated user', async () => {
-        mockGetAuth.mockReturnValue({ userId: null })
+        mockAuth.mockResolvedValue({ userId: null })
 
         const request = new NextRequest('http://localhost:3000/api/ai-coach/conversations')
         const response = await getConversations(request)
@@ -90,7 +111,7 @@ describe('AI Coach API Routes', () => {
       })
 
       it('handles Convex errors gracefully', async () => {
-        mockGetAuth.mockReturnValue({ userId: 'test-user-id' })
+        mockAuth.mockResolvedValue({ userId: 'test-user-id' })
 
         const mockClient = {
           query: jest.fn().mockRejectedValue(new Error('Convex error')),
@@ -108,7 +129,7 @@ describe('AI Coach API Routes', () => {
 
     describe('POST', () => {
       it('creates new conversation for authenticated user', async () => {
-        mockGetAuth.mockReturnValue({ userId: 'test-user-id' })
+        mockAuth.mockResolvedValue({ userId: 'test-user-id' })
 
         const newConversation = {
           id: 'new-conv-id',
@@ -143,7 +164,7 @@ describe('AI Coach API Routes', () => {
       })
 
       it('returns 400 for missing title', async () => {
-        mockGetAuth.mockReturnValue({ userId: 'test-user-id' })
+        mockAuth.mockResolvedValue({ userId: 'test-user-id' })
 
         const request = new NextRequest('http://localhost:3000/api/ai-coach/conversations', {
           method: 'POST',
@@ -163,7 +184,7 @@ describe('AI Coach API Routes', () => {
   describe('/api/ai-coach/conversations/[id]/messages', () => {
     describe('GET', () => {
       it('returns messages for conversation', async () => {
-        mockGetAuth.mockReturnValue({ userId: 'test-user-id' })
+        mockAuth.mockResolvedValue({ userId: 'test-user-id' })
 
         const mockMessages = [
           {
@@ -196,7 +217,7 @@ describe('AI Coach API Routes', () => {
       })
 
       it('returns 401 for unauthenticated user', async () => {
-        mockGetAuth.mockReturnValue({ userId: null })
+        mockAuth.mockResolvedValue({ userId: null })
 
         const request = new NextRequest('http://localhost:3000/api/ai-coach/conversations/conv-1/messages')
         const response = await getMessages(request, { params: { id: 'conv-1' } })
@@ -209,7 +230,7 @@ describe('AI Coach API Routes', () => {
 
     describe('POST', () => {
       it('sends message and gets AI response', async () => {
-        mockGetAuth.mockReturnValue({ userId: 'test-user-id' })
+        mockAuth.mockResolvedValue({ userId: 'test-user-id' })
 
         const mockExistingMessages = []
         const mockNewMessages = [
@@ -230,7 +251,16 @@ describe('AI Coach API Routes', () => {
         ]
 
         const mockClient = {
-          query: jest.fn().mockResolvedValue(mockExistingMessages),
+          query: jest.fn().mockImplementation((fn) => {
+            const fnName = fn?._name || ''
+            // Return empty arrays for user context queries
+            if (fnName.includes('users:') || fnName.includes('goals:') || fnName.includes('applications:') ||
+                fnName.includes('resumes:') || fnName.includes('cover_letters:') || fnName.includes('projects:')) {
+              return Promise.resolve([])
+            }
+            // Return existing messages for getMessages
+            return Promise.resolve(mockExistingMessages)
+          }),
           mutation: jest.fn().mockResolvedValue(mockNewMessages),
         }
         mockConvexHttpClient.mockReturnValue(mockClient)
@@ -258,20 +288,20 @@ describe('AI Coach API Routes', () => {
         expect(response.status).toBe(201)
         expect(data).toEqual(mockNewMessages)
         expect(mockOpenAIInstance.chat.completions.create).toHaveBeenCalledWith({
-          model: 'gpt-4',
+          model: 'gpt-4o',
           messages: expect.arrayContaining([
             expect.objectContaining({ role: 'system' }),
             expect.objectContaining({ role: 'user', content: 'How can I improve my resume?' })
           ]),
           temperature: 0.7,
-          max_tokens: 1000,
+          max_tokens: 1500,
           presence_penalty: 0.1,
           frequency_penalty: 0.1
         })
       })
 
       it('returns 400 for missing content', async () => {
-        mockGetAuth.mockReturnValue({ userId: 'test-user-id' })
+        mockAuth.mockResolvedValue({ userId: 'test-user-id' })
 
         const request = new NextRequest('http://localhost:3000/api/ai-coach/conversations/conv-1/messages', {
           method: 'POST',
@@ -287,10 +317,13 @@ describe('AI Coach API Routes', () => {
       })
 
       it('handles OpenAI API errors gracefully', async () => {
-        mockGetAuth.mockReturnValue({ userId: 'test-user-id' })
+        mockAuth.mockResolvedValue({ userId: 'test-user-id' })
 
         const mockClient = {
-          query: jest.fn().mockResolvedValue([]),
+          query: jest.fn().mockImplementation((fn) => {
+            // Return empty arrays for all queries
+            return Promise.resolve([])
+          }),
           mutation: jest.fn().mockResolvedValue([
             {
               id: '1',
@@ -331,10 +364,13 @@ describe('AI Coach API Routes', () => {
       it('works without OpenAI when API key is missing', async () => {
         delete process.env.OPENAI_API_KEY
 
-        mockGetAuth.mockReturnValue({ userId: 'test-user-id' })
+        mockAuth.mockResolvedValue({ userId: 'test-user-id' })
 
         const mockClient = {
-          query: jest.fn().mockResolvedValue([]),
+          query: jest.fn().mockImplementation((fn) => {
+            // Return empty arrays for all queries
+            return Promise.resolve([])
+          }),
           mutation: jest.fn().mockResolvedValue([
             {
               id: '1',
@@ -372,7 +408,7 @@ describe('AI Coach API Routes', () => {
   describe('Environment Configuration', () => {
     it('handles missing Convex URL', async () => {
       delete process.env.NEXT_PUBLIC_CONVEX_URL
-      mockGetAuth.mockReturnValue({ userId: 'test-user-id' })
+      mockAuth.mockResolvedValue({ userId: 'test-user-id' })
 
       const request = new NextRequest('http://localhost:3000/api/ai-coach/conversations')
       const response = await getConversations(request)

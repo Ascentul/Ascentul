@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { format, isAfter, isBefore } from "date-fns";
+import { format, isBefore } from "date-fns";
 
 interface Goal {
   id: string | number;
@@ -51,6 +51,11 @@ export function CareerGoalsSummary() {
       (goal) => goal.status !== "completed" && goal.status !== "cancelled",
     )
     .slice(0, 3); // Show top 3
+  const shouldStretch =
+    activeGoals.length > 0 &&
+    activeGoals.some(
+      (goal) => Array.isArray(goal.checklist) && goal.checklist.length > 0,
+    );
 
   const totalGoals = goalsArray.length;
   const completedGoals = goalsArray.filter(
@@ -94,7 +99,9 @@ export function CareerGoalsSummary() {
       }}
       className="mb-6 h-full"
     >
-      <Card className="h-full flex flex-col">
+      <Card
+        className={`${shouldStretch ? "h-full" : "min-h-[220px]"} flex flex-col`}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
             <CardTitle className="text-base font-medium">
@@ -112,7 +119,7 @@ export function CareerGoalsSummary() {
           </Link>
         </CardHeader>
 
-        <CardContent className="flex-1">
+        <CardContent className={shouldStretch ? "flex-1" : ""}>
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
@@ -127,7 +134,7 @@ export function CareerGoalsSummary() {
               ))}
             </div>
           ) : activeGoals.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-6 text-muted-foreground">
               <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="text-sm">No active goals</p>
               <p className="text-xs">
@@ -140,11 +147,11 @@ export function CareerGoalsSummary() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {activeGoals.map((goal) => (
                 <div
                   key={goal.id}
-                  className="flex items-center justify-between"
+                  className="flex items-center justify-between p-3 rounded-lg border"
                 >
                   <div className="flex items-center space-x-3 flex-1">
                     <div className="flex-shrink-0">

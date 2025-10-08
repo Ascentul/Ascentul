@@ -182,6 +182,34 @@ export const updateUser = mutation({
       industry: v.optional(v.string()),
       career_goals: v.optional(v.string()),
       education: v.optional(v.string()),
+      education_history: v.optional(
+        v.array(
+          v.object({
+            id: v.string(),
+            school: v.optional(v.string()),
+            degree: v.optional(v.string()),
+            field_of_study: v.optional(v.string()),
+            start_year: v.optional(v.string()),
+            end_year: v.optional(v.string()),
+            is_current: v.optional(v.boolean()),
+            description: v.optional(v.string()),
+          }),
+        ),
+      ),
+      work_history: v.optional(
+        v.array(
+          v.object({
+            id: v.string(),
+            role: v.optional(v.string()),
+            company: v.optional(v.string()),
+            start_date: v.optional(v.string()),
+            end_date: v.optional(v.string()),
+            is_current: v.optional(v.boolean()),
+            location: v.optional(v.string()),
+            summary: v.optional(v.string()),
+          }),
+        ),
+      ),
       university_name: v.optional(v.string()),
       major: v.optional(v.string()),
       graduation_year: v.optional(v.string()),
@@ -271,6 +299,34 @@ export const updateUserById = mutation({
       industry: v.optional(v.string()),
       career_goals: v.optional(v.string()),
       education: v.optional(v.string()),
+      education_history: v.optional(
+        v.array(
+          v.object({
+            id: v.string(),
+            school: v.optional(v.string()),
+            degree: v.optional(v.string()),
+            field_of_study: v.optional(v.string()),
+            start_year: v.optional(v.string()),
+            end_year: v.optional(v.string()),
+            is_current: v.optional(v.boolean()),
+            description: v.optional(v.string()),
+          }),
+        ),
+      ),
+      work_history: v.optional(
+        v.array(
+          v.object({
+            id: v.string(),
+            role: v.optional(v.string()),
+            company: v.optional(v.string()),
+            start_date: v.optional(v.string()),
+            end_date: v.optional(v.string()),
+            is_current: v.optional(v.boolean()),
+            location: v.optional(v.string()),
+            summary: v.optional(v.string()),
+          }),
+        ),
+      ),
       university_name: v.optional(v.string()),
       major: v.optional(v.string()),
       graduation_year: v.optional(v.string()),

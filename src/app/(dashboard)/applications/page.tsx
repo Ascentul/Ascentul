@@ -35,6 +35,8 @@ interface Application {
   notes?: string | null;
   created_at?: string;
   updated_at?: string;
+  resume_id?: string | null;
+  cover_letter_id?: string | null;
 }
 
 export default function ApplicationsPage() {
@@ -98,6 +100,8 @@ export default function ApplicationsPage() {
         typeof d.updated_at === "number"
           ? new Date(d.updated_at).toISOString()
           : d.updated_at,
+      resume_id: d.resume_id ?? null,
+      cover_letter_id: d.cover_letter_id ?? null,
     })) as Application[];
   }, [convexApps]);
 

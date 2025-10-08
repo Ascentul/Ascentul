@@ -85,10 +85,11 @@ export default function ResumeEditorPage() {
   const { user } = useUser()
   const clerkId = user?.id
   const resumeId = (Array.isArray((params as any)?.id) ? (params as any).id[0] : (params as any)?.id) as string
+  const isNewResume = !resumeId || resumeId === "new"
 
   const resume = useQuery(
     api.resumes.getResumeById,
-    clerkId && resumeId ? ({ clerkId, resumeId } as any) : "skip"
+    !isNewResume && clerkId && resumeId ? ({ clerkId, resumeId } as any) : "skip"
   ) as any
 
   const userProfile = useQuery(
@@ -96,6 +97,7 @@ export default function ResumeEditorPage() {
     clerkId ? { clerkId } : "skip"
   ) as any
 
+  const createResumeMutation = useMutation(api.resumes.createResume)
   const updateResume = useMutation(api.resumes.updateResume)
   const deleteResume = useMutation(api.resumes.deleteResume)
 
@@ -149,7 +151,7 @@ export default function ResumeEditorPage() {
     setSelectedTemplate(content.template || "modern")
   }, [resume])
 
-  const loading = resume === undefined
+  const loading = !isNewResume && resume === undefined
 
   // If the resume was deleted or cannot be accessed, return to list
   useEffect(() => {
@@ -233,42 +235,63 @@ export default function ResumeEditorPage() {
   }
 
   const doSave = async () => {
-    if (!clerkId || !resume?._id) return
+    if (!clerkId) return
+
+    const normalizedTitle = title.trim() || "Untitled Resume"
+    const contentPayload = {
+      contactInfo,
+      summary,
+      skills: skillsText.split(",").map((s) => s.trim()).filter((s) => s.length > 0),
+      experiences,
+      education,
+      projects,
+      achievements,
+      template: selectedTemplate,
+    }
+
     setSaving(true)
     try {
-      await updateResume({
-        clerkId,
-        resumeId: resume._id,
-        updates: {
-          title: title.trim() || "Untitled Resume",
-          content: {
-            contactInfo,
-            summary,
-            skills: skillsText.split(",").map((s) => s.trim()).filter((s) => s.length > 0),
-            experiences,
-            education,
-            projects,
-            achievements,
-            template: selectedTemplate
+      if (isNewResume) {
+        await createResumeMutation({
+          clerkId,
+          title: normalizedTitle,
+          content: contentPayload,
+          visibility: "private",
+          source: "manual",
+        } as any)
+
+        toast({
+          title: "Resume created",
+          description: "Your new resume has been saved.",
+          variant: "success",
+        })
+      } else if (resume?._id) {
+        await updateResume({
+          clerkId,
+          resumeId: resume._id,
+          updates: {
+            title: normalizedTitle,
+            content: contentPayload,
           },
-        },
-      } as any)
+        } as any)
 
-      toast({
-        title: "Saved",
-        description: "Your resume has been saved successfully.",
-        variant: 'success'
-      })
+        toast({
+          title: "Saved",
+          description: "Your resume has been saved successfully.",
+          variant: "success",
+        })
+      } else {
+        throw new Error("Resume not found")
+      }
 
-      // Redirect back to My Resumes after saving
       setTimeout(() => {
-        router.push('/resumes')
+        router.push("/resumes")
       }, 500)
     } catch (e: any) {
       toast({
         title: "Save failed",
         description: e?.message || "Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       })
     } finally {
       setSaving(false)
@@ -668,22 +691,28 @@ export default function ResumeEditorPage() {
           <Button variant="outline" onClick={() => router.push("/resumes")}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
-          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Edit Resume</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
+            {isNewResume ? "Create Resume" : "Edit Resume"}
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={importFromProfile} disabled={importing || !userProfile}>
             {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UploadIcon className="h-4 w-4 mr-2" />}
             Import from Career Profile
           </Button>
-          <Button variant="destructive" onClick={() => setConfirmOpen(true)} disabled={!resume || deleting}>
-            {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />} Delete
-          </Button>
-          <Button variant="outline" onClick={exportPdf} disabled={!resume}>
-            <Download className="h-4 w-4 mr-2" /> Export PDF
-          </Button>
-          <Button onClick={doSave} disabled={saving || !resume}>
+          {!isNewResume && (
+            <>
+              <Button variant="destructive" onClick={() => setConfirmOpen(true)} disabled={!resume || deleting}>
+                {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />} Delete
+              </Button>
+              <Button variant="outline" onClick={exportPdf} disabled={!resume}>
+                <Download className="h-4 w-4 mr-2" /> Export PDF
+              </Button>
+            </>
+          )}
+          <Button onClick={doSave} disabled={saving || !clerkId}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-            Save
+            {isNewResume ? "Save Resume" : "Save"}
           </Button>
         </div>
       </div>
@@ -700,6 +729,26 @@ export default function ResumeEditorPage() {
         </Card>
       ) : (
         <div className="grid gap-6">
+          {/* PDF Template Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle>PDF Template</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <label className="block text-sm font-medium mb-2">Choose a template for PDF export</label>
+              <Select value={selectedTemplate} onValueChange={(value: any) => setSelectedTemplate(value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="modern">Modern (Blue accents, professional)</SelectItem>
+                  <SelectItem value="classic">Classic (Traditional black & white)</SelectItem>
+                  <SelectItem value="minimal">Minimal (Clean, spacious layout)</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
           {/* Basic Info */}
           <Card>
             <CardHeader>
@@ -1121,26 +1170,6 @@ export default function ResumeEditorPage() {
                   </div>
                 ))
               )}
-            </CardContent>
-          </Card>
-
-          {/* Template Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>PDF Template</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <label className="block text-sm font-medium mb-2">Choose a template for PDF export</label>
-              <Select value={selectedTemplate} onValueChange={(value: any) => setSelectedTemplate(value)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select template" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="modern">Modern (Blue accents, professional)</SelectItem>
-                  <SelectItem value="classic">Classic (Traditional black & white)</SelectItem>
-                  <SelectItem value="minimal">Minimal (Clean, spacious layout)</SelectItem>
-                </SelectContent>
-              </Select>
             </CardContent>
           </Card>
         </div>

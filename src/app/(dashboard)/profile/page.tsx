@@ -181,22 +181,17 @@ export default function ProfilePage() {
     }
   }, [displayProfile, isEditingProfile, profileForm]);
 
-  // Calculate profile completion
+  // Calculate profile completion based on the 5 main sections
   const calculateProfileCompletion = () => {
-    const fields = [
-      displayProfile?.bio,
-      displayProfile?.linkedin_url,
-      displayProfile?.major,
-      displayProfile?.university_name,
-      displayProfile?.graduation_year,
-      displayProfile?.current_position,
-      displayProfile?.skills,
-      displayProfile?.career_goals,
+    const sections = [
+      !!(displayProfile?.bio && displayProfile?.career_goals), // Career Summary
+      !!displayProfile?.linkedin_url, // LinkedIn Profile
+      !!(displayProfile?.current_position && displayProfile?.current_company), // Work History
+      !!(displayProfile?.major && displayProfile?.university_name), // Education
+      !!displayProfile?.skills, // Skills
     ];
-    const completed = fields.filter(
-      (field) => field && field.trim() !== "",
-    ).length;
-    return Math.round((completed / fields.length) * 100);
+    const completed = sections.filter(Boolean).length;
+    return Math.round((completed / sections.length) * 100);
   };
 
   const handleProfileUpdate = async (data: CareerProfileFormValues) => {

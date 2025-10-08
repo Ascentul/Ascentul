@@ -6,8 +6,8 @@
 import formData from 'form-data'
 import Mailgun from 'mailgun.js'
 
-const DEFAULT_DOMAIN = 'mail.ascentul.io'
-const DEFAULT_FROM = 'Ascentul <no-reply@mail.ascentul.io>'
+const DEFAULT_DOMAIN = 'mail.ascentful.io'
+const DEFAULT_FROM = 'Ascentul <no-reply@mail.ascentful.io>'
 
 export interface EmailOptions {
   to: string | string[]

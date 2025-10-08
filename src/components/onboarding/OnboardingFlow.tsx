@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
-import { ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronRight, ChevronLeft, Loader2, CheckCircle2, Sparkles, Crown, ExternalLink, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,12 +31,14 @@ interface OnboardingData {
   major: string;
   graduationYear: string;
   dreamJob: string;
+  selectedPlan?: 'free' | 'monthly' | 'annual';
 }
 
 const defaultOnboardingData: OnboardingData = {
   major: "",
   graduationYear: "",
   dreamJob: "",
+  selectedPlan: undefined,
 };
 
 export function OnboardingFlow() {
@@ -47,15 +49,26 @@ export function OnboardingFlow() {
   // Convex mutations
   const updateUser = useMutation(api.users.updateUser);
 
-  const [step, setStep] = useState<number>(1);
+  // Check if user is from a university (should skip plan selection)
+  const isUniversityUser = user?.university_id != null;
+
+  // Dynamically calculate total steps based on user type
+  const totalSteps = isUniversityUser ? 2 : 3; // 3 steps for regular users (plan + 2 onboarding), 2 for university users
+  const planSelectionStep = 1;
+  const educationStep = isUniversityUser ? 1 : 2;
+  const dreamJobStep = isUniversityUser ? 2 : 3;
+
+  const [step, setStep] = useState<number>(isUniversityUser ? educationStep : planSelectionStep);
   const [data, setData] = useState<OnboardingData>(defaultOnboardingData);
-  const [progress, setProgress] = useState<number>(20);
+  const [progress, setProgress] = useState<number>(0);
   const [isSavingOnboarding, setIsSavingOnboarding] = useState<boolean>(false);
+  const [processingPayment, setProcessingPayment] = useState<'monthly' | 'annual' | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // Update progress bar based on current step
   useEffect(() => {
-    setProgress(Math.floor((step / 2) * 100)); // 2 steps total
-  }, [step]);
+    setProgress(Math.floor((step / totalSteps) * 100));
+  }, [step, totalSteps]);
 
   const handleDataChange = (key: keyof OnboardingData, value: string) => {
     setData((prevData) => ({
@@ -65,7 +78,8 @@ export function OnboardingFlow() {
   };
 
   const handleNext = async () => {
-    if (step === 2) {
+    if (step === dreamJobStep) {
+      // Final step - save onboarding data
       const success = await saveOnboardingData();
       if (!success) {
         toast({
@@ -75,13 +89,58 @@ export function OnboardingFlow() {
           variant: "destructive",
         });
       }
-    } else if (step < 2) {
+    } else if (step < totalSteps) {
       setStep(step + 1);
     }
   };
 
+  const handlePlanSelection = async (planType: 'free' | 'monthly' | 'annual') => {
+    setData((prevData) => ({
+      ...prevData,
+      selectedPlan: planType,
+    }));
+
+    if (planType === 'free') {
+      // Free plan - just move to next step
+      setStep(step + 1);
+    } else {
+      // Paid plan - redirect to Stripe payment link
+      await openPaymentLink(planType);
+    }
+  };
+
+  const openPaymentLink = async (interval: 'monthly' | 'annual') => {
+    if (processingPayment) return;
+
+    try {
+      setProcessingPayment(interval);
+      setPaymentError(null);
+
+      const monthlyUrl = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY;
+      const annualUrl = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ANNUAL;
+      const base = interval === 'monthly' ? monthlyUrl : annualUrl;
+
+      if (!base) {
+        throw new Error('Payment link not configured');
+      }
+
+      const url = new URL(base);
+      // Help Stripe link the session to the current user for webhook reconciliation
+      if (user?.email) url.searchParams.set('prefilled_email', user.email);
+      if (user?.clerkId) url.searchParams.set('client_reference_id', user.clerkId);
+
+      // Redirect to Stripe
+      window.location.href = url.toString();
+    } catch (e) {
+      console.error('Payment link error:', e);
+      setPaymentError('Unable to process payment. Please try again or contact support.');
+      setProcessingPayment(null);
+    }
+  };
+
   const handleBack = () => {
-    if (step > 1) {
+    const minStep = isUniversityUser ? educationStep : planSelectionStep;
+    if (step > minStep) {
       setStep(step - 1);
     }
   };
@@ -123,8 +182,157 @@ export function OnboardingFlow() {
   };
 
   const renderStep = () => {
-    switch (step) {
-      case 1:
+    // Plan Selection Step (only for non-university users)
+    if (!isUniversityUser && step === planSelectionStep) {
+      return (
+        <div className="space-y-6">
+          <CardHeader>
+            <CardTitle className="text-2xl">Choose Your Plan</CardTitle>
+            <CardDescription>
+              Select the plan that best fits your career goals. You can always change this later.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {paymentError && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-red-800">Payment Error</p>
+                  <p className="text-sm text-red-600">{paymentError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Free Plan */}
+            <div className="border rounded-lg p-4 hover:border-primary transition-colors cursor-pointer" onClick={() => handlePlanSelection('free')}>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1">Free</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Perfect for exploring your career</p>
+                  <div className="text-2xl font-bold mb-2">$0</div>
+                  <ul className="space-y-2 mb-4">
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      Basic career goal tracking
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      Job application tracker
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      Basic resume templates
+                    </li>
+                  </ul>
+                  <Button variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); handlePlanSelection('free'); }}>
+                    Continue with Free
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Premium Monthly */}
+            <div className={`border rounded-lg p-4 hover:border-primary transition-colors ${processingPayment === 'monthly' ? 'ring-2 ring-primary' : ''}`}>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-lg">Premium Monthly</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">Accelerate your career growth</p>
+                  <div className="text-2xl font-bold mb-2">$9.99<span className="text-sm font-normal text-muted-foreground">/month</span></div>
+                  <ul className="space-y-2 mb-4">
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      Everything in Free
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      Unlimited AI-powered resume reviews
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      Premium cover letter templates
+                    </li>
+                  </ul>
+                  <Button
+                    className="w-full"
+                    onClick={() => handlePlanSelection('monthly')}
+                    disabled={processingPayment === 'monthly'}
+                  >
+                    {processingPayment === 'monthly' ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Choose Monthly Plan
+                        <ExternalLink className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Premium Annual */}
+            <div className={`border border-primary rounded-lg p-4 hover:shadow-lg transition-all relative ${processingPayment === 'annual' ? 'ring-2 ring-primary' : ''}`}>
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <span className="bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-full">
+                  BEST VALUE
+                </span>
+              </div>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Crown className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-lg">Premium Annual</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">Maximum savings and exclusive perks</p>
+                  <div className="text-2xl font-bold mb-1">$99<span className="text-sm font-normal text-muted-foreground">/year</span></div>
+                  <div className="text-xs text-green-600 font-medium mb-3">Save 17% vs monthly</div>
+                  <ul className="space-y-2 mb-4">
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      Everything in Premium Monthly
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      Exclusive career coaching sessions
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      Early access to new features
+                    </li>
+                  </ul>
+                  <Button
+                    className="w-full"
+                    onClick={() => handlePlanSelection('annual')}
+                    disabled={processingPayment === 'annual'}
+                  >
+                    {processingPayment === 'annual' ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Choose Annual Plan
+                        <ExternalLink className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </div>
+      );
+    }
+
+    // Education Step
+    if (step === educationStep) {
         return (
           <div className="space-y-6">
             <CardHeader>
@@ -175,18 +383,26 @@ export function OnboardingFlow() {
                 </Select>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end">
+            <CardFooter className="flex justify-between">
+              {!isUniversityUser && (
+                <Button variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-2 h-4 w-4" /> Back
+                </Button>
+              )}
               <Button
                 onClick={handleNext}
                 disabled={!data.major || !data.graduationYear}
+                className={isUniversityUser ? "ml-auto" : ""}
               >
                 Next <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </CardFooter>
           </div>
         );
+      }
 
-      case 2:
+      // Dream Job Step
+      if (step === dreamJobStep) {
         return (
           <div className="space-y-6">
             <CardHeader>
@@ -237,10 +453,9 @@ export function OnboardingFlow() {
             </CardFooter>
           </div>
         );
+      }
 
-      default:
-        return null;
-    }
+      return null;
   };
 
   return (
@@ -250,7 +465,7 @@ export function OnboardingFlow() {
           <div className="mb-8">
             <Progress value={progress} className="w-full" />
             <p className="text-sm text-muted-foreground mt-2 text-center">
-              Step {step} of 2
+              Step {step} of {totalSteps}
             </p>
           </div>
 

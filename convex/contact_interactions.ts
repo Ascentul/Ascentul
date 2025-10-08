@@ -75,7 +75,6 @@ export const createContactFollowup = mutation({
     const id = await ctx.db.insert("followup_actions", {
       user_id: user._id,
       contact_id: args.contactId,
-      application_id: undefined as any, // Required field but not used for contact follow-ups
       type: args.type,
       description: args.description,
       due_date: args.due_date,
@@ -148,12 +147,34 @@ export const deleteContactFollowup = mutation({
   },
 });
 
-// Log an interaction with a contact (updates last_contact)
+// Get all interactions for a specific contact
+export const getContactInteractions = query({
+  args: { clerkId: v.string(), contactId: v.id("networking_contacts") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) throw new Error("User not found");
+
+    const interactions = await ctx.db
+      .query("contact_interactions")
+      .withIndex("by_contact", (q) => q.eq("contact_id", args.contactId))
+      .order("desc")
+      .collect();
+
+    return interactions.filter((i) => i.user_id === user._id);
+  },
+});
+
+// Log an interaction with a contact (updates last_contact and creates interaction record)
 export const logInteraction = mutation({
   args: {
     clerkId: v.string(),
     contactId: v.id("networking_contacts"),
     notes: v.optional(v.string()),
+    noteDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -169,9 +190,32 @@ export const logInteraction = mutation({
     }
 
     const now = Date.now();
+
+    // Create interaction record
+    await ctx.db.insert("contact_interactions", {
+      user_id: user._id,
+      contact_id: args.contactId,
+      notes: args.notes,
+      interaction_date: now,
+      created_at: now,
+    });
+
+    const trimmedNotes = args.notes?.trim();
+    let updatedNotes = contact.notes;
+
+    if (trimmedNotes && trimmedNotes.length > 0) {
+      const dateStamp =
+        args.noteDate && args.noteDate.trim().length > 0
+          ? args.noteDate.trim()
+          : new Date(now).toLocaleDateString("en-US");
+      const entry = `[${dateStamp}] ${trimmedNotes}`;
+      updatedNotes = contact.notes ? `${contact.notes}\n\n${entry}` : entry;
+    }
+
+    // Update contact's last_contact timestamp (and notes when provided)
     await ctx.db.patch(args.contactId, {
       last_contact: now,
-      notes: args.notes ? (contact.notes ? `${contact.notes}\n\n[${new Date(now).toLocaleDateString()}] ${args.notes}` : `[${new Date(now).toLocaleDateString()}] ${args.notes}`) : contact.notes,
+      notes: updatedNotes,
       updated_at: now,
     });
 

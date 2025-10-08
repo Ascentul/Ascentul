@@ -230,12 +230,6 @@ const Sidebar = React.memo(function Sidebar({
         icon: <UserIcon className="h-5 w-5" />,
         href: "/profile",
       },
-      {
-        id: "account",
-        title: "Account Settings",
-        icon: <Settings className="h-5 w-5" />,
-        href: "/account",
-      },
     ],
     [],
   );
@@ -668,11 +662,12 @@ const Sidebar = React.memo(function Sidebar({
             <div
               className={`flex items-center ${expanded ? "space-x-3" : "justify-center"}`}
             >
-              <Link href="/account" className="flex-shrink-0 cursor-pointer">
+              <Link href="/profile" className="flex-shrink-0 cursor-pointer">
                 <img
                   src={
+                    user?.profile_image ||
                     clerkUser.imageUrl ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || "User")}&background=0C29AB&color=fff`
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=0C29AB&color=fff`
                   }
                   alt="Profile"
                   className="h-10 w-10 rounded-full object-cover hover:ring-2 hover:ring-primary transition-all"
@@ -800,7 +795,7 @@ const Sidebar = React.memo(function Sidebar({
                 className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
               >
                 <Settings className="h-4 w-4" />
-                {expanded && <span className="ml-3">Settings</span>}
+                {expanded && <span className="ml-3">Account Settings</span>}
               </Button>
             </Link>
           )}

@@ -89,6 +89,7 @@ export const updateGoal = mutation({
       progress: v.optional(v.number()),
       checklist: v.optional(v.array(checklistItem)),
       completed: v.optional(v.boolean()), // accepted but not stored directly
+      completed_at: v.optional(v.union(v.number(), v.null())),
     }),
   },
   handler: async (ctx, args) => {
@@ -106,16 +107,17 @@ export const updateGoal = mutation({
     const { completed, ...restUpdates } = args.updates;
     const updates: any = { ...restUpdates, updated_at: Date.now() };
 
-    // Set completed_at timestamp when status is changed to completed
-    if (args.updates.status === "completed" && goal.status !== "completed") {
+    // Set completed_at timestamp when status is changed to completed (if not already set)
+    if (args.updates.status === "completed" && goal.status !== "completed" && !args.updates.completed_at) {
       updates.completed_at = Date.now();
     }
 
-    // Clear completed_at if status is changed from completed to something else
+    // Clear completed_at if status is changed from completed to something else (if not explicitly set)
     if (
       goal.status === "completed" &&
       args.updates.status &&
-      args.updates.status !== "completed"
+      args.updates.status !== "completed" &&
+      args.updates.completed_at === undefined
     ) {
       updates.completed_at = undefined;
     }

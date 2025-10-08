@@ -355,8 +355,16 @@ export default function GoalCard({
       <Confetti active={showConfetti} duration={1750} targetRef={cardRef} />
 
       <div id={`goal-${id}`} className="goal-card" ref={cardRef}>
-        <Card className="rounded-2xl shadow-sm flex flex-col justify-between min-h-[280px] bg-white hover:shadow-md transition-shadow duration-150">
-          <div className="p-6 space-y-3 pb-4 flex-grow">
+        <Card
+          className={`rounded-2xl shadow-sm flex flex-col bg-white hover:shadow-md transition-shadow duration-150 ${
+            showChecklist
+              ? "min-h-[320px]"
+              : hasChecklist
+                ? "min-h-[240px]"
+                : "min-h-[200px]"
+          }`}
+        >
+          <div className="p-6 space-y-3 pb-4">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-semibold">{title}</h3>
@@ -484,7 +492,11 @@ export default function GoalCard({
             )}
           </div>
 
-          <div className="flex items-center justify-between px-4 py-3 border-t mt-auto">
+          <div
+            className={`flex items-center justify-between px-4 py-3 border-t ${
+              showChecklist ? "mt-auto" : "mt-2"
+            }`}
+          >
             <p className="text-sm text-muted-foreground flex items-center gap-1">
               <Calendar className="w-4 h-4" />
               {formatDueDate()}

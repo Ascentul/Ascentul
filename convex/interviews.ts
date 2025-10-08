@@ -22,6 +22,26 @@ export const getStagesForApplication = query({
   },
 });
 
+export const getUserInterviewStages = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) throw new Error("User not found");
+
+    const stages = await ctx.db
+      .query("interview_stages")
+      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .order("desc")
+      .collect();
+
+    return stages;
+  },
+});
+
 export const createStage = mutation({
   args: {
     clerkId: v.string(),

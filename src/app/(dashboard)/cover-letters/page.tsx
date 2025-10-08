@@ -17,6 +17,7 @@ import {
   Edit,
   Sparkles,
   Upload,
+  Eye,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -442,131 +443,115 @@ export default function CoverLettersPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5">
               {sorted!.map((c) => {
-                const snippet = (c.content || "").trim();
-                const truncatedSnippet =
-                  snippet.length > 200 ? `${snippet.slice(0, 200)}…` : snippet;
-                const badge = (() => {
+                const getSourceBadge = () => {
                   switch (c.source) {
                     case "ai_generated":
-                      return (
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                          AI Generated
-                        </span>
-                      );
+                      return <span className="text-[11px] bg-purple-100 text-purple-700 px-2 py-1 rounded-full">AI Generated</span>;
                     case "ai_optimized":
-                      return (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                          AI Optimized
-                        </span>
-                      );
+                      return <span className="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full">AI Optimized</span>;
                     case "pdf_upload":
-                      return (
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                          PDF Upload
-                        </span>
-                      );
+                      return <span className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-full">PDF Upload</span>;
                     case "manual":
-                      return (
-                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                          Manual
-                        </span>
-                      );
+                      return <span className="text-[11px] bg-gray-100 text-gray-700 px-2 py-1 rounded-full">Manual</span>;
                     default:
                       return null;
                   }
-                })();
+                };
 
                 return (
                   <Card
                     key={c._id}
-                    className="hover:shadow-lg transition-all cursor-pointer group"
+                    className="group relative overflow-hidden border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-2xl"
                     onClick={() => setPreviewLetter(c)}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                          <FileText className="h-5 w-5 text-purple-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold truncate">
-                              {c.name || "Untitled Cover Letter"}
-                            </h3>
-                            {badge}
+                    <CardContent className="p-0 h-full flex flex-col">
+                      <div className="flex-1 space-y-4 px-5 pt-5 pb-4 bg-gradient-to-br from-purple-50/80 via-white to-white">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-purple-100 text-purple-600 shadow-sm group-hover:bg-purple-200 transition-colors">
+                              <FileText className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-sm text-slate-900 truncate">
+                                {c.name || "Untitled Cover Letter"}
+                              </h3>
+                              <p className="text-xs text-muted-foreground truncate">
+                                Last updated {new Date(c.updated_at).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground truncate">
+                          {getSourceBadge()}
+                        </div>
+
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-white/60 px-4 py-2 text-xs text-slate-500">
+                          <p>
+                            Created {new Date(c.created_at).toLocaleDateString()}
+                          </p>
+                          <p className="mt-0.5 truncate">
                             {c.company_name
                               ? `${c.job_title} @ ${c.company_name}`
                               : c.job_title}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Updated{" "}
-                            {new Date(c.updated_at).toLocaleDateString()}
-                          </div>
+                          </p>
                         </div>
-                      </div>
 
-                      {truncatedSnippet && (
-                        <p className="text-xs text-muted-foreground max-h-16 overflow-hidden">
-                          {truncatedSnippet}
-                        </p>
-                      )}
-
-                      <div className="mt-3">
                         <Button
                           size="sm"
                           variant="secondary"
+                          className="justify-center gap-2 text-sm w-full"
                           onClick={(e) => {
                             e.stopPropagation();
                             setPreviewLetter(c);
                           }}
-                          className="px-3"
                         >
+                          <FileText className="h-3.5 w-3.5" />
                           Preview
                         </Button>
                       </div>
 
                       <div
-                        className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="flex items-center justify-between gap-3 px-5 py-3 border-t bg-white/90 rounded-b-2xl"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Button
                           size="sm"
                           variant="outline"
+                          className="gap-2 px-3 text-sm"
                           onClick={() => router.push(`/cover-letters/${c._id}`)}
-                          title="Edit"
-                          aria-label="Edit"
                         >
-                          <Edit className="h-3 w-3" />
+                          <Edit className="h-3.5 w-3.5" />
+                          Edit
                         </Button>
                         <Button
-                          size="sm"
-                          variant="outline"
+                          size="icon"
+                          variant="ghost"
+                          className="text-slate-500 hover:text-slate-900"
                           onClick={() => duplicateLetter(c._id, c.name)}
-                          title="Copy"
-                          aria-label="Copy"
+                          title="Duplicate"
+                          aria-label="Duplicate"
                         >
-                          <Copy className="h-3 w-3" />
+                          <Copy className="h-4 w-4" />
                         </Button>
                         <Button
-                          size="sm"
-                          variant="outline"
+                          size="icon"
+                          variant="ghost"
+                          className="text-slate-500 hover:text-slate-900"
                           onClick={() => exportLetter(c)}
-                          title="Export PDF"
-                          aria-label="Export PDF"
+                          title="Export as PDF"
+                          aria-label="Export as PDF"
                         >
-                          <Download className="h-3 w-3" />
+                          <Download className="h-4 w-4" />
                         </Button>
                         <Button
-                          size="sm"
-                          variant="outline"
+                          size="icon"
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-600"
                           onClick={() => deleteLetter(c._id)}
                           title="Delete"
                           aria-label="Delete"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </CardContent>

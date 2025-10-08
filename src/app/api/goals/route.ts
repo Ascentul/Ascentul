@@ -19,6 +19,7 @@ const mapGoal = (doc: any) => ({
   checklist: doc.checklist ?? [],
   created_at: doc.created_at,
   updated_at: doc.updated_at,
+  completedAt: doc.completed_at ? new Date(doc.completed_at).toISOString() : undefined,
 })
 
 export const dynamic = 'force-dynamic'

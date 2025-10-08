@@ -38,6 +38,7 @@ import type * as stripe from "../stripe.js";
 import type * as support_tickets from "../support_tickets.js";
 import type * as universities from "../universities.js";
 import type * as university_admin from "../university_admin.js";
+import type * as usage from "../usage.js";
 import type * as users from "../users.js";
 
 /**
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   support_tickets: typeof support_tickets;
   universities: typeof universities;
   university_admin: typeof university_admin;
+  usage: typeof usage;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

@@ -1,6 +1,45 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+// Get all follow-ups for a user
+export const getUserFollowups = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) throw new Error("User not found");
+
+    const followups = await ctx.db
+      .query("followup_actions")
+      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .order("desc")
+      .collect();
+
+    // Get associated applications and contacts for each follow-up
+    const followupsWithDetails = await Promise.all(
+      followups.map(async (followup) => {
+        const application = followup.application_id
+          ? await ctx.db.get(followup.application_id)
+          : null;
+        const contact = followup.contact_id
+          ? await ctx.db.get(followup.contact_id)
+          : null;
+
+        return {
+          ...followup,
+          application,
+          contact,
+        };
+      })
+    );
+
+    return followupsWithDetails;
+  },
+});
+
 export const getFollowupsForApplication = query({
   args: { clerkId: v.string(), applicationId: v.id("applications") },
   handler: async (ctx, args) => {

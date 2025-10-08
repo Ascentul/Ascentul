@@ -98,6 +98,7 @@ export default function CoverLetterDetailPage() {
         description: "Your cover letter has been saved successfully.",
         variant: "success",
       })
+      router.push('/cover-letters')
     } catch (error: any) {
       toast({
         title: "Save failed",

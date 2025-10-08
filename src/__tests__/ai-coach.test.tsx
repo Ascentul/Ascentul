@@ -169,8 +169,8 @@ describe('AI Coach Functionality', () => {
     it('renders the main AI coach page', () => {
       render(<AICoachPage />, { wrapper: createWrapper() })
 
-      expect(screen.getByText('Select a conversation')).toBeInTheDocument()
-      expect(screen.getByText('Choose an existing conversation or create a new one to start chatting')).toBeInTheDocument()
+      expect(screen.getByText('Welcome to AI Career Coach')).toBeInTheDocument()
+      expect(screen.getByText(/Select an existing conversation from the sidebar or create a new one to start getting personalized career guidance/)).toBeInTheDocument()
     })
 
     it('shows conversations in sidebar', () => {
@@ -225,7 +225,7 @@ describe('AI Coach Functionality', () => {
 
       render(<AICoachPage />, { wrapper: createWrapper() })
 
-      const newConversationButton = screen.getByText('Generate New Path')
+      const newConversationButton = screen.getByText('Start New Conversation')
       await user.click(newConversationButton)
 
       expect(mockMutate).toHaveBeenCalledWith('New Conversation')

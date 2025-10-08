@@ -60,8 +60,8 @@ export function ApplicationWizard({
 
   const [step, setStep] = useState(1);
   const [notes, setNotes] = useState("");
-  const [resumeId, setResumeId] = useState<string>("");
-  const [coverId, setCoverId] = useState<string>("");
+  const [resumeId, setResumeId] = useState<string>("none");
+  const [coverId, setCoverId] = useState<string>("none");
   const [markApplied, setMarkApplied] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -69,8 +69,8 @@ export function ApplicationWizard({
     if (open) {
       setStep(1);
       setNotes("");
-      setResumeId("");
-      setCoverId("");
+      setResumeId("none");
+      setCoverId("none");
       setMarkApplied(true);
     }
   }, [open]);
@@ -92,8 +92,8 @@ export function ApplicationWizard({
         url: job.url,
         notes: notes || undefined,
         applied_at: markApplied ? Date.now() : undefined,
-        resume_id: resumeId ? (resumeId as any) : undefined,
-        cover_letter_id: coverId ? (coverId as any) : undefined,
+        resume_id: resumeId !== "none" ? (resumeId as any) : undefined,
+        cover_letter_id: coverId !== "none" ? (coverId as any) : undefined,
       });
 
       onCreated?.(String(createdId));
@@ -164,7 +164,7 @@ export function ApplicationWizard({
                 <SelectValue placeholder="Choose a resume" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {(resumes || []).map((r: any) => (
                   <SelectItem key={r._id} value={r._id}>
                     {r.title}
@@ -183,7 +183,7 @@ export function ApplicationWizard({
                 <SelectValue placeholder="Choose a cover letter" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {(coverLetters || []).map((c: any) => (
                   <SelectItem key={c._id} value={c._id}>
                     {c.name}

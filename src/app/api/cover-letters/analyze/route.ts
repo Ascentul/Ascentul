@@ -42,30 +42,210 @@ const buildProfileSummary = (profile: any | null) => {
     : "No additional career profile data provided.";
 };
 
+const normalizeText = (value?: string) =>
+  (value || "").replace(/\r\n/g, "\n").replace(/\t/g, " ").trim();
+
+const formatList = (items: string[]): string => {
+  if (!items.length) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+};
+
+const extractHighlights = (jobDescription?: string, max = 3): string[] => {
+  const normalized = normalizeText(jobDescription);
+  if (!normalized) return [];
+
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const bulletLines = lines
+    .filter((line) => /^[-*•]/.test(line))
+    .map((line) => line.replace(/^[-*•\s]+/, "").trim())
+    .filter(Boolean);
+
+  const sourceLines =
+    bulletLines.length > 0
+      ? bulletLines
+      : normalized
+          .split(/(?<=[.!?])\s+/)
+          .map((sentence) => sentence.trim())
+          .filter((sentence) => sentence.length > 25);
+
+  return sourceLines.slice(0, max).map((line) => {
+    const words = line.split(/\s+/);
+    return words.length <= 14
+      ? line.replace(/\s+/g, " ")
+      : `${words.slice(0, 14).join(" ")}...`;
+  });
+};
+
+const extractGreeting = (letter: string, companyName?: string): {
+  greeting: string;
+  remainder: string;
+} => {
+  const match = letter.match(
+    /^(Dear [^\n]+|Hello [^\n]+|Hi [^\n]+|To [^\n]+|Greetings[^\n]*)\n*/i,
+  );
+  if (!match) {
+    const fallback =
+      companyName && companyName.trim().length > 0
+        ? `Dear ${companyName.trim()} Hiring Manager,`
+        : "Dear Hiring Manager,";
+    return { greeting: fallback, remainder: letter.trimStart() };
+  }
+  return {
+    greeting: match[0].trim(),
+    remainder: letter.slice(match[0].length).trimStart(),
+  };
+};
+
+const extractClosing = (
+  letterBody: string,
+  profileName?: string,
+): { body: string; closing: string } => {
+  const match = letterBody.match(
+    /(\n\n|^)((?:Sincerely|Best regards?|Regards|Thank you|Respectfully)[\s\S]*)$/i,
+  );
+  if (!match) {
+    return {
+      body: letterBody.trim(),
+      closing: `Sincerely,\n${profileName || "Your Name"}`,
+    };
+  }
+
+  const closing = match[2].trim();
+  const body = letterBody.slice(0, match.index).trim();
+  return { body, closing: closing || `Sincerely,\n${profileName || "Your Name"}` };
+};
+
+const buildOptimizedFallbackLetter = ({
+  coverLetter,
+  jobDescription,
+  profileName,
+  roleTitle,
+  companyName,
+}: {
+  coverLetter?: string;
+  jobDescription?: string;
+  profileName?: string;
+  roleTitle?: string;
+  companyName?: string;
+}): string => {
+  const normalizedLetter = normalizeText(coverLetter);
+  const roleDescriptor = [
+    roleTitle ? `the ${roleTitle} role` : null,
+    companyName ? `at ${companyName}` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  if (!normalizedLetter) {
+    return [
+      companyName
+        ? `Dear ${companyName} Hiring Manager,`
+        : "Dear Hiring Manager,",
+      "",
+      [
+        "Thank you for considering my application.",
+        roleDescriptor
+          ? `I aligned this version to ${roleDescriptor}, highlighting impact and concrete wins.`
+          : "I aligned this version to your stated requirements, highlighting impact and concrete wins.",
+        "I showcase measurable achievements that mirror the responsibilities in the job description and explain how those experiences translate to your team.",
+      ].join(" "),
+      "",
+      `Sincerely,\n${profileName || "Your Name"}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
+
+  const { greeting, remainder } = extractGreeting(
+    normalizedLetter,
+    companyName,
+  );
+  const { body, closing } = extractClosing(remainder, profileName);
+
+  const paragraphs = body
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  const highlights = extractHighlights(jobDescription);
+  const alignmentParagraph = (() => {
+    if (highlights.length) {
+      return `To make this draft actionable, I spell out how my recent wins address your focus on ${formatList(
+        highlights,
+      )}.`;
+    }
+    if (roleTitle || companyName) {
+      return `I tailored this revision specifically to ${
+        roleTitle ? `the ${roleTitle} role` : "the role"
+      }${companyName ? ` at ${companyName}` : ""}, making sure every example connects back to the priorities in your description.`;
+    }
+    return "";
+  })();
+
+  const introParagraph = paragraphs.shift();
+  const reorderedParagraphs = [
+    alignmentParagraph || introParagraph || "",
+    ...(alignmentParagraph && introParagraph
+      ? [introParagraph, ...paragraphs]
+      : paragraphs),
+  ].filter(Boolean);
+
+  return [greeting, "", reorderedParagraphs.join("\n\n"), "", closing]
+    .filter((section) => normalizeText(section).length > 0)
+    .join("\n\n");
+};
+
 const fallbackAnalysis = (
   profileName: string | undefined,
-  roleTitle?: string,
-  companyName?: string,
-): AnalysisResult => ({
-  summary:
-    "We could not reach the analysis service, so here is a quick checklist based on the information you provided.",
-  alignmentScore: 60,
-  strengths: [
-    "The letter is professional in tone and references the role explicitly.",
-  ],
-  gaps: [
-    "Add concrete metrics or examples that match the job description requirements.",
-    "Reference specific skills or achievements that align with the role.",
-  ],
-  recommendations: [
-    "Emphasize quantifiable achievements that mirror the job description.",
-    "Add a closing paragraph that reiterates how you will support the team.",
-  ],
-  optimizedLetter:
-    roleTitle || companyName
-      ? `Dear Hiring Manager,\n\nI am eager to contribute to ${companyName || "your organization"} in the ${roleTitle || "target"} position and will incorporate the most relevant evidence from my background in the next draft.\n\nSincerely,\n${profileName || "Your Name"}`
-      : `Dear Hiring Manager,\n\nI am eager to contribute to your team and bring forward the experience outlined in my background. I will follow up with a tailored cover letter once I have reworked the examples to match your priorities.\n\nSincerely,\n${profileName || "Your Name"}`,
-});
+  {
+    roleTitle,
+    companyName,
+    coverLetter,
+    jobDescription,
+    optimize,
+  }: {
+    roleTitle?: string;
+    companyName?: string;
+    coverLetter?: string;
+    jobDescription?: string;
+    optimize?: boolean;
+  },
+): AnalysisResult => {
+  const analysis: AnalysisResult = {
+    summary:
+      "We could not reach the analysis service, so here is a quick checklist based on the information you provided.",
+    alignmentScore: 60,
+    strengths: [
+      "The letter is professional in tone and references the role explicitly.",
+    ],
+    gaps: [
+      "Add concrete metrics or examples that match the job description requirements.",
+      "Reference specific skills or achievements that align with the role.",
+    ],
+    recommendations: [
+      "Emphasize quantifiable achievements that mirror the job description.",
+      "Add a closing paragraph that reiterates how you will support the team.",
+    ],
+  };
+
+  if (optimize) {
+    analysis.optimizedLetter = buildOptimizedFallbackLetter({
+      coverLetter,
+      jobDescription,
+      profileName,
+      roleTitle,
+      companyName,
+    });
+  }
+
+  return analysis;
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -184,11 +364,16 @@ ${optimize ? "- Include optimizedLetter (string) that rewrites the cover letter 
     }
 
     if (!analysis) {
-      analysis = fallbackAnalysis(profileName, roleTitle, companyName);
-      if (!optimize) {
-        delete analysis.optimizedLetter;
-      }
-    } else if (!optimize) {
+      analysis = fallbackAnalysis(profileName, {
+        roleTitle,
+        companyName,
+        coverLetter,
+        jobDescription,
+        optimize,
+      });
+    }
+
+    if (!optimize) {
       delete analysis.optimizedLetter;
     }
 

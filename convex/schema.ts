@@ -43,6 +43,34 @@ export default defineSchema({
     current_position: v.optional(v.string()),
     current_company: v.optional(v.string()),
     education: v.optional(v.string()),
+    education_history: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          school: v.optional(v.string()),
+          degree: v.optional(v.string()),
+          field_of_study: v.optional(v.string()),
+          start_year: v.optional(v.string()),
+          end_year: v.optional(v.string()),
+          is_current: v.optional(v.boolean()),
+          description: v.optional(v.string()),
+        }),
+      ),
+    ),
+    work_history: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          role: v.optional(v.string()),
+          company: v.optional(v.string()),
+          start_date: v.optional(v.string()),
+          end_date: v.optional(v.string()),
+          is_current: v.optional(v.boolean()),
+          location: v.optional(v.string()),
+          summary: v.optional(v.string()),
+        }),
+      ),
+    ),
     university_name: v.optional(v.string()),
     major: v.optional(v.string()),
     graduation_year: v.optional(v.string()),
@@ -309,7 +337,7 @@ export default defineSchema({
   // Followup actions table
   followup_actions: defineTable({
     user_id: v.id("users"),
-    application_id: v.id("applications"),
+    application_id: v.optional(v.id("applications")),
     contact_id: v.optional(v.id("networking_contacts")),
     type: v.string(), // default: 'follow_up'
     description: v.optional(v.string()),
@@ -383,6 +411,18 @@ export default defineSchema({
   })
     .index("by_user", ["user_id"])
     .index("by_company", ["company"]),
+
+  // Contact interactions table
+  contact_interactions: defineTable({
+    user_id: v.id("users"),
+    contact_id: v.id("networking_contacts"),
+    notes: v.optional(v.string()),
+    interaction_date: v.number(),
+    created_at: v.number(),
+  })
+    .index("by_contact", ["contact_id"])
+    .index("by_user", ["user_id"])
+    .index("by_interaction_date", ["interaction_date"]),
 
   // Goals table (referenced in achievements)
   goals: defineTable({

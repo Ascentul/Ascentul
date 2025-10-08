@@ -48,6 +48,22 @@ export function ApplicationCard({
   const updatedAt = application.updated_at || application.created_at
   const statusLabel = mapStatusToLabel(application.status)
 
+  const handleStatusChange = async (newStatusLabel: string) => {
+    const statusMap: Record<string, AppType['status']> = {
+      'In Progress': 'saved',
+      'Applied': 'applied',
+      'Interviewing': 'interview',
+      'Offer': 'offer',
+      'Rejected': 'rejected',
+    }
+    const newStatus = statusMap[newStatusLabel]
+
+    if (newStatus && saveFn) {
+      const updated = await saveFn(application.id, { status: newStatus })
+      onChanged?.(updated)
+    }
+  }
+
   return (
     <>
       <Card
@@ -73,8 +89,12 @@ export function ApplicationCard({
               </a>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <ApplicationStatusBadge status={statusLabel} size="sm" />
+          <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+            <ApplicationStatusBadge
+              status={statusLabel}
+              size="sm"
+              onStatusChange={saveFn ? handleStatusChange : undefined}
+            />
             <Button
               variant="ghost"
               size="sm"

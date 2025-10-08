@@ -186,6 +186,21 @@ export function ApplicationDetails({
     await deleteStage({ clerkId, stageId } as any);
   };
 
+  // Handle status change
+  const handleStatusChange = (newStatusLabel: string) => {
+    const statusMap: Record<string, DBApplication["status"]> = {
+      'In Progress': 'saved',
+      'Applied': 'applied',
+      'Interviewing': 'interview',
+      'Offer': 'offer',
+      'Rejected': 'rejected',
+    };
+    const newStatus = statusMap[newStatusLabel];
+    if (newStatus) {
+      setLocal({ ...local, status: newStatus });
+    }
+  };
+
   const [editingStage, setEditingStage] = useState<any>(null);
   const saveStageEdit = async () => {
     if (!clerkId || !editingStage) return;
@@ -292,26 +307,46 @@ export function ApplicationDetails({
   };
 
   // Materials selection
-  const [selectedResumeId, setSelectedResumeId] = useState<string | undefined>(
-    local.resume_id || undefined,
+  const [selectedResumeId, setSelectedResumeId] = useState<string>(
+    local.resume_id || "none",
   );
-  const [selectedCoverId, setSelectedCoverId] = useState<string | undefined>(
-    local.cover_letter_id || undefined,
+  const [selectedCoverId, setSelectedCoverId] = useState<string>(
+    local.cover_letter_id || "none",
   );
+
+  useEffect(() => {
+    setSelectedResumeId(local.resume_id || "none");
+    setSelectedCoverId(local.cover_letter_id || "none");
+  }, [local.resume_id, local.cover_letter_id, open]);
   const saveMaterials = async () => {
     if (!clerkId) return;
+    const resumeValue =
+      selectedResumeId !== "none" ? (selectedResumeId as any) : undefined;
+    const coverValue =
+      selectedCoverId !== "none" ? (selectedCoverId as any) : undefined;
+
+    if (saveFn) {
+      const updated = await saveFn(application.id, {
+        resume_id: resumeValue,
+        cover_letter_id: coverValue,
+      });
+      setLocal(updated);
+      onChanged?.(updated);
+      return;
+    }
+
     await updateApplication({
       clerkId,
       applicationId: local.id as any,
       updates: {
-        resume_id: selectedResumeId ? (selectedResumeId as any) : undefined,
-        cover_letter_id: selectedCoverId ? (selectedCoverId as any) : undefined,
+        resume_id: resumeValue,
+        cover_letter_id: coverValue,
       },
     } as any);
     const updated = {
       ...local,
-      resume_id: selectedResumeId || null,
-      cover_letter_id: selectedCoverId || null,
+      resume_id: resumeValue ?? null,
+      cover_letter_id: coverValue ?? null,
     };
     setLocal(updated);
     onChanged?.(updated);
@@ -319,7 +354,7 @@ export function ApplicationDetails({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -330,7 +365,10 @@ export function ApplicationDetails({
                 {local.company || "Company"}
               </p>
             </div>
-            <ApplicationStatusBadge status={statusLabel(local.status)} />
+            <ApplicationStatusBadge
+              status={statusLabel(local.status)}
+              onStatusChange={handleStatusChange}
+            />
           </div>
           {local.created_at && (
             <p className="text-xs text-muted-foreground">
@@ -695,7 +733,7 @@ export function ApplicationDetails({
                   <SelectValue placeholder="Select resume" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {(resumes || []).map((r: any) => (
                     <SelectItem key={r._id} value={r._id}>
                       {r.title}
@@ -714,7 +752,7 @@ export function ApplicationDetails({
                   <SelectValue placeholder="Select cover letter" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {(coverLetters || []).map((c: any) => (
                     <SelectItem key={c._id} value={c._id}>
                       {c.name}

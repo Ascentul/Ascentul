@@ -11,6 +11,7 @@ import { CareerGoalsSummary } from '@/components/CareerGoalsSummary'
 import { ActiveInterviewsSummary } from '@/components/ActiveInterviewsSummary'
 import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
 import { TodaysRecommendations } from '@/components/TodaysRecommendations'
+import { UsageProgressCard } from '@/components/UsageProgressCard'
 import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
 import { Button } from '@/components/ui/button'
@@ -47,6 +48,20 @@ function formatTimeAgo(timestamp: number): string {
   } else {
     return 'Just now'
   }
+}
+
+const activityTypeColors: Record<string, string> = {
+  application: 'bg-green-500',
+  application_update: 'bg-emerald-500',
+  interview: 'bg-blue-500',
+  followup: 'bg-orange-500',
+  followup_completed: 'bg-lime-500',
+  goal: 'bg-purple-500',
+  goal_completed: 'bg-purple-600',
+  resume: 'bg-slate-500',
+  cover_letter: 'bg-rose-500',
+  project: 'bg-teal-500',
+  contact: 'bg-amber-500'
 }
 
 export default function DashboardPage() {
@@ -311,9 +326,13 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
-          {/* Row 2: Onboarding Checklist */}
+          {/* Row 2: Usage Progress (Free Users) or Onboarding Checklist */}
           <motion.div variants={cardAnimation} className="mb-6">
-            <SimpleOnboardingChecklist />
+            {user?.subscription_plan === 'free' ? (
+              <UsageProgressCard />
+            ) : (
+              <SimpleOnboardingChecklist />
+            )}
           </motion.div>
 
           {/* Row 3: Recommendations */}
@@ -323,7 +342,7 @@ export default function DashboardPage() {
 
           {/* Row 4: Active Interviews, Follow-up Actions, Goals */}
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6"
             variants={staggeredContainer}
           >
             <motion.div variants={cardAnimation}>
@@ -349,21 +368,20 @@ export default function DashboardPage() {
                 </div>
                 <div className="space-y-4">
                   {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 ? (
-                    dashboardData.recentActivity.map((activity, index) => (
-                      <div key={activity.id} className="flex items-center space-x-4">
-                        <div className={`w-2 h-2 rounded-full ${
-                          activity.type === 'application' ? 'bg-green-500' :
-                          activity.type === 'interview' ? 'bg-blue-500' :
-                          'bg-yellow-500'
-                        }`}></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{activity.description}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatTimeAgo(activity.timestamp)}
-                          </p>
+                    dashboardData.recentActivity.map((activity) => {
+                      const colorClass = activityTypeColors[activity.type] ?? 'bg-yellow-500'
+                      return (
+                        <div key={activity.id} className="flex items-center space-x-4">
+                          <div className={`w-2 h-2 rounded-full ${colorClass}`}></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{activity.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatTimeAgo(activity.timestamp)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      )
+                    })
                   ) : (
                     <div className="text-center py-8">
                       <p className="text-sm text-muted-foreground">No recent activity</p>

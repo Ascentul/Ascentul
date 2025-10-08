@@ -149,6 +149,7 @@ export function AICareerCoach() {
                 onClick={handleQuickQuestion}
                 disabled={!quickQuestion.trim() || isSubmitting}
                 className="self-end"
+                aria-label={isSubmitting ? "Sending" : "Send"}
               >
                 {isSubmitting ? (
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
