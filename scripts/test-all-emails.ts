@@ -69,7 +69,7 @@ async function testEmailService() {
   try {
     const tempPassword = 'TempPass123!'
     const activationToken = `act_${Date.now()}_test123`
-    const activationUrl = `https://app.ascentul.io/activate/${activationToken}`
+    const activationUrl = `https://app.ascentful.io/activate/${activationToken}`
 
     const result = await sendActivationEmail(
       TEST_EMAIL,
@@ -105,7 +105,7 @@ async function testEmailService() {
   console.log('\n📧 4. Testing support ticket response email...')
   try {
     const ticketId = 'ticket_' + Date.now()
-    const ticketUrl = `https://app.ascentul.io/support/${ticketId}`
+    const ticketUrl = `https://app.ascentful.io/support/${ticketId}`
 
     const result = await sendSupportTicketResponseEmail(
       TEST_EMAIL,
@@ -138,7 +138,7 @@ async function testEmailService() {
   console.log('⚠️  Password reset email uses Convex action - testing template only')
   try {
     const resetToken = `reset_${Date.now()}_test456`
-    const resetUrl = `https://app.ascentul.io/reset-password/${resetToken}`
+    const resetUrl = `https://app.ascentful.io/reset-password/${resetToken}`
 
     const result = await sendEmail({
       to: TEST_EMAIL,

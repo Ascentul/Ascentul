@@ -138,7 +138,7 @@ This activation link will expire in 24 hours for security. Once activated, you c
 • Access all career development tools
 • Build your professional profile
 
-After activation, log in at https://app.ascentul.io
+After activation, log in at https://app.ascentful.io
 
 If you did not expect this email or have questions, please contact your university administrator or our support team.
 
@@ -194,11 +194,11 @@ The Ascentul Team`
       </p>
 
       <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
-        After activation, you can log in anytime at <a href="https://app.ascentul.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">https://app.ascentul.io</a>
+        After activation, you can log in anytime at <a href="https://app.ascentful.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">https://app.ascentful.io</a>
       </p>
 
       <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
-        If you did not expect this email or have questions, please contact your university administrator or our support team at <a href="mailto:support@ascentul.io" style="color: #0C29AB; text-decoration: none;">support@ascentul.io</a>
+        If you did not expect this email or have questions, please contact your university administrator or our support team at <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none;">support@ascentful.io</a>
       </p>
 
       <p style="font-size: 16px; margin-top: 32px; margin-bottom: 8px;">
@@ -213,9 +213,9 @@ The Ascentul Team`
       <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
         <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
         <p style="margin-top: 10px;">
-          <a href="https://ascentul.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
-          <a href="https://ascentul.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
-          <a href="mailto:support@ascentul.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
+          <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentful.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
         </p>
       </div>
     </div>
@@ -310,7 +310,7 @@ The Ascentul Team`
 
       <p style="font-size: 14px; color: #666; margin-top: 25px;">
         If you have any questions about this invitation, please contact your university's career services department or reach out to our support team at
-        <a href="mailto:support@ascentul.io" style="color: #0C29AB; text-decoration: none;">support@ascentul.io</a>
+        <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none;">support@ascentful.io</a>
       </p>
 
       <p>We're excited to support your career development journey!</p>
@@ -320,9 +320,9 @@ The Ascentul Team`
       <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center;">
         <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
         <p style="margin-top: 10px;">
-          <a href="https://ascentul.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
-          <a href="https://ascentul.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
-          <a href="mailto:support@ascentul.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
+          <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentful.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
         </p>
       </div>
     </div>
@@ -427,9 +427,9 @@ The Ascentul Support Team`
       <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
         <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
         <p style="margin-top: 10px;">
-          <a href="https://ascentul.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
-          <a href="https://ascentul.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
-          <a href="mailto:support@ascentul.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
+          <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentful.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
         </p>
       </div>
     </div>
@@ -487,7 +487,7 @@ The Ascentul Team`
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://app.ascentul.io/dashboard"
+        <a href="https://app.ascentful.io/dashboard"
            style="background-color: #0C29AB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
           Go to Dashboard
         </a>
@@ -500,9 +500,9 @@ The Ascentul Team`
       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center;">
         <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
         <p>
-          <a href="https://ascentul.io/privacy" style="color: #0C29AB; text-decoration: none; margin: 0 10px;">Privacy Policy</a> |
-          <a href="https://ascentul.io/terms" style="color: #0C29AB; text-decoration: none; margin: 0 10px;">Terms of Service</a> |
-          <a href="mailto:support@ascentul.io" style="color: #0C29AB; text-decoration: none; margin: 0 10px;">Support</a>
+          <a href="https://ascentful.io/privacy" style="color: #0C29AB; text-decoration: none; margin: 0 10px;">Privacy Policy</a> |
+          <a href="https://ascentful.io/terms" style="color: #0C29AB; text-decoration: none; margin: 0 10px;">Terms of Service</a> |
+          <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none; margin: 0 10px;">Support</a>
         </p>
       </div>
     </div>

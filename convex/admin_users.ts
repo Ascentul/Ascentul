@@ -261,7 +261,7 @@ export const regenerateActivationToken = mutation({
     })
 
     // Get app URL from environment
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentul.io'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'
     const activationUrl = `${appUrl}/activate/${activationToken}`
 
     // Schedule email send (runs in background)

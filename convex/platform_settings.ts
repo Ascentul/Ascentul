@@ -35,8 +35,8 @@ export const getPlatformSettings = query({
 
       // General Settings
       platform_name: await getSetting(ctx, "platform_name", 'Ascentul'),
-      support_email: await getSetting(ctx, "support_email", 'support@ascentul.io'),
-      base_url: await getSetting(ctx, "base_url", 'https://app.ascentul.io'),
+      support_email: await getSetting(ctx, "support_email", 'support@ascentful.io'),
+      base_url: await getSetting(ctx, "base_url", 'https://app.ascentful.io'),
       default_timezone: await getSetting(ctx, "default_timezone", 'UTC'),
       university_plan_limit: await getSetting(ctx, "university_plan_limit", 1000),
       premium_plan_limit: await getSetting(ctx, "premium_plan_limit", 100),

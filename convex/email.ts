@@ -23,7 +23,7 @@ export const sendActivationEmail = action({
     // Import email module (only available in actions, not mutations)
     const { sendActivationEmail: sendEmail } = await import("../src/lib/email")
 
-    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentul.io'}/activate/${args.activationToken}`
+    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`
 
     try {
       const result = await sendEmail(
@@ -75,7 +75,7 @@ export const sendSupportTicketResponseEmail = action({
   handler: async (ctx, args) => {
     const { sendSupportTicketResponseEmail: sendEmail } = await import("../src/lib/email")
 
-    const ticketUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentul.io'}/support/${args.ticketId}`
+    const ticketUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/support/${args.ticketId}`
 
     try {
       const result = await sendEmail(
@@ -139,7 +139,7 @@ export const sendPasswordResetEmail = action({
     resetToken: v.string(),
   },
   handler: async (ctx, args) => {
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentul.io'}/reset-password/${args.resetToken}`
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/reset-password/${args.resetToken}`
 
     const subject = "Reset Your Ascentul Password"
     const text = `Hello ${args.name},
