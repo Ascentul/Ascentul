@@ -61,6 +61,9 @@ import {
   CheckCircle2,
   Circle,
   Linkedin,
+  Plus,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 
 // Career Profile Form Schema
@@ -137,6 +140,19 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
+
+  // Work History Management
+  const [isAddingWorkHistory, setIsAddingWorkHistory] = useState(false);
+  const [editingWorkHistoryId, setEditingWorkHistoryId] = useState<string | null>(null);
+  const [workHistoryForm, setWorkHistoryForm] = useState({
+    role: "",
+    company: "",
+    location: "",
+    start_date: "",
+    end_date: "",
+    is_current: false,
+    summary: "",
+  });
 
   // Avatar mutations
   const generateAvatarUploadUrl = useMutation(
@@ -293,6 +309,154 @@ export default function ProfilePage() {
         variant: "destructive",
       });
     }
+  };
+
+  // Work History Management Functions
+  const handleAddWorkHistory = async () => {
+    if (!clerkUser || !workHistoryForm.role || !workHistoryForm.company) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in role and company",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const currentWorkHistory = userProfile?.work_history || [];
+      const newWorkHistory = {
+        id: Date.now().toString(),
+        role: workHistoryForm.role,
+        company: workHistoryForm.company,
+        location: workHistoryForm.location || undefined,
+        start_date: workHistoryForm.start_date || undefined,
+        end_date: workHistoryForm.is_current ? undefined : (workHistoryForm.end_date || undefined),
+        is_current: workHistoryForm.is_current,
+        summary: workHistoryForm.summary || undefined,
+      };
+
+      await updateUser({
+        clerkId: clerkUser.id,
+        updates: {
+          work_history: [...currentWorkHistory, newWorkHistory],
+        },
+      });
+
+      toast({
+        title: "Work experience added",
+        description: "Your work history has been updated",
+      });
+
+      // Reset form
+      setWorkHistoryForm({
+        role: "",
+        company: "",
+        location: "",
+        start_date: "",
+        end_date: "",
+        is_current: false,
+        summary: "",
+      });
+      setIsAddingWorkHistory(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add work history",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateWorkHistory = async () => {
+    if (!clerkUser || !editingWorkHistoryId) return;
+
+    try {
+      const currentWorkHistory = userProfile?.work_history || [];
+      const updatedWorkHistory = currentWorkHistory.map((item) =>
+        item.id === editingWorkHistoryId
+          ? {
+              ...item,
+              role: workHistoryForm.role,
+              company: workHistoryForm.company,
+              location: workHistoryForm.location || undefined,
+              start_date: workHistoryForm.start_date || undefined,
+              end_date: workHistoryForm.is_current ? undefined : (workHistoryForm.end_date || undefined),
+              is_current: workHistoryForm.is_current,
+              summary: workHistoryForm.summary || undefined,
+            }
+          : item
+      );
+
+      await updateUser({
+        clerkId: clerkUser.id,
+        updates: {
+          work_history: updatedWorkHistory,
+        },
+      });
+
+      toast({
+        title: "Work experience updated",
+        description: "Your work history has been updated",
+      });
+
+      // Reset form
+      setWorkHistoryForm({
+        role: "",
+        company: "",
+        location: "",
+        start_date: "",
+        end_date: "",
+        is_current: false,
+        summary: "",
+      });
+      setEditingWorkHistoryId(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update work history",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteWorkHistory = async (id: string) => {
+    if (!clerkUser) return;
+
+    try {
+      const currentWorkHistory = userProfile?.work_history || [];
+      const updatedWorkHistory = currentWorkHistory.filter((item) => item.id !== id);
+
+      await updateUser({
+        clerkId: clerkUser.id,
+        updates: {
+          work_history: updatedWorkHistory,
+        },
+      });
+
+      toast({
+        title: "Work experience deleted",
+        description: "Your work history has been updated",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete work history",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditWorkHistory = (item: any) => {
+    setWorkHistoryForm({
+      role: item.role || "",
+      company: item.company || "",
+      location: item.location || "",
+      start_date: item.start_date || "",
+      end_date: item.end_date || "",
+      is_current: item.is_current || false,
+      summary: item.summary || "",
+    });
+    setEditingWorkHistoryId(item.id);
   };
 
   if (!clerkUser || !userProfile) {
@@ -670,34 +834,71 @@ export default function ProfilePage() {
         {/* Work History */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5" />
-              Work History
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5" />
+                Work History
+              </CardTitle>
+              {isViewingOwnProfile && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddingWorkHistory(true)}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Experience
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            {displayProfile.current_position ||
-            displayProfile.current_company ? (
-              <div>
-                {displayProfile.current_position && (
-                  <p className="font-medium">
-                    {displayProfile.current_position}
-                  </p>
-                )}
-                {displayProfile.current_company && (
-                  <p className="text-sm text-muted-foreground">
-                    {displayProfile.current_company}
-                  </p>
-                )}
-                {displayProfile.experience_level && (
-                  <Badge variant="outline" className="mt-2">
-                    {displayProfile.experience_level}
-                  </Badge>
-                )}
+            {displayProfile.work_history && displayProfile.work_history.length > 0 ? (
+              <div className="space-y-6">
+                {displayProfile.work_history.map((job, index) => (
+                  <div key={job.id || index} className="border-b last:border-0 pb-4 last:pb-0">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-base">{job.role}</h3>
+                        <p className="text-sm text-muted-foreground">{job.company}</p>
+                        {job.location && (
+                          <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                            <MapPin className="h-3 w-3" />
+                            {job.location}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {job.start_date || "Start date not specified"} -{" "}
+                          {job.is_current ? "Present" : (job.end_date || "End date not specified")}
+                        </p>
+                        {job.summary && (
+                          <p className="text-sm mt-2">{job.summary}</p>
+                        )}
+                      </div>
+                      {isViewingOwnProfile && (
+                        <div className="flex gap-2 ml-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditWorkHistory(job)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteWorkHistory(job.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No work history added yet. Click Edit Profile to add.
+                No work history added yet. {isViewingOwnProfile && "Click 'Add Experience' to add your work history."}
               </p>
             )}
           </CardContent>
@@ -978,6 +1179,149 @@ export default function ProfilePage() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add/Edit Work History Dialog */}
+      <Dialog
+        open={isAddingWorkHistory || !!editingWorkHistoryId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsAddingWorkHistory(false);
+            setEditingWorkHistoryId(null);
+            setWorkHistoryForm({
+              role: "",
+              company: "",
+              location: "",
+              start_date: "",
+              end_date: "",
+              is_current: false,
+              summary: "",
+            });
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingWorkHistoryId ? "Edit Work Experience" : "Add Work Experience"}
+            </DialogTitle>
+            <DialogDescription>
+              Add details about your work experience
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Job Title *</label>
+                <Input
+                  placeholder="e.g. Software Engineer"
+                  value={workHistoryForm.role}
+                  onChange={(e) =>
+                    setWorkHistoryForm({ ...workHistoryForm, role: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Company *</label>
+                <Input
+                  placeholder="e.g. Google"
+                  value={workHistoryForm.company}
+                  onChange={(e) =>
+                    setWorkHistoryForm({ ...workHistoryForm, company: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Location</label>
+              <Input
+                placeholder="e.g. San Francisco, CA"
+                value={workHistoryForm.location}
+                onChange={(e) =>
+                  setWorkHistoryForm({ ...workHistoryForm, location: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Start Date</label>
+                <Input
+                  type="month"
+                  value={workHistoryForm.start_date}
+                  onChange={(e) =>
+                    setWorkHistoryForm({ ...workHistoryForm, start_date: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">End Date</label>
+                <Input
+                  type="month"
+                  value={workHistoryForm.end_date}
+                  onChange={(e) =>
+                    setWorkHistoryForm({ ...workHistoryForm, end_date: e.target.value })
+                  }
+                  disabled={workHistoryForm.is_current}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="is_current"
+                checked={workHistoryForm.is_current}
+                onChange={(e) =>
+                  setWorkHistoryForm({ ...workHistoryForm, is_current: e.target.checked })
+                }
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="is_current" className="text-sm font-medium">
+                I currently work here
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                placeholder="Describe your responsibilities and achievements..."
+                value={workHistoryForm.summary}
+                onChange={(e) =>
+                  setWorkHistoryForm({ ...workHistoryForm, summary: e.target.value })
+                }
+                rows={4}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddingWorkHistory(false);
+                setEditingWorkHistoryId(null);
+                setWorkHistoryForm({
+                  role: "",
+                  company: "",
+                  location: "",
+                  start_date: "",
+                  end_date: "",
+                  is_current: false,
+                  summary: "",
+                });
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={editingWorkHistoryId ? handleUpdateWorkHistory : handleAddWorkHistory}
+            >
+              {editingWorkHistoryId ? "Update" : "Add"} Experience
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
