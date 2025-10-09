@@ -89,12 +89,15 @@ async function testEmailService() {
   // Test 3: University Invitation Email
   console.log('\n📧 3. Testing university invitation email...')
   try {
+    const inviteLink = `https://app.ascentful.io/sign-up?email=${encodeURIComponent(TEST_EMAIL)}&university=${encodeURIComponent(TEST_UNIVERSITY)}`
     const result = await sendUniversityInvitationEmail(
       TEST_EMAIL,
-      TEST_UNIVERSITY
+      TEST_UNIVERSITY,
+      inviteLink
     )
     console.log(`✅ University invitation email sent successfully! ID: ${result.id}`)
     console.log(`   University: ${TEST_UNIVERSITY}`)
+    console.log(`   Invite Link: ${inviteLink}`)
     results.push({ type: 'University Invitation', success: true, id: result.id })
   } catch (error) {
     console.error('❌ Failed to send university invitation email:', error)

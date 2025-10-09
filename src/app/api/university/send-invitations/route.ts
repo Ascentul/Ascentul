@@ -40,7 +40,11 @@ export async function POST(req: NextRequest) {
     const results = await Promise.allSettled(
       emails.map(async (email: string) => {
         try {
-          await sendUniversityInvitationEmail(email, university.name);
+          // Create invite link to sign-up page with email pre-filled
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io';
+          const inviteLink = `${baseUrl}/sign-up?email=${encodeURIComponent(email)}&university=${encodeURIComponent(university.name)}`;
+
+          await sendUniversityInvitationEmail(email, university.name, inviteLink);
           return { email, success: true };
         } catch (error: any) {
           console.error(`Error sending invitation to ${email}:`, error);

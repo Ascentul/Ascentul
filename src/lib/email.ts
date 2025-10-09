@@ -230,60 +230,63 @@ The Ascentul Team`
 }
 
 /**
- * Send university invitation email to students
+ * Send university invitation email to students (Email Template #1)
+ * University Admin invites student
  */
 export async function sendUniversityInvitationEmail(
   email: string,
-  universityName: string
+  universityName: string,
+  inviteLink: string
 ): Promise<EmailResult> {
-  const signUpUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sign-up?email=${encodeURIComponent(email)}`
+  const firstName = email.split('@')[0] // Extract first part of email as fallback name
 
-  const subject = `You're Invited to Join ${universityName} on Ascentul`
+  const subject = `You're Invited to Join ${universityName} on Ascentful 🎓`
 
-  const text = `Hello,
+  const text = `Hi ${firstName},
 
-You've been invited to join ${universityName} on Ascentul - your career development platform.
+${universityName} has partnered with Ascentful, a comprehensive career development platform designed to help you plan your career, track your goals, and land your next opportunity.
 
-Your university has provided you with access to Ascentul's comprehensive career tools and resources at no cost.
+You've been invited to join using this email: ${email}
 
-To get started, please create your account using this email address: ${email}
+Your university has provided you with complimentary access to all premium features.
 
-Click here to sign up:
-${signUpUrl}
+Click here to activate your account:
+${inviteLink}
 
-Once you create your account, you'll have access to:
+What You'll Have Access To:
 • AI-powered resume and cover letter builder
-• Career path guidance and goal setting
-• Job application tracking
-• Interview preparation resources
-• Professional networking tools
-• And much more!
+• Personalized career path guidance and goal tracking
+• Job search, application tracking, and interview prep
+• Smart networking tools to manage professional connections
+• On-demand AI career coaching and progress insights
 
-If you have any questions, please contact your university's career services or reach out to our support team.
+If you have any questions, please contact ${universityName}'s Career Services Department or reach out to our team at support@ascentful.io.
 
-Best regards,
-The Ascentul Team`
+We're excited to support your career journey!
+
+Warm regards,
+The Ascentful Team
+www.ascentful.io`
 
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentul" style="max-width: 100%; height: auto;">
+        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentful" style="max-width: 100%; height: auto; margin-bottom: 20px;">
+        <h1 style="color: #0C29AB; font-size: 28px; margin: 0;">You're Invited!</h1>
       </div>
 
-      <h1 style="color: #0C29AB; font-size: 26px; margin-bottom: 20px;">You're Invited!</h1>
+      <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
 
-      <p>Hello,</p>
+      <p style="font-size: 16px; margin-bottom: 24px;"><strong>${universityName}</strong> has partnered with <strong>Ascentful</strong>, a comprehensive career development platform designed to help you plan your career, track your goals, and land your next opportunity.</p>
 
-      <p>Great news! <strong>${universityName}</strong> has invited you to join <strong>Ascentul</strong>, a comprehensive career development platform designed to help you succeed in your professional journey.</p>
-
-      <div style="background-color: #f0f2ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 25px 0; border-radius: 4px;">
-        <h3 style="margin-top: 0; color: #0C29AB;">Your Access Details</h3>
-        <p style="margin: 8px 0;">Use this email address to sign up: <strong>${email}</strong></p>
-        <p style="margin: 8px 0; font-size: 14px; color: #666;">Your university has provided you with complimentary access to all premium features.</p>
+      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; font-size: 15px;">You've been invited to join using this email:</p>
+        <p style="margin: 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${email}</p>
+        <p style="margin: 12px 0 0 0; font-size: 14px; color: #6b7280;">Your university has provided you with <strong>complimentary access to all premium features</strong>.</p>
       </div>
 
-      <div style="text-align: center; margin: 35px 0;">
-        <a href="${signUpUrl}"
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="${inviteLink}"
            style="background-color: #0C29AB;
                   color: white;
                   padding: 14px 32px;
@@ -291,34 +294,40 @@ The Ascentul Team`
                   border-radius: 6px;
                   font-weight: 600;
                   font-size: 16px;
-                  display: inline-block;">
-          Create Your Account
+                  display: inline-block;
+                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+          Activate Your Account →
         </a>
       </div>
 
-      <div style="background-color: #f9fafb; padding: 20px; margin: 25px 0; border-radius: 6px;">
-        <h3 style="margin-top: 0; font-size: 16px; color: #333;">What you'll have access to:</h3>
-        <ul style="margin: 10px 0; padding-left: 20px;">
-          <li style="margin: 8px 0;">AI-powered resume and cover letter builder</li>
-          <li style="margin: 8px 0;">Personalized career path guidance and goal setting</li>
-          <li style="margin: 8px 0;">Job application tracking and management</li>
-          <li style="margin: 8px 0;">Interview preparation resources and tips</li>
-          <li style="margin: 8px 0;">Professional networking tools</li>
-          <li style="margin: 8px 0;">Career coaching and mentorship</li>
+      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #374151;">What You'll Have Access To</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #6b7280; line-height: 1.8;">
+          <li style="margin-bottom: 8px;">AI-powered resume and cover letter builder</li>
+          <li style="margin-bottom: 8px;">Personalized career path guidance and goal tracking</li>
+          <li style="margin-bottom: 8px;">Job search, application tracking, and interview prep</li>
+          <li style="margin-bottom: 8px;">Smart networking tools to manage professional connections</li>
+          <li style="margin-bottom: 8px;">On-demand AI career coaching and progress insights</li>
         </ul>
       </div>
 
-      <p style="font-size: 14px; color: #666; margin-top: 25px;">
-        If you have any questions about this invitation, please contact your university's career services department or reach out to our support team at
-        <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none;">support@ascentful.io</a>
+      <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
+        If you have any questions, please contact <strong>${universityName}</strong>'s Career Services Department or reach out to our team at
+        <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
       </p>
 
-      <p>We're excited to support your career development journey!</p>
+      <p style="font-size: 16px; margin-top: 32px;">
+        We're excited to support your career journey!
+      </p>
 
-      <p>Best regards,<br><strong>The Ascentul Team</strong></p>
+      <p style="font-size: 16px; margin-top: 24px;">
+        Warm regards,<br>
+        <strong>The Ascentful Team</strong><br>
+        <a href="https://www.ascentful.io" style="color: #0C29AB; text-decoration: none;">www.ascentful.io</a>
+      </p>
 
-      <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center;">
-        <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
+      <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
+        <p>© ${new Date().getFullYear()} Ascentful, Inc. All rights reserved.</p>
         <p style="margin-top: 10px;">
           <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
           <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
@@ -444,65 +453,303 @@ The Ascentul Support Team`
 }
 
 /**
- * Send welcome email to existing self-registered users
+ * Send welcome email to self-registered individual consumers (Email Template #4)
  */
 export async function sendWelcomeEmail(email: string, name: string): Promise<EmailResult> {
-  const subject = '🎉 Welcome to Ascentul - Your Career Growth Partner'
+  const firstName = name.split(' ')[0]
+  const subject = 'Welcome to Ascentful - Let\'s Build Your Career OS 🚀'
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/dashboard`
 
-  const text = `Hello ${name},
+  const text = `Hi ${firstName},
 
-Welcome to Ascentul! We're excited to have you join our platform.
+Welcome to Ascentful, the Career OS that helps you plan your path, track progress, and move confidently toward your next role.
 
-Here at Ascentul, we're dedicated to helping you achieve your career goals through personalized guidance, powerful tools, and cutting-edge AI assistance.
+You've created your account using: ${email}
 
-To get started:
-1. Complete your professional profile
-2. Set your first career goal
-3. Explore our AI tools to optimize your resume and cover letter
+What You Can Do Today:
+• Track your full interview process, from application to offer, and schedule timely follow-ups
+• Set and manage career goals, explore potential paths, compare average salaries, and learn the exact steps to reach your target roles
+• Create AI-tailored resumes and cover letters for every job you apply to
+• Get personalized support and insights from your AI Career Coach whenever you need direction
+• See your next best action automatically based on your current progress and goals
+• Organize your projects, achievements, and contacts in one place for quick access and portfolio use
 
-If you have any questions or need assistance, don't hesitate to reach out to our support team.
+Start Building Your Career OS:
+${dashboardUrl}
 
-Best regards,
-The Ascentul Team`
+Need help getting started? Reach out to support@ascentful.io.
+
+We're thrilled to have you on board,
+The Ascentful Team`
 
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentul" style="max-width: 100%; height: auto;">
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentful" style="max-width: 100%; height: auto; margin-bottom: 20px;">
+        <h1 style="color: #0C29AB; font-size: 28px; margin: 0;">Welcome to Ascentful 🚀</h1>
       </div>
 
-      <h1 style="color: #0C29AB; font-size: 24px; margin-bottom: 20px;">Welcome to Ascentul!</h1>
+      <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
 
-      <p>Hello ${name},</p>
+      <p style="font-size: 16px; margin-bottom: 24px;">Welcome to <strong>Ascentful</strong>, the Career OS that helps you plan your path, track progress, and move confidently toward your next role.</p>
 
-      <p>We're <strong>thrilled</strong> to have you join the Ascentul community! Our mission is to empower your career growth with intelligent tools and resources.</p>
-
-      <div style="background-color: #f0f2ff; border-left: 4px solid #0C29AB; padding: 15px; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: #0C29AB;">Getting Started Is Easy</h3>
-        <ul style="padding-left: 20px;">
-          <li>Complete your professional profile</li>
-          <li>Set your first career goal</li>
-          <li>Explore our AI tools to optimize your resume and cover letter</li>
-        </ul>
+      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0; font-size: 15px;">You've created your account using:</p>
+        <p style="margin: 8px 0 0 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${email}</p>
       </div>
 
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="https://app.ascentful.io/dashboard"
-           style="background-color: #0C29AB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-          Go to Dashboard
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="${dashboardUrl}"
+           style="background-color: #0C29AB;
+                  color: white;
+                  padding: 14px 32px;
+                  text-decoration: none;
+                  border-radius: 6px;
+                  font-weight: 600;
+                  font-size: 16px;
+                  display: inline-block;
+                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+          Start Building Your Career OS →
         </a>
       </div>
 
-      <p>We're excited to be part of your professional journey and help you reach new heights in your career.</p>
+      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #374151;">What You Can Do Today</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #6b7280; line-height: 1.8;">
+          <li style="margin-bottom: 12px;">Track your full interview process, from application to offer, and schedule timely follow-ups</li>
+          <li style="margin-bottom: 12px;">Set and manage career goals, explore potential paths, compare average salaries, and learn the exact steps to reach your target roles</li>
+          <li style="margin-bottom: 12px;">Create AI-tailored resumes and cover letters for every job you apply to</li>
+          <li style="margin-bottom: 12px;">Get personalized support and insights from your AI Career Coach whenever you need direction</li>
+          <li style="margin-bottom: 12px;">See your next best action automatically based on your current progress and goals</li>
+          <li style="margin-bottom: 12px;">Organize your projects, achievements, and contacts in one place for quick access and portfolio use</li>
+        </ul>
+      </div>
 
-      <p>Best regards,<br>The Ascentul Team</p>
+      <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
+        Need help getting started? Reach out to <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
+      </p>
 
-      <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center;">
-        <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
-        <p>
-          <a href="https://ascentful.io/privacy" style="color: #0C29AB; text-decoration: none; margin: 0 10px;">Privacy Policy</a> |
-          <a href="https://ascentful.io/terms" style="color: #0C29AB; text-decoration: none; margin: 0 10px;">Terms of Service</a> |
-          <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none; margin: 0 10px;">Support</a>
+      <p style="font-size: 16px; margin-top: 32px;">
+        We're thrilled to have you on board,<br>
+        <strong>The Ascentful Team</strong>
+      </p>
+
+      <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
+        <p>© ${new Date().getFullYear()} Ascentful, Inc. All rights reserved.</p>
+        <p style="margin-top: 10px;">
+          <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentful.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
+        </p>
+      </div>
+    </div>
+  `
+
+  return sendEmail({
+    to: email,
+    subject,
+    text,
+    html,
+  })
+}
+
+/**
+ * Send university advisor/admin invitation (Email Template #2)
+ * University Admin invites advisor or another admin
+ */
+export async function sendUniversityAdvisorInvitationEmail(
+  email: string,
+  firstName: string,
+  universityAdminName: string,
+  role: string,
+  inviteLink: string
+): Promise<EmailResult> {
+  const subject = `You've Been Invited to Join Ascentful's Team`
+
+  const text = `Hi ${firstName},
+
+${universityAdminName} has invited you to join Ascentful, your university's career development and advising platform.
+
+You've been invited using this email: ${email}
+
+Your account will have ${role} access, allowing you to collaborate with students and manage university data.
+
+Click here to activate your account:
+${inviteLink}
+
+What You'll Be Able To Do:
+• View and track student progress across career goals and applications
+• Leave advising notes and collaborate on student profiles
+• Manage departments, programs, and student licenses
+• Access dashboards showing engagement and outcomes
+
+If you have any questions, please contact ${universityAdminName} or reach us at support@ascentful.io.
+
+Welcome aboard,
+The Ascentful Team`
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentful" style="max-width: 100%; height: auto; margin-bottom: 20px;">
+        <h1 style="color: #0C29AB; font-size: 28px; margin: 0;">You've Been Invited!</h1>
+      </div>
+
+      <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
+
+      <p style="font-size: 16px; margin-bottom: 24px;"><strong>${universityAdminName}</strong> has invited you to join <strong>Ascentful</strong>, your university's career development and advising platform.</p>
+
+      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; font-size: 15px;">You've been invited using this email:</p>
+        <p style="margin: 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${email}</p>
+        <p style="margin: 12px 0 0 0; font-size: 14px; color: #6b7280;">Your account will have <strong>${role}</strong> access, allowing you to collaborate with students and manage university data.</p>
+      </div>
+
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="${inviteLink}"
+           style="background-color: #0C29AB;
+                  color: white;
+                  padding: 14px 32px;
+                  text-decoration: none;
+                  border-radius: 6px;
+                  font-weight: 600;
+                  font-size: 16px;
+                  display: inline-block;
+                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+          Activate Your Account →
+        </a>
+      </div>
+
+      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #374151;">What You'll Be Able To Do</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #6b7280; line-height: 1.8;">
+          <li style="margin-bottom: 8px;">View and track student progress across career goals and applications</li>
+          <li style="margin-bottom: 8px;">Leave advising notes and collaborate on student profiles</li>
+          <li style="margin-bottom: 8px;">Manage departments, programs, and student licenses</li>
+          <li style="margin-bottom: 8px;">Access dashboards showing engagement and outcomes</li>
+        </ul>
+      </div>
+
+      <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
+        If you have any questions, please contact <strong>${universityAdminName}</strong> or reach us at
+        <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
+      </p>
+
+      <p style="font-size: 16px; margin-top: 32px;">
+        Welcome aboard,<br>
+        <strong>The Ascentful Team</strong>
+      </p>
+
+      <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
+        <p>© ${new Date().getFullYear()} Ascentful, Inc. All rights reserved.</p>
+        <p style="margin-top: 10px;">
+          <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentful.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
+        </p>
+      </div>
+    </div>
+  `
+
+  return sendEmail({
+    to: email,
+    subject,
+    text,
+    html,
+  })
+}
+
+/**
+ * Send super admin university invitation (Email Template #3)
+ * Super Admin invites university admin
+ */
+export async function sendSuperAdminUniversityInvitationEmail(
+  email: string,
+  firstName: string,
+  universityName: string,
+  inviteLink: string
+): Promise<EmailResult> {
+  const subject = `Your University Has Been Added to Ascentful - Set Up Your Admin Account`
+
+  const text = `Hi ${firstName},
+
+Welcome to Ascentful!
+
+You've been invited to create an Admin account for ${universityName}, giving you full access to your institution's dashboard, student management tools, and analytics.
+
+You've been invited using this email: ${email}
+
+Click here to set up your admin account:
+${inviteLink}
+
+With Your Admin Access, You Can:
+• Add students, advisors, and department admins
+• Manage user licenses and invitations
+• Configure university programs and departments
+• Review analytics on student engagement and outcomes
+
+If you have any questions or need help getting started, contact your onboarding manager or reach out to support@ascentful.io.
+
+Welcome to Ascentful,
+The Ascentful Partnerships Team`
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentful" style="max-width: 100%; height: auto; margin-bottom: 20px;">
+        <h1 style="color: #0C29AB; font-size: 28px; margin: 0;">Welcome to Ascentful!</h1>
+      </div>
+
+      <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
+
+      <p style="font-size: 16px; margin-bottom: 24px;">You've been invited to create an Admin account for <strong>${universityName}</strong>, giving you full access to your institution's dashboard, student management tools, and analytics.</p>
+
+      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; font-size: 15px;">You've been invited using this email:</p>
+        <p style="margin: 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${email}</p>
+      </div>
+
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="${inviteLink}"
+           style="background-color: #0C29AB;
+                  color: white;
+                  padding: 14px 32px;
+                  text-decoration: none;
+                  border-radius: 6px;
+                  font-weight: 600;
+                  font-size: 16px;
+                  display: inline-block;
+                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+          Set Up My Admin Account →
+        </a>
+      </div>
+
+      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #374151;">With Your Admin Access, You Can:</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #6b7280; line-height: 1.8;">
+          <li style="margin-bottom: 8px;">Add students, advisors, and department admins</li>
+          <li style="margin-bottom: 8px;">Manage user licenses and invitations</li>
+          <li style="margin-bottom: 8px;">Configure university programs and departments</li>
+          <li style="margin-bottom: 8px;">Review analytics on student engagement and outcomes</li>
+        </ul>
+      </div>
+
+      <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
+        If you have any questions or need help getting started, contact your onboarding manager or reach out to
+        <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
+      </p>
+
+      <p style="font-size: 16px; margin-top: 32px;">
+        Welcome to Ascentful,<br>
+        <strong>The Ascentful Partnerships Team</strong>
+      </p>
+
+      <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
+        <p>© ${new Date().getFullYear()} Ascentful, Inc. All rights reserved.</p>
+        <p style="margin-top: 10px;">
+          <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentful.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
         </p>
       </div>
     </div>
