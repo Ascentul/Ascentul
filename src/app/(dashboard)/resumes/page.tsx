@@ -59,6 +59,12 @@ export default function ResumesPage() {
     clerkId ? { clerkId } : 'skip'
   ) as ResumeDoc[] | undefined
 
+  // Fetch complete user profile from database
+  const userProfile = useQuery(
+    api.users.getUserByClerkId,
+    clerkId ? { clerkId } : 'skip'
+  )
+
   const createResumeMutation = useMutation(api.resumes.createResume)
   const deleteResumeMutation = useMutation(api.resumes.deleteResume)
 
@@ -74,11 +80,26 @@ export default function ResumesPage() {
   }
 
   const getUserProfile = () => {
+    if (!userProfile) return null
+
     return {
-      name: clerkUser?.fullName || '',
-      email: clerkUser?.primaryEmailAddress?.emailAddress || '',
+      name: userProfile.name || clerkUser?.fullName || '',
+      email: userProfile.email || clerkUser?.primaryEmailAddress?.emailAddress || '',
       phone: clerkUser?.phoneNumbers?.[0]?.phoneNumber || '',
-      // Add more profile fields as needed from your user schema
+      current_position: userProfile.current_position || '',
+      current_company: userProfile.current_company || '',
+      skills: userProfile.skills || [],
+      bio: userProfile.bio || '',
+      industry: userProfile.industry || '',
+      experience_level: userProfile.experience_level || '',
+      education_history: userProfile.education_history || [],
+      work_history: userProfile.work_history || [],
+      location: userProfile.location || '',
+      linkedin_url: userProfile.linkedin_url || '',
+      github_url: userProfile.github_url || '',
+      university_name: userProfile.university_name || '',
+      major: userProfile.major || '',
+      graduation_year: userProfile.graduation_year || '',
     }
   }
 

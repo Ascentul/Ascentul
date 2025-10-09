@@ -35,7 +35,7 @@ Return strictly JSON with { paths: Path[] } where Path = { id: string; name: str
 Profile JSON: ${JSON.stringify(profileData).slice(0, 4000)}
 `;
         const completion = await client.chat.completions.create({
-          model: 'gpt-5',
+          model: 'gpt-4o',
           temperature: 0.5,
           messages: [
             { role: 'system', content: 'Respond with strictly valid JSON only.' },
@@ -57,7 +57,7 @@ Profile JSON: ${JSON.stringify(profileData).slice(0, 4000)}
                   target_role: String(first?.name || profileData?.currentRole || 'Career Path'),
                   current_level: undefined,
                   estimated_timeframe: undefined,
-                  steps: { source: 'profile', path: first, usedModel: 'gpt-5' },
+                  steps: { source: 'profile', path: first, usedModel: 'gpt-4o' },
                   status: 'active',
                 })
               }

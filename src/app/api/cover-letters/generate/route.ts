@@ -67,13 +67,40 @@ export async function POST(request: NextRequest) {
       if (profile.industry) profileSummary.push(`Industry: ${profile.industry}`)
       if (profile.experience_level) profileSummary.push(`Experience level: ${profile.experience_level}`)
       if (profile.location) profileSummary.push(`Location: ${profile.location}`)
-      if (profile.skills) profileSummary.push(`Skills: ${profile.skills}`)
+      if (profile.skills) profileSummary.push(`Skills: ${Array.isArray(profile.skills) ? profile.skills.join(', ') : profile.skills}`)
       if (profile.bio) profileSummary.push(`Bio: ${profile.bio}`)
       if (profile.career_goals) profileSummary.push(`Career goals: ${profile.career_goals}`)
       if (profile.education) profileSummary.push(`Education: ${profile.education}`)
       if (profile.university_name) profileSummary.push(`University: ${profile.university_name}`)
       if (profile.major) profileSummary.push(`Major: ${profile.major}`)
       if (profile.graduation_year) profileSummary.push(`Graduation year: ${profile.graduation_year}`)
+
+      // Add work history details
+      if (profile.work_history && Array.isArray(profile.work_history) && profile.work_history.length > 0) {
+        profileSummary.push('\n--- Work History ---')
+        profile.work_history.forEach((job: any, idx: number) => {
+          const workLines: string[] = []
+          workLines.push(`${idx + 1}. ${job.role || 'Role'} at ${job.company || 'Company'}`)
+          workLines.push(`   Duration: ${job.start_date || 'N/A'} - ${job.is_current ? 'Present' : (job.end_date || 'N/A')}`)
+          if (job.location) workLines.push(`   Location: ${job.location}`)
+          if (job.summary) workLines.push(`   Summary: ${job.summary}`)
+          profileSummary.push(workLines.join('\n'))
+        })
+      }
+
+      // Add education history details
+      if (profile.education_history && Array.isArray(profile.education_history) && profile.education_history.length > 0) {
+        profileSummary.push('\n--- Education History ---')
+        profile.education_history.forEach((edu: any, idx: number) => {
+          const eduLines: string[] = []
+          eduLines.push(`${idx + 1}. ${edu.degree || 'Degree'} in ${edu.field_of_study || 'Field'}`)
+          eduLines.push(`   Institution: ${edu.institution || 'N/A'}`)
+          eduLines.push(`   Duration: ${edu.start_date || 'N/A'} - ${edu.is_current ? 'Present' : (edu.end_date || edu.graduation_date || 'N/A')}`)
+          if (edu.gpa) eduLines.push(`   GPA: ${edu.gpa}`)
+          if (edu.activities) eduLines.push(`   Activities: ${edu.activities}`)
+          profileSummary.push(eduLines.join('\n'))
+        })
+      }
     }
 
     // Add projects summary

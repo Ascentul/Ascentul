@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
         const prompt = `Improve the RESUME SUMMARY and list RECOMMENDED SKILLS to add based on the JOB DESCRIPTION. Return JSON with { improvedSummary: string, recommendedSkills: string[] }.
 RESUME TEXT:\n${resumeText}\n\nJOB DESCRIPTION:\n${jobDescription || ''}`
         const response = await client.chat.completions.create({
-          model: 'gpt-5',
+          model: 'gpt-4o',
           messages: [
             { role: 'system', content: 'Return JSON only. No markdown.' },
             { role: 'user', content: prompt },

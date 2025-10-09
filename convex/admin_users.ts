@@ -4,7 +4,7 @@
  */
 
 import { v } from "convex/values"
-import { mutation } from "./_generated/server"
+import { mutation, query } from "./_generated/server"
 import { api } from "./_generated/api"
 
 /**
@@ -123,6 +123,41 @@ export const createUserByAdmin = mutation({
 })
 
 /**
+ * Get user by activation token
+ * Used by the activation page to verify token validity
+ */
+export const getUserByActivationToken = query({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Find user by activation token
+    const users = await ctx.db.query("users").collect()
+    const user = users.find(u => u.activation_token === args.token)
+
+    if (!user) {
+      return null
+    }
+
+    // Check if token expired
+    if (user.activation_expires_at && user.activation_expires_at < Date.now()) {
+      return null
+    }
+
+    // Return user data (excluding sensitive information)
+    return {
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      university_id: user.university_id,
+      account_status: user.account_status,
+      temp_password: user.temp_password, // Needed for verification
+    }
+  },
+})
+
+/**
  * Activate user account using activation token
  * This will be called from the activation page
  */
@@ -169,6 +204,82 @@ export const activateUserAccount = mutation({
         name: user.name,
         role: user.role,
       },
+    }
+  },
+})
+
+/**
+ * Regenerate activation token and resend activation email
+ * Used for "Resend Activation" feature
+ */
+export const regenerateActivationToken = mutation({
+  args: {
+    adminClerkId: v.string(),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Verify admin permissions
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.adminClerkId))
+      .unique()
+
+    if (!admin || !["super_admin", "university_admin", "admin", "advisor"].includes(admin.role)) {
+      throw new Error("Unauthorized: Only admins can regenerate activation tokens")
+    }
+
+    // Get the user
+    const user = await ctx.db.get(args.userId)
+
+    if (!user) {
+      throw new Error("User not found")
+    }
+
+    // Check if user is already activated
+    if (user.account_status === "active") {
+      throw new Error("User account is already active")
+    }
+
+    // For university admins, check they can only manage their own university users
+    if (admin.role === "university_admin" && user.university_id !== admin.university_id) {
+      throw new Error("Unauthorized: Cannot manage users outside your university")
+    }
+
+    // Generate new activation token and temp password
+    const activationToken = generateActivationToken()
+    const tempPassword = generateTempPassword()
+    const expiresAt = Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+
+    // Update user with new token
+    await ctx.db.patch(user._id, {
+      activation_token: activationToken,
+      activation_expires_at: expiresAt,
+      temp_password: tempPassword,
+      clerkId: `pending_${activationToken}`, // Ensure consistent pending state
+      account_status: "pending_activation",
+      updated_at: Date.now(),
+    })
+
+    // Get app URL from environment
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentul.io'
+    const activationUrl = `${appUrl}/activate/${activationToken}`
+
+    // Schedule email send (runs in background)
+    await ctx.scheduler.runAfter(0, api.email.sendActivationEmail, {
+      email: user.email,
+      name: user.name,
+      tempPassword,
+      activationToken,
+    })
+
+    return {
+      success: true,
+      message: "New activation email sent successfully",
+      user: {
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+      }
     }
   },
 })

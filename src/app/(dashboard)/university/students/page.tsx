@@ -105,6 +105,7 @@ export default function UniversityStudentsPage() {
   const assignStudentMutation = useMutation(api.university_admin.assignStudentByEmail);
   const createUserMutation = useMutation(api.admin_users.createUserByAdmin);
   const deleteUserMutation = useMutation(api.users.deleteUser);
+  const regenerateActivationMutation = useMutation(api.admin_users.regenerateActivationToken);
 
   // State
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -396,30 +397,36 @@ export default function UniversityStudentsPage() {
   };
 
   const handleResendInvite = async () => {
-    if (!selectedStudent?.email) return;
+    if (!selectedStudent?._id || !clerkUser?.id) return;
+
+    // Check if the student is already active
+    if (selectedStudent.account_status === "active") {
+      toast({
+        title: "Already Active",
+        description: "This user account is already active and doesn't need activation.",
+        variant: "default",
+      });
+      return;
+    }
 
     setResendingInvite(true);
     try {
-      const response = await fetch("/api/university/send-invitations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          emails: [selectedStudent.email],
-        }),
+      // Use the regenerate activation token mutation
+      const result = await regenerateActivationMutation({
+        adminClerkId: clerkUser.id,
+        userId: selectedStudent._id as any,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to send invitation email");
+      if (result.success) {
+        toast({
+          title: "Activation Email Resent",
+          description: `New activation email has been sent to ${selectedStudent.email}`,
+        });
       }
-
-      toast({
-        title: "Invitation Resent",
-        description: `Invitation email has been resent to ${selectedStudent.email}`,
-      });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to resend invitation",
+        description: error.message || "Failed to resend activation email",
         variant: "destructive",
       });
     } finally {

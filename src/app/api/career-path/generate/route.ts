@@ -54,7 +54,7 @@ Format as a structured plan with clear steps and timelines.`
     let usedFallback = false
     try {
       const completion = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4o",
         messages: [
           {
             role: "system",

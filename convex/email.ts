@@ -159,7 +159,7 @@ The Ascentul Team`
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
         <div style="text-align: center; margin-bottom: 20px;">
-          <img src="https://ascentul.io/logo.png" alt="Ascentul" style="max-width: 150px;">
+          <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentul" style="max-width: 100%; height: auto;">
         </div>
 
         <h1 style="color: #0C29AB; font-size: 24px; margin-bottom: 20px;">Reset Your Password</h1>

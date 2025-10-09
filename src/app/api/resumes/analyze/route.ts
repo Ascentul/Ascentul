@@ -330,7 +330,7 @@ Example good suggestions:
 Keep suggestions practical, encouraging, and human.`
 
         const response = await client.chat.completions.create({
-          model: 'gpt-5',
+          model: 'gpt-4o',
           messages: [
             { role: 'system', content: 'You are a helpful career coach providing personalized resume feedback. Return only valid JSON without markdown formatting.' },
             { role: 'user', content: prompt },

@@ -32,10 +32,10 @@ export function AICareerCoach() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { data: conversations = [], isLoading } = useQuery<Conversation[]>({
-    queryKey: ['/api/ai-coach/conversations'],
+    queryKey: ['/api/career-coach/conversations'],
     queryFn: async () => {
       try {
-        const res = await apiRequest('GET', '/api/ai-coach/conversations')
+        const res = await apiRequest('GET', '/api/career-coach/conversations')
         return await res.json()
       } catch (error) {
         console.error('Error fetching conversations:', error)
@@ -51,18 +51,18 @@ export function AICareerCoach() {
   // Create conversation mutation
   const createConversationMutation = useMutation({
     mutationFn: async (title: string) => {
-      const response = await apiRequest('POST', '/api/ai-coach/conversations', { title })
+      const response = await apiRequest('POST', '/api/career-coach/conversations', { title })
       return await response.json()
     },
     onSuccess: async (newConversation) => {
       // Send the initial message to the new conversation
       try {
-        await apiRequest('POST', `/api/ai-coach/conversations/${newConversation.id}/messages`, {
+        await apiRequest('POST', `/api/career-coach/conversations/${newConversation.id}/messages`, {
           content: quickQuestion.trim()
         })
 
         // Redirect to the AI coach page with the new conversation
-        router.push('/ai-coach')
+        router.push('/career-coach')
         setQuickQuestion('')
       } catch (error) {
         toast({
@@ -124,7 +124,7 @@ export function AICareerCoach() {
               Get personalized career advice
             </p>
           </div>
-          <Link href="/ai-coach">
+          <Link href="/career-coach">
             <Button variant="outline" size="sm">
               <ExternalLink className="h-4 w-4 mr-2" />
               Open Coach
@@ -199,7 +199,7 @@ export function AICareerCoach() {
               <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="text-sm">No conversations yet</p>
               <p className="text-xs">Start chatting with your AI career coach</p>
-              <Link href="/ai-coach">
+              <Link href="/career-coach">
                 <Button variant="link" className="mt-2 text-sm">
                   Start Conversation
                 </Button>

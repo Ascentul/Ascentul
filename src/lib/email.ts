@@ -28,14 +28,15 @@ interface EmailResult {
  * Send email using Mailgun
  */
 async function sendWithMailgun(options: EmailOptions): Promise<EmailResult> {
-  if (!process.env.MAILGUN_SENDING_API_KEY) {
-    throw new Error('MAILGUN_SENDING_API_KEY is not configured')
+  const mailgunKey = process.env.MAILGUN_SENDING_API_KEY || process.env.MAILGUN_API_KEY
+  if (!mailgunKey) {
+    throw new Error('MAILGUN_API_KEY is not configured')
   }
 
   const mailgun = new Mailgun(formData)
   const mg = mailgun.client({
     username: 'api',
-    key: process.env.MAILGUN_SENDING_API_KEY,
+    key: mailgunKey,
   })
 
   const emailData: any = {
@@ -97,7 +98,7 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
 
   try {
     // Try Mailgun first, fallback to SendGrid
-    if (process.env.MAILGUN_SENDING_API_KEY) {
+    if (process.env.MAILGUN_SENDING_API_KEY || process.env.MAILGUN_API_KEY) {
       return await sendWithMailgun(options)
     } else if (process.env.SENDGRID_API_KEY) {
       return await sendWithSendGrid(options)
@@ -150,6 +151,7 @@ The Ascentul Team`
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
 
       <div style="text-align: center; margin-bottom: 30px;">
+        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentul" style="max-width: 100%; height: auto; margin-bottom: 20px;">
         <h1 style="color: #0C29AB; font-size: 28px; margin: 0;">Welcome to Ascentul!</h1>
       </div>
 
@@ -265,7 +267,7 @@ The Ascentul Team`
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <img src="https://ascentul.io/logo.png" alt="Ascentul" style="max-width: 180px;">
+        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentul" style="max-width: 100%; height: auto;">
       </div>
 
       <h1 style="color: #0C29AB; font-size: 26px; margin-bottom: 20px;">You're Invited!</h1>
@@ -380,6 +382,7 @@ The Ascentul Support Team`
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
       <div style="text-align: center; margin-bottom: 30px;">
+        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentul" style="max-width: 100%; height: auto; margin-bottom: 20px;">
         <h1 style="color: #0C29AB; font-size: 24px; margin: 0;">Support Ticket Update</h1>
       </div>
 
@@ -465,7 +468,7 @@ The Ascentul Team`
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
       <div style="text-align: center; margin-bottom: 20px;">
-        <img src="https://ascentul.io/logo.png" alt="Ascentul" style="max-width: 150px;">
+        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentul" style="max-width: 100%; height: auto;">
       </div>
 
       <h1 style="color: #0C29AB; font-size: 24px; margin-bottom: 20px;">Welcome to Ascentul!</h1>

@@ -116,7 +116,7 @@ Return JSON with the following TypeScript shape without extra commentary:
     }
   ]
 }`
-      const models = ['gpt-5', 'gpt-5-mini']
+      const models = ['gpt-4o', 'gpt-4o-mini']
       for (const model of models) {
         try {
           const completion = await client.chat.completions.create({
@@ -147,7 +147,7 @@ Return JSON with the following TypeScript shape without extra commentary:
                   })
                 }
               } catch {}
-              return NextResponse.json({ ...parsed, usedModel: model, usedFallback: model !== 'gpt-5' })
+              return NextResponse.json({ ...parsed, usedModel: model, usedFallback: false })
             }
           } catch {
             // continue to next model

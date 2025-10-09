@@ -14,7 +14,7 @@ interface UserProfile {
   bio?: string
   job_title?: string
   company?: string
-  skills?: string
+  skills?: string | string[]
   current_position?: string
   current_company?: string
   education?: string
@@ -23,6 +23,8 @@ interface UserProfile {
   graduation_year?: string
   experience_level?: string
   industry?: string
+  work_history?: any[]
+  education_history?: any[]
 }
 
 function generateBasicResume(jobDescription: string, userProfile?: UserProfile) {
@@ -40,8 +42,52 @@ function generateBasicResume(jobDescription: string, userProfile?: UserProfile) 
   if (hasAI) suggestedSkills.push('Machine Learning', 'TensorFlow', 'Data Analysis')
 
   // Use user profile skills if available
-  const profileSkills = userProfile?.skills ? userProfile.skills.split(',').map(s => s.trim()) : []
+  const profileSkills = userProfile?.skills
+    ? (Array.isArray(userProfile.skills)
+        ? userProfile.skills
+        : userProfile.skills.split(',').map(s => s.trim()))
+    : []
   const allSkills = Array.from(new Set([...profileSkills, ...suggestedSkills])).slice(0, 12)
+
+  // Build experience section from work history
+  let experience: any[] = []
+  if (userProfile?.work_history && Array.isArray(userProfile.work_history) && userProfile.work_history.length > 0) {
+    experience = userProfile.work_history.map((job: any) => ({
+      title: job.role || '',
+      company: job.company || '',
+      startDate: job.start_date || '',
+      endDate: job.is_current ? 'Present' : (job.end_date || ''),
+      location: job.location || '',
+      description: job.summary || 'Key responsibilities and achievements in this role.',
+    }))
+  } else if (userProfile?.current_position) {
+    // Fallback to current position if no work history
+    experience = [{
+      title: userProfile.current_position,
+      company: userProfile.current_company || '',
+      startDate: 'Present',
+      endDate: '',
+      description: 'Key responsibilities and achievements in this role.',
+    }]
+  }
+
+  // Build education section from education history
+  let education: any[] = []
+  if (userProfile?.education_history && Array.isArray(userProfile.education_history) && userProfile.education_history.length > 0) {
+    education = userProfile.education_history.map((edu: any) => ({
+      degree: `${edu.degree || 'Bachelor'} in ${edu.field_of_study || 'Field'}`,
+      school: edu.institution || '',
+      graduationYear: edu.end_date || edu.graduation_date || '',
+      gpa: edu.gpa || undefined,
+    }))
+  } else if (userProfile?.university_name) {
+    // Fallback to basic education if no education history
+    education = [{
+      degree: userProfile.major || 'Bachelor of Science',
+      school: userProfile.university_name,
+      graduationYear: userProfile.graduation_year || '',
+    }]
+  }
 
   return {
     personalInfo: {
@@ -54,18 +100,8 @@ function generateBasicResume(jobDescription: string, userProfile?: UserProfile) 
     },
     summary: userProfile?.bio || 'Experienced professional seeking to leverage skills and expertise in a challenging role that aligns with career goals and contributes to organizational success.',
     skills: allSkills,
-    experience: userProfile?.current_position ? [{
-      title: userProfile.current_position,
-      company: userProfile.current_company || '',
-      startDate: 'Present',
-      endDate: '',
-      description: 'Key responsibilities and achievements in this role.',
-    }] : [],
-    education: userProfile?.university_name ? [{
-      degree: userProfile.major || 'Bachelor of Science',
-      school: userProfile.university_name,
-      graduationYear: userProfile.graduation_year || '',
-    }] : [],
+    experience,
+    education,
   }
 }
 
@@ -83,15 +119,45 @@ export async function POST(req: NextRequest) {
       try {
         const client = new OpenAI({ apiKey })
 
-        const profileContext = userProfile ? `
+        let profileContext = userProfile ? `
 User Profile:
 Name: ${userProfile.name || 'N/A'}
+Email: ${userProfile.email || 'N/A'}
+Phone: ${userProfile.phone || 'N/A'}
+Location: ${userProfile.location || 'N/A'}
 Current Position: ${userProfile.current_position || 'N/A'}
 Company: ${userProfile.current_company || 'N/A'}
-Skills: ${userProfile.skills || 'N/A'}
+Skills: ${Array.isArray(userProfile.skills) ? userProfile.skills.join(', ') : (userProfile.skills || 'N/A')}
 Education: ${userProfile.university_name || 'N/A'} - ${userProfile.major || 'N/A'}
 Bio: ${userProfile.bio || 'N/A'}
+LinkedIn: ${userProfile.linkedin_url || 'N/A'}
+GitHub: ${userProfile.github_url || 'N/A'}
 ` : ''
+
+        // Add work history to context if available
+        if (userProfile?.work_history && Array.isArray(userProfile.work_history) && userProfile.work_history.length > 0) {
+          profileContext += '\nWork History:\n'
+          userProfile.work_history.forEach((job: any, idx: number) => {
+            profileContext += `${idx + 1}. ${job.role || 'N/A'} at ${job.company || 'N/A'}\n`
+            profileContext += `   Duration: ${job.start_date || 'N/A'} - ${job.is_current ? 'Present' : (job.end_date || 'N/A')}\n`
+            if (job.location) profileContext += `   Location: ${job.location}\n`
+            if (job.summary) profileContext += `   Summary: ${job.summary}\n`
+            profileContext += '\n'
+          })
+        }
+
+        // Add education history if available
+        if (userProfile?.education_history && Array.isArray(userProfile.education_history) && userProfile.education_history.length > 0) {
+          profileContext += '\nEducation History:\n'
+          userProfile.education_history.forEach((edu: any, idx: number) => {
+            profileContext += `${idx + 1}. ${edu.degree || 'N/A'} in ${edu.field_of_study || 'N/A'}\n`
+            profileContext += `   Institution: ${edu.institution || 'N/A'}\n`
+            profileContext += `   Duration: ${edu.start_date || 'N/A'} - ${edu.is_current ? 'Present' : (edu.end_date || edu.graduation_date || 'N/A')}\n`
+            if (edu.gpa) profileContext += `   GPA: ${edu.gpa}\n`
+            if (edu.activities) profileContext += `   Activities: ${edu.activities}\n`
+            profileContext += '\n'
+          })
+        }
 
         const prompt = `You are a professional resume writer. Generate an ATS-optimized resume tailored to the following job description.
 ${profileContext}
@@ -133,7 +199,7 @@ If user profile is provided, use that information. Otherwise, create a template 
 Focus on keywords from the job description. Make it ATS-friendly.`
 
         const response = await client.chat.completions.create({
-          model: 'gpt-5',
+          model: 'gpt-4o',
           messages: [
             { role: 'system', content: 'You are a professional resume writer. Output only valid JSON.' },
             { role: 'user', content: prompt },
