@@ -40,6 +40,9 @@ type StageFactory = (ctx: TemplateContext) => StageData
 type CareerPathTemplate = {
   domain: string
   keywords: string[]
+  qualityKeywords?: string[]
+  minKeywordMatches?: number
+  promptExamples?: string[]
   name: (ctx: TemplateContext) => string
   stages: StageFactory[]
   targetStage: StageFactory
@@ -219,6 +222,26 @@ const softwareTemplate: CareerPathTemplate = {
     'devops',
     'platform',
   ],
+  qualityKeywords: [
+    'software',
+    'developer',
+    'engineering',
+    'engineer',
+    'frontend',
+    'backend',
+    'full stack',
+    'mobile',
+    'devops',
+    'qa',
+    'platform',
+  ],
+  minKeywordMatches: 3,
+  promptExamples: [
+    'IT Support Specialist',
+    'Software Developer',
+    'Senior Software Engineer',
+    'Director of Engineering',
+  ],
   name: (ctx) => `${ctx.baseRole} Career Roadmap`,
   stages: [
     () => ({
@@ -389,6 +412,25 @@ const dataTemplate: CareerPathTemplate = {
     'ai',
     'statistician',
   ],
+  qualityKeywords: [
+    'data',
+    'analytics',
+    'analysis',
+    'scientist',
+    'science',
+    'machine learning',
+    'ml',
+    'ai',
+    'business intelligence',
+    'bi',
+  ],
+  minKeywordMatches: 3,
+  promptExamples: [
+    'Data Analyst Intern',
+    'Business Intelligence Analyst',
+    'Senior Data Scientist',
+    'Director of Data Science',
+  ],
   name: (ctx) => `${ctx.baseRole} Analytics Path`,
   stages: [
     () => ({
@@ -534,6 +576,22 @@ const productTemplate: CareerPathTemplate = {
     'product lead',
     'product director',
   ],
+  qualityKeywords: [
+    'product',
+    'pm',
+    'product manager',
+    'product owner',
+    'roadmap',
+    'portfolio',
+    'product lead',
+  ],
+  minKeywordMatches: 3,
+  promptExamples: [
+    'Product Research Assistant',
+    'Business Analyst',
+    'Product Manager',
+    'Director of Product',
+  ],
   name: (ctx) => `${ctx.baseRole} Launch Plan`,
   stages: [
     () => ({
@@ -677,6 +735,24 @@ const productTemplate: CareerPathTemplate = {
 const designTemplate: CareerPathTemplate = {
   domain: 'design',
   keywords: ['design', 'designer', 'ux', 'ui', 'product design', 'visual', 'interaction'],
+  qualityKeywords: [
+    'design',
+    'designer',
+    'ux',
+    'ui',
+    'product',
+    'experience',
+    'visual',
+    'interaction',
+    'creative',
+  ],
+  minKeywordMatches: 3,
+  promptExamples: [
+    'Design Apprentice',
+    'UX/UI Designer',
+    'Senior Product Designer',
+    'Director of Design',
+  ],
   name: (ctx) => `${ctx.baseRole} Design Journey`,
   stages: [
     () => ({
@@ -769,6 +845,24 @@ const designTemplate: CareerPathTemplate = {
 const marketingTemplate: CareerPathTemplate = {
   domain: 'marketing',
   keywords: ['marketing', 'growth', 'content', 'brand', 'demand', 'communications'],
+  qualityKeywords: [
+    'marketing',
+    'brand',
+    'growth',
+    'demand',
+    'content',
+    'communications',
+    'campaign',
+    'go-to-market',
+    'digital',
+  ],
+  minKeywordMatches: 3,
+  promptExamples: [
+    'Marketing Coordinator',
+    'Digital Marketing Specialist',
+    'Growth Marketing Manager',
+    'Vice President of Marketing',
+  ],
   name: (ctx) => `${ctx.baseRole} Growth Track`,
   stages: [
     () => ({
@@ -861,6 +955,23 @@ const marketingTemplate: CareerPathTemplate = {
 const salesTemplate: CareerPathTemplate = {
   domain: 'sales',
   keywords: ['sales', 'account executive', 'ae', 'business development', 'bdr', 'sdr', 'revenue'],
+  qualityKeywords: [
+    'sales',
+    'account',
+    'business development',
+    'revenue',
+    'customer',
+    'pipeline',
+    'quota',
+    'seller',
+  ],
+  minKeywordMatches: 3,
+  promptExamples: [
+    'Sales Development Representative',
+    'Account Executive',
+    'Sales Manager',
+    'Vice President of Sales',
+  ],
   name: (ctx) => `${ctx.baseRole} Revenue Path`,
   stages: [
     () => ({
@@ -987,6 +1098,24 @@ const salesTemplate: CareerPathTemplate = {
 const securityTemplate: CareerPathTemplate = {
   domain: 'security',
   keywords: ['security', 'cyber', 'infosec', 'information security', 'soc', 'cloud security'],
+  qualityKeywords: [
+    'security',
+    'cyber',
+    'infosec',
+    'information security',
+    'soc',
+    'threat',
+    'incident',
+    'risk',
+    'governance',
+  ],
+  minKeywordMatches: 3,
+  promptExamples: [
+    'IT Support Analyst',
+    'Security Operations Analyst',
+    'Security Engineer',
+    'Chief Information Security Officer',
+  ],
   name: (ctx) => `${ctx.baseRole} Security Path`,
   stages: [
     () => ({
@@ -1080,6 +1209,23 @@ const securityTemplate: CareerPathTemplate = {
 const peopleTemplate: CareerPathTemplate = {
   domain: 'people',
   keywords: ['people', 'talent', 'recruiting', 'hr', 'human resources', 'people ops'],
+  qualityKeywords: [
+    'people',
+    'talent',
+    'recruit',
+    'hr',
+    'human resource',
+    'people operations',
+    'people ops',
+    'employee',
+  ],
+  minKeywordMatches: 3,
+  promptExamples: [
+    'HR Coordinator',
+    'People Operations Specialist',
+    'HR Business Partner',
+    'Vice President of People',
+  ],
   name: (ctx) => `${ctx.baseRole} People Ops Path`,
   stages: [
     () => ({
@@ -1172,6 +1318,24 @@ const peopleTemplate: CareerPathTemplate = {
 const financeTemplate: CareerPathTemplate = {
   domain: 'finance',
   keywords: ['finance', 'financial', 'accounting', 'fp&a', 'controller', 'analyst', 'auditor'],
+  qualityKeywords: [
+    'finance',
+    'financial',
+    'accounting',
+    'analyst',
+    'fp&a',
+    'controller',
+    'audit',
+    'treasury',
+    'budget',
+  ],
+  minKeywordMatches: 3,
+  promptExamples: [
+    'Finance Analyst Intern',
+    'Financial Analyst',
+    'Finance Manager',
+    'Chief Financial Officer',
+  ],
   name: (ctx) => `${ctx.baseRole} Finance Track`,
   stages: [
     () => ({
@@ -1272,6 +1436,23 @@ const operationsTemplate: CareerPathTemplate = {
     'chief of staff',
     'business operations',
     'strategy',
+  ],
+  qualityKeywords: [
+    'operations',
+    'program',
+    'project',
+    'delivery',
+    'strategy',
+    'chief of staff',
+    'business operations',
+    'process',
+  ],
+  minKeywordMatches: 3,
+  promptExamples: [
+    'Operations Coordinator',
+    'Project Coordinator',
+    'Program Manager',
+    'Head of Operations',
   ],
   name: (ctx) => `${ctx.baseRole} Delivery Track`,
   stages: [
@@ -1378,6 +1559,7 @@ const templates: CareerPathTemplate[] = [
 const defaultTemplate: CareerPathTemplate = {
   domain: 'general',
   keywords: [],
+  minKeywordMatches: 0,
   name: (ctx) => `${ctx.baseRole} Development Path`,
   stages: [
     () => ({
@@ -1451,11 +1633,20 @@ const selectTemplate = (jobTitle: string): CareerPathTemplate => {
 
 type PromptVariant = 'base' | 'refine'
 
-const buildPrompt = (ctx: TemplateContext, variant: PromptVariant) => {
+const buildPrompt = (
+  ctx: TemplateContext,
+  variant: PromptVariant,
+  template: CareerPathTemplate,
+) => {
   const domainHint =
     ctx.domain === 'general'
       ? 'Focus on broadly applicable business roles when domain nuances are unclear.'
       : `The target role lives within the ${ctx.domain} discipline—use industry-standard roles from that space.`
+
+  const exampleProgression =
+    template.promptExamples && template.promptExamples.length
+      ? `Example progression for context: ${template.promptExamples.join(' → ')}. Use this only as inspiration and craft your own realistic sequence.`
+      : ''
 
   const variantAdditions =
     variant === 'refine'
@@ -1474,6 +1665,7 @@ Quality rules:
 Target role: "${ctx.targetRole}"
 Base role (without level qualifiers): "${ctx.baseRole}"
 ${domainHint}
+${exampleProgression}
 
 Generate four ordered stages that show how a professional typically grows into this target role. Each stage must include:
 - title (distinct, industry-recognizable job title)
@@ -1514,7 +1706,11 @@ type QualityResult = { valid: boolean; reason?: string }
 const allowedLevels = new Set<StageLevel>(['entry', 'mid', 'senior', 'lead', 'executive'])
 const allowedSkillLevels = new Set<SkillLevel>(['basic', 'intermediate', 'advanced'])
 
-const evaluatePathQuality = (path: any, ctx: TemplateContext): QualityResult => {
+const evaluatePathQuality = (
+  path: any,
+  ctx: TemplateContext,
+  template: CareerPathTemplate,
+): QualityResult => {
   if (!path || !Array.isArray(path.nodes)) {
     return { valid: false, reason: 'Missing nodes array' }
   }
@@ -1584,6 +1780,29 @@ const evaluatePathQuality = (path: any, ctx: TemplateContext): QualityResult => 
   })
   if (invalidSkills) {
     return { valid: false, reason: 'Skills are missing or malformed' }
+  }
+
+  const keywordTargets =
+    template.qualityKeywords && template.qualityKeywords.length
+      ? template.qualityKeywords
+      : template.keywords
+  const minKeywordMatches =
+    typeof template.minKeywordMatches === 'number'
+      ? template.minKeywordMatches
+      : keywordTargets.length
+        ? 2
+        : 0
+  if (minKeywordMatches > 0 && keywordTargets.length > 0) {
+    const keywordMatches = nodes.filter((node: any) => {
+      const title = String(node?.title || '').toLowerCase()
+      return keywordTargets.some((keyword) => title.includes(keyword))
+    }).length
+    if (keywordMatches < minKeywordMatches) {
+      return {
+        valid: false,
+        reason: 'Roles are not domain specific enough',
+      }
+    }
   }
 
   return { valid: true }
@@ -1709,7 +1928,8 @@ export async function POST(request: NextRequest) {
     const jobTitle = String(body?.jobTitle || '').trim()
     if (!jobTitle) return NextResponse.json({ error: 'jobTitle is required' }, { status: 400 })
 
-    const promptContext = createContext(jobTitle, selectTemplate(jobTitle).domain)
+    const template = selectTemplate(jobTitle)
+    const promptContext = createContext(jobTitle, template.domain)
 
     // Try OpenAI, fall back to mock
     let client: OpenAI | null = null
@@ -1718,8 +1938,8 @@ export async function POST(request: NextRequest) {
     }
     if (client) {
       const promptVariants: Array<{ name: PromptVariant; prompt: string }> = [
-        { name: 'base', prompt: buildPrompt(promptContext, 'base') },
-        { name: 'refine', prompt: buildPrompt(promptContext, 'refine') },
+        { name: 'base', prompt: buildPrompt(promptContext, 'base', template) },
+        { name: 'refine', prompt: buildPrompt(promptContext, 'refine', template) },
       ]
       const models: Array<string> = ['gpt-5', 'gpt-4o', 'gpt-4o-mini']
       let lastQualityFailure: string | null = null
@@ -1748,7 +1968,7 @@ export async function POST(request: NextRequest) {
               continue
             }
 
-            const quality = evaluatePathQuality(parsed.paths[0], promptContext)
+            const quality = evaluatePathQuality(parsed.paths[0], promptContext, template)
             if (!quality.valid) {
               lastQualityFailure = quality.reason || 'quality check failed'
               console.warn('CareerPath quality rejection', {
