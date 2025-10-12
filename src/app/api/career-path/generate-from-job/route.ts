@@ -21,6 +21,8 @@ type StageData = {
   icon: string
 }
 
+type StageNode = StageData & { id: string }
+
 type TemplateContext = {
   rawTitle: string
   normalizedTitle: string
@@ -41,6 +43,12 @@ type CareerPathTemplate = {
   name: (ctx: TemplateContext) => string
   stages: StageFactory[]
   targetStage: StageFactory
+}
+
+type CareerPath = {
+  id: string
+  name: string
+  nodes: StageNode[]
 }
 
 const salaryByLevel: Record<StageLevel, string> = {
