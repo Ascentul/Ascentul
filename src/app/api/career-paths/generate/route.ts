@@ -802,10 +802,12 @@ export async function POST(request: NextRequest) {
               continue
             }
 
-            const evaluations = parsed.paths.map((path: any) =>
-              evaluateGeneratedPath(path, profileData, fallbackDomain),
+            const evaluations = parsed.paths.map((generatedPath: any) =>
+              evaluateGeneratedPath(generatedPath, profileData, fallbackDomain),
             )
-            const firstFailure = evaluations.find((result) => !result.valid)
+            const firstFailure = evaluations.find(
+              (result: { valid: boolean }) => !result.valid,
+            )
             if (firstFailure) {
               lastFailure = firstFailure.reason || 'quality check failed'
               continue
