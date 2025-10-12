@@ -1441,6 +1441,233 @@ const selectTemplate = (jobTitle: string): CareerPathTemplate => {
   return defaultTemplate
 }
 
+type PromptVariant = 'base' | 'refine'
+
+const buildPrompt = (ctx: TemplateContext, variant: PromptVariant) => {
+  const domainHint =
+    ctx.domain === 'general'
+      ? 'Focus on broadly applicable business roles when domain nuances are unclear.'
+      : `The target role lives within the ${ctx.domain} discipline—use industry-standard roles from that space.`
+
+  const variantAdditions =
+    variant === 'refine'
+      ? `
+Reinforce quality rules:
+- The first three stages must be distinct feeder roles that prepare for the target scope. None of them may simply be the target title with modifiers like "Junior", "Mid", "Senior", "Lead", or numerals.
+- Keep progression realistic, gradually increasing scope, leadership, or specialization.
+- Keep stages ordered from earliest to latest, ending with the exact target role "${ctx.targetRole}".`
+      : `
+Quality rules:
+- Provide four total stages (three feeder roles plus the final target role "${ctx.targetRole}").
+- At least two feeder roles must be different job titles that do not include the exact target role string.
+- Avoid repeating the same base title with only seniority modifiers.`
+
+  return `You are a career path analyst who designs realistic, data-backed progressions that people actually follow in industry.
+Target role: "${ctx.targetRole}"
+Base role (without level qualifiers): "${ctx.baseRole}"
+${domainHint}
+
+Generate four ordered stages that show how a professional typically grows into this target role. Each stage must include:
+- title (distinct, industry-recognizable job title)
+- level (entry | mid | senior | lead | executive)
+- salaryRange (USD range string)
+- yearsExperience (string like "3-5 years")
+- skills (array of 2-3 skill objects with { name, level })
+- description (1-2 sentences focused on why this stage matters on the journey)
+- growthPotential ("low" | "medium" | "high")
+- icon (short identifier such as 'graduation', 'cpu', 'book', 'layers', 'linechart', 'briefcase', 'award', 'lightbulb')
+
+${variantAdditions}
+
+Return strictly valid JSON matching:
+{
+  "paths": [
+    {
+      "id": string,
+      "name": string,
+      "nodes": Array<{
+        "id": string,
+        "title": string,
+        "level": "entry" | "mid" | "senior" | "lead" | "executive",
+        "salaryRange": string,
+        "yearsExperience": string,
+        "skills": Array<{ "name": string, "level": "basic" | "intermediate" | "advanced" }>,
+        "description": string,
+        "growthPotential": "low" | "medium" | "high",
+        "icon": string
+      }>
+    }
+  ]
+}`
+}
+
+type QualityResult = { valid: boolean; reason?: string }
+
+const allowedLevels = new Set<StageLevel>(['entry', 'mid', 'senior', 'lead', 'executive'])
+const allowedSkillLevels = new Set<SkillLevel>(['basic', 'intermediate', 'advanced'])
+
+const evaluatePathQuality = (path: any, ctx: TemplateContext): QualityResult => {
+  if (!path || !Array.isArray(path.nodes)) {
+    return { valid: false, reason: 'Missing nodes array' }
+  }
+
+  const nodes = path.nodes
+  if (nodes.length < 4) {
+    return { valid: false, reason: 'Requires at least four stages' }
+  }
+
+  const normalizedTarget = stripLevelQualifiers(ctx.targetRole).toLowerCase()
+  const normalizedTitles = nodes.map((node: any) =>
+    stripLevelQualifiers(String(node?.title || '')).toLowerCase(),
+  )
+
+  const uniqueTitles = new Set(normalizedTitles)
+  if (uniqueTitles.size < Math.min(nodes.length, 3)) {
+    return { valid: false, reason: 'Titles are not distinct enough' }
+  }
+
+  const feederNodes = nodes.slice(0, -1)
+  const nonTargetFeederCount = feederNodes.filter((node: any) => {
+    const normalized = stripLevelQualifiers(String(node?.title || '')).toLowerCase()
+    return normalized !== normalizedTarget
+  }).length
+  if (nonTargetFeederCount < 2) {
+    return {
+      valid: false,
+      reason: 'Insufficient unique feeder roles different from target',
+    }
+  }
+
+  const genericPrefixPattern = /^(junior|jr\.?|mid|mid-level|senior|sr\.?|lead|ii|iii|iv)\b/i
+  const genericMatches = feederNodes.filter((node: any) => {
+    const title = String(node?.title || '')
+    const normalized = stripLevelQualifiers(title).toLowerCase()
+    return normalized === normalizedTarget && genericPrefixPattern.test(title)
+  }).length
+  if (genericMatches >= 2) {
+    return {
+      valid: false,
+      reason: 'Too many feeder roles reuse the target title with modifiers',
+    }
+  }
+
+  const missingDescriptions = nodes.some(
+    (node: any) => !node?.description || String(node.description).trim().length < 20,
+  )
+  if (missingDescriptions) {
+    return { valid: false, reason: 'Descriptions are missing or too short' }
+  }
+
+  const invalidLevels = nodes.some(
+    (node: any) => !allowedLevels.has(String(node?.level || '').toLowerCase() as StageLevel),
+  )
+  if (invalidLevels) {
+    return { valid: false, reason: 'Invalid level values detected' }
+  }
+
+  const invalidSkills = nodes.some((node: any) => {
+    if (!Array.isArray(node?.skills) || node.skills.length === 0) return true
+    return node.skills.some(
+      (skill: any) =>
+        !skill ||
+        !skill.name ||
+        !allowedSkillLevels.has(String(skill.level || '').toLowerCase() as SkillLevel),
+    )
+  })
+  if (invalidSkills) {
+    return { valid: false, reason: 'Skills are missing or malformed' }
+  }
+
+  return { valid: true }
+}
+
+const fallbackIcons = ['graduation', 'cpu', 'book', 'layers', 'linechart', 'briefcase', 'award']
+
+const normalizeOpenAIPath = (
+  rawPath: any,
+  ctx: TemplateContext,
+  index: number,
+): CareerPath => {
+  const baseId = slugify(`${ctx.baseRole}-${index}`)
+  const nodes = Array.isArray(rawPath?.nodes) ? rawPath.nodes.slice(0, 5) : []
+
+  const normalizedNodes = nodes.map((node: any, nodeIndex: number) => {
+    const safeLevel = allowedLevels.has(String(node?.level || '').toLowerCase() as StageLevel)
+      ? (String(node.level).toLowerCase() as StageLevel)
+      : (['entry', 'mid', 'senior', 'lead', 'executive'][
+          Math.min(nodeIndex, 4)
+        ] as StageLevel)
+
+    let skills: Array<{ name: string; level: SkillLevel }> = []
+    if (Array.isArray(node?.skills)) {
+      skills = node.skills
+        .map((skill: any) => {
+          const name = String(skill?.name || '').trim()
+          const level = String(skill?.level || '').toLowerCase() as SkillLevel
+          if (!name || !allowedSkillLevels.has(level)) return null
+          return { name, level }
+        })
+        .filter(
+          (
+            skill,
+          ): skill is {
+            name: string
+            level: SkillLevel
+          } => Boolean(skill),
+        )
+        .slice(0, 3)
+    }
+    if (!skills.length) {
+      skills = [
+        { name: nodeIndex === 0 ? 'Foundational Skills' : 'Strategic Thinking', level: 'basic' },
+        { name: 'Collaboration', level: 'intermediate' },
+      ]
+    }
+
+    const fallbackIcon = fallbackIcons[Math.min(nodeIndex, fallbackIcons.length - 1)]
+
+    return {
+      id: String(node?.id || `${baseId}-stage-${nodeIndex + 1}`),
+      title: toTitleCase(String(node?.title || `Stage ${nodeIndex + 1}`)),
+      level: safeLevel,
+      salaryRange:
+        typeof node?.salaryRange === 'string' && node.salaryRange.trim()
+          ? node.salaryRange
+          : salaryByLevel[safeLevel],
+      yearsExperience:
+        typeof node?.yearsExperience === 'string' && node.yearsExperience.trim()
+          ? node.yearsExperience
+          : experienceByLevel[safeLevel],
+      skills,
+      description:
+        typeof node?.description === 'string' && node.description.trim()
+          ? node.description.trim()
+          : 'Build practical experience and business impact to advance toward the target role.',
+      growthPotential:
+        node?.growthPotential === 'low' ||
+        node?.growthPotential === 'medium' ||
+        node?.growthPotential === 'high'
+          ? node.growthPotential
+          : 'high',
+      icon:
+        typeof node?.icon === 'string' && node.icon.trim()
+          ? node.icon.trim()
+          : fallbackIcon,
+    }
+  })
+
+  const safeName =
+    typeof rawPath?.name === 'string' && rawPath.name.trim()
+      ? rawPath.name.trim()
+      : `${ctx.baseRole} Path`
+
+  return {
+    id: String(rawPath?.id || `${baseId || 'path'}-ai`),
+    name: safeName,
+    nodes: normalizedNodes,
+  }
+}
+
 function mockPath(jobTitle: string) {
   const template = selectTemplate(jobTitle)
   const ctx = createContext(jobTitle, template.domain)
@@ -1477,80 +1704,103 @@ export async function POST(request: NextRequest) {
     const jobTitle = String(body?.jobTitle || '').trim()
     if (!jobTitle) return NextResponse.json({ error: 'jobTitle is required' }, { status: 400 })
 
+    const promptContext = createContext(jobTitle, selectTemplate(jobTitle).domain)
+
     // Try OpenAI, fall back to mock
     let client: OpenAI | null = null
     if (process.env.OPENAI_API_KEY) {
       try { client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) } catch { client = null }
     }
     if (client) {
-      const prompt = `You are a career path analyst specializing in mapping realistic career progressions across industries.
-Given the target role "${jobTitle}", output a clear, data-backed career path that shows which roles typically lead to that target role, including titles that represent logical, real-world progressions rather than simple seniority prefixes.
+      const promptVariants: Array<{ name: PromptVariant; prompt: string }> = [
+        { name: 'base', prompt: buildPrompt(promptContext, 'base') },
+        { name: 'refine', prompt: buildPrompt(promptContext, 'refine') },
+      ]
+      const models: Array<string> = ['gpt-5', 'gpt-4o', 'gpt-4o-mini']
+      let lastQualityFailure: string | null = null
 
-Follow these rules:
-1. Identify 3-5 distinct stages that reflect the natural professional evolution toward the target role.
-2. Include title, salary range, years of experience, and growth outlook (high / medium / low) for each stage.
-3. Each stage should be a different role, not just "Junior/Mid/Senior" of the same title.
-4. Prioritize accuracy for common industries.
-
-Return JSON with the following TypeScript shape without extra commentary:
-{
-  paths: [
-    {
-      id: string,
-      name: string,
-      nodes: Array<{
-        id: string,
-        title: string, // Use realistic, distinct job titles for each stage
-        level: 'entry' | 'mid' | 'senior' | 'lead' | 'executive',
-        salaryRange: string,
-        yearsExperience: string,
-        skills: Array<{ name: string; level: 'basic' | 'intermediate' | 'advanced' }>,
-        description: string,
-        growthPotential: 'low' | 'medium' | 'high',
-        icon: string // short identifier like 'braces' | 'cpu' | 'database' | 'briefcase' | 'user' | 'award' | 'linechart' | 'layers' | 'graduation' | 'lightbulb' | 'book'
-      }>
-    }
-  ]
-}`
-      const models = ['gpt-5', 'gpt-4o', 'gpt-4o-mini']
-      for (const model of models) {
-        try {
-          const completion = await client.chat.completions.create({
-            model,
-            temperature: 0.5,
-            messages: [
-              { role: 'system', content: 'You produce strictly valid JSON for apps to consume.' },
-              { role: 'user', content: prompt },
-            ],
-          })
-          const content = completion.choices[0]?.message?.content || ''
+      for (const variant of promptVariants) {
+        for (const model of models) {
           try {
-            const parsed = JSON.parse(content)
-            if (Array.isArray(parsed?.paths)) {
-              // Save first path to Convex (best-effort)
-              try {
-                const url = process.env.NEXT_PUBLIC_CONVEX_URL
-                if (url) {
-                  const clientCv = new ConvexHttpClient(url)
-                  const mainPath = parsed.paths[0]
-                  await clientCv.mutation(api.career_paths.createCareerPath, {
-                    clerkId: userId,
-                    target_role: String(mainPath?.name || jobTitle),
-                    current_level: undefined,
-                    estimated_timeframe: undefined,
-                    steps: { source: 'job', path: mainPath, usedModel: model },
-                    status: 'active',
-                  })
-                }
-              } catch {}
-              return NextResponse.json({ ...parsed, usedModel: model, usedFallback: false })
+            const completion = await client.chat.completions.create({
+              model,
+              temperature: 0.4,
+              messages: [
+                { role: 'system', content: 'You produce strictly valid JSON for apps to consume.' },
+                { role: 'user', content: variant.prompt },
+              ],
+            })
+            const content = completion.choices[0]?.message?.content || ''
+            if (!content.trim()) continue
+
+            let parsed: any
+            try {
+              parsed = JSON.parse(content)
+            } catch {
+              continue
             }
-          } catch {
-            // continue to next model
+            if (!Array.isArray(parsed?.paths) || parsed.paths.length === 0) {
+              continue
+            }
+
+            const quality = evaluatePathQuality(parsed.paths[0], promptContext)
+            if (!quality.valid) {
+              lastQualityFailure = quality.reason || 'quality check failed'
+              console.warn('CareerPath quality rejection', {
+                jobTitle,
+                model,
+                variant: variant.name,
+                reason: lastQualityFailure,
+              })
+              continue
+            }
+
+            const sanitizedPaths = parsed.paths.map((path: any, pathIndex: number) =>
+              normalizeOpenAIPath(path, promptContext, pathIndex),
+            )
+            const mainPath = sanitizedPaths[0]
+
+            // Save first path to Convex (best-effort)
+            try {
+              const url = process.env.NEXT_PUBLIC_CONVEX_URL
+              if (url) {
+                const clientCv = new ConvexHttpClient(url)
+                await clientCv.mutation(api.career_paths.createCareerPath, {
+                  clerkId: userId,
+                  target_role: String(mainPath?.name || jobTitle),
+                  current_level: undefined,
+                  estimated_timeframe: undefined,
+                  steps: {
+                    source: 'job',
+                    path: mainPath,
+                    usedModel: model,
+                    promptVariant: variant.name,
+                  },
+                  status: 'active',
+                })
+              }
+            } catch (convexError) {
+              console.warn('CareerPath Convex persistence failed', convexError)
+            }
+
+            return NextResponse.json({
+              paths: sanitizedPaths,
+              usedModel: model,
+              usedFallback: false,
+              promptVariant: variant.name,
+            })
+          } catch (error) {
+            // try next model or prompt variant
+            continue
           }
-        } catch {
-          // try next model
         }
+      }
+
+      if (lastQualityFailure) {
+        console.warn('CareerPath fallback triggered after OpenAI attempts failed quality checks', {
+          jobTitle,
+          reason: lastQualityFailure,
+        })
       }
     }
 
