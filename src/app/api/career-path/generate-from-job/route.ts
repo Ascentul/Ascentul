@@ -1617,11 +1617,8 @@ const normalizeOpenAIPath = (
         })
         .filter(
           (
-            skill,
-          ): skill is {
-            name: string
-            level: SkillLevel
-          } => Boolean(skill),
+            skill: { name: string; level: SkillLevel } | null,
+          ): skill is { name: string; level: SkillLevel } => Boolean(skill),
         )
         .slice(0, 3)
     }
