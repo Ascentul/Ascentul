@@ -72,6 +72,34 @@ const experienceByLevel: Record<StageLevel, string> = {
 
 const levelPrefixPattern = /^(senior|sr\.?|junior|jr\.?|lead|principal|staff|associate|assistant|apprentice|mid-level|midlevel|mid level|entry-level|entry level)\s+/i
 
+const domainDisplayNames: Record<string, string> = {
+  software: 'Engineering',
+  data: 'Data & Analytics',
+  product: 'Product Management',
+  design: 'Design',
+  marketing: 'Marketing',
+  sales: 'Sales',
+  security: 'Security',
+  people: 'People Operations',
+  finance: 'Finance',
+  operations: 'Operations',
+  general: 'Career',
+}
+
+const domainSkillRecommendations: Record<string, string[]> = {
+  software: ['System Architecture', 'Engineering Leadership', 'Technical Strategy'],
+  data: ['Advanced Analytics', 'Experimentation', 'Business Insight'],
+  product: ['Portfolio Roadmapping', 'Customer Discovery', 'Experiment Design'],
+  design: ['Experience Strategy', 'Design Systems', 'Stakeholder Workshops'],
+  marketing: ['Growth Strategy', 'Brand Positioning', 'Revenue Planning'],
+  sales: ['Enterprise Deal Strategy', 'Pipeline Forecasting', 'Team Coaching'],
+  security: ['Risk Governance', 'Incident Response', 'Security Architecture'],
+  people: ['Talent Strategy', 'Org Design', 'Change Management'],
+  finance: ['Strategic Finance', 'Scenario Modeling', 'Stakeholder Reporting'],
+  operations: ['Program Leadership', 'Cross-Functional Alignment', 'Process Optimization'],
+  general: ['Career Storytelling', 'Stakeholder Alignment', 'Strategic Planning'],
+}
+
 const slugify = (value: string) =>
   value
     .toLowerCase()
@@ -156,6 +184,38 @@ const createContext = (jobTitle: string, domain: string): TemplateContext => {
     keywords,
     keywordSet,
   }
+}
+
+const parseSkills = (rawSkills: unknown): string[] => {
+  if (!rawSkills) return []
+  if (Array.isArray(rawSkills)) {
+    return rawSkills
+      .map((skill) => String(skill || '').trim())
+      .filter(Boolean)
+      .map((skill) => skill.toLowerCase())
+  }
+  if (typeof rawSkills === 'string') {
+    return rawSkills
+      .split(/,|;|\n/)
+      .map((skill) => skill.trim())
+      .filter(Boolean)
+      .map((skill) => skill.toLowerCase())
+  }
+  return []
+}
+
+const extractWorkHistory = (raw: unknown): Array<{ title?: string; company?: string; description?: string }> => {
+  if (!raw || !Array.isArray(raw)) return []
+  return raw.map((item: any) => ({
+    title: String(item?.role || item?.title || '').trim(),
+    company: item?.company ? String(item.company).trim() : undefined,
+    description: item?.summary ? String(item.summary).trim() : item?.description ? String(item.description).trim() : undefined,
+  }))
+}
+
+const hasDomainKeywords = (text: string, keywords: string[]): boolean => {
+  const lower = text.toLowerCase()
+  return keywords.some((keyword) => lower.includes(keyword))
 }
 
 const detectSoftwareSpecialization = (ctx: TemplateContext) => {
@@ -1631,6 +1691,19 @@ const selectTemplate = (jobTitle: string): CareerPathTemplate => {
   return defaultTemplate
 }
 
+const fetchUserProfile = async (clerkId: string) => {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) return null
+  try {
+    const client = new ConvexHttpClient(url)
+    const user = await client.query(api.users.getUserByClerkId, { clerkId })
+    return user
+  } catch (error) {
+    console.warn('CareerPath failed to fetch user profile', error)
+    return null
+  }
+}
+
 type PromptVariant = 'base' | 'refine'
 
 const buildPrompt = (
@@ -1892,32 +1965,203 @@ const normalizeOpenAIPath = (
   }
 }
 
-function mockPath(jobTitle: string) {
-  const template = selectTemplate(jobTitle)
-  const ctx = createContext(jobTitle, template.domain)
-  const baseId = slugify(jobTitle)
+const buildProfileGuidancePath = (
+  jobTitle: string,
+  template: CareerPathTemplate,
+  ctx: TemplateContext,
+  profile: any,
+): CareerPath => {
+  const baseId = slugify(`${jobTitle || 'role'}-profile`)
+  const displayDomain = domainDisplayNames[template.domain] || 'Career'
+  const domainKeywords = template.qualityKeywords || template.keywords
+  const skills = parseSkills(profile?.skills)
+  const workHistory = extractWorkHistory(profile?.work_history)
+  const hasSummary = Boolean(
+    (profile?.summary && String(profile.summary).trim()) ||
+      (profile?.career_summary && String(profile.career_summary).trim()) ||
+      (profile?.bio && String(profile.bio).trim()),
+  )
+  const hasCareerGoal = Boolean(
+    profile?.career_goals && String(profile.career_goals).trim().length > 0,
+  )
+  const hasIndustry = Boolean(
+    profile?.industry && String(profile.industry).trim().length > 0,
+  )
 
-  const stages = template.stages.map((factory, index) => {
-    const stage = factory(ctx)
-    return {
-      ...stage,
-      id: `${baseId || 'path'}-stage-${index + 1}`,
-    }
-  })
+  const hasDomainWorkHistory =
+    workHistory.length > 0 &&
+    workHistory.some(
+      (item) =>
+        (item.title && hasDomainKeywords(item.title, domainKeywords)) ||
+        (item.description && hasDomainKeywords(item.description, domainKeywords)),
+    )
 
-  const targetStage = {
-    ...template.targetStage(ctx),
-    id: `${baseId || 'path'}-target`,
+  const hasDomainSkills =
+    skills.length > 0 && skills.some((skill) => domainKeywords.some((keyword) => skill.includes(keyword)))
+
+  const suggestions: StageData[] = []
+
+  const pushSuggestion = (data: StageData) => {
+    suggestions.push(data)
   }
 
-  const nodes = [...stages, targetStage]
+  const skillRecommendations =
+    domainSkillRecommendations[template.domain] ?? domainSkillRecommendations.general
+
+  if (!hasDomainWorkHistory) {
+    pushSuggestion({
+      title: `Showcase ${displayDomain} Leadership`,
+      level: 'entry',
+      salaryRange: 'Profile update',
+      yearsExperience: 'Add roles now',
+      skills: [
+        { name: `${displayDomain} Achievements`, level: 'basic' },
+        { name: 'Career Storytelling', level: 'intermediate' },
+      ],
+      description:
+        `Open Career Profile → Work History and add accomplishment-driven bullets that highlight ${displayDomain.toLowerCase()} impact aligning with ${ctx.targetRole}.`,
+      growthPotential: 'high',
+      icon: 'book',
+    })
+  }
+
+  if (!hasDomainSkills || skills.length < 5) {
+    const recommended = skillRecommendations.slice(0, 2)
+    pushSuggestion({
+      title: `Expand ${displayDomain} Skill Highlights`,
+      level: 'mid',
+      salaryRange: 'Profile update',
+      yearsExperience: 'List top skills',
+      skills: recommended.map((skill, index) => ({
+        name: skill,
+        level: index === 0 ? 'intermediate' : 'basic',
+      })),
+      description:
+        `Update Career Profile → Skills with the capabilities executives expect for ${ctx.targetRole} (e.g., ${recommended.join(', ')}).`,
+      growthPotential: 'high',
+      icon: 'layers',
+    })
+  }
+
+  if (!hasCareerGoal) {
+    pushSuggestion({
+      title: 'Set a Targeted Career Goal',
+      level: 'senior',
+      salaryRange: 'Profile update',
+      yearsExperience: 'Clarify direction',
+      skills: [
+        { name: 'Goal Setting', level: 'basic' },
+        { name: 'Success Metrics', level: 'intermediate' },
+      ],
+      description:
+        `Head to Goals → Add Goal and describe why you’re pursuing ${ctx.targetRole}. This steers the Career Path Explorer toward executive-ready steps.`,
+      growthPotential: 'high',
+      icon: 'linechart',
+    })
+  }
+
+  if (!hasSummary) {
+    pushSuggestion({
+      title: 'Polish Your Executive Summary',
+      level: 'lead',
+      salaryRange: 'Profile update',
+      yearsExperience: 'Craft narrative',
+      skills: [
+        { name: 'Executive Presence', level: 'intermediate' },
+        { name: 'Storytelling', level: 'intermediate' },
+      ],
+      description:
+        'Add a concise executive summary in Career Profile → Summary that signals the scale of teams, budgets, and results you’ve led.',
+      growthPotential: 'medium',
+      icon: 'briefcase',
+    })
+  }
+
+  if (!hasIndustry) {
+    pushSuggestion({
+      title: 'Specify Industry Focus',
+      level: 'mid',
+      salaryRange: 'Profile update',
+      yearsExperience: '2 minutes',
+      skills: [
+        { name: 'Market Positioning', level: 'basic' },
+        { name: 'Domain Credibility', level: 'basic' },
+      ],
+      description:
+        'Set your primary industry in Career Profile → Basics so the explorer can recommend sector-appropriate transitions.',
+      growthPotential: 'medium',
+      icon: 'lightbulb',
+    })
+  }
+
+  if (!suggestions.length) {
+    pushSuggestion({
+      title: 'Review Recent Achievements',
+      level: 'entry',
+      salaryRange: 'Profile update',
+      yearsExperience: '15 minutes',
+      skills: [
+        { name: 'Impact Narratives', level: 'basic' },
+        { name: 'Executive Alignment', level: 'intermediate' },
+      ],
+      description:
+        'Refresh your profile with recent wins, measurable outcomes, and team leadership highlights relevant to your next role.',
+      growthPotential: 'high',
+      icon: 'book',
+    })
+  }
+
+  // Ensure at least three actionable steps before final recommendation
+  while (suggestions.length < 3) {
+    const fillerTitles = [
+      `Highlight ${displayDomain} Metrics`,
+      `Add Strategic Initiatives`,
+      `Link Cross-Functional Wins`,
+    ]
+    const fillerTitle = fillerTitles[suggestions.length % fillerTitles.length]
+    pushSuggestion({
+      title: fillerTitle,
+      level: 'mid',
+      salaryRange: 'Profile update',
+      yearsExperience: 'Add specifics',
+      skills: [
+        { name: 'Quantitative Evidence', level: 'intermediate' },
+        { name: 'Stakeholder Alignment', level: 'basic' },
+      ],
+      description:
+        'Document measurable outcomes (revenue, retention, efficiency) and the stakeholders you influenced to strengthen executive readiness.',
+      growthPotential: 'high',
+      icon: 'layers',
+    })
+  }
+
+  pushSuggestion({
+    title: `Regenerate the ${ctx.targetRole} Path`,
+    level: 'lead',
+    salaryRange: 'Next step',
+    yearsExperience: 'After updates',
+    skills: [
+      { name: 'Continuous Iteration', level: 'intermediate' },
+      { name: `${displayDomain} Vision`, level: 'advanced' },
+    ],
+    description:
+      'Once your profile reflects these updates, rerun the Quick Career Path Generator to unlock tailored role-by-role recommendations.',
+    growthPotential: 'high',
+    icon: 'award',
+  })
+
+  const nodes = suggestions.map((stage, index) => ({
+    ...stage,
+    id: `${baseId}-stage-${index + 1}`,
+  }))
 
   return {
-    id: `${baseId || 'path'}-path`,
-    name: template.name(ctx),
+    id: `${baseId}-guidance`,
+    name: `${ctx.baseRole} Profile Prep`,
     nodes,
   }
 }
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -1930,6 +2174,7 @@ export async function POST(request: NextRequest) {
 
     const template = selectTemplate(jobTitle)
     const promptContext = createContext(jobTitle, template.domain)
+    const userProfile = await fetchUserProfile(userId)
 
     // Try OpenAI, fall back to mock
     let client: OpenAI | null = null
@@ -2029,23 +2274,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Mock fallback + save
-    const mock = mockPath(jobTitle)
+    // Profile guidance fallback + save
+    const guidancePath = buildProfileGuidancePath(jobTitle, template, promptContext, userProfile)
     try {
       const url = process.env.NEXT_PUBLIC_CONVEX_URL
       if (url) {
         const clientCv = new ConvexHttpClient(url)
         await clientCv.mutation(api.career_paths.createCareerPath, {
           clerkId: userId,
-          target_role: String(mock?.name || jobTitle),
+          target_role: String(guidancePath?.name || jobTitle),
           current_level: undefined,
           estimated_timeframe: undefined,
-          steps: { source: 'job', path: mock, usedModel: 'mock' },
+          steps: { source: 'job', path: guidancePath, usedModel: 'profile-guidance' },
           status: 'active',
         })
       }
     } catch {}
-    return NextResponse.json({ paths: [mock] , usedFallback: true })
+    return NextResponse.json({ paths: [guidancePath], usedFallback: true, guidance: true })
   } catch (error: any) {
     console.error('POST /api/career-path/generate-from-job error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
