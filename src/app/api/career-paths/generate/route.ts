@@ -452,7 +452,7 @@ const evaluateGeneratedPath = (
       ? stripLevelQualifiers(profile.currentRole).toLowerCase()
       : ''
   const duplicates = feederCores.filter(
-    (core) => core === normalizedTarget || (!!baseCore && core === baseCore),
+    (core: string) => core === normalizedTarget || (!!baseCore && core === baseCore),
   )
   if (duplicates.length >= 2) {
     return {
