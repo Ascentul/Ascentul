@@ -57,8 +57,8 @@ export const create = mutation({
     }
 
     // Create block
-    const blockId = await ctx.db.insert("resume_blocks" as any, {
-      resume_id: args.resumeId,
+    const blockId = await ctx.db.insert("resume_blocks", {
+      resumeId: args.resumeId,
       type: args.type,
       data: args.data,
       order,
@@ -366,7 +366,7 @@ export const bulkUpdate = mutation({
     if (args.clearExisting) {
       const existingBlocks = await ctx.db
         .query("resume_blocks")
-        .withIndex("by_resume", (q: any) => q.eq("resume_id", args.resumeId))
+        .withIndex("by_resume", (q: any) => q.eq("resumeId", args.resumeId))
         .collect();
       for (const block of existingBlocks) {
         await ctx.db.delete(block._id);
@@ -374,8 +374,8 @@ export const bulkUpdate = mutation({
     }
     const createdIds = [];
     for (const block of args.blocks) {
-      const blockId = await ctx.db.insert("resume_blocks" as any, {
-        resume_id: args.resumeId,
+      const blockId = await ctx.db.insert("resume_blocks", {
+        resumeId: args.resumeId,
         type: block.type,
         data: block.data,
         order: block.order,

@@ -38,30 +38,60 @@ export const create = mutation({
       throw new Error(`Template not found: ${args.templateSlug}`);
     }
 
-    // Verify theme exists if provided
-    if (args.themeId) {
-      const theme = await ctx.db.get(args.themeId);
+    // Auto-assign default theme if not provided
+    let themeId = args.themeId;
+    if (!themeId) {
+      const firstTheme = await ctx.db
+        .query("builder_resume_themes")
+        .first();
+
+      if (firstTheme) {
+        themeId = firstTheme._id;
+      } else {
+        throw new Error("No themes available. Please create a theme first.");
+      }
+    } else {
+      // Verify theme exists if provided
+      const theme = await ctx.db.get(themeId);
       if (!theme) {
         throw new Error("Theme not found");
       }
     }
 
     const now = Date.now();
-    const resumeId = await ctx.db.insert("builder_resumes" as any, {
+    const resumeId = await ctx.db.insert("builder_resumes", {
       userId: user._id,
       title: args.title.trim(),
       templateSlug: args.templateSlug,
-      themeId: args.themeId,
+      themeId: themeId,
       version: 1,
       createdAt: now,
       updatedAt: now,
+    });
+
+    // Insert a starter header block so canvas is never blank
+    await ctx.db.insert("resume_blocks", {
+      resumeId,
+      type: "header",
+      order: 1,
+      locked: false,
+      data: {
+        fullName: "Your Name",
+        title: "Target Role",
+        contact: {
+          email: "",
+          phone: "",
+          location: "",
+          links: []
+        },
+      },
     });
 
     return {
       id: resumeId,
       title: args.title.trim(),
       templateSlug: args.templateSlug,
-      themeId: args.themeId,
+      themeId: themeId,
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -361,7 +391,7 @@ export const duplicate = mutation({
       .collect();
 
     for (const block of blocks) {
-      await ctx.db.insert("builder_resume_blocks" as any, {
+      await ctx.db.insert("resume_blocks" as any, {
         resumeId: newResumeId,
         type: block.type,
         data: block.data,

@@ -46,6 +46,8 @@ import type * as recommendations from "../recommendations.js";
 import type * as resumes from "../resumes.js";
 import type * as stripe from "../stripe.js";
 import type * as support_tickets from "../support_tickets.js";
+import type * as templates from "../templates.js";
+import type * as themes from "../themes.js";
 import type * as universities from "../universities.js";
 import type * as university_admin from "../university_admin.js";
 import type * as usage from "../usage.js";
@@ -94,6 +96,8 @@ declare const fullApi: ApiFromModules<{
   resumes: typeof resumes;
   stripe: typeof stripe;
   support_tickets: typeof support_tickets;
+  templates: typeof templates;
+  themes: typeof themes;
   universities: typeof universities;
   university_admin: typeof university_admin;
   usage: typeof usage;

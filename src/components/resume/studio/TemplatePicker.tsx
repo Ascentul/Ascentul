@@ -11,7 +11,7 @@ interface TemplatePickerProps {
 }
 
 export function TemplatePicker({ currentTemplate, onTemplateChange }: TemplatePickerProps) {
-  const templates = useQuery(api.builder_templates.listTemplates);
+  const templates = useQuery(api.builder_templates.listTemplatesAll);
 
   if (!templates) {
     return <div className="text-sm text-muted-foreground">Loading templates...</div>;

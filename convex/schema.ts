@@ -586,7 +586,9 @@ export default defineSchema({
     allowedBlocks: v.optional(v.array(v.string())),
     isPublic: v.boolean(),
     createdAt: v.number(),
-  }).index("by_slug", ["slug"]),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_name", ["name"]),
 
   // Resume Builder v2 - Themes table
   builder_resume_themes: defineTable({

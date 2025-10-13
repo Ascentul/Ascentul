@@ -21,7 +21,7 @@ export default function ResumeListPage() {
     api.builder_resumes.listUserResumes,
     user?.id ? { clerkId: user.id } : "skip"
   ) as Resume[] | undefined;
-  const createResume = useMutation(api.builder_resumes.createResume);
+  const createResume = useMutation(api.builder_resumes_v2.create);
   const updateResume = useMutation(api.builder_resumes.updateResume);
   const [dialogOpen, setDialogOpen] = useState(false);
 

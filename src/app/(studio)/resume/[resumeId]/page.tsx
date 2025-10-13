@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { useUser } from '@clerk/nextjs';
@@ -34,6 +34,8 @@ export default function ResumeStudioPage() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isInserting, setIsInserting] = useState(false);
 
   // Layout settings
   const [isCompact, setIsCompact] = useState(false);
@@ -42,11 +44,14 @@ export default function ResumeStudioPage() {
 
   // Fetch resume data
   const resumeData = useQuery(
-    api.builder_resumes.getResume,
+    api.builder_resumes_v2.get,
     resumeId && user?.id
       ? { id: resumeId as Id<"builder_resumes">, clerkId: user.id }
       : "skip"
   );
+
+  // Mutation for inserting blocks
+  const createBlock = useMutation(api.builder_blocks.create);
 
   // Local state for blocks (for real-time editing before saving)
   const [localBlocks, setLocalBlocks] = useState<any[]>([]);
@@ -115,12 +120,120 @@ export default function ResumeStudioPage() {
     }
   };
 
+  // Handler for inserting a starter section
+  const handleInsertStarterSection = useCallback(async () => {
+    if (!user?.id) return;
+    setIsInserting(true);
+    try {
+      await createBlock({
+        clerkId: user.id,
+        resumeId: resumeId as Id<"builder_resumes">,
+        type: "summary",
+        data: { paragraph: "Add a short professional summary here." },
+        order: 0,
+        locked: false,
+      });
+      toast({
+        title: 'Success',
+        description: 'Starter section added to your resume.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add starter section.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsInserting(false);
+    }
+  }, [user?.id, createBlock, resumeId, toast]);
+
+  // Handler for AI generation
+  const handleGenerateWithAI = useCallback(async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/resume/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeId: resumeId as Id<"builder_resumes">,
+          targetRole: 'Professional',
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate resume');
+      }
+
+      toast({
+        title: 'Success',
+        description: `Generated ${result.blocksGenerated} sections`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to generate resume',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [resumeId, toast]);
+
   const selectedBlock = localBlocks.find((b) => b._id === selectedBlockId);
 
+  // Loading state
   if (!resumeData) {
     return (
       <div className="h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Empty state - no sections yet
+  if (localBlocks.length === 0) {
+
+    return (
+      <div className="h-screen flex items-center justify-center bg-muted/20">
+        <div className="p-8 space-y-4 text-center max-w-md">
+          <p className="text-base text-muted-foreground">
+            This resume has no sections yet.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              onClick={handleInsertStarterSection}
+              disabled={isInserting}
+              variant="outline"
+              className="gap-2"
+            >
+              {isInserting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Inserting...</span>
+                </>
+              ) : (
+                <span>Insert starter section</span>
+              )}
+            </Button>
+            <Button
+              onClick={handleGenerateWithAI}
+              disabled={isGenerating}
+              className="gap-2"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <span>Generate with AI</span>
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
