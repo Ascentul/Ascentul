@@ -110,6 +110,59 @@ export const updateResume = mutation({
   },
 });
 
+// Update resume metadata with optimistic concurrency control
+export const updateResumeMeta = mutation({
+  args: {
+    clerkId: v.string(),
+    id: v.id("builder_resumes"),
+    title: v.optional(v.string()),
+    templateSlug: v.optional(v.string()),
+    themeId: v.optional(v.id("builder_resume_themes")),
+    expectedUpdatedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    // Get user by Clerk ID
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) throw new Error("User not found");
+
+    // Get the resume
+    const resume = await ctx.db.get(args.id);
+    if (!resume) throw new Error("Resume not found");
+
+    // Verify ownership
+    if (resume.userId !== user._id) throw new Error("Forbidden");
+
+    // Optimistic concurrency check
+    if (resume.updatedAt !== args.expectedUpdatedAt) {
+      throw new Error("Resume was modified by another process. Please refresh and try again.");
+    }
+
+    // Build updates
+    const updates: any = {
+      updatedAt: Date.now(),
+    };
+
+    if (args.title !== undefined) updates.title = args.title;
+    if (args.templateSlug !== undefined) updates.templateSlug = args.templateSlug;
+    if (args.themeId !== undefined) updates.themeId = args.themeId;
+
+    // Apply updates
+    await ctx.db.patch(args.id, updates);
+
+    // Return updated fields
+    return {
+      id: args.id,
+      updatedAt: updates.updatedAt,
+      templateSlug: updates.templateSlug ?? resume.templateSlug,
+      themeId: updates.themeId ?? resume.themeId,
+    };
+  },
+});
+
 // Delete a resume
 export const deleteResume = mutation({
   args: {

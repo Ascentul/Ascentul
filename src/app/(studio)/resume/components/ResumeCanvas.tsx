@@ -44,6 +44,9 @@ interface ResumeCanvasProps {
   onBlockUpdate?: (blockId: string, data: any) => void;
   onReorder?: (newBlocks: ResumeBlock[]) => void;
   readOnly?: boolean;
+  templateSlug?: string;
+  themeId?: string;
+  onPagesCalculated?: (totalPages: number) => void;
 }
 
 // Page dimensions in pixels at 96 DPI
@@ -68,10 +71,14 @@ export function ResumeCanvas({
   onBlockUpdate,
   onReorder,
   readOnly = false,
+  templateSlug,
+  themeId,
+  onPagesCalculated,
 }: ResumeCanvasProps) {
   const [blockHeights, setBlockHeights] = useState<Map<string, number>>(new Map());
   const [pages, setPages] = useState<ResumeBlock[][]>([]);
   const blockRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const dimensions = PAGE_DIMENSIONS[pageSize];
   const contentWidth = dimensions.width - margins.left - margins.right;
@@ -134,7 +141,12 @@ export function ResumeCanvas({
     }
 
     setPages(paginatedPages);
-  }, [blocks, blockHeights, contentHeight]);
+
+    // Notify parent of total pages
+    if (onPagesCalculated) {
+      onPagesCalculated(paginatedPages.length || 1);
+    }
+  }, [blocks, blockHeights, contentHeight, onPagesCalculated]);
 
   // Measure heights on mount and when blocks change
   useEffect(() => {
@@ -145,6 +157,17 @@ export function ResumeCanvas({
 
     return () => clearTimeout(timer);
   }, [blocks, measureBlockHeights]);
+
+  // Scroll to top when template or theme changes
+  useEffect(() => {
+    if (containerRef.current) {
+      const scrollContainer = containerRef.current.closest('[data-scroll-container]')
+        ?? containerRef.current.parentElement;
+      if (scrollContainer && 'scrollTo' in scrollContainer) {
+        scrollContainer.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
+  }, [templateSlug, themeId]);
 
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
@@ -239,11 +262,11 @@ export function ResumeCanvas({
   });
 
   return (
-    <div className="flex flex-col items-center gap-8 pb-16">
+    <div ref={containerRef} className="flex flex-col items-center gap-8 pb-16">
       {readOnly || pages.length === 0 ? (
         // Single page view for editing or empty state
         <div
-          className="bg-white shadow-lg"
+          className="relative mx-auto my-8 shadow-xl bg-white"
           style={{
             width: `${dimensions.width}px`,
             minHeight: `${dimensions.height}px`,
@@ -283,14 +306,14 @@ export function ResumeCanvas({
       ) : (
         // Multi-page view with pagination
         pages.map((pageBlocks, pageIndex) => (
-          <div key={pageIndex} className="relative">
+          <div key={pageIndex} className="relative mx-auto my-8">
             {/* Page number */}
             <div className="absolute -top-6 left-0 text-sm text-gray-500">
               Page {pageIndex + 1} of {pages.length}
             </div>
 
             <div
-              className="bg-white shadow-lg"
+              className="bg-white shadow-xl"
               style={{
                 width: `${dimensions.width}px`,
                 height: `${dimensions.height}px`,

@@ -8,7 +8,35 @@ import { query } from "./_generated/server";
 export const listTemplates = query({
   args: {},
   handler: async (ctx) => {
-    const templates = await ctx.db.query("builder_resume_templates").collect();
+    const templates = await ctx.db
+      .query("builder_resume_templates")
+      .withIndex("by_name")
+      .order("asc")
+      .collect();
+
+    return templates.map((template) => ({
+      id: template._id,
+      slug: template.slug,
+      name: template.name,
+      thumbnailUrl: template.thumbnailUrl,
+      pageSize: template.pageSize,
+      allowedBlocks: template.allowedBlocks,
+    }));
+  },
+});
+
+/**
+ * List all available resume templates (alias for listTemplates).
+ * @returns Array<{ id, slug, name, thumbnailUrl, pageSize, allowedBlocks }>
+ */
+export const listTemplatesAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const templates = await ctx.db
+      .query("builder_resume_templates")
+      .withIndex("by_name")
+      .order("asc")
+      .collect();
 
     return templates.map((template) => ({
       id: template._id,

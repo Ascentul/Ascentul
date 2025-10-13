@@ -1,245 +1,257 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from '@clerk/nextjs/server';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../../../../convex/_generated/api';
-import type { Id } from '../../../../../convex/_generated/dataModel';
-import {
-  RESUME_GENERATION_SYSTEM_PROMPT,
-  generateResumePrompt,
-  extractJSON,
-  type UserProfile,
-} from '@/lib/ai/prompts/generate';
-import { callAI } from '@/lib/ai/client';
-import {
-  aiResumeResponseSchema,
-  formatZodErrorsForAI,
-  type AIResumeResponse,
-} from '@/lib/validators/resume';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
+import { openai } from "@/lib/ai/openaiClient";
+import { getModel, FALLBACK_MODEL } from "@/lib/ai/aiConfig";
+import { systemPrompt } from "@/lib/ai/prompts/system";
+import { buildGeneratePrompt } from "@/lib/ai/prompts/generate";
+import { resumeOutputSchema } from "@/lib/ai/resumeSchemas";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // 60 seconds for AI generation
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 interface GenerateResumeRequest {
-  resumeId: Id<'builder_resumes'>;
+  resumeId: Id<"builder_resumes">;
   targetRole: string;
   targetCompany?: string;
 }
 
-/**
- * POST /api/resume/generate
- * Generate resume blocks using AI
- */
 export async function POST(req: NextRequest) {
   try {
-    // 1. Authenticate user
-    const { userId } = getAuth(req);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // 1. Check if OpenAI key is available at runtime
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "AI not configured. OPENAI_API_KEY environment variable is missing." },
+        { status: 503 }
+      );
     }
 
-    // 2. Parse and validate request body
+    // 2. Authenticate user
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 3. Parse and validate request body
     const body: GenerateResumeRequest = await req.json();
     const { resumeId, targetRole, targetCompany } = body;
 
     if (!resumeId || !targetRole) {
       return NextResponse.json(
-        { error: 'Missing required fields: resumeId and targetRole are required' },
+        { error: "Missing required fields: resumeId and targetRole are required" },
         { status: 400 }
       );
     }
 
-    // 3. Initialize Convex client
+    console.log(`Generating resume for role: ${targetRole}${targetCompany ? ` at ${targetCompany}` : ""}`);
+
+    // 4. Initialize Convex client
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
     if (!convexUrl) {
       return NextResponse.json(
-        { error: 'Convex URL not configured' },
+        { error: "Convex URL not configured" },
         { status: 500 }
       );
     }
 
     const convex = new ConvexHttpClient(convexUrl);
+    convex.setAuth(await auth().then(a => a.getToken({ template: "convex" }) || ""));
 
-    // 4. Verify resume ownership
+    // 5. Verify resume ownership
     let resume;
     try {
-      resume = await convex.query(api.builder_resumes_v2.get, {
+      resume = await convex.query(api.builder_resumes.getResume, {
         id: resumeId,
         clerkId: userId,
       });
     } catch (error: any) {
       return NextResponse.json(
-        { error: 'Resume not found or access denied' },
+        { error: "Resume not found or access denied" },
         { status: 404 }
       );
     }
 
-    // 5. Load user profile from Convex
-    let userProfile: UserProfile = {};
-    try {
-      const user = await convex.query(api.users.getByClerkId as any, {
-        clerkId: userId,
-      });
-
-      if (user) {
-        userProfile = {
-          name: user.name,
-          email: user.email,
-          location: user.location,
-          linkedin_url: user.linkedin_url,
-          github_url: user.github_url,
-          website: user.website,
-          bio: user.bio,
-          skills: user.skills,
-          current_position: user.current_position,
-          current_company: user.current_company,
-          work_history: user.work_history,
-          education_history: user.education_history,
-        };
+    // 6. Get template to know allowed blocks
+    let allowedBlocks = ["header", "summary", "experience", "education", "skills", "projects"];
+    if (resume.templateId) {
+      try {
+        const template = await convex.query(api.builder_templates.getTemplate, {
+          id: resume.templateId,
+        });
+        if (template?.allowedBlocks && template.allowedBlocks.length > 0) {
+          allowedBlocks = template.allowedBlocks;
+        }
+      } catch (error) {
+        console.warn("Could not load template, using default allowed blocks");
       }
-    } catch (error) {
-      console.warn('Could not load user profile, continuing with minimal data:', error);
     }
 
-    // 6. Build AI prompt
-    const userPrompt = generateResumePrompt({
+    // 7. Load user profile
+    let profile;
+    try {
+      profile = await convex.query(api.profiles.getMyProfile, {});
+
+      if (!profile) {
+        return NextResponse.json(
+          { error: "No career profile found. Please complete your career profile first." },
+          { status: 400 }
+        );
+      }
+    } catch (error: any) {
+      console.error("Profile load error:", error);
+      return NextResponse.json(
+        { error: "Failed to load career profile" },
+        { status: 500 }
+      );
+    }
+
+    // 8. Build AI prompt
+    const userPrompt = buildGeneratePrompt({
       targetRole,
       targetCompany,
-      userProfile,
+      profile,
+      allowedBlocks,
     });
 
-    console.log('Generating resume with AI for role:', targetRole);
-
-    // 7. Call AI with retry logic (up to 3 attempts)
-    let validatedResponse: AIResumeResponse | null = null;
-    let lastError: string | null = null;
+    // 9. Call OpenAI with retry and fallback
+    let currentModel = getModel();
+    let hasTriedFallback = false;
+    let aiResponse: string | null = null;
     const maxAttempts = 3;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        console.log(`AI attempt ${attempt}/${maxAttempts}`);
+        console.log(`AI attempt ${attempt}/${maxAttempts} with model: ${currentModel}`);
 
-        // Adjust prompt for retry attempts
-        let currentUserPrompt = userPrompt;
-        if (attempt > 1 && lastError) {
-          currentUserPrompt = `${userPrompt}\n\n---\nPREVIOUS ATTEMPT FAILED WITH ERRORS:\n${lastError}\n\nPlease fix these errors and provide valid JSON.`;
+        const completion = await openai.chat.completions.create({
+          model: currentModel,
+          temperature: 0.2,
+          max_tokens: 1600,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        });
+
+        aiResponse = completion.choices[0]?.message?.content;
+
+        if (aiResponse) {
+          console.log("AI response received, length:", aiResponse.length);
+          break;
         }
+      } catch (error: any) {
+        console.error(`AI attempt ${attempt} failed:`, error.message);
 
-        // Call AI (automatically uses gpt-4o-mini in dev for faster generation)
-        const aiResponse = await callAI(
-          RESUME_GENERATION_SYSTEM_PROMPT,
-          currentUserPrompt,
-          {
-            // Model selection is automatic based on environment
-            temperature: 0.7,
-            maxTokens: 4096,
-          }
-        );
+        // Check if this is a model-related error
+        const isModelError =
+          error.message?.toLowerCase().includes("model") ||
+          error.message?.toLowerCase().includes("not found") ||
+          error.code === "model_not_found" ||
+          error.status === 404;
 
-        console.log('AI response received, length:', aiResponse.length);
-
-        // 8. Extract JSON from response
-        let parsedJSON: unknown;
-        try {
-          parsedJSON = extractJSON(aiResponse);
-        } catch (error: any) {
-          lastError = `JSON parsing failed: ${error.message}`;
-          console.warn(`Attempt ${attempt} - JSON extraction failed:`, error.message);
+        if (isModelError && !hasTriedFallback && currentModel !== FALLBACK_MODEL) {
+          console.log(`Model error detected. Falling back to ${FALLBACK_MODEL}`);
+          currentModel = FALLBACK_MODEL;
+          hasTriedFallback = true;
+          attempt--; // Don't count this as an attempt
           continue;
         }
 
-        // 9. Validate with Zod
-        const validation = aiResumeResponseSchema.safeParse(parsedJSON);
-
-        if (validation.success) {
-          validatedResponse = validation.data;
-          console.log('Validation successful, blocks:', validation.data.blocks.length);
-          break;
-        } else {
-          lastError = formatZodErrorsForAI(validation.error);
-          console.warn(`Attempt ${attempt} - Validation failed:`, lastError);
-
-          if (attempt === maxAttempts) {
-            // Last attempt failed, return validation errors with raw JSON
-            return NextResponse.json(
-              {
-                error: 'AI response validation failed after 3 attempts',
-                details: lastError,
-                validationErrors: lastError,
-                rawResponse: parsedJSON,
-                canRetry: true,
-              },
-              { status: 422 } // Unprocessable Entity
-            );
-          }
-        }
-      } catch (error: any) {
-        lastError = error.message;
-        console.error(`Attempt ${attempt} - AI call failed:`, error);
-
         if (attempt === maxAttempts) {
           return NextResponse.json(
-            {
-              error: 'Resume generation failed after 3 attempts',
-              details: error.message,
-            },
-            { status: 500 }
+            { error: `AI generation failed: ${error.message}` },
+            { status: 502 }
           );
         }
+
+        // Exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt - 1), 5000)));
       }
     }
 
-    if (!validatedResponse) {
+    if (!aiResponse) {
       return NextResponse.json(
-        { error: 'Failed to generate valid resume content' },
-        { status: 500 }
+        { error: "Failed to generate resume content" },
+        { status: 502 }
       );
     }
 
-    // 10. Upsert blocks in Convex
-    console.log('Upserting blocks to Convex...');
-
+    // 10. Parse and validate JSON response
+    let parsedBlocks;
     try {
-      // Use bulkUpdate to replace all blocks
-      await convex.mutation(api.builder_blocks.bulkUpdate, {
-        resumeId,
-        clerkId: userId,
-        blocks: validatedResponse.blocks.map((block) => ({
-          type: block.type,
-          data: block.data,
-          order: block.order,
-          locked: false,
-        })),
-        clearExisting: true, // Clear existing blocks
-      });
+      // Extract JSON from response (handles code blocks, etc.)
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? jsonMatch[0] : aiResponse;
+      const parsed = JSON.parse(jsonStr);
 
-      console.log('Blocks upserted successfully');
+      // Validate with Zod
+      const validated = resumeOutputSchema.parse(parsed);
+      parsedBlocks = validated.blocks;
+
+      console.log(`Validated ${parsedBlocks.length} blocks`);
     } catch (error: any) {
-      console.error('Failed to upsert blocks:', error);
+      console.error("Validation error:", error);
+      const errorMsg = error.errors
+        ? error.errors.map((e: any) => `${e.path.join(".")}: ${e.message}`).join("; ")
+        : error.message;
+
       return NextResponse.json(
         {
-          error: 'Failed to save generated blocks',
-          details: error.message,
+          error: "AI generated invalid resume format",
+          details: errorMsg,
+          rawResponse: aiResponse.substring(0, 500),
         },
-        { status: 500 }
+        { status: 502 }
       );
     }
 
-    // 11. Return success response
+    // 11. Delete existing non-locked blocks
+    try {
+      const existingBlocks = await convex.query(api.builder_blocks.listBlocks, {
+        resumeId,
+      });
+
+      for (const block of existingBlocks) {
+        if (!block.locked) {
+          await convex.mutation(api.builder_blocks.deleteBlock, {
+            id: block._id,
+          });
+        }
+      }
+    } catch (error) {
+      console.warn("Error deleting old blocks:", error);
+    }
+
+    // 12. Insert new blocks
+    let insertedCount = 0;
+    for (const block of parsedBlocks) {
+      try {
+        await convex.mutation(api.builder_blocks.createBlock, {
+          resumeId,
+          type: block.type,
+          order: block.order,
+          data: block.data,
+          locked: false,
+        });
+        insertedCount++;
+      } catch (error) {
+        console.error(`Failed to insert block ${block.type}:`, error);
+      }
+    }
+
+    console.log(`Successfully inserted ${insertedCount} blocks`);
+
     return NextResponse.json({
-      success: true,
-      resumeId,
-      blocksGenerated: validatedResponse.blocks.length,
-      blocks: validatedResponse.blocks,
-      message: 'Resume generated successfully',
+      ok: true,
+      count: insertedCount,
     });
   } catch (error: any) {
-    console.error('Resume generation error:', error);
+    console.error("Generate resume error:", error);
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        details: error.message,
-      },
+      { error: error.message || "Failed to generate resume" },
       { status: 500 }
     );
   }

@@ -1,56 +1,30 @@
-'use client';
+"use client";
 
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import type { Id } from '@/convex/_generated/dataModel';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
 
-/**
- * Hook for resume actions - create, generate, list templates/themes
- */
+interface GenerateOptions {
+  resumeId: Id<"builder_resumes">;
+  targetRole: string;
+  targetCompany?: string;
+}
+
 export function useResumeActions() {
-  // Mutations
-  const createResumeMutation = useMutation(api.builder_resumes_v2.create);
+  const router = useRouter();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Queries
-  const templates = useQuery(api.templates.listTemplatesAll, {});
-  const themes = useQuery(api.themes.listThemesAll, {});
-
-  /**
-   * Create a new resume
-   */
-  const createResume = async (
-    clerkId: string,
-    title: string,
-    templateSlug: string,
-    themeId?: Id<'builder_resume_themes'>
-  ) => {
-    return await createResumeMutation({
-      clerkId,
-      title,
-      templateSlug,
-      themeId,
-    });
-  };
-
-  /**
-   * Generate resume with AI
-   *
-   * Note: Uses a 60-second timeout to prevent indefinite hanging.
-   * The AbortController will cancel the request if it exceeds the timeout.
-   */
-  const generate = async (
-    resumeId: Id<'builder_resumes'>,
-    targetRole: string,
-    targetCompany?: string
-  ) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+  const generate = async ({ resumeId, targetRole, targetCompany }: GenerateOptions) => {
+    setIsGenerating(true);
+    setError(null);
 
     try {
-      const response = await fetch('/api/resume/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
+      const response = await fetch("/api/resume/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           resumeId,
           targetRole,
@@ -58,32 +32,28 @@ export function useResumeActions() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || 'Failed to generate resume');
+        throw new Error(data.error || "Failed to generate resume");
       }
 
-      return await response.json();
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Resume generation timed out. Please try again.');
-      }
-      throw error;
+      // Trigger a refetch/revalidation
+      router.refresh();
+
+      return { success: true, count: data.count };
+    } catch (err: any) {
+      const errorMessage = err.message || "An unexpected error occurred";
+      setError(errorMessage);
+      throw err;
     } finally {
-      clearTimeout(timeoutId);
+      setIsGenerating(false);
     }
   };
 
   return {
-    createResume,
     generate,
-    templates: {
-      data: templates,
-      isLoading: templates === undefined,
-    },
-    themes: {
-      data: themes,
-      isLoading: themes === undefined,
-    },
+    isGenerating,
+    error,
   };
 }
