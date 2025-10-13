@@ -32,6 +32,7 @@ import type * as career_paths from "../career_paths.js";
 import type * as contact_interactions from "../contact_interactions.js";
 import type * as contacts from "../contacts.js";
 import type * as cover_letters from "../cover_letters.js";
+import type * as devSeed from "../devSeed.js";
 import type * as email from "../email.js";
 import type * as followups from "../followups.js";
 import type * as goals from "../goals.js";
@@ -79,6 +80,7 @@ declare const fullApi: ApiFromModules<{
   contact_interactions: typeof contact_interactions;
   contacts: typeof contacts;
   cover_letters: typeof cover_letters;
+  devSeed: typeof devSeed;
   email: typeof email;
   followups: typeof followups;
   goals: typeof goals;
