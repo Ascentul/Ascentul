@@ -551,4 +551,62 @@ export default defineSchema({
     .index("by_subscription", ["stripe_subscription_id"])
     .index("by_event_date", ["event_date"])
     .index("by_event_type", ["event_type"]),
+
+  // Resume Builder v2 - Resumes table
+  builder_resumes: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    templateSlug: v.optional(v.string()),
+    themeId: v.optional(v.id("builder_resume_themes")),
+    version: v.optional(v.number()),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_updated_at", ["updatedAt"]),
+
+  // Resume Builder v2 - Resume blocks table
+  resume_blocks: defineTable({
+    resumeId: v.id("builder_resumes"),
+    type: v.string(),
+    data: v.any(),
+    order: v.number(),
+    locked: v.optional(v.boolean()),
+  }).index("by_resume", ["resumeId"]),
+
+  // Resume Builder v2 - Templates table
+  builder_resume_templates: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    description: v.optional(v.string()),
+    defaultThemeId: v.optional(v.id("builder_resume_themes")),
+    thumbnailUrl: v.optional(v.string()),
+    pageSize: v.optional(v.string()),
+    margins: v.optional(v.any()),
+    allowedBlocks: v.optional(v.array(v.string())),
+    isPublic: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_slug", ["slug"]),
+
+  // Resume Builder v2 - Themes table
+  builder_resume_themes: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    colors: v.any(),
+    fonts: v.any(),
+    fontSizes: v.optional(v.any()),
+    spacing: v.any(),
+    isPublic: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_name", ["name"]),
+
+  // Resume Builder v2 - Exports table
+  builder_resume_exports: defineTable({
+    resumeId: v.id("builder_resumes"),
+    format: v.string(),
+    url: v.string(),
+    createdAt: v.number(),
+  }).index("by_resume", ["resumeId"]),
 });

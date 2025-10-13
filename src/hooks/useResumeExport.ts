@@ -1,0 +1,129 @@
+import { useState } from 'react';
+import type { Id } from '../../convex/_generated/dataModel';
+
+interface ExportState {
+  isExporting: boolean;
+  progress: 'idle' | 'generating' | 'complete' | 'error';
+  url: string | null;
+  error: string | null;
+  exportId: Id<'builder_resume_exports'> | null;
+}
+
+interface ExportOptions {
+  resumeId: Id<'builder_resumes'>;
+  format: 'pdf';
+  onSuccess?: (url: string) => void;
+  onError?: (error: string) => void;
+}
+
+/**
+ * Custom hook for exporting resumes to PDF
+ * Handles loading states and automatic download
+ */
+export function useResumeExport() {
+  const [state, setState] = useState<ExportState>({
+    isExporting: false,
+    progress: 'idle',
+    url: null,
+    error: null,
+    exportId: null,
+  });
+
+  const exportResume = async (options: ExportOptions) => {
+    const { resumeId, format, onSuccess, onError } = options;
+
+    // Reset state
+    setState({
+      isExporting: true,
+      progress: 'generating',
+      url: null,
+      error: null,
+      exportId: null,
+    });
+
+    try {
+      // Call export API
+      const response = await fetch('/api/resume/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resumeId,
+          format,
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to export resume';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // Response is not JSON, use default message
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        setState({
+          isExporting: false,
+          progress: 'complete',
+          url: data.url,
+          error: null,
+          exportId: data.exportId,
+        });
+
+        // Trigger automatic download
+        triggerDownload(data.url, `resume.${format}`);
+
+        onSuccess?.(data.url);
+      } else {
+        throw new Error('Export failed: No URL returned');
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to export resume';
+
+      setState({
+        isExporting: false,
+        progress: 'error',
+        url: null,
+        error: errorMessage,
+        exportId: null,
+      });
+
+      onError?.(errorMessage);
+    }
+  };
+
+  const reset = () => {
+    setState({
+      isExporting: false,
+      progress: 'idle',
+      url: null,
+      error: null,
+      exportId: null,
+    });
+  };
+
+  return {
+    ...state,
+    exportResume,
+    reset,
+  };
+}
+
+/**
+ * Trigger browser download for a URL
+ */
+function triggerDownload(url: string, filename: string) {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.target = '_blank';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}

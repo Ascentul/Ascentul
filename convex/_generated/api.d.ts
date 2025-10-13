@@ -19,6 +19,15 @@ import type * as ai_coach from "../ai_coach.js";
 import type * as analytics from "../analytics.js";
 import type * as applications from "../applications.js";
 import type * as avatar from "../avatar.js";
+import type * as builder_blocks from "../builder_blocks.js";
+import type * as builder_exports from "../builder_exports.js";
+import type * as builder_exports_v2 from "../builder_exports_v2.js";
+import type * as builder_resumes from "../builder_resumes.js";
+import type * as builder_resumes_v2 from "../builder_resumes_v2.js";
+import type * as builder_templates from "../builder_templates.js";
+import type * as builder_templates_v2 from "../builder_templates_v2.js";
+import type * as builder_themes from "../builder_themes.js";
+import type * as builder_themes_v2 from "../builder_themes_v2.js";
 import type * as career_paths from "../career_paths.js";
 import type * as contact_interactions from "../contact_interactions.js";
 import type * as contacts from "../contacts.js";
@@ -40,6 +49,7 @@ import type * as universities from "../universities.js";
 import type * as university_admin from "../university_admin.js";
 import type * as usage from "../usage.js";
 import type * as users from "../users.js";
+import type * as utils_auth from "../utils/auth.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -56,6 +66,15 @@ declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   applications: typeof applications;
   avatar: typeof avatar;
+  builder_blocks: typeof builder_blocks;
+  builder_exports: typeof builder_exports;
+  builder_exports_v2: typeof builder_exports_v2;
+  builder_resumes: typeof builder_resumes;
+  builder_resumes_v2: typeof builder_resumes_v2;
+  builder_templates: typeof builder_templates;
+  builder_templates_v2: typeof builder_templates_v2;
+  builder_themes: typeof builder_themes;
+  builder_themes_v2: typeof builder_themes_v2;
   career_paths: typeof career_paths;
   contact_interactions: typeof contact_interactions;
   contacts: typeof contacts;
@@ -77,6 +96,7 @@ declare const fullApi: ApiFromModules<{
   university_admin: typeof university_admin;
   usage: typeof usage;
   users: typeof users;
+  "utils/auth": typeof utils_auth;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

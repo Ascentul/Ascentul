@@ -193,6 +193,15 @@ const Sidebar = React.memo(function Sidebar({
             icon: <FileText className="h-4 w-4" />,
             label: "Resume Studio",
           },
+          ...(process.env.NEXT_PUBLIC_ENABLE_RESUME === "true"
+            ? [
+                {
+                  href: "/resume",
+                  icon: <FileEdit className="h-4 w-4" />,
+                  label: "Resume Builder v2",
+                },
+              ]
+            : []),
           {
             href: "/cover-letters",
             icon: <Mail className="h-4 w-4" />,
