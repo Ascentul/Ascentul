@@ -60,14 +60,14 @@ export type ProjectsData = {
 
 export type CustomData = {
   heading: string;
-  bullets: string[];
+  bullets?: string[];
 };
 
 // Helper function to format date ranges
 export function fmtDates(start?: string, end?: string): string {
   if (!start && !end) return '';
-  if (!start) return end || '';
-  if (!end || end.trim().length === 0) return `${start} to Present`;
-  if (end === 'Present') return `${start} to Present`;
-  return `${start} to ${end}`;
+  const normalizedEnd = end?.trim();
+  if (!start) return normalizedEnd || '';
+  if (!normalizedEnd || normalizedEnd === 'Present') return `${start} to Present`;
+  return `${start} to ${normalizedEnd}`;
 }

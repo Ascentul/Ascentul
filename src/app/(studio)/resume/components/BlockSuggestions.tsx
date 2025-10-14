@@ -35,29 +35,60 @@ export function BlockSuggestions({
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed[blockId]) {
+        if (parsed[blockId] && Array.isArray(parsed[blockId])) {
           setDismissed(new Set(parsed[blockId]));
         }
       }
     } catch (error) {
       console.error('Failed to load dismissed suggestions:', error);
     }
+
+    // Listen for storage events from other tabs/windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed[blockId] && Array.isArray(parsed[blockId])) {
+            // Merge remote changes with local state
+            setDismissed((current) => {
+              const merged = new Set(current);
+              parsed[blockId].forEach((id: string) => merged.add(id));
+              return merged;
+            });
+          }
+        } catch (error) {
+          console.error('Failed to sync dismissed suggestions:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [blockId]);
 
   const handleDismiss = (suggestionId: string) => {
-    const newDismissed = new Set(dismissed);
-    newDismissed.add(suggestionId);
-    setDismissed(newDismissed);
+    setDismissed((current) => {
+      const newDismissed = new Set(current);
+      newDismissed.add(suggestionId);
 
-    // Save to localStorage
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      const parsed = stored ? JSON.parse(stored) : {};
-      parsed[blockId] = Array.from(newDismissed);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-    } catch (error) {
-      console.error('Failed to save dismissed suggestions:', error);
-    }
+      // Save to localStorage with merge logic
+      try {
+        // Re-read from storage to merge any concurrent updates
+        const stored = localStorage.getItem(STORAGE_KEY);
+        const parsed = stored ? JSON.parse(stored) : {};
+
+        // Merge existing dismissed IDs with new one
+        const existingIds = Array.isArray(parsed[blockId]) ? parsed[blockId] : [];
+        const mergedIds = Array.from(new Set([...existingIds, suggestionId]));
+
+        parsed[blockId] = mergedIds;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      } catch (error) {
+        console.error('Failed to save dismissed suggestions:', error);
+      }
+
+      return newDismissed;
+    });
 
     onDismiss?.(suggestionId);
   };
@@ -78,6 +109,8 @@ export function BlockSuggestions({
         return <Info className="h-4 w-4" />;
       case 'low':
         return <Lightbulb className="h-4 w-4" />;
+      default:
+        return <Lightbulb className="h-4 w-4" />;
     }
   };
 
@@ -87,11 +120,8 @@ export function BlockSuggestions({
     const hasHighPriority = visibleSuggestions.some(s => s.priority === 'high');
     const hasMediumPriority = visibleSuggestions.some(s => s.priority === 'medium');
 
-    const badgeColorClass = hasHighPriority
-      ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-      : hasMediumPriority
-      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+    const highestPriority = hasHighPriority ? 'high' : hasMediumPriority ? 'medium' : 'low';
+    const badgeColorClass = getPriorityColorClass(highestPriority, 'badge');
 
     return (
       <TooltipProvider>
@@ -99,7 +129,7 @@ export function BlockSuggestions({
           <TooltipTrigger asChild>
             <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium cursor-help ${badgeColorClass}`}>
               <Lightbulb className="h-3 w-3" />
-              <span>{visibleSuggestions.length}</span>
+              <span data-testid="suggestion-count">{visibleSuggestions.length}</span>
             </div>
           </TooltipTrigger>
           <TooltipContent side="right" className="max-w-xs">
@@ -130,12 +160,7 @@ export function BlockSuggestions({
           key={suggestion.id}
           className={`
             flex items-start gap-2 p-3 rounded-lg border
-            ${suggestion.priority === 'high'
-              ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900'
-              : suggestion.priority === 'medium'
-              ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900'
-              : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900'
-            }
+            ${getPriorityColorClass(suggestion.priority, 'card')}
           `}
         >
           <div className={getSuggestionColor(suggestion.priority)}>
@@ -158,6 +183,7 @@ export function BlockSuggestions({
             size="sm"
             className="h-6 w-6 p-0"
             onClick={() => handleDismiss(suggestion.id)}
+            data-testid="dismiss-button"
           >
             <X className="h-3 w-3" />
             <span className="sr-only">Dismiss</span>
@@ -167,6 +193,30 @@ export function BlockSuggestions({
     </div>
   );
 }
+
+/**
+ * Get color classes based on priority and variant
+ */
+const getPriorityColorClass = (
+  priority: ContentSuggestion['priority'],
+  variant: 'badge' | 'card'
+) => {
+  const colors = {
+    high:
+      variant === 'badge'
+        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+        : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900',
+    medium:
+      variant === 'badge'
+        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+        : 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900',
+    low:
+      variant === 'badge'
+        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+        : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900',
+  };
+  return colors[priority];
+};
 
 /**
  * Inline suggestion badge (for hover/focus states)
@@ -180,14 +230,8 @@ export function InlineSuggestionBadge({
 }) {
   if (count === 0) return null;
 
-  const colorClass = priority === 'high'
-    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-    : priority === 'medium'
-    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
-
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getPriorityColorClass(priority, 'badge')}`}>
       <Lightbulb className="h-3 w-3" />
       {count}
     </span>

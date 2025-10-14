@@ -6,6 +6,9 @@ import { ClerkAuthProvider } from '@/contexts/ClerkAuthProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { AuthWrapper } from '@/components/AuthWrapper';
 import { Toaster } from '@/components/ui/toaster';
+import { TooltipProvider } from '@/components/ui/tooltip';
+
+const CLERK_LOADING_TIMEOUT_MS = 6000;
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -16,8 +19,10 @@ export function AppProviders({ children }: AppProvidersProps) {
   if (!publishableKey) {
     const message =
       'Clerk publishable key is missing. Set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env.local file.';
+    console.error(message);
+
+    // In development, show detailed error with instructions
     if (process.env.NODE_ENV !== 'production') {
-      console.error(message);
       return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-yellow-50 px-6 text-center text-yellow-900">
           <div className="max-w-md space-y-3 rounded-lg border border-yellow-300 bg-white p-6 shadow-sm">
@@ -29,15 +34,28 @@ export function AppProviders({ children }: AppProvidersProps) {
         </div>
       );
     }
-    throw new Error(message);
+
+    // In production, show user-friendly error without exposing technical details
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-6 text-center text-gray-900">
+        <div className="max-w-md space-y-3 rounded-lg border border-gray-300 bg-white p-6 shadow-sm">
+          <p className="text-sm font-semibold">Configuration Error</p>
+          <p className="text-sm">
+            Unable to load the application. Please contact support if this issue persists.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <ConvexClientProvider>
       <ClerkAuthProvider>
         <QueryProvider>
-          <AuthWrapper>{children}</AuthWrapper>
-          <Toaster />
+          <TooltipProvider delayDuration={200}>
+            <AuthWrapper>{children}</AuthWrapper>
+            <Toaster />
+          </TooltipProvider>
         </QueryProvider>
       </ClerkAuthProvider>
     </ConvexClientProvider>
@@ -48,8 +66,8 @@ export function ClerkLoadingFallback() {
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setTimedOut(true), 6000);
-    return () => window.clearTimeout(timer);
+    const timer = setTimeout(() => setTimedOut(true), CLERK_LOADING_TIMEOUT_MS);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

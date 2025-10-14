@@ -76,7 +76,6 @@ export function AIActionsToolbar({
       }
 
       const result = await response.json();
-      clearTimeout(timeoutId);
 
       // Validate response structure
       if (!result.blocks || !Array.isArray(result.blocks)) {
@@ -88,7 +87,6 @@ export function AIActionsToolbar({
       const count = result.count ?? result.blocks.length;
       onSuccess?.(`Tidied ${count} ${count === 1 ? 'block' : 'blocks'} successfully!`);
     } catch (error: any) {
-      clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
         onError?.('Request timed out. Please try again.');
         return;
@@ -96,6 +94,7 @@ export function AIActionsToolbar({
       console.error('Tidy error:', error);
       onError?.(error.message || 'Failed to tidy resume. Please try again.');
     } finally {
+      clearTimeout(timeoutId);
       setLoading(null);
     }
   };
@@ -176,27 +175,6 @@ export function AIActionsToolbar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {/* Quick Tidy Button (Alternative - always visible) */}
-        {/* <Button
-          variant="outline"
-          size="sm"
-          onClick={handleTidy}
-          disabled={isDisabled || currentBlocks.length === 0}
-          className="gap-2"
-        >
-          {loading === 'tidy' ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Tidying...</span>
-            </>
-          ) : (
-            <>
-              <Zap className="h-4 w-4" />
-              <span>Tidy</span>
-            </>
-          )}
-        </Button> */}
       </div>
 
       {/* Generate Dialog */}

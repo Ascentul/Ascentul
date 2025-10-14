@@ -55,7 +55,15 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Parse and validate request body
-    const body: TidyResumeRequest = await req.json();
+    let body: TidyResumeRequest;
+    try {
+      body = await req.json();
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
     const { resumeId, currentBlocks } = body;
 
     if (!resumeId || !currentBlocks || !Array.isArray(currentBlocks)) {

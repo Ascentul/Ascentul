@@ -26,6 +26,14 @@ export default function ResumeListPage() {
   const createResumeWithBlocks = useMutation(api.builder_resumes.createResumeWithBlocks);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const showAiGenerationError = () => {
+    toast({
+      title: 'AI generation failed',
+      description: 'Resume was created, but AI generation encountered an error.',
+      variant: 'destructive',
+    });
+  };
+
   const onNew = async (data: {
     title: string;
     templateSlug: string;
@@ -79,11 +87,7 @@ export default function ResumeListPage() {
 
           if (!response.ok) {
             console.error('AI generation failed:', await response.text());
-            toast({
-              title: 'AI generation failed',
-              description: 'Resume was created, but AI generation encountered an error.',
-              variant: 'destructive',
-            });
+            showAiGenerationError();
           } else {
             const aiResult = await response.json();
             console.log('AI generated blocks:', aiResult.blocks?.length);
@@ -94,11 +98,7 @@ export default function ResumeListPage() {
           }
         } catch (error) {
           console.error('AI generation error:', error);
-          toast({
-            title: 'AI generation failed',
-            description: 'Resume was created, but AI generation encountered an error.',
-            variant: 'destructive',
-          });
+          showAiGenerationError();
         }
       }
 
@@ -111,6 +111,9 @@ export default function ResumeListPage() {
         description: 'Failed to create resume. Please try again.',
         variant: 'destructive',
       });
+      // Re-throw to allow error boundary to handle if present
+      // This ensures the error is properly logged and can trigger
+      // error recovery mechanisms while still showing user feedback
       throw error;
     }
   };

@@ -16,11 +16,11 @@ async function fetchDebug(url: string): Promise<DebugResponse> {
     const isJson = contentType.includes('application/json');
     const body = isJson ? await res.json() : await res.text();
     return { ok: res.ok, status: res.status, body };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       ok: false,
       status: 0,
-      body: { error: error?.message ?? 'Unknown error' },
+      body: { error: error instanceof Error ? error.message : 'Unknown error' },
     };
   }
 }

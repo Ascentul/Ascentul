@@ -181,7 +181,7 @@ export const listForUser = query({
 
     // Get all exports for these resumes
     const allExports = [];
-    for (const resumeId of Array.from(resumeIds)) {
+    for (const resumeId of resumeIds) {
       const exports = await ctx.db
         .query("builder_resume_exports")
         .withIndex("by_resume", (q: any) => q.eq("resumeId", resumeId))

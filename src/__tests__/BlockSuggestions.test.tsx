@@ -77,8 +77,8 @@ describe('BlockSuggestions Component', () => {
         />
       );
 
-      // Should show count badge
-      expect(screen.getByText('3')).toBeInTheDocument();
+      // Should show count badge with specific test ID
+      expect(screen.getByTestId('suggestion-count')).toHaveTextContent('3');
     });
 
     it('should not render if no suggestions provided', () => {
@@ -119,17 +119,9 @@ describe('BlockSuggestions Component', () => {
         />
       );
 
-      // Find and click the first dismiss button
-      const dismissButtons = screen.getAllByRole('button');
-      const firstDismissButton = dismissButtons.find(
-        (btn) => btn.querySelector('svg') !== null
-      );
-
-      expect(firstDismissButton).toBeDefined();
-
-      if (firstDismissButton) {
-        fireEvent.click(firstDismissButton);
-      }
+      // Find and click the first dismiss button using test ID
+      const dismissButtons = screen.getAllByTestId('dismiss-button');
+      fireEvent.click(dismissButtons[0]);
 
       await waitFor(() => {
         // The first suggestion should be removed from the DOM
@@ -150,10 +142,8 @@ describe('BlockSuggestions Component', () => {
         />
       );
 
-      const dismissButtons = screen.getAllByRole('button');
-      const firstDismissButton = dismissButtons[0];
-
-      fireEvent.click(firstDismissButton);
+      const dismissButtons = screen.getAllByTestId('dismiss-button');
+      fireEvent.click(dismissButtons[0]);
 
       await waitFor(() => {
         const stored = localStorage.getItem('resume-dismissed-suggestions');
@@ -178,7 +168,7 @@ describe('BlockSuggestions Component', () => {
         />
       );
 
-      const dismissButtons = screen.getAllByRole('button');
+      const dismissButtons = screen.getAllByTestId('dismiss-button');
       fireEvent.click(dismissButtons[0]);
 
       await waitFor(() => {

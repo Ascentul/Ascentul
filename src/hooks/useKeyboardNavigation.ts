@@ -116,7 +116,7 @@ export function useFocusTrap(
 
     // Get initial focusable elements and focus the first one
     const initialFocusableElements = container.querySelectorAll<HTMLElement>(
-      'button:not([disabled]):not(:disabled), [href], input:not([disabled]):not(:disabled), select:not([disabled]):not(:disabled), textarea:not([disabled]):not(:disabled), [tabindex]:not([tabindex="-1"])'
+      'button:not([disabled]):not(:disabled), [href], input:not([disabled]):not(:disabled), select:not([disabled]):not(:disabled), textarea:not([disabled]):not(:disabled), [tabindex]:not([tabindex="-1"]), details, summary, [contenteditable="true"]'
     );
     const firstInitialElement = initialFocusableElements[0];
     firstInitialElement?.focus();
@@ -126,7 +126,7 @@ export function useFocusTrap(
 
       // Rebuild focusable elements list on each Tab press to handle DOM changes
       const focusableElements = container.querySelectorAll<HTMLElement>(
-        'button:not([disabled]):not(:disabled), [href], input:not([disabled]):not(:disabled), select:not([disabled]):not(:disabled), textarea:not([disabled]):not(:disabled), [tabindex]:not([tabindex="-1"])'
+        'button:not([disabled]):not(:disabled), [href], input:not([disabled]):not(:disabled), select:not([disabled]):not(:disabled), textarea:not([disabled]):not(:disabled), [tabindex]:not([tabindex="-1"]), details, summary, [contenteditable="true"]'
       );
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
@@ -176,7 +176,7 @@ export function useAriaLive() {
     announcement.setAttribute('role', 'status');
     announcement.setAttribute('aria-live', priority);
     announcement.setAttribute('aria-atomic', 'true');
-    announcement.className = 'sr-only'; // Visually hidden but accessible
+    announcement.style.cssText = 'position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden;';
     announcement.textContent = message;
 
     document.body.appendChild(announcement);
@@ -207,12 +207,14 @@ export function useKeyboardShortcut(
 ) {
   const { enabled = true, preventDefault = true } = options;
   const pressedKeysRef = useRef<Set<string>>(new Set());
+  const activatedRef = useRef(false);
 
   useEffect(() => {
     if (!enabled) return;
 
     // Clear any pressed keys when effect runs
     pressedKeysRef.current.clear();
+    activatedRef.current = false;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       pressedKeysRef.current.add(event.key.toLowerCase());
@@ -222,7 +224,8 @@ export function useKeyboardShortcut(
         pressedKeysRef.current.has(key.toLowerCase())
       );
 
-      if (allKeysPressed) {
+      if (allKeysPressed && !activatedRef.current) {
+        activatedRef.current = true;
         if (preventDefault) {
           event.preventDefault();
         }
@@ -232,6 +235,10 @@ export function useKeyboardShortcut(
 
     const handleKeyUp = (event: KeyboardEvent) => {
       pressedKeysRef.current.delete(event.key.toLowerCase());
+      // Reset activation when any key is released
+      if (pressedKeysRef.current.size === 0) {
+        activatedRef.current = false;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -242,6 +249,7 @@ export function useKeyboardShortcut(
       window.removeEventListener('keyup', handleKeyUp);
       // Clear pressed keys on cleanup
       pressedKeysRef.current.clear();
+      activatedRef.current = false;
     };
   }, [keys, callback, enabled, preventDefault]);
 }

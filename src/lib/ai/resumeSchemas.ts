@@ -75,8 +75,8 @@ const skillsBlockSchema = z.object({
     secondary: z.array(z.string()).optional(),
   }).refine(
     (value) =>
-      Array.isArray(value.primary) && value.primary.length > 0 ||
-      Array.isArray(value.secondary) && value.secondary.length > 0,
+      (Array.isArray(value.primary) && value.primary.length > 0) ||
+      (Array.isArray(value.secondary) && value.secondary.length > 0),
     { message: "At least one skills list must be provided" }
   ),
 });

@@ -207,16 +207,21 @@ function HeaderInspector({ data, onChange }: { data: HeaderData; onChange: (data
         <Label htmlFor="links" className="text-xs">Links (comma separated)</Label>
         <Input
           id="links"
-          value={data.contact?.links?.join(', ') || ''}
-          onChange={(e) =>
+          value={data.contact?.links?.map(link => link.url).join(', ') || ''}
+          onChange={(e) => {
+            const urls = e.target.value
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean);
+            const linkObjects = urls.map(url => ({ label: url, url }));
             onChange({
               ...data,
               contact: {
                 ...data.contact,
-                links: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
+                links: linkObjects,
               },
-            })
-          }
+            });
+          }}
           placeholder="linkedin.com/in/johndoe, github.com/johndoe"
         />
       </div>
@@ -271,14 +276,19 @@ function ExperienceInspector({ data, onChange }: { data: ExperienceData; onChang
 
   const addBullet = (itemIndex: number) => {
     const newItems = [...items];
-    newItems[itemIndex].bullets.push('');
+    if (!newItems[itemIndex].bullets) {
+      newItems[itemIndex].bullets = [];
+    }
+    newItems[itemIndex].bullets!.push('');
     onChange({ ...data, items: newItems });
   };
 
   const removeBullet = (itemIndex: number, bulletIndex: number) => {
     const newItems = [...items];
-    newItems[itemIndex].bullets = newItems[itemIndex].bullets.filter((_, i) => i !== bulletIndex);
-    onChange({ ...data, items: newItems });
+    if (newItems[itemIndex].bullets) {
+      newItems[itemIndex].bullets = newItems[itemIndex].bullets!.filter((_, i) => i !== bulletIndex);
+      onChange({ ...data, items: newItems });
+    }
   };
 
   const updateBullet = (itemIndex: number, bulletIndex: number, value: string) => {
@@ -336,7 +346,7 @@ function ExperienceInspector({ data, onChange }: { data: ExperienceData; onChang
           </div>
           <div className="space-y-2">
             <Label className="text-xs">Bullets</Label>
-            {item.bullets.map((bullet, bIndex) => (
+            {item.bullets?.map((bullet, bIndex) => (
               <div key={bIndex} className="flex gap-2">
                 <Input
                   value={bullet}
@@ -457,7 +467,7 @@ function EducationInspector({ data, onChange }: { data: EducationData; onChange:
           />
           <div className="space-y-2">
             <Label className="text-xs">Details</Label>
-            {item.details.map((detail, dIndex) => (
+            {item.details?.map((detail, dIndex) => (
               <div key={dIndex} className="flex gap-2">
                 <Input
                   value={detail}
@@ -559,14 +569,19 @@ function ProjectsInspector({ data, onChange }: { data: ProjectsData; onChange: (
 
   const addBullet = (itemIndex: number) => {
     const newItems = [...items];
-    newItems[itemIndex].bullets.push('');
+    if (!newItems[itemIndex].bullets) {
+      newItems[itemIndex].bullets = [];
+    }
+    newItems[itemIndex].bullets!.push('');
     onChange({ ...data, items: newItems });
   };
 
   const removeBullet = (itemIndex: number, bulletIndex: number) => {
     const newItems = [...items];
-    newItems[itemIndex].bullets = newItems[itemIndex].bullets.filter((_, i) => i !== bulletIndex);
-    onChange({ ...data, items: newItems });
+    if (newItems[itemIndex].bullets) {
+      newItems[itemIndex].bullets = newItems[itemIndex].bullets!.filter((_, i) => i !== bulletIndex);
+      onChange({ ...data, items: newItems });
+    }
   };
 
   const updateBullet = (itemIndex: number, bulletIndex: number, value: string) => {
@@ -605,7 +620,7 @@ function ProjectsInspector({ data, onChange }: { data: ProjectsData; onChange: (
           />
           <div className="space-y-2">
             <Label className="text-xs">Highlights</Label>
-            {item.bullets.map((bullet, bIndex) => (
+            {item.bullets?.map((bullet, bIndex) => (
               <div key={bIndex} className="flex gap-2">
                 <Input
                   value={bullet}

@@ -305,7 +305,7 @@ Tidy: Once every 20 seconds (rate limit)
 A: Check your subscription plan for limits.
 
 **Q: Can I undo AI changes?**
-A: Yes, use browser back or reload to revert.
+A: Since changes are auto-saved immediately, you can manually revert by re-editing the content or using the AI "Tidy & Improve" feature to regenerate. A proper undo/redo feature is coming soon (Cmd/Ctrl+Z).
 
 **Q: What if AI generates wrong information?**
 A: Always review and edit AI-generated content. The AI uses your profile data but may need adjustments.

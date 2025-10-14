@@ -104,7 +104,8 @@ const maxBulletsData: ExperienceData = {
         'Fourth achievement demonstrating collaboration skills.',
         'Fifth achievement showing innovation and problem-solving.',
         'Sixth achievement illustrating long-term impact.',
-        'Seventh achievement (should be truncated due to MAX_BULLETS limit).',
+        // Seventh+ bullets should be truncated by the component (MAX_BULLETS=6 in ExperienceBlock.tsx)
+        'Seventh achievement (should be truncated).',
         'Eighth achievement (should also be truncated).',
       ],
     },
@@ -136,6 +137,17 @@ const meta: Meta<typeof ExperienceBlock> = {
   },
   args: {
     data: exampleData,
+    isSelected: false,
+  },
+  argTypes: {
+    isSelected: {
+      control: 'boolean',
+      description: 'Whether the block is currently selected (shows suggestions panel)',
+    },
+    data: {
+      control: 'object',
+      description: 'Experience data including items with company, role, and bullets',
+    },
   },
 };
 
@@ -146,97 +158,41 @@ type Story = StoryObj<typeof ExperienceBlock>;
 export const Default: Story = {
   args: {
     data: exampleData,
-    isSelected: false,
-  },
-};
-
-export const Selected: Story = {
-  args: {
-    data: exampleData,
-    isSelected: true,
   },
 };
 
 export const MultipleExperiences: Story = {
   args: {
     data: multipleItemsData,
-    isSelected: false,
-  },
-};
-
-export const MultipleExperiencesSelected: Story = {
-  args: {
-    data: multipleItemsData,
-    isSelected: true,
   },
 };
 
 export const MinimalFields: Story = {
   args: {
     data: minimalFieldsData,
-    isSelected: false,
-  },
-};
-
-export const MinimalFieldsSelected: Story = {
-  args: {
-    data: minimalFieldsData,
-    isSelected: true,
   },
 };
 
 export const VeryLongText: Story = {
   args: {
     data: veryLongTextData,
-    isSelected: false,
-  },
-};
-
-export const VeryLongTextSelected: Story = {
-  args: {
-    data: veryLongTextData,
-    isSelected: true,
   },
 };
 
 export const MaxBulletPoints: Story = {
   args: {
     data: maxBulletsData,
-    isSelected: false,
-  },
-};
-
-export const MaxBulletPointsSelected: Story = {
-  args: {
-    data: maxBulletsData,
-    isSelected: true,
   },
 };
 
 export const NoBulletPoints: Story = {
   args: {
     data: noBulletsData,
-    isSelected: false,
-  },
-};
-
-export const NoBulletPointsSelected: Story = {
-  args: {
-    data: noBulletsData,
-    isSelected: true,
   },
 };
 
 export const EmptyState: Story = {
   args: {
     data: emptyData,
-    isSelected: false,
-  },
-};
-
-export const EmptyStateSelected: Story = {
-  args: {
-    data: emptyData,
-    isSelected: true,
   },
 };

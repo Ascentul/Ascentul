@@ -51,7 +51,7 @@ export function ConfigurationError({
   const steps = helpSteps || defaultHelpSteps;
 
   const errorContent = (
-    <div className={`flex ${fullPage ? 'min-h-screen' : ''} flex-col items-center justify-center p-8 text-center font-sans`}>
+    <div className={`flex ${fullPage ? 'min-h-screen' : ''} flex-col items-center justify-center p-8 text-center`}>
       <div className="max-w-2xl rounded-lg border border-red-300 bg-red-50 p-8">
         <h1 className="mb-4 text-2xl font-bold text-red-900">
           Configuration Error
@@ -68,8 +68,8 @@ export function ConfigurationError({
               How to fix this
             </summary>
             <ol className="mt-2 space-y-1 pl-5 list-decimal text-red-800">
-              {steps.map((step) => (
-                <li key={step.text}>
+              {steps.map((step, index) => (
+                <li key={index}>
                   {step.text}
                   {step.code && (
                     <code className="ml-1 rounded bg-red-100 px-1.5 py-0.5 text-xs font-mono text-red-900">

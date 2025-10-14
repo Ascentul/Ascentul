@@ -10,8 +10,8 @@ interface SkillsBlockProps {
 }
 
 export function SkillsBlock({ data, isSelected, suggestions, blockId }: SkillsBlockProps) {
-  const primarySkills = Array.isArray(data?.primary) ? data.primary : [];
-  const secondarySkills = Array.isArray(data?.secondary) ? data.secondary : [];
+  const primarySkills = Array.isArray(data.primary) ? data.primary : [];
+  const secondarySkills = Array.isArray(data.secondary) ? data.secondary : [];
 
   if (primarySkills.length === 0 && secondarySkills.length === 0) return null;
 
@@ -33,7 +33,6 @@ export function SkillsBlock({ data, isSelected, suggestions, blockId }: SkillsBl
       className={`space-y-2 transition-all ${
         isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md p-2' : ''
       }`}
-      role="region"
       aria-label="Skills"
     >
       <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">
@@ -46,7 +45,7 @@ export function SkillsBlock({ data, isSelected, suggestions, blockId }: SkillsBl
       </div>
 
       {/* Show suggestions when block is selected */}
-      {isSelected && suggestions && suggestions.length > 0 && blockId && (
+      {isSelected && suggestions?.length && blockId && (
         <BlockSuggestions
           blockId={blockId}
           suggestions={suggestions}

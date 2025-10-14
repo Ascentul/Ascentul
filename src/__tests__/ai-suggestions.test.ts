@@ -5,6 +5,7 @@ import {
   analyzeSkillsBlock,
   analyzeResume,
 } from '@/lib/ai/suggestions';
+import type { ResumeBlock } from '@/lib/validators/resume';
 
 describe('AI Suggestions System', () => {
   describe('analyzeBullet', () => {
@@ -96,6 +97,8 @@ describe('AI Suggestions System', () => {
 
       expect(suggestions1).toBeDefined();
       expect(suggestions2).toBeDefined();
+      expect(Array.isArray(suggestions1)).toBe(true);
+      expect(Array.isArray(suggestions2)).toBe(true);
     });
   });
 
@@ -163,6 +166,10 @@ describe('AI Suggestions System', () => {
 
       // Should have suggestions for all three poorly written bullets
       expect(suggestions.length).toBeGreaterThan(2);
+      const types = suggestions.map(s => s.type);
+      expect(types).toContain('verb'); // weak verb in bullet 1
+      expect(types).toContain('length'); // short bullet 2
+      expect(types).toContain('clarity'); // vague language in bullet 3
     });
 
     it('should handle experience blocks with no bullets', () => {
@@ -260,6 +267,12 @@ describe('AI Suggestions System', () => {
       const suggestions = analyzeSkillsBlock(primary, secondary);
 
       expect(suggestions.length).toBeGreaterThan(0);
+      expect(suggestions).toContainEqual(
+        expect.objectContaining({
+          type: 'keyword',
+          message: expect.stringContaining('skills'),
+        })
+      );
     });
   });
 
@@ -313,12 +326,13 @@ describe('AI Suggestions System', () => {
       expect(suggestionsByBlock.size).toBeGreaterThan(0);
 
       // Summary block should have suggestions
-      const summaryBlockId = 'block-1';
+      const summaryBlock = blocks.find(b => b.type === 'summary');
+      const summaryBlockId = `block-${summaryBlock?.order}`;
       expect(suggestionsByBlock.has(summaryBlockId)).toBe(true);
     });
 
     it('should return empty map for empty resume', () => {
-      const blocks: any[] = [];
+      const blocks: ResumeBlock[] = [];
       const suggestionsByBlock = analyzeResume(blocks);
 
       expect(suggestionsByBlock.size).toBe(0);

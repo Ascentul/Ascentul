@@ -2,6 +2,25 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 /**
+ * Type Safety Note:
+ * This file contains several `as any` casts due to Convex framework limitations:
+ *
+ * 1. Table names in queries/inserts: Convex's type system doesn't properly infer
+ *    table names in some contexts, requiring casts like `"builder_resumes" as any`
+ *
+ * 2. Index names: Custom indexes defined in schema.ts aren't fully type-checked
+ *    at compile time, requiring `as any` for index names like `"by_user"`
+ *
+ * 3. Query builders: The `q` parameter in withIndex callbacks lacks proper typing
+ *    in the current Convex version
+ *
+ * These casts are intentional workarounds for framework constraints and don't
+ * compromise runtime safety as Convex validates all operations at runtime.
+ *
+ * TODO: Remove these casts when Convex improves type inference in future versions.
+ */
+
+/**
  * Create a new resume for the authenticated user.
  * @returns { id: Id<"builder_resumes">, title: string, templateSlug: string, themeId?: Id<"builder_resume_themes"> }
  */
@@ -321,7 +340,7 @@ export const createResumeWithBlocks = mutation({
           const projectItems = projects.map((proj) => ({
             name: proj.title || "",
             description: proj.description || "",
-            bullets: proj.technologies.length > 0
+            bullets: proj.technologies && proj.technologies.length > 0
               ? [
                   `Technologies: ${proj.technologies.join(", ")}`,
                   ...(proj.url ? [`URL: ${proj.url}`] : []),

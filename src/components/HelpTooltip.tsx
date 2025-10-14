@@ -3,10 +3,10 @@
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { HelpCircle, Info, Lightbulb } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface HelpTooltipProps {
   content: string;
@@ -16,6 +16,12 @@ interface HelpTooltipProps {
   iconClassName?: string;
   ariaLabel?: string;
 }
+
+const iconMap = {
+  help: HelpCircle,
+  info: Info,
+  lightbulb: Lightbulb,
+} as const;
 
 /**
  * HelpTooltip Component
@@ -29,31 +35,38 @@ export function HelpTooltip({
   iconClassName,
   ariaLabel,
 }: HelpTooltipProps) {
-  const Icon = icon === 'info' ? Info : icon === 'lightbulb' ? Lightbulb : HelpCircle;
+  const Icon = iconMap[icon];
 
   return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            className={`inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors ${className}`}
-            aria-label={ariaLabel || 'Help information'}
-          >
-            <Icon className={`h-4 w-4 ${iconClassName}`} />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent
-          side={side}
-          className="max-w-xs text-sm"
-          sideOffset={5}
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors",
+            className
+          )}
+          aria-label={ariaLabel || 'Help information'}
         >
-          {content}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+          <Icon className={cn("h-4 w-4", iconClassName)} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side={side}
+        className="max-w-xs text-sm"
+        sideOffset={5}
+      >
+        {content}
+      </TooltipContent>
+    </Tooltip>
   );
 }
+
+const variantColors = {
+  new: 'bg-blue-100 text-blue-700 border-blue-200',
+  beta: 'bg-purple-100 text-purple-700 border-purple-200',
+  improved: 'bg-green-100 text-green-700 border-green-200',
+} as const;
 
 /**
  * Feature Badge
@@ -66,15 +79,12 @@ export function FeatureBadge({
   label?: string;
   variant?: 'new' | 'beta' | 'improved';
 }) {
-  const colors = {
-    new: 'bg-blue-100 text-blue-700 border-blue-200',
-    beta: 'bg-purple-100 text-purple-700 border-purple-200',
-    improved: 'bg-green-100 text-green-700 border-green-200',
-  };
-
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${colors[variant]}`}
+      className={cn(
+        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border",
+        variantColors[variant]
+      )}
     >
       {label}
     </span>

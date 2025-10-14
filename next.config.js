@@ -36,6 +36,16 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
+            // WARNING: This CSP uses 'unsafe-inline' and 'unsafe-eval' for development convenience.
+            // These directives significantly weaken XSS protection and should NOT be used in production.
+            //
+            // For production, implement nonce-based CSP:
+            // 1. Generate a unique nonce per request in middleware
+            // 2. Pass nonce to all inline <script> and <style> tags
+            // 3. Replace 'unsafe-inline'/'unsafe-eval' with 'nonce-{random}'
+            //
+            // See: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
+            // Example implementation in docs/DEPLOYMENT.md (lines 990-1036)
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://js.stripe.com",

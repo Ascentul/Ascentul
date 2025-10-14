@@ -43,9 +43,14 @@ CLERK_SECRET_KEY=
 # Convex Backend
 NEXT_PUBLIC_CONVEX_URL=
 CONVEX_DEPLOYMENT=
+CONVEX_DEPLOY_KEY=  # Required for production deployments
 
 # OpenAI API
 OPENAI_API_KEY=
+
+# Payment Processing (Required if using paid features)
+STRIPE_SECRET_KEY=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 
 # Optional: Analytics, Monitoring
 NEXT_PUBLIC_ANALYTICS_ID=
@@ -139,7 +144,7 @@ Route (app)                              Size     First Load JS
 
 ### 3. Test Build Locally
 ```bash
-npm run start
+npm start
 ```
 
 Open `http://localhost:3000` and verify:
@@ -449,6 +454,17 @@ For production, use a reverse proxy (nginx or Apache) to:
 
 **nginx configuration:**
 ```nginx
+# /etc/nginx/nginx.conf
+# Add this to the http block (before server blocks)
+http {
+    # ... existing http configuration ...
+
+    # Cache configuration for Next.js static files
+    proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=next_cache:10m max_size=1g inactive=60m use_temp_path=off;
+
+    # ... rest of http configuration ...
+}
+
 # /etc/nginx/sites-available/resume-builder
 server {
     listen 80;
@@ -485,18 +501,45 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
-    # Cache static files
+    # Cache static files (Next.js static assets)
     location /_next/static {
         proxy_pass http://localhost:3000;
-        proxy_cache_valid 60m;
+        proxy_cache next_cache;
+        proxy_cache_valid 200 60m;
+        proxy_cache_key "$scheme$request_method$host$request_uri";
+        proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+        proxy_cache_lock on;
+        add_header X-Cache-Status $upstream_cache_status;
+    }
+
+    # Cache public assets
+    location /public {
+        proxy_pass http://localhost:3000;
+        proxy_cache next_cache;
+        proxy_cache_valid 200 60m;
+        proxy_cache_key "$scheme$request_method$host$request_uri";
+        add_header X-Cache-Status $upstream_cache_status;
     }
 }
 
+# Create cache directory and set permissions
+sudo mkdir -p /var/cache/nginx
+sudo chown -R nginx:nginx /var/cache/nginx
+sudo chmod -R 755 /var/cache/nginx
+
 # Enable configuration and restart nginx
-# sudo ln -s /etc/nginx/sites-available/resume-builder /etc/nginx/sites-enabled/
-# sudo nginx -t
-# sudo systemctl restart nginx
+sudo ln -s /etc/nginx/sites-available/resume-builder /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
 ```
+
+**Note:** The cache configuration includes:
+- `proxy_cache_path`: Defines cache storage location and parameters
+- `keys_zone=next_cache:10m`: Allocates 10MB for cache keys (stores ~80,000 keys)
+- `max_size=1g`: Limits cache to 1GB
+- `inactive=60m`: Removes cached items not accessed for 60 minutes
+- `X-Cache-Status`: Header shows cache HIT/MISS/BYPASS for debugging
+
 
 **Apache configuration:**
 ```apache
@@ -951,7 +994,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 
 export function middleware(request: NextRequest) {
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const nonce = crypto.randomBytes(16).toString('base64');
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.clerk.accounts.dev;

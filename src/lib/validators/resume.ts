@@ -92,9 +92,7 @@ export const skillsBlockData = z.object({
   primary: z.array(z.string()).optional(),
   secondary: z.array(z.string()).optional(),
 }).refine(
-  (value) =>
-    Array.isArray(value.primary) && value.primary.length > 0 ||
-    Array.isArray(value.secondary) && value.secondary.length > 0,
+  (data) => (data.primary?.length ?? 0) > 0 || (data.secondary?.length ?? 0) > 0,
   { message: 'At least one skills list must be provided' }
 );
 
@@ -112,7 +110,7 @@ export const projectsBlockData = z.object({
 // Custom block
 export const customBlockData = z.object({
   heading: z.string(),
-  bullets: z.array(z.string()),
+  bullets: z.array(z.string()).optional(),
 });
 
 // ===== Block Type Union =====

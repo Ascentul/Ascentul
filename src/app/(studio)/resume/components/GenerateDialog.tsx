@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import type { ResumeBlock } from '@/lib/validators/resume';
@@ -32,18 +33,46 @@ export function GenerateDialog({
   const [targetCompany, setTargetCompany] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup: abort pending requests on component unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleClose = () => {
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     setTargetRole('');
     setTargetCompany('');
     setError(null);
+    setConfirmed(false);
     setLoading(false);
     onOpenChange(false);
+  };
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
+    setError(null);
   };
 
   const handleGenerate = async () => {
     if (!targetRole.trim()) return;
 
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
     setLoading(true);
     setError(null);
 
@@ -56,6 +85,7 @@ export function GenerateDialog({
           targetRole: targetRole.trim(),
           targetCompany: targetCompany.trim() || undefined,
         }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -70,21 +100,36 @@ export function GenerateDialog({
       }
 
       const result = await response.json();
+      if (!result.blocks || !Array.isArray(result.blocks)) {
+        throw new Error('Invalid response format from server');
+      }
       onAccept(result.blocks);
       handleClose();
     } catch (err) {
+      // Don't show error if user cancelled the request
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
       setError(
         err instanceof Error
           ? err.message
           : 'Failed to generate resume'
       );
     } finally {
+      abortControllerRef.current = null;
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          handleClose();
+        }
+      }}
+    >
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Generate Resume Content</DialogTitle>
@@ -126,23 +171,46 @@ export function GenerateDialog({
             </div>
           )}
 
-          <div className="p-3 rounded bg-blue-50 border border-blue-200 text-blue-900 text-sm">
-            <strong>Note:</strong> This will replace all current content with AI-generated content based on your career profile.
+          <div className="p-3 rounded bg-amber-50 border border-amber-200 text-amber-900 text-sm">
+            <strong>Warning:</strong> This will replace all current content with AI-generated content based on your career profile.
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="confirm-replace"
+              checked={confirmed}
+              onCheckedChange={(checked) => setConfirmed(checked === true)}
+              disabled={loading}
+            />
+            <label
+              htmlFor="confirm-replace"
+              className="text-sm leading-relaxed cursor-pointer select-none"
+            >
+              I understand this will replace my current resume content
+            </label>
           </div>
         </div>
 
         <div className="flex justify-between pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
+          {loading ? (
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+            >
+              Cancel Request
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={handleClose}
+            >
+              Close
+            </Button>
+          )}
 
           <Button
             onClick={handleGenerate}
-            disabled={loading || !targetRole.trim()}
+            disabled={loading || !targetRole.trim() || !confirmed}
           >
             {loading ? (
               <>

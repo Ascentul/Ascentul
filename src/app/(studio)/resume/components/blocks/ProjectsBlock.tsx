@@ -13,7 +13,16 @@ interface ProjectsBlockProps {
 export function ProjectsBlock({ data, isSelected, onClick, suggestions, blockId }: ProjectsBlockProps) {
   const { items } = data;
 
-  if (!items || items.length === 0) return null;
+  if (!items || items.length === 0) {
+    return (
+      <section className="space-y-2" role="region" aria-label="Projects">
+        <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">
+          Projects
+        </h2>
+        <p className="text-sm text-neutral-500">No projects to display</p>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -30,7 +39,7 @@ export function ProjectsBlock({ data, isSelected, onClick, suggestions, blockId 
 
       <div className="space-y-6">
         {items.map((item, idx) => (
-          <article key={idx} className="space-y-1">
+          <article key={item.name || idx} className="space-y-1">
             {/* Project Name */}
             <h3 className="text-base font-medium text-neutral-900">
               {item.name}
@@ -45,10 +54,10 @@ export function ProjectsBlock({ data, isSelected, onClick, suggestions, blockId 
 
             {/* Bullets */}
             {item.bullets && item.bullets.length > 0 && (
-              <ul className="space-y-0.5 mt-2" role="list">
+              <ul className="space-y-0.5 mt-2">
                 {item.bullets.map((bullet, i) => (
                   <li
-                    key={i}
+                    key={bullet || i}
                     className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
                   >
                     {bullet}
@@ -61,7 +70,7 @@ export function ProjectsBlock({ data, isSelected, onClick, suggestions, blockId 
       </div>
 
       {/* Show suggestions when block is selected */}
-      {isSelected && suggestions && suggestions.length > 0 && blockId && (
+      {isSelected && blockId && suggestions && suggestions.length > 0 && (
         <BlockSuggestions
           blockId={blockId}
           suggestions={suggestions}

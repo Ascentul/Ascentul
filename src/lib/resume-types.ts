@@ -124,7 +124,8 @@ export function isEducationData(data: any): data is EducationData {
 export function isSkillsData(data: any): data is SkillsData {
   return (
     data &&
-    (Array.isArray(data.primary) || Array.isArray(data.secondary))
+    ((Array.isArray(data.primary) && data.primary.length > 0) ||
+     (Array.isArray(data.secondary) && data.secondary.length > 0))
   );
 }
 

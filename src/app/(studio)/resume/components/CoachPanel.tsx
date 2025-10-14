@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -81,6 +81,8 @@ const COACH_TIPS: CoachTip[] = [
   },
 ];
 
+const DISMISSED_TIPS_STORAGE_KEY = 'dismissedCoachTips';
+
 interface CoachPanelProps {
   className?: string;
 }
@@ -89,7 +91,7 @@ export function CoachPanel({ className }: CoachPanelProps) {
   const [dismissedTips, setDismissedTips] = useState<Set<string>>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const stored = localStorage.getItem('dismissedCoachTips');
+        const stored = localStorage.getItem(DISMISSED_TIPS_STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
           return Array.isArray(parsed) ? new Set(parsed) : new Set();
@@ -108,16 +110,22 @@ export function CoachPanel({ className }: CoachPanelProps) {
       isInitialMount.current = false;
       return;
     }
-    localStorage.setItem('dismissedCoachTips', JSON.stringify(Array.from(dismissedTips)));
+    try {
+      localStorage.setItem(DISMISSED_TIPS_STORAGE_KEY, JSON.stringify(Array.from(dismissedTips)));
+    } catch {
+      // Silently fail if localStorage is unavailable
+    }
   }, [dismissedTips]);
 
   const visibleTips = COACH_TIPS.filter(tip => !dismissedTips.has(tip.id));
 
-  const tipsByCategory = visibleTips.reduce((acc, tip) => {
-    if (!acc[tip.category]) acc[tip.category] = [];
-    acc[tip.category].push(tip);
-    return acc;
-  }, {} as Record<string, CoachTip[]>);
+  const tipsByCategory = useMemo(() => {
+    return visibleTips.reduce((acc, tip) => {
+      if (!acc[tip.category]) acc[tip.category] = [];
+      acc[tip.category].push(tip);
+      return acc;
+    }, {} as Record<string, CoachTip[]>);
+  }, [visibleTips]);
 
   const handleDismiss = (tipId: string) => {
     setDismissedTips(prev => new Set([...prev, tipId]));
@@ -198,6 +206,7 @@ export function CoachPanel({ className }: CoachPanelProps) {
               variant="ghost"
               className="w-full justify-start px-2 py-1 h-auto font-medium text-sm"
               onClick={() => toggleCategory(category)}
+              aria-expanded={expandedCategories.has(category)}
             >
               {expandedCategories.has(category) ? (
                 <ChevronDown className="h-4 w-4 mr-2" />

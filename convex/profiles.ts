@@ -141,6 +141,16 @@ export const getMyProfile = query({
       });
     }
 
+    // Helper to validate HTTP/HTTPS URLs
+    const isValidHttpUrl = (urlString: string): boolean => {
+      try {
+        const url = new URL(urlString);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    };
+
     // Helper to extract label from URL
     const getLabelFromUrl = (url: string): string => {
       try {
@@ -159,32 +169,15 @@ export const getMyProfile = query({
       }
     };
 
-    // Build links array in new {label, url} format
-    const links = [];
-    if (user.linkedin_url) {
-      try {
-        new URL(user.linkedin_url);
-        links.push({ label: 'LinkedIn', url: user.linkedin_url });
-      } catch {
-        // Skip invalid URL
-      }
-    }
-    if (user.github_url) {
-      try {
-        new URL(user.github_url);
-        links.push({ label: 'GitHub', url: user.github_url });
-      } catch {
-        // Skip invalid URL
-      }
-    }
-    if (user.website) {
-      try {
-        new URL(user.website);
-        links.push({ label: getLabelFromUrl(user.website), url: user.website });
-      } catch {
-        // Skip invalid URL
-      }
-    }
+    // Build links array using filter/map pattern for cleaner code
+    const links = [
+      user.linkedin_url && { label: 'LinkedIn', url: user.linkedin_url },
+      user.github_url && { label: 'GitHub', url: user.github_url },
+      user.website && { label: getLabelFromUrl(user.website), url: user.website },
+    ]
+      .filter((link): link is { label: string; url: string } =>
+        typeof link === 'object' && link !== null && isValidHttpUrl(link.url)
+      );
 
     // Return normalized snapshot for AI generation
     return {

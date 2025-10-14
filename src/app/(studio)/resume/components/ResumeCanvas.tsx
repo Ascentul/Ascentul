@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -26,6 +26,7 @@ import { ProjectsBlock } from './blocks/ProjectsBlock';
 import { CustomBlock } from './blocks/CustomBlock';
 import type { ResumeBlock } from '@/lib/validators/resume';
 import { useSuggestions } from '@/hooks/useSuggestions';
+import type { ContentSuggestion } from '@/lib/ai/suggestions';
 
 export type PageSize = 'Letter' | 'A4';
 
@@ -208,14 +209,20 @@ export function ResumeCanvas({
     const blockId = (block as any)._id || `block-${block.order}`;
     const isSelected = selectedBlockId === blockId;
 
+    // Memoize suggestions for this block
+    const suggestions: ContentSuggestion[] = useMemo(
+      () => getSuggestionsForBlock(blockId),
+      [blockId]
+    );
+
     const blockProps = {
       data: block.data,
       isSelected,
       readOnly,
       onDataChange: (newData: any) => onBlockUpdate?.(blockId, newData),
       onClick: () => onBlockSelect?.(blockId),
-      suggestions: getSuggestionsForBlock(blockId),
-      blockId: blockId,
+      suggestions,
+      blockId,
     };
 
     let BlockComponent;

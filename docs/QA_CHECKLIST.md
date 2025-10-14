@@ -288,6 +288,12 @@
   - [ ] Settings persist across sessions
   - [ ] Handles quota exceeded errors
 
+- [ ] **Edge Cases**
+  - [ ] Handles localStorage disabled in private/incognito mode
+  - [ ] Graceful degradation when localStorage is blocked by policy
+  - [ ] Application remains functional without localStorage
+  - [ ] Clear user messaging when persistence is unavailable
+
 ---
 
 ## 10. Production Readiness

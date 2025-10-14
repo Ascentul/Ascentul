@@ -17,7 +17,7 @@ export interface OnboardingStep {
   };
 }
 
-interface OnboardingTourProps {
+export interface OnboardingTourProps {
   steps: OnboardingStep[];
   onComplete?: () => void;
   onSkip?: () => void;
@@ -37,8 +37,13 @@ export function OnboardingTour({
 
   // Check if onboarding has been completed before
   useEffect(() => {
-    const hasCompleted = localStorage.getItem(localStorageKey);
-    if (!hasCompleted) {
+    try {
+      const hasCompleted = localStorage.getItem(localStorageKey);
+      if (!hasCompleted) {
+        setIsVisible(true);
+      }
+    } catch (error) {
+      // localStorage unavailable (SSR, private browsing) - show tour by default
       setIsVisible(true);
     }
   }, [localStorageKey]);
@@ -157,7 +162,12 @@ export function OnboardingTour({
   };
 
   const handleComplete = () => {
-    localStorage.setItem(localStorageKey, 'true');
+    try {
+      localStorage.setItem(localStorageKey, 'true');
+    } catch (error) {
+      // localStorage unavailable - continue anyway
+      console.warn('localStorage unavailable, onboarding state will not persist');
+    }
     setIsVisible(false);
     if (targetElement) {
       targetElement.classList.remove('onboarding-highlight');
@@ -166,7 +176,12 @@ export function OnboardingTour({
   };
 
   const handleSkip = () => {
-    localStorage.setItem(localStorageKey, 'true');
+    try {
+      localStorage.setItem(localStorageKey, 'true');
+    } catch (error) {
+      // localStorage unavailable - continue anyway
+      console.warn('localStorage unavailable, onboarding state will not persist');
+    }
     setIsVisible(false);
     if (targetElement) {
       targetElement.classList.remove('onboarding-highlight');
@@ -283,10 +298,17 @@ export function OnboardingTour({
         .onboarding-tour-active .onboarding-highlight {
           position: relative;
           z-index: 9997;
-          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5),
-                      0 0 0 9999px rgba(0, 0, 0, 0.5);
+          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
           border-radius: 8px;
           transition: all 0.3s ease-in-out;
+        }
+        .onboarding-tour-active .onboarding-highlight::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: -1;
+          pointer-events: none;
         }
       `}</style>
     </>
@@ -300,13 +322,24 @@ export function useOnboarding(localStorageKey = 'onboarding-completed') {
   const [hasCompleted, setHasCompleted] = useState(true);
 
   useEffect(() => {
-    const completed = localStorage.getItem(localStorageKey);
-    setHasCompleted(!!completed);
+    try {
+      const completed = localStorage.getItem(localStorageKey);
+      setHasCompleted(!!completed);
+    } catch (error) {
+      // localStorage unavailable (SSR, private browsing) - assume not completed
+      setHasCompleted(false);
+    }
   }, [localStorageKey]);
 
   const resetOnboarding = () => {
-    localStorage.removeItem(localStorageKey);
-    setHasCompleted(false);
+    try {
+      localStorage.removeItem(localStorageKey);
+      setHasCompleted(false);
+    } catch (error) {
+      // localStorage unavailable - just update state
+      console.warn('localStorage unavailable, onboarding reset will not persist');
+      setHasCompleted(false);
+    }
   };
 
   return {

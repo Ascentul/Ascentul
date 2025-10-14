@@ -85,21 +85,21 @@ export function ThemePanel({ currentThemeId, onChangeTheme, disabled }: ThemePan
                 <div className="flex gap-1.5 flex-shrink-0">
                   {theme.colors.primary && (
                     <div
-                      className="w-6 h-6 rounded-md border border-gray-200 shadow-sm transition-transform hover:scale-110"
+                      className="w-6 h-6 rounded-md border border-border shadow-sm transition-transform hover:scale-110"
                       style={{ backgroundColor: theme.colors.primary }}
                       title="Primary color"
                     />
                   )}
                   {theme.colors.secondary && (
                     <div
-                      className="w-6 h-6 rounded-md border border-gray-200 shadow-sm transition-transform hover:scale-110"
+                      className="w-6 h-6 rounded-md border border-border shadow-sm transition-transform hover:scale-110"
                       style={{ backgroundColor: theme.colors.secondary }}
                       title="Secondary color"
                     />
                   )}
                   {theme.colors.accent && (
                     <div
-                      className="w-6 h-6 rounded-md border border-gray-200 shadow-sm transition-transform hover:scale-110"
+                      className="w-6 h-6 rounded-md border border-border shadow-sm transition-transform hover:scale-110"
                       style={{ backgroundColor: theme.colors.accent }}
                       title="Accent color"
                     />

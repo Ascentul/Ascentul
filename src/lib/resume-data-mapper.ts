@@ -133,7 +133,9 @@ export function profileToBlocks(profile: ProfileSnapshot | null): BlockWithType[
  * Migrate legacy string[] links to new {label, url} format
  * Handles backward compatibility during migration period
  */
-function migrateLegacyLinks(links: any): Array<{ label: string; url: string }> {
+function migrateLegacyLinks(
+  links: string[] | Array<{ label: string; url: string }> | null | undefined
+): Array<{ label: string; url: string }> {
   if (!links || !Array.isArray(links)) return [];
 
   return links.map((link) => {
@@ -173,7 +175,7 @@ function createHeaderBlock(profile: ProfileSnapshot): HeaderData | null {
       email: profile.contact.email,
       phone: profile.contact.phone,
       location: profile.contact.location,
-      links: migrateLegacyLinks(profile.contact.links as any),
+      links: migrateLegacyLinks(profile.contact.links),
     },
   };
 }
@@ -246,6 +248,18 @@ function createProjectsBlock(profile: ProfileSnapshot): ProjectsData | null {
 }
 
 /**
+ * Data quality thresholds for profile validation
+ *
+ * MINIMAL_WARNING_COUNT: 4+ warnings indicate insufficient data for a professional resume
+ * PARTIAL_WARNING_COUNT: 2-3 warnings indicate usable but incomplete resume data
+ * 0-1 warnings indicate complete, high-quality resume data
+ */
+const DATA_QUALITY_THRESHOLDS = {
+  MINIMAL_WARNING_COUNT: 4,
+  PARTIAL_WARNING_COUNT: 2,
+} as const;
+
+/**
  * Validation result
  */
 export interface ValidationResult {
@@ -300,12 +314,12 @@ export function validateProfileData(profile: ProfileSnapshot | null): Validation
     warnings.push('Add at least 3-5 skills for a stronger resume');
   }
 
-  // Determine data quality
+  // Determine data quality based on thresholds
   let dataQuality: 'complete' | 'partial' | 'minimal' = 'complete';
 
-  if (errors.length > 0 || warnings.length >= 4) {
+  if (errors.length > 0 || warnings.length >= DATA_QUALITY_THRESHOLDS.MINIMAL_WARNING_COUNT) {
     dataQuality = 'minimal';
-  } else if (warnings.length >= 2) {
+  } else if (warnings.length >= DATA_QUALITY_THRESHOLDS.PARTIAL_WARNING_COUNT) {
     dataQuality = 'partial';
   }
 
@@ -319,23 +333,8 @@ export function validateProfileData(profile: ProfileSnapshot | null): Validation
 
 /**
  * Count how many blocks will be created from profile
+ * Uses profileToBlocks to ensure logic stays in sync
  */
 export function countBlocksFromProfile(profile: ProfileSnapshot | null): number {
-  if (!profile) return 0;
-
-  let count = 0;
-
-  if (profile.fullName) count++; // Header
-  if (profile.experience && profile.experience.length > 0) count++;
-  if (profile.education && profile.education.length > 0) count++;
-
-  const primary = profile.skills?.primary;
-  const secondary = profile.skills?.secondary;
-  const hasPrimary = primary && primary.length > 0;
-  const hasSecondary = secondary && secondary.length > 0;
-  if (hasPrimary || hasSecondary) count++;
-
-  if (profile.projects && profile.projects.length > 0) count++;
-
-  return count;
+  return profileToBlocks(profile).length;
 }

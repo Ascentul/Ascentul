@@ -46,8 +46,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <ClerkProvider
           publishableKey={CLERK_PUBLISHABLE_KEY}
           signInUrl="/sign-in"

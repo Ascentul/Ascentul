@@ -1,11 +1,12 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AIActionsToolbar } from '@/app/(studio)/resume/components/AIActionsToolbar';
 import type { ResumeBlock } from '@/lib/validators/resume';
+import type { Id } from '../../convex/_generated/dataModel';
 
 // Mock fetch globally
 global.fetch = jest.fn();
 
-const mockResumeId = 'test-resume-id' as any;
+const mockResumeId = 'test-resume-id' as Id<'builder_resumes'>;
 
 const mockBlocks: ResumeBlock[] = [
   {
@@ -39,6 +40,10 @@ const mockBlocks: ResumeBlock[] = [
 describe('AIActionsToolbar Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('Rendering', () => {
@@ -225,7 +230,7 @@ describe('AIActionsToolbar Component', () => {
 
       // Check for loading state
       await waitFor(() => {
-        expect(screen.getByText(/tidy.../i)).toBeInTheDocument();
+        expect(screen.getByText('Tidying...')).toBeInTheDocument();
       });
     });
   });
@@ -306,7 +311,7 @@ describe('AIActionsToolbar Component', () => {
       await waitFor(() => {
         const tailorButton = screen.getByText('Tailor to Job');
         // The menuitem should be disabled
-        expect(tailorButton.closest('[role="menuitem"]')).toHaveAttribute('data-disabled', 'true');
+        expect(tailorButton.closest('[role="menuitem"]')).toHaveAttribute('aria-disabled', 'true');
       });
     });
   });
@@ -344,7 +349,7 @@ describe('AIActionsToolbar Component', () => {
 
       // Button should be disabled during loading
       await waitFor(() => {
-        const button = screen.getByRole('button', { name: /tidy.../i });
+        const button = screen.getByRole('button', { name: 'Tidying...' });
         expect(button).toBeDisabled();
       });
     });

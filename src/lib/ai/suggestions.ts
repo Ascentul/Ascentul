@@ -26,13 +26,18 @@ const WEAK_VERBS = new Set([
 ]);
 
 // Weak multi-word phrases to flag
-const WEAK_PHRASES = ['responsible for'];
+const WEAK_PHRASES = new Set(['responsible for']);
 
 // Present tense verbs for tense detection
 const PRESENT_TENSE_VERBS = [
   'leads', 'manages', 'develops', 'implements', 'designs', 'builds', 'creates',
   'drives', 'optimizes', 'improves', 'oversees', 'coordinates', 'directs',
   'establishes', 'maintains', 'operates', 'supervises', 'delivers', 'executes',
+  'achieves', 'launches', 'streamlines', 'collaborates', 'spearheads', 'facilitates',
+  'analyzes', 'evaluates', 'strategizes', 'pioneers', 'orchestrates', 'transforms',
+  'accelerates', 'enhances', 'resolves', 'generates', 'automates', 'scales',
+  'mentors', 'trains', 'architected', 'deploys', 'integrates', 'migrates',
+  'refactors', 'debugs', 'tests', 'reviews', 'documents', 'presents',
 ];
 
 // Past tense verbs for tense detection
@@ -40,6 +45,11 @@ const PAST_TENSE_VERBS = [
   'led', 'managed', 'developed', 'implemented', 'designed', 'built', 'created',
   'drove', 'optimized', 'improved', 'oversaw', 'coordinated', 'directed',
   'established', 'maintained', 'operated', 'supervised', 'delivered', 'executed',
+  'achieved', 'launched', 'streamlined', 'collaborated', 'spearheaded', 'facilitated',
+  'analyzed', 'evaluated', 'strategized', 'pioneered', 'orchestrated', 'transformed',
+  'accelerated', 'enhanced', 'resolved', 'generated', 'automated', 'scaled',
+  'mentored', 'trained', 'architected', 'deployed', 'integrated', 'migrated',
+  'refactored', 'debugged', 'tested', 'reviewed', 'documented', 'presented',
 ];
 
 // Common metrics patterns
@@ -67,10 +77,10 @@ export function analyzeBullet(bullet: string, index: number | string): ContentSu
   const lowerBullet = bullet.toLowerCase();
   const words = bullet.split(/\s+/);
 
-  // Check for weak multi-word phrases first
+  // Check for weak multi-word phrases anywhere in the bullet
   let weakPhrase = null;
-  for (const phrase of WEAK_PHRASES) {
-    if (lowerBullet.startsWith(phrase)) {
+  for (const phrase of Array.from(WEAK_PHRASES)) {
+    if (lowerBullet.includes(phrase)) {
       weakPhrase = phrase;
       break;
     }
@@ -90,15 +100,16 @@ export function analyzeBullet(bullet: string, index: number | string): ContentSu
     const firstWord = words[0]?.toLowerCase();
     if (firstWord && WEAK_VERBS.has(firstWord)) {
       // Weak verb detected - high priority
+      const randomStrongVerb = PAST_TENSE_VERBS[Math.floor(Math.random() * PAST_TENSE_VERBS.length)];
       suggestions.push({
         id: `verb-${index}`,
         type: 'verb',
         priority: 'high',
         message: 'Strengthen action verb',
-        detail: `Replace "${firstWord}" with a stronger verb like "led", "developed", or "implemented"`,
+        detail: `Replace "${firstWord}" with a stronger verb like "${randomStrongVerb}"`,
       });
-    } else if (!firstWord) {
-      // First word is missing - low priority
+    } else if (!firstWord || !/^[a-z][-'a-z]*$/i.test(firstWord)) {
+      // First word is missing or not a valid verb format (allows hyphens/apostrophes) - low priority
       suggestions.push({
         id: `keyword-${index}`,
         type: 'keyword',
@@ -121,30 +132,37 @@ export function analyzeBullet(bullet: string, index: number | string): ContentSu
     });
   }
 
-  // Check bullet length
-  if (bullet.length > 150) {
+  // Check bullet length (word count is more accurate than character count)
+  const wordCount = words.length;
+  if (wordCount > 25) {
     suggestions.push({
       id: `length-${index}`,
       type: 'length',
       priority: 'medium',
       message: 'Bullet is too long',
-      detail: 'Keep bullets concise (1-2 lines max). Split into multiple bullets if needed.',
+      detail: `Keep bullets concise (20-25 words max). Current: ${wordCount} words. Split into multiple bullets if needed.`,
     });
   }
 
   // Check for vague language
   const vagueTerms = ['various', 'several', 'multiple', 'many', 'some', 'lots of'];
+  const foundVagueTerms: string[] = [];
   for (const term of vagueTerms) {
     if (lowerBullet.includes(term)) {
-      suggestions.push({
-        id: `clarity-${index}-${term}`,
-        type: 'clarity',
-        priority: 'medium',
-        message: 'Be more specific',
-        detail: `Replace "${term}" with exact numbers or details`,
-      });
-      break; // Only show one vague term suggestion per bullet
+      foundVagueTerms.push(term);
     }
+  }
+
+  if (foundVagueTerms.length > 0) {
+    suggestions.push({
+      id: `clarity-${index}`,
+      type: 'clarity',
+      priority: 'medium',
+      message: foundVagueTerms.length === 1 ? 'Be more specific' : 'Be more specific (multiple vague terms)',
+      detail: foundVagueTerms.length === 1
+        ? `Replace "${foundVagueTerms[0]}" with exact numbers or details`
+        : `Replace vague terms (${foundVagueTerms.join(', ')}) with exact numbers or details`,
+    });
   }
 
   return suggestions;
@@ -321,17 +339,24 @@ export function analyzeResume(blocks: ResumeBlock[]): Map<string, ContentSuggest
 
     if (block.type === 'experience') {
       const experienceData = block.data as any;
-      if (experienceData?.items && Array.isArray(experienceData.items)) {
+      if (experienceData?.items && Array.isArray(experienceData.items) && experienceData.items.length > 0) {
         suggestions = analyzeExperienceBlock(experienceData.items);
       }
     } else if (block.type === 'skills') {
       const skillsData = block.data as any;
-      if (skillsData && (Array.isArray(skillsData.primary) || Array.isArray(skillsData.secondary))) {
-        suggestions = analyzeSkillsBlock(skillsData.primary, skillsData.secondary);
+      if (
+        skillsData &&
+        ((Array.isArray(skillsData.primary) && skillsData.primary.length > 0) ||
+          (Array.isArray(skillsData.secondary) && skillsData.secondary.length > 0))
+      ) {
+        suggestions = analyzeSkillsBlock(
+          Array.isArray(skillsData.primary) ? skillsData.primary : [],
+          Array.isArray(skillsData.secondary) ? skillsData.secondary : []
+        );
       }
     } else if (block.type === 'summary') {
       const summaryData = block.data as any;
-      if (summaryData?.paragraph && typeof summaryData.paragraph === 'string') {
+      if (summaryData?.paragraph && typeof summaryData.paragraph === 'string' && summaryData.paragraph.trim().length > 0) {
         suggestions = analyzeSummary(summaryData.paragraph);
       }
     }

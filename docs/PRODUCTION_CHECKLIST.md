@@ -18,13 +18,13 @@
 ### Linting
 - [ ] Run `npm run lint` with no errors
 - [ ] ESLint rules followed
-- [ ] No console.log in production code (use proper logging)
+- [ ] No debug console.log statements (console.error/warn acceptable)
 - [ ] Unused imports removed
 
 ### Code Review
 - [ ] All PRs reviewed and approved
 - [ ] No commented-out code blocks
-- [ ] No TODO comments in production code
+- [ ] All TODO comments tracked in issue tracker or removed
 - [ ] Code follows project conventions
 
 ---
@@ -60,13 +60,11 @@
 - [ ] Production env vars configured on hosting platform
 
 **Required Variables:**
-```bash
-✅ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-✅ CLERK_SECRET_KEY
-✅ NEXT_PUBLIC_CONVEX_URL
-✅ CONVEX_DEPLOYMENT
-✅ OPENAI_API_KEY
-```
+- [ ] NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+- [ ] CLERK_SECRET_KEY
+- [ ] NEXT_PUBLIC_CONVEX_URL
+- [ ] CONVEX_DEPLOYMENT
+- [ ] OPENAI_API_KEY
 
 ### Configuration Files
 - [ ] `next.config.js` optimized for production
@@ -80,7 +78,8 @@
 
 ### Bundle Size
 - [ ] Run `npm run build` and check bundle sizes
-- [ ] No massive bundles (>500KB)
+- [ ] No individual route bundles >500KB (gzipped)
+- [ ] First load JS <200KB (as reported by Next.js build)
 - [ ] Code splitting implemented
 - [ ] Dynamic imports for heavy components
 
@@ -123,7 +122,7 @@
 - [ ] No sensitive data in headers
 
 ### Dependencies
-- [ ] Run `npm audit` with no critical issues
+- [ ] Run `npm audit --production` with no high/critical issues
 - [ ] All dependencies up to date
 - [ ] No known security vulnerabilities
 - [ ] Unused dependencies removed
@@ -155,7 +154,7 @@
 ## 7. Accessibility ♿
 
 ### WCAG Compliance
-- [ ] Color contrast meets AA standards
+- [ ] Color contrast meets WCAG 2.1 AA standards (4.5:1 for normal text)
 - [ ] All interactive elements keyboard accessible
 - [ ] Focus indicators visible
 - [ ] Skip links available

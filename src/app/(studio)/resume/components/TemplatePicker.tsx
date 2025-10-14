@@ -26,7 +26,7 @@ export function TemplatePicker({ currentTemplateSlug, onChangeTemplate, disabled
   if (templates === undefined) {
     return (
       <div className="p-4">
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-foreground">
           <Layout className="w-4 h-4" />
           Templates
         </h3>
@@ -42,7 +42,7 @@ export function TemplatePicker({ currentTemplateSlug, onChangeTemplate, disabled
   if (!templates || templates.length === 0) {
     return (
       <div className="p-4">
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-foreground">
           <Layout className="w-4 h-4" />
           Templates
         </h3>

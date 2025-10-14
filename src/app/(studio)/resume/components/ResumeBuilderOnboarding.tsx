@@ -63,10 +63,12 @@ export function ResumeBuilderOnboarding() {
       steps={steps}
       localStorageKey="resume-builder-onboarding-v1"
       onComplete={() => {
-        console.log('Onboarding completed!');
+        // TODO: Add analytics tracking
+        // analytics.track('resume_builder_onboarding_completed');
       }}
       onSkip={() => {
-        console.log('Onboarding skipped');
+        // TODO: Add analytics tracking
+        // analytics.track('resume_builder_onboarding_skipped');
       }}
     />
   );

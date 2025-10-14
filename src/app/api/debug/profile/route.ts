@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, unstable_getToken } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 
@@ -13,9 +13,8 @@ async function getConvexClient() {
   }
 
   const client = new ConvexHttpClient(convexUrl);
-  const token = await unstable_getToken({
+  const token = await auth().getToken({
     template: process.env.CLERK_JWT_TEMPLATE || "convex",
-    audience: process.env.CLERK_JWT_AUDIENCE || "convex",
   });
 
   if (token) {

@@ -18,7 +18,6 @@ export function HeaderBlock({ data, isSelected, suggestions, blockId }: HeaderBl
       className={`pb-6 border-b border-neutral-200 transition-all ${
         isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md' : ''
       }`}
-      role="region"
       aria-label="Resume header"
     >
       {/* Full Name */}
@@ -57,14 +56,14 @@ export function HeaderBlock({ data, isSelected, suggestions, blockId }: HeaderBl
               {location}
             </span>
           )}
-          {links && links.length > 0 && links.map((link, i) => (
+          {links && links.length > 0 && links.map((link) => (
             <a
-              key={i}
+              key={link.url}
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-primary transition-colors"
-              aria-label={`${link.label}: ${link.url}`}
+              aria-label={`${link.label}: ${link.url} (opens in new window)`}
             >
               {link.label}
             </a>

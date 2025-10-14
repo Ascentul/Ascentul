@@ -459,8 +459,6 @@ const Sidebar = React.memo(function Sidebar({
           e.stopPropagation();
           setShowUpsellModal(true);
         }
-        // For debugging - remove this later
-        console.log('Sidebar link clicked:', item.href, 'disabled:', disabled);
       };
 
       return (
@@ -552,8 +550,6 @@ const Sidebar = React.memo(function Sidebar({
             e.stopPropagation();
             setShowUpsellModal(true);
           }
-          // For debugging
-          console.log('Section link clicked:', section.href, 'disabled:', disabled);
         };
 
         return (

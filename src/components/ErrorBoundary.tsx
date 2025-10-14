@@ -5,9 +5,16 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+export interface ErrorFallbackProps {
+  reset: () => void;
+  reload: () => void;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+}
+
 interface ErrorBoundaryProps {
   children: ReactNode;
-  fallback?: ReactNode;
+  fallback?: ReactNode | ((props: ErrorFallbackProps) => ReactNode);
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   showDetails?: boolean;
 }
@@ -35,24 +42,27 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+  static getDerivedStateFromError(error: unknown): Partial<ErrorBoundaryState> {
     return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Normalize error to Error instance
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+
     // Log error to console in development
     if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
+      console.error('ErrorBoundary caught an error:', normalizedError, errorInfo);
     }
 
     // Update state with error details
     this.setState({
-      error,
+      error: normalizedError,
       errorInfo,
     });
 
     // Call optional error handler
-    this.props.onError?.(error, errorInfo);
+    this.props.onError?.(normalizedError, errorInfo);
 
     // In production, you could send this to an error reporting service
     // Example: Sentry, LogRocket, etc.
@@ -75,17 +85,24 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (this.state.hasError) {
       // Use custom fallback if provided
       if (this.props.fallback) {
-        return this.props.fallback;
+        return typeof this.props.fallback === 'function'
+          ? this.props.fallback({
+              reset: this.handleReset,
+              reload: this.handleReload,
+              error: this.state.error,
+              errorInfo: this.state.errorInfo,
+            })
+          : this.props.fallback;
       }
 
       // Default error UI
       return (
-        <div className="flex items-center justify-center min-h-screen p-4">
+        <div className="flex items-center justify-center min-h-screen p-4" role="alert" aria-live="assertive">
           <Card className="max-w-2xl w-full">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-full bg-red-100">
-                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                  <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
                 </div>
                 <div>
                   <CardTitle>Something went wrong</CardTitle>
@@ -154,17 +171,27 @@ export function InlineErrorBoundary({
 }) {
   return (
     <ErrorBoundary
-      fallback={
-        <div className="p-4 rounded-lg border border-red-200 bg-red-50">
+      fallback={({ reset }) => (
+        <div className="p-4 rounded-lg border border-red-200 bg-red-50" role="alert" aria-live="polite">
           <div className="flex items-center gap-2 text-red-800">
-            <AlertTriangle className="h-4 w-4" />
+            <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             <p className="text-sm font-medium">{fallbackMessage}</p>
           </div>
-          <p className="text-xs text-red-600 mt-1">
-            Please refresh the page or contact support if the issue persists.
-          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <p className="text-xs text-red-600 flex-1">
+              Try again or refresh the page if the issue persists.
+            </p>
+            <Button
+              onClick={reset}
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+            >
+              Try Again
+            </Button>
+          </div>
         </div>
-      }
+      )}
     >
       {children}
     </ErrorBoundary>

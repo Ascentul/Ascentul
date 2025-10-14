@@ -144,12 +144,17 @@ export function NewResumeDialog({ open, onOpenChange, onSubmit }: NewResumeDialo
                     onChange={(e) => setGenerateWithAI(e.target.checked)}
                     className="rounded"
                   />
-                  <Label htmlFor="generate-ai" className="cursor-pointer">
+                  <Label htmlFor="generate-ai" className="cursor-pointer font-medium">
                     Generate content with AI
                   </Label>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   AI will create professional resume content based on your target role
+                  {autoPopulate && generateWithAI && (
+                    <span className="block mt-1 text-amber-600 dark:text-amber-500">
+                      Note: AI-generated content will override imported profile data
+                    </span>
+                  )}
                 </p>
               </div>
 

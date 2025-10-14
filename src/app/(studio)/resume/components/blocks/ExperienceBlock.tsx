@@ -49,8 +49,11 @@ export function ExperienceBlock({
             ? item.bullets.filter(Boolean).slice(0, MAX_BULLETS)
             : [];
 
+          // Generate stable key from item properties
+          const key = `${role}-${company}-${item?.start ?? idx}`;
+
           return (
-            <article key={idx} className="space-y-1">
+            <article key={key} className="space-y-1">
               {heading && (
                 <p className="text-base font-medium text-neutral-900">
                   {heading}
@@ -67,7 +70,7 @@ export function ExperienceBlock({
                 <ul className="space-y-0.5 mt-2" role="list">
                   {bullets.map((bullet, bulletIdx) => (
                     <li
-                      key={bulletIdx}
+                      key={`${bullet.substring(0, 30)}-${bulletIdx}`}
                       className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
                     >
                       {bullet}

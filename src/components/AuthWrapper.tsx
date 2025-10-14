@@ -42,15 +42,14 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
       })
         .then(() => {
           console.log('[AuthWrapper] User profile created successfully')
-          // Don't set isCreatingUser to false - let the query refresh handle it
-          // The userProfile will update to an object, which will end the loading state
+          setIsCreatingUser(false)
         })
         .catch((error) => {
           console.error('[AuthWrapper] Failed to create user profile:', error)
           setIsCreatingUser(false)
         })
     }
-  }, [clerkUser, userProfile, clerkLoaded, authLoaded, createUser, isCreatingUser])
+  }, [clerkUser, userProfile, clerkLoaded, authLoaded, createUser])
 
   useEffect(() => {
     // Wait for all auth states to be loaded

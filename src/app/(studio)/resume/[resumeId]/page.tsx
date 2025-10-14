@@ -32,19 +32,14 @@ import {
 import { ChevronLeft, ChevronRight, Loader2, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ResumeBlock } from '@/lib/validators/resume';
-import { useClerkReady } from '@/hooks/useClerkReady';
 
 export default function ResumeStudioPage() {
   const params = useParams();
   const resumeId = params.resumeId as string;
   const { toast } = useToast();
   const { signOut } = useAuth();
-  const { ready: clerkReady, timedOut: clerkTimedOut, isSignedIn } = useClerkReady();
-  const { user } = useUser();
+  const { user, isLoaded: userLoaded } = useUser();
   const canvasScrollRef = useRef<HTMLDivElement>(null);
-  const handleAuthReset = useCallback(() => {
-    void signOut({ redirectUrl: '/sign-in' });
-  }, [signOut]);
 
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightInspectorOpen, setIsRightInspectorOpen] = useState(true);
@@ -66,7 +61,8 @@ export default function ResumeStudioPage() {
   const [localThemeId, setLocalThemeId] = useState<Id<"builder_resume_themes"> | undefined>();
   const [localUpdatedAt, setLocalUpdatedAt] = useState<number>(0);
 
-  const canLoadData = clerkReady && !!user?.id && !!resumeId;
+  const canLoadData = !!user?.id && !!resumeId;
+  const showAuthLoading = !userLoaded || !user?.id;
 
   // Fetch resume data
   const resumeData = useQuery(
@@ -88,19 +84,30 @@ export default function ResumeStudioPage() {
   // Local state for blocks
   const [localBlocks, setLocalBlocks] = useState<Block[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [authTimedOut, setAuthTimedOut] = useState(false);
 
   // Type guard for Convex error responses
   const isConvexError = (value: unknown): value is { error: { status?: number } } => {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      'error' in value &&
-      typeof (value as { error: unknown }).error === 'object' &&
-      (value as { error: unknown }).error !== null &&
-      ('status' in (value as { error: unknown }).error === false ||
-       typeof (value as { error: { status: unknown } }).error.status === 'number')
-    );
+    if (typeof value !== 'object' || value === null || !('error' in value)) {
+      return false;
+    }
+    const errorValue = (value as { error: unknown }).error;
+    if (typeof errorValue !== 'object' || errorValue === null) {
+      return false;
+    }
+    const errorObj = errorValue as Record<string, unknown>;
+    return !('status' in errorObj) || typeof errorObj.status === 'number';
   };
+
+  useEffect(() => {
+    if (!showAuthLoading) {
+      setAuthTimedOut(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setAuthTimedOut(true), 6000);
+    return () => window.clearTimeout(timer);
+  }, [showAuthLoading]);
 
   // Sync local state when resume data loads
   useEffect(() => {
@@ -144,76 +151,6 @@ export default function ResumeStudioPage() {
     }
   }, [canLoadData, resumeData, loadError]);
 
-  if (!clerkReady) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center text-muted-foreground">
-        {clerkTimedOut ? (
-          <>
-            <p className="text-sm text-foreground">Auth is taking longer than expected.</p>
-            <p className="text-xs">
-              Please try signing out and back in to refresh your session.
-            </p>
-            <Button variant="outline" onClick={handleAuthReset}>
-              Sign out
-            </Button>
-          </>
-        ) : (
-          <>
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm">Preparing your editor…</p>
-          </>
-        )}
-      </div>
-    );
-  }
-
-  if (!isSignedIn) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center text-muted-foreground">
-        <p className="text-sm text-foreground">You must be signed in to access this page.</p>
-        <Button variant="outline" onClick={handleAuthReset}>
-          Sign in
-        </Button>
-      </div>
-    );
-  }
-
-  if (!canLoadData) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-muted-foreground">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm">Connecting to your workspace…</p>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-        <div className="space-y-3">
-          <p className="text-base font-semibold text-foreground">{loadError}</p>
-          <p className="text-sm text-muted-foreground">
-            If this is unexpected, try signing out and back in.
-          </p>
-        </div>
-        <Button variant="outline" onClick={handleAuthReset}>
-          Sign out
-        </Button>
-      </div>
-    );
-  }
-
-  const isFetching = canLoadData && resumeData === undefined;
-
-  if (isFetching) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-muted-foreground">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm">Loading your resume…</p>
-      </div>
-    );
-  }
-
   // Scroll canvas to top when resumeId, template, or theme changes
   useEffect(() => {
     if (canvasScrollRef.current) {
@@ -255,31 +192,26 @@ export default function ResumeStudioPage() {
 
   const renderBlockContent = (block: Block): ReactNode => {
     const isSelected = selectedBlockId === block._id;
-    const commonProps = {
-      data: block.data,
-      isSelected,
-      blockId: block._id,
-    };
 
     switch (block.type) {
       case 'header':
-        return <HeaderBlock {...commonProps} />;
+        return <HeaderBlock data={block.data as HeaderData} isSelected={isSelected} blockId={block._id} />;
       case 'summary':
-        return <SummaryBlock {...commonProps} />;
+        return <SummaryBlock data={block.data as SummaryData} isSelected={isSelected} blockId={block._id} />;
       case 'experience':
-        return <ExperienceBlock {...commonProps} />;
+        return <ExperienceBlock data={block.data as ExperienceData} isSelected={isSelected} blockId={block._id} />;
       case 'education':
-        return <EducationBlock {...commonProps} />;
+        return <EducationBlock data={block.data as EducationData} isSelected={isSelected} blockId={block._id} />;
       case 'skills':
-        return <SkillsBlock {...commonProps} />;
+        return <SkillsBlock data={block.data as SkillsData} isSelected={isSelected} blockId={block._id} />;
       case 'projects':
-        return <ProjectsBlock {...commonProps} />;
+        return <ProjectsBlock data={block.data as ProjectsData} isSelected={isSelected} blockId={block._id} />;
       case 'custom':
-        return <CustomBlock {...commonProps} />;
+        return <CustomBlock data={block.data as CustomData} isSelected={isSelected} blockId={block._id} />;
       default:
         // Exhaustiveness check: will cause compile error if new block type is added but not handled
         const _exhaustiveCheck: never = block.type;
-        console.warn(`Unknown block type: ${block.type}`);
+        console.warn(`Unknown block type: ${String(_exhaustiveCheck)}`);
         return null;
     }
   };
@@ -287,11 +219,12 @@ export default function ResumeStudioPage() {
   const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
     if (!user?.id) return;
 
-    // Store previous state for rollback
-    const previousBlocks = localBlocks;
-
-    // Update local state immediately
-    setLocalBlocks(newBlocks);
+    // Store previous state for rollback using functional setState
+    let previousBlocks: Block[] = [];
+    setLocalBlocks((current) => {
+      previousBlocks = current;
+      return newBlocks;
+    });
 
     // Save to server
     try {
@@ -316,7 +249,7 @@ export default function ResumeStudioPage() {
         variant: 'destructive',
       });
     }
-  }, [user?.id, resumeId, localUpdatedAt, localBlocks, reorderBlocks, toast]);
+  }, [user?.id, resumeId, localUpdatedAt, reorderBlocks, toast]);
 
   const handleResumeUpdatedAtChange = (newUpdatedAt: number) => {
     setLocalUpdatedAt(newUpdatedAt);
@@ -550,6 +483,56 @@ export default function ResumeStudioPage() {
   }, [user?.id, resumeId, localBlocks, createBlock, toast]);
 
   const selectedBlock = localBlocks.find((b) => b._id === selectedBlockId) || null;
+
+  if (showAuthLoading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center text-muted-foreground">
+        {!authTimedOut ? (
+          <>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm">Preparing your editor…</p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-foreground">Authentication is taking longer than expected.</p>
+            <p className="text-xs">
+              Please try signing out and back in to refresh your session.
+            </p>
+            <Button variant="outline" onClick={() => signOut({ redirectUrl: '/sign-in' })}>
+              Sign out
+            </Button>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
+        <div className="space-y-3">
+          <p className="text-base font-semibold text-foreground">{loadError}</p>
+          <p className="text-sm text-muted-foreground">
+            If this is unexpected, try signing out and back in.
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => signOut({ redirectUrl: '/sign-in' })}>
+          Sign out
+        </Button>
+      </div>
+    );
+  }
+
+  const isFetching = canLoadData && resumeData === undefined;
+
+  if (isFetching) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm">Loading your resume…</p>
+      </div>
+    );
+  }
 
   // Loading state
   if (!resumeData) {

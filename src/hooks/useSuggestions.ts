@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { analyzeResume, type ContentSuggestion } from '@/lib/ai/suggestions';
-import type { Block } from '@/lib/resume-types';
+import type { ResumeBlock } from '@/lib/validators/resume';
 
 /**
  * Hook to analyze resume blocks and provide improvement suggestions
  */
-export function useSuggestions(blocks: Block[]) {
+export function useSuggestions(blocks: ResumeBlock[]) {
   const suggestionsByBlock = useMemo(() => {
     if (!blocks || blocks.length === 0) {
       return new Map<string, ContentSuggestion[]>();
@@ -14,25 +14,22 @@ export function useSuggestions(blocks: Block[]) {
     return analyzeResume(blocks);
   }, [blocks]);
 
-  const totalSuggestions = useMemo(() => {
+  const { totalSuggestions, highPrioritySuggestions } = useMemo(() => {
     let total = 0;
+    let highPriority = 0;
     suggestionsByBlock.forEach((suggestions) => {
       total += suggestions.length;
+      highPriority += suggestions.filter(s => s.priority === 'high').length;
     });
-    return total;
+    return { totalSuggestions: total, highPrioritySuggestions: highPriority };
   }, [suggestionsByBlock]);
 
-  const highPrioritySuggestions = useMemo(() => {
-    let count = 0;
-    suggestionsByBlock.forEach((suggestions) => {
-      count += suggestions.filter(s => s.priority === 'high').length;
-    });
-    return count;
-  }, [suggestionsByBlock]);
-
-  const getSuggestionsForBlock = (blockId: string): ContentSuggestion[] => {
-    return suggestionsByBlock.get(blockId) || [];
-  };
+  const getSuggestionsForBlock = useCallback(
+    (blockId: string): ContentSuggestion[] => {
+      return suggestionsByBlock.get(blockId) || [];
+    },
+    [suggestionsByBlock]
+  );
 
   return {
     suggestionsByBlock,

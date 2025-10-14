@@ -21,7 +21,6 @@ export function SummaryBlock({ data, isSelected, onClick, suggestions, blockId }
         isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md p-2' : ''
       }`}
       onClick={onClick}
-      role="region"
       aria-label="Professional summary"
     >
       <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">
