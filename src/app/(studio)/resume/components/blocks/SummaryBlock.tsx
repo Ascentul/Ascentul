@@ -1,51 +1,43 @@
-'use client';
-
-import type { SummaryBlockData } from '@/lib/validators/resume';
+import type { SummaryData } from '@/lib/resume/types';
+import { BlockSuggestions } from '../BlockSuggestions';
+import type { ContentSuggestion } from '@/lib/ai/suggestions';
 
 interface SummaryBlockProps {
-  data: SummaryBlockData;
+  data: SummaryData;
   isSelected?: boolean;
-  readOnly?: boolean;
-  onDataChange?: (data: SummaryBlockData) => void;
   onClick?: () => void;
+  suggestions?: ContentSuggestion[];
+  blockId?: string;
 }
 
-export function SummaryBlock({
-  data,
-  isSelected,
-  readOnly,
-  onDataChange,
-  onClick,
-}: SummaryBlockProps) {
-  const handleChange = (value: string) => {
-    if (readOnly) return;
-    onDataChange?.({ paragraph: value });
-  };
+export function SummaryBlock({ data, isSelected, onClick, suggestions, blockId }: SummaryBlockProps) {
+  const { paragraph } = data;
+
+  if (!paragraph) return null;
 
   return (
-    <div
-      className={`p-4 rounded-lg transition-all ${
-        isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+    <section
+      className={`space-y-2 transition-all ${
+        isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md p-2' : ''
       }`}
       onClick={onClick}
+      role="region"
+      aria-label="Professional summary"
     >
-      <h2 className="text-lg font-semibold text-gray-900 mb-3 uppercase tracking-wide">
-        Professional Summary
+      <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">
+        Summary
       </h2>
+      <p className="text-sm text-neutral-700 leading-relaxed">
+        {paragraph}
+      </p>
 
-      {readOnly ? (
-        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-          {data.paragraph}
-        </p>
-      ) : (
-        <textarea
-          value={data.paragraph}
-          onChange={(e) => handleChange(e.target.value)}
-          className="w-full bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-300 rounded p-2 text-gray-700 leading-relaxed resize-none"
-          placeholder="Write a compelling professional summary highlighting your key qualifications and value proposition..."
-          rows={4}
+      {/* Show suggestions when block is selected */}
+      {isSelected && suggestions && suggestions.length > 0 && blockId && (
+        <BlockSuggestions
+          blockId={blockId}
+          suggestions={suggestions}
         />
       )}
-    </div>
+    </section>
   );
 }

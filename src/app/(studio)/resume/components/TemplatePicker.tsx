@@ -55,11 +55,11 @@ export function TemplatePicker({ currentTemplateSlug, onChangeTemplate, disabled
 
   return (
     <div className="p-4">
-      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+      <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-foreground">
         <Layout className="w-4 h-4" />
         Templates
       </h3>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-4">
         {templates.map((template) => (
           <TemplateCard
             key={template.id}
@@ -86,14 +86,14 @@ function TemplateCard({ template, isSelected, onSelect, disabled }: TemplateCard
     <button
       onClick={onSelect}
       disabled={disabled}
-      className={`group relative flex flex-col gap-2 p-2 border rounded-lg transition-all ${
+      className={`group relative flex flex-col gap-2.5 p-3 border rounded-xl transition-all duration-200 ${
         isSelected
-          ? 'border-primary bg-primary/5 ring-1 ring-primary'
-          : 'border-border hover:border-primary/50 hover:bg-muted/50'
+          ? 'border-primary bg-primary/5 ring-2 ring-primary shadow-sm'
+          : 'border-border hover:border-primary/50 hover:bg-muted/50 hover:shadow-md hover:scale-[1.02]'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       {/* Thumbnail */}
-      <div className="aspect-[8.5/11] bg-muted rounded flex items-center justify-center overflow-hidden">
+      <div className="aspect-[8.5/11] bg-muted rounded-lg flex items-center justify-center overflow-hidden transition-transform group-hover:scale-105">
         {template.thumbnailUrl ? (
           <img
             src={template.thumbnailUrl}
@@ -101,16 +101,16 @@ function TemplateCard({ template, isSelected, onSelect, disabled }: TemplateCard
             className="w-full h-full object-cover"
           />
         ) : (
-          <FileText className="h-6 w-6 text-gray-400" aria-hidden="true" />
+          <FileText className="h-8 w-8 text-gray-400 transition-colors group-hover:text-gray-500" aria-hidden="true" />
         )}
       </div>
 
       {/* Info */}
-      <div className="space-y-0.5">
-        <div className="flex items-center gap-1.5">
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
           <h3 className="font-medium text-xs truncate flex-1">{template.name}</h3>
           {isSelected && (
-            <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+            <Check className="w-4 h-4 text-primary flex-shrink-0" />
           )}
         </div>
         <p className="text-xs text-muted-foreground">

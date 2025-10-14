@@ -25,6 +25,7 @@ interface NewResumeDialogProps {
     targetRole?: string;
     targetCompany?: string;
     generateWithAI: boolean;
+    autoPopulate: boolean; // NEW: import from profile
   }) => Promise<void>;
 }
 
@@ -34,6 +35,7 @@ export function NewResumeDialog({ open, onOpenChange, onSubmit }: NewResumeDialo
   const [targetRole, setTargetRole] = useState('');
   const [targetCompany, setTargetCompany] = useState('');
   const [generateWithAI, setGenerateWithAI] = useState(false);
+  const [autoPopulate, setAutoPopulate] = useState(true); // NEW: default to true for better UX
   const [selectedTemplate, setSelectedTemplate] = useState('default');
   const [selectedTheme, setSelectedTheme] = useState<Id<'builder_resume_themes'> | undefined>();
   const [loading, setLoading] = useState(false);
@@ -44,6 +46,7 @@ export function NewResumeDialog({ open, onOpenChange, onSubmit }: NewResumeDialo
     setTargetRole('');
     setTargetCompany('');
     setGenerateWithAI(false);
+    setAutoPopulate(true);
     setSelectedTemplate('default');
     setSelectedTheme(undefined);
     onOpenChange(false);
@@ -75,6 +78,7 @@ export function NewResumeDialog({ open, onOpenChange, onSubmit }: NewResumeDialo
         targetRole: generateWithAI ? targetRole : undefined,
         targetCompany: generateWithAI ? targetCompany : undefined,
         generateWithAI,
+        autoPopulate, // NEW: pass autoPopulate flag
       });
       handleClose();
     } catch (error) {
@@ -111,6 +115,24 @@ export function NewResumeDialog({ open, onOpenChange, onSubmit }: NewResumeDialo
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="auto-populate"
+                    checked={autoPopulate}
+                    onChange={(e) => setAutoPopulate(e.target.checked)}
+                    className="rounded"
+                  />
+                  <Label htmlFor="auto-populate" className="cursor-pointer font-medium">
+                    Import data from my profile
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Automatically populate your resume with experience, education, skills, and projects from your profile
+                </p>
               </div>
 
               <div className="space-y-2">

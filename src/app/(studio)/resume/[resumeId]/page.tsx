@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '../../../../../convex/_generated/api';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import type { Block } from '@/lib/resume-types';
@@ -13,6 +13,14 @@ import { ThemePanel } from '../components/ThemePanel';
 import { TemplatePicker } from '../components/TemplatePicker';
 import { Sidebar } from '../components/Sidebar';
 import { PageControls } from '../components/PageControls';
+import { AIActionsToolbar } from '../components/AIActionsToolbar';
+import { HeaderBlock } from '../components/blocks/HeaderBlock';
+import { SummaryBlock } from '../components/blocks/SummaryBlock';
+import { ExperienceBlock } from '../components/blocks/ExperienceBlock';
+import { EducationBlock } from '../components/blocks/EducationBlock';
+import { SkillsBlock } from '../components/blocks/SkillsBlock';
+import { ProjectsBlock } from '../components/blocks/ProjectsBlock';
+import { CustomBlock } from '../components/blocks/CustomBlock';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -23,13 +31,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronLeft, ChevronRight, Loader2, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import type { ResumeBlock } from '@/lib/validators/resume';
+import { useClerkReady } from '@/hooks/useClerkReady';
 
 export default function ResumeStudioPage() {
   const params = useParams();
   const resumeId = params.resumeId as string;
   const { toast } = useToast();
+  const { signOut } = useAuth();
+  const { ready: clerkReady, timedOut: clerkTimedOut, isSignedIn } = useClerkReady();
   const { user } = useUser();
   const canvasScrollRef = useRef<HTMLDivElement>(null);
+  const handleAuthReset = useCallback(() => {
+    void signOut({ redirectUrl: '/sign-in' });
+  }, [signOut]);
 
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightInspectorOpen, setIsRightInspectorOpen] = useState(true);
@@ -51,10 +66,12 @@ export default function ResumeStudioPage() {
   const [localThemeId, setLocalThemeId] = useState<Id<"builder_resume_themes"> | undefined>();
   const [localUpdatedAt, setLocalUpdatedAt] = useState<number>(0);
 
+  const canLoadData = clerkReady && !!user?.id && !!resumeId;
+
   // Fetch resume data
   const resumeData = useQuery(
     api.builder_resumes_v2.get,
-    resumeId && user?.id
+    canLoadData
       ? { id: resumeId as Id<"builder_resumes">, clerkId: user.id }
       : "skip"
   );
@@ -70,9 +87,53 @@ export default function ResumeStudioPage() {
 
   // Local state for blocks
   const [localBlocks, setLocalBlocks] = useState<Block[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Type guard for Convex error responses
+  const isConvexError = (value: unknown): value is { error: { status?: number } } => {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'error' in value &&
+      typeof (value as { error: unknown }).error === 'object' &&
+      (value as { error: unknown }).error !== null &&
+      ('status' in (value as { error: unknown }).error === false ||
+       typeof (value as { error: { status: unknown } }).error.status === 'number')
+    );
+  };
 
   // Sync local state when resume data loads
   useEffect(() => {
+    if (!canLoadData) {
+      setLoadError(null);
+      return;
+    }
+
+    if (resumeData === undefined) {
+      return;
+    }
+
+    // Check for Convex error responses with proper type checking
+    if (isConvexError(resumeData)) {
+      const status = resumeData.error.status;
+      if (status === 401 || status === 403) {
+        setLoadError('You do not have permission to view this resume. Please sign in again.');
+        return;
+      }
+    }
+
+    if (resumeData === null) {
+      setLoadError('This resume could not be found or you no longer have access.');
+      return;
+    }
+
+    setLoadError(null);
+  }, [canLoadData, resumeData]);
+
+  // Sync local state when resume data loads
+  useEffect(() => {
+    if (!canLoadData || !resumeData || loadError) return;
+
     if (resumeData?.resume) {
       setLocalTemplateSlug(resumeData.resume.templateSlug);
       setLocalThemeId(resumeData.resume.themeId);
@@ -81,14 +142,109 @@ export default function ResumeStudioPage() {
     if (resumeData?.blocks) {
       setLocalBlocks(resumeData.blocks as Block[]);
     }
-  }, [resumeData]);
+  }, [canLoadData, resumeData, loadError]);
+
+  if (!clerkReady) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center text-muted-foreground">
+        {clerkTimedOut ? (
+          <>
+            <p className="text-sm text-foreground">Auth is taking longer than expected.</p>
+            <p className="text-xs">
+              Please try signing out and back in to refresh your session.
+            </p>
+            <Button variant="outline" onClick={handleAuthReset}>
+              Sign out
+            </Button>
+          </>
+        ) : (
+          <>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm">Preparing your editor…</p>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center text-muted-foreground">
+        <p className="text-sm text-foreground">You must be signed in to access this page.</p>
+        <Button variant="outline" onClick={handleAuthReset}>
+          Sign in
+        </Button>
+      </div>
+    );
+  }
+
+  if (!canLoadData) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm">Connecting to your workspace…</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
+        <div className="space-y-3">
+          <p className="text-base font-semibold text-foreground">{loadError}</p>
+          <p className="text-sm text-muted-foreground">
+            If this is unexpected, try signing out and back in.
+          </p>
+        </div>
+        <Button variant="outline" onClick={handleAuthReset}>
+          Sign out
+        </Button>
+      </div>
+    );
+  }
+
+  const isFetching = canLoadData && resumeData === undefined;
+
+  if (isFetching) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm">Loading your resume…</p>
+      </div>
+    );
+  }
 
   // Scroll canvas to top when resumeId, template, or theme changes
   useEffect(() => {
     if (canvasScrollRef.current) {
-      canvasScrollRef.current.scrollTo({ top: 0, behavior: 'instant' });
+      canvasScrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
     }
   }, [resumeId, localTemplateSlug, localThemeId]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if Cmd (Mac) or Ctrl (Windows/Linux) is pressed
+      const isMod = e.metaKey || e.ctrlKey;
+
+      if (isMod && e.key === 't') {
+        e.preventDefault();
+        setActiveTab('templates');
+      } else if (isMod && e.key === 'h') {
+        e.preventDefault();
+        setActiveTab('themes');
+      } else if (isMod && e.key === 'l') {
+        e.preventDefault();
+        setActiveTab('layers');
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedBlockId(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleSelectBlock = (blockId: string | null) => {
     setSelectedBlockId(blockId);
@@ -97,8 +253,42 @@ export default function ResumeStudioPage() {
     }
   };
 
+  const renderBlockContent = (block: Block): ReactNode => {
+    const isSelected = selectedBlockId === block._id;
+    const commonProps = {
+      data: block.data,
+      isSelected,
+      blockId: block._id,
+    };
+
+    switch (block.type) {
+      case 'header':
+        return <HeaderBlock {...commonProps} />;
+      case 'summary':
+        return <SummaryBlock {...commonProps} />;
+      case 'experience':
+        return <ExperienceBlock {...commonProps} />;
+      case 'education':
+        return <EducationBlock {...commonProps} />;
+      case 'skills':
+        return <SkillsBlock {...commonProps} />;
+      case 'projects':
+        return <ProjectsBlock {...commonProps} />;
+      case 'custom':
+        return <CustomBlock {...commonProps} />;
+      default:
+        // Exhaustiveness check: will cause compile error if new block type is added but not handled
+        const _exhaustiveCheck: never = block.type;
+        console.warn(`Unknown block type: ${block.type}`);
+        return null;
+    }
+  };
+
   const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
     if (!user?.id) return;
+
+    // Store previous state for rollback
+    const previousBlocks = localBlocks;
 
     // Update local state immediately
     setLocalBlocks(newBlocks);
@@ -118,17 +308,39 @@ export default function ResumeStudioPage() {
       });
     } catch (error) {
       console.error('Failed to save block order:', error);
+      // Rollback to previous state
+      setLocalBlocks(previousBlocks);
       toast({
         title: 'Error',
-        description: 'Failed to save block order.',
+        description: 'Failed to save block order. Changes have been reverted.',
         variant: 'destructive',
       });
     }
-  }, [user?.id, resumeId, localUpdatedAt, reorderBlocks, toast]);
+  }, [user?.id, resumeId, localUpdatedAt, localBlocks, reorderBlocks, toast]);
 
   const handleResumeUpdatedAtChange = (newUpdatedAt: number) => {
     setLocalUpdatedAt(newUpdatedAt);
   };
+
+  // Handle AI-generated blocks update
+  const handleAIBlocksUpdate = useCallback(async (newBlocks: ResumeBlock[]) => {
+    if (!user?.id) return;
+
+    // Store previous state for rollback
+    const previousBlocks = localBlocks;
+
+    // Update local state immediately (optimistic update)
+    setLocalBlocks(newBlocks as Block[]);
+
+    // TODO: Save to server by updating all blocks
+    // For now, we just update local state
+    // In production, you'd want to batch update all blocks via a mutation
+
+    toast({
+      title: 'Success',
+      description: 'Resume updated successfully',
+    });
+  }, [user?.id, localBlocks, toast]);
 
   // Handler for theme change
   const handleChangeTheme = useCallback(async (themeId: Id<"builder_resume_themes">) => {
@@ -407,6 +619,27 @@ export default function ResumeStudioPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            {/* AI Actions */}
+            <AIActionsToolbar
+              resumeId={resumeId as Id<"builder_resumes">}
+              currentBlocks={localBlocks as ResumeBlock[]}
+              onBlocksUpdate={handleAIBlocksUpdate}
+              disabled={isUpdatingMeta}
+              onError={(error) => {
+                toast({
+                  title: 'Error',
+                  description: error,
+                  variant: 'destructive',
+                });
+              }}
+              onSuccess={(message) => {
+                toast({
+                  title: 'Success',
+                  description: message,
+                });
+              }}
+            />
+
             {/* Layout Settings */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -534,9 +767,19 @@ export default function ResumeStudioPage() {
         {/* Center Canvas */}
         <div
           ref={canvasScrollRef}
-          className="flex-1 h-[calc(100vh-64px)] overflow-auto bg-muted/20 px-8 pt-8"
+          className="flex-1 h-[calc(100vh-64px)] overflow-auto bg-muted/20 px-8 pt-8 relative"
         >
-          <div className="relative mx-auto my-8 shadow-xl bg-white" style={{ width: '8.5in', minHeight: '11in' }}>
+          {/* Loading Overlay */}
+          {isUpdatingMeta && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+              <div className="bg-white rounded-lg shadow-lg p-6 flex flex-col items-center gap-3">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <p className="text-sm font-medium">Applying changes...</p>
+              </div>
+            </div>
+          )}
+
+          <div className="relative mx-auto my-8 shadow-xl bg-white transition-opacity duration-200" style={{ width: '8.5in', minHeight: '11in', opacity: isUpdatingMeta ? 0.5 : 1 }}>
             {/* Render blocks with click-to-select */}
             <div className="p-12 space-y-6">
               {(() => {
@@ -547,49 +790,23 @@ export default function ResumeStudioPage() {
                 const currentPageBlocks = localBlocks.slice(startIndex, endIndex);
 
                 return currentPageBlocks.map((block) => (
-                <button
-                  key={block._id}
-                  onClick={() => handleSelectBlock(block._id)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                    selectedBlockId === block._id
-                      ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-                      : 'border-transparent hover:border-gray-300'
-                  } focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2`}
-                  aria-selected={selectedBlockId === block._id}
-                >
-                  <div className="text-sm font-medium text-gray-500 mb-2">
-                    {block.type.charAt(0).toUpperCase() + block.type.slice(1)}
-                  </div>
-                  <div className="text-gray-700">
-                    {/* Simple preview of block content */}
-                    {block.type === 'header' && (
-                      <div>
-                        <div className="text-2xl font-bold">{(block.data as any).fullName || 'Name'}</div>
-                        <div className="text-lg">{(block.data as any).title || 'Title'}</div>
+                    <button
+                      key={block._id}
+                      onClick={() => handleSelectBlock(block._id)}
+                      className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                        selectedBlockId === block._id
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2 shadow-md scale-[1.01]'
+                          : 'border-transparent hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
+                      } focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2`}
+                      aria-selected={selectedBlockId === block._id}
+                    >
+                      <div className="text-sm font-medium text-gray-500 mb-2">
+                        {block.type.charAt(0).toUpperCase() + block.type.slice(1)}
                       </div>
-                    )}
-                    {block.type === 'summary' && (
-                      <p className="text-sm">{(block.data as any).paragraph || 'Summary...'}</p>
-                    )}
-                    {block.type === 'experience' && (
-                      <div className="text-sm">{(block.data as any).items?.length || 0} positions</div>
-                    )}
-                    {block.type === 'education' && (
-                      <div className="text-sm">{(block.data as any).items?.length || 0} degrees</div>
-                    )}
-                    {block.type === 'skills' && (
-                      <div className="text-sm">
-                        {(block.data as any).primary?.length || 0} primary, {(block.data as any).secondary?.length || 0} secondary
+                      <div className="space-y-2">
+                        {renderBlockContent(block)}
                       </div>
-                    )}
-                    {block.type === 'projects' && (
-                      <div className="text-sm">{(block.data as any).items?.length || 0} projects</div>
-                    )}
-                    {block.type === 'custom' && (
-                      <div className="text-sm">{(block.data as any).heading || 'Custom Section'}</div>
-                    )}
-                  </div>
-                </button>
+                    </button>
                 ));
               })()}
             </div>

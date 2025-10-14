@@ -9,6 +9,9 @@ vite.config.ts.*
 .next/
 out/
 
+# TypeScript build artifacts
+*.tsbuildinfo
+
 # Environment files
 .env*
 .vercel

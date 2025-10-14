@@ -1,10 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, unstable_getToken } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+async function getConvexClient() {
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!convexUrl) {
+    throw new Error("Convex URL not configured");
+  }
+
+  const client = new ConvexHttpClient(convexUrl);
+  const token = await unstable_getToken({
+    template: process.env.CLERK_JWT_TEMPLATE || "convex",
+    audience: process.env.CLERK_JWT_AUDIENCE || "convex",
+  });
+
+  if (token) {
+    client.setAuth(token);
+  }
+
+  return client;
+}
 
 /**
  * Debug endpoint to inspect profile data fetching
@@ -31,19 +50,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 2. Initialize Convex client with auth token
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) {
-      return NextResponse.json(
-        { error: "Convex URL not configured" },
-        { status: 500 }
-      );
-    }
-
-    const convex = new ConvexHttpClient(convexUrl);
-    const token = await auth().then((a) => a.getToken({ template: "convex" }));
-    if (token) {
-      convex.setAuth(token);
-    }
+    const convex = await getConvexClient();
 
     // 3. Fetch profile snapshot
     let profile;
@@ -120,8 +127,6 @@ export async function GET(req: NextRequest) {
       debug: {
         profileNull: profile === null,
         profileUndefined: profile === undefined,
-        convexUrl: convexUrl ? "configured" : "missing",
-        authToken: token ? "present" : "missing",
       },
     });
   } catch (error: any) {

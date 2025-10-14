@@ -25,6 +25,7 @@ import { SkillsBlock } from './blocks/SkillsBlock';
 import { ProjectsBlock } from './blocks/ProjectsBlock';
 import { CustomBlock } from './blocks/CustomBlock';
 import type { ResumeBlock } from '@/lib/validators/resume';
+import { useSuggestions } from '@/hooks/useSuggestions';
 
 export type PageSize = 'Letter' | 'A4';
 
@@ -79,6 +80,9 @@ export function ResumeCanvas({
   const [pages, setPages] = useState<ResumeBlock[][]>([]);
   const blockRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Get suggestions for all blocks
+  const { getSuggestionsForBlock } = useSuggestions(blocks);
 
   const dimensions = PAGE_DIMENSIONS[pageSize];
   const contentWidth = dimensions.width - margins.left - margins.right;
@@ -210,6 +214,8 @@ export function ResumeCanvas({
       readOnly,
       onDataChange: (newData: any) => onBlockUpdate?.(blockId, newData),
       onClick: () => onBlockSelect?.(blockId),
+      suggestions: getSuggestionsForBlock(blockId),
+      blockId: blockId,
     };
 
     let BlockComponent;

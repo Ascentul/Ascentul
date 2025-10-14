@@ -3,12 +3,15 @@ import type { Id } from '../../convex/_generated/dataModel';
 // Block data types
 export interface HeaderData {
   fullName: string;
-  title: string;
-  contact: {
+  title?: string;
+  contact?: {
     email?: string;
     phone?: string;
     location?: string;
-    links?: string[];
+    links?: Array<{
+      label: string;
+      url: string;
+    }>;
   };
 }
 
@@ -20,9 +23,9 @@ export interface ExperienceItem {
   company: string;
   role: string;
   location?: string;
-  start: string;
-  end: string;
-  bullets: string[];
+  start?: string;
+  end?: string;
+  bullets?: string[];
 }
 
 export interface ExperienceData {
@@ -31,10 +34,10 @@ export interface ExperienceData {
 
 export interface EducationItem {
   school: string;
-  degree: string;
+  degree?: string;
   location?: string;
-  end: string;
-  details: string[];
+  end?: string;
+  details?: string[];
 }
 
 export interface EducationData {
@@ -42,8 +45,8 @@ export interface EducationData {
 }
 
 export interface SkillsData {
-  primary: string[];
-  secondary: string[];
+  primary?: string[];
+  secondary?: string[];
 }
 
 export interface ProjectItem {
@@ -83,7 +86,27 @@ export interface Block {
 
 // Type guards
 export function isHeaderData(data: any): data is HeaderData {
-  return data && typeof data.fullName === 'string';
+  if (!data || typeof data.fullName !== 'string') {
+    return false;
+  }
+
+  // Validate links structure if present
+  if (data.contact?.links) {
+    if (!Array.isArray(data.contact.links)) {
+      return false;
+    }
+
+    // Validate each link has required label and url properties
+    return data.contact.links.every(
+      (link: any) =>
+        typeof link === 'object' &&
+        link !== null &&
+        typeof link.label === 'string' &&
+        typeof link.url === 'string'
+    );
+  }
+
+  return true;
 }
 
 export function isSummaryData(data: any): data is SummaryData {
@@ -99,7 +122,10 @@ export function isEducationData(data: any): data is EducationData {
 }
 
 export function isSkillsData(data: any): data is SkillsData {
-  return data && Array.isArray(data.primary) && Array.isArray(data.secondary);
+  return (
+    data &&
+    (Array.isArray(data.primary) || Array.isArray(data.secondary))
+  );
 }
 
 export function isProjectsData(data: any): data is ProjectsData {

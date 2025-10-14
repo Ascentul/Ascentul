@@ -1,104 +1,51 @@
-'use client';
-
-import { Plus, X } from 'lucide-react';
-import type { CustomBlockData } from '@/lib/validators/resume';
+import type { CustomData } from '@/lib/resume/types';
+import { BlockSuggestions } from '../BlockSuggestions';
+import type { ContentSuggestion } from '@/lib/ai/suggestions';
 
 interface CustomBlockProps {
-  data: CustomBlockData;
+  data: CustomData;
   isSelected?: boolean;
-  readOnly?: boolean;
-  onDataChange?: (data: CustomBlockData) => void;
   onClick?: () => void;
+  suggestions?: ContentSuggestion[];
+  blockId?: string;
 }
 
-export function CustomBlock({
-  data,
-  isSelected,
-  readOnly,
-  onDataChange,
-  onClick,
-}: CustomBlockProps) {
-  const handleBulletChange = (index: number, value: string) => {
-    if (readOnly) return;
+export function CustomBlock({ data, isSelected, onClick, suggestions, blockId }: CustomBlockProps) {
+  const { heading, bullets } = data;
 
-    const newBullets = [...data.bullets];
-    newBullets[index] = value;
-    onDataChange?.({ ...data, bullets: newBullets });
-  };
-
-  const addBullet = () => {
-    onDataChange?.({
-      ...data,
-      bullets: [...data.bullets, ''],
-    });
-  };
-
-  const removeBullet = (index: number) => {
-    onDataChange?.({
-      ...data,
-      bullets: data.bullets.filter((_, i) => i !== index),
-    });
-  };
+  if (!heading || !bullets || bullets.length === 0) return null;
 
   return (
-    <div
-      className={`p-4 rounded-lg transition-all ${
-        isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+    <section
+      className={`space-y-2 transition-all ${
+        isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md p-2' : ''
       }`}
       onClick={onClick}
+      role="region"
+      aria-label={`Custom section: ${heading}`}
     >
-      {/* Heading */}
-      {readOnly ? (
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 uppercase tracking-wide">
-          {data.heading}
-        </h2>
-      ) : (
-        <input
-          type="text"
-          value={data.heading}
-          onChange={(e) => onDataChange?.({ ...data, heading: e.target.value })}
-          className="text-lg font-semibold text-gray-900 bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 w-full mb-4 uppercase tracking-wide"
-          placeholder="Section Heading"
-        />
-      )}
+      <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">
+        {heading}
+      </h2>
 
-      {/* Bullets */}
-      <ul className="space-y-2">
-        {data.bullets.map((bullet, index) => (
-          <li key={index} className="flex items-start gap-2 group">
-            <span className="text-gray-600 mt-0.5">•</span>
-            {readOnly ? (
-              <p className="text-sm text-gray-700 leading-relaxed flex-1">{bullet}</p>
-            ) : (
-              <>
-                <textarea
-                  value={bullet}
-                  onChange={(e) => handleBulletChange(index, e.target.value)}
-                  className="flex-1 text-sm text-gray-700 leading-relaxed bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 resize-none"
-                  placeholder="Content for this section..."
-                  rows={2}
-                />
-                <button
-                  onClick={() => removeBullet(index)}
-                  className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 mt-1"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </>
-            )}
+      <ul className="space-y-0.5" role="list">
+        {bullets.map((item, idx) => (
+          <li
+            key={idx}
+            className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
+          >
+            {item}
           </li>
         ))}
-
-        {!readOnly && (
-          <button
-            onClick={addBullet}
-            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 ml-4"
-          >
-            <Plus className="w-4 h-4" />
-            Add item
-          </button>
-        )}
       </ul>
-    </div>
+
+      {/* Show suggestions when block is selected */}
+      {isSelected && suggestions && suggestions.length > 0 && blockId && (
+        <BlockSuggestions
+          blockId={blockId}
+          suggestions={suggestions}
+        />
+      )}
+    </section>
   );
 }

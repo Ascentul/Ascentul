@@ -65,9 +65,10 @@ export const summaryBlockData = z.object({
 export const experienceItem = z.object({
   company: z.string(),
   role: z.string(),
-  start: z.string(), // Date string like "Jan 2020" or ISO format
-  end: z.string().or(z.literal('Present')), // "Present" for current roles
-  bullets: z.array(z.string()),
+  location: z.string().optional(),
+  start: z.string().optional(), // Date string like "Jan 2020" or ISO format
+  end: z.string().optional(), // "Present" for current roles
+  bullets: z.array(z.string()).optional(),
 });
 
 export const experienceBlockData = z.object({
@@ -77,8 +78,8 @@ export const experienceBlockData = z.object({
 // Education block
 export const educationItem = z.object({
   school: z.string(),
-  degree: z.string(),
-  end: z.string(), // Graduation date
+  degree: z.string().optional(),
+  end: z.string().optional(), // Graduation date
   details: z.array(z.string()).optional(), // GPA, honors, etc.
 });
 
@@ -88,9 +89,14 @@ export const educationBlockData = z.object({
 
 // Skills block
 export const skillsBlockData = z.object({
-  primary: z.array(z.string()),
+  primary: z.array(z.string()).optional(),
   secondary: z.array(z.string()).optional(),
-});
+}).refine(
+  (value) =>
+    Array.isArray(value.primary) && value.primary.length > 0 ||
+    Array.isArray(value.secondary) && value.secondary.length > 0,
+  { message: 'At least one skills list must be provided' }
+);
 
 // Projects block
 export const projectItem = z.object({

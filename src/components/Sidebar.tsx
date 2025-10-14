@@ -453,12 +453,22 @@ const Sidebar = React.memo(function Sidebar({
       const active = isActive(item.href, shouldUseExact);
       const disabled = item.pro && isFreeUser;
 
+      const handleClick = (e: React.MouseEvent) => {
+        if (disabled) {
+          e.preventDefault();
+          e.stopPropagation();
+          setShowUpsellModal(true);
+        }
+        // For debugging - remove this later
+        console.log('Sidebar link clicked:', item.href, 'disabled:', disabled);
+      };
+
       return (
         <Link
           key={item.href}
           href={disabled ? "#" : item.href}
           className={`
-          flex items-center px-3 py-2 text-sm rounded-md transition-all duration-200 relative
+          flex items-center px-3 py-2 text-sm rounded-md transition-all duration-200 relative cursor-pointer
           ${
             active
               ? "bg-[#f0f2ff] text-[#616ef6]"
@@ -467,14 +477,7 @@ const Sidebar = React.memo(function Sidebar({
                 : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
           }
         `}
-          onClick={
-            disabled
-              ? (e) => {
-                  e.preventDefault();
-                  setShowUpsellModal(true);
-                }
-              : undefined
-          }
+          onClick={handleClick}
         >
           <span className={`${expanded ? "mr-3" : ""} flex-shrink-0`}>
             {item.icon}
@@ -543,12 +546,22 @@ const Sidebar = React.memo(function Sidebar({
 
       if (!hasItems && section.href) {
         // Single item section - new flat structure
+        const handleSectionClick = (e: React.MouseEvent) => {
+          if (disabled) {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowUpsellModal(true);
+          }
+          // For debugging
+          console.log('Section link clicked:', section.href, 'disabled:', disabled);
+        };
+
         return (
           <Link
             key={section.id}
             href={disabled ? "#" : section.href}
             className={`
-            flex items-center px-3 py-2 mx-2 text-sm rounded-lg transition-colors
+            flex items-center px-3 py-2 mx-2 text-sm rounded-lg transition-colors cursor-pointer
             ${
               sectionActive || hasActiveItem
                 ? "bg-[#f0f2ff] text-[#616ef6]"
@@ -557,14 +570,7 @@ const Sidebar = React.memo(function Sidebar({
                   : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             }
           `}
-            onClick={
-              disabled
-                ? (e) => {
-                    e.preventDefault();
-                    setShowUpsellModal(true);
-                  }
-                : undefined
-            }
+            onClick={handleSectionClick}
           >
             <span className="mr-3">{section.icon}</span>
             {expanded && (

@@ -98,6 +98,22 @@ const config = {
         slideUp: {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" }
+        },
+        slideInFromLeft: {
+          "0%": { transform: "translateX(-100%)", opacity: "0" },
+          "100%": { transform: "translateX(0)", opacity: "1" }
+        },
+        slideInFromRight: {
+          "0%": { transform: "translateX(100%)", opacity: "0" },
+          "100%": { transform: "translateX(0)", opacity: "1" }
+        },
+        scaleIn: {
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" }
+        },
+        shimmer: {
+          from: { backgroundPosition: "0 0" },
+          to: { backgroundPosition: "-200% 0" }
         }
       },
       animation: {
@@ -106,7 +122,11 @@ const config = {
         fadeIn: "fadeIn 0.5s ease-in-out",
         bounce: "bounce 1s ease-in-out infinite",
         slideDown: "slideDown 300ms cubic-bezier(0.87, 0, 0.13, 1)",
-        slideUp: "slideUp 300ms cubic-bezier(0.87, 0, 0.13, 1)"
+        slideUp: "slideUp 300ms cubic-bezier(0.87, 0, 0.13, 1)",
+        slideInFromLeft: "slideInFromLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        slideInFromRight: "slideInFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        scaleIn: "scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+        shimmer: "shimmer 2s linear infinite",
       },
       borderRadius: {
         lg: "var(--radius)",

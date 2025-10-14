@@ -13,6 +13,24 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+async function getConvexClient(authResult: Awaited<ReturnType<typeof auth>>) {
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!convexUrl) {
+    throw new Error("Convex URL not configured");
+  }
+
+  const client = new ConvexHttpClient(convexUrl);
+  const token = await authResult.getToken({
+    template: process.env.CLERK_JWT_TEMPLATE || "convex",
+  });
+
+  if (token) {
+    client.setAuth(token);
+  }
+
+  return client;
+}
+
 interface GenerateResumeRequest {
   resumeId: Id<"builder_resumes">;
   targetRole: string;
@@ -30,7 +48,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Authenticate user
-    const { userId } = await auth();
+    const authResult = await auth();
+    const { userId } = authResult;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -49,16 +68,15 @@ export async function POST(req: NextRequest) {
     console.log(`Generating resume for role: ${targetRole}${targetCompany ? ` at ${targetCompany}` : ""}`);
 
     // 4. Initialize Convex client
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) {
+    let convex: ConvexHttpClient;
+    try {
+      convex = await getConvexClient(authResult);
+    } catch (error: any) {
       return NextResponse.json(
-        { error: "Convex URL not configured" },
+        { error: error.message || "Convex URL not configured" },
         { status: 500 }
       );
     }
-
-    const convex = new ConvexHttpClient(convexUrl);
-    convex.setAuth(await auth().then(a => a.getToken({ template: "convex" }) || ""));
 
     // 5. Verify resume ownership
     let resume;
@@ -229,6 +247,10 @@ export async function POST(req: NextRequest) {
     let insertedCount = 0;
     for (const block of parsedBlocks) {
       try {
+        if (process.env.NODE_ENV !== "production") {
+          const dataKeys = Object.keys(((block as any)?.data) ?? {});
+          console.debug("[resume.generate] inserting block", block.type, "data keys:", dataKeys);
+        }
         await convex.mutation(api.builder_blocks.createBlock, {
           resumeId,
           type: block.type,

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { aiResumeResponseSchema, type ResumeBlock } from './generate';
+import { aiResumeResponseSchema, type ResumeBlock } from '@/lib/resume-validation';
 
 /**
  * System prompt for auto-tidying resume content

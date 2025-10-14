@@ -95,14 +95,14 @@ export function Layers({
 
   return (
     <div className="p-4">
-      <h3 className="text-sm font-semibold mb-3">Layers</h3>
+      <h3 className="text-sm font-medium mb-4 text-foreground">Layers</h3>
 
       {blocks.length === 0 ? (
-        <div className="text-sm text-muted-foreground text-center py-8">
+        <div className="text-sm text-muted-foreground text-center py-12">
           No blocks yet
         </div>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-2">
           {blocks.map((block, index) => (
             <div
               key={block._id}
@@ -115,27 +115,27 @@ export function Layers({
               role="button"
               tabIndex={0}
               aria-selected={selectedBlockId === block._id}
-              className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${
+              className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
                 selectedBlockId === block._id
-                  ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                  ? 'border-primary bg-primary/5 ring-2 ring-primary shadow-sm'
+                  : 'border-border hover:border-primary/50 hover:bg-muted/50 hover:shadow-sm'
               } ${draggedIndex === index ? 'opacity-50' : ''} ${
                 block.locked ? 'cursor-not-allowed opacity-60' : ''
               }`}
             >
               {/* Drag handle */}
               {!block.locked && (
-                <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 transition-colors hover:text-foreground" />
               )}
               {block.locked && (
                 <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               )}
 
               {/* Block label */}
-              <span className="text-sm flex-1 truncate">{getBlockLabel(block)}</span>
+              <span className="text-sm font-medium flex-1 truncate">{getBlockLabel(block)}</span>
 
               {/* Block order */}
-              <span className="text-xs text-muted-foreground">{index + 1}</span>
+              <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded">{index + 1}</span>
             </div>
           ))}
         </div>

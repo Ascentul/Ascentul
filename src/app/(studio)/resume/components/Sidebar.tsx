@@ -12,8 +12,8 @@ export function Sidebar({ activeTab, onTabChange, children }: SidebarProps) {
   return (
     <div className="h-full flex flex-col bg-background border-r">
       {/* Segmented Control */}
-      <div className="flex-shrink-0 p-3 border-b" role="tablist" aria-label="Sidebar panels">
-        <div className="min-w-0 grid grid-cols-3 gap-1 p-1 rounded-xl border bg-white">
+      <div className="flex-shrink-0 p-4 border-b" role="tablist" aria-label="Sidebar panels">
+        <div className="min-w-0 grid grid-cols-3 gap-1 p-1 rounded-xl border bg-muted/30 shadow-sm">
           <button
             role="tab"
             aria-selected={activeTab === 'layers'}
@@ -21,7 +21,7 @@ export function Sidebar({ activeTab, onTabChange, children }: SidebarProps) {
             aria-controls="layers-panel"
             onClick={() => onTabChange('layers')}
             data-active={activeTab === 'layers'}
-            className="min-w-0 overflow-hidden inline-flex items-center justify-center gap-2 px-3 py-1.5 text-sm rounded-lg text-gray-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 data-[active=true]:bg-white data-[active=true]:shadow-sm"
+            className="min-w-0 overflow-hidden inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[active=true]:bg-white data-[active=true]:text-foreground data-[active=true]:shadow-md"
           >
             <Layers className="w-4 h-4 flex-shrink-0" />
             <span className="block max-w-full truncate">Layers</span>
@@ -33,7 +33,7 @@ export function Sidebar({ activeTab, onTabChange, children }: SidebarProps) {
             aria-controls="themes-panel"
             onClick={() => onTabChange('themes')}
             data-active={activeTab === 'themes'}
-            className="min-w-0 overflow-hidden inline-flex items-center justify-center gap-2 px-3 py-1.5 text-sm rounded-lg text-gray-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 data-[active=true]:bg-white data-[active=true]:shadow-sm"
+            className="min-w-0 overflow-hidden inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[active=true]:bg-white data-[active=true]:text-foreground data-[active=true]:shadow-md"
           >
             <Palette className="w-4 h-4 flex-shrink-0" />
             <span className="block max-w-full truncate">Themes</span>
@@ -45,7 +45,7 @@ export function Sidebar({ activeTab, onTabChange, children }: SidebarProps) {
             aria-controls="templates-panel"
             onClick={() => onTabChange('templates')}
             data-active={activeTab === 'templates'}
-            className="min-w-0 overflow-hidden inline-flex items-center justify-center gap-2 px-3 py-1.5 text-sm rounded-lg text-gray-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 data-[active=true]:bg-white data-[active=true]:shadow-sm"
+            className="min-w-0 overflow-hidden inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[active=true]:bg-white data-[active=true]:text-foreground data-[active=true]:shadow-md"
           >
             <Layout className="w-4 h-4 flex-shrink-0" />
             <span className="block max-w-full truncate">Templates</span>

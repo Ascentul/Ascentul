@@ -141,6 +141,51 @@ export const getMyProfile = query({
       });
     }
 
+    // Helper to extract label from URL
+    const getLabelFromUrl = (url: string): string => {
+      try {
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname.replace('www.', '');
+        // Extract domain name before TLD (e.g., "github.com" -> "GitHub")
+        const parts = hostname.split('.');
+        // Use second-to-last part for subdomains, otherwise first part
+        const domainPart = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+        // Capitalize each word for hyphenated domains
+        return domainPart.split('-').map(word =>
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+      } catch {
+        return 'Website';
+      }
+    };
+
+    // Build links array in new {label, url} format
+    const links = [];
+    if (user.linkedin_url) {
+      try {
+        new URL(user.linkedin_url);
+        links.push({ label: 'LinkedIn', url: user.linkedin_url });
+      } catch {
+        // Skip invalid URL
+      }
+    }
+    if (user.github_url) {
+      try {
+        new URL(user.github_url);
+        links.push({ label: 'GitHub', url: user.github_url });
+      } catch {
+        // Skip invalid URL
+      }
+    }
+    if (user.website) {
+      try {
+        new URL(user.website);
+        links.push({ label: getLabelFromUrl(user.website), url: user.website });
+      } catch {
+        // Skip invalid URL
+      }
+    }
+
     // Return normalized snapshot for AI generation
     return {
       fullName: user.name || "",
@@ -153,9 +198,7 @@ export const getMyProfile = query({
         email: user.email || undefined,
         phone: undefined, // Not stored in schema
         location: user.location || undefined,
-        links: [user.linkedin_url, user.github_url, user.website].filter(
-          Boolean
-        ) as string[],
+        links: links,
       },
       // Map work_history to experience format with empty arrays as fallback
       experience:

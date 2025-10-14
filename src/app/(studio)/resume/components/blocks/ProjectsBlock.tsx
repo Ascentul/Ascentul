@@ -1,189 +1,72 @@
-'use client';
-
-import { Plus, X } from 'lucide-react';
-import type { ProjectsBlockData, ProjectItem } from '@/lib/validators/resume';
+import type { ProjectsData } from '@/lib/resume/types';
+import { BlockSuggestions } from '../BlockSuggestions';
+import type { ContentSuggestion } from '@/lib/ai/suggestions';
 
 interface ProjectsBlockProps {
-  data: ProjectsBlockData;
+  data: ProjectsData;
   isSelected?: boolean;
-  readOnly?: boolean;
-  onDataChange?: (data: ProjectsBlockData) => void;
   onClick?: () => void;
+  suggestions?: ContentSuggestion[];
+  blockId?: string;
 }
 
-export function ProjectsBlock({
-  data,
-  isSelected,
-  readOnly,
-  onDataChange,
-  onClick,
-}: ProjectsBlockProps) {
-  const handleItemChange = (index: number, field: keyof ProjectItem, value: any) => {
-    if (readOnly) return;
+export function ProjectsBlock({ data, isSelected, onClick, suggestions, blockId }: ProjectsBlockProps) {
+  const { items } = data;
 
-    const newItems = [...data.items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    onDataChange?.({ items: newItems });
-  };
-
-  const handleBulletChange = (itemIndex: number, bulletIndex: number, value: string) => {
-    if (readOnly) return;
-
-    const newItems = [...data.items];
-    const bullets = newItems[itemIndex].bullets || [];
-    const newBullets = [...bullets];
-    newBullets[bulletIndex] = value;
-    newItems[itemIndex] = { ...newItems[itemIndex], bullets: newBullets };
-    onDataChange?.({ items: newItems });
-  };
-
-  const addBullet = (itemIndex: number) => {
-    const newItems = [...data.items];
-    const bullets = newItems[itemIndex].bullets || [];
-    newItems[itemIndex] = {
-      ...newItems[itemIndex],
-      bullets: [...bullets, ''],
-    };
-    onDataChange?.({ items: newItems });
-  };
-
-  const removeBullet = (itemIndex: number, bulletIndex: number) => {
-    const newItems = [...data.items];
-    const bullets = newItems[itemIndex].bullets || [];
-    newItems[itemIndex] = {
-      ...newItems[itemIndex],
-      bullets: bullets.filter((_, i) => i !== bulletIndex),
-    };
-    onDataChange?.({ items: newItems });
-  };
-
-  const addItem = () => {
-    onDataChange?.({
-      items: [
-        ...data.items,
-        {
-          name: '',
-          description: '',
-          bullets: [],
-        },
-      ],
-    });
-  };
-
-  const removeItem = (index: number) => {
-    onDataChange?.({
-      items: data.items.filter((_, i) => i !== index),
-    });
-  };
+  if (!items || items.length === 0) return null;
 
   return (
-    <div
-      className={`p-4 rounded-lg transition-all ${
-        isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+    <section
+      className={`space-y-2 transition-all ${
+        isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md p-2' : ''
       }`}
       onClick={onClick}
+      role="region"
+      aria-label="Projects"
     >
-      <h2 className="text-lg font-semibold text-gray-900 mb-4 uppercase tracking-wide">
+      <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">
         Projects
       </h2>
 
-      <div className="space-y-5">
-        {data.items.map((item, itemIndex) => (
-          <div key={itemIndex} className="relative group">
-            {/* Remove button */}
-            {!readOnly && (
-              <button
-                onClick={() => removeItem(itemIndex)}
-                className="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-
+      <div className="space-y-6">
+        {items.map((item, idx) => (
+          <article key={idx} className="space-y-1">
             {/* Project Name */}
-            {readOnly ? (
-              <h3 className="text-base font-semibold text-gray-900">{item.name}</h3>
-            ) : (
-              <input
-                type="text"
-                value={item.name}
-                onChange={(e) => handleItemChange(itemIndex, 'name', e.target.value)}
-                className="text-base font-semibold text-gray-900 bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 w-full"
-                placeholder="Project Name"
-              />
-            )}
+            <h3 className="text-base font-medium text-neutral-900">
+              {item.name}
+            </h3>
 
             {/* Description */}
-            <div className="mt-1">
-              {readOnly ? (
-                <p className="text-sm text-gray-700 leading-relaxed">{item.description}</p>
-              ) : (
-                <textarea
-                  value={item.description}
-                  onChange={(e) =>
-                    handleItemChange(itemIndex, 'description', e.target.value)
-                  }
-                  className="w-full text-sm text-gray-700 leading-relaxed bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 resize-none"
-                  placeholder="Brief description of the project..."
-                  rows={2}
-                />
-              )}
-            </div>
+            {item.description && (
+              <p className="text-sm text-neutral-700 leading-relaxed">
+                {item.description}
+              </p>
+            )}
 
             {/* Bullets */}
-            {((item.bullets && item.bullets.length > 0) || !readOnly) && (
-              <ul className="mt-2 space-y-1">
-                {item.bullets?.map((bullet, bulletIndex) => (
-                  <li key={bulletIndex} className="flex items-start gap-2 group/bullet">
-                    <span className="text-gray-600 text-sm mt-0.5">•</span>
-                    {readOnly ? (
-                      <p className="text-sm text-gray-700">{bullet}</p>
-                    ) : (
-                      <>
-                        <input
-                          type="text"
-                          value={bullet}
-                          onChange={(e) =>
-                            handleBulletChange(itemIndex, bulletIndex, e.target.value)
-                          }
-                          className="flex-1 text-sm text-gray-700 bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-300 rounded px-2"
-                          placeholder="Key achievement or technical detail..."
-                        />
-                        <button
-                          onClick={() => removeBullet(itemIndex, bulletIndex)}
-                          className="opacity-0 group-hover/bullet:opacity-100 text-red-500 hover:text-red-700"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
+            {item.bullets && item.bullets.length > 0 && (
+              <ul className="space-y-0.5 mt-2" role="list">
+                {item.bullets.map((bullet, i) => (
+                  <li
+                    key={i}
+                    className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
+                  >
+                    {bullet}
                   </li>
                 ))}
-
-                {!readOnly && (
-                  <button
-                    onClick={() => addBullet(itemIndex)}
-                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 ml-4"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add bullet
-                  </button>
-                )}
               </ul>
             )}
-          </div>
+          </article>
         ))}
-
-        {!readOnly && (
-          <button
-            onClick={addItem}
-            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 mt-4"
-          >
-            <Plus className="w-4 h-4" />
-            Add project
-          </button>
-        )}
       </div>
-    </div>
+
+      {/* Show suggestions when block is selected */}
+      {isSelected && suggestions && suggestions.length > 0 && blockId && (
+        <BlockSuggestions
+          blockId={blockId}
+          suggestions={suggestions}
+        />
+      )}
+    </section>
   );
 }

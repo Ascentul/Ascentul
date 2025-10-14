@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "../../../../convex/_generated/api";
 import { NewResumeDialog } from "./components/NewResumeDialog";
+import { useToast } from "@/hooks/use-toast";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
 type Resume = {
@@ -17,12 +18,12 @@ type Resume = {
 export default function ResumeListPage() {
   const router = useRouter();
   const { user } = useUser();
+  const { toast } = useToast();
   const resumes = useQuery(
     api.builder_resumes.listUserResumes,
     user?.id ? { clerkId: user.id } : "skip"
   ) as Resume[] | undefined;
-  const createResume = useMutation(api.builder_resumes_v2.create);
-  const updateResume = useMutation(api.builder_resumes.updateResume);
+  const createResumeWithBlocks = useMutation(api.builder_resumes.createResumeWithBlocks);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const onNew = async (data: {
@@ -32,17 +33,36 @@ export default function ResumeListPage() {
     targetRole?: string;
     targetCompany?: string;
     generateWithAI: boolean;
+    autoPopulate: boolean;
   }) => {
     if (!user?.id) return;
 
     try {
-      // Create the resume
-      const result = await createResume({
+      // Create the resume with optional auto-population
+      const result = await createResumeWithBlocks({
         clerkId: user.id,
         title: data.title,
         templateSlug: data.templateSlug,
         themeId: data.themeId,
+        autoPopulate: data.autoPopulate,
       });
+
+      // Show success message with blocks count
+      if (data.autoPopulate && result.blocksCreated > 0) {
+        toast({
+          title: 'Resume created successfully!',
+          description: `Imported ${result.blocksCreated} section${result.blocksCreated !== 1 ? 's' : ''} from your profile.`,
+        });
+      } else if (data.autoPopulate && result.blocksCreated === 0) {
+        toast({
+          title: 'Resume created',
+          description: 'No profile data found to import. You can add sections manually.',
+        });
+      } else {
+        toast({
+          title: 'Resume created successfully!',
+        });
+      }
 
       // If AI generation is requested, call the generate API
       if (data.generateWithAI && data.targetRole) {
@@ -59,13 +79,26 @@ export default function ResumeListPage() {
 
           if (!response.ok) {
             console.error('AI generation failed:', await response.text());
+            toast({
+              title: 'AI generation failed',
+              description: 'Resume was created, but AI generation encountered an error.',
+              variant: 'destructive',
+            });
           } else {
             const aiResult = await response.json();
             console.log('AI generated blocks:', aiResult.blocks?.length);
+            toast({
+              title: 'AI content generated!',
+              description: `Added ${aiResult.blocks?.length || 0} AI-generated sections.`,
+            });
           }
         } catch (error) {
           console.error('AI generation error:', error);
-          // Continue to editor even if AI generation fails
+          toast({
+            title: 'AI generation failed',
+            description: 'Resume was created, but AI generation encountered an error.',
+            variant: 'destructive',
+          });
         }
       }
 
@@ -73,6 +106,11 @@ export default function ResumeListPage() {
       router.push(`/resume/${result.id}`);
     } catch (error) {
       console.error('Failed to create resume:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create resume. Please try again.',
+        variant: 'destructive',
+      });
       throw error;
     }
   };

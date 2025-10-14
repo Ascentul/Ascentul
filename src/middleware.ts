@@ -20,7 +20,19 @@ const isProtectedRoute = createRouteMatcher([
   "/achievements(.*)",
 ]);
 
+const isAllowlistedRoute = createRouteMatcher([
+  "/",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/api/debug(.*)",
+  "/resume(.*)",
+]);
+
 export default clerkMiddleware(async (auth, req) => {
+  if (isAllowlistedRoute(req)) {
+    return NextResponse.next();
+  }
+
   if (isProtectedRoute(req)) {
     const { userId, redirectToSignIn } = await auth();
     if (!userId) {
@@ -46,6 +58,7 @@ export const config = {
     "/contacts/:path*",
     "/career-coach/:path*",
     "/resumes/:path*",
+    "/resume/:path*",
     "/cover-letters/:path*",
     "/career-path/:path*",
     "/projects/:path*",

@@ -153,6 +153,210 @@ export const updateResumeMeta = mutation({
 });
 
 /**
+ * Create a new resume with auto-populated blocks from user profile.
+ * @returns { id: Id<"builder_resumes">, title: string, blocksCreated: number }
+ */
+export const createResumeWithBlocks = mutation({
+  args: {
+    clerkId: v.string(),
+    title: v.string(),
+    templateSlug: v.string(),
+    themeId: v.optional(v.id("builder_resume_themes")),
+    autoPopulate: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+
+    // 1. Create the resume
+    const resumeId = await ctx.db.insert("builder_resumes" as any, {
+      userId: user._id,
+      title: args.title,
+      templateSlug: args.templateSlug,
+      themeId: args.themeId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    let blocksCreated = 0;
+
+    // 2. If autoPopulate is true, fetch profile and create blocks
+    if (args.autoPopulate) {
+      try {
+        // Fetch user's profile data (using same logic as profiles.getMyProfile)
+        // Get projects from separate collection
+        const projects = await ctx.db
+          .query("projects")
+          .withIndex("by_user", (q) => q.eq("user_id", user._id))
+          .collect();
+
+        // Sort projects by start_date (most recent first)
+        projects.sort((a, b) => {
+          const dateA = a.start_date ? a.start_date : 0;
+          const dateB = b.start_date ? b.start_date : 0;
+          return dateB - dateA;
+        });
+
+        // Parse skills from comma-separated string
+        let primarySkills: string[] = [];
+        if (user.skills && typeof user.skills === "string") {
+          primarySkills = user.skills
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter(Boolean);
+        }
+
+        // Build education array
+        const education = [];
+        if (user.education_history && user.education_history.length > 0) {
+          for (const edu of user.education_history) {
+            education.push({
+              school: edu.school || "",
+              degree: edu.degree || "",
+              field: edu.field_of_study || undefined,
+              end: edu.is_current ? undefined : edu.end_year || undefined,
+              details: edu.description ? [edu.description] : [],
+            });
+          }
+        }
+        // Add flat education fields if they exist
+        if (user.major || user.university_name || user.graduation_year) {
+          education.push({
+            school: user.university_name || "",
+            degree: user.major || "",
+            field: undefined,
+            end: user.graduation_year || undefined,
+            details: [],
+          });
+        }
+
+        // Create blocks based on available data
+        let order = 0;
+
+        // Header block (always create if we have a name)
+        if (user.name) {
+          await ctx.db.insert("resume_blocks", {
+            resumeId: resumeId as any,
+            type: "header",
+            data: {
+              fullName: user.name,
+              title: user.current_position || user.job_title || user.dream_job || "",
+              contact: {
+                email: user.email || undefined,
+                phone: undefined,
+                location: user.location || undefined,
+                links: [user.linkedin_url, user.github_url, user.website].filter(Boolean),
+              },
+            },
+            order: order++,
+            locked: false,
+          });
+          blocksCreated++;
+        }
+
+        // Experience block
+        if (user.work_history && user.work_history.length > 0) {
+          const experienceItems = user.work_history.map((exp: any) => ({
+            company: exp.company || "",
+            role: exp.role || "",
+            location: exp.location || undefined,
+            start: exp.start_date || "",
+            end: exp.is_current ? "" : exp.end_date || "",
+            bullets: exp.summary ? [exp.summary] : [],
+          }));
+
+          await ctx.db.insert("resume_blocks", {
+            resumeId: resumeId as any,
+            type: "experience",
+            data: { items: experienceItems },
+            order: order++,
+            locked: false,
+          });
+          blocksCreated++;
+        }
+
+        // Education block
+        if (education.length > 0) {
+          const educationItems = education.map((edu) => ({
+            school: edu.school,
+            degree: edu.degree,
+            end: edu.end || "",
+            details: edu.details,
+          }));
+
+          await ctx.db.insert("resume_blocks", {
+            resumeId: resumeId as any,
+            type: "education",
+            data: { items: educationItems },
+            order: order++,
+            locked: false,
+          });
+          blocksCreated++;
+        }
+
+        // Skills block
+        if (primarySkills.length > 0) {
+          await ctx.db.insert("resume_blocks", {
+            resumeId: resumeId as any,
+            type: "skills",
+            data: {
+              primary: primarySkills,
+              secondary: [],
+            },
+            order: order++,
+            locked: false,
+          });
+          blocksCreated++;
+        }
+
+        // Projects block
+        if (projects.length > 0) {
+          const projectItems = projects.map((proj) => ({
+            name: proj.title || "",
+            description: proj.description || "",
+            bullets: proj.technologies.length > 0
+              ? [
+                  `Technologies: ${proj.technologies.join(", ")}`,
+                  ...(proj.url ? [`URL: ${proj.url}`] : []),
+                  ...(proj.github_url ? [`GitHub: ${proj.github_url}`] : []),
+                ]
+              : [],
+          }));
+
+          await ctx.db.insert("resume_blocks", {
+            resumeId: resumeId as any,
+            type: "projects",
+            data: { items: projectItems },
+            order: order++,
+            locked: false,
+          });
+          blocksCreated++;
+        }
+      } catch (error) {
+        console.error("Error auto-populating resume:", error);
+        // Don't fail the whole operation if auto-populate fails
+        // The resume was still created, just without blocks
+      }
+    }
+
+    return {
+      id: resumeId,
+      title: args.title,
+      templateSlug: args.templateSlug,
+      themeId: args.themeId,
+      blocksCreated,
+    };
+  },
+});
+
+/**
  * Delete a resume and all its blocks.
  * @returns { id: Id<"builder_resumes"> }
  */

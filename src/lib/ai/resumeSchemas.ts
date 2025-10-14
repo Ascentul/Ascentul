@@ -7,10 +7,19 @@ const headerBlockSchema = z.object({
   data: z.object({
     fullName: z.string().min(1),
     title: z.string().optional(),
-    email: z.string().email().optional(),
-    phone: z.string().optional(),
-    location: z.string().optional(),
-    links: z.array(z.string().url()).optional(),
+    contact: z.object({
+      email: z.string().email().optional(),
+      phone: z.string().optional(),
+      location: z.string().optional(),
+      links: z
+        .array(
+          z.object({
+            label: z.string().min(1),
+            url: z.string().url(),
+          })
+        )
+        .optional(),
+    }),
   }),
 });
 
@@ -19,7 +28,7 @@ const summaryBlockSchema = z.object({
   type: z.literal("summary"),
   order: z.number().int().positive(),
   data: z.object({
-    content: z.string().min(1),
+    paragraph: z.string().min(1),
   }),
 });
 
@@ -33,9 +42,9 @@ const experienceBlockSchema = z.object({
         company: z.string().min(1),
         role: z.string().min(1),
         location: z.string().optional(),
-        start: z.string(),
+        start: z.string().optional(),
         end: z.string().optional(),
-        bullets: z.array(z.string()).min(1),
+        bullets: z.array(z.string()).optional(),
       })
     ).min(1),
   }),
@@ -49,8 +58,7 @@ const educationBlockSchema = z.object({
     items: z.array(
       z.object({
         school: z.string().min(1),
-        degree: z.string().min(1),
-        location: z.string().optional(),
+        degree: z.string().optional(),
         end: z.string().optional(),
         details: z.array(z.string()).optional(),
       })
@@ -63,13 +71,14 @@ const skillsBlockSchema = z.object({
   type: z.literal("skills"),
   order: z.number().int().positive(),
   data: z.object({
-    categories: z.array(
-      z.object({
-        name: z.string().optional(),
-        skills: z.array(z.string()).min(1),
-      })
-    ).min(1),
-  }),
+    primary: z.array(z.string()).optional(),
+    secondary: z.array(z.string()).optional(),
+  }).refine(
+    (value) =>
+      Array.isArray(value.primary) && value.primary.length > 0 ||
+      Array.isArray(value.secondary) && value.secondary.length > 0,
+    { message: "At least one skills list must be provided" }
+  ),
 });
 
 // Projects block
