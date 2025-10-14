@@ -39,6 +39,7 @@ Fill these keys in `.env.local` (see `.env.example`):
 - Clerk: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
 - Convex: `CONVEX_DEPLOYMENT`, `CONVEX_SITE_URL` (as needed)
 - Stripe (optional features): `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, plus price/payment-link variables if used
+- Template Previews (optional): `NEXT_PUBLIC_PREVIEW_BASE_URL` (for remote CDN hosting)
 
 Do not add Supabase variables—this project has fully migrated to Clerk + Convex.
 
@@ -54,6 +55,47 @@ The documentation has moved under `docs/` to keep the project root clean. Start 
   - Legacy (historical): `docs/legacy/`
 
 Supabase-related guides are archived under `docs/legacy/supabase/` and retained for historical reference only.
+
+## Template Preview System
+
+The resume builder uses preview images for template selection. Two options are available:
+
+### Local Previews (Default)
+
+Place PNG files in `public/previews/`:
+- `modern-clean.png` (340x440px)
+- `modern-two-col.png`
+- `grid-compact.png`
+- `timeline.png`
+- `minimal-serif.png`
+- `product-designer.png`
+
+See `public/previews/README.md` for image specifications and creation guide.
+
+### Remote Previews (CDN/Storage)
+
+Configure environment variable:
+```bash
+NEXT_PUBLIC_PREVIEW_BASE_URL=https://your-cdn.com/previews
+```
+
+The system will automatically construct URLs: `{base}/{template-slug}.png`
+
+**Setup for remote hosting:**
+1. Upload preview PNGs to your storage (S3, Supabase Storage, Cloudflare R2, etc.)
+2. Add domain to `next.config.js` if needed:
+   ```js
+   images: {
+     domains: ['your-cdn.com'],
+   }
+   ```
+3. Ensure bucket is publicly accessible with CORS enabled
+
+**Troubleshooting:**
+- Images not showing? Check `public/previews/` exists and files match template slugs exactly
+- Test direct URL: `http://localhost:3000/previews/modern-clean.png` should return 200
+- For remote images: Verify domain in next.config.js and public bucket access
+- Run tests: `npm test TemplatePicker`
 
 ## Development Notes
 
