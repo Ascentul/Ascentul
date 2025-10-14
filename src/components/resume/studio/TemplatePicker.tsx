@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from 'convex/react';
+import { useState } from 'react';
 import { api } from '../../../../convex/_generated/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileText, Check } from 'lucide-react';
@@ -12,6 +13,7 @@ interface TemplatePickerProps {
 
 export function TemplatePicker({ currentTemplate, onTemplateChange }: TemplatePickerProps) {
   const templates = useQuery(api.builder_templates.listTemplatesAll);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   if (!templates) {
     return <div className="text-sm text-muted-foreground">Loading templates...</div>;
@@ -37,17 +39,35 @@ export function TemplatePicker({ currentTemplate, onTemplateChange }: TemplatePi
           >
             <CardContent className="p-4">
               {/* Template Preview */}
-              {template.thumbnailUrl ? (
-                <img
-                  src={template.thumbnailUrl}
-                  alt={template.name}
-                  className="w-full h-32 object-cover rounded mb-3"
-                />
-              ) : (
-                <div className="w-full h-32 bg-muted rounded mb-3 flex items-center justify-center">
-                  <FileText className="w-8 h-8 text-muted-foreground" />
-                </div>
-              )}
+              {(() => {
+                const previewBase = process.env.NEXT_PUBLIC_PREVIEW_BASE_URL || '/previews';
+                const previewUrl = template.thumbnailUrl || `${previewBase}/template-${template.slug}.png`;
+                const hasError = imageErrors.has(template.id);
+
+                return (
+                  <>
+                    {!hasError && (
+                      <img
+                        src={previewUrl}
+                        alt={template.name}
+                        className="w-full h-32 object-cover rounded mb-3"
+                        onError={() =>
+                          setImageErrors((prev) => {
+                            const next = new Set(prev);
+                            next.add(template.id);
+                            return next;
+                          })
+                        }
+                      />
+                    )}
+                    {hasError && (
+                      <div className="w-full h-32 bg-muted rounded mb-3 flex items-center justify-center">
+                        <FileText className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* Template Info */}
               <div className="flex items-start justify-between">

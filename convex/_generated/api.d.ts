@@ -39,6 +39,7 @@ import type * as followups from "../followups.js";
 import type * as goals from "../goals.js";
 import type * as interviews from "../interviews.js";
 import type * as jobs from "../jobs.js";
+import type * as migrations_updateTemplatePreviews from "../migrations/updateTemplatePreviews.js";
 import type * as migrations from "../migrations.js";
 import type * as password_reset from "../password_reset.js";
 import type * as platform_settings from "../platform_settings.js";
@@ -91,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   goals: typeof goals;
   interviews: typeof interviews;
   jobs: typeof jobs;
+  "migrations/updateTemplatePreviews": typeof migrations_updateTemplatePreviews;
   migrations: typeof migrations;
   password_reset: typeof password_reset;
   platform_settings: typeof platform_settings;

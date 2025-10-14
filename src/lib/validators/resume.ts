@@ -43,14 +43,14 @@ export const resumeThemeSchema = z.object({
 
 // Header block
 export const headerBlockData = z.object({
-  fullName: z.string(),
+  fullName: z.string().trim().min(1, 'Full name is required'),
   title: z.string().optional(),
   contact: z.object({
     email: z.string().email().optional(),
     phone: z.string().optional(),
     location: z.string().optional(),
     links: z.array(z.object({
-      label: z.string(),
+      label: z.string().trim().min(1, 'Link label is required'),
       url: z.string().url(),
     })).optional(),
   }),
@@ -58,13 +58,13 @@ export const headerBlockData = z.object({
 
 // Summary block
 export const summaryBlockData = z.object({
-  paragraph: z.string(),
+  paragraph: z.string().trim().min(1, 'Summary paragraph is required'),
 });
 
 // Experience block
 export const experienceItem = z.object({
-  company: z.string(),
-  role: z.string(),
+  company: z.string().trim().min(1, 'Company name is required'),
+  role: z.string().trim().min(1, 'Role/title is required'),
   location: z.string().optional(),
   start: z.string().optional(), // Date string like "Jan 2020" or ISO format
   end: z.string().optional(), // "Present" for current roles
@@ -72,19 +72,19 @@ export const experienceItem = z.object({
 });
 
 export const experienceBlockData = z.object({
-  items: z.array(experienceItem),
+  items: z.array(experienceItem).min(1, 'At least one experience item is required'),
 });
 
 // Education block
 export const educationItem = z.object({
-  school: z.string(),
+  school: z.string().trim().min(1, 'School name is required'),
   degree: z.string().optional(),
   end: z.string().optional(), // Graduation date
   details: z.array(z.string()).optional(), // GPA, honors, etc.
 });
 
 export const educationBlockData = z.object({
-  items: z.array(educationItem),
+  items: z.array(educationItem).min(1, 'At least one education item is required'),
 });
 
 // Skills block
@@ -98,20 +98,24 @@ export const skillsBlockData = z.object({
 
 // Projects block
 export const projectItem = z.object({
-  name: z.string(),
-  description: z.string(),
+  name: z.string().trim().min(1, 'Project name is required'),
+  description: z.string().optional(),
   bullets: z.array(z.string()).optional(),
 });
 
 export const projectsBlockData = z.object({
-  items: z.array(projectItem),
+  items: z.array(projectItem).min(1, 'At least one project is required'),
 });
 
-// Custom block
+// Custom block (flexible format for awards, certifications, etc.)
 export const customBlockData = z.object({
-  heading: z.string(),
-  bullets: z.array(z.string()).optional(),
-});
+  heading: z.string().trim().min(1, 'Section heading is required'),
+  content: z.string().optional(), // Freeform text content
+  bullets: z.array(z.string()).optional(), // Alternative: bullet list format
+}).refine(
+  (data) => data.content || (data.bullets && data.bullets.length > 0),
+  { message: 'Custom block must have either content or bullets' }
+);
 
 // ===== Block Type Union =====
 
@@ -137,7 +141,7 @@ export const resumeBlock = z.object({
     projectsBlockData,
     customBlockData,
   ]),
-  order: z.number().min(0),
+  order: z.number().int().min(0),
   locked: z.boolean().optional(),
 });
 
@@ -145,49 +149,49 @@ export const resumeBlock = z.object({
 export const headerBlock = z.object({
   type: z.literal('header'),
   data: headerBlockData,
-  order: z.number().min(0),
+  order: z.number().int().min(0),
   locked: z.boolean().optional(),
 });
 
 export const summaryBlock = z.object({
   type: z.literal('summary'),
   data: summaryBlockData,
-  order: z.number().min(0),
+  order: z.number().int().min(0),
   locked: z.boolean().optional(),
 });
 
 export const experienceBlock = z.object({
   type: z.literal('experience'),
   data: experienceBlockData,
-  order: z.number().min(0),
+  order: z.number().int().min(0),
   locked: z.boolean().optional(),
 });
 
 export const educationBlock = z.object({
   type: z.literal('education'),
   data: educationBlockData,
-  order: z.number().min(0),
+  order: z.number().int().min(0),
   locked: z.boolean().optional(),
 });
 
 export const skillsBlock = z.object({
   type: z.literal('skills'),
   data: skillsBlockData,
-  order: z.number().min(0),
+  order: z.number().int().min(0),
   locked: z.boolean().optional(),
 });
 
 export const projectsBlock = z.object({
   type: z.literal('projects'),
   data: projectsBlockData,
-  order: z.number().min(0),
+  order: z.number().int().min(0),
   locked: z.boolean().optional(),
 });
 
 export const customBlock = z.object({
   type: z.literal('custom'),
   data: customBlockData,
-  order: z.number().min(0),
+  order: z.number().int().min(0),
   locked: z.boolean().optional(),
 });
 
@@ -298,13 +302,13 @@ export function getBlockData<T extends BlockType>(
 // ===== API Request/Response Types =====
 
 export const createResumeRequest = z.object({
-  title: z.string().min(1, 'Title is required'),
+  title: z.string().trim().min(1, 'Title is required'),
   templateSlug: z.string(),
   themeId: z.string().optional(),
 });
 
 export const updateResumeRequest = z.object({
-  title: z.string().min(1, 'Title is required').optional(),
+  title: z.string().trim().min(1, 'Title is required').optional(),
   templateSlug: z.string().optional(),
   themeId: z.string().optional(),
 });

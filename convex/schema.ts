@@ -559,6 +559,8 @@ export default defineSchema({
     templateSlug: v.optional(v.string()),
     themeId: v.optional(v.id("builder_resume_themes")),
     version: v.optional(v.number()),
+    thumbnailDataUrl: v.optional(v.string()), // Base64-encoded PNG thumbnail (800px width)
+    thumbnailStorageId: v.optional(v.id("_storage")), // Future: Convex file storage ID
     updatedAt: v.number(),
     createdAt: v.number(),
   })

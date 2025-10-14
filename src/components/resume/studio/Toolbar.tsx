@@ -25,6 +25,10 @@ import type { Id } from '../../../../convex/_generated/dataModel';
 import { TailorToJobDialog } from '@/app/(studio)/resume/components/TailorToJobDialog';
 import { ExportButton } from '@/components/resume/ExportButton';
 import { DiffPreviewDialog } from '@/components/resume/DiffPreviewDialog';
+import { useAction } from 'convex/react';
+import { api } from '../../../../convex/_generated/api';
+import { useUser } from '@clerk/nextjs';
+import { useToast } from '@/hooks/use-toast';
 
 interface ToolbarProps {
   resumeId: Id<'builder_resumes'>;
@@ -33,39 +37,55 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ resumeId, blocks, onBlocksUpdate }: ToolbarProps) {
+  const { user } = useUser();
+  const { toast } = useToast();
+  const generateBlocksAction = useAction(api.ai_resume_builder.generateBlocks);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isTidying, setIsTidying] = useState(false);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [showTailorDialog, setShowTailorDialog] = useState(false);
   const [showDiffDialog, setShowDiffDialog] = useState(false);
 
-  const [targetRole, setTargetRole] = useState('');
-  const [targetCompany, setTargetCompany] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
   const [diffData, setDiffData] = useState<{original: any[], improved: any[]} | null>(null);
   const [isApplyingChanges, setIsApplyingChanges] = useState(false);
 
   const handleGenerateWithAI = async () => {
-    if (!targetRole) return;
+    if (!jobDescription.trim() || !user?.id) return;
 
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/resume/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resumeId,
-          targetRole,
-          targetCompany,
-        }),
+      const result = await generateBlocksAction({
+        clerkId: user.id,
+        resumeId,
+        jobDescription: jobDescription.trim(),
+        clearExisting: true,
       });
 
-      if (!response.ok) throw new Error('Generation failed');
-
-      const data = await response.json();
-      onBlocksUpdate(data.blocks);
-      setShowGenerateDialog(false);
-    } catch (error) {
+      if (result.success) {
+        toast({
+          title: 'Resume generated!',
+          description: `Created ${result.blocksCreated} blocks using AI.`,
+          variant: 'default',
+        });
+        setShowGenerateDialog(false);
+        setJobDescription(''); // Reset form
+        // Note: onBlocksUpdate not needed - Convex subscription will auto-update
+      } else {
+        toast({
+          title: 'Generation failed',
+          description: result.error || 'An error occurred during generation.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
       console.error('Failed to generate:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to generate resume blocks.',
+        variant: 'destructive',
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -133,27 +153,23 @@ export function Toolbar({ resumeId, blocks, onBlocksUpdate }: ToolbarProps) {
           <DialogHeader>
             <DialogTitle>Generate Resume with AI</DialogTitle>
             <DialogDescription>
-              Let AI help you create a tailored resume for your target role
+              Paste a job description and AI will create tailored resume blocks for you
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="role">Target Role *</Label>
-              <Input
-                id="role"
-                placeholder="e.g., Senior Software Engineer"
-                value={targetRole}
-                onChange={(e) => setTargetRole(e.target.value)}
+              <Label htmlFor="jobDescription">Job Description *</Label>
+              <Textarea
+                id="jobDescription"
+                placeholder="Paste the full job description here... Include required skills, responsibilities, and qualifications."
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                rows={10}
+                className="resize-none"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company">Target Company (Optional)</Label>
-              <Input
-                id="company"
-                placeholder="e.g., Google"
-                value={targetCompany}
-                onChange={(e) => setTargetCompany(e.target.value)}
-              />
+              <p className="text-xs text-muted-foreground">
+                AI will analyze the job description and generate resume blocks from your profile data
+              </p>
             </div>
           </div>
           <div className="flex justify-end gap-2">
@@ -165,7 +181,7 @@ export function Toolbar({ resumeId, blocks, onBlocksUpdate }: ToolbarProps) {
             </Button>
             <Button
               onClick={handleGenerateWithAI}
-              disabled={!targetRole || isGenerating}
+              disabled={!jobDescription.trim() || isGenerating || !user?.id}
               className="gap-2"
             >
               {isGenerating ? (
@@ -173,7 +189,7 @@ export function Toolbar({ resumeId, blocks, onBlocksUpdate }: ToolbarProps) {
               ) : (
                 <Sparkles className="w-4 h-4" />
               )}
-              Generate
+              {isGenerating ? 'Generating...' : 'Generate Resume'}
             </Button>
           </div>
         </DialogContent>

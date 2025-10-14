@@ -193,6 +193,7 @@ export const getMyProfile = query({
         location: user.location || undefined,
         links: links,
       },
+      bio: user.bio || undefined, // Professional bio/summary
       // Map work_history to experience format with empty arrays as fallback
       experience:
         user.work_history && user.work_history.length > 0

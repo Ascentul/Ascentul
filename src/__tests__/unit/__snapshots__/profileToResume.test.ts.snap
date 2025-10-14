@@ -1,0 +1,177 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`profileToResume snapshot test should match full DTO to Document mapping 1`] = `
+{
+  "blocks": [
+    {
+      "data": {
+        "contact": {
+          "email": "jane.doe@example.com",
+          "links": [
+            {
+              "label": "LinkedIn",
+              "url": "https://linkedin.com/in/janedoe",
+            },
+            {
+              "label": "GitHub",
+              "url": "https://github.com/janedoe",
+            },
+            {
+              "label": "Portfolio",
+              "url": "https://janedoe.com",
+            },
+          ],
+          "location": "San Francisco, CA",
+          "phone": "(415) 555-1234",
+        },
+        "fullName": "Jane Doe",
+        "title": "Senior Software Engineer",
+      },
+      "locked": false,
+      "order": 0,
+      "type": "header",
+    },
+    {
+      "data": {
+        "paragraph": "Experienced software engineer with 10+ years building scalable web applications. Passionate about clean code, mentoring, and open-source contributions.",
+      },
+      "locked": false,
+      "order": 1,
+      "type": "summary",
+    },
+    {
+      "data": {
+        "items": [
+          {
+            "bullets": [
+              "Led team of 8 engineers building distributed systems",
+              "Improved API performance by 40% through caching optimizations",
+              "Mentored 5 junior engineers to senior level",
+            ],
+            "company": "Google",
+            "end": "Present",
+            "location": "Mountain View, CA",
+            "role": "Senior Software Engineer",
+            "start": "Jan 2020",
+          },
+          {
+            "bullets": [
+              "Developed newsfeed ranking algorithms serving 2B+ users",
+              "Reduced infrastructure costs by $500K annually",
+            ],
+            "company": "Facebook",
+            "end": "Dec 2019",
+            "location": "Menlo Park, CA",
+            "role": "Software Engineer",
+            "start": "Jun 2016",
+          },
+        ],
+      },
+      "locked": false,
+      "order": 2,
+      "type": "experience",
+    },
+    {
+      "data": {
+        "primary": [
+          "TypeScript",
+          "React",
+          "Node.js",
+          "Python",
+          "PostgreSQL",
+        ],
+        "secondary": [
+          "Docker",
+          "Kubernetes",
+          "AWS",
+          "GraphQL",
+        ],
+      },
+      "locked": false,
+      "order": 3,
+      "type": "skills",
+    },
+    {
+      "data": {
+        "items": [
+          {
+            "degree": "BS Computer Science",
+            "details": [
+              "GPA: 3.9/4.0",
+              "Summa Cum Laude",
+            ],
+            "end": "2016",
+            "school": "MIT",
+          },
+        ],
+      },
+      "locked": false,
+      "order": 4,
+      "type": "education",
+    },
+    {
+      "data": {
+        "items": [
+          {
+            "bullets": [
+              "Technologies: TypeScript, React, Jest",
+              "URL: https://github.com/janedoe/react-library",
+            ],
+            "description": "Maintainer of popular React library with 50K+ stars",
+            "name": "Open Source Contributions",
+          },
+          {
+            "bullets": [
+              "Technologies: Next.js, Tailwind CSS, Vercel",
+            ],
+            "description": "Modern portfolio website built with Next.js",
+            "name": "Personal Portfolio",
+          },
+        ],
+      },
+      "locked": false,
+      "order": 5,
+      "type": "projects",
+    },
+  ],
+  "templateSlug": "modern-minimal",
+  "title": "Jane Doe's Resume",
+  "version": 1,
+}
+`;
+
+exports[`profileToResume snapshot test should match minimal DTO to Document mapping 1`] = `
+{
+  "blocks": [
+    {
+      "data": {
+        "contact": {
+          "email": undefined,
+          "links": [],
+          "location": undefined,
+          "phone": undefined,
+        },
+        "fullName": "Minimal User",
+        "title": undefined,
+      },
+      "locked": false,
+      "order": 0,
+      "type": "header",
+    },
+    {
+      "data": {
+        "primary": [
+          "JavaScript",
+        ],
+        "secondary": undefined,
+      },
+      "locked": false,
+      "order": 1,
+      "type": "skills",
+    },
+  ],
+  "templateSlug": "modern-minimal",
+  "title": "Minimal User's Resume",
+  "version": 1,
+}
+`;

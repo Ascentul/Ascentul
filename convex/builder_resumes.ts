@@ -256,22 +256,60 @@ export const createResumeWithBlocks = mutation({
           });
         }
 
+        // Helper to validate HTTP/HTTPS URLs
+        const isValidHttpUrl = (urlString: string): boolean => {
+          try {
+            const url = new URL(urlString);
+            return url.protocol === 'http:' || url.protocol === 'https:';
+          } catch {
+            return false;
+          }
+        };
+
+        // Helper to get label from URL
+        const getLabelFromUrl = (url: string): string => {
+          try {
+            const urlObj = new URL(url);
+            const hostname = urlObj.hostname.replace('www.', '');
+            const parts = hostname.split('.');
+            // Extract the primary domain name, handling multi-part domains
+            // For subdomains like 'blog.example.com', get 'example' (second-to-last part)
+            // For simple domains like 'example.com', get 'example' (first part)
+            const domainPart = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+            return domainPart.split('-').map(word =>
+              word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+          } catch {
+            return 'Website';
+          }
+        };
+
+        // Build validated links array
+        const validLinks = [
+          user.linkedin_url && { label: 'LinkedIn', url: user.linkedin_url },
+          user.github_url && { label: 'GitHub', url: user.github_url },
+          user.website && { label: getLabelFromUrl(user.website), url: user.website },
+        ]
+          .filter((link): link is { label: string; url: string } =>
+            typeof link === 'object' && link !== null && isValidHttpUrl(link.url)
+          );
+
         // Create blocks based on available data
         let order = 0;
 
-        // Header block (always create if we have a name)
+        // 1. Header block (always create if we have a name)
         if (user.name) {
           await ctx.db.insert("resume_blocks", {
             resumeId: resumeId as any,
             type: "header",
             data: {
               fullName: user.name,
-              title: user.current_position || user.job_title || user.dream_job || "",
+              title: user.current_position || user.job_title || user.dream_job || undefined,
               contact: {
                 email: user.email || undefined,
                 phone: undefined,
                 location: user.location || undefined,
-                links: [user.linkedin_url, user.github_url, user.website].filter(Boolean),
+                links: validLinks,
               },
             },
             order: order++,
@@ -280,14 +318,28 @@ export const createResumeWithBlocks = mutation({
           blocksCreated++;
         }
 
-        // Experience block
+        // 2. Summary block (if bio exists)
+        if (user.bio && user.bio.trim().length > 0) {
+          await ctx.db.insert("resume_blocks", {
+            resumeId: resumeId as any,
+            type: "summary",
+            data: {
+              paragraph: user.bio.trim(),
+            },
+            order: order++,
+            locked: false,
+          });
+          blocksCreated++;
+        }
+
+        // 3. Experience block (if work history exists)
         if (user.work_history && user.work_history.length > 0) {
           const experienceItems = user.work_history.map((exp: any) => ({
-            company: exp.company || "",
-            role: exp.role || "",
+            company: exp.company || "Company Name",
+            role: exp.role || "Job Title",
             location: exp.location || undefined,
-            start: exp.start_date || "",
-            end: exp.is_current ? "" : exp.end_date || "",
+            start: exp.start_date || undefined,
+            end: exp.is_current ? undefined : exp.end_date || undefined,
             bullets: exp.summary ? [exp.summary] : [],
           }));
 
@@ -301,13 +353,26 @@ export const createResumeWithBlocks = mutation({
           blocksCreated++;
         }
 
-        // Education block
+        // 4. Skills block (always include)
+        await ctx.db.insert("resume_blocks", {
+          resumeId: resumeId as any,
+          type: "skills",
+          data: {
+            primary: primarySkills.length > 0 ? primarySkills : [],
+            secondary: [],
+          },
+          order: order++,
+          locked: false,
+        });
+        blocksCreated++;
+
+        // 5. Education block (if items exist)
         if (education.length > 0) {
           const educationItems = education.map((edu) => ({
-            school: edu.school,
-            degree: edu.degree,
-            end: edu.end || "",
-            details: edu.details,
+            school: edu.school || "School Name",
+            degree: edu.degree || undefined,
+            end: edu.end || undefined,
+            details: edu.details || [],
           }));
 
           await ctx.db.insert("resume_blocks", {
@@ -320,25 +385,10 @@ export const createResumeWithBlocks = mutation({
           blocksCreated++;
         }
 
-        // Skills block
-        if (primarySkills.length > 0) {
-          await ctx.db.insert("resume_blocks", {
-            resumeId: resumeId as any,
-            type: "skills",
-            data: {
-              primary: primarySkills,
-              secondary: [],
-            },
-            order: order++,
-            locked: false,
-          });
-          blocksCreated++;
-        }
-
-        // Projects block
+        // 6. Projects block (if items exist)
         if (projects.length > 0) {
           const projectItems = projects.map((proj) => ({
-            name: proj.title || "",
+            name: proj.title || "Project Name",
             description: proj.description || "",
             bullets: proj.technologies && proj.technologies.length > 0
               ? [
@@ -412,5 +462,37 @@ export const deleteResume = mutation({
     await ctx.db.delete(args.id as any);
 
     return { id: args.id };
+  },
+});
+
+/**
+ * Update resume thumbnail (called by thumbnail generator hook)
+ * @returns { success: boolean }
+ */
+export const updateThumbnail = mutation({
+  args: {
+    resumeId: v.id("builder_resumes"),
+    thumbnailDataUrl: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Verify authentication
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    // Verify resume exists
+    const resume = await ctx.db.get(args.resumeId);
+    if (!resume) {
+      throw new Error("Resume not found");
+    }
+
+    // Update thumbnail
+    await ctx.db.patch(args.resumeId, {
+      thumbnailDataUrl: args.thumbnailDataUrl,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
   },
 });
