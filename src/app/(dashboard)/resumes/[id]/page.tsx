@@ -521,11 +521,33 @@ export default function ResumeEditorPage() {
           }
 
           if (exp.description) {
-            const descWrapped = doc.splitTextToSize(exp.description, usableWidth - 5) as string[]
-            descWrapped.forEach(line => {
-              if (y > pageHeight - margin) { doc.addPage(); y = margin }
-              doc.text(`• ${line}`, margin + 2, y)
-              y += 5
+            // Split by newlines to preserve user's bullet structure
+            const lines = exp.description.split('\n').filter(line => line.trim())
+
+            lines.forEach(line => {
+              const trimmedLine = line.trim()
+
+              // Check if line starts with a bullet marker
+              const bulletMatch = trimmedLine.match(/^([•\-\*]|\d+[\.\)])\s*/)
+              const hasBullet = !!bulletMatch
+              const bulletText = hasBullet ? bulletMatch[0] : '• '
+              const textWithoutBullet = hasBullet ? trimmedLine.substring(bulletMatch[0].length) : trimmedLine
+
+              // Wrap the text (without bullet)
+              const wrappedLines = doc.splitTextToSize(textWithoutBullet, usableWidth - 8) as string[]
+
+              wrappedLines.forEach((wrappedLine, idx) => {
+                if (y > pageHeight - margin) { doc.addPage(); y = margin }
+
+                if (idx === 0) {
+                  // First line gets the bullet
+                  doc.text(`${bulletText}${wrappedLine}`, margin + 2, y)
+                } else {
+                  // Continuation lines are indented without bullet
+                  doc.text(wrappedLine, margin + 6, y)
+                }
+                y += 5
+              })
             })
           }
           moveY(3)
@@ -562,11 +584,41 @@ export default function ResumeEditorPage() {
           }
 
           if (proj.description) {
-            const projWrapped = doc.splitTextToSize(proj.description, usableWidth - 5) as string[]
-            projWrapped.forEach(line => {
-              if (y > pageHeight - margin) { doc.addPage(); y = margin }
-              doc.text(line, margin + 2, y)
-              y += 5
+            // Split by newlines to preserve user's structure
+            const lines = proj.description.split('\n').filter(line => line.trim())
+
+            lines.forEach(line => {
+              const trimmedLine = line.trim()
+
+              // Check if line starts with a bullet marker
+              const bulletMatch = trimmedLine.match(/^([•\-\*]|\d+[\.\)])\s*/)
+              const hasBullet = !!bulletMatch
+
+              if (hasBullet) {
+                // Has bullet - extract and preserve it
+                const bulletText = bulletMatch[0]
+                const textWithoutBullet = trimmedLine.substring(bulletMatch[0].length)
+                const wrappedLines = doc.splitTextToSize(textWithoutBullet, usableWidth - 8) as string[]
+
+                wrappedLines.forEach((wrappedLine, idx) => {
+                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
+
+                  if (idx === 0) {
+                    doc.text(`${bulletText}${wrappedLine}`, margin + 2, y)
+                  } else {
+                    doc.text(wrappedLine, margin + 6, y)
+                  }
+                  y += 5
+                })
+              } else {
+                // No bullet - just wrap the text normally
+                const wrappedLines = doc.splitTextToSize(trimmedLine, usableWidth - 5) as string[]
+                wrappedLines.forEach(wrappedLine => {
+                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
+                  doc.text(wrappedLine, margin + 2, y)
+                  y += 5
+                })
+              }
             })
           }
           moveY(3)
@@ -633,11 +685,41 @@ export default function ResumeEditorPage() {
 
           if (ach.description) {
             doc.setFont('helvetica', 'normal')
-            const achWrapped = doc.splitTextToSize(ach.description, usableWidth - 5) as string[]
-            achWrapped.forEach(line => {
-              if (y > pageHeight - margin) { doc.addPage(); y = margin }
-              doc.text(line, margin + 2, y)
-              y += 5
+            // Split by newlines to preserve user's structure
+            const lines = ach.description.split('\n').filter(line => line.trim())
+
+            lines.forEach(line => {
+              const trimmedLine = line.trim()
+
+              // Check if line starts with a bullet marker
+              const bulletMatch = trimmedLine.match(/^([•\-\*]|\d+[\.\)])\s*/)
+              const hasBullet = !!bulletMatch
+
+              if (hasBullet) {
+                // Has bullet - extract and preserve it
+                const bulletText = bulletMatch[0]
+                const textWithoutBullet = trimmedLine.substring(bulletMatch[0].length)
+                const wrappedLines = doc.splitTextToSize(textWithoutBullet, usableWidth - 8) as string[]
+
+                wrappedLines.forEach((wrappedLine, idx) => {
+                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
+
+                  if (idx === 0) {
+                    doc.text(`${bulletText}${wrappedLine}`, margin + 2, y)
+                  } else {
+                    doc.text(wrappedLine, margin + 6, y)
+                  }
+                  y += 5
+                })
+              } else {
+                // No bullet - just wrap the text normally
+                const wrappedLines = doc.splitTextToSize(trimmedLine, usableWidth - 5) as string[]
+                wrappedLines.forEach(wrappedLine => {
+                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
+                  doc.text(wrappedLine, margin + 2, y)
+                  y += 5
+                })
+              }
             })
           }
           moveY(2)

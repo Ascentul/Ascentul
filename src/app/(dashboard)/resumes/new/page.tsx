@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Upload as UploadIcon } from 'lucide-react'
 import Link from 'next/link'
 
 export default function NewResumePage() {
@@ -19,8 +19,14 @@ export default function NewResumePage() {
   const { user: clerkUser } = useUser()
   const { toast } = useToast()
 
+  const userProfile = useQuery(
+    api.users.getUserByClerkId,
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+  )
+
   const [title, setTitle] = useState('My Resume')
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
 
   // Initial resume template
   const [resumeContent, setResumeContent] = useState({
@@ -37,7 +43,7 @@ export default function NewResumePage() {
     experience: [],
     education: [],
     projects: [],
-    certifications: []
+    achievements: []
   })
 
   const createResumeMutation = useMutation(api.resumes.createResume)
@@ -76,8 +82,8 @@ export default function NewResumePage() {
         description: 'Resume created successfully!'
       })
 
-      // Redirect to edit page
-      router.push(`/resumes/${resumeId}/edit`)
+      // Redirect to full-featured editor
+      router.push(`/resumes/${resumeId}`)
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -99,6 +105,49 @@ export default function NewResumePage() {
     }))
   }
 
+  const importFromProfile = async () => {
+    if (!userProfile) {
+      toast({
+        title: 'Profile not found',
+        description: 'Please complete your career profile first',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    setImporting(true)
+    try {
+      // Import personal info
+      setResumeContent(prev => ({
+        ...prev,
+        personalInfo: {
+          name: userProfile.name || clerkUser?.fullName || '',
+          email: userProfile.email || clerkUser?.primaryEmailAddress?.emailAddress || '',
+          phone: clerkUser?.phoneNumbers?.[0]?.phoneNumber || '',
+          location: userProfile.location || '',
+          linkedin: userProfile.linkedin_url || '',
+          github: userProfile.github_url || ''
+        },
+        summary: userProfile.bio || '',
+        skills: userProfile.skills ? userProfile.skills.split(',').map((s: string) => s.trim()) : []
+      }))
+
+      toast({
+        title: 'Profile Imported',
+        description: 'Career profile data has been imported successfully',
+        variant: 'success'
+      })
+    } catch (error) {
+      toast({
+        title: 'Import Failed',
+        description: 'Failed to import profile data',
+        variant: 'destructive'
+      })
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-6 flex items-center justify-between">
@@ -110,22 +159,41 @@ export default function NewResumePage() {
           </Link>
           <h1 className="text-2xl font-bold">Create New Resume</h1>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Save Resume
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={importFromProfile}
+            disabled={importing || !userProfile}
+          >
+            {importing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <UploadIcon className="mr-2 h-4 w-4" />
+                Import from Career Profile
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save Resume
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <Card>

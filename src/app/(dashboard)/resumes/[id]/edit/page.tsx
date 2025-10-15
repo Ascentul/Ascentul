@@ -47,7 +47,7 @@ export default function EditResumePage({ params }: PageProps) {
         experience: [],
         education: [],
         projects: [],
-        certifications: []
+        achievements: []
       })
     }
   }, [resume])
