@@ -8,6 +8,7 @@ import { getModel, FALLBACK_MODEL } from "@/lib/ai/aiConfig";
 import { systemPrompt } from "@/lib/ai/prompts/system";
 import { buildGeneratePrompt } from "@/lib/ai/prompts/generate";
 import { resumeOutputSchema } from "@/lib/ai/resumeSchemas";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,7 @@ interface GenerateResumeRequest {
 }
 
 export async function POST(req: NextRequest) {
+  let resumeIdForLog: string | null = null;
   try {
     // 1. Check if OpenAI key is available at runtime
     if (!process.env.OPENAI_API_KEY) {
@@ -56,6 +58,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Parse and validate request body
     const body: GenerateResumeRequest = await req.json();
+    resumeIdForLog = body.resumeId;
     const { resumeId, targetRole, targetCompany } = body;
 
     if (!resumeId || !targetRole) {
@@ -65,7 +68,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`Generating resume for role: ${targetRole}${targetCompany ? ` at ${targetCompany}` : ""}`);
+    logger.info("Generating resume", {
+      resumeId,
+      targetRole,
+      targetCompany,
+    });
 
     // 4. Initialize Convex client
     let convex: ConvexHttpClient;
@@ -103,7 +110,11 @@ export async function POST(req: NextRequest) {
           allowedBlocks = template.allowedBlocks;
         }
       } catch (error) {
-        console.warn("Could not load template, using default allowed blocks");
+        logger.warn("Could not load template, using default allowed blocks", {
+          resumeId,
+          templateId: resume.templateId,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
@@ -119,7 +130,7 @@ export async function POST(req: NextRequest) {
         );
       }
     } catch (error: any) {
-      console.error("Profile load error:", error);
+      logger.error("Profile load error", error, { userId });
       return NextResponse.json(
         { error: "Failed to load career profile" },
         { status: 500 }
@@ -135,65 +146,82 @@ export async function POST(req: NextRequest) {
     });
 
     // 9. Call OpenAI with retry and fallback
-    let currentModel = getModel();
-    let hasTriedFallback = false;
     let aiResponse: string | null = null;
     const maxAttempts = 3;
+    const primaryModel = getModel();
+    const modelsToTry = [primaryModel];
+    if (primaryModel !== FALLBACK_MODEL) {
+      modelsToTry.push(FALLBACK_MODEL);
+    }
+    let lastErrorMessage = "Unknown error";
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        console.log(`AI attempt ${attempt}/${maxAttempts} with model: ${currentModel}`);
+    for (const currentModel of modelsToTry) {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          logger.info("AI attempt starting", {
+            attempt,
+            maxAttempts,
+            model: currentModel,
+          });
 
-        const completion = await openai.chat.completions.create({
-          model: currentModel,
-          temperature: 0.2,
-          max_tokens: 1600,
-          timeout: 15000, // 15 seconds timeout (allows for retries within 60s maxDuration)
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-        });
+          const completion = await openai.chat.completions.create(
+            {
+              model: currentModel,
+              temperature: 0.2,
+              max_tokens: 1600,
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt },
+              ],
+            },
+            {
+              timeout: 15000, // 15 seconds timeout (allows for retries within 60s maxDuration)
+            }
+          );
 
-        aiResponse = completion.choices[0]?.message?.content;
+          aiResponse = completion.choices[0]?.message?.content;
 
-        if (aiResponse) {
-          console.log("AI response received, length:", aiResponse.length);
-          break;
-        }
-      } catch (error: any) {
-        console.error(`AI attempt ${attempt} failed:`, error.message);
+          if (aiResponse) {
+            logger.info("AI response received", {
+              length: aiResponse.length,
+              model: currentModel,
+              attempt,
+            });
+            break; // Success for this model
+          }
+        } catch (error: any) {
+          lastErrorMessage = error?.message || "Unknown error";
+          logger.error("AI attempt failed", error, {
+            attempt,
+            model: currentModel,
+            maxAttempts,
+          });
 
-        // Check if this is a model-related error
-        const isModelError =
-          error.message?.toLowerCase().includes("model") ||
-          error.message?.toLowerCase().includes("not found") ||
-          error.code === "model_not_found" ||
-          error.status === 404;
+          if (attempt === maxAttempts) {
+            break; // Try next model (if any)
+          }
 
-        if (isModelError && !hasTriedFallback && currentModel !== FALLBACK_MODEL) {
-          console.log(`Model error detected. Falling back to ${FALLBACK_MODEL}`);
-          currentModel = FALLBACK_MODEL;
-          hasTriedFallback = true;
-          attempt--; // Don't count this as an attempt
-          continue;
-        }
-
-        if (attempt === maxAttempts) {
-          return NextResponse.json(
-            { error: `AI generation failed: ${error.message}` },
-            { status: 502 }
+          // Exponential backoff
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt - 1), 5000))
           );
         }
+      }
 
-        // Exponential backoff
-        await new Promise((resolve) => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt - 1), 5000)));
+      if (aiResponse) {
+        break; // No need to try fallback models
+      } else {
+        logger.warn("Model exhausted attempts", {
+          model: currentModel,
+          maxAttempts,
+          lastErrorMessage,
+        });
       }
     }
 
     if (!aiResponse) {
       return NextResponse.json(
-        { error: "Failed to generate resume content" },
+        { error: `Failed to generate resume content: ${lastErrorMessage}` },
         { status: 502 }
       );
     }
@@ -202,17 +230,35 @@ export async function POST(req: NextRequest) {
     let parsedBlocks;
     try {
       // Extract JSON from response (handles code blocks, etc.)
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      const jsonStr = jsonMatch ? jsonMatch[0] : aiResponse;
+      let jsonStr = aiResponse.trim();
+
+      // Remove markdown code blocks if present
+      if (jsonStr.startsWith("```")) {
+        jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+      }
+
+      // Try to find JSON object boundaries more carefully
+      const firstBrace = jsonStr.indexOf("{");
+      const lastBrace = jsonStr.lastIndexOf("}");
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+      }
+
       const parsed = JSON.parse(jsonStr);
 
       // Validate with Zod
       const validated = resumeOutputSchema.parse(parsed);
       parsedBlocks = validated.blocks;
 
-      console.log(`Validated ${parsedBlocks.length} blocks`);
+      logger.info("Validated AI blocks", {
+        resumeId,
+        blockCount: parsedBlocks.length,
+      });
     } catch (error: any) {
-      console.error("Validation error:", error);
+      logger.error("Validation error while parsing AI response", error, {
+        resumeId,
+        responsePreview: aiResponse.substring(0, 200),
+      });
       const errorMsg = error.errors
         ? error.errors.map((e: any) => `${e.path.join(".")}: ${e.message}`).join("; ")
         : error.message;
@@ -241,38 +287,98 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (error) {
-      console.warn("Error deleting old blocks:", error);
+      logger.warn("Error deleting old blocks", {
+        resumeId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
-    // 12. Insert new blocks
+    // 12. Insert new blocks (batch insert with fallback)
+    const normalizedBlocks = parsedBlocks.map((block) => ({
+      type: block.type,
+      order: block.order,
+      data: block.data,
+      locked: false,
+    }));
+
+    const BATCH_SIZE = 200;
     let insertedCount = 0;
-    for (const block of parsedBlocks) {
-      try {
-        if (process.env.NODE_ENV !== "production") {
-          const dataKeys = Object.keys(((block as any)?.data) ?? {});
-          console.debug("[resume.generate] inserting block", block.type, "data keys:", dataKeys);
-        }
-        await convex.mutation(api.builder_blocks.createBlock, {
+    let batchInsertFailed = false;
+    let nextIndex = 0;
+
+    try {
+      for (let i = 0; i < normalizedBlocks.length; i += BATCH_SIZE) {
+        const batch = normalizedBlocks.slice(i, i + BATCH_SIZE);
+        const result = await convex.mutation(api.builder_blocks.createBlocks, {
           resumeId,
-          type: block.type,
-          order: block.order,
-          data: block.data,
-          locked: false,
+          blocks: batch,
         });
-        insertedCount++;
-      } catch (error) {
-        console.error(`Failed to insert block ${block.type}:`, error);
+        const batchCount = result?.insertedCount ?? batch.length;
+        insertedCount += batchCount;
+        nextIndex = i + batch.length;
+      }
+    } catch (error) {
+      batchInsertFailed = true;
+      logger.error("Batch block insert failed", error, {
+        resumeId,
+        insertedCountSoFar: insertedCount,
+      });
+    }
+
+    if (batchInsertFailed) {
+      const MAX_FALLBACK_DEBUG_LOGS = 5;
+      let fallbackDebugCount = 0;
+
+      for (let i = nextIndex; i < normalizedBlocks.length; i++) {
+        const block = normalizedBlocks[i];
+        try {
+          if (process.env.NODE_ENV !== "production") {
+            // Limit fallback debug logs to avoid excessive console noise in development.
+            if (fallbackDebugCount < MAX_FALLBACK_DEBUG_LOGS) {
+              const dataKeys = Object.keys((block?.data as Record<string, unknown>) ?? {});
+              logger.debug("Inserting block for resume (fallback)", {
+                resumeId,
+                blockType: block.type,
+                dataKeys,
+              });
+              fallbackDebugCount += 1;
+            } else if (fallbackDebugCount === MAX_FALLBACK_DEBUG_LOGS) {
+              logger.debug("Suppressing additional fallback block logs", {
+                resumeId,
+                totalRemaining: normalizedBlocks.length - i,
+              });
+              fallbackDebugCount += 1;
+            }
+          }
+          await convex.mutation(api.builder_blocks.createBlock, {
+            resumeId,
+            type: block.type,
+            order: block.order,
+            data: block.data,
+            locked: block.locked,
+          });
+          insertedCount++;
+        } catch (error) {
+          logger.error("Failed to insert block during fallback", error, {
+            resumeId,
+            blockType: block.type,
+          });
+        }
       }
     }
 
-    console.log(`Successfully inserted ${insertedCount} blocks`);
+    logger.info("Inserted generated blocks", {
+      resumeId,
+      insertedCount,
+      batchMode: !batchInsertFailed,
+    });
 
     return NextResponse.json({
       ok: true,
       count: insertedCount,
     });
   } catch (error: any) {
-    console.error("Generate resume error:", error);
+    logger.error("Generate resume error", error, { resumeId: resumeIdForLog });
     return NextResponse.json(
       { error: error.message || "Failed to generate resume" },
       { status: 500 }

@@ -29,6 +29,69 @@ type Resume = {
   templateSlug?: string;
 };
 
+const pluralize = (count: number, singular: string) =>
+  `${count} ${singular}${count === 1 ? "" : "s"}`;
+
+const TOAST_MESSAGES = {
+  resumeCreatedWithBlocks: (count: number) => ({
+    title: "Resume created successfully!",
+    description: `Imported ${pluralize(count, "section")} from your profile.`,
+  }),
+  resumeCreatedNoData: {
+    title: "Resume created",
+    description: "No profile data found to import. You can add sections manually.",
+  },
+  resumeCreatedSuccess: {
+    title: "Resume created successfully!",
+  },
+  resumeCreationError: {
+    title: "Error",
+    description: "Failed to create resume. Please try again.",
+    variant: "destructive" as const,
+  },
+  aiGenerationError: {
+    title: "AI generation failed",
+    description: "Resume was created, but AI generation encountered an error.",
+    variant: "destructive" as const,
+  },
+  aiContentGenerated: (count: number) => ({
+    title: "AI content generated!",
+    description: `Added ${pluralize(count, "AI-generated section")}.`,
+  }),
+  resumeDuplicated: (title: string) => ({
+    title: "Resume duplicated",
+    description: `Created ${title}.`,
+  }),
+  resumeDuplicateError: {
+    title: "Error duplicating resume",
+    description: "We couldn't duplicate that resume. Please try again.",
+    variant: "destructive" as const,
+  },
+  exportReady: {
+    title: "Export ready",
+    description: "Your resume PDF is downloading.",
+  },
+  exportFailedWithMessage: (message: string) => ({
+    title: "Export failed",
+    description: message,
+    variant: "destructive" as const,
+  }),
+  exportFailedGeneric: {
+    title: "Export failed",
+    description: "We hit an issue exporting this resume.",
+    variant: "destructive" as const,
+  },
+  resumeDeleted: {
+    title: "Resume deleted",
+    description: "The resume was removed successfully.",
+  },
+  deleteFailed: {
+    title: "Delete failed",
+    description: "We couldn't delete that resume. Please try again.",
+    variant: "destructive" as const,
+  },
+};
+
 export default function ResumeListPage() {
   const router = useRouter();
   const { user } = useUser();
@@ -51,11 +114,7 @@ export default function ResumeListPage() {
   }, [resumes]);
 
   const showAiGenerationError = () => {
-    toast({
-      title: 'AI generation failed',
-      description: 'Resume was created, but AI generation encountered an error.',
-      variant: 'destructive',
-    });
+    toast(TOAST_MESSAGES.aiGenerationError);
   };
 
   const onNew = async (data: {
@@ -81,19 +140,11 @@ export default function ResumeListPage() {
 
       // Show success message with blocks count
       if (data.autoPopulate && result.blocksCreated > 0) {
-        toast({
-          title: 'Resume created successfully!',
-          description: `Imported ${result.blocksCreated} section${result.blocksCreated !== 1 ? 's' : ''} from your profile.`,
-        });
+        toast(TOAST_MESSAGES.resumeCreatedWithBlocks(result.blocksCreated));
       } else if (data.autoPopulate && result.blocksCreated === 0) {
-        toast({
-          title: 'Resume created',
-          description: 'No profile data found to import. You can add sections manually.',
-        });
+        toast(TOAST_MESSAGES.resumeCreatedNoData);
       } else {
-        toast({
-          title: 'Resume created successfully!',
-        });
+        toast(TOAST_MESSAGES.resumeCreatedSuccess);
       }
 
       // If AI generation is requested, call the generate API
@@ -115,10 +166,7 @@ export default function ResumeListPage() {
           } else {
             const aiResult = await response.json();
             console.log('AI generated blocks:', aiResult.blocks?.length);
-            toast({
-              title: 'AI content generated!',
-              description: `Added ${aiResult.blocks?.length || 0} AI-generated sections.`,
-            });
+            toast(TOAST_MESSAGES.aiContentGenerated(aiResult.blocks?.length ?? 0));
           }
         } catch (error) {
           console.error('AI generation error:', error);
@@ -130,11 +178,7 @@ export default function ResumeListPage() {
       router.push(`/resume/${result.id}`);
     } catch (error) {
       console.error('Failed to create resume:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create resume. Please try again.',
-        variant: 'destructive',
-      });
+      toast(TOAST_MESSAGES.resumeCreationError);
       // Re-throw to allow error boundary to handle if present
       // This ensures the error is properly logged and can trigger
       // error recovery mechanisms while still showing user feedback
@@ -155,19 +199,12 @@ export default function ResumeListPage() {
         resumeId: resumeId as Id<"builder_resumes">,
       });
 
-      toast({
-        title: "Resume duplicated",
-        description: `Created ${result.title}.`,
-      });
+      toast(TOAST_MESSAGES.resumeDuplicated(result.title));
 
       router.push(`/resume/${result.id}`);
     } catch (error) {
       console.error("Failed to duplicate resume:", error);
-      toast({
-        title: "Error duplicating resume",
-        description: "We couldn't duplicate that resume. Please try again.",
-        variant: "destructive",
-      });
+      toast(TOAST_MESSAGES.resumeDuplicateError);
     } finally {
       setBusyRecord(null);
     }
@@ -181,28 +218,21 @@ export default function ResumeListPage() {
         resumeId: resumeId as Id<"builder_resumes">,
         format: "pdf",
         onSuccess: () => {
-          toast({
-            title: "Export ready",
-            description: "Your resume PDF is downloading.",
-          });
+          toast(TOAST_MESSAGES.exportReady);
         },
         onError: (errorMessage) => {
           handledByCallback = true;
-          toast({
-            title: "Export failed",
-            description: errorMessage,
-            variant: "destructive",
-          });
+          toast(TOAST_MESSAGES.exportFailedWithMessage(errorMessage));
         },
       });
     } catch (error) {
       if (!handledByCallback) {
         console.error("Failed to export resume:", error);
-        toast({
-          title: "Export failed",
-          description: error instanceof Error ? error.message : "We hit an issue exporting this resume.",
-          variant: "destructive",
-        });
+        toast(
+          error instanceof Error
+            ? TOAST_MESSAGES.exportFailedWithMessage(error.message)
+            : TOAST_MESSAGES.exportFailedGeneric,
+        );
       }
     } finally {
       setBusyRecord(null);
@@ -219,17 +249,10 @@ export default function ResumeListPage() {
     setBusyRecord({ id: deleteConfirmId, action: "delete" });
     try {
       await deleteResumeMutation({ id: deleteConfirmId as Id<"builder_resumes"> });
-      toast({
-        title: "Resume deleted",
-        description: "The resume was removed successfully.",
-      });
+      toast(TOAST_MESSAGES.resumeDeleted);
     } catch (error) {
       console.error("Failed to delete resume:", error);
-      toast({
-        title: "Delete failed",
-        description: "We couldn't delete that resume. Please try again.",
-        variant: "destructive",
-      });
+      toast(TOAST_MESSAGES.deleteFailed);
     } finally {
       setBusyRecord(null);
       setDeleteConfirmId(null);

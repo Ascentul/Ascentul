@@ -24,15 +24,19 @@ export async function POST(request: NextRequest) {
 Role: ${role}
 Level: ${level}
 Skills: ${skills.map((s) => `${s.name}(${s.level})`).join(', ')}`
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
-          timeout: 15000, // 15 seconds timeout
-          temperature: 0.4,
-          messages: [
-            { role: 'system', content: 'Respond with strictly valid JSON that matches the requested schema.' },
-            { role: 'user', content: prompt },
-          ],
-        })
+        const completion = await openai.chat.completions.create(
+          {
+            model: 'gpt-4o',
+            temperature: 0.4,
+            messages: [
+              { role: 'system', content: 'Respond with strictly valid JSON that matches the requested schema.' },
+              { role: 'user', content: prompt },
+            ],
+          },
+          {
+            timeout: 15000, // 15 seconds timeout
+          }
+        )
         const content = completion.choices[0]?.message?.content || ''
         try {
           const parsed = JSON.parse(content)

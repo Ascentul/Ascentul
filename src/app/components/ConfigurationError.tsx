@@ -12,26 +12,15 @@ interface ConfigurationErrorProps {
   envVar: string;
   helpSteps?: HelpStep[];
   showHelp?: boolean;
-  /**
-   * If true, wraps the error content in <html> and <body> tags.
-   * Use this when returning from RootLayout as an early exit.
-   * Defaults to true for backward compatibility.
-   */
-  fullPage?: boolean;
 }
 
 /**
  * Configuration error screen for missing or invalid environment variables.
  * Displays actionable instructions with optional development-only help section.
  *
- * @example Full page error (from RootLayout)
+ * @example Usage
  * ```tsx
- * return <ConfigurationError message="Missing env var" envVar="API_KEY" fullPage={true} />
- * ```
- *
- * @example Component error (within app)
- * ```tsx
- * return <ConfigurationError message="Invalid config" envVar="API_KEY" fullPage={false} />
+ * return <ConfigurationError message="Missing env var" envVar="API_KEY" />
  * ```
  */
 export function ConfigurationError({
@@ -39,7 +28,6 @@ export function ConfigurationError({
   envVar,
   helpSteps,
   showHelp = process.env.NODE_ENV === 'development',
-  fullPage = true,
 }: ConfigurationErrorProps) {
   const defaultHelpSteps: HelpStep[] = [
     { text: 'Create or edit .env.local in your project root', code: '.env.local' },
@@ -50,8 +38,8 @@ export function ConfigurationError({
 
   const steps = helpSteps || defaultHelpSteps;
 
-  const errorContent = (
-    <div className={`flex ${fullPage ? 'min-h-screen' : ''} flex-col items-center justify-center p-8 text-center`}>
+  return (
+    <div className={`flex min-h-screen flex-col items-center justify-center p-8 text-center ${inter.className}`}>
       <div className="max-w-2xl rounded-lg border border-red-300 bg-red-50 p-8">
         <h1 className="mb-4 text-2xl font-bold text-red-900">
           Configuration Error
@@ -84,18 +72,4 @@ export function ConfigurationError({
       </div>
     </div>
   );
-
-  // When used as full page error from RootLayout, include html/body tags
-  if (fullPage) {
-    return (
-      <html lang="en">
-        <body className={inter.className}>
-          {errorContent}
-        </body>
-      </html>
-    );
-  }
-
-  // When used as a component within the app, return just the content
-  return errorContent;
 }

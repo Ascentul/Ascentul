@@ -37,6 +37,8 @@ export type EducationItem = {
   degree?: string;
   end?: string; // Graduation date
   details?: string[];
+  id?: string;
+  _id?: string;
 };
 
 export type EducationData = {

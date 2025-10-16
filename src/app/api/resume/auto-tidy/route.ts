@@ -139,16 +139,20 @@ export async function POST(req: NextRequest) {
         }
 
         // Call OpenAI with timeout to prevent hanging requests
-        const completion = await openai.chat.completions.create({
-          model: currentModel,
-          temperature: 0.2,
-          max_tokens: 1600,
-          timeout: 30000, // 30 seconds timeout
-          messages: [
-            { role: 'system', content: AUTO_TIDY_SYSTEM_PROMPT },
-            { role: 'user', content: currentPrompt },
-          ],
-        });
+        const completion = await openai.chat.completions.create(
+          {
+            model: currentModel,
+            temperature: 0.2,
+            max_tokens: 1600,
+            messages: [
+              { role: 'system', content: AUTO_TIDY_SYSTEM_PROMPT },
+              { role: 'user', content: currentPrompt },
+            ],
+          },
+          {
+            timeout: 30000, // 30 seconds timeout
+          }
+        );
 
         const aiResponse = completion.choices[0]?.message?.content;
 

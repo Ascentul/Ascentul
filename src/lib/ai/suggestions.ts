@@ -26,7 +26,15 @@ const WEAK_VERBS = new Set([
 ]);
 
 // Weak multi-word phrases to flag
-const WEAK_PHRASES = new Set(['responsible for']);
+const WEAK_PHRASES = new Set([
+  'responsible for',
+  'duties included',
+  'tasked with',
+  'in charge of',
+  'handled',
+  'dealt with',
+  'was part of',
+]);
 
 // Present tense verbs for tense detection
 const PRESENT_TENSE_VERBS = [
@@ -108,8 +116,8 @@ export function analyzeBullet(bullet: string, index: number | string): ContentSu
         message: 'Strengthen action verb',
         detail: `Replace "${firstWord}" with a stronger verb like "${randomStrongVerb}"`,
       });
-    } else if (!firstWord || !/^[a-z][-'a-z]*$/i.test(firstWord)) {
-      // First word is missing or not a valid verb format (allows hyphens/apostrophes) - low priority
+    } else if (!firstWord) {
+      // First word is missing - low priority
       suggestions.push({
         id: `keyword-${index}`,
         type: 'keyword',

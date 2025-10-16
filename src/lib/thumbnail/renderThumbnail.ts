@@ -53,11 +53,10 @@ export async function renderThumbnail(
   const scale = referenceWidth > 0 ? targetWidth / referenceWidth : 1;
 
   const options: Html2CanvasOptions = {
-    width: targetWidth,
     scale,
     useCORS: true,
     backgroundColor,
-    logging: process.env.NEXT_PUBLIC_DEBUG_UI === "1",
+    logging: typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_DEBUG_UI === "1",
   };
 
   try {

@@ -59,22 +59,26 @@ Format as a structured plan with clear steps and timelines.`
     let generatedPath: string | null = null
     let usedFallback = false
     try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
-        timeout: OPENAI_TIMEOUT_MS,
-        messages: [
-          {
-            role: "system",
-            content: "You are a senior career strategist with 15+ years of experience helping professionals advance their careers. Provide detailed, actionable career development plans."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        max_tokens: 1500,
-        temperature: 0.7,
-      })
+      const completion = await openai.chat.completions.create(
+        {
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are a senior career strategist with 15+ years of experience helping professionals advance their careers. Provide detailed, actionable career development plans."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          max_tokens: 1500,
+          temperature: 0.7,
+        },
+        {
+          timeout: OPENAI_TIMEOUT_MS,
+        }
+      )
       generatedPath = completion.choices[0]?.message?.content || null
     } catch (error) {
       console.error('OpenAI API call failed:', error)

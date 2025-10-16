@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,36 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TemplatePicker } from '@/components/resume/studio/TemplatePicker';
 import { ThemePanel } from '@/components/resume/studio/ThemePanel';
 import type { Id } from '../../../../../convex/_generated/dataModel';
+
+interface CheckboxFieldProps {
+  id: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  description: string | ReactNode;
+}
+
+function CheckboxField({ id, checked, onChange, label, description }: CheckboxFieldProps) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id={id}
+          checked={checked}
+          onCheckedChange={onChange}
+        />
+        <Label htmlFor={id} className="cursor-pointer font-medium">
+          {label}
+        </Label>
+      </div>
+      <p className="text-xs text-muted-foreground">{description}</p>
+    </div>
+  );
+}
 
 interface NewResumeDialogProps {
   open: boolean;
@@ -117,46 +144,30 @@ export function NewResumeDialog({ open, onOpenChange, onSubmit }: NewResumeDialo
                 />
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="auto-populate"
-                    checked={autoPopulate}
-                    onChange={(e) => setAutoPopulate(e.target.checked)}
-                    className="rounded"
-                  />
-                  <Label htmlFor="auto-populate" className="cursor-pointer font-medium">
-                    Import data from my profile
-                  </Label>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Automatically populate your resume with experience, education, skills, and projects from your profile
-                </p>
-              </div>
+              <CheckboxField
+                id="auto-populate"
+                checked={autoPopulate}
+                onChange={setAutoPopulate}
+                label="Import data from my profile"
+                description="Automatically populate your resume with experience, education, skills, and projects from your profile"
+              />
 
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="generate-ai"
-                    checked={generateWithAI}
-                    onChange={(e) => setGenerateWithAI(e.target.checked)}
-                    className="rounded"
-                  />
-                  <Label htmlFor="generate-ai" className="cursor-pointer font-medium">
-                    Generate content with AI
-                  </Label>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  AI will create professional resume content based on your target role
-                  {autoPopulate && generateWithAI && (
-                    <span className="block mt-1 text-amber-600 dark:text-amber-500">
-                      Note: AI-generated content will override imported profile data
-                    </span>
-                  )}
-                </p>
-              </div>
+              <CheckboxField
+                id="generate-ai"
+                checked={generateWithAI}
+                onChange={setGenerateWithAI}
+                label="Generate content with AI"
+                description={
+                  <>
+                    AI will create professional resume content based on your target role
+                    {autoPopulate && generateWithAI && (
+                      <span className="block mt-1 text-amber-600 dark:text-amber-500">
+                        Note: AI-generated content will override imported profile data
+                      </span>
+                    )}
+                  </>
+                }
+              />
 
               {generateWithAI && (
                 <>

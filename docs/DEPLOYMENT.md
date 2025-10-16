@@ -256,6 +256,8 @@ module.exports = {
   }]
 }
 EOF
+
+**Security Note**: Never commit `ecosystem.config.js` with real secrets to version control. Add it to `.gitignore` and use PM2's `--env` flag with encrypted environment variables or integrate with a secret management service (AWS Secrets Manager, HashiCorp Vault, etc.) for production deployments.
 ```
 
 **⚠️ Security Warning**: Never commit `ecosystem.config.js` with real secrets to version control. Add it to `.gitignore` and use one of these secure alternatives for production:
@@ -270,7 +272,9 @@ Example secure approach:
 echo "ecosystem.config.js" >> .gitignore
 
 # Use environment variables from secure source
-pm2 start ecosystem.config.js --env production --update-env
+pm2 start ecosystem.config.js --env production
+# Update environment variables on restart when needed
+pm2 restart ecosystem.config.js --update-env
 ```
 
 #### Process Management (Recommended)
@@ -290,6 +294,13 @@ pm2 start ecosystem.config.js
 
 # Configure PM2 to start on system boot
 pm2 startup
+
+**Security Note**: Avoid using `-e` flags for secrets in production. Instead:
+- Use Docker secrets: `docker secret create` and mount in containers
+- Use env files: `docker run --env-file .env.production` (ensure file is in `.gitignore`)
+- Use orchestration tools (Kubernetes Secrets, Docker Swarm secrets)
+- Never expose secrets in shell history or process listings
+
 pm2 save
 
 # Useful PM2 commands

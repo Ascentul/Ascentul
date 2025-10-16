@@ -21,6 +21,19 @@ export function EducationBlock({
 
   if (items.length === 0) return null;
 
+  const getItemId = (item: EducationItem, index: number): string => {
+    const candidate = item.id ?? item._id;
+    if (candidate) return candidate;
+
+    const parts = [
+      item?.school?.trim(),
+      item?.degree?.trim(),
+      item?.end?.trim(),
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join("|") : `education-${index}`;
+  };
+
   return (
     <section
       className={`space-y-2 transition-all ${
@@ -43,11 +56,10 @@ export function EducationBlock({
           const details = allDetails.slice(0, MAX_DETAILS);
           const truncatedCount = allDetails.length - details.length;
 
-          // Generate stable key from item properties and index
-          const key = `${idx}-${school}-${degree}-${end}`;
+          const itemKey = getItemId(item, idx);
 
           return (
-            <article key={key} className="space-y-1">
+            <article key={itemKey} className="space-y-1">
               {(school || end) && (
                 <div className="flex items-baseline justify-between gap-2">
                   {school && (
@@ -73,7 +85,7 @@ export function EducationBlock({
                 <ul className="space-y-0.5 mt-2">
                   {details.map((detail, detailIdx) => (
                     <li
-                      key={detailIdx}
+                      key={`${itemKey}-detail-${detailIdx}`}
                       className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
                     >
                       {detail}

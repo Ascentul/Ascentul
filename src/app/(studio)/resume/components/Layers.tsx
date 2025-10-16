@@ -4,6 +4,16 @@ import { useState } from 'react';
 import type { Block } from '@/lib/resume-types';
 import { GripVertical, Lock } from 'lucide-react';
 
+const BLOCK_TYPE_LABELS: Record<Block['type'], string> = {
+  header: 'Header',
+  summary: 'Summary',
+  experience: 'Experience',
+  education: 'Education',
+  skills: 'Skills',
+  projects: 'Projects',
+  custom: 'Custom Section',
+} as const;
+
 interface LayersProps {
   blocks: Block[];
   selectedBlockId: string | null;
@@ -20,24 +30,7 @@ export function Layers({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const getBlockLabel = (block: Block): string => {
-    switch (block.type) {
-      case 'header':
-        return 'Header';
-      case 'summary':
-        return 'Summary';
-      case 'experience':
-        return 'Experience';
-      case 'education':
-        return 'Education';
-      case 'skills':
-        return 'Skills';
-      case 'projects':
-        return 'Projects';
-      case 'custom':
-        return 'Custom Section';
-      default:
-        return 'Unknown';
-    }
+    return BLOCK_TYPE_LABELS[block.type] ?? 'Unknown';
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -115,7 +108,7 @@ export function Layers({
               role="button"
               tabIndex={0}
               aria-selected={selectedBlockId === block._id}
-              className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
+              className={`flex items-center gap-3 p-3 rounded-lg border transition-[border-color,background-color,box-shadow,opacity] duration-200 cursor-pointer ${
                 selectedBlockId === block._id
                   ? 'border-primary bg-primary/5 ring-2 ring-primary shadow-sm'
                   : 'border-border hover:border-primary/50 hover:bg-muted/50 hover:shadow-sm'

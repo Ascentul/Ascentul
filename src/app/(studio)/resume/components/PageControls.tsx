@@ -8,7 +8,8 @@ interface PageControlsProps {
   onPrev: () => void;
   onNext: () => void;
   onDuplicate: () => void;
-  onAddPage: () => void;
+  onAddSection: () => void;
+  isLoading?: boolean;
 }
 
 export function PageControls({
@@ -17,15 +18,16 @@ export function PageControls({
   onPrev,
   onNext,
   onDuplicate,
-  onAddPage,
+  onAddSection,
+  isLoading = false,
 }: PageControlsProps) {
   return (
-    <div className="pointer-events-none fixed right-6 bottom-6 z-40">
+    <div className="pointer-events-none fixed right-4 bottom-20 md:right-6 md:bottom-6 z-40">
       <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-white/95 shadow-lg border px-3 py-2">
         {/* Previous Page */}
         <button
           onClick={onPrev}
-          disabled={page <= 1}
+          disabled={isLoading || page <= 1}
           aria-label="Previous page"
           title="Previous page"
           className="p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -41,7 +43,7 @@ export function PageControls({
         {/* Next Page */}
         <button
           onClick={onNext}
-          disabled={page >= total}
+          disabled={isLoading || page >= total}
           aria-label="Next page"
           title="Next page"
           className="p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -55,6 +57,7 @@ export function PageControls({
         {/* Duplicate Page */}
         <button
           onClick={onDuplicate}
+          disabled={isLoading}
           aria-label="Duplicate current page"
           title="Duplicate current page"
           className="p-1.5 rounded-full hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -62,11 +65,12 @@ export function PageControls({
           <Copy className="w-4 h-4" />
         </button>
 
-        {/* Add Page */}
+        {/* Add Section */}
         <button
-          onClick={onAddPage}
-          aria-label="Add new page"
-          title="Add new page"
+          onClick={onAddSection}
+          disabled={isLoading}
+          aria-label="Add new section"
+          title="Add new section"
           className="p-1.5 rounded-full hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           <Plus className="w-4 h-4" />

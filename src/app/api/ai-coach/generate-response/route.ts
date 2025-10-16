@@ -132,15 +132,19 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
           content: query
         })
 
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
-          timeout: 15000, // 15 seconds timeout
-          messages: messages,
-          temperature: 0.7,
-          max_tokens: 1500,
-          presence_penalty: 0.1,
-          frequency_penalty: 0.1
-        })
+        const completion = await openai.chat.completions.create(
+          {
+            model: 'gpt-4o',
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: 1500,
+            presence_penalty: 0.1,
+            frequency_penalty: 0.1
+          },
+          {
+            timeout: 15000, // 15 seconds timeout
+          }
+        )
 
         response = completion.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
       } catch (openaiError) {

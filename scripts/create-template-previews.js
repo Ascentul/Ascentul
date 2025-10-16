@@ -10,6 +10,11 @@ const path = require('path');
 
 const previewsDir = path.join(__dirname, '../public/previews');
 
+// Ensure directory exists
+if (!fs.existsSync(previewsDir)) {
+  fs.mkdirSync(previewsDir, { recursive: true });
+}
+
 const templates = [
   {
     slug: 'modern-clean',
@@ -50,6 +55,31 @@ const templates = [
 ];
 
 function generateSVG(template) {
+  if (
+    !template ||
+    typeof template !== 'object' ||
+    !template.slug ||
+    !template.name ||
+    !template.description ||
+    !template.color ||
+    !/^#[0-9A-Fa-f]{6}$/.test(template.color)
+  ) {
+    throw new Error('Invalid template object: missing required properties or invalid color format');
+  }
+
+  const escapeXml = (value) =>
+    String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+
+  const safeName = escapeXml(template.name);
+  const safeDescription = escapeXml(template.description);
+  const safeTitle = 'JANE ANDERSON';
+  const safeSubtitle = 'Product Designer • San Francisco, CA';
+
   return `<svg width="340" height="440" xmlns="http://www.w3.org/2000/svg">
   <!-- Background -->
   <rect width="340" height="440" fill="#F9FAFB"/>
@@ -60,18 +90,18 @@ function generateSVG(template) {
   <!-- Title area -->
   <rect x="0" y="0" width="340" height="80" fill="${template.color}" opacity="0.05"/>
   <text x="170" y="35" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#111827" text-anchor="middle" font-weight="600">
-    ${template.name}
+    ${safeName}
   </text>
   <text x="170" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#6B7280" text-anchor="middle">
-    ${template.description}
+    ${safeDescription}
   </text>
 
   <!-- Resume mockup content -->
   <g transform="translate(30, 100)">
     <!-- Header section -->
     <rect x="0" y="0" width="280" height="50" fill="${template.color}" opacity="0.1" rx="4"/>
-    <text x="10" y="22" font-size="12" fill="#111827" font-weight="600">JANE ANDERSON</text>
-    <text x="10" y="38" font-size="9" fill="#6B7280">Product Designer • San Francisco, CA</text>
+    <text x="10" y="22" font-size="12" fill="#111827" font-weight="600">${safeTitle}</text>
+    <text x="10" y="38" font-size="9" fill="#6B7280">${safeSubtitle}</text>
 
     <!-- Section 1 -->
     <text x="0" y="75" font-size="10" fill="${template.color}" font-weight="600">EXPERIENCE</text>
@@ -121,8 +151,13 @@ templates.forEach(template => {
   const filepath = path.join(previewsDir, filename);
   const svg = generateSVG(template);
 
-  fs.writeFileSync(filepath, svg, 'utf8');
-  console.log(`✓ Created ${filename}`);
+  try {
+    fs.writeFileSync(filepath, svg, 'utf8');
+    console.log(`✓ Created ${filename}`);
+  } catch (error) {
+    console.error(`✗ Failed to create ${filename}: ${error.message}`);
+    process.exit(1);
+  }
 });
 
 console.log('\n✅ All template previews created successfully!');

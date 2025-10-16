@@ -86,15 +86,21 @@ The system will automatically construct URLs: `{base}/{template-slug}.png`
 2. Add domain to `next.config.js` if needed:
    ```js
    images: {
-     domains: ['your-cdn.com'],
+     remotePatterns: [
+       {
+         protocol: 'https',
+         hostname: 'your-cdn.com',
+         pathname: '/previews/**',
+       },
+     ],
    }
    ```
-3. Ensure bucket is publicly accessible with CORS enabled
+3. Ensure bucket is publicly accessible (CORS configuration is only required for client-side fetch operations or canvas manipulation)
 
 **Troubleshooting:**
 - Images not showing? Check `public/previews/` exists and files match template slugs exactly
 - Test direct URL: `http://localhost:3000/previews/modern-clean.png` should return 200
-- For remote images: Verify domain in next.config.js and public bucket access
+- For remote images: Verify remotePatterns in next.config.js and public bucket access
 - Run tests: `npm test TemplatePicker`
 
 ## Development Notes

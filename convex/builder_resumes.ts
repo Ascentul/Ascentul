@@ -21,6 +21,49 @@ import type { Id } from "./_generated/dataModel";
  * TODO: Remove these casts when Convex improves type inference in future versions.
  */
 
+type ResumeInsertArgs = {
+  title: string;
+  templateSlug: string;
+  themeId?: Id<"builder_resume_themes">;
+};
+
+async function getUserByClerkIdOrThrow(ctx: any, clerkId: string) {
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", clerkId))
+    .unique();
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return user;
+}
+
+async function insertResumeRecord(
+  ctx: any,
+  userId: Id<"users">,
+  args: ResumeInsertArgs,
+) {
+  const now = Date.now();
+  const id = await ctx.db.insert("builder_resumes" as any, {
+    userId,
+    title: args.title,
+    templateSlug: args.templateSlug,
+    themeId: args.themeId,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return {
+    id,
+    title: args.title,
+    templateSlug: args.templateSlug,
+    themeId: args.themeId,
+  };
+}
+
 /**
  * Create a new resume for the authenticated user.
  * @returns { id: Id<"builder_resumes">, title: string, templateSlug: string, themeId?: Id<"builder_resume_themes"> }
@@ -33,30 +76,12 @@ export const createResume = mutation({
     themeId: v.optional(v.id("builder_resume_themes")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
-
-    const now = Date.now();
-    const id = await ctx.db.insert("builder_resumes" as any, {
-      userId: user._id,
+    const user = await getUserByClerkIdOrThrow(ctx, args.clerkId);
+    return insertResumeRecord(ctx, user._id, {
       title: args.title,
       templateSlug: args.templateSlug,
       themeId: args.themeId,
-      version: 1,
-      createdAt: now,
-      updatedAt: now,
     });
-
-    return {
-      id,
-      title: args.title,
-      templateSlug: args.templateSlug,
-      themeId: args.themeId,
-    };
   },
 });
 
@@ -174,7 +199,7 @@ export const updateResumeMeta = mutation({
 
 /**
  * Create a new resume with auto-populated blocks from user profile.
- * @returns { id: Id<"builder_resumes">, title: string, blocksCreated: number }
+ * @returns { id: Id<"builder_resumes">, title: string, templateSlug: string, themeId?: Id<"builder_resume_themes">, blocksCreated: number, autoPopulateError: boolean }
  */
 export const createResumeWithBlocks = mutation({
   args: {
@@ -185,27 +210,18 @@ export const createResumeWithBlocks = mutation({
     autoPopulate: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
-
-    const now = Date.now();
+    const user = await getUserByClerkIdOrThrow(ctx, args.clerkId);
 
     // 1. Create the resume
-    const resumeId = await ctx.db.insert("builder_resumes" as any, {
-      userId: user._id,
+    const resume = await insertResumeRecord(ctx, user._id, {
       title: args.title,
       templateSlug: args.templateSlug,
       themeId: args.themeId,
-      version: 1,
-      createdAt: now,
-      updatedAt: now,
     });
+    const resumeId = resume.id;
 
     let blocksCreated = 0;
+    let autoPopulateError = false;
 
     // 2. If autoPopulate is true, fetch profile and create blocks
     if (args.autoPopulate) {
@@ -372,6 +388,7 @@ export const createResumeWithBlocks = mutation({
           const educationItems = education.map((edu) => ({
             school: edu.school || "School Name",
             degree: edu.degree || undefined,
+            field: edu.field || undefined,
             end: edu.end || undefined,
             details: edu.details || [],
           }));
@@ -391,7 +408,7 @@ export const createResumeWithBlocks = mutation({
           const projectItems = projects.map((proj) => ({
             name: proj.title || "Project Name",
             description: proj.description || "",
-            bullets: proj.technologies && proj.technologies.length > 0
+            bullets: Array.isArray(proj.technologies) && proj.technologies.length > 0
               ? [
                   `Technologies: ${proj.technologies.join(", ")}`,
                   ...(proj.url ? [`URL: ${proj.url}`] : []),
@@ -411,17 +428,18 @@ export const createResumeWithBlocks = mutation({
         }
       } catch (error) {
         console.error("Error auto-populating resume:", error);
-        // Don't fail the whole operation if auto-populate fails
-        // The resume was still created, just without blocks
+        autoPopulateError = true;
+        // Don't fail the whole operation if auto-populate fails; resume still created
       }
     }
 
     return {
       id: resumeId,
-      title: args.title,
-      templateSlug: args.templateSlug,
-      themeId: args.themeId,
+      title: resume.title,
+      templateSlug: resume.templateSlug,
+      themeId: resume.themeId,
       blocksCreated,
+      autoPopulateError,
     };
   },
 });
@@ -516,32 +534,15 @@ export const duplicateResume = mutation({
       .withIndex("by_resume", (q: any) => q.eq("resumeId", args.resumeId))
       .collect();
 
-    const insertedBlockIds: Array<Id<"resume_blocks">> = [];
-
-    try {
-      for (const block of blocks) {
-        const blockId = await ctx.db.insert("resume_blocks", {
-          resumeId: newResumeId,
-          type: block.type,
-          data: block.data,
-          order: block.order,
-          locked: block.locked,
-        });
-        insertedBlockIds.push(blockId);
+    for (const block of blocks) {
+      await ctx.db.insert("resume_blocks", {
+        resumeId: newResumeId,
+        type: block.type,
+        data: block.data,
+        order: block.order,
+        locked: block.locked,
+      });
     }
-  } catch (error) {
-    console.error("Failed to duplicate resume blocks, rolling back", error);
-    try {
-      for (const blockId of insertedBlockIds) {
-        await ctx.db.delete(blockId);
-      }
-      await ctx.db.delete(newResumeId);
-    } catch (rollbackError) {
-      console.error("Rollback failed, database may be in inconsistent state", rollbackError);
-      throw new Error("Unable to duplicate resume and rollback failed. Please contact support.");
-    }
-    throw new Error("Unable to duplicate resume due to block copy failure. No changes were saved.");
-  }
 
     return {
       id: newResumeId,

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
@@ -30,7 +30,7 @@ async function getConvexClient() {
  *
  * Returns diagnostic information about the user's profile snapshot
  */
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // 1. Check authentication
     const { userId } = await auth();

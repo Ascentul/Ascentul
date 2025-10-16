@@ -35,7 +35,6 @@ import { ChevronLeft, ChevronRight, Loader2, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PAGE_CONFIGS, type LayoutConfig } from '@/lib/resume-layout';
 import { useBlockHeights } from '@/hooks/use-block-heights';
-import { createPage } from '../actions/pages/createPage';
 import { duplicatePage } from '../actions/pages/duplicatePage';
 import { reflowPages } from '../actions/pages/reflow';
 
@@ -76,6 +75,10 @@ export default function ResumeStudioPage() {
   const [pageOrder, setPageOrder] = useState<string[]>([]);
   const [blocksMap, setBlocksMap] = useState<Record<string, Block>>({});
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+  const MAX_REFLOW_ATTEMPTS = 10;
+  const [localBlocks, setLocalBlocks] = useState<Block[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [authTimedOut, setAuthTimedOut] = useState(false);
   const { blocksWithHeights, registerBlock, remeasure } = useBlockHeights(localBlocks);
 
   const currentPageIndex = useMemo(() => {
@@ -106,23 +109,26 @@ export default function ResumeStudioPage() {
   // Mutation for reordering blocks
   const reorderBlocks = useMutation(api.builder_blocks.reorder);
 
-  // Local state for blocks
-  const [localBlocks, setLocalBlocks] = useState<Block[]>([]);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [authTimedOut, setAuthTimedOut] = useState(false);
-
   // Type guard for Convex error responses
-  const isConvexError = (value: unknown): value is { error: { status?: number } } => {
-    if (typeof value !== 'object' || value === null || !('error' in value)) {
-      return false;
-    }
-    const errorValue = (value as { error: unknown }).error;
-    if (typeof errorValue !== 'object' || errorValue === null) {
-      return false;
-    }
-    const errorObj = errorValue as Record<string, unknown>;
-    return !('status' in errorObj) || typeof errorObj.status === 'number';
-  };
+const isConvexError = (
+  value: unknown,
+): value is { error: { status?: number } } => {
+  if (typeof value !== "object" || value === null || !("error" in value)) {
+    return false;
+  }
+
+  const errorValue = (value as { error: unknown }).error;
+  if (typeof errorValue !== "object" || errorValue === null) {
+    return false;
+  }
+
+  const errorObj = errorValue as Record<string, unknown>;
+  if (!("status" in errorObj)) {
+    return true;
+  }
+
+  return typeof errorObj.status === "number";
+};
 
 useEffect(() => {
   if (!showAuthLoading) {
@@ -235,13 +241,13 @@ useEffect(() => {
       // Check if Cmd (Mac) or Ctrl (Windows/Linux) is pressed
       const isMod = e.metaKey || e.ctrlKey;
 
-      if (isMod && e.key === 't') {
+      if (isMod && e.shiftKey && e.key === 'T') {
         e.preventDefault();
         setActiveTab('templates');
-      } else if (isMod && e.key === 'h') {
+      } else if (isMod && e.shiftKey && e.key === 'H') {
         e.preventDefault();
         setActiveTab('themes');
-      } else if (isMod && e.key === 'l') {
+      } else if (isMod && e.shiftKey && e.key === 'L') {
         e.preventDefault();
         setActiveTab('layers');
       } else if (e.key === 'Escape') {
@@ -275,34 +281,69 @@ useEffect(() => {
       return;
     }
 
-    const result = reflowPages({
-      blocksWithHeights,
-      pages: editorPages,
-      pageOrder,
-      blocks: blocksMap,
-      layout: layoutConfig,
-      pageSize,
-      maxIterations: 5,
-    });
+    let attempts = 0;
+    let lastResultChanged = false;
+    let didMutate = false;
 
-    if (process.env.NEXT_PUBLIC_DEBUG_UI === '1' && result.log.length > 0) {
-      result.log.forEach((entry) => console.debug('[reflow]', entry));
+    let currentPages = editorPages;
+    let currentPageOrder = pageOrder;
+    let currentBlocks = blocksMap;
+    let currentSelectedPageId = selectedPageId;
+
+    const debugLogs: string[] = [];
+
+    // Batch reflow iterations locally to avoid triggering multiple render passes.
+    while (attempts < MAX_REFLOW_ATTEMPTS) {
+      const passIndex = attempts + 1;
+      const result = reflowPages({
+        blocksWithHeights,
+        pages: currentPages,
+        pageOrder: currentPageOrder,
+        blocks: currentBlocks,
+        layout: layoutConfig,
+        pageSize,
+      });
+      lastResultChanged = result.changed;
+
+      if (process.env.NEXT_PUBLIC_DEBUG_UI === '1' && result.log.length > 0) {
+        result.log.forEach((entry) => {
+          debugLogs.push(`[pass ${passIndex}] ${entry}`);
+        });
+      }
+
+      if (!result.changed) {
+        break;
+      }
+
+      didMutate = true;
+      attempts += 1;
+      currentPages = result.pages;
+      currentPageOrder = result.pageOrder;
+      currentBlocks = result.blocks;
+      currentSelectedPageId =
+        currentSelectedPageId && result.pages[currentSelectedPageId]
+          ? currentSelectedPageId
+          : result.pageOrder[0] ?? null;
     }
 
-    if (!result.changed) {
+    if (process.env.NEXT_PUBLIC_DEBUG_UI === '1' && debugLogs.length > 0) {
+      debugLogs.forEach((entry) => console.debug('[reflow]', entry));
+    }
+
+    if (!didMutate) {
       return;
     }
 
-    setEditorPages(result.pages);
-    setPageOrder(result.pageOrder);
-    setBlocksMap(result.blocks);
-    setSelectedPageId((prev) => {
-      if (prev && result.pages[prev]) {
-        return prev;
-      }
-      return result.pageOrder[0] ?? null;
-    });
-  }, [blocksWithHeights, editorPages, pageOrder, blocksMap, layoutConfig, pageSize]);
+    if (attempts >= MAX_REFLOW_ATTEMPTS && lastResultChanged) {
+      console.error('[reflow] exceeded maximum reflow attempts, aborting to prevent infinite loop');
+      return;
+    }
+
+    setEditorPages(currentPages);
+    setPageOrder(currentPageOrder);
+    setBlocksMap(currentBlocks);
+    setSelectedPageId(currentSelectedPageId);
+  }, [blocksWithHeights, editorPages, pageOrder, blocksMap, layoutConfig, pageSize, selectedPageId]);
 
   const handleSelectBlock = (blockId: string | null) => {
     setSelectedBlockId(blockId);
@@ -337,15 +378,13 @@ useEffect(() => {
     }
   };
 
-const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
+  const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
     if (!user?.id) return;
 
-    // Store previous state for rollback using functional setState
-    let previousBlocks: Block[] = [];
-    setLocalBlocks((current) => {
-      previousBlocks = current;
-      return newBlocks;
-    });
+    const previousBlocks = localBlocks;
+    const previousMap = blocksMap;
+
+    setLocalBlocks(newBlocks);
     setBlocksMap(toBlockMap(newBlocks));
 
     // Save to server
@@ -365,14 +404,14 @@ const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
       console.error('Failed to save block order:', error);
       // Rollback to previous state
       setLocalBlocks(previousBlocks);
-      setBlocksMap(toBlockMap(previousBlocks));
+      setBlocksMap(previousMap);
       toast({
         title: 'Error',
         description: 'Failed to save block order. Changes have been reverted.',
         variant: 'destructive',
       });
     }
-  }, [user?.id, resumeId, localUpdatedAt, reorderBlocks, toast]);
+  }, [user?.id, resumeId, localUpdatedAt, localBlocks, blocksMap, reorderBlocks, toast]);
 
   const handleResumeUpdatedAtChange = (newUpdatedAt: number) => {
     setLocalUpdatedAt(newUpdatedAt);
@@ -573,24 +612,7 @@ const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
     });
   }, [selectedPageId, editorPages, pageOrder, blocksMap, toast]);
 
-  const handleAddPage = useCallback(() => {
-    const margins = { ...layoutConfig.margins };
-    const result = createPage({
-      pages: editorPages,
-      pageOrder,
-      size: pageSize,
-      margins,
-    });
-    setEditorPages(result.pages);
-    setPageOrder(result.pageOrder);
-    setSelectedPageId(result.pageId);
-    toast({
-      title: 'Page added',
-      description: 'A new blank page was created.',
-    });
-  }, [editorPages, pageOrder, pageSize, layoutConfig, toast]);
-
-  const handleAddPage = useCallback(async () => {
+  const handleAddSection = useCallback(async () => {
     if (!user?.id) return;
 
     try {
@@ -609,8 +631,8 @@ const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
       });
 
       toast({
-        title: 'Success',
-        description: 'Added new section',
+        title: 'Section added',
+        description: 'Added a new custom section to the resume.',
       });
     } catch (error) {
       toast({
@@ -622,6 +644,18 @@ const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
   }, [user?.id, resumeId, localBlocks, createBlock, toast]);
 
   const selectedBlock = localBlocks.find((b) => b._id === selectedBlockId) || null;
+
+  // Memoize current page blocks to avoid re-deriving on every render
+  const currentPageBlocks = useMemo(() => {
+    const currentPageId = pageOrder[currentPage - 1];
+    const pageEntity = currentPageId ? editorPages[currentPageId] : undefined;
+    return pageEntity
+      ? pageEntity.blocks
+          .map((blockId) => blocksMap[blockId])
+          .filter((block): block is Block => Boolean(block))
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      : [];
+  }, [pageOrder, currentPage, editorPages, blocksMap]);
 
   if (showAuthLoading) {
     return (
@@ -904,17 +938,7 @@ const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
           <div className="relative mx-auto my-8 shadow-xl bg-white transition-opacity duration-200" style={{ width: '8.5in', minHeight: '11in', opacity: isUpdatingMeta ? 0.5 : 1 }}>
             {/* Render blocks with click-to-select */}
             <div className="p-12 space-y-6">
-              {(() => {
-                const currentPageId = pageOrder[currentPage - 1];
-                const pageEntity = currentPageId ? editorPages[currentPageId] : undefined;
-                const currentPageBlocks = pageEntity
-                  ? pageEntity.blocks
-                      .map((blockId) => blocksMap[blockId])
-                      .filter((block): block is Block => Boolean(block))
-                      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                  : [];
-
-                return currentPageBlocks.map((block) => (
+              {currentPageBlocks.map((block) => (
                     <button
                       key={block._id}
                       ref={(node) => registerBlock(block._id, node)}
@@ -933,8 +957,7 @@ const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
                         {renderBlockContent(block)}
                       </div>
                     </button>
-                ));
-              })()}
+              ))}
             </div>
           </div>
 
@@ -945,7 +968,8 @@ const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
             onPrev={handlePrevPage}
             onNext={handleNextPage}
             onDuplicate={handleDuplicatePage}
-            onAddPage={handleAddPage}
+            onAddSection={handleAddSection}
+            isLoading={isUpdatingMeta || isGenerating}
           />
         </div>
 

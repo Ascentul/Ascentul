@@ -38,8 +38,7 @@ export function validateResumeDocument(
   const warnings: ValidationError[] = [];
 
   const allBlockIds = new Set(Object.keys(blocks));
-  const referencedBlockIds = new Set<string>();
-  const blockReferenceCount = new Map<string, number>();
+  const blockToPages = new Map<string, Set<string>>();
 
   // Validate each page's block references
   for (const [pageId, page] of Object.entries(pages)) {
@@ -55,17 +54,21 @@ export function validateResumeDocument(
       }
 
       // Track references for duplicate detection
-      referencedBlockIds.add(blockId);
-      blockReferenceCount.set(blockId, (blockReferenceCount.get(blockId) || 0) + 1);
+      const pageSet = blockToPages.get(blockId);
+      if (pageSet) {
+        pageSet.add(pageId);
+      } else {
+        blockToPages.set(blockId, new Set([pageId]));
+      }
     }
   }
 
   // Check for duplicate block references
-  for (const [blockId, count] of blockReferenceCount.entries()) {
-    if (count > 1) {
+  for (const [blockId, pageIds] of blockToPages.entries()) {
+    if (pageIds.size > 1) {
       errors.push({
         type: 'duplicate_reference',
-        message: `Block "${blockId}" is referenced by ${count} pages (should be exactly 1)`,
+        message: `Block "${blockId}" is referenced by ${pageIds.size} pages: ${Array.from(pageIds).join(', ')} (should be exactly 1)`,
         blockId,
       });
     }
@@ -73,7 +76,7 @@ export function validateResumeDocument(
 
   // Check for orphaned blocks
   for (const blockId of allBlockIds) {
-    if (!referencedBlockIds.has(blockId)) {
+    if (!blockToPages.has(blockId)) {
       warnings.push({
         type: 'orphaned_block',
         message: `Block "${blockId}" exists but is not referenced by any page`,

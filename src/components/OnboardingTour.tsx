@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
@@ -34,6 +34,7 @@ export function OnboardingTour({
   const [isVisible, setIsVisible] = useState(false);
   const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Check if onboarding has been completed before
   useEffect(() => {
@@ -68,13 +69,8 @@ export function OnboardingTour({
 
     // Card dimensions and padding constants
     const cardWidth = 320; // matches maxWidth in render
-    const cardHeight = 400; // approximate card height with content
+    const cardHeight = cardRef.current?.offsetHeight ?? 400; // measure actual height, fallback to 400
     const padding = 10; // minimum padding from viewport edges
-
-    // Note: cardHeight is an approximation. For more accurate positioning with varying
-    // content lengths, consider using a ref to measure actual rendered card dimensions.
-    // Example: const cardRef = useRef<HTMLDivElement>(null);
-    //          const actualHeight = cardRef.current?.offsetHeight ?? cardHeight;
 
     const step = steps[currentStep];
     let currentTarget: HTMLElement | null = null;
@@ -91,7 +87,7 @@ export function OnboardingTour({
         let left = rect.left + window.scrollX;
 
         if (step.position === 'top') {
-          top = rect.top + window.scrollY - 10;
+          top = rect.top + window.scrollY - cardHeight - 10;
         } else if (step.position === 'left') {
           left = rect.left + window.scrollX - cardWidth;
           top = rect.top + window.scrollY;
@@ -204,7 +200,8 @@ export function OnboardingTour({
 
       {/* Onboarding Card */}
       <div
-        className="fixed z-[9999] transition-all duration-300"
+        ref={cardRef}
+        className="fixed z-[10000] transition-all duration-300"
         style={{
           top: `${position.top}px`,
           left: `${position.left}px`,
@@ -297,18 +294,10 @@ export function OnboardingTour({
       <style jsx global>{`
         .onboarding-tour-active .onboarding-highlight {
           position: relative;
-          z-index: 9997;
+          z-index: 9999;
           box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
           border-radius: 8px;
           transition: all 0.3s ease-in-out;
-        }
-        .onboarding-tour-active .onboarding-highlight::before {
-          content: '';
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: -1;
-          pointer-events: none;
         }
       `}</style>
     </>

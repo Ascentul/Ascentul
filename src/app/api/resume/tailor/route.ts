@@ -252,14 +252,18 @@ export async function POST(req: NextRequest) {
           { role: 'user', content: currentUserPrompt },
         ];
 
-        const response = await openai.chat.completions.create({
-          model: currentModel,
-          messages,
-          response_format: { type: 'json_object' },
-          temperature: AI_CONFIG.TEMPERATURE.PRECISE,
-          max_tokens: AI_CONFIG.MAX_TOKENS.LONG,
-          timeout: AI_CONFIG.TIMEOUT,
-        });
+        const response = await openai.chat.completions.create(
+          {
+            model: currentModel,
+            messages,
+            response_format: { type: 'json_object' },
+            temperature: AI_CONFIG.TEMPERATURE.PRECISE,
+            max_tokens: AI_CONFIG.MAX_TOKENS.LONG,
+          },
+          {
+            timeout: AI_CONFIG.TIMEOUT,
+          }
+        );
 
         const content = response.choices[0]?.message?.content || '{"blocks":[]}';
         lastResponse = content;

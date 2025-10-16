@@ -7,6 +7,10 @@ import { query } from "./_generated/server";
 export const whoami = query({
   args: {},
   handler: async (ctx) => {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Debug endpoint disabled in production");
+    }
+
     // Get the authenticated user's identity
     const identity = await ctx.auth.getUserIdentity();
 

@@ -39,6 +39,8 @@ export interface EducationItem {
   start?: string;
   end?: string;
   details?: string[];
+  id?: string;
+  _id?: string;
 }
 
 export interface EducationData {

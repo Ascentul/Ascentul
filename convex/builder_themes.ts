@@ -21,23 +21,10 @@ export const listThemes = query({
 });
 
 /**
- * Alias for listThemes - List all available resume themes.
- * @returns Array<{ id, name, fonts, colors, fontSizes? }>
+ * Alias for listThemes - retained for backward compatibility.
+ * Prefer using listThemes directly as the canonical query.
  */
-export const listThemesAll = query({
-  args: {},
-  handler: async (ctx) => {
-    const themes = await ctx.db.query("builder_resume_themes").collect();
-
-    return themes.map((theme) => ({
-      id: theme._id,
-      name: theme.name,
-      fonts: theme.fonts,
-      colors: theme.colors,
-      fontSizes: theme.fontSizes,
-    }));
-  },
-});
+export const listThemesAll = listThemes;
 
 /**
  * Get a specific theme by ID with full details.

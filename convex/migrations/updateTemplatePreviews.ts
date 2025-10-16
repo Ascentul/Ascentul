@@ -18,7 +18,7 @@ export const updateTemplatePreviews = mutation({
 
     for (const template of templates) {
       if (template.thumbnailUrl && template.thumbnailUrl.endsWith('.png')) {
-        const newUrl = template.thumbnailUrl.replace('.png', '.svg');
+        const newUrl = template.thumbnailUrl.replace(/\.png$/, '.svg');
 
         await ctx.db.patch(template._id, {
           thumbnailUrl: newUrl

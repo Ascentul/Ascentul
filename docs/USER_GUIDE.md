@@ -206,8 +206,13 @@ An expert advisor panel that provides resume writing best practices and tips.
 ### Navigation
 - `Tab` - Move to next element
 - `Shift + Tab` - Move to previous element
-- `Escape` - Close dialogs/modals
+- `Escape` - Close dialogs/modals or deselect block
 - `Enter` - Select/activate
+
+### Resume Editor
+- `Cmd/Ctrl + Shift + T` - Switch to Templates tab
+- `Cmd/Ctrl + Shift + H` - Switch to Themes tab
+- `Cmd/Ctrl + Shift + L` - Switch to Layers tab
 
 ### Editing (coming soon)
 - `Cmd/Ctrl + S` - Save changes

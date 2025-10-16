@@ -32,18 +32,19 @@ export function useResumeActions() {
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || "Failed to generate resume");
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || "Failed to generate resume");
       }
+
+      const data = await response.json();
 
       // Trigger a refetch/revalidation
       router.refresh();
 
       return { success: true, count: data.count };
-    } catch (err: any) {
-      const errorMessage = err.message || "An unexpected error occurred";
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
       setError(errorMessage);
       throw err;
     } finally {
@@ -51,9 +52,12 @@ export function useResumeActions() {
     }
   };
 
+  const clearError = () => setError(null);
+
   return {
     generate,
     isGenerating,
     error,
+    clearError,
   };
 }

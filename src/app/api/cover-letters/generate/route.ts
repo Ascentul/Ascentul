@@ -167,22 +167,26 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
     let generatedContent: string | null = null
     let usedFallback = false
     try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
-        timeout: OPENAI_TIMEOUT_MS,
-        messages: [
-          {
-            role: "system",
-            content: "You are a professional career coach and expert cover letter writer with 15+ years of experience. You generate compelling, personalized, and comprehensive cover letters that highlight relevant skills, experience, and cultural fit. Your letters are detailed, substantive, and help candidates stand out from the competition."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        max_tokens: 2000,
-        temperature: 0.7,
-      })
+      const completion = await openai.chat.completions.create(
+        {
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are a professional career coach and expert cover letter writer with 15+ years of experience. You generate compelling, personalized, and comprehensive cover letters that highlight relevant skills, experience, and cultural fit. Your letters are detailed, substantive, and help candidates stand out from the competition."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.7,
+        },
+        {
+          timeout: OPENAI_TIMEOUT_MS,
+        }
+      )
       generatedContent = completion.choices[0]?.message?.content || null
     } catch (e) {
       // swallow and use fallback

@@ -315,20 +315,24 @@ ${optimize ? "- Include optimizedLetter (string) that rewrites the cover letter 
 `;
 
       try {
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o",
-          timeout: OPENAI_TIMEOUT_MS,
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a meticulous career coach who only uses verified information to evaluate and improve cover letters.",
-            },
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.2,
-          max_tokens: 1200,
-        });
+        const completion = await openai.chat.completions.create(
+          {
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a meticulous career coach who only uses verified information to evaluate and improve cover letters.",
+              },
+              { role: "user", content: prompt },
+            ],
+            temperature: 0.2,
+            max_tokens: 1200,
+          },
+          {
+            timeout: OPENAI_TIMEOUT_MS,
+          }
+        );
 
         const raw = completion.choices[0]?.message?.content || "";
         try {

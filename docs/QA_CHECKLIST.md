@@ -316,6 +316,8 @@
   - [ ] Happy path scenarios pass
   - [ ] Error scenarios handled
   - [ ] Cross-browser E2E tests pass
+  - [ ] Tests run in CI/CD pipeline
+  - [ ] Pipeline fails on test failures
 
 ### 10.2 Build Process
 - [ ] **Build Success**

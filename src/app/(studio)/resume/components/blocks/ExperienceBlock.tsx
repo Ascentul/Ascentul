@@ -67,7 +67,7 @@ export function ExperienceBlock({
               )}
 
               {bullets.length > 0 && (
-                <ul className="space-y-0.5 mt-2" role="list">
+                <ul role="list" className="space-y-0.5 mt-2">
                   {bullets.map((bullet, bulletIdx) => (
                     <li
                       key={`${bullet.substring(0, 30)}-${bulletIdx}`}

@@ -1,5 +1,55 @@
 import { query } from "./_generated/server";
 
+type ProfileContactLink = {
+  label: string;
+  url: string;
+};
+
+type ProfileContact = {
+  email?: string;
+  phone?: string;
+  location?: string;
+  links: ProfileContactLink[];
+};
+
+type ProfileExperience = {
+  company: string;
+  role: string;
+  location?: string;
+  start: string;
+  end?: string;
+  bullets: string[];
+};
+
+type ProfileEducation = {
+  school: string;
+  degree: string;
+  field?: string;
+  location?: string;
+  end?: string;
+  details: string[];
+};
+
+type ProfileProject = {
+  name: string;
+  description?: string;
+  bullets: string[];
+};
+
+export interface ProfileSnapshot {
+  fullName: string;
+  title?: string;
+  contact: ProfileContact;
+  bio?: string;
+  experience: ProfileExperience[];
+  education: ProfileEducation[];
+  skills: {
+    primary: string[];
+    secondary?: string[];
+  };
+  projects: ProfileProject[];
+}
+
 /**
  * PROFILE DATA SOURCE DISCOVERY:
  *
@@ -33,7 +83,7 @@ import { query } from "./_generated/server";
  */
 export const getMyProfile = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<ProfileSnapshot | null> => {
     // Auth check - get the authenticated user's identity
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
@@ -113,7 +163,7 @@ export const getMyProfile = query({
     // Build education array from both sources:
     // 1. education_history array (if it exists)
     // 2. Flat fields: major, university_name, graduation_year
-    const education = [];
+    const education: ProfileEducation[] = [];
 
     // Add education_history entries if they exist
     if (user.education_history && user.education_history.length > 0) {
@@ -123,7 +173,7 @@ export const getMyProfile = query({
           degree: edu.degree || "",
           field: edu.field_of_study || undefined,
           location: undefined, // Not stored in education_history schema
-          end: edu.is_current ? undefined : edu.end_year || undefined,
+          end: edu.is_current ? undefined : edu.end_year,
           details: edu.description ? [edu.description] : [],
         });
       }
@@ -202,7 +252,7 @@ export const getMyProfile = query({
               role: exp.role || "",
               location: exp.location || undefined,
               start: exp.start_date || "",
-              end: exp.is_current ? undefined : exp.end_date || undefined,
+              end: exp.is_current ? undefined : exp.end_date,
               bullets: exp.summary ? [exp.summary] : [],
             }))
           : [],

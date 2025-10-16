@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  *
  * Returns Convex URL and identity information from Convex
  */
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // 1. Check authentication
     const authResult = await auth();
@@ -47,6 +47,16 @@ export async function GET(req: NextRequest) {
     const token = await authResult.getToken({ template: "convex" });
     if (token) {
       convex.setAuth(token);
+    } else {
+      console.warn("Convex token unavailable for authenticated user:", userId);
+      return NextResponse.json(
+        {
+          error: "Convex token unavailable",
+          convexUrl,
+          whoami: null,
+        },
+        { status: 500 }
+      );
     }
 
     // 3. Call whoami query

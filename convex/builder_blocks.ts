@@ -1,6 +1,36 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
+
+type FunctionCtx = MutationCtx | QueryCtx;
+
+async function verifyResumeOwnership(
+  ctx: FunctionCtx,
+  clerkId: string,
+  resumeId: Id<"builder_resumes">
+): Promise<{ user: Doc<"users">; resume: Doc<"builder_resumes"> }> {
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+    .unique();
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const resume = await ctx.db.get(resumeId);
+  if (!resume) {
+    throw new Error("Resume not found");
+  }
+
+  if (resume.userId !== user._id) {
+    throw new Error("Unauthorized: You don't own this resume");
+  }
+
+  return { user, resume };
+}
 
 /**
  * Create a new block in a resume
@@ -21,25 +51,7 @@ export const create = mutation({
       throw new Error(`Invalid block type: ${args.type}`);
     }
 
-    // Get user from Clerk ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Verify resume ownership
-    const resume = await ctx.db.get(args.resumeId);
-    if (!resume) {
-      throw new Error("Resume not found");
-    }
-
-    if (resume.userId !== user._id) {
-      throw new Error("Unauthorized: You don't own this resume");
-    }
+    await verifyResumeOwnership(ctx, args.clerkId, args.resumeId);
 
     // Compute order if not provided
     let order = args.order;
@@ -87,25 +99,7 @@ export const list = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Get user from Clerk ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Verify resume ownership
-    const resume = await ctx.db.get(args.resumeId);
-    if (!resume) {
-      throw new Error("Resume not found");
-    }
-
-    if (resume.userId !== user._id) {
-      throw new Error("Unauthorized: You don't own this resume");
-    }
+    await verifyResumeOwnership(ctx, args.clerkId, args.resumeId);
 
     // Get all blocks for this resume
     const blocks = await ctx.db
@@ -149,30 +143,13 @@ export const update = mutation({
       }
     }
 
-    // Get user from Clerk ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
     // Get block
-  const block = await ctx.db.get(args.id);
+    const block = await ctx.db.get(args.id);
     if (!block) {
       throw new Error("Block not found");
     }
 
-    // Verify resume ownership and optimistic concurrency
-    const resume = await ctx.db.get(block.resumeId);
-    if (!resume) {
-      throw new Error("Resume not found");
-    }
-    if (resume.userId !== user._id) {
-      throw new Error("Unauthorized: You don't own this resume");
-    }
+    const { resume } = await verifyResumeOwnership(ctx, args.clerkId, block.resumeId);
 
     // Optimistic concurrency check
     if (resume.updatedAt !== args.expectedResumeUpdatedAt) {
@@ -188,7 +165,7 @@ export const update = mutation({
     if (args.order !== undefined) updates.order = args.order;
     if (args.locked !== undefined) updates.locked = args.locked;
 
-  await ctx.db.patch(args.id, updates);
+    await ctx.db.patch(args.id, updates);
 
     // Update resume's updatedAt timestamp
     const now = Date.now();
@@ -219,25 +196,7 @@ export const reorder = mutation({
     expectedResumeUpdatedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    // Get user from Clerk ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Verify resume ownership
-    const resume = await ctx.db.get(args.resumeId);
-    if (!resume) {
-      throw new Error("Resume not found");
-    }
-
-    if (resume.userId !== user._id) {
-      throw new Error("Unauthorized: You don't own this resume");
-    }
+    const { resume } = await verifyResumeOwnership(ctx, args.clerkId, args.resumeId);
 
     // Optimistic concurrency check
     if (resume.updatedAt !== args.expectedResumeUpdatedAt) {
@@ -278,33 +237,16 @@ export const remove = mutation({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Get user from Clerk ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
     // Get block
-  const block = await ctx.db.get(args.id);
+    const block = await ctx.db.get(args.id);
     if (!block) {
       throw new Error("Block not found");
     }
 
-    // Verify resume ownership
-    const resume = await ctx.db.get(block.resumeId);
-    if (!resume) {
-      throw new Error("Resume not found");
-    }
-    if (resume.userId !== user._id) {
-      throw new Error("Unauthorized: You don't own this resume");
-    }
+    await verifyResumeOwnership(ctx, args.clerkId, block.resumeId);
 
     // Delete block
-  await ctx.db.delete(args.id);
+    await ctx.db.delete(args.id);
 
     // Update resume's updatedAt timestamp
     await ctx.db.patch(block.resumeId, {
@@ -333,25 +275,7 @@ export const bulkUpdate = mutation({
     clearExisting: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // Get user from Clerk ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Verify resume ownership
-    const resume = await ctx.db.get(args.resumeId);
-    if (!resume) {
-      throw new Error("Resume not found");
-    }
-
-    if (resume.userId !== user._id) {
-      throw new Error("Unauthorized: You don't own this resume");
-    }
+    await verifyResumeOwnership(ctx, args.clerkId, args.resumeId);
 
     // Validate block types before any deletion
     const validTypes = ['header', 'summary', 'experience', 'education', 'skills', 'projects', 'custom'];
@@ -390,6 +314,67 @@ export const bulkUpdate = mutation({
       success: true,
       createdCount: createdIds.length,
       ids: createdIds,
+    };
+  },
+});
+
+/**
+ * Batch create blocks for a resume.
+ * Intended for server-initiated bulk inserts (e.g., AI generation).
+ */
+export const createBlocks = mutation({
+  args: {
+    resumeId: v.id("builder_resumes"),
+    clerkId: v.string(),
+    blocks: v.array(
+      v.object({
+        type: v.string(),
+        order: v.number(),
+        data: v.any(),
+        locked: v.optional(v.boolean()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await verifyResumeOwnership(ctx, args.clerkId, args.resumeId);
+
+    const validTypes = [
+      "header",
+      "summary",
+      "experience",
+      "education",
+      "skills",
+      "projects",
+      "custom",
+    ];
+
+    for (const block of args.blocks) {
+      if (!validTypes.includes(block.type)) {
+        throw new Error(`Invalid block type: ${block.type}`);
+      }
+    }
+
+    const insertedIds: Id<"resume_blocks">[] = [];
+    for (const block of args.blocks) {
+      const blockId = await ctx.db.insert("resume_blocks", {
+        resumeId: args.resumeId,
+        type: block.type,
+        data: block.data,
+        order: block.order,
+        locked: block.locked ?? false,
+      });
+      insertedIds.push(blockId);
+    }
+
+    if (insertedIds.length > 0) {
+      await ctx.db.patch(args.resumeId, {
+        updatedAt: Date.now(),
+      });
+    }
+
+    return {
+      insertedCount: insertedIds.length,
+      ids: insertedIds,
     };
   },
 });

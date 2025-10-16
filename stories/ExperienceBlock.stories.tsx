@@ -179,9 +179,23 @@ export const VeryLongText: Story = {
   },
 };
 
+export const VeryLongTextSelected: Story = {
+  args: {
+    data: veryLongTextData,
+    isSelected: true,
+  },
+};
+
 export const MaxBulletPoints: Story = {
   args: {
     data: maxBulletsData,
+  },
+};
+
+export const MaxBulletPointsSelected: Story = {
+  args: {
+    data: maxBulletsData,
+    isSelected: true,
   },
 };
 
@@ -191,8 +205,22 @@ export const NoBulletPoints: Story = {
   },
 };
 
+export const NoBulletPointsSelected: Story = {
+  args: {
+    data: noBulletsData,
+    isSelected: true,
+  },
+};
+
 export const EmptyState: Story = {
   args: {
     data: emptyData,
+  },
+};
+
+export const EmptyStateSelected: Story = {
+  args: {
+    data: emptyData,
+    isSelected: true,
   },
 };

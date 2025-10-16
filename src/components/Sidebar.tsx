@@ -466,13 +466,13 @@ const Sidebar = React.memo(function Sidebar({
           key={item.href}
           href={disabled ? "#" : item.href}
           className={`
-          flex items-center px-3 py-2 text-sm rounded-md transition-all duration-200 relative cursor-pointer
+          flex items-center px-3 py-2 text-sm rounded-md transition-all duration-200 relative
           ${
             active
               ? "bg-[#f0f2ff] text-[#616ef6]"
               : disabled
                 ? "text-gray-400 cursor-not-allowed"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
           }
         `}
           onClick={handleClick}
@@ -557,13 +557,13 @@ const Sidebar = React.memo(function Sidebar({
             key={section.id}
             href={disabled ? "#" : section.href}
             className={`
-            flex items-center px-3 py-2 mx-2 text-sm rounded-lg transition-colors cursor-pointer
+            flex items-center px-3 py-2 mx-2 text-sm rounded-lg transition-colors
             ${
               sectionActive || hasActiveItem
                 ? "bg-[#f0f2ff] text-[#616ef6]"
                 : disabled
                   ? "text-gray-400 cursor-not-allowed"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
             }
           `}
             onClick={handleSectionClick}

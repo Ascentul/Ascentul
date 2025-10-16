@@ -148,17 +148,21 @@ export async function POST(req: NextRequest) {
       try {
         console.log(`AI attempt ${attempt}/${maxAttempts} with model: ${currentModel}`);
 
-        const completion = await openai.chat.completions.create({
-          model: currentModel,
-          temperature: 0.2,
-          max_tokens: 2000,
-          timeout: 30000, // 30 seconds timeout
-          response_format: { type: 'json_object' },
-          messages: [
-            { role: 'system', content: AUTO_TIDY_SYSTEM_PROMPT },
-            { role: 'user', content: userPrompt },
-          ],
-        });
+        const completion = await openai.chat.completions.create(
+          {
+            model: currentModel,
+            temperature: 0.2,
+            max_tokens: 2000,
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: AUTO_TIDY_SYSTEM_PROMPT },
+              { role: 'user', content: userPrompt },
+            ],
+          },
+          {
+            timeout: 30000, // 30 seconds timeout
+          }
+        );
 
         aiResponse = completion.choices[0]?.message?.content;
 
@@ -203,12 +207,33 @@ export async function POST(req: NextRequest) {
     }
 
     // 9. Parse and validate JSON response
-    let parsedBlocks: ResumeBlock[];
+let parsedBlocks: ResumeBlock[];
     try {
-      // Extract JSON from response (handles code blocks, etc.)
-      // Use greedy matching to capture nested JSON objects correctly
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      const jsonStr = jsonMatch ? jsonMatch[0] : aiResponse;
+      const extractFirstJSON = (text: string): string | null => {
+        let normalized = text.trim();
+        if (normalized.startsWith("```")) {
+          normalized = normalized.replace(/^```json\s*/i, "").replace(/^```\s*/i, "");
+          normalized = normalized.replace(/```\s*$/i, "");
+        }
+
+        let depth = 0;
+        let start = -1;
+        for (let i = 0; i < normalized.length; i++) {
+          const char = normalized[i];
+          if (char === "{") {
+            if (depth === 0) start = i;
+            depth++;
+          } else if (char === "}") {
+            depth--;
+            if (depth === 0 && start !== -1) {
+              return normalized.slice(start, i + 1);
+            }
+          }
+        }
+        return null;
+      };
+
+      const jsonStr = extractFirstJSON(aiResponse) ?? aiResponse.trim();
       const parsed = JSON.parse(jsonStr);
 
       // Validate with Zod
