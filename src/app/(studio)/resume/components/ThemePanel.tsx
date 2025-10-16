@@ -11,6 +11,23 @@ interface ThemePanelProps {
   disabled?: boolean;
 }
 
+const getThemeButtonClasses = (isCurrent: boolean, isDisabled: boolean) => {
+  const baseClasses =
+    'w-full text-left p-4 rounded-xl border transition-all duration-200';
+
+  const stateClasses = isCurrent
+    ? 'border-primary bg-primary/5 ring-2 ring-primary shadow-sm'
+    : isDisabled
+      ? 'border-border'
+      : 'border-border hover:border-primary/50 hover:bg-muted/50 hover:shadow-md hover:scale-[1.02]';
+
+  const interactionClasses = isDisabled
+    ? 'opacity-50 cursor-not-allowed'
+    : 'cursor-pointer';
+
+  return `${baseClasses} ${stateClasses} ${interactionClasses}`;
+};
+
 export function ThemePanel({ currentThemeId, onChangeTheme, disabled }: ThemePanelProps) {
   const themes = useQuery(api.builder_themes.listThemesAll, {});
 
@@ -31,7 +48,7 @@ export function ThemePanel({ currentThemeId, onChangeTheme, disabled }: ThemePan
   }
 
   // Empty state
-  if (!themes || themes.length === 0) {
+  if (themes.length === 0) {
     return (
       <div className="p-4">
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -55,13 +72,12 @@ export function ThemePanel({ currentThemeId, onChangeTheme, disabled }: ThemePan
         {themes.map((theme) => (
           <button
             key={theme.id}
-            onClick={() => !disabled && onChangeTheme(theme.id)}
+            onClick={() => onChangeTheme(theme.id)}
             disabled={disabled}
-            className={`w-full text-left p-4 rounded-xl border transition-all duration-200 ${
-              currentThemeId === theme.id
-                ? 'border-primary bg-primary/5 ring-2 ring-primary shadow-sm'
-                : 'border-border hover:border-primary/50 hover:bg-muted/50 hover:shadow-md hover:scale-[1.02]'
-            } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            className={getThemeButtonClasses(
+              currentThemeId === theme.id,
+              Boolean(disabled),
+            )}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">

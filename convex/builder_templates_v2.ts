@@ -16,6 +16,7 @@ export const list = query({
       id: template._id,
       slug: template.slug,
       name: template.name,
+      preview: template.preview ?? template.thumbnailUrl ?? null,
       thumbnailUrl: template.thumbnailUrl,
       pageSize: template.pageSize,
       margins: template.margins,
@@ -45,6 +46,7 @@ export const getBySlug = query({
       id: template._id,
       slug: template.slug,
       name: template.name,
+      preview: template.preview ?? template.thumbnailUrl ?? null,
       thumbnailUrl: template.thumbnailUrl,
       pageSize: template.pageSize,
       margins: template.margins,
@@ -71,6 +73,7 @@ export const get = query({
       id: template._id,
       slug: template.slug,
       name: template.name,
+      preview: template.preview ?? template.thumbnailUrl ?? null,
       thumbnailUrl: template.thumbnailUrl,
       pageSize: template.pageSize,
       margins: template.margins,
@@ -131,6 +134,7 @@ export const create = mutation({
     const templateId = await ctx.db.insert("builder_resume_templates" as any, {
       slug: args.slug.trim(),
       name: args.name.trim(),
+      preview: args.thumbnailUrl,
       thumbnailUrl: args.thumbnailUrl,
       pageSize: args.pageSize,
       margins: args.margins,
@@ -196,6 +200,7 @@ export const update = mutation({
       updates.name = args.name.trim();
     }
     if (args.thumbnailUrl !== undefined) updates.thumbnailUrl = args.thumbnailUrl;
+    if (args.thumbnailUrl !== undefined) updates.preview = args.thumbnailUrl ?? template.preview;
     if (args.pageSize !== undefined) updates.pageSize = args.pageSize;
     if (args.margins !== undefined) updates.margins = args.margins;
     if (args.allowedBlocks !== undefined) updates.allowedBlocks = args.allowedBlocks;

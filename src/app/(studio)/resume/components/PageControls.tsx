@@ -8,7 +8,7 @@ interface PageControlsProps {
   onPrev: () => void;
   onNext: () => void;
   onDuplicate: () => void;
-  onAddSection: () => void;
+  onAddPage: () => void;
 }
 
 export function PageControls({
@@ -17,7 +17,7 @@ export function PageControls({
   onPrev,
   onNext,
   onDuplicate,
-  onAddSection,
+  onAddPage,
 }: PageControlsProps) {
   return (
     <div className="pointer-events-none fixed right-6 bottom-6 z-40">
@@ -62,11 +62,11 @@ export function PageControls({
           <Copy className="w-4 h-4" />
         </button>
 
-        {/* Add Section */}
+        {/* Add Page */}
         <button
-          onClick={onAddSection}
-          aria-label="Add new section"
-          title="Add new section"
+          onClick={onAddPage}
+          aria-label="Add new page"
+          title="Add new page"
           className="p-1.5 rounded-full hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           <Plus className="w-4 h-4" />

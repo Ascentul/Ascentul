@@ -186,6 +186,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
 
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o',
+          timeout: 30000, // 30 seconds timeout
           messages: messages,
           temperature: 0.7,
           max_tokens: 1500,

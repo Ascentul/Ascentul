@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 
 /**
  * Type Safety Note:
@@ -466,6 +467,92 @@ export const deleteResume = mutation({
 });
 
 /**
+ * Duplicate an existing resume and all of its blocks.
+ * @returns { id: Id<"builder_resumes">, blocksCopied: number }
+ */
+export const duplicateResume = mutation({
+  args: {
+    clerkId: v.string(),
+    resumeId: v.id("builder_resumes"),
+    title: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const original = await ctx.db.get(args.resumeId);
+    if (!original) {
+      throw new Error("Resume not found");
+    }
+    if (original.userId !== user._id) {
+      throw new Error("Forbidden");
+    }
+
+    const now = Date.now();
+    const title = args.title?.trim()?.length
+      ? args.title.trim()
+      : `${original.title ?? "Untitled resume"} Copy`;
+
+    const newResumeId = await ctx.db.insert("builder_resumes" as any, {
+      userId: user._id,
+      title,
+      templateSlug: original.templateSlug,
+      themeId: original.themeId,
+      version: 1,
+      thumbnailDataUrl: original.thumbnailDataUrl,
+      thumbnailStorageId: original.thumbnailStorageId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const blocks = await ctx.db
+      .query("resume_blocks")
+      .withIndex("by_resume", (q: any) => q.eq("resumeId", args.resumeId))
+      .collect();
+
+    const insertedBlockIds: Array<Id<"resume_blocks">> = [];
+
+    try {
+      for (const block of blocks) {
+        const blockId = await ctx.db.insert("resume_blocks", {
+          resumeId: newResumeId,
+          type: block.type,
+          data: block.data,
+          order: block.order,
+          locked: block.locked,
+        });
+        insertedBlockIds.push(blockId);
+    }
+  } catch (error) {
+    console.error("Failed to duplicate resume blocks, rolling back", error);
+    try {
+      for (const blockId of insertedBlockIds) {
+        await ctx.db.delete(blockId);
+      }
+      await ctx.db.delete(newResumeId);
+    } catch (rollbackError) {
+      console.error("Rollback failed, database may be in inconsistent state", rollbackError);
+      throw new Error("Unable to duplicate resume and rollback failed. Please contact support.");
+    }
+    throw new Error("Unable to duplicate resume due to block copy failure. No changes were saved.");
+  }
+
+    return {
+      id: newResumeId,
+      title,
+      templateSlug: original.templateSlug,
+      blocksCopied: blocks.length,
+    };
+  },
+});
+
+/**
  * Update resume thumbnail (called by thumbnail generator hook)
  * @returns { success: boolean }
  */
@@ -488,11 +575,12 @@ export const updateThumbnail = mutation({
     }
 
     // Update thumbnail
+    const updatedAt = Date.now();
     await ctx.db.patch(args.resumeId, {
       thumbnailDataUrl: args.thumbnailDataUrl,
-      updatedAt: Date.now(),
+      updatedAt,
     });
 
-    return { success: true };
+    return { success: true, updatedAt };
   },
 });

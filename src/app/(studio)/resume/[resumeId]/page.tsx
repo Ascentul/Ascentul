@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '../../../../../convex/_generated/api';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import type { Block } from '@/lib/resume-types';
+import type { Page } from '@/types/resume';
 import { Layers } from '../components/Layers';
 import { BlockInspector } from '../components/BlockInspector';
 import { ThemePanel } from '../components/ThemePanel';
@@ -31,7 +33,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronLeft, ChevronRight, Loader2, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { ResumeBlock } from '@/lib/validators/resume';
+import { PAGE_CONFIGS, type LayoutConfig } from '@/lib/resume-layout';
+import { useBlockHeights } from '@/hooks/use-block-heights';
+import { createPage } from '../actions/pages/createPage';
+import { duplicatePage } from '../actions/pages/duplicatePage';
+import { reflowPages } from '../actions/pages/reflow';
 
 export default function ResumeStudioPage() {
   const params = useParams();
@@ -48,7 +54,7 @@ export default function ResumeStudioPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isInserting, setIsInserting] = useState(false);
   const [isUpdatingMeta, setIsUpdatingMeta] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const isBusy = isInserting || isGenerating;
   const [totalPages, setTotalPages] = useState(1);
 
   // Layout settings
@@ -56,10 +62,29 @@ export default function ResumeStudioPage() {
   const [pageSize, setPageSize] = useState<'Letter' | 'A4'>('Letter');
   const [baseline, setBaseline] = useState<4 | 6>(4);
 
+  const layoutConfig = useMemo<LayoutConfig>(() => ({
+    ...PAGE_CONFIGS[pageSize],
+    baseline,
+    isCompact,
+  }), [pageSize, baseline, isCompact]);
+
   // Local state for template and theme
   const [localTemplateSlug, setLocalTemplateSlug] = useState<string | undefined>();
   const [localThemeId, setLocalThemeId] = useState<Id<"builder_resume_themes"> | undefined>();
   const [localUpdatedAt, setLocalUpdatedAt] = useState<number>(0);
+  const [editorPages, setEditorPages] = useState<Record<string, Page>>({});
+  const [pageOrder, setPageOrder] = useState<string[]>([]);
+  const [blocksMap, setBlocksMap] = useState<Record<string, Block>>({});
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+  const { blocksWithHeights, registerBlock, remeasure } = useBlockHeights(localBlocks);
+
+  const currentPageIndex = useMemo(() => {
+    if (!selectedPageId) return 0;
+    const index = pageOrder.indexOf(selectedPageId);
+    return index >= 0 ? index : 0;
+  }, [selectedPageId, pageOrder]);
+
+  const currentPage = currentPageIndex + 1;
 
   const canLoadData = !!user?.id && !!resumeId;
   const showAuthLoading = !userLoaded || !user?.id;
@@ -99,15 +124,19 @@ export default function ResumeStudioPage() {
     return !('status' in errorObj) || typeof errorObj.status === 'number';
   };
 
-  useEffect(() => {
-    if (!showAuthLoading) {
-      setAuthTimedOut(false);
-      return;
-    }
+useEffect(() => {
+  if (!showAuthLoading) {
+    setAuthTimedOut(false);
+    return;
+  }
 
     const timer = window.setTimeout(() => setAuthTimedOut(true), 6000);
     return () => window.clearTimeout(timer);
-  }, [showAuthLoading]);
+}, [showAuthLoading]);
+
+  useEffect(() => {
+    remeasure();
+  }, [remeasure, layoutConfig, localBlocks.length]);
 
   // Sync local state when resume data loads
   useEffect(() => {
@@ -141,15 +170,57 @@ export default function ResumeStudioPage() {
   useEffect(() => {
     if (!canLoadData || !resumeData || loadError) return;
 
+    const blocksArray = ((resumeData.blocks as Block[]) ?? []).slice().sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0)
+    );
+    const blockMap: Record<string, Block> = {};
+    blocksArray.forEach((block) => {
+      blockMap[block._id] = block;
+    });
+    setBlocksMap(blockMap);
+    setLocalBlocks([...blocksArray]);
+
     if (resumeData?.resume) {
       setLocalTemplateSlug(resumeData.resume.templateSlug);
       setLocalThemeId(resumeData.resume.themeId);
       setLocalUpdatedAt(resumeData.resume.updatedAt);
     }
-    if (resumeData?.blocks) {
-      setLocalBlocks(resumeData.blocks as Block[]);
+
+    const resumePages = resumeData?.resume?.pages ?? [];
+    if (resumePages.length > 0) {
+      const pageMap: Record<string, Page> = {};
+      const order: string[] = [];
+
+      resumePages.forEach((page) => {
+        const size = page.size ?? pageSize;
+        const baseMargins = PAGE_CONFIGS[size].margins;
+        pageMap[page.id] = {
+          id: page.id,
+          size,
+          margins: page.margins ?? { ...baseMargins },
+          blocks: page.blocks ?? [],
+        };
+        order.push(page.id);
+      });
+
+      setEditorPages(pageMap);
+      setPageOrder(order);
+      setSelectedPageId((prev) => (prev && pageMap[prev] ? prev : order[0] ?? null));
+    } else {
+      const defaultPageId = uuidv4();
+      const baseMargins = PAGE_CONFIGS[pageSize].margins;
+      setEditorPages({
+        [defaultPageId]: {
+          id: defaultPageId,
+          size: pageSize,
+          margins: { ...baseMargins },
+          blocks: blocksArray.map((block) => block._id),
+        },
+      });
+      setPageOrder([defaultPageId]);
+      setSelectedPageId(defaultPageId);
     }
-  }, [canLoadData, resumeData, loadError]);
+  }, [canLoadData, resumeData, loadError, pageSize]);
 
   // Scroll canvas to top when resumeId, template, or theme changes
   useEffect(() => {
@@ -182,6 +253,56 @@ export default function ResumeStudioPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    setTotalPages(pageOrder.length || 1);
+  }, [pageOrder]);
+
+  useEffect(() => {
+    if (pageOrder.length === 0) {
+      if (selectedPageId !== null) {
+        setSelectedPageId(null);
+      }
+      return;
+    }
+    if (!selectedPageId || !pageOrder.includes(selectedPageId)) {
+      setSelectedPageId(pageOrder[0]);
+    }
+  }, [selectedPageId, pageOrder]);
+
+  useEffect(() => {
+    if (blocksWithHeights.length === 0) {
+      return;
+    }
+
+    const result = reflowPages({
+      blocksWithHeights,
+      pages: editorPages,
+      pageOrder,
+      blocks: blocksMap,
+      layout: layoutConfig,
+      pageSize,
+      maxIterations: 5,
+    });
+
+    if (process.env.NEXT_PUBLIC_DEBUG_UI === '1' && result.log.length > 0) {
+      result.log.forEach((entry) => console.debug('[reflow]', entry));
+    }
+
+    if (!result.changed) {
+      return;
+    }
+
+    setEditorPages(result.pages);
+    setPageOrder(result.pageOrder);
+    setBlocksMap(result.blocks);
+    setSelectedPageId((prev) => {
+      if (prev && result.pages[prev]) {
+        return prev;
+      }
+      return result.pageOrder[0] ?? null;
+    });
+  }, [blocksWithHeights, editorPages, pageOrder, blocksMap, layoutConfig, pageSize]);
 
   const handleSelectBlock = (blockId: string | null) => {
     setSelectedBlockId(blockId);
@@ -216,7 +337,7 @@ export default function ResumeStudioPage() {
     }
   };
 
-  const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
+const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
     if (!user?.id) return;
 
     // Store previous state for rollback using functional setState
@@ -225,6 +346,7 @@ export default function ResumeStudioPage() {
       previousBlocks = current;
       return newBlocks;
     });
+    setBlocksMap(toBlockMap(newBlocks));
 
     // Save to server
     try {
@@ -243,6 +365,7 @@ export default function ResumeStudioPage() {
       console.error('Failed to save block order:', error);
       // Rollback to previous state
       setLocalBlocks(previousBlocks);
+      setBlocksMap(toBlockMap(previousBlocks));
       toast({
         title: 'Error',
         description: 'Failed to save block order. Changes have been reverted.',
@@ -264,6 +387,7 @@ export default function ResumeStudioPage() {
 
     // Update local state immediately (optimistic update)
     setLocalBlocks(newBlocks as Block[]);
+    setBlocksMap(toBlockMap(newBlocks as Block[]));
 
     // TODO: Save to server by updating all blocks
     // For now, we just update local state
@@ -376,15 +500,23 @@ export default function ResumeStudioPage() {
         }),
       });
 
-      const result = await response.json();
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch {
+        // non-JSON error response; fall back to generic message
+      }
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to generate resume');
+        const message = (result && result.error) || 'Failed to generate resume';
+        throw new Error(message);
       }
 
       toast({
         title: 'Success',
-        description: `Generated ${result.blocksGenerated || 'starter'} sections`,
+        description: result?.blocksGenerated
+          ? `Generated ${result.blocksGenerated} sections`
+          : 'Generation complete',
       });
     } catch (error: any) {
       toast({
@@ -400,58 +532,65 @@ export default function ResumeStudioPage() {
   // Page control handlers
   const handlePrevPage = useCallback(() => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+      const targetIndex = currentPage - 2;
+      const prevPageId = pageOrder[targetIndex];
+      if (prevPageId) {
+        setSelectedPageId(prevPageId);
+      }
     }
-  }, [currentPage]);
+  }, [currentPage, pageOrder]);
 
   const handleNextPage = useCallback(() => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+      const targetIndex = currentPage;
+      const nextPageId = pageOrder[targetIndex];
+      if (nextPageId) {
+        setSelectedPageId(nextPageId);
+      }
     }
-  }, [currentPage, totalPages]);
+  }, [currentPage, totalPages, pageOrder]);
 
-  const handleDuplicatePage = useCallback(async () => {
-    if (!user?.id) return;
+  const handleDuplicatePage = useCallback(() => {
+    if (!selectedPageId) return;
 
-    // NOTE: This is a simplified approximation that divides blocks evenly across pages.
-    // In reality, page breaks depend on actual content height and layout rendering.
-    // TODO: Implement proper page break detection based on rendered content.
-    const blocksPerPage = Math.ceil(localBlocks.length / totalPages);
-    const startIndex = (currentPage - 1) * blocksPerPage;
-    const endIndex = Math.min(startIndex + blocksPerPage, localBlocks.length);
-    const pageBlocks = localBlocks.slice(startIndex, endIndex);
+    const result = duplicatePage({
+      pageId: selectedPageId,
+      pages: editorPages,
+      pageOrder,
+      blocks: blocksMap,
+    });
 
-    if (pageBlocks.length === 0) return;
+    setEditorPages(result.pages);
+    setPageOrder(result.pageOrder);
+    setBlocksMap(result.blocks);
+    setLocalBlocks(
+      Object.values(result.blocks).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    );
+    setSelectedPageId(result.pageId);
+    toast({
+      title: 'Page duplicated',
+      description: 'A copy of the current page was created.',
+    });
+  }, [selectedPageId, editorPages, pageOrder, blocksMap, toast]);
 
-    try {
-      // Insert duplicates after the current page blocks concurrently
-      await Promise.all(
-        pageBlocks.map((block, i) =>
-          createBlock({
-            clerkId: user.id,
-            resumeId: resumeId as Id<"builder_resumes">,
-            type: block.type as Block['type'],
-            data: block.data,
-            order: endIndex + i,
-            locked: false,
-          })
-        )
-      );
+  const handleAddPage = useCallback(() => {
+    const margins = { ...layoutConfig.margins };
+    const result = createPage({
+      pages: editorPages,
+      pageOrder,
+      size: pageSize,
+      margins,
+    });
+    setEditorPages(result.pages);
+    setPageOrder(result.pageOrder);
+    setSelectedPageId(result.pageId);
+    toast({
+      title: 'Page added',
+      description: 'A new blank page was created.',
+    });
+  }, [editorPages, pageOrder, pageSize, layoutConfig, toast]);
 
-      toast({
-        title: 'Success',
-        description: `Duplicated ${pageBlocks.length} blocks`,
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to duplicate page',
-        variant: 'destructive',
-      });
-    }
-  }, [user?.id, resumeId, currentPage, totalPages, localBlocks, createBlock, toast]);
-
-  const handleAddSection = useCallback(async () => {
+  const handleAddPage = useCallback(async () => {
     if (!user?.id) return;
 
     try {
@@ -554,7 +693,7 @@ export default function ResumeStudioPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
               onClick={handleInsertStarterSection}
-              disabled={isInserting}
+              disabled={isBusy}
               variant="outline"
               className="gap-2"
             >
@@ -569,7 +708,7 @@ export default function ResumeStudioPage() {
             </Button>
             <Button
               onClick={handleGenerateWithAI}
-              disabled={isGenerating}
+              disabled={isBusy}
               className="gap-2"
             >
               {isGenerating ? (
@@ -766,15 +905,19 @@ export default function ResumeStudioPage() {
             {/* Render blocks with click-to-select */}
             <div className="p-12 space-y-6">
               {(() => {
-                // Filter blocks for current page
-                const blocksPerPage = Math.ceil(localBlocks.length / totalPages);
-                const startIndex = (currentPage - 1) * blocksPerPage;
-                const endIndex = Math.min(startIndex + blocksPerPage, localBlocks.length);
-                const currentPageBlocks = localBlocks.slice(startIndex, endIndex);
+                const currentPageId = pageOrder[currentPage - 1];
+                const pageEntity = currentPageId ? editorPages[currentPageId] : undefined;
+                const currentPageBlocks = pageEntity
+                  ? pageEntity.blocks
+                      .map((blockId) => blocksMap[blockId])
+                      .filter((block): block is Block => Boolean(block))
+                      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                  : [];
 
                 return currentPageBlocks.map((block) => (
                     <button
                       key={block._id}
+                      ref={(node) => registerBlock(block._id, node)}
                       onClick={() => handleSelectBlock(block._id)}
                       className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
                         selectedBlockId === block._id
@@ -802,7 +945,7 @@ export default function ResumeStudioPage() {
             onPrev={handlePrevPage}
             onNext={handleNextPage}
             onDuplicate={handleDuplicatePage}
-            onAddSection={handleAddSection}
+            onAddPage={handleAddPage}
           />
         </div>
 

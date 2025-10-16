@@ -4,6 +4,8 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "convex/_generated/api";
 import OpenAI from "openai";
 
+const OPENAI_TIMEOUT_MS = 30000; // 30 seconds
+
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
@@ -315,6 +317,7 @@ ${optimize ? "- Include optimizedLetter (string) that rewrites the cover letter 
       try {
         const completion = await openai.chat.completions.create({
           model: "gpt-4o",
+          timeout: OPENAI_TIMEOUT_MS,
           messages: [
             {
               role: "system",

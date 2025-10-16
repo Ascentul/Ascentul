@@ -85,17 +85,43 @@ Return JSON only, following the schema. Create:
 Set sequential integer "order" starting from 1.`;
 }
 
+export type TailoringContext = {
+  userProfile?: Record<string, unknown> | null;
+  goals?: unknown[];
+  applications?: unknown[];
+  resumes?: unknown[];
+  coverLetters?: unknown[];
+  projects?: unknown[];
+};
+
+const hasContextData = (context?: TailoringContext): boolean => {
+  if (!context) return false;
+  return Object.values(context).some((value) => {
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    return value !== null && value !== undefined;
+  });
+};
+
 // Template for job-specific tailoring
 export function generateTailoringPrompt(params: {
   jobDescription: string;
   currentBlocks: any[];
+  resumeContext?: TailoringContext;
 }): string {
-  const { jobDescription, currentBlocks } = params;
+  const { jobDescription, currentBlocks, resumeContext } = params;
+  const contextSection =
+    hasContextData(resumeContext)
+      ? `\nAdditional candidate context:\n${JSON.stringify(resumeContext, null, 2)}\n`
+      : '';
 
   return `Refine the resume for this job description. Keep JSON contract.
 
 Job description:
 ${jobDescription}
+
+${contextSection}
 
 Current blocks:
 ${JSON.stringify(currentBlocks, null, 2)}

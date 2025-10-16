@@ -6,6 +6,12 @@ import OpenAI from 'openai'
 
 export const runtime = 'nodejs'
 
+const OPENAI_TIMEOUT_MS = (() => {
+  const parsed = Number(process.env.OPENAI_TIMEOUT_MS)
+  if (Number.isFinite(parsed) && parsed > 0) return parsed
+  return 9000 // Below common serverless limits (e.g., 10s on Vercel Hobby)
+})()
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
@@ -55,6 +61,7 @@ Format as a structured plan with clear steps and timelines.`
     try {
       const completion = await openai.chat.completions.create({
         model: "gpt-4o",
+        timeout: OPENAI_TIMEOUT_MS,
         messages: [
           {
             role: "system",
@@ -69,7 +76,8 @@ Format as a structured plan with clear steps and timelines.`
         temperature: 0.7,
       })
       generatedPath = completion.choices[0]?.message?.content || null
-    } catch {
+    } catch (error) {
+      console.error('OpenAI API call failed:', error)
       generatedPath = null
     }
 

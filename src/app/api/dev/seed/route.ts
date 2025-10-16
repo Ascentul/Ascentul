@@ -17,36 +17,98 @@ function safeCompare(a: string, b: string): boolean {
   }
 }
 
+/**
+ * Simple in-memory mutex to prevent concurrent seeding operations.
+ *
+ * This prevents race conditions where multiple POST requests check
+ * `before.templates === 0` simultaneously and both attempt to seed,
+ * potentially causing duplicate entries or conflicts.
+ */
+class SeedMutex {
+  private locked = false;
+  private waitQueue: Array<() => void> = [];
+
+  async acquire(): Promise<void> {
+    if (!this.locked) {
+      this.locked = true;
+      return;
+    }
+
+    // Wait in queue until lock is released
+    return new Promise<void>((resolve) => {
+      this.waitQueue.push(resolve);
+    });
+  }
+
+  release(): void {
+    const next = this.waitQueue.shift();
+    if (next) {
+      // Pass lock to next waiting request
+      next();
+    } else {
+      // No one waiting, unlock
+      this.locked = false;
+    }
+  }
+}
+
+const seedMutex = new SeedMutex();
+
+function validateConvexUrl(): string {
+  if (!CONVEX_URL) {
+    throw new Error("Convex URL not set");
+  }
+  return CONVEX_URL;
+}
+
+/**
+ * Validates dev access by checking environment and optional API key.
+ * Returns a NextResponse if access is denied, null if access is granted.
+ */
+function checkDevAccess(request: Request): NextResponse | null {
+  // Only allow in development
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Seeding is only available in development" },
+      { status: 403 }
+    );
+  }
+
+  // Optional: Add API key protection even in development
+  const authHeader = request.headers.get("authorization");
+  const expectedKey = process.env.DEV_SEED_API_KEY;
+
+  if (expectedKey && !safeCompare(authHeader || '', `Bearer ${expectedKey}`)) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  return null; // Access granted
+}
+
+interface SeedResults {
+  before: { templates: number; themes: number };
+  templates?: { inserted: number; message?: string };
+  themes?: { inserted: number; message?: string };
+  after?: { templates: number; themes: number };
+}
+
 export async function POST(request: Request) {
+  // Acquire mutex lock to prevent concurrent seeding
+  await seedMutex.acquire();
+
   try {
-    // Only allow in development
-    if (process.env.NODE_ENV === "production") {
-      return NextResponse.json(
-        { error: "Seeding is only available in development" },
-        { status: 403 }
-      );
-    }
+    const accessError = checkDevAccess(request);
+    if (accessError) return accessError;
 
-    // Optional: Add API key protection even in development
-    const authHeader = request.headers.get("authorization");
-    const expectedKey = process.env.DEV_SEED_API_KEY;
-
-    if (expectedKey && !safeCompare(authHeader || '', `Bearer ${expectedKey}`)) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    if (!CONVEX_URL) {
-      throw new Error("Convex URL not set");
-    }
-
-    const convex = new ConvexHttpClient(CONVEX_URL);
+    const url = validateConvexUrl();
+    const convex = new ConvexHttpClient(url);
 
     // Check current state
     const before = await convex.query(api.devSeed.hasCatalog, {});
-    const results: any = { before };
+    const results: SeedResults = { before };
 
     // Seed templates if needed
     if (before.templates === 0) {
@@ -72,42 +134,26 @@ export async function POST(request: Request) {
       { error: "Failed to seed database" },
       { status: 500 }
     );
+  } finally {
+    // Always release the lock, even if an error occurred
+    seedMutex.release();
   }
 }
 
 export async function GET(request: Request) {
   try {
-    // Only allow in development
-    if (process.env.NODE_ENV === "production") {
-      return NextResponse.json(
-        { error: "Seeding is only available in development" },
-        { status: 403 }
-      );
-    }
+    const accessError = checkDevAccess(request);
+    if (accessError) return accessError;
 
-    // Optional: Add API key protection even in development
-    const authHeader = request.headers.get("authorization");
-    const expectedKey = process.env.DEV_SEED_API_KEY;
-
-    if (expectedKey && !safeCompare(authHeader || '', `Bearer ${expectedKey}`)) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    if (!CONVEX_URL) {
-      throw new Error("Convex URL not set");
-    }
-
-    const convex = new ConvexHttpClient(CONVEX_URL);
+    const url = validateConvexUrl();
+    const convex = new ConvexHttpClient(url);
     const catalog = await convex.query(api.devSeed.hasCatalog, {});
 
     return NextResponse.json(catalog);
   } catch (e: any) {
     console.error("Catalog check error:", e);
     return NextResponse.json(
-      { error: "Failed to fetch catalog" },
+      { error: "Failed to check catalog" },
       { status: 500 }
     );
   }

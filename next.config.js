@@ -1,7 +1,38 @@
+const previewBaseUrl = process.env.NEXT_PUBLIC_PREVIEW_BASE_URL;
+let previewDomain = null;
+
+if (previewBaseUrl) {
+  try {
+    previewDomain = new URL(previewBaseUrl).hostname;
+  } catch (error) {
+    if (process.env.NEXT_PUBLIC_DEBUG_UI === '1') {
+      console.warn('[next.config] Invalid NEXT_PUBLIC_PREVIEW_BASE_URL:', error);
+    }
+  }
+}
+
+const imageDomains = ['qyycdduuadsofgabrgip.supabase.co'];
+if (previewDomain && !imageDomains.includes(previewDomain)) {
+  imageDomains.push(previewDomain);
+}
+
+const imgSrcDomains = [
+  "'self'",
+  "data:",
+  "blob:",
+  "https://qyycdduuadsofgabrgip.supabase.co",
+  "https://*.stripe.com",
+  "https://img.clerk.com",
+];
+
+if (previewDomain) {
+  imgSrcDomains.push(`https://${previewDomain}`);
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['qyycdduuadsofgabrgip.supabase.co'],
+    domains: imageDomains,
   },
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
@@ -52,7 +83,7 @@ const nextConfig = {
               "worker-src 'self' blob:",
               "child-src 'self' blob:",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://qyycdduuadsofgabrgip.supabase.co https://*.stripe.com https://img.clerk.com",
+              `img-src ${imgSrcDomains.join(' ')}`,
               "font-src 'self' data:",
               "connect-src 'self' https://*.clerk.accounts.dev https://*.convex.cloud wss://*.convex.cloud https://api.openai.com https://api.stripe.com",
               "frame-src https://*.clerk.accounts.dev https://challenges.cloudflare.com https://js.stripe.com",

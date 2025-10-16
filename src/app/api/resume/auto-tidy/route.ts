@@ -138,11 +138,12 @@ export async function POST(req: NextRequest) {
           currentPrompt = `${userPrompt}\n\n---\nPREVIOUS ATTEMPT FAILED WITH ERRORS:\n${lastError}\n\nPlease fix these errors and return valid JSON matching the schema exactly. Ensure all required fields are present and all blocks from the original resume are included.`;
         }
 
-        // Call OpenAI
+        // Call OpenAI with timeout to prevent hanging requests
         const completion = await openai.chat.completions.create({
           model: currentModel,
           temperature: 0.2,
           max_tokens: 1600,
+          timeout: 30000, // 30 seconds timeout
           messages: [
             { role: 'system', content: AUTO_TIDY_SYSTEM_PROMPT },
             { role: 'user', content: currentPrompt },

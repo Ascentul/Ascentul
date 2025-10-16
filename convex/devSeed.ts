@@ -81,9 +81,9 @@ export const seedTemplates = mutation({
       },
     ];
 
-    for (const t of templates) {
-      await ctx.db.insert("builder_resume_templates", t);
-    }
+    await Promise.all(
+      templates.map(t => ctx.db.insert("builder_resume_templates", t))
+    );
 
     return { inserted: templates.length, message: "Templates seeded" };
   },
@@ -96,53 +96,56 @@ export const seedThemes = mutation({
     if (existing.length > 0) return { inserted: 0, message: "Themes already exist" };
 
     const now = Date.now();
+    const commonFonts = { heading: "Inter", body: "Inter" };
+    const commonFontSizes = { heading: 16, body: 11 };
+    const commonSpacing = { section: 16, item: 8 };
 
     const themes = [
       {
         slug: "modern-blue",
         name: "Modern Blue",
-        fonts: { heading: "Inter", body: "Inter" },
-        fontSizes: { heading: 16, body: 11 },
+        fonts: { ...commonFonts },
+        fontSizes: { ...commonFontSizes },
         colors: { primary: "#5271ff", text: "#111111", accent: "#00C092" },
-        spacing: { section: 16, item: 8 },
+        spacing: { ...commonSpacing },
         isPublic: true,
         createdAt: now,
       },
       {
         slug: "neutral-gray",
         name: "Neutral Gray",
-        fonts: { heading: "Inter", body: "Inter" },
-        fontSizes: { heading: 16, body: 11 },
+        fonts: { ...commonFonts },
+        fontSizes: { ...commonFontSizes },
         colors: { primary: "#111111", text: "#111111", accent: "#6B7280" },
-        spacing: { section: 16, item: 8 },
+        spacing: { ...commonSpacing },
         isPublic: true,
         createdAt: now,
       },
       {
         slug: "professional-navy",
         name: "Professional Navy",
-        fonts: { heading: "Inter", body: "Inter" },
-        fontSizes: { heading: 16, body: 11 },
+        fonts: { ...commonFonts },
+        fontSizes: { ...commonFontSizes },
         colors: { primary: "#0c29ab", text: "#111111", accent: "#1C1F27" },
-        spacing: { section: 16, item: 8 },
+        spacing: { ...commonSpacing },
         isPublic: true,
         createdAt: now,
       },
       {
         slug: "minimal-black",
         name: "Minimal Black",
-        fonts: { heading: "Inter", body: "Inter" },
-        fontSizes: { heading: 16, body: 11 },
+        fonts: { ...commonFonts },
+        fontSizes: { ...commonFontSizes },
         colors: { primary: "#000000", text: "#111111", accent: "#4B5563" },
-        spacing: { section: 16, item: 8 },
+        spacing: { ...commonSpacing },
         isPublic: true,
         createdAt: now,
       },
     ];
 
-    for (const t of themes) {
-      await ctx.db.insert("builder_resume_themes", t);
-    }
+    await Promise.all(
+      themes.map(t => ctx.db.insert("builder_resume_themes", t))
+    );
 
     return { inserted: themes.length, message: "Themes seeded" };
   },

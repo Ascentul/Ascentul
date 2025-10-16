@@ -38,7 +38,7 @@ async function seed() {
     console.log(`   Templates: ${after.templates}, Themes: ${after.themes}`);
     console.log("\n✨ Seeding complete!");
   } catch (error) {
-    console.error("❌ Seeding failed:", error.message);
+    console.error("❌ Seeding failed:", error);
     process.exit(1);
   }
 }

@@ -148,6 +148,7 @@ export async function POST(req: NextRequest) {
           model: currentModel,
           temperature: 0.2,
           max_tokens: 1600,
+          timeout: 15000, // 15 seconds timeout (allows for retries within 60s maxDuration)
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },

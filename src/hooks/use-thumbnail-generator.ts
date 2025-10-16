@@ -20,14 +20,15 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import html2canvas from 'html2canvas';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
+import { renderThumbnail } from '@/lib/thumbnail/renderThumbnail';
+import { setCachedThumbnail } from '@/lib/thumbnail/cache';
 
 export interface ThumbnailGeneratorOptions {
   width?: number; // Target width in pixels (default: 800)
-  debounceMs?: number; // Debounce delay in milliseconds (default: 500)
+  debounceMs?: number; // Debounce delay in milliseconds (default: 800)
   scale?: number; // Canvas scale factor (default: 0.5 for performance)
   onSuccess?: (dataUrl: string) => void;
   onError?: (error: Error) => void;
@@ -39,8 +40,7 @@ export function useThumbnailGenerator(
 ) {
   const {
     width = 800,
-    debounceMs = 500,
-    scale = 0.5,
+    debounceMs = 800,
     onSuccess,
     onError,
   } = options;
@@ -76,41 +76,28 @@ export function useThumbnailGenerator(
         setError(null);
 
         try {
-          // Capture element as canvas
-          const canvas = await html2canvas(element, {
+          const renderTimestamp = Date.now();
+
+          const dataUrl = await renderThumbnail(element, {
+            documentId: resumeId ?? 'preview',
+            lastUpdated: renderTimestamp,
             width,
-            scale,
-            useCORS: true, // Allow cross-origin images
-            logging: false, // Disable console logging
-            backgroundColor: '#ffffff', // White background
+            cacheResult: false,
           });
 
-          // Convert to data URL (PNG is lossless; quality parameter not used)
-          const dataUrl = canvas.toDataURL('image/png');
           setThumbnailDataUrl(dataUrl);
 
           // Upload to Convex storage if requested and resumeId is available
           if (uploadToConvex && resumeId) {
             try {
-              const blob = await new Promise<Blob>((resolve, reject) => {
-                canvas.toBlob(
-                  (result) => (result ? resolve(result) : reject(new Error('Failed to create blob'))),
-                  'image/png'
-                );
-              });
-
-              // TODO: upload blob to Convex storage and store reference instead of data URL
-              const blobDataUrl = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-              });
-
-              await uploadThumbnailMutation({
+              const result = await uploadThumbnailMutation({
                 resumeId,
-                thumbnailDataUrl: blobDataUrl,
+                thumbnailDataUrl: dataUrl,
               });
+
+              if (result?.updatedAt) {
+                setCachedThumbnail(resumeId, result.updatedAt, dataUrl);
+              }
             } catch (uploadError) {
               console.error('Failed to upload thumbnail to Convex:', uploadError);
               // Don't fail the entire generation if upload fails
@@ -128,7 +115,7 @@ export function useThumbnailGenerator(
         }
       }, debounceMs);
     },
-    [resumeId, width, scale, debounceMs, uploadThumbnailMutation, onSuccess, onError]
+    [resumeId, width, debounceMs, uploadThumbnailMutation, onSuccess, onError]
   );
 
   /**
@@ -174,17 +161,3 @@ export function useThumbnailGenerator(
  * {thumbnail && <img src={thumbnail} alt="Resume preview" />}
  * ```
  */
-export function useResumeThumbnail(resumeId: Id<"builder_resumes"> | null) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [thumbnail, setThumbnail] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isLoading, setIsLoading] = useState(false);
-
-  // TODO: Implement query to fetch thumbnail from Convex
-  // This will be completed in Phase 2.2 after schema update
-
-  return {
-    thumbnail,
-    isLoading,
-  };
-}

@@ -6,6 +6,7 @@ import { api } from '../../../../../convex/_generated/api';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import type {
   Block,
+  BlockData,
   HeaderData,
   SummaryData,
   ExperienceData,
@@ -13,12 +14,43 @@ import type {
   SkillsData,
   ProjectsData,
   CustomData,
+  ExperienceItem,
+  EducationItem,
+  ProjectItem,
 } from '@/lib/resume-types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2, Plus, Trash2, Check } from 'lucide-react';
+
+const addArrayItem = <T,>(items: T[], newItem: T): T[] => [...items, newItem];
+const removeArrayItem = <T,>(items: T[], index: number): T[] =>
+  items.filter((_, i) => i !== index);
+const updateArrayItem = <T,>(
+  items: T[],
+  index: number,
+  updater: (item: T) => T,
+): T[] =>
+  items.map((item, i) => (i === index ? updater(item) : item));
+
+const appendStringEntry = (list: string[] | undefined, value = ''): string[] => [
+  ...(list ?? []),
+  value,
+];
+const updateStringEntry = (
+  list: string[] | undefined,
+  index: number,
+  value: string,
+): string[] => {
+  const next = [...(list ?? [])];
+  next[index] = value;
+  return next;
+};
+const removeStringEntry = (
+  list: string[] | undefined,
+  index: number,
+): string[] => (list ?? []).filter((_, i) => i !== index);
 
 interface BlockInspectorProps {
   block: Block | null;
@@ -28,7 +60,7 @@ interface BlockInspectorProps {
 }
 
 export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: BlockInspectorProps) {
-  const [localData, setLocalData] = useState<any>(null);
+  const [localData, setLocalData] = useState<BlockData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
@@ -45,42 +77,42 @@ export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: Bl
   }, [block?._id]);
 
   const handleChange = useCallback(
-    (newData: any) => {
+    (newData: BlockData) => {
       setLocalData(newData);
 
-      // Clear existing timer
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
-
-      // Set new timer
-      const timer = setTimeout(async () => {
-        if (!block) return;
-
-        setIsSaving(true);
-        try {
-          const result = await updateBlock({
-            id: block._id,
-            clerkId,
-            data: newData,
-            expectedResumeUpdatedAt: resumeUpdatedAt,
-          });
-
-          onUpdate(result.resumeUpdatedAt);
-
-          // Show "Saved" briefly
-          setShowSaved(true);
-          setTimeout(() => setShowSaved(false), 2000);
-        } catch (error) {
-          console.error('Failed to update block:', error);
-        } finally {
-          setIsSaving(false);
+      setDebounceTimer((prevTimer) => {
+        // Clear existing timer
+        if (prevTimer) {
+          clearTimeout(prevTimer);
         }
-      }, 400);
 
-      setDebounceTimer(timer);
+        // Set new timer
+        return setTimeout(async () => {
+          if (!block) return;
+
+          setIsSaving(true);
+          try {
+            const result = await updateBlock({
+              id: block._id,
+              clerkId,
+              data: newData,
+              expectedResumeUpdatedAt: resumeUpdatedAt,
+            });
+
+            onUpdate(result.resumeUpdatedAt);
+
+            // Show "Saved" briefly
+            setShowSaved(true);
+            setTimeout(() => setShowSaved(false), 2000);
+          } catch (error) {
+            console.error('Failed to update block:', error);
+          } finally {
+            setIsSaving(false);
+          }
+        }, 400);
+      });
     },
-    [block, clerkId, resumeUpdatedAt, updateBlock, debounceTimer, onUpdate]
+    [block, clerkId, resumeUpdatedAt, updateBlock, onUpdate]
   );
 
   if (!block || !localData) {
@@ -114,25 +146,25 @@ export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: Bl
       </div>
 
       {block.type === 'header' && (
-        <HeaderInspector data={localData} onChange={handleChange} />
+        <HeaderInspector data={localData as HeaderData} onChange={handleChange} />
       )}
       {block.type === 'summary' && (
-        <SummaryInspector data={localData} onChange={handleChange} />
+        <SummaryInspector data={localData as SummaryData} onChange={handleChange} />
       )}
       {block.type === 'experience' && (
-        <ExperienceInspector data={localData} onChange={handleChange} />
+        <ExperienceInspector data={localData as ExperienceData} onChange={handleChange} />
       )}
       {block.type === 'education' && (
-        <EducationInspector data={localData} onChange={handleChange} />
+        <EducationInspector data={localData as EducationData} onChange={handleChange} />
       )}
       {block.type === 'skills' && (
-        <SkillsInspector data={localData} onChange={handleChange} />
+        <SkillsInspector data={localData as SkillsData} onChange={handleChange} />
       )}
       {block.type === 'projects' && (
-        <ProjectsInspector data={localData} onChange={handleChange} />
+        <ProjectsInspector data={localData as ProjectsData} onChange={handleChange} />
       )}
       {block.type === 'custom' && (
-        <CustomInspector data={localData} onChange={handleChange} />
+        <CustomInspector data={localData as CustomData} onChange={handleChange} />
       )}
     </div>
   );
@@ -251,50 +283,57 @@ function SummaryInspector({ data, onChange }: { data: SummaryData; onChange: (da
 function ExperienceInspector({ data, onChange }: { data: ExperienceData; onChange: (data: ExperienceData) => void }) {
   const items = data.items || [];
 
+  const updateItems = (modifier: (items: ExperienceItem[]) => ExperienceItem[]) => {
+    onChange({ ...data, items: modifier(items) });
+  };
+
   const addItem = () => {
-    onChange({
-      ...data,
-      items: [
-        ...items,
-        { company: '', role: '', location: '', start: '', end: '', bullets: [''] },
-      ],
-    });
+    updateItems((current) =>
+      addArrayItem(current, {
+        company: '',
+        role: '',
+        location: '',
+        start: '',
+        end: '',
+        bullets: [''],
+      }),
+    );
   };
 
   const removeItem = (index: number) => {
-    onChange({
-      ...data,
-      items: items.filter((_, i) => i !== index),
-    });
+    updateItems((current) => removeArrayItem(current, index));
   };
 
-  const updateItem = (index: number, updates: any) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], ...updates };
-    onChange({ ...data, items: newItems });
+  const updateItem = (index: number, updates: Partial<ExperienceItem>) => {
+    updateItems((current) =>
+      updateArrayItem(current, index, (item) => ({ ...item, ...updates })),
+    );
+  };
+
+  const modifyBullets = (
+    itemIndex: number,
+    modifier: (bullets: string[] | undefined) => string[],
+  ) => {
+    updateItems((current) =>
+      updateArrayItem(current, itemIndex, (item) => ({
+        ...item,
+        bullets: modifier(item.bullets),
+      })),
+    );
   };
 
   const addBullet = (itemIndex: number) => {
-    const newItems = [...items];
-    if (!newItems[itemIndex].bullets) {
-      newItems[itemIndex].bullets = [];
-    }
-    newItems[itemIndex].bullets!.push('');
-    onChange({ ...data, items: newItems });
+    modifyBullets(itemIndex, (bullets) => appendStringEntry(bullets));
   };
 
   const removeBullet = (itemIndex: number, bulletIndex: number) => {
-    const newItems = [...items];
-    if (newItems[itemIndex].bullets) {
-      newItems[itemIndex].bullets = newItems[itemIndex].bullets!.filter((_, i) => i !== bulletIndex);
-      onChange({ ...data, items: newItems });
-    }
+    modifyBullets(itemIndex, (bullets) => removeStringEntry(bullets, bulletIndex));
   };
 
   const updateBullet = (itemIndex: number, bulletIndex: number, value: string) => {
-    const newItems = [...items];
-    newItems[itemIndex].bullets[bulletIndex] = value;
-    onChange({ ...data, items: newItems });
+    modifyBullets(itemIndex, (bullets) =>
+      updateStringEntry(bullets, bulletIndex, value),
+    );
   };
 
   return (
@@ -388,42 +427,58 @@ function ExperienceInspector({ data, onChange }: { data: ExperienceData; onChang
 function EducationInspector({ data, onChange }: { data: EducationData; onChange: (data: EducationData) => void }) {
   const items = data.items || [];
 
+  const updateItems = (modifier: (items: EducationItem[]) => EducationItem[]) => {
+    onChange({ ...data, items: modifier(items) });
+  };
+
   const addItem = () => {
-    onChange({
-      ...data,
-      items: [...items, { school: '', degree: '', location: '', end: '', details: [''] }],
-    });
+    updateItems((current) =>
+      addArrayItem(current, {
+        school: '',
+        degree: '',
+        location: '',
+        start: '',
+        end: '',
+        details: [''],
+      }),
+    );
   };
 
   const removeItem = (index: number) => {
-    onChange({
-      ...data,
-      items: items.filter((_, i) => i !== index),
-    });
+    updateItems((current) => removeArrayItem(current, index));
   };
 
-  const updateItem = (index: number, updates: any) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], ...updates };
-    onChange({ ...data, items: newItems });
+  const updateItem = (index: number, updates: Partial<EducationItem>) => {
+    updateItems((current) =>
+      updateArrayItem(current, index, (item) => ({ ...item, ...updates })),
+    );
   };
 
   const addDetail = (itemIndex: number) => {
-    const newItems = [...items];
-    newItems[itemIndex].details.push('');
-    onChange({ ...data, items: newItems });
+    updateItems((current) =>
+      updateArrayItem(current, itemIndex, (item) => ({
+        ...item,
+        details: appendStringEntry(item.details),
+      })),
+    );
   };
 
   const removeDetail = (itemIndex: number, detailIndex: number) => {
-    const newItems = [...items];
-    newItems[itemIndex].details = newItems[itemIndex].details.filter((_, i) => i !== detailIndex);
-    onChange({ ...data, items: newItems });
+    updateItems((current) =>
+      updateArrayItem(current, itemIndex, (item) => ({
+        ...item,
+        details: removeStringEntry(item.details, detailIndex),
+      })),
+    );
   };
 
   const updateDetail = (itemIndex: number, detailIndex: number, value: string) => {
-    const newItems = [...items];
-    newItems[itemIndex].details[detailIndex] = value;
-    onChange({ ...data, items: newItems });
+    updateItems((current) =>
+      updateArrayItem(current, itemIndex, (item) => ({
+        ...item,
+        details: updateStringEntry(item.details, detailIndex, value),
+      })),
+    );
   };
 
   return (
@@ -459,12 +514,20 @@ function EducationInspector({ data, onChange }: { data: EducationData; onChange:
             placeholder="Location (optional)"
             className="text-sm"
           />
-          <Input
-            value={item.end}
-            onChange={(e) => updateItem(index, { end: e.target.value })}
-            placeholder="Graduation Date (e.g., May 2020)"
-            className="text-sm"
-          />
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              value={item.start || ''}
+              onChange={(e) => updateItem(index, { start: e.target.value })}
+              placeholder="Start (e.g., Sep 2016)"
+              className="text-sm"
+            />
+            <Input
+              value={item.end || ''}
+              onChange={(e) => updateItem(index, { end: e.target.value })}
+              placeholder="End (e.g., May 2020)"
+              className="text-sm"
+            />
+          </div>
           <div className="space-y-2">
             <Label className="text-xs">Details</Label>
             {item.details?.map((detail, dIndex) => (
@@ -547,47 +610,51 @@ function SkillsInspector({ data, onChange }: { data: SkillsData; onChange: (data
 function ProjectsInspector({ data, onChange }: { data: ProjectsData; onChange: (data: ProjectsData) => void }) {
   const items = data.items || [];
 
+  const updateItems = (modifier: (items: ProjectItem[]) => ProjectItem[]) => {
+    onChange({ ...data, items: modifier(items) });
+  };
+
   const addItem = () => {
-    onChange({
-      ...data,
-      items: [...items, { name: '', description: '', bullets: [''] }],
-    });
+    updateItems((current) =>
+      addArrayItem(current, { name: '', description: '', bullets: [''] }),
+    );
   };
 
   const removeItem = (index: number) => {
-    onChange({
-      ...data,
-      items: items.filter((_, i) => i !== index),
-    });
+    updateItems((current) => removeArrayItem(current, index));
   };
 
-  const updateItem = (index: number, updates: any) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], ...updates };
-    onChange({ ...data, items: newItems });
+  const updateItem = (index: number, updates: Partial<ProjectItem>) => {
+    updateItems((current) =>
+      updateArrayItem(current, index, (item) => ({ ...item, ...updates })),
+    );
   };
 
   const addBullet = (itemIndex: number) => {
-    const newItems = [...items];
-    if (!newItems[itemIndex].bullets) {
-      newItems[itemIndex].bullets = [];
-    }
-    newItems[itemIndex].bullets!.push('');
-    onChange({ ...data, items: newItems });
+    updateItems((current) =>
+      updateArrayItem(current, itemIndex, (item) => ({
+        ...item,
+        bullets: appendStringEntry(item.bullets),
+      })),
+    );
   };
 
   const removeBullet = (itemIndex: number, bulletIndex: number) => {
-    const newItems = [...items];
-    if (newItems[itemIndex].bullets) {
-      newItems[itemIndex].bullets = newItems[itemIndex].bullets!.filter((_, i) => i !== bulletIndex);
-      onChange({ ...data, items: newItems });
-    }
+    updateItems((current) =>
+      updateArrayItem(current, itemIndex, (item) => ({
+        ...item,
+        bullets: removeStringEntry(item.bullets, bulletIndex),
+      })),
+    );
   };
 
   const updateBullet = (itemIndex: number, bulletIndex: number, value: string) => {
-    const newItems = [...items];
-    newItems[itemIndex].bullets[bulletIndex] = value;
-    onChange({ ...data, items: newItems });
+    updateItems((current) =>
+      updateArrayItem(current, itemIndex, (item) => ({
+        ...item,
+        bullets: updateStringEntry(item.bullets, bulletIndex, value),
+      })),
+    );
   };
 
   return (

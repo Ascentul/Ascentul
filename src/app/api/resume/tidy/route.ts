@@ -152,6 +152,7 @@ export async function POST(req: NextRequest) {
           model: currentModel,
           temperature: 0.2,
           max_tokens: 2000,
+          timeout: 30000, // 30 seconds timeout
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: AUTO_TIDY_SYSTEM_PROMPT },

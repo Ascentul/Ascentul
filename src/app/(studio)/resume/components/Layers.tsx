@@ -70,8 +70,8 @@ export function Layers({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, index: number, block: Block) => {
-    // Enter to select
-    if (e.key === 'Enter') {
+    // Enter or Space to select
+    if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onSelect(block._id);
       return;
@@ -80,12 +80,12 @@ export function Layers({
     // Arrow keys for reordering (if not locked)
     if (block.locked) return;
 
-    if (e.key === 'ArrowUp' && index > 0) {
+    if (e.key === 'ArrowUp' && index > 0 && !blocks[index - 1].locked) {
       e.preventDefault();
       const newBlocks = [...blocks];
       [newBlocks[index - 1], newBlocks[index]] = [newBlocks[index], newBlocks[index - 1]];
       onReorder(newBlocks);
-    } else if (e.key === 'ArrowDown' && index < blocks.length - 1) {
+    } else if (e.key === 'ArrowDown' && index < blocks.length - 1 && !blocks[index + 1].locked) {
       e.preventDefault();
       const newBlocks = [...blocks];
       [newBlocks[index], newBlocks[index + 1]] = [newBlocks[index + 1], newBlocks[index]];
@@ -128,7 +128,7 @@ export function Layers({
                 <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 transition-colors hover:text-foreground" />
               )}
               {block.locked && (
-                <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-label="Locked block" />
               )}
 
               {/* Block label */}

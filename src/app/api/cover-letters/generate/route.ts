@@ -8,6 +8,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
+const OPENAI_TIMEOUT_MS = 30000 // 30 seconds
+
 function getClient() {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL
   if (!url) throw new Error('Convex URL not configured')
@@ -167,6 +169,7 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
     try {
       const completion = await openai.chat.completions.create({
         model: "gpt-4o",
+        timeout: OPENAI_TIMEOUT_MS,
         messages: [
           {
             role: "system",

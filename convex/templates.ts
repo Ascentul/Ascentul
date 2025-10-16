@@ -18,7 +18,6 @@ export const listTemplates = query({
     const result = await ctx.db
       .query("builder_resume_templates")
       .withIndex("by_name")
-      .order("asc")
       .paginate(args.paginationOpts);
 
     return {
@@ -49,7 +48,6 @@ export const listTemplatesAll = query({
     const templates = await ctx.db
       .query("builder_resume_templates")
       .withIndex("by_name")
-      .order("asc")
       .collect();
 
     return templates.map((template) => ({

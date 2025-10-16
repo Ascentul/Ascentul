@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 import { ConvexHttpClient } from 'convex/browser';
+import type { FunctionReference, FunctionReturnType } from 'convex/server';
 import { api } from '../../../../../convex/_generated/api';
 import { openai } from '@/lib/ai/openaiClient';
-import { getModel, FALLBACK_MODEL } from '@/lib/ai/aiConfig';
+import { getModel, FALLBACK_MODEL, AI_CONFIG } from '@/lib/ai/aiConfig';
+import { logger } from '@/lib/logger';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import {
   validateAIResponse,
@@ -15,6 +17,7 @@ import {
   generateTailoringPrompt,
   generateCorrectionPrompt,
   extractJSONFromResponse,
+  type TailoringContext,
 } from '@/lib/ai-prompts';
 
 export const runtime = 'nodejs';
@@ -34,6 +37,7 @@ interface TailorResumeRequest {
  * - Users can bypass cooldown by hitting different instances
  * - The map will be lost on cold starts
  * - Not suitable for production rate limiting
+ * - Cooldown entries persist until the instance is recycled (no automatic cleanup)
  *
  * TODO: For production, replace with:
  * - Distributed cache (Redis, Vercel KV)
@@ -44,11 +48,16 @@ interface TailorResumeRequest {
  */
 const cooldownMap = new Map<string, number>();
 const COOLDOWN_MS = 20000; // 20 seconds
+const CONTEXT_QUERY_TIMEOUT_MS = 6000; // 6 seconds for Convex read contexts
+
+type QueryReference = FunctionReference<"query", any, any, any>;
+type QueryResult<Ref extends QueryReference> = FunctionReturnType<Ref>;
 
 /**
  * Tailor resume blocks for a specific job description using AI
  */
 export async function POST(req: NextRequest) {
+  let resumeId: Id<"builder_resumes"> | undefined;
   try {
     // 1. Check if OpenAI key is available at runtime
     if (!process.env.OPENAI_API_KEY) {
@@ -64,7 +73,8 @@ export async function POST(req: NextRequest) {
     }
 
     const body: TailorResumeRequest = await req.json();
-    const { resumeId, jobDescription, currentBlocks } = body;
+    ({ resumeId } = body);
+    const { jobDescription, currentBlocks } = body;
 
     if (!resumeId || !jobDescription || !currentBlocks) {
       return NextResponse.json(
@@ -86,6 +96,11 @@ export async function POST(req: NextRequest) {
     try {
       await client.query(api.builder_resumes.getResume, { id: resumeId, clerkId: userId });
     } catch (error) {
+      logger.warn('Resume ownership verification failed', {
+        resumeId,
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       return NextResponse.json({ error: 'Resume not found or access denied' }, { status: 403 });
     }
 
@@ -100,43 +115,131 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Set cooldown
+    // Set cooldown after verifying ownership
     cooldownMap.set(resumeId, now);
 
-    // Lazy cleanup: only when map exceeds 100 entries to avoid running cleanup on every request
-    if (cooldownMap.size > 100) {
-      const CLEANUP_AGE = 5 * 60 * 1000;
-      const entries = Array.from(cooldownMap.entries());
-      for (const [key, timestamp] of entries) {
-        if (now - timestamp > CLEANUP_AGE) {
-          cooldownMap.delete(key);
-        }
+    // 5. Load supporting resume context with timeout protection
+    type TailorContextData = [
+      QueryResult<typeof api.users.getUserByClerkId>,
+      QueryResult<typeof api.goals.getUserGoals>,
+      QueryResult<typeof api.applications.getUserApplications>,
+      QueryResult<typeof api.resumes.getUserResumes>,
+      QueryResult<typeof api.cover_letters.getUserCoverLetters>,
+      QueryResult<typeof api.projects.getUserProjects>
+    ];
+
+    const resumeContext: TailoringContext = {
+      userProfile: null,
+      goals: [],
+      applications: [],
+      resumes: [],
+      coverLetters: [],
+      projects: [],
+    };
+
+    let contextTimeoutHandle: NodeJS.Timeout | undefined;
+    const timeoutPromise: Promise<TailorContextData> = new Promise((_, reject) => {
+      contextTimeoutHandle = setTimeout(() => {
+        reject(
+          new Error(
+            `Convex context queries timed out after ${CONTEXT_QUERY_TIMEOUT_MS}ms`,
+          ),
+        );
+      }, CONTEXT_QUERY_TIMEOUT_MS);
+    });
+
+    try {
+      // Note: Promise.race cancels waiting on slow responses, but Convex queries
+      // continue running in the background. Safe here since these are reads only.
+      const contextPromise = Promise.all([
+        client.query(api.users.getUserByClerkId, { clerkId: userId }),
+        client.query(api.goals.getUserGoals, { clerkId: userId }),
+        client.query(api.applications.getUserApplications, { clerkId: userId }),
+        client.query(api.resumes.getUserResumes, { clerkId: userId }),
+        client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
+        client.query(api.projects.getUserProjects, { clerkId: userId }),
+      ]) as Promise<TailorContextData>;
+
+      const [
+        userProfile,
+        goals,
+        applications,
+        resumes,
+        coverLetters,
+        projects,
+      ] = await Promise.race([contextPromise, timeoutPromise]);
+
+      resumeContext.userProfile = userProfile ?? null;
+      resumeContext.goals = (goals ?? []).slice(0, 5);
+      resumeContext.applications = (applications ?? []).slice(0, 5);
+      resumeContext.resumes = (resumes ?? []).slice(0, 5);
+      resumeContext.coverLetters = (coverLetters ?? []).slice(0, 5);
+      resumeContext.projects = (projects ?? []).slice(0, 5);
+
+      if (contextTimeoutHandle) {
+        clearTimeout(contextTimeoutHandle);
       }
+
+      logger.debug('Resume context fetched', {
+        resumeId,
+        hasProfile: Boolean(userProfile),
+        goalsCount: goals?.length ?? 0,
+        applicationsCount: applications?.length ?? 0,
+        resumesCount: resumes?.length ?? 0,
+        coverLettersCount: coverLetters?.length ?? 0,
+        projectsCount: projects?.length ?? 0,
+      });
+    } catch (error) {
+      if (contextTimeoutHandle) {
+        clearTimeout(contextTimeoutHandle);
+      }
+
+      logger.warn('Failed to load resume context for tailoring', {
+        resumeId,
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
 
-    // 5. Generate the tailoring prompt
+    // 6. Generate the tailoring prompt
     const userPrompt = generateTailoringPrompt({
       jobDescription,
       currentBlocks,
+      resumeContext,
     });
 
-    console.log('Tailoring resume for job description, blocks:', currentBlocks.length);
+    logger.info('Tailoring resume for job description', {
+      resumeId,
+      userId,
+      blocksCount: currentBlocks.length,
+    });
 
-    // 6. Call OpenAI with retry logic (up to 3 attempts)
+    // 7. Call OpenAI with retry logic (up to 3 attempts)
     let validatedData: AIResumeResponse | null = null;
     let lastResponse: string = '';
     let lastError: string | null = null;
-    const maxAttempts = 3;
+    const maxAttempts = AI_CONFIG.MAX_RETRY_ATTEMPTS;
     let currentModel = getModel();
     let hasTriedFallback = false;
 
-    for (let attempts = 1; attempts <= maxAttempts; attempts++) {
+    let actualAttempts = 0;
+    let retriesRemaining = maxAttempts;
+
+    while (retriesRemaining > 0) {
+      retriesRemaining--;
+      actualAttempts++;
+
       try {
-        console.log(`AI attempt ${attempts}/${maxAttempts} with model: ${currentModel}`);
+        logger.debug('AI attempt starting', {
+          attempt: actualAttempts,
+          maxAttempts,
+          model: currentModel,
+          resumeId,
+        });
 
         // Adjust prompt for retry attempts
         let currentUserPrompt = userPrompt;
-        if (attempts > 1 && lastError) {
+        if (actualAttempts > 1 && lastError) {
           currentUserPrompt = generateCorrectionPrompt({
             validationErrors: lastError,
             badJson: lastResponse,
@@ -153,40 +256,59 @@ export async function POST(req: NextRequest) {
           model: currentModel,
           messages,
           response_format: { type: 'json_object' },
-          temperature: 0.2,
-          max_tokens: 1600,
+          temperature: AI_CONFIG.TEMPERATURE.PRECISE,
+          max_tokens: AI_CONFIG.MAX_TOKENS.LONG,
+          timeout: AI_CONFIG.TIMEOUT,
         });
 
         const content = response.choices[0]?.message?.content || '{"blocks":[]}';
         lastResponse = content;
 
-        console.log('AI response received, length:', content.length);
+        logger.debug('AI response received', {
+          contentLength: content.length,
+          attempt: actualAttempts,
+          resumeId,
+        });
 
-        // 7. Extract and parse JSON
+        // 8. Extract and parse JSON
         const parsed = extractJSONFromResponse(content);
 
-        // 8. Validate with Zod
+        // 9. Validate with Zod
         const validation = validateAIResponse(parsed);
 
         if (validation.success && validation.data) {
           validatedData = validation.data;
-          console.log('Validation successful, blocks:', validatedData.blocks.length);
+          logger.info('Resume tailoring validation successful', {
+            blocksCount: validatedData.blocks.length,
+            attempt: actualAttempts,
+            resumeId,
+          });
           break;
         } else if (validation.errors) {
           lastError = formatZodErrorsForAI(validation.errors);
-          console.warn(`Attempt ${attempts} - Validation failed:`, lastError);
+          logger.warn('Resume tailoring validation failed', {
+            attempt: actualAttempts,
+            validationErrors: lastError,
+            resumeId,
+          });
 
-          if (attempts === maxAttempts) {
+          if (retriesRemaining === 0) {
             return NextResponse.json({
               error: 'Failed to generate valid resume after multiple attempts',
               validationErrors: lastError,
               lastAttempt: parsed,
             }, { status: 422 });
           }
+
+          continue;
         }
       } catch (error: any) {
         lastError = error.message;
-        console.error(`Attempt ${attempts} - AI call failed:`, error);
+        logger.error('AI call failed during resume tailoring', error, {
+          attempt: actualAttempts,
+          model: currentModel,
+          resumeId,
+        });
 
         // Check if this is a model-related error and we haven't tried the fallback yet
         const isModelError =
@@ -196,33 +318,45 @@ export async function POST(req: NextRequest) {
           error.status === 404;
 
         if (isModelError && !hasTriedFallback && currentModel !== FALLBACK_MODEL) {
-          console.log(`Model error detected. Falling back to ${FALLBACK_MODEL}`);
+          logger.info('Model error detected, falling back', {
+            previousModel: currentModel,
+            fallbackModel: FALLBACK_MODEL,
+            resumeId,
+          });
           currentModel = FALLBACK_MODEL;
           hasTriedFallback = true;
           // Don't count this as a failed attempt - retry with fallback model
-          attempts--;
+          retriesRemaining++;
           continue;
         }
 
-        if (attempts === maxAttempts) {
+        if (retriesRemaining === 0) {
           return NextResponse.json({
-            error: 'Resume tailoring failed after 3 attempts',
+            error: `Resume tailoring failed after ${maxAttempts} attempts`,
             details: error.message,
           }, { status: 500 });
         }
 
         // Exponential backoff before retry
-        if (attempts < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempts - 1), 5000)));
-        }
+        const backoffDelay = Math.min(1000 * Math.pow(2, actualAttempts - 1), 5000);
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
       }
     }
 
     if (!validatedData) {
+      logger.error('Resume tailoring failed - no valid data generated', undefined, {
+        resumeId,
+        maxAttempts,
+      });
       return NextResponse.json({
         error: 'Failed to tailor resume',
       }, { status: 500 });
     }
+
+    logger.info('Resume tailoring completed successfully', {
+      resumeId,
+      blocksCount: validatedData.blocks.length,
+    });
 
     return NextResponse.json({
       success: true,
@@ -230,7 +364,9 @@ export async function POST(req: NextRequest) {
       message: `Tailored resume with ${validatedData.blocks.length} blocks`,
     });
   } catch (error: any) {
-    console.error('Resume tailoring error:', error);
+    logger.error('Resume tailoring error - unexpected exception', error, {
+      resumeId,
+    });
     return NextResponse.json(
       { error: error.message || 'Failed to tailor resume' },
       { status: 500 }

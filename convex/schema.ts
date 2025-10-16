@@ -582,6 +582,7 @@ export default defineSchema({
     slug: v.string(),
     description: v.optional(v.string()),
     defaultThemeId: v.optional(v.id("builder_resume_themes")),
+    preview: v.optional(v.string()), // Optional preview asset reference (relative filename or remote URL)
     thumbnailUrl: v.optional(v.string()),
     pageSize: v.optional(v.string()),
     margins: v.optional(v.any()),

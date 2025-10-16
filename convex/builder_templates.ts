@@ -18,6 +18,7 @@ export const listTemplates = query({
       id: template._id,
       slug: template.slug,
       name: template.name,
+      preview: template.preview ?? template.thumbnailUrl ?? null,
       thumbnailUrl: template.thumbnailUrl,
       pageSize: template.pageSize,
       allowedBlocks: template.allowedBlocks,
@@ -31,22 +32,7 @@ export const listTemplates = query({
  */
 export const listTemplatesAll = query({
   args: {},
-  handler: async (ctx) => {
-    const templates = await ctx.db
-      .query("builder_resume_templates")
-      .withIndex("by_name")
-      .order("asc")
-      .collect();
-
-    return templates.map((template) => ({
-      id: template._id,
-      slug: template.slug,
-      name: template.name,
-      thumbnailUrl: template.thumbnailUrl,
-      pageSize: template.pageSize,
-      allowedBlocks: template.allowedBlocks,
-    }));
-  },
+  handler: listTemplates.handler,
 });
 
 /**
@@ -71,6 +57,7 @@ export const getTemplate = query({
       id: template._id,
       slug: template.slug,
       name: template.name,
+      preview: template.preview ?? template.thumbnailUrl ?? null,
       pageSize: template.pageSize,
       margins: template.margins,
       allowedBlocks: template.allowedBlocks,

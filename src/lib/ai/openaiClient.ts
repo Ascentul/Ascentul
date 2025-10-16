@@ -5,6 +5,7 @@
  * This module reads process.env and will fail at build time in client code.
  */
 
+import "server-only";
 import OpenAI from "openai";
 
 const key = process.env.OPENAI_API_KEY;

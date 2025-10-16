@@ -30,6 +30,13 @@
       "convex/*": ["./convex/*"]
     }
   },
-  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
   "exclude": ["node_modules", "archive", "archive/**", "nextjs-migration", "nextjs-migration/**"]
 }

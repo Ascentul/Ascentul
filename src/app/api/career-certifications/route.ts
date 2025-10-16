@@ -26,6 +26,7 @@ Level: ${level}
 Skills: ${skills.map((s) => `${s.name}(${s.level})`).join(', ')}`
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o',
+          timeout: 15000, // 15 seconds timeout
           temperature: 0.4,
           messages: [
             { role: 'system', content: 'Respond with strictly valid JSON that matches the requested schema.' },
@@ -36,8 +37,12 @@ Skills: ${skills.map((s) => `${s.name}(${s.level})`).join(', ')}`
         try {
           const parsed = JSON.parse(content)
           if (Array.isArray(parsed?.certifications)) return NextResponse.json(parsed)
-        } catch {}
-      } catch {}
+        } catch (parseError) {
+          console.warn('Failed to parse OpenAI response:', parseError)
+        }
+      } catch (openaiError) {
+        console.warn('OpenAI API call failed:', openaiError)
+      }
     }
 
     // Fallback mock data

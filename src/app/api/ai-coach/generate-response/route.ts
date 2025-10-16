@@ -30,14 +30,23 @@ export async function POST(request: NextRequest) {
     const client = getClient()
     let userContext = ''
     try {
-      const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.all([
-        client.query(api.users.getUserByClerkId, { clerkId: userId }),
-        client.query(api.goals.getUserGoals, { clerkId: userId }),
-        client.query(api.applications.getUserApplications, { clerkId: userId }),
-        client.query(api.resumes.getUserResumes, { clerkId: userId }),
-        client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
-        client.query(api.projects.getUserProjects, { clerkId: userId })
-      ])
+      const CONVEX_TIMEOUT_MS = 10000; // 10 seconds
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Convex query timeout')), CONVEX_TIMEOUT_MS)
+      );
+
+      const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.race([
+        Promise.all([
+          client.query(api.users.getUserByClerkId, { clerkId: userId }),
+          client.query(api.goals.getUserGoals, { clerkId: userId }),
+          client.query(api.applications.getUserApplications, { clerkId: userId }),
+          client.query(api.resumes.getUserResumes, { clerkId: userId }),
+          client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
+          client.query(api.projects.getUserProjects, { clerkId: userId })
+        ]),
+        timeoutPromise
+      ]) as [any, any[], any[], any[], any[], any[]];
 
       // Build user context summary
       const contextParts: string[] = []
@@ -125,6 +134,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
 
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o',
+          timeout: 15000, // 15 seconds timeout
           messages: messages,
           temperature: 0.7,
           max_tokens: 1500,
