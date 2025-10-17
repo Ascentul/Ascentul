@@ -245,7 +245,11 @@ function HeaderInspector({ data, onChange }: { data: HeaderData; onChange: (data
               .split(',')
               .map((s) => s.trim())
               .filter(Boolean);
-            const linkObjects = urls.map(url => ({ label: url, url }));
+            const existingLinks = data.contact?.links || [];
+            const linkObjects = urls.map((url) => {
+              const existing = existingLinks.find((link) => link.url === url);
+              return existing || { label: url, url };
+            });
             onChange({
               ...data,
               contact: {

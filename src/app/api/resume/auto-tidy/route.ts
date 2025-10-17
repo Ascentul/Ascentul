@@ -102,10 +102,17 @@ export async function POST(req: NextRequest) {
     cooldownMap.set(resumeId, now);
 
     // Lazy cleanup: only when map exceeds 100 entries to avoid running cleanup on every request
+    // Incremental cleanup: clean oldest entries by timestamp to avoid O(n) spikes
     if (cooldownMap.size > 100) {
-      const CLEANUP_AGE = 5 * 60 * 1000;
-      const entries = Array.from(cooldownMap.entries());
-      for (const [key, timestamp] of entries) {
+      const CLEANUP_AGE = 60 * 1000; // 1 minute (enough buffer beyond 20s cooldown)
+      const MAX_CLEANUP_PER_REQUEST = 10; // Clean up 10 oldest entries at a time
+
+      // Sort by timestamp (oldest first) to ensure we clean actual oldest entries
+      const sortedEntries = Array.from(cooldownMap.entries())
+        .sort(([, a], [, b]) => a - b) // Sort by timestamp ascending (oldest first)
+        .slice(0, MAX_CLEANUP_PER_REQUEST);
+
+      for (const [key, timestamp] of sortedEntries) {
         if (now - timestamp > CLEANUP_AGE) {
           cooldownMap.delete(key);
         }
@@ -154,7 +161,7 @@ export async function POST(req: NextRequest) {
           }
         );
 
-        const aiResponse = completion.choices[0]?.message?.content;
+        const aiResponse = completion.choices?.[0]?.message?.content;
 
         if (!aiResponse) {
           throw new Error('No content in AI response');
@@ -213,10 +220,9 @@ export async function POST(req: NextRequest) {
 
         // Check if this is a model-related error and we haven't tried the fallback yet
         const isModelError =
-          error.message?.toLowerCase().includes('model') ||
-          error.message?.toLowerCase().includes('not found') ||
           error.code === 'model_not_found' ||
-          error.status === 404;
+          error.status === 404 ||
+          (error.message && /model.*not.*found|invalid.*model/i.test(error.message));
 
         if (isModelError && !hasTriedFallback && currentModel !== FALLBACK_MODEL) {
           console.log(`Model error detected. Falling back to ${FALLBACK_MODEL}`);

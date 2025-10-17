@@ -534,14 +534,22 @@ export const duplicateResume = mutation({
       .withIndex("by_resume", (q: any) => q.eq("resumeId", args.resumeId))
       .collect();
 
-    for (const block of blocks) {
-      await ctx.db.insert("resume_blocks", {
-        resumeId: newResumeId,
-        type: block.type,
-        data: block.data,
-        order: block.order,
-        locked: block.locked,
-      });
+    // Copy all blocks - Convex mutations are atomic, so any error will
+    // automatically roll back ALL writes including the new resume insertion
+    try {
+      for (const block of blocks) {
+        await ctx.db.insert("resume_blocks", {
+          resumeId: newResumeId,
+          type: block.type,
+          data: block.data,
+          order: block.order,
+          locked: block.locked,
+        });
+      }
+    } catch (error) {
+      // Convex automatically rolls back all database writes on error,
+      // including the resume created on line 520. No manual cleanup needed.
+      throw new Error(`Failed to duplicate resume blocks: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     return {

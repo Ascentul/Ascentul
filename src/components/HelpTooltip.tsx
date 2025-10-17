@@ -94,17 +94,20 @@ export function FeatureBadge({
 /**
  * Keyboard Shortcut Display
  * Shows keyboard shortcuts in a styled format
+ *
+ * Note: Uses index for React keys and separator logic to handle edge cases
+ * where duplicate keys might exist in the array (e.g., ['Ctrl', 'Shift', 'Ctrl'])
  */
 export function KeyboardShortcut({ keys }: { keys: string[] }) {
   return (
     <span className="inline-flex items-center gap-1">
       {keys.map((key, index) => (
         <span key={index}>
-          <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-md">
+          <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-md dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700">
             {key}
           </kbd>
           {index < keys.length - 1 && (
-            <span className="text-gray-500 mx-1">+</span>
+            <span className="text-gray-500 dark:text-gray-400 mx-1">+</span>
           )}
         </span>
       ))}

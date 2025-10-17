@@ -13,13 +13,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import type { Id } from '../../../../../convex/_generated/dataModel';
+import type { ResumeBlock } from '@/lib/validators/resume';
 
 interface TailorToJobDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   resumeId: Id<'builder_resumes'>;
-  currentBlocks: any[];
-  onAccept: (tailoredBlocks: any[]) => void;
+  currentBlocks: ResumeBlock[];
+  onAccept: (tailoredBlocks: ResumeBlock[]) => void;
 }
 
 export function TailorToJobDialog({
@@ -32,7 +33,7 @@ export function TailorToJobDialog({
   const [step, setStep] = useState<'input' | 'preview'>('input');
   const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
-  const [tailoredBlocks, setTailoredBlocks] = useState<any[]>([]);
+  const [tailoredBlocks, setTailoredBlocks] = useState<ResumeBlock[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const handleClose = () => {
@@ -169,8 +170,8 @@ export function TailorToJobDialog({
 }
 
 interface DiffPreviewProps {
-  originalBlocks: any[];
-  tailoredBlocks: any[];
+  originalBlocks: ResumeBlock[];
+  tailoredBlocks: ResumeBlock[];
 }
 
 function DiffPreview({ originalBlocks, tailoredBlocks }: DiffPreviewProps) {
@@ -198,8 +199,8 @@ function DiffPreview({ originalBlocks, tailoredBlocks }: DiffPreviewProps) {
 }
 
 interface BlockDiffProps {
-  original: any;
-  tailored: any;
+  original: ResumeBlock;
+  tailored: ResumeBlock;
 }
 
 function BlockDiff({ original, tailored }: BlockDiffProps) {
@@ -240,7 +241,7 @@ function BlockDiff({ original, tailored }: BlockDiffProps) {
   );
 }
 
-function renderBlockContent(block: any): React.ReactNode {
+function renderBlockContent(block: ResumeBlock): React.ReactNode {
   if (!block?.data) return <div className="text-gray-400">No content</div>;
 
   const { data } = block;

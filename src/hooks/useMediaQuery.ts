@@ -1,6 +1,30 @@
 import { useState, useEffect } from 'react';
 
 /**
+ * Responsive design breakpoint system
+ *
+ * These breakpoints define the viewport width ranges for different device categories.
+ * Should align with Tailwind CSS breakpoints and design system specifications.
+ *
+ * Breakpoint ranges:
+ * - Mobile:  0px - 768px   (smartphones, small tablets in portrait)
+ * - Tablet:  769px - 1024px (tablets in landscape, small laptops)
+ * - Desktop: 1025px+        (laptops, desktops, large displays)
+ *
+ * @see https://tailwindcss.com/docs/responsive-design for Tailwind defaults
+ */
+const BREAKPOINTS = {
+  /** Maximum width for mobile devices (768px) */
+  MOBILE_MAX: '768px',
+  /** Minimum width for tablet devices (769px) */
+  TABLET_MIN: '769px',
+  /** Maximum width for tablet devices (1024px) */
+  TABLET_MAX: '1024px',
+  /** Minimum width for desktop devices (1025px) */
+  DESKTOP_MIN: '1025px',
+} as const;
+
+/**
  * Custom hook to detect media query matches
  * Useful for responsive design and conditional rendering
  */
@@ -18,21 +42,12 @@ export function useMediaQuery(query: string): boolean {
       setMatches(event.matches);
     };
 
-    // Add listener
-    if (media.addEventListener) {
-      media.addEventListener('change', listener);
-    } else {
-      // Fallback for older browsers
-      media.addListener(listener);
-    }
+    // Add listener (modern browsers only - deprecated addListener removed)
+    media.addEventListener('change', listener);
 
     // Cleanup
     return () => {
-      if (media.removeEventListener) {
-        media.removeEventListener('change', listener);
-      } else {
-        media.removeListener(listener);
-      }
+      media.removeEventListener('change', listener);
     };
   }, [query]);
 
@@ -44,7 +59,7 @@ export function useMediaQuery(query: string): boolean {
  * @returns true if viewport width is 768px or less
  */
 export function useIsMobile(): boolean {
-  return useMediaQuery('(max-width: 768px)');
+  return useMediaQuery(`(max-width: ${BREAKPOINTS.MOBILE_MAX})`);
 }
 
 /**
@@ -52,7 +67,7 @@ export function useIsMobile(): boolean {
  * @returns true if viewport width is between 769px and 1024px
  */
 export function useIsTablet(): boolean {
-  return useMediaQuery('(min-width: 769px) and (max-width: 1024px)');
+  return useMediaQuery(`(min-width: ${BREAKPOINTS.TABLET_MIN}) and (max-width: ${BREAKPOINTS.TABLET_MAX})`);
 }
 
 /**
@@ -60,7 +75,7 @@ export function useIsTablet(): boolean {
  * @returns true if viewport width is 1025px or greater
  */
 export function useIsDesktop(): boolean {
-  return useMediaQuery('(min-width: 1025px)');
+  return useMediaQuery(`(min-width: ${BREAKPOINTS.DESKTOP_MIN})`);
 }
 
 /**

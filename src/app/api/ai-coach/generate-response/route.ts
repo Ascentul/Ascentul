@@ -146,7 +146,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
           }
         )
 
-        response = completion.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
+        response = completion.choices?.[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
       } catch (openaiError) {
         console.error('OpenAI API error:', openaiError)
         response = 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment.'

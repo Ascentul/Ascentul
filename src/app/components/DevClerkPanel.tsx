@@ -19,7 +19,10 @@ export function DevClerkPanel() {
         <div className="flex justify-between gap-2">
           <dt>auth.isLoaded</dt>
           <dd>
-            <span className={authLoaded ? "text-green-600" : "text-gray-400"}>
+            <span
+              className={authLoaded ? "text-green-600" : "text-gray-400"}
+              aria-label={authLoaded ? "Loaded" : "Not loaded"}
+            >
               {authLoaded ? "✓" : "○"}
             </span>
           </dd>
@@ -27,7 +30,10 @@ export function DevClerkPanel() {
         <div className="flex justify-between gap-2">
           <dt>user.isLoaded</dt>
           <dd>
-            <span className={userLoaded ? "text-green-600" : "text-gray-400"}>
+            <span
+              className={userLoaded ? "text-green-600" : "text-gray-400"}
+              aria-label={userLoaded ? "Loaded" : "Not loaded"}
+            >
               {userLoaded ? "✓" : "○"}
             </span>
           </dd>
@@ -35,7 +41,10 @@ export function DevClerkPanel() {
         <div className="flex justify-between gap-2">
           <dt>isSignedIn</dt>
           <dd>
-            <span className={isSignedIn ? "text-green-600" : "text-gray-400"}>
+            <span
+              className={isSignedIn ? "text-green-600" : "text-gray-400"}
+              aria-label={isSignedIn ? "Signed in" : "Not signed in"}
+            >
               {isSignedIn ? "✓" : "○"}
             </span>
           </dd>

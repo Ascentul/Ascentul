@@ -193,7 +193,7 @@ An expert advisor panel that provides resume writing best practices and tips.
 
 ### Using Coach Tips
 
-1. Open Coach panel (if available)
+1. Open Coach panel from the right sidebar
 2. Browse tips by category
 3. Click category to expand
 4. Read and apply tips
@@ -310,7 +310,7 @@ Tidy: Once every 20 seconds (rate limit)
 A: Check your subscription plan for limits.
 
 **Q: Can I undo AI changes?**
-A: Since changes are auto-saved immediately, you can manually revert by re-editing the content or using the AI "Tidy & Improve" feature to regenerate. A proper undo/redo feature is coming soon (Cmd/Ctrl+Z).
+A: Changes are auto-saved immediately, so you'll need to manually re-edit the content to revert changes. A proper undo/redo feature (Cmd/Ctrl+Z) is coming soon.
 
 **Q: What if AI generates wrong information?**
 A: Always review and edit AI-generated content. The AI uses your profile data but may need adjustments.
@@ -329,7 +329,7 @@ A: Suggestions are recommendations. Use your judgment on which to apply.
 ### Onboarding
 
 **Q: How do I restart the tutorial?**
-A: Clear browser data or look for "Reset Tutorial" in settings (if available).
+A: Clear browser data to reset the tutorial. Alternatively, check Settings for a "Reset Tutorial" option.
 
 **Q: Can I skip the tutorial?**
 A: Yes, click "Skip tutorial" at any step.

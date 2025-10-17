@@ -33,6 +33,13 @@ async function getOpenAIClient(): Promise<OpenAIType | null> {
   if (!openaiLoadPromise) {
     openaiLoadPromise = import("openai")
       .then(({ default: OpenAI }) => {
+        // Validate API key before initializing client to fail fast with clear error
+        if (!process.env.OPENAI_API_KEY) {
+          console.error("OPENAI_API_KEY environment variable is not set.");
+          console.error("AI features will be unavailable. Set OPENAI_API_KEY in your environment.");
+          return null;
+        }
+
         openai = new OpenAI({
           apiKey: process.env.OPENAI_API_KEY,
         });
@@ -263,7 +270,7 @@ Generate a resume with blocks in this order:
           },
         });
 
-        const rawResponse = completion.choices[0]?.message?.content;
+        const rawResponse = completion.choices?.[0]?.message?.content;
         if (!rawResponse) {
           throw new Error("Empty response from OpenAI");
         }

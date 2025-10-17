@@ -26,12 +26,12 @@ export interface TemplateDefinition {
 
 /**
  * Template catalogue used to enrich Convex template records with preview metadata.
- * The `preview` field points to PNG assets located in `/public/previews`.
+ * The `preview` field can be:
+ * - A filename with extension (e.g., "grid-compact.png", "modern.svg", "template.webp")
+ * - An absolute URL (e.g., "https://cdn.example.com/preview.png")
+ * - Empty/null to use previewAssetId with default PNG extension
  *
- * TODO: add preview images
- *  - public/previews/grid-compact.png
- *  - public/previews/minimal-serif.png
- *  - public/previews/modern-sidebar.png
+ * Preview images are generated using scripts/generate-preview-pngs.js
  */
 export const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
   {
@@ -80,16 +80,19 @@ export interface PreviewAugmentable {
 /**
  * Attach preview metadata to an arbitrary template-like object by looking up
  * the catalogue entry when Convex data does not already include it.
+ *
+ * Returns empty string for unknown templates - this is intentional behavior.
+ * The empty preview will be handled downstream by getPreviewSrc() which uses
+ * previewAssetId to construct a fallback path, and TemplateCard which shows
+ * a FileText icon if the image fails to load.
  */
 export function withTemplatePreview<T extends PreviewAugmentable>(
   template: T,
 ): T & TemplatePreviewSource {
   const definition = TEMPLATE_BY_SLUG.get(template.slug);
-  const fallbackPreview = definition?.preview ?? "";
-  const preview =
-    typeof template.preview === "string" && template.preview.trim().length > 0
-      ? template.preview
-      : fallbackPreview;
+
+  // Prioritize non-empty template preview, then catalog preview, then empty string
+  const preview = template.preview?.trim() || definition?.preview || "";
 
   return {
     ...template,

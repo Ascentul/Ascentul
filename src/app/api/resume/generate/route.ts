@@ -14,6 +14,16 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+/**
+ * Calculate exponential backoff delay for retry attempts
+ * @param attempt - Current attempt number (1-indexed)
+ * @param maxDelay - Maximum delay in milliseconds (default: 5000ms)
+ * @returns Delay in milliseconds (1s, 2s, 4s, 5s, 5s, ...)
+ */
+function getRetryDelay(attempt: number, maxDelay = 5000): number {
+  return Math.min(1000 * Math.pow(2, attempt - 1), maxDelay);
+}
+
 async function getConvexClient(authResult: Awaited<ReturnType<typeof auth>>) {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   if (!convexUrl) {
@@ -146,8 +156,12 @@ export async function POST(req: NextRequest) {
     });
 
     // 9. Call OpenAI with retry and fallback
+    // Timing calculation for 60s maxDuration:
+    // - 2 models × 2 attempts × (12s timeout + 1s backoff) = 52s worst case
+    // - Leaves 8s buffer for processing, validation, and DB operations
     let aiResponse: string | null = null;
-    const maxAttempts = 3;
+    const maxAttempts = 2; // Reduced from 3 to fit within 60s maxDuration
+    const REQUEST_TIMEOUT = 12000; // 12s (reduced from 15s to fit timing budget)
     const primaryModel = getModel();
     const modelsToTry = [primaryModel];
     if (primaryModel !== FALLBACK_MODEL) {
@@ -175,11 +189,11 @@ export async function POST(req: NextRequest) {
               ],
             },
             {
-              timeout: 15000, // 15 seconds timeout (allows for retries within 60s maxDuration)
+              timeout: REQUEST_TIMEOUT,
             }
           );
 
-          aiResponse = completion.choices[0]?.message?.content;
+          aiResponse = completion.choices?.[0]?.message?.content;
 
           if (aiResponse) {
             logger.info("AI response received", {
@@ -201,10 +215,8 @@ export async function POST(req: NextRequest) {
             break; // Try next model (if any)
           }
 
-          // Exponential backoff
-          await new Promise((resolve) =>
-            setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt - 1), 5000))
-          );
+          // Exponential backoff before retry
+          await new Promise((resolve) => setTimeout(resolve, getRetryDelay(attempt)));
         }
       }
 
@@ -237,11 +249,41 @@ export async function POST(req: NextRequest) {
         jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
       }
 
-      // Try to find JSON object boundaries more carefully
+      // Try to find JSON object boundaries more carefully by tracking brace depth
+      // This handles edge cases like multiple objects or text after the JSON
       const firstBrace = jsonStr.indexOf("{");
-      const lastBrace = jsonStr.lastIndexOf("}");
-      if (firstBrace !== -1 && lastBrace !== -1) {
-        jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+      if (firstBrace !== -1) {
+        let depth = 0;
+        let lastBrace = -1;
+        let inString = false;
+        let escapeNext = false;
+        for (let i = firstBrace; i < jsonStr.length; i++) {
+          const char = jsonStr[i];
+          if (escapeNext) {
+            escapeNext = false;
+            continue;
+          }
+          if (char === '\\') {
+            escapeNext = true;
+            continue;
+          }
+          if (char === '"') {
+            inString = !inString;
+            continue;
+          }
+          if (inString) continue;
+          if (char === '{') depth++;
+          if (char === '}') {
+            depth--;
+            if (depth === 0) {
+              lastBrace = i;
+              break;
+            }
+          }
+        }
+        if (lastBrace !== -1) {
+          jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+        }
       }
 
       const parsed = JSON.parse(jsonStr);
@@ -326,29 +368,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (batchInsertFailed) {
-      const MAX_FALLBACK_DEBUG_LOGS = 5;
-      let fallbackDebugCount = 0;
-
       for (let i = nextIndex; i < normalizedBlocks.length; i++) {
         const block = normalizedBlocks[i];
         try {
-          if (process.env.NODE_ENV !== "production") {
-            // Limit fallback debug logs to avoid excessive console noise in development.
-            if (fallbackDebugCount < MAX_FALLBACK_DEBUG_LOGS) {
-              const dataKeys = Object.keys((block?.data as Record<string, unknown>) ?? {});
-              logger.debug("Inserting block for resume (fallback)", {
-                resumeId,
-                blockType: block.type,
-                dataKeys,
-              });
-              fallbackDebugCount += 1;
-            } else if (fallbackDebugCount === MAX_FALLBACK_DEBUG_LOGS) {
-              logger.debug("Suppressing additional fallback block logs", {
-                resumeId,
-                totalRemaining: normalizedBlocks.length - i,
-              });
-              fallbackDebugCount += 1;
-            }
+          // Limit fallback debug logs to avoid excessive console noise in development
+          if (process.env.NODE_ENV !== "production" && i - nextIndex < 5) {
+            logger.debug("Inserting block (fallback)", {
+              resumeId,
+              blockType: block.type,
+              remaining: normalizedBlocks.length - i,
+            });
           }
           await convex.mutation(api.builder_blocks.createBlock, {
             resumeId,

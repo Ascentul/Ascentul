@@ -5,6 +5,19 @@
 
 import type { ResumeBlock } from '@/lib/validators/resume';
 
+/**
+ * Simple hash function for deterministic index generation
+ * Uses string character codes to produce a stable numeric hash
+ */
+function simpleHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+}
+
 export type SuggestionPriority = 'high' | 'medium' | 'low';
 
 export interface ContentSuggestion {
@@ -44,7 +57,7 @@ const PRESENT_TENSE_VERBS = [
   'achieves', 'launches', 'streamlines', 'collaborates', 'spearheads', 'facilitates',
   'analyzes', 'evaluates', 'strategizes', 'pioneers', 'orchestrates', 'transforms',
   'accelerates', 'enhances', 'resolves', 'generates', 'automates', 'scales',
-  'mentors', 'trains', 'architected', 'deploys', 'integrates', 'migrates',
+  'mentors', 'trains', 'architects', 'deploys', 'integrates', 'migrates',
   'refactors', 'debugs', 'tests', 'reviews', 'documents', 'presents',
 ];
 
@@ -87,7 +100,7 @@ export function analyzeBullet(bullet: string, index: number | string): ContentSu
 
   // Check for weak multi-word phrases anywhere in the bullet
   let weakPhrase = null;
-  for (const phrase of Array.from(WEAK_PHRASES)) {
+  for (const phrase of WEAK_PHRASES) {
     if (lowerBullet.includes(phrase)) {
       weakPhrase = phrase;
       break;
@@ -108,13 +121,16 @@ export function analyzeBullet(bullet: string, index: number | string): ContentSu
     const firstWord = words[0]?.toLowerCase();
     if (firstWord && WEAK_VERBS.has(firstWord)) {
       // Weak verb detected - high priority
-      const randomStrongVerb = PAST_TENSE_VERBS[Math.floor(Math.random() * PAST_TENSE_VERBS.length)];
+      // Use deterministic selection based on hash of weak verb + index for consistent suggestions
+      const hash = simpleHash(`${firstWord}-${index}`);
+      const strongVerbIndex = hash % PAST_TENSE_VERBS.length;
+      const suggestedStrongVerb = PAST_TENSE_VERBS[strongVerbIndex];
       suggestions.push({
         id: `verb-${index}`,
         type: 'verb',
         priority: 'high',
         message: 'Strengthen action verb',
-        detail: `Replace "${firstWord}" with a stronger verb like "${randomStrongVerb}"`,
+        detail: `Replace "${firstWord}" with a stronger verb like "${suggestedStrongVerb}"`,
       });
     } else if (!firstWord) {
       // First word is missing - low priority

@@ -42,10 +42,10 @@ Profile JSON: ${JSON.stringify(profileData).slice(0, 4000)}
             { role: 'user', content: prompt },
           ],
         })
-        const content = completion.choices[0]?.message?.content || ''
+        const content = completion.choices?.[0]?.message?.content || ''
         try {
           const parsed = JSON.parse(content)
-          if (Array.isArray(parsed?.paths)) {
+          if (Array.isArray(parsed?.paths) && parsed.paths.length > 0) {
             // Save first path to Convex (best-effort)
             try {
               const url = process.env.NEXT_PUBLIC_CONVEX_URL
@@ -61,11 +61,17 @@ Profile JSON: ${JSON.stringify(profileData).slice(0, 4000)}
                   status: 'active',
                 })
               }
-            } catch {}
+            } catch (convexError) {
+              console.warn('Failed to save OpenAI-generated career path to Convex:', convexError)
+            }
             return NextResponse.json(parsed)
           }
-        } catch {}
-      } catch {}
+        } catch (parseError) {
+          console.warn('Failed to parse OpenAI response:', parseError)
+        }
+      } catch (openaiError) {
+        console.warn('OpenAI career path generation failed:', openaiError)
+      }
     }
 
     // Fallback mock based on profile currentRole
@@ -108,7 +114,9 @@ Profile JSON: ${JSON.stringify(profileData).slice(0, 4000)}
           status: 'active',
         })
       }
-    } catch {}
+    } catch (convexError) {
+      console.warn('Failed to save mock career path to Convex:', convexError)
+    }
 
     return NextResponse.json(mock)
   } catch (error: any) {

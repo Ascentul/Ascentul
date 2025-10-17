@@ -63,6 +63,20 @@ export function OnboardingTour({
     };
   }, [isVisible]);
 
+  // Handle Escape key to close tour for better keyboard accessibility
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleSkip();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isVisible]);
+
   // Update target element and position when step changes
   useEffect(() => {
     if (!isVisible) return;
@@ -111,11 +125,31 @@ export function OnboardingTour({
 
         setPosition({ top, left });
 
-        // Scroll element into view
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Scroll element into view - respect user motion preferences for accessibility
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        element.scrollIntoView({
+          behavior: prefersReducedMotion ? 'auto' : 'smooth',
+          block: 'center'
+        });
 
         // Add highlight class
         element.classList.add('onboarding-highlight');
+      } else {
+        // Target element not found - log warning and use fallback positioning
+        console.warn(`Onboarding: Target element "${step.target}" not found for step "${step.id}"`);
+        setTargetElement(null);
+
+        // Fallback to center positioning
+        let top = window.scrollY + window.innerHeight / 2 - cardHeight / 2;
+        let left = window.innerWidth / 2 - cardWidth / 2;
+
+        // Apply boundary checks
+        left = Math.max(padding, Math.min(left, window.innerWidth - cardWidth - padding));
+        const viewportTop = window.scrollY + padding;
+        const viewportBottom = window.scrollY + window.innerHeight - cardHeight - padding;
+        top = Math.max(viewportTop, Math.min(top, viewportBottom));
+
+        setPosition({ top, left });
       }
     } else {
       setTargetElement(null);
@@ -157,13 +191,17 @@ export function OnboardingTour({
     }
   };
 
-  const handleComplete = () => {
+  const persistCompletion = (key: string) => {
     try {
-      localStorage.setItem(localStorageKey, 'true');
+      localStorage.setItem(key, 'true');
     } catch (error) {
       // localStorage unavailable - continue anyway
       console.warn('localStorage unavailable, onboarding state will not persist');
     }
+  };
+
+  const handleComplete = () => {
+    persistCompletion(localStorageKey);
     setIsVisible(false);
     if (targetElement) {
       targetElement.classList.remove('onboarding-highlight');
@@ -172,12 +210,7 @@ export function OnboardingTour({
   };
 
   const handleSkip = () => {
-    try {
-      localStorage.setItem(localStorageKey, 'true');
-    } catch (error) {
-      // localStorage unavailable - continue anyway
-      console.warn('localStorage unavailable, onboarding state will not persist');
-    }
+    persistCompletion(localStorageKey);
     setIsVisible(false);
     if (targetElement) {
       targetElement.classList.remove('onboarding-highlight');
@@ -308,9 +341,19 @@ export function OnboardingTour({
  * Hook to manage onboarding state
  */
 export function useOnboarding(localStorageKey = 'onboarding-completed') {
-  const [hasCompleted, setHasCompleted] = useState(true);
+  const [hasCompleted, setHasCompleted] = useState(() => {
+    // Initialize from localStorage immediately to avoid flash of incorrect state
+    if (typeof window === 'undefined') return true;
+    try {
+      return !!localStorage.getItem(localStorageKey);
+    } catch (error) {
+      // localStorage unavailable (SSR, private browsing) - assume not completed
+      return false;
+    }
+  });
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     try {
       const completed = localStorage.getItem(localStorageKey);
       setHasCompleted(!!completed);

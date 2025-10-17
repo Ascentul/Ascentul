@@ -31,7 +31,7 @@ export function CustomBlock({ data, isSelected, onClick, suggestions, blockId }:
         <ul className="space-y-0.5">
           {bullets.map((item, idx) => (
             <li
-              key={`${item.substring(0, 30)}-${idx}`}
+              key={idx}
               className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
             >
               {item}

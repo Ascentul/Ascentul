@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '../../../../../convex/_generated/api';
 import type { Id } from '../../../../../convex/_generated/dataModel';
-import type { Block } from '@/lib/resume-types';
+import { normalizeResumeBlock, type Block } from '@/lib/resume-types';
 import type { Page } from '@/types/resume';
 import { Layers } from '../components/Layers';
 import { BlockInspector } from '../components/BlockInspector';
@@ -38,8 +38,43 @@ import { useBlockHeights } from '@/hooks/use-block-heights';
 import { duplicatePage } from '../actions/pages/duplicatePage';
 import { reflowPages } from '../actions/pages/reflow';
 
+const normalizeBlocks = (blocks: Block[]): Block[] => {
+  let mutated = false;
+  const normalized = blocks.map((block) => {
+    const next = normalizeResumeBlock(block);
+    if (next !== block) {
+      mutated = true;
+    }
+    return next;
+  });
+  return mutated ? normalized : blocks;
+};
+
+const toBlockMap = (blocks: Block[]): Record<string, Block> => {
+  const normalizedBlocks = normalizeBlocks(blocks);
+  const map: Record<string, Block> = {};
+  for (const block of normalizedBlocks) {
+    map[block._id] = block;
+  }
+  return map;
+};
+
+const normalizeBlockRecord = (record: Record<string, Block>): Record<string, Block> => {
+  let mutated = false;
+  const next: Record<string, Block> = {};
+  for (const block of Object.values(record)) {
+    const normalized = normalizeResumeBlock(block);
+    if (normalized !== block) {
+      mutated = true;
+    }
+    next[normalized._id] = normalized;
+  }
+  return mutated ? next : record;
+};
+
 export default function ResumeStudioPage() {
   const params = useParams();
+  const router = useRouter();
   const resumeId = params.resumeId as string;
   const { toast } = useToast();
   const { signOut } = useAuth();
@@ -75,7 +110,7 @@ export default function ResumeStudioPage() {
   const [pageOrder, setPageOrder] = useState<string[]>([]);
   const [blocksMap, setBlocksMap] = useState<Record<string, Block>>({});
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
-  const MAX_REFLOW_ATTEMPTS = 10;
+  // Local state for blocks
   const [localBlocks, setLocalBlocks] = useState<Block[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [authTimedOut, setAuthTimedOut] = useState(false);
@@ -89,8 +124,20 @@ export default function ResumeStudioPage() {
 
   const currentPage = currentPageIndex + 1;
 
+  const currentPageBlocks = useMemo(() => {
+    const currentPageId = pageOrder[currentPage - 1];
+    const pageEntity = currentPageId ? editorPages[currentPageId] : undefined;
+    return pageEntity
+      ? pageEntity.blocks
+          .map((blockId) => blocksMap[blockId])
+          .filter((block): block is Block => Boolean(block))
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      : [];
+  }, [pageOrder, currentPage, editorPages, blocksMap]);
+
   const canLoadData = !!user?.id && !!resumeId;
-  const showAuthLoading = !userLoaded || !user?.id;
+  const showAuthLoading = !userLoaded;
+  const isSignedOut = userLoaded && !user?.id;
 
   // Fetch resume data
   const resumeData = useQuery(
@@ -176,15 +223,13 @@ useEffect(() => {
   useEffect(() => {
     if (!canLoadData || !resumeData || loadError) return;
 
-    const blocksArray = ((resumeData.blocks as Block[]) ?? []).slice().sort(
+    const sortedBlocks = ((resumeData.blocks as Block[]) ?? []).slice().sort(
       (a, b) => (a.order ?? 0) - (b.order ?? 0)
     );
-    const blockMap: Record<string, Block> = {};
-    blocksArray.forEach((block) => {
-      blockMap[block._id] = block;
-    });
-    setBlocksMap(blockMap);
-    setLocalBlocks([...blocksArray]);
+    const normalizedBlocks = normalizeBlocks(sortedBlocks);
+    setBlocksMap(toBlockMap(normalizedBlocks));
+    // normalizeBlocks returns a new array when mutations occur, or the input array (which is already new from .slice())
+    setLocalBlocks(normalizedBlocks);
 
     if (resumeData?.resume) {
       setLocalTemplateSlug(resumeData.resume.templateSlug);
@@ -220,7 +265,7 @@ useEffect(() => {
           id: defaultPageId,
           size: pageSize,
           margins: { ...baseMargins },
-          blocks: blocksArray.map((block) => block._id),
+          blocks: normalizedBlocks.map((block) => block._id),
         },
       });
       setPageOrder([defaultPageId]);
@@ -281,69 +326,40 @@ useEffect(() => {
       return;
     }
 
-    let attempts = 0;
-    let lastResultChanged = false;
-    let didMutate = false;
+    const result = reflowPages({
+      blocksWithHeights,
+      pages: editorPages,
+      pageOrder,
+      blocks: blocksMap,
+      layout: layoutConfig,
+      pageSize,
+      maxIterations: 5,
+    });
 
-    let currentPages = editorPages;
-    let currentPageOrder = pageOrder;
-    let currentBlocks = blocksMap;
-    let currentSelectedPageId = selectedPageId;
-
-    const debugLogs: string[] = [];
-
-    // Batch reflow iterations locally to avoid triggering multiple render passes.
-    while (attempts < MAX_REFLOW_ATTEMPTS) {
-      const passIndex = attempts + 1;
-      const result = reflowPages({
-        blocksWithHeights,
-        pages: currentPages,
-        pageOrder: currentPageOrder,
-        blocks: currentBlocks,
-        layout: layoutConfig,
-        pageSize,
-      });
-      lastResultChanged = result.changed;
-
-      if (process.env.NEXT_PUBLIC_DEBUG_UI === '1' && result.log.length > 0) {
-        result.log.forEach((entry) => {
-          debugLogs.push(`[pass ${passIndex}] ${entry}`);
-        });
-      }
-
-      if (!result.changed) {
-        break;
-      }
-
-      didMutate = true;
-      attempts += 1;
-      currentPages = result.pages;
-      currentPageOrder = result.pageOrder;
-      currentBlocks = result.blocks;
-      currentSelectedPageId =
-        currentSelectedPageId && result.pages[currentSelectedPageId]
-          ? currentSelectedPageId
-          : result.pageOrder[0] ?? null;
+    if (process.env.NEXT_PUBLIC_DEBUG_UI === '1' && result.log.length > 0) {
+      result.log.forEach((entry) => console.debug('[reflow]', entry));
     }
 
-    if (process.env.NEXT_PUBLIC_DEBUG_UI === '1' && debugLogs.length > 0) {
-      debugLogs.forEach((entry) => console.debug('[reflow]', entry));
-    }
-
-    if (!didMutate) {
+    if (!result.changed) {
       return;
     }
 
-    if (attempts >= MAX_REFLOW_ATTEMPTS && lastResultChanged) {
-      console.error('[reflow] exceeded maximum reflow attempts, aborting to prevent infinite loop');
-      return;
-    }
+    const normalizedBlockRecord = normalizeBlockRecord(result.blocks);
+    const nextLocalBlocks = Object.values(normalizedBlockRecord).sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0)
+    );
 
-    setEditorPages(currentPages);
-    setPageOrder(currentPageOrder);
-    setBlocksMap(currentBlocks);
-    setSelectedPageId(currentSelectedPageId);
-  }, [blocksWithHeights, editorPages, pageOrder, blocksMap, layoutConfig, pageSize, selectedPageId]);
+    setEditorPages(result.pages);
+    setPageOrder(result.pageOrder);
+    setBlocksMap(normalizedBlockRecord);
+    setLocalBlocks(nextLocalBlocks);
+    setSelectedPageId((prev) => {
+      if (prev && result.pages[prev]) {
+        return prev;
+      }
+      return result.pageOrder[0] ?? null;
+    });
+  }, [blocksWithHeights, editorPages, pageOrder, blocksMap, layoutConfig, pageSize]);
 
   const handleSelectBlock = (blockId: string | null) => {
     setSelectedBlockId(blockId);
@@ -354,22 +370,26 @@ useEffect(() => {
 
   const renderBlockContent = (block: Block): ReactNode => {
     const isSelected = selectedBlockId === block._id;
+    const commonProps = {
+      isSelected,
+      blockId: block._id,
+    };
 
     switch (block.type) {
       case 'header':
-        return <HeaderBlock data={block.data as HeaderData} isSelected={isSelected} blockId={block._id} />;
+        return <HeaderBlock data={block.data as HeaderData} {...commonProps} />;
       case 'summary':
-        return <SummaryBlock data={block.data as SummaryData} isSelected={isSelected} blockId={block._id} />;
+        return <SummaryBlock data={block.data as SummaryData} {...commonProps} />;
       case 'experience':
-        return <ExperienceBlock data={block.data as ExperienceData} isSelected={isSelected} blockId={block._id} />;
+        return <ExperienceBlock data={block.data as ExperienceData} {...commonProps} />;
       case 'education':
-        return <EducationBlock data={block.data as EducationData} isSelected={isSelected} blockId={block._id} />;
+        return <EducationBlock data={block.data as EducationData} {...commonProps} />;
       case 'skills':
-        return <SkillsBlock data={block.data as SkillsData} isSelected={isSelected} blockId={block._id} />;
+        return <SkillsBlock data={block.data as SkillsData} {...commonProps} />;
       case 'projects':
-        return <ProjectsBlock data={block.data as ProjectsData} isSelected={isSelected} blockId={block._id} />;
+        return <ProjectsBlock data={block.data as ProjectsData} {...commonProps} />;
       case 'custom':
-        return <CustomBlock data={block.data as CustomData} isSelected={isSelected} blockId={block._id} />;
+        return <CustomBlock data={block.data as CustomData} {...commonProps} />;
       default:
         // Exhaustiveness check: will cause compile error if new block type is added but not handled
         const _exhaustiveCheck: never = block.type;
@@ -384,12 +404,13 @@ useEffect(() => {
     const previousBlocks = localBlocks;
     const previousMap = blocksMap;
 
-    setLocalBlocks(newBlocks);
-    setBlocksMap(toBlockMap(newBlocks));
+    const normalizedBlocks = normalizeBlocks(newBlocks);
+    setLocalBlocks(normalizedBlocks);
+    setBlocksMap(toBlockMap(normalizedBlocks));
 
     // Save to server
     try {
-      const orders = newBlocks.map((block, index) => ({
+      const orders = normalizedBlocks.map((block, index) => ({
         id: block._id,
         order: index,
       }));
@@ -425,8 +446,9 @@ useEffect(() => {
     const previousBlocks = localBlocks;
 
     // Update local state immediately (optimistic update)
-    setLocalBlocks(newBlocks as Block[]);
-    setBlocksMap(toBlockMap(newBlocks as Block[]));
+    const normalized = normalizeBlocks(newBlocks as Block[]);
+    setLocalBlocks(normalized);
+    setBlocksMap(toBlockMap(normalized));
 
     // TODO: Save to server by updating all blocks
     // For now, we just update local state
@@ -599,12 +621,15 @@ useEffect(() => {
       blocks: blocksMap,
     });
 
+    const normalizedBlocksRecord = normalizeBlockRecord(result.blocks);
+    const nextLocalBlocks = Object.values(normalizedBlocksRecord).sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0)
+    );
+
     setEditorPages(result.pages);
     setPageOrder(result.pageOrder);
-    setBlocksMap(result.blocks);
-    setLocalBlocks(
-      Object.values(result.blocks).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    );
+    setBlocksMap(normalizedBlocksRecord);
+    setLocalBlocks(nextLocalBlocks);
     setSelectedPageId(result.pageId);
     toast({
       title: 'Page duplicated',
@@ -645,17 +670,17 @@ useEffect(() => {
 
   const selectedBlock = localBlocks.find((b) => b._id === selectedBlockId) || null;
 
-  // Memoize current page blocks to avoid re-deriving on every render
-  const currentPageBlocks = useMemo(() => {
-    const currentPageId = pageOrder[currentPage - 1];
-    const pageEntity = currentPageId ? editorPages[currentPageId] : undefined;
-    return pageEntity
-      ? pageEntity.blocks
-          .map((blockId) => blocksMap[blockId])
-          .filter((block): block is Block => Boolean(block))
-          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      : [];
-  }, [pageOrder, currentPage, editorPages, blocksMap]);
+  // Handle signed-out state immediately - no need to wait or show loading
+  if (isSignedOut) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center">
+        <p className="text-sm text-muted-foreground">Please sign in to access your resume.</p>
+        <Button variant="outline" onClick={() => router.push('/sign-in')}>
+          Sign in
+        </Button>
+      </div>
+    );
+  }
 
   if (showAuthLoading) {
     return (
@@ -939,24 +964,24 @@ useEffect(() => {
             {/* Render blocks with click-to-select */}
             <div className="p-12 space-y-6">
               {currentPageBlocks.map((block) => (
-                    <button
-                      key={block._id}
-                      ref={(node) => registerBlock(block._id, node)}
-                      onClick={() => handleSelectBlock(block._id)}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
-                        selectedBlockId === block._id
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2 shadow-md scale-[1.01]'
-                          : 'border-transparent hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
-                      } focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2`}
-                      aria-selected={selectedBlockId === block._id}
-                    >
-                      <div className="text-sm font-medium text-gray-500 mb-2">
-                        {block.type.charAt(0).toUpperCase() + block.type.slice(1)}
-                      </div>
-                      <div className="space-y-2">
-                        {renderBlockContent(block)}
-                      </div>
-                    </button>
+                <button
+                  key={block._id}
+                  ref={(node) => registerBlock(block._id, node)}
+                  onClick={() => handleSelectBlock(block._id)}
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                    selectedBlockId === block._id
+                      ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2 shadow-md scale-[1.01]'
+                      : 'border-transparent hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
+                  } focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2`}
+                  aria-selected={selectedBlockId === block._id}
+                >
+                  <div className="text-sm font-medium text-gray-500 mb-2">
+                    {block.type.charAt(0).toUpperCase() + block.type.slice(1)}
+                  </div>
+                  <div className="space-y-2">
+                    {renderBlockContent(block)}
+                  </div>
+                </button>
               ))}
             </div>
           </div>

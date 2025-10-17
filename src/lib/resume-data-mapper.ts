@@ -333,8 +333,42 @@ export function validateProfileData(profile: ProfileSnapshot | null): Validation
 
 /**
  * Count how many blocks will be created from profile
- * Uses profileToBlocks to ensure logic stays in sync
+ * Mirrors the logic of profileToBlocks without creating block objects
+ * for better performance when only the count is needed
  */
 export function countBlocksFromProfile(profile: ProfileSnapshot | null): number {
-  return profileToBlocks(profile).length;
+  if (!profile) return 0;
+
+  let count = 0;
+
+  // 1. Header - always include if fullName exists
+  if (profile.fullName) {
+    count++;
+  }
+
+  // 2. Summary - skipped (not in profile data)
+
+  // 3. Experience - only if data exists
+  if (profile.experience && profile.experience.length > 0) {
+    count++;
+  }
+
+  // 4. Education - only if data exists
+  if (profile.education && profile.education.length > 0) {
+    count++;
+  }
+
+  // 5. Skills - only if data exists
+  const hasPrimarySkills = profile.skills?.primary && profile.skills.primary.length > 0;
+  const hasSecondarySkills = profile.skills?.secondary && profile.skills.secondary.length > 0;
+  if (hasPrimarySkills || hasSecondarySkills) {
+    count++;
+  }
+
+  // 6. Projects - only if data exists
+  if (profile.projects && profile.projects.length > 0) {
+    count++;
+  }
+
+  return count;
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import type { Id } from 'convex/_generated/dataModel'
 import OpenAI from 'openai'
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
@@ -22,12 +23,12 @@ export async function GET(
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const conversationId = params.id
+    const conversationId = params.id as Id<'ai_coach_conversations'>
     const client = getClient()
 
     const messages = await client.query(api.ai_coach.getMessages, {
       clerkId: userId,
-      conversationId: conversationId as any
+      conversationId
     })
 
     return NextResponse.json(messages)
@@ -45,7 +46,7 @@ export async function POST(
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const conversationId = params.id
+    const conversationId = params.id as Id<'ai_coach_conversations'>
     const body = await request.json()
     const { content } = body
 
@@ -58,7 +59,7 @@ export async function POST(
     // Get conversation history for context
     const existingMessages = await client.query(api.ai_coach.getMessages, {
       clerkId: userId,
-      conversationId: conversationId as any
+      conversationId
     })
 
     // Fetch user context data for personalized coaching
@@ -198,7 +199,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
           }
         )
 
-        aiResponse = completion.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
+        aiResponse = completion.choices?.[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
       } catch (openaiError) {
         console.error('OpenAI API error:', openaiError)
         aiResponse = 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment.'
@@ -210,7 +211,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
     // Save both messages to the database
     const newMessages = await client.mutation(api.ai_coach.addMessages, {
       clerkId: userId,
-      conversationId: conversationId as any,
+      conversationId,
       userMessage: content,
       aiMessage: aiResponse
     })

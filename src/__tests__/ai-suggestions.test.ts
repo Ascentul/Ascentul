@@ -95,10 +95,21 @@ describe('AI Suggestions System', () => {
       const suggestions1 = analyzeBullet(bullet, 0);
       const suggestions2 = analyzeBullet(bullet, '0-1');
 
-      expect(suggestions1).toBeDefined();
-      expect(suggestions2).toBeDefined();
       expect(Array.isArray(suggestions1)).toBe(true);
       expect(Array.isArray(suggestions2)).toBe(true);
+
+      // Both should handle the same bullet consistently
+      suggestions1.forEach(s => {
+        expect(s).toHaveProperty('type');
+        expect(s).toHaveProperty('priority');
+        expect(s).toHaveProperty('message');
+      });
+
+      suggestions2.forEach(s => {
+        expect(s).toHaveProperty('type');
+        expect(s).toHaveProperty('priority');
+        expect(s).toHaveProperty('message');
+      });
     });
   });
 
@@ -327,8 +338,10 @@ describe('AI Suggestions System', () => {
 
       // Summary block should have suggestions
       const summaryBlock = blocks.find(b => b.type === 'summary');
-      const summaryBlockId = `block-${summaryBlock?.order}`;
+      expect(summaryBlock).toBeDefined();
+      const summaryBlockId = `block-${summaryBlock!.order}`;
       expect(suggestionsByBlock.has(summaryBlockId)).toBe(true);
+      expect(suggestionsByBlock.get(summaryBlockId)?.length).toBeGreaterThan(0);
     });
 
     it('should return empty map for empty resume', () => {
@@ -368,6 +381,23 @@ describe('AI Suggestions System', () => {
           order: 0,
           data: {
             items: null,
+          },
+        },
+      ];
+
+      const suggestionsByBlock = analyzeResume(blocks);
+
+      // Should not throw error
+      expect(suggestionsByBlock).toBeDefined();
+    });
+
+    it('should handle blocks with undefined data gracefully', () => {
+      const blocks = [
+        {
+          type: 'experience',
+          order: 0,
+          data: {
+            items: undefined,
           },
         },
       ];

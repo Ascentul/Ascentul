@@ -117,7 +117,10 @@ export function CoachPanel({ className }: CoachPanelProps) {
     }
   }, [dismissedTips]);
 
-  const visibleTips = COACH_TIPS.filter(tip => !dismissedTips.has(tip.id));
+  const visibleTips = useMemo(
+    () => COACH_TIPS.filter(tip => !dismissedTips.has(tip.id)),
+    [dismissedTips]
+  );
 
   const tipsByCategory = useMemo(() => {
     return visibleTips.reduce((acc, tip) => {

@@ -6,7 +6,7 @@ interface GeneratePromptParams {
     title?: string;
     contact?: { email?: string; phone?: string; location?: string; links?: Array<{ label: string; url: string }> };
     experience?: Array<{ company: string; role: string; start: string; end?: string; bullets?: string[] }>;
-    education?: Array<{ school: string; degree: string; end?: string; details?: string[] }>;
+    education?: Array<{ school: string; degree?: string; end?: string; location?: string; details?: string[] }>;
     skills?: { primary: string[]; secondary?: string[] };
     projects?: Array<{ name: string; description?: string; bullets?: string[] }>;
   };
@@ -73,8 +73,8 @@ Return a JSON object with a "blocks" array. Each block must have:
 DATA SHAPE REQUIREMENTS:
 - Summary blocks must set data.paragraph to the summary text (string).
 - Experience blocks must set data.items to an array of roles. Each role object must include company (string), role (string), start (string), optional end (string when the role finished), optional location (string), and bullets (array of accomplishment strings).
-- Education blocks must set data.items to an array. Each entry must include school (string), degree (string), end (string year or date), optional location (string), and optional details (array of strings).
-- Skills blocks must provide data.primary (array of core skills) and optionally data.secondary (array of additional skills).
+- Education blocks must set data.items to an array. Each entry must include school (string), optional degree (string), optional end (string year or date), optional location (string), and optional details (array of strings).
+- Skills blocks must provide data.primary (array of core skills). If additional skills exist, include them in data.secondary (array, optional).
 
 Ensure the JSON is valid and matches the schema exactly. Do not include any explanatory text outside the JSON.`;
 }
@@ -99,9 +99,9 @@ export interface ProfileSnapshot {
   }>;
   education: Array<{
     school: string;
-    degree: string;
+    degree?: string;
     location?: string;
-    end: string;
+    end?: string;
     details?: string[];
   }>;
   skills: {

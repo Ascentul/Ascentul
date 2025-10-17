@@ -85,6 +85,16 @@ export function ResumeCanvas({
   // Get suggestions for all blocks
   const { getSuggestionsForBlock } = useSuggestions(blocks);
 
+  // Memoize block suggestions map to avoid recomputation on every render
+  const blockSuggestions = useMemo(() => {
+    const map = new Map<string, ContentSuggestion[]>();
+    blocks.forEach(block => {
+      const blockId = (block as any)._id || `block-${block.order}`;
+      map.set(blockId, getSuggestionsForBlock(blockId));
+    });
+    return map;
+  }, [blocks, getSuggestionsForBlock]);
+
   const dimensions = PAGE_DIMENSIONS[pageSize];
   const contentWidth = dimensions.width - margins.left - margins.right;
   const contentHeight = dimensions.height - margins.top - margins.bottom;
@@ -208,12 +218,7 @@ export function ResumeCanvas({
   const renderBlock = (block: ResumeBlock, index: number) => {
     const blockId = (block as any)._id || `block-${block.order}`;
     const isSelected = selectedBlockId === blockId;
-
-    // Memoize suggestions for this block
-    const suggestions: ContentSuggestion[] = useMemo(
-      () => getSuggestionsForBlock(blockId),
-      [blockId]
-    );
+    const suggestions = blockSuggestions.get(blockId) || [];
 
     const blockProps = {
       data: block.data,

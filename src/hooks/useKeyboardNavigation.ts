@@ -16,6 +16,13 @@ export function useKeyboardNavigation<T extends HTMLElement>({
   enabled?: boolean;
 }) {
   const [currentIndex, setCurrentIndex] = useState(-1);
+  const previousItemCountRef = useRef(0);
+
+  // Store callback in ref to avoid effect re-runs when callback changes
+  const onSelectRef = useRef(onSelect);
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
 
   useEffect(() => {
     if (!enabled || !containerRef.current) return;
@@ -23,11 +30,27 @@ export function useKeyboardNavigation<T extends HTMLElement>({
     const container = containerRef.current;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      const items = Array.from(
+      const items = (Array.from(
         container.querySelectorAll(itemSelector)
-      ) as T[];
+      ) as T[]).filter(el => {
+        const style = window.getComputedStyle(el);
+        return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
+      });
 
       if (items.length === 0) return;
+
+      // Reset currentIndex if the filtered items list has changed significantly
+      // This prevents stale indices when items are added/removed/hidden between keyboard events
+      if (previousItemCountRef.current !== items.length) {
+        previousItemCountRef.current = items.length;
+        setCurrentIndex(prevIndex => {
+          // If current index is out of bounds, reset to -1
+          if (prevIndex >= items.length) {
+            return -1;
+          }
+          return prevIndex;
+        });
+      }
 
       switch (event.key) {
         case 'ArrowDown':
@@ -70,9 +93,9 @@ export function useKeyboardNavigation<T extends HTMLElement>({
         case 'Enter':
         case ' ':
           setCurrentIndex((prevIndex) => {
-            if (prevIndex >= 0 && onSelect) {
+            if (prevIndex >= 0 && onSelectRef.current) {
               event.preventDefault();
-              onSelect(items[prevIndex], prevIndex);
+              onSelectRef.current(items[prevIndex], prevIndex);
             }
             return prevIndex;
           });
@@ -93,7 +116,7 @@ export function useKeyboardNavigation<T extends HTMLElement>({
     return () => {
       container.removeEventListener('keydown', handleKeyDown);
     };
-  }, [containerRef, itemSelector, onSelect, enabled]);
+  }, [containerRef, itemSelector, enabled]);
 
   return {
     currentIndex,
@@ -115,9 +138,14 @@ export function useFocusTrap(
     const container = containerRef.current;
 
     // Get initial focusable elements and focus the first one
-    const initialFocusableElements = container.querySelectorAll<HTMLElement>(
-      'button:not([disabled]):not(:disabled), [href], input:not([disabled]):not(:disabled), select:not([disabled]):not(:disabled), textarea:not([disabled]):not(:disabled), [tabindex]:not([tabindex="-1"]), details, summary, [contenteditable="true"]'
-    );
+    const initialFocusableElements = Array.from(
+      container.querySelectorAll<HTMLElement>(
+        'button:not([disabled]):not(:disabled), [href], input:not([disabled]):not(:disabled), select:not([disabled]):not(:disabled), textarea:not([disabled]):not(:disabled), [tabindex]:not([tabindex="-1"]), details, summary, [contenteditable]'
+      )
+    ).filter(el => {
+      const style = window.getComputedStyle(el);
+      return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
+    });
     const firstInitialElement = initialFocusableElements[0];
     firstInitialElement?.focus();
 
@@ -125,9 +153,14 @@ export function useFocusTrap(
       if (event.key !== 'Tab') return;
 
       // Rebuild focusable elements list on each Tab press to handle DOM changes
-      const focusableElements = container.querySelectorAll<HTMLElement>(
-        'button:not([disabled]):not(:disabled), [href], input:not([disabled]):not(:disabled), select:not([disabled]):not(:disabled), textarea:not([disabled]):not(:disabled), [tabindex]:not([tabindex="-1"]), details, summary, [contenteditable="true"]'
-      );
+      const focusableElements = Array.from(
+        container.querySelectorAll<HTMLElement>(
+          'button:not([disabled]):not(:disabled), [href], input:not([disabled]):not(:disabled), select:not([disabled]):not(:disabled), textarea:not([disabled]):not(:disabled), [tabindex]:not([tabindex="-1"]), details, summary, [contenteditable]'
+        )
+      ).filter(el => {
+        const style = window.getComputedStyle(el);
+        return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
+      });
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
 
@@ -173,21 +206,35 @@ export function useAriaLive() {
 
   const announce = (message: string, priority: 'polite' | 'assertive' = 'polite') => {
     const announcement = document.createElement('div');
-    announcement.setAttribute('role', 'status');
-    announcement.setAttribute('aria-live', priority);
+
+    // Use role="alert" for assertive (implicit aria-live="assertive")
+    // Use role="status" for polite (requires explicit aria-live="polite")
+    if (priority === 'assertive') {
+      announcement.setAttribute('role', 'alert');
+      // aria-live is implicit for role="alert", but set explicitly for clarity
+      announcement.setAttribute('aria-live', 'assertive');
+    } else {
+      announcement.setAttribute('role', 'status');
+      announcement.setAttribute('aria-live', 'polite');
+    }
+
     announcement.setAttribute('aria-atomic', 'true');
-    announcement.style.cssText = 'position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden;';
+    announcement.style.cssText = 'position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;';
     announcement.textContent = message;
 
     document.body.appendChild(announcement);
 
-    // Remove after announcement
+    // Remove after announcement with dynamic timeout based on message length
+    // Average reading speed: ~250 words/min = ~50ms per character
+    // Minimum 1 second, maximum 10 seconds for very long messages
+    const timeoutDuration = Math.max(1000, Math.min(message.length * 50, 10000));
+
     const timeoutId = window.setTimeout(() => {
       timeoutsRef.current.delete(timeoutId);
       if (announcement.parentNode) {
         document.body.removeChild(announcement);
       }
-    }, 1000);
+    }, timeoutDuration);
     timeoutsRef.current.add(timeoutId);
   };
 
@@ -196,6 +243,24 @@ export function useAriaLive() {
 
 /**
  * Hook for keyboard shortcuts
+ * Supports modifier keys (control, alt, shift) and regular keys
+ *
+ * IMPORTANT: This hook normalizes both Ctrl and Cmd (Meta) keys to 'control' for
+ * cross-platform consistency. This means:
+ * - On Windows/Linux: Ctrl+K triggers shortcuts with ['control', 'k']
+ * - On macOS: Cmd+K triggers shortcuts with ['control', 'k']
+ *
+ * This intentional design provides a better UX by making shortcuts work consistently
+ * across platforms. However, it prevents distinguishing between Control and Meta keys
+ * for platform-specific behavior. If you need to detect Ctrl vs Cmd separately, use
+ * a lower-level keydown listener with event.ctrlKey and event.metaKey directly.
+ *
+ * @example
+ * // Cross-platform: Ctrl+K (Windows/Linux) or Cmd+K (macOS)
+ * useKeyboardShortcut(['control', 'k'], handleSearch)
+ *
+ * // Shift+Alt+F (all platforms)
+ * useKeyboardShortcut(['shift', 'alt', 'f'], handleFormat)
  */
 export function useKeyboardShortcut(
   keys: string[],
@@ -206,22 +271,36 @@ export function useKeyboardShortcut(
   } = {}
 ) {
   const { enabled = true, preventDefault = true } = options;
-  const pressedKeysRef = useRef<Set<string>>(new Set());
   const activatedRef = useRef(false);
+
+  // Store callback in ref to avoid effect re-runs when callback changes
+  const callbackRef = useRef(callback);
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
 
   useEffect(() => {
     if (!enabled) return;
 
-    // Clear any pressed keys when effect runs
-    pressedKeysRef.current.clear();
+    // Reset activation when effect runs
     activatedRef.current = false;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      pressedKeysRef.current.add(event.key.toLowerCase());
+      // Build set of currently active keys from event
+      const activeKeys = new Set<string>();
 
-      // Check if all keys are pressed
-      const allKeysPressed = keys.every((key) =>
-        pressedKeysRef.current.has(key.toLowerCase())
+      // Add modifier keys if pressed (normalize 'control' to match both Ctrl and Cmd on Mac)
+      if (event.ctrlKey || event.metaKey) activeKeys.add('control');
+      if (event.altKey) activeKeys.add('alt');
+      if (event.shiftKey) activeKeys.add('shift');
+
+      // Add the actual key pressed (normalize to lowercase)
+      const key = event.key.toLowerCase();
+      activeKeys.add(key);
+
+      // Check if all required keys are currently pressed
+      const allKeysPressed = keys.every((requiredKey) =>
+        activeKeys.has(requiredKey.toLowerCase())
       );
 
       if (allKeysPressed && !activatedRef.current) {
@@ -229,16 +308,13 @@ export function useKeyboardShortcut(
         if (preventDefault) {
           event.preventDefault();
         }
-        callback();
+        callbackRef.current();
       }
     };
 
-    const handleKeyUp = (event: KeyboardEvent) => {
-      pressedKeysRef.current.delete(event.key.toLowerCase());
+    const handleKeyUp = () => {
       // Reset activation when any key is released
-      if (pressedKeysRef.current.size === 0) {
-        activatedRef.current = false;
-      }
+      activatedRef.current = false;
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -247,9 +323,8 @@ export function useKeyboardShortcut(
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      // Clear pressed keys on cleanup
-      pressedKeysRef.current.clear();
+      // Reset activation on cleanup
       activatedRef.current = false;
     };
-  }, [keys, callback, enabled, preventDefault]);
+  }, [keys, enabled, preventDefault]);
 }

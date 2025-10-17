@@ -2,9 +2,12 @@
 
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
+import type { FunctionReturnType } from "convex/server";
 import { Loader2, Layout } from "lucide-react";
 import { withTemplatePreview } from "@/lib/templates";
 import { TemplateCard } from "@/components/templates/TemplateCard";
+
+type TemplateFromQuery = FunctionReturnType<typeof api.builder_templates.listTemplatesAll>[number];
 
 interface TemplatePickerProps {
   currentTemplateSlug?: string;
@@ -53,7 +56,7 @@ export function TemplatePicker({ currentTemplateSlug, onChangeTemplate, disabled
         Templates
       </h3>
       <div className="grid grid-cols-2 gap-4">
-        {templates.map((template) => {
+        {templates.map((template: TemplateFromQuery) => {
           const enriched = withTemplatePreview(template);
           return (
             <TemplateCard

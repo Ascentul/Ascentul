@@ -6,6 +6,16 @@ import { api } from "../../../../../convex/_generated/api";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * Creates an authenticated Convex HTTP client for this debug endpoint.
+ *
+ * This function is called after authentication verification in the GET handler.
+ * If the token cannot be retrieved despite userId being present, it indicates
+ * a configuration issue (e.g., incorrect JWT template name or Clerk setup).
+ *
+ * @throws {Error} If authentication token cannot be retrieved for authenticated requests
+ * @returns {Promise<ConvexHttpClient>} Authenticated Convex client
+ */
 async function getConvexClient() {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   if (!convexUrl) {
@@ -17,10 +27,16 @@ async function getConvexClient() {
     template: process.env.CLERK_JWT_TEMPLATE || "convex",
   });
 
-  if (token) {
-    client.setAuth(token);
+  if (!token) {
+    // This should not happen if userId was verified, indicates configuration issue
+    throw new Error(
+      "Failed to retrieve authentication token from Clerk. " +
+      "This may indicate a JWT template configuration issue. " +
+      "Verify CLERK_JWT_TEMPLATE matches your Clerk dashboard settings."
+    );
   }
 
+  client.setAuth(token);
   return client;
 }
 

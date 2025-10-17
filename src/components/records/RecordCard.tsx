@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { KeyboardEvent } from "react";
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import { Copy, Download, ExternalLink, FileText, Trash2 } from "lucide-react";
-import clsx from "clsx";
+import { cn } from "@/lib/utils";
 import { getCachedThumbnail } from "@/lib/thumbnail/cache";
 import { getTemplateDefinitionBySlug } from "@/lib/templates";
 import { getPreviewSrc } from "@/lib/templates/getPreviewSrc";
@@ -118,12 +117,6 @@ export function RecordCard({
   const handleDuplicate = () => onDuplicate(resume._id);
   const handleExport = () => onExport(resume._id);
   const handleDelete = () => onDelete(resume._id);
-  const handlePreviewKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      handleOpen();
-    }
-  };
 
   return (
     <article
@@ -134,7 +127,6 @@ export function RecordCard({
         onClick={handleOpen}
         className="relative h-48 w-full overflow-hidden bg-muted"
         aria-label={`Open ${title}`}
-        onKeyDown={handlePreviewKeyDown}
       >
         {showImage ? (
           <Image
@@ -214,7 +206,7 @@ function CardAction({ icon: Icon, label, onClick, disabled = false, loading = fa
       }}
       disabled={disabled}
       aria-label={label}
-      className={clsx(
+      className={cn(
         "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium backdrop-blur transition",
         tone === "danger"
           ? "border-red-200 bg-red-100/90 text-red-700 hover:bg-red-200/90"

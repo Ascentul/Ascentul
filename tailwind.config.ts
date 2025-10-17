@@ -111,6 +111,7 @@ const config = {
           "0%": { transform: "scale(0.95)", opacity: "0" },
           "100%": { transform: "scale(1)", opacity: "1" }
         },
+        // Note: shimmer requires a gradient background (e.g., bg-gradient-to-r) to be visible
         shimmer: {
           from: { backgroundPosition: "0 0" },
           to: { backgroundPosition: "-200% 0" }

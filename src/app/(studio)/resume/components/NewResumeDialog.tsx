@@ -16,6 +16,9 @@ import { TemplatePicker } from '@/components/resume/studio/TemplatePicker';
 import { ThemePanel } from '@/components/resume/studio/ThemePanel';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 
+// TODO: Consider extracting to @/components/ui/ if this pattern becomes common across the app
+// Currently only used in this dialog, so keeping it local to avoid premature abstraction.
+// If you find yourself duplicating this pattern elsewhere, extract to a shared location.
 interface CheckboxFieldProps {
   id: string;
   checked: boolean;
@@ -37,7 +40,11 @@ function CheckboxField({ id, checked, onChange, label, description }: CheckboxFi
           {label}
         </Label>
       </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
+      {typeof description === 'string' ? (
+        <p className="text-xs text-muted-foreground">{description}</p>
+      ) : (
+        description
+      )}
     </div>
   );
 }
@@ -52,7 +59,8 @@ interface NewResumeDialogProps {
     targetRole?: string;
     targetCompany?: string;
     generateWithAI: boolean;
-    autoPopulate: boolean; // NEW: import from profile
+    /** Whether to automatically import data from user's profile */
+    autoPopulate: boolean;
   }) => Promise<void>;
 }
 
@@ -62,7 +70,8 @@ export function NewResumeDialog({ open, onOpenChange, onSubmit }: NewResumeDialo
   const [targetRole, setTargetRole] = useState('');
   const [targetCompany, setTargetCompany] = useState('');
   const [generateWithAI, setGenerateWithAI] = useState(false);
-  const [autoPopulate, setAutoPopulate] = useState(true); // NEW: default to true for better UX
+  // Default to true for better UX - most users want to import their profile data
+  const [autoPopulate, setAutoPopulate] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState('default');
   const [selectedTheme, setSelectedTheme] = useState<Id<'builder_resume_themes'> | undefined>();
   const [loading, setLoading] = useState(false);
@@ -105,7 +114,7 @@ export function NewResumeDialog({ open, onOpenChange, onSubmit }: NewResumeDialo
         targetRole: generateWithAI ? targetRole : undefined,
         targetCompany: generateWithAI ? targetCompany : undefined,
         generateWithAI,
-        autoPopulate, // NEW: pass autoPopulate flag
+        autoPopulate,
       });
       handleClose();
     } catch (error) {
@@ -159,11 +168,13 @@ export function NewResumeDialog({ open, onOpenChange, onSubmit }: NewResumeDialo
                 label="Generate content with AI"
                 description={
                   <>
-                    AI will create professional resume content based on your target role
+                    <p className="text-xs text-muted-foreground">
+                      AI will create professional resume content based on your target role
+                    </p>
                     {autoPopulate && generateWithAI && (
-                      <span className="block mt-1 text-amber-600 dark:text-amber-500">
+                      <p className="text-xs mt-1 text-amber-600 dark:text-amber-500">
                         Note: AI-generated content will override imported profile data
-                      </span>
+                      </p>
                     )}
                   </>
                 }

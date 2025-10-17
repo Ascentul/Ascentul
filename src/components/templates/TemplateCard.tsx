@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { Check, FileText } from 'lucide-react';
 import { getPreviewSrc } from '@/lib/templates/getPreviewSrc';
 import type { TemplatePreviewSource } from '@/lib/templates';
-import clsx from 'clsx';
+import { cn } from '@/lib/utils';
 
 export interface TemplateSummary extends TemplatePreviewSource {
   id: string;
@@ -40,7 +40,7 @@ export function TemplateCard({ template, isSelected = false, disabled = false, o
 
   return (
     <article
-      className={clsx(
+      className={cn(
         'flex h-full flex-col gap-3 rounded-xl border p-4 transition-all duration-200',
         isSelected
           ? 'border-primary bg-primary/5 ring-2 ring-primary'
@@ -100,7 +100,7 @@ export function TemplateCard({ template, isSelected = false, disabled = false, o
           disabled={disabled}
           aria-label={`Select ${template.name} template`}
           aria-pressed={isSelected}
-          className={clsx(
+          className={cn(
             'inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
             disabled
               ? 'cursor-not-allowed opacity-50'

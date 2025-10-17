@@ -45,12 +45,15 @@ export function GenerateDialog({
     };
   }, []);
 
-  const handleClose = () => {
-    // Cancel any pending request
+  const abortPendingRequest = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+  };
+
+  const handleClose = () => {
+    abortPendingRequest();
     setTargetRole('');
     setTargetCompany('');
     setError(null);
@@ -60,10 +63,7 @@ export function GenerateDialog({
   };
 
   const handleCancel = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
+    abortPendingRequest();
     setLoading(false);
     setError(null);
   };
@@ -172,7 +172,7 @@ export function GenerateDialog({
           )}
 
           <div className="p-3 rounded bg-amber-50 border border-amber-200 text-amber-900 text-sm">
-            <strong>Warning:</strong> This will replace all current content with AI-generated content based on your career profile.
+            <strong>Warning:</strong> This will replace all current resume content with AI-generated content based on your career profile. This action cannot be undone. Consider exporting your current resume before proceeding.
           </div>
 
           <div className="flex items-start gap-3">

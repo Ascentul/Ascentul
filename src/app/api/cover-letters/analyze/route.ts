@@ -334,7 +334,7 @@ ${optimize ? "- Include optimizedLetter (string) that rewrites the cover letter 
           }
         );
 
-        const raw = completion.choices[0]?.message?.content || "";
+        const raw = completion.choices?.[0]?.message?.content || "";
         try {
           const parsed = JSON.parse(raw);
           const sanitized: AnalysisResult = {

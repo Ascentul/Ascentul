@@ -5,6 +5,32 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+/**
+ * Normalize any error-like value to a proper Error instance
+ * Preserves error message from objects with a 'message' property
+ */
+export function normalizeError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+
+  // Extract message from error-like objects
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = String((error as { message: unknown }).message);
+    const normalized = new Error(message);
+
+    // Preserve stack if available
+    if ('stack' in error && typeof (error as { stack?: unknown }).stack === 'string') {
+      normalized.stack = (error as { stack: string }).stack;
+    }
+
+    return normalized;
+  }
+
+  // Fallback for primitives and other types
+  return new Error(String(error));
+}
+
 export interface ErrorFallbackProps {
   reset: () => void;
   reload: () => void;
@@ -16,6 +42,11 @@ interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode | ((props: ErrorFallbackProps) => ReactNode);
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  /**
+   * Show detailed error messages and stack traces
+   * @default false
+   * @security Only enabled in development mode to prevent information leakage in production
+   */
   showDetails?: boolean;
 }
 
@@ -47,8 +78,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Normalize error to Error instance
-    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    // Normalize the error to ensure it's a proper Error instance
+    // JavaScript allows throwing any value (strings, numbers, objects, etc.)
+    // React passes through whatever was thrown, regardless of TypeScript's Error type annotation
+    const normalizedError = normalizeError(error);
 
     // Log error to console in development
     if (process.env.NODE_ENV === 'development') {
@@ -113,7 +146,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {this.props.showDetails && this.state.error && (
+              {/* Only show error details in development to prevent information leakage */}
+              {this.props.showDetails && process.env.NODE_ENV === 'development' && this.state.error && (
                 <div className="p-4 rounded-lg bg-gray-100 border border-gray-200">
                   <p className="text-sm font-medium text-gray-900 mb-2">Error Details:</p>
                   <p className="text-sm text-gray-700 font-mono">

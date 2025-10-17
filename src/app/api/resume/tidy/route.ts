@@ -37,6 +37,167 @@ interface TidyResumeRequest {
 const cooldownMap = new Map<string, number>();
 const COOLDOWN_MS = 20000; // 20 seconds
 
+/**
+ * Check if a resume is currently in cooldown period
+ * @param resumeId - The ID of the resume to check
+ * @returns Object with allowed status and remaining seconds if in cooldown
+ */
+async function checkCooldown(resumeId: string): Promise<{ allowed: boolean; remainingSeconds?: number }> {
+  const now = Date.now();
+  const lastCall = cooldownMap.get(resumeId);
+
+  if (lastCall && now - lastCall < COOLDOWN_MS) {
+    const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastCall)) / 1000);
+    return { allowed: false, remainingSeconds };
+  }
+
+  // Set cooldown
+  cooldownMap.set(resumeId, now);
+
+  // Incremental cleanup: avoid O(n) spikes by cleaning up oldest entries by timestamp
+  // More efficient than full cleanup and keeps map size bounded
+  if (cooldownMap.size > 100) {
+    const CLEANUP_AGE = 60 * 1000; // 1 minute (enough buffer beyond 20s cooldown)
+    const MAX_CLEANUP_PER_REQUEST = 10; // Clean up 10 oldest entries at a time
+
+    // Sort by timestamp (oldest first) to ensure we clean actual oldest entries
+    const sortedEntries = Array.from(cooldownMap.entries())
+      .sort(([, a], [, b]) => a - b) // Sort by timestamp ascending (oldest first)
+      .slice(0, MAX_CLEANUP_PER_REQUEST);
+
+    for (const [key, timestamp] of sortedEntries) {
+      if (now - timestamp > CLEANUP_AGE) {
+        cooldownMap.delete(key);
+      }
+    }
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Call OpenAI API with retry logic and model fallback
+ * @param userPrompt - The prompt to send to OpenAI
+ * @param maxAttempts - Maximum number of retry attempts (default: 3)
+ * @returns The AI response string
+ * @throws Error if all attempts fail
+ */
+async function callOpenAIWithRetry(
+  userPrompt: string,
+  maxAttempts: number = 3
+): Promise<string> {
+  let currentModel = getModel();
+  let hasTriedFallback = false;
+  let aiResponse: string | null = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`AI attempt ${attempt}/${maxAttempts} with model: ${currentModel}`);
+
+      const completion = await openai.chat.completions.create(
+        {
+          model: currentModel,
+          temperature: 0.2,
+          max_tokens: 2000,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: AUTO_TIDY_SYSTEM_PROMPT },
+            { role: 'user', content: userPrompt },
+          ],
+        },
+        {
+          timeout: 30000, // 30 seconds timeout
+        }
+      );
+
+      aiResponse = completion.choices?.[0]?.message?.content;
+
+      if (aiResponse) {
+        console.log('AI response received, length:', aiResponse.length);
+        return aiResponse;
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorCode = (error as any)?.code;
+      const errorStatus = (error as any)?.status;
+
+      console.error(`AI attempt ${attempt} failed:`, errorMessage);
+
+      // Check if this is a model-related error (e.g., model not available, invalid model name)
+      const isModelError =
+        errorCode === 'model_not_found' ||
+        errorStatus === 404 ||
+        (errorMessage && /model.*not.*found|invalid.*model/i.test(errorMessage));
+
+      // Model fallback: Give a "free retry" without counting against maxAttempts
+      // This ensures users aren't penalized for OpenAI API model availability issues
+      if (isModelError && !hasTriedFallback && currentModel !== FALLBACK_MODEL) {
+        console.log(`Model error detected. Falling back to ${FALLBACK_MODEL}`);
+        currentModel = FALLBACK_MODEL;
+        hasTriedFallback = true;
+
+        // Decrement attempt counter to retry with fallback model at the same attempt number
+        // Example: If attempt=2 fails with model error, decrement to attempt=1, then loop
+        // increments back to attempt=2 for the fallback retry. This effectively gives
+        // a "free" retry for model fallback, so total attempts can be maxAttempts + 1.
+        attempt--;
+        continue;
+      }
+
+      if (attempt === maxAttempts) {
+        throw new Error(`AI tidy failed: ${errorMessage}`);
+      }
+
+      // Exponential backoff
+      await new Promise((resolve) => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt - 1), 5000)));
+    }
+  }
+
+  throw new Error('Failed to get AI response after all attempts');
+}
+
+/**
+ * Parse and validate AI response into ResumeBlock array
+ * @param aiResponse - Raw AI response string
+ * @returns Validated array of ResumeBlock objects
+ * @throws Error if parsing or validation fails
+ */
+async function parseTidyResponse(aiResponse: string): Promise<ResumeBlock[]> {
+  const extractFirstJSON = (text: string): string | null => {
+    let normalized = text.trim();
+    if (normalized.startsWith("```")) {
+      normalized = normalized.replace(/^```json\s*/i, "").replace(/^```\s*/i, "");
+      normalized = normalized.replace(/```\s*$/i, "");
+    }
+
+    let depth = 0;
+    let start = -1;
+    for (let i = 0; i < normalized.length; i++) {
+      const char = normalized[i];
+      if (char === "{") {
+        if (depth === 0) start = i;
+        depth++;
+      } else if (char === "}") {
+        depth--;
+        if (depth === 0 && start !== -1) {
+          return normalized.slice(start, i + 1);
+        }
+      }
+    }
+    return null;
+  };
+
+  const jsonStr = extractFirstJSON(aiResponse) ?? aiResponse.trim();
+  const parsed = JSON.parse(jsonStr);
+
+  // Validate with Zod
+  const validated = aiResumeResponseSchema.parse(parsed);
+  const parsedBlocks = validated.blocks as ResumeBlock[];
+
+  console.log(`Validated ${parsedBlocks.length} tidied blocks`);
+  return parsedBlocks;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Check if OpenAI key is available at runtime
@@ -109,143 +270,43 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Check cooldown AFTER ownership verification
-    const now = Date.now();
-    const lastCall = cooldownMap.get(resumeId);
-    if (lastCall && now - lastCall < COOLDOWN_MS) {
-      const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastCall)) / 1000);
+    const cooldownCheck = await checkCooldown(resumeId);
+    if (!cooldownCheck.allowed) {
       return NextResponse.json(
-        { error: `Please wait ${remainingSeconds} seconds before tidying again.` },
+        { error: `Please wait ${cooldownCheck.remainingSeconds} seconds before tidying again.` },
         { status: 429 }
       );
     }
 
-    // Set cooldown
-    cooldownMap.set(resumeId, now);
-
-    // Lazy cleanup: only when map exceeds 100 entries
-    if (cooldownMap.size > 100) {
-      const CLEANUP_AGE = 60 * 1000; // 1 minute (enough buffer beyond 20s cooldown)
-      const entries = Array.from(cooldownMap.entries());
-      for (const [key, timestamp] of entries) {
-        if (now - timestamp > CLEANUP_AGE) {
-          cooldownMap.delete(key);
-        }
-      }
-    }
-
     console.log(`Tidying resume with ${currentBlocks.length} blocks`);
 
-    // 7. Build AI prompt
+    // 7. Build AI prompt and call OpenAI
     const userPrompt = generateTidyPrompt(currentBlocks);
 
-    // 8. Call OpenAI with retry and fallback
-    let currentModel = getModel();
-    let hasTriedFallback = false;
-    let aiResponse: string | null = null;
-    const maxAttempts = 3;
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        console.log(`AI attempt ${attempt}/${maxAttempts} with model: ${currentModel}`);
-
-        const completion = await openai.chat.completions.create(
-          {
-            model: currentModel,
-            temperature: 0.2,
-            max_tokens: 2000,
-            response_format: { type: 'json_object' },
-            messages: [
-              { role: 'system', content: AUTO_TIDY_SYSTEM_PROMPT },
-              { role: 'user', content: userPrompt },
-            ],
-          },
-          {
-            timeout: 30000, // 30 seconds timeout
-          }
-        );
-
-        aiResponse = completion.choices[0]?.message?.content;
-
-        if (aiResponse) {
-          console.log('AI response received, length:', aiResponse.length);
-          break;
-        }
-      } catch (error: any) {
-        console.error(`AI attempt ${attempt} failed:`, error.message);
-
-        // Check if this is a model-related error
-        const isModelError =
-          error.code === 'model_not_found' ||
-          error.status === 404 ||
-          (error.message && /model.*not.*found|invalid.*model/i.test(error.message));
-
-        if (isModelError && !hasTriedFallback && currentModel !== FALLBACK_MODEL) {
-          console.log(`Model error detected. Falling back to ${FALLBACK_MODEL}`);
-          currentModel = FALLBACK_MODEL;
-          hasTriedFallback = true;
-          attempt--; // Don't count this as an attempt
-          continue;
-        }
-
-        if (attempt === maxAttempts) {
-          return NextResponse.json(
-            { error: `AI tidy failed: ${error.message}` },
-            { status: 502 }
-          );
-        }
-
-        // Exponential backoff
-        await new Promise((resolve) => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt - 1), 5000)));
-      }
-    }
-
-    if (!aiResponse) {
+    let aiResponse: string;
+    try {
+      aiResponse = await callOpenAIWithRetry(userPrompt);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return NextResponse.json(
-        { error: 'Failed to tidy resume content' },
+        { error: errorMessage },
         { status: 502 }
       );
     }
 
-    // 9. Parse and validate JSON response
-let parsedBlocks: ResumeBlock[];
+    // 8. Parse and validate JSON response
+    let parsedBlocks: ResumeBlock[];
     try {
-      const extractFirstJSON = (text: string): string | null => {
-        let normalized = text.trim();
-        if (normalized.startsWith("```")) {
-          normalized = normalized.replace(/^```json\s*/i, "").replace(/^```\s*/i, "");
-          normalized = normalized.replace(/```\s*$/i, "");
-        }
-
-        let depth = 0;
-        let start = -1;
-        for (let i = 0; i < normalized.length; i++) {
-          const char = normalized[i];
-          if (char === "{") {
-            if (depth === 0) start = i;
-            depth++;
-          } else if (char === "}") {
-            depth--;
-            if (depth === 0 && start !== -1) {
-              return normalized.slice(start, i + 1);
-            }
-          }
-        }
-        return null;
-      };
-
-      const jsonStr = extractFirstJSON(aiResponse) ?? aiResponse.trim();
-      const parsed = JSON.parse(jsonStr);
-
-      // Validate with Zod
-      const validated = aiResumeResponseSchema.parse(parsed);
-      parsedBlocks = validated.blocks as ResumeBlock[];
-
-      console.log(`Validated ${parsedBlocks.length} tidied blocks`);
-    } catch (error: any) {
+      parsedBlocks = await parseTidyResponse(aiResponse);
+    } catch (error: unknown) {
       console.error('Validation error:', error);
-      const errorMsg = error.errors
-        ? error.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join('; ')
-        : error.message;
+
+      // Handle Zod validation errors which have an 'errors' array
+      const zodErrors = (error as any)?.errors;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMsg = zodErrors
+        ? zodErrors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join('; ')
+        : errorMessage;
 
       return NextResponse.json(
         {
@@ -257,7 +318,7 @@ let parsedBlocks: ResumeBlock[];
       );
     }
 
-    // 10. Return tidied blocks (client will handle applying them)
+    // 9. Return tidied blocks (client will handle applying them)
     console.log(`Successfully tidied ${parsedBlocks.length} blocks`);
 
     return NextResponse.json({
@@ -265,10 +326,11 @@ let parsedBlocks: ResumeBlock[];
       blocks: parsedBlocks,
       count: parsedBlocks.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Tidy resume error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to tidy resume';
     return NextResponse.json(
-      { error: error.message || 'Failed to tidy resume' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

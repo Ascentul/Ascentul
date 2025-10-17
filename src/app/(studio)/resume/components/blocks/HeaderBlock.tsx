@@ -1,4 +1,4 @@
-import type { HeaderData } from '@/lib/resume/types';
+import type { HeaderContactLink, HeaderData } from '@/lib/resume/types';
 import { BlockSuggestions } from '../BlockSuggestions';
 import type { ContentSuggestion } from '@/lib/ai/suggestions';
 
@@ -12,6 +12,33 @@ interface HeaderBlockProps {
 export function HeaderBlock({ data, isSelected, suggestions, blockId }: HeaderBlockProps) {
   const { fullName, title, contact } = data;
   const { email, phone, location, links } = contact || {};
+  const safeLinks: HeaderContactLink[] = Array.isArray(links)
+    ? (links as unknown[]).map((entry) => {
+        if (!entry) {
+          return null;
+        }
+        if (typeof entry === 'string') {
+          const trimmed = entry.trim();
+          if (!trimmed) {
+            return null;
+          }
+          return { label: trimmed, url: trimmed };
+        }
+        if (typeof entry === 'object') {
+          const linkObject = entry as HeaderContactLink & { label?: string; url?: string };
+          const normalizedUrl = typeof linkObject.url === 'string' ? linkObject.url.trim() : '';
+          if (!normalizedUrl) {
+            return null;
+          }
+          const normalizedLabel =
+            typeof linkObject.label === 'string' && linkObject.label.trim().length > 0
+              ? linkObject.label.trim()
+              : normalizedUrl;
+          return { label: normalizedLabel, url: normalizedUrl };
+        }
+        return null;
+      }).filter((link): link is HeaderContactLink => Boolean(link))
+    : [];
 
   return (
     <header
@@ -56,14 +83,14 @@ export function HeaderBlock({ data, isSelected, suggestions, blockId }: HeaderBl
               {location}
             </span>
           )}
-          {links && links.length > 0 && links.map((link) => (
+          {safeLinks.length > 0 && safeLinks.map((link) => (
             <a
               key={link.url}
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-primary transition-colors"
-              aria-label={`${link.label}: ${link.url} (opens in new window)`}
+              aria-label={`${link.label} (opens in new window)`}
             >
               {link.label}
             </a>

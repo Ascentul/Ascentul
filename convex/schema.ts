@@ -582,7 +582,17 @@ export default defineSchema({
     slug: v.string(),
     description: v.optional(v.string()),
     defaultThemeId: v.optional(v.id("builder_resume_themes")),
-    preview: v.optional(v.string()), // Optional preview asset reference (relative filename or remote URL)
+    /**
+     * Preview asset reference (relative filename like "modern.png" or absolute URL).
+     * Used by getPreviewSrc() to construct full preview URLs. Takes precedence over thumbnailUrl.
+     * Can be a filename (resolved via NEXT_PUBLIC_PREVIEW_BASE_URL or /public/previews),
+     * or a full HTTP/HTTPS URL. See src/lib/templates/getPreviewSrc.ts for resolution logic.
+     */
+    preview: v.optional(v.string()),
+    /**
+     * Legacy thumbnail URL field. Fallback when preview is not set.
+     * Prefer using 'preview' field for new templates.
+     */
     thumbnailUrl: v.optional(v.string()),
     pageSize: v.optional(v.string()),
     margins: v.optional(v.any()),

@@ -24,6 +24,20 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
+/**
+ * Helper function for consistent and safe button selection across tests
+ * @param index - The index of the dismiss button to select (default: 0)
+ * @returns The dismiss button element at the specified index
+ * @throws Error if the dismiss button at the specified index does not exist
+ */
+const getDismissButton = (index: number = 0): HTMLElement => {
+  const dismissButtons = screen.getAllByTestId('dismiss-button');
+  if (index >= dismissButtons.length) {
+    throw new Error(`Dismiss button at index ${index} not found. Only ${dismissButtons.length} button(s) available.`);
+  }
+  return dismissButtons[index];
+};
+
 describe('BlockSuggestions Component', () => {
   const mockSuggestions: ContentSuggestion[] = [
     {
@@ -119,9 +133,9 @@ describe('BlockSuggestions Component', () => {
         />
       );
 
-      // Find and click the first dismiss button using test ID
-      const dismissButtons = screen.getAllByTestId('dismiss-button');
-      fireEvent.click(dismissButtons[0]);
+      // Find and click the first dismiss button
+      const dismissButton = getDismissButton(0);
+      fireEvent.click(dismissButton);
 
       await waitFor(() => {
         // The first suggestion should be removed from the DOM
@@ -142,8 +156,8 @@ describe('BlockSuggestions Component', () => {
         />
       );
 
-      const dismissButtons = screen.getAllByTestId('dismiss-button');
-      fireEvent.click(dismissButtons[0]);
+      const dismissButton = getDismissButton(0);
+      fireEvent.click(dismissButton);
 
       await waitFor(() => {
         const stored = localStorage.getItem('resume-dismissed-suggestions');
@@ -168,8 +182,8 @@ describe('BlockSuggestions Component', () => {
         />
       );
 
-      const dismissButtons = screen.getAllByTestId('dismiss-button');
-      fireEvent.click(dismissButtons[0]);
+      const dismissButton = getDismissButton(0);
+      fireEvent.click(dismissButton);
 
       await waitFor(() => {
         expect(mockOnDismiss).toHaveBeenCalledWith('test-1');
@@ -324,6 +338,28 @@ describe('BlockSuggestions Component', () => {
 
       expect(screen.queryByText('Strengthen action verb')).not.toBeInTheDocument();
       expect(screen.getByText('Add quantifiable metrics')).toBeInTheDocument();
+    });
+
+    it('should not render when all suggestions are dismissed', async () => {
+      const { container } = render(
+        <BlockSuggestions
+          blockId="test-block"
+          suggestions={[mockSuggestions[0]]}
+          compact={false}
+        />
+      );
+
+      // Verify suggestion is initially rendered
+      expect(screen.getByText('Strengthen action verb')).toBeInTheDocument();
+
+      // Dismiss the only suggestion
+      const dismissButton = getDismissButton(0);
+      fireEvent.click(dismissButton);
+
+      // Component should not render when all suggestions are dismissed
+      await waitFor(() => {
+        expect(container.firstChild).toBeNull();
+      });
     });
   });
 });

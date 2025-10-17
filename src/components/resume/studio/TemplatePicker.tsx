@@ -2,9 +2,12 @@
 
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
+import { api } from "convex/_generated/api";
+import type { FunctionReturnType } from "convex/server";
 import { withTemplatePreview } from "@/lib/templates";
 import { TemplateCard } from "@/components/templates/TemplateCard";
+
+type TemplateFromQuery = FunctionReturnType<typeof api.builder_templates.listTemplatesAll>[number];
 
 interface TemplatePickerProps {
   currentTemplate: string;
@@ -18,7 +21,7 @@ export function TemplatePicker({ currentTemplate, onTemplateChange }: TemplatePi
     return <div className="text-sm text-muted-foreground">Loading templates...</div>;
   }
 
-  const templateCards = useMemo(
+  const templateCards = useMemo<ReturnType<typeof withTemplatePreview>[]>(
     () => templates.map((template) => withTemplatePreview(template)),
     [templates],
   );

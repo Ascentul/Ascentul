@@ -1,6 +1,11 @@
 // Shared type definitions for resume blocks
 // These match the validator schemas in @/lib/validators/resume
 
+export type HeaderContactLink = {
+  label: string;
+  url: string;
+};
+
 export type HeaderData = {
   fullName: string;
   title?: string;
@@ -8,10 +13,7 @@ export type HeaderData = {
     email?: string;
     phone?: string;
     location?: string;
-    links?: Array<{
-      label: string;
-      url: string;
-    }>;
+    links?: HeaderContactLink[];
   };
 };
 
@@ -37,6 +39,11 @@ export type EducationItem = {
   degree?: string;
   end?: string; // Graduation date
   details?: string[];
+  // TODO: Consolidate ID fields for cleaner architecture
+  // Currently supports both id and _id for multi-source compatibility:
+  // - id: Used by client-side generated items (UUID)
+  // - _id: Used by Convex database documents
+  // Future improvement: Normalize to single ID field at data boundary layer
   id?: string;
   _id?: string;
 };
@@ -45,10 +52,9 @@ export type EducationData = {
   items: EducationItem[];
 };
 
-export type SkillsData = {
-  primary?: string[];
-  secondary?: string[];
-};
+export type SkillsData =
+  | { primary: string[]; secondary?: string[] }
+  | { primary?: string[]; secondary: string[] };
 
 export type ProjectItem = {
   name: string;

@@ -1,0 +1,29 @@
+[
+  {
+    "_comment": "Configuration for template preview generation. See scripts/README.md for full documentation.",
+    "_schema": {
+      "slug": "Stable identifier matching src/lib/templates/index.ts",
+      "name": "Display name shown in preview image",
+      "description": "Short description shown in preview image",
+      "color": "Hex color code (e.g., #3B82F6) for preview branding"
+    }
+  },
+  {
+    "slug": "grid-compact",
+    "name": "Grid Compact",
+    "description": "Dense grid layout",
+    "color": "#10B981"
+  },
+  {
+    "slug": "minimal-serif",
+    "name": "Minimal Serif",
+    "description": "Elegant typography",
+    "color": "#EF4444"
+  },
+  {
+    "slug": "modern-sidebar",
+    "name": "Modern Sidebar",
+    "description": "Two-column layout",
+    "color": "#3B82F6"
+  }
+]

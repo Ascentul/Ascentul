@@ -100,4 +100,72 @@ describe('renderThumbnail', () => {
     expect(second).toBe('data:image/png;base64,mock');
     expect(html2canvas).toHaveBeenCalledTimes(2);
   });
+
+  describe('error handling', () => {
+    it('throws descriptive error when html2canvas fails', async () => {
+      const element = document.createElement('div');
+      Object.defineProperty(element, 'clientWidth', { value: 400 });
+
+      html2canvas.mockRejectedValueOnce(new Error('CORS policy blocked resource'));
+
+      await expect(
+        renderThumbnail(element, {
+          documentId: 'resume-error-1',
+          lastUpdated: 100,
+        })
+      ).rejects.toThrow('Failed to render thumbnail: CORS policy blocked resource');
+    });
+
+    it('wraps non-Error exceptions in descriptive message', async () => {
+      const element = document.createElement('div');
+      Object.defineProperty(element, 'clientWidth', { value: 400 });
+
+      html2canvas.mockRejectedValueOnce('Canvas size exceeds maximum');
+
+      await expect(
+        renderThumbnail(element, {
+          documentId: 'resume-error-2',
+          lastUpdated: 200,
+        })
+      ).rejects.toThrow('Failed to render thumbnail: Canvas size exceeds maximum');
+    });
+
+    it('throws error for invalid element', async () => {
+      await expect(
+        renderThumbnail(null as any, {
+          documentId: 'resume-error-3',
+          lastUpdated: 300,
+        })
+      ).rejects.toThrow('renderThumbnail requires a valid HTMLElement');
+    });
+
+    it('does not cache when rendering fails', async () => {
+      const element = document.createElement('div');
+      Object.defineProperty(element, 'clientWidth', { value: 400 });
+
+      html2canvas.mockRejectedValueOnce(new Error('Rendering failed'));
+
+      await expect(
+        renderThumbnail(element, {
+          documentId: 'resume-error-4',
+          lastUpdated: 400,
+          cacheResult: true,
+        })
+      ).rejects.toThrow('Failed to render thumbnail: Rendering failed');
+
+      // Verify nothing was cached
+      expect(getCachedThumbnail('resume-error-4', 400)).toBeNull();
+
+      // Subsequent call should attempt render again (not use cache)
+      html2canvas.mockResolvedValueOnce(mockCanvas);
+      const result = await renderThumbnail(element, {
+        documentId: 'resume-error-4',
+        lastUpdated: 400,
+        cacheResult: true,
+      });
+
+      expect(result).toBe('data:image/png;base64,mock');
+      expect(html2canvas).toHaveBeenCalledTimes(2);
+    });
+  });
 });

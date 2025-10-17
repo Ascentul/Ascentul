@@ -31,7 +31,9 @@ export function EducationBlock({
       item?.end?.trim(),
     ].filter(Boolean);
 
-    return parts.length > 0 ? parts.join("|") : `education-${index}`;
+    // Always include index to guarantee uniqueness and prevent React key collisions
+    // when multiple items share identical metadata (same school, degree, and end date)
+    return parts.length > 0 ? `${parts.join("|")}-${index}` : `education-${index}`;
   };
 
   return (
@@ -85,7 +87,7 @@ export function EducationBlock({
                 <ul className="space-y-0.5 mt-2">
                   {details.map((detail, detailIdx) => (
                     <li
-                      key={`${itemKey}-detail-${detailIdx}`}
+                      key={detailIdx}
                       className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
                     >
                       {detail}

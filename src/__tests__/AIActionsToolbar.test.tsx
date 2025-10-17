@@ -269,8 +269,10 @@ describe('AIActionsToolbar Component', () => {
       fireEvent.click(screen.getByText('AI Actions'));
 
       await waitFor(() => {
-        const generateButton = screen.getByText('Generate Content');
-        expect(generateButton.closest('button')).not.toBeDisabled();
+        // Check aria-disabled instead of using toBeEnabled()
+        // jest-dom's toBeEnabled() doesn't consider aria-disabled on menu items
+        const generateButton = screen.getByRole('menuitem', { name: /Generate Content/i });
+        expect(generateButton).not.toHaveAttribute('aria-disabled', 'true');
       });
     });
   });
@@ -309,9 +311,9 @@ describe('AIActionsToolbar Component', () => {
       fireEvent.click(screen.getByText('AI Actions'));
 
       await waitFor(() => {
-        const tailorButton = screen.getByText('Tailor to Job');
-        // The menuitem should be disabled
-        expect(tailorButton.closest('[role="menuitem"]')).toHaveAttribute('aria-disabled', 'true');
+        // Use getByRole for more robust querying that doesn't depend on DOM structure
+        const tailorMenuItem = screen.getByRole('menuitem', { name: /Tailor to Job/i });
+        expect(tailorMenuItem).toHaveAttribute('aria-disabled', 'true');
       });
     });
   });

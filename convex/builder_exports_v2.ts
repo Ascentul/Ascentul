@@ -179,7 +179,15 @@ export const listForUser = query({
 
     const resumeIds = new Set(resumes.map((r) => r._id));
 
+    // Create Map for O(1) resume lookups instead of O(n) find()
+    const resumeMap = new Map(resumes.map((r) => [r._id, r]));
+
     // Get all exports for these resumes
+    // Note: Using per-resume queries due to Convex index constraints
+    // Performance consideration: If user resume counts typically exceed ~10-20,
+    // consider implementing batched queries, pagination, or a composite index
+    // on (userId, resumeId) to enable a single query. Monitor query durations
+    // if this becomes a hot path in production.
     const allExports = [];
     for (const resumeId of resumeIds) {
       const exports = await ctx.db
@@ -188,7 +196,7 @@ export const listForUser = query({
         .collect();
 
       for (const exp of exports) {
-        const resume = resumes.find((r) => r._id === exp.resumeId);
+        const resume = resumeMap.get(exp.resumeId);
         allExports.push({
           _id: exp._id,
           resumeId: exp.resumeId,

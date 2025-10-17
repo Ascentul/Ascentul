@@ -49,8 +49,11 @@ export function ExperienceBlock({
             ? item.bullets.filter(Boolean).slice(0, MAX_BULLETS)
             : [];
 
-          // Generate stable key from item properties
-          const key = `${role}-${company}-${item?.start ?? idx}`;
+          // Generate stable key: prefer id, fallback to combination of fields + index
+          // Note: Always include idx in fallback to guarantee uniqueness and prevent
+          // React key collisions when multiple items share identical metadata
+          const itemWithId = item as ExperienceItem & { id?: string; _id?: string };
+          const key = itemWithId.id ?? itemWithId._id ?? `${role}-${company}-${item?.start}-${idx}`;
 
           return (
             <article key={key} className="space-y-1">
@@ -70,7 +73,7 @@ export function ExperienceBlock({
                 <ul role="list" className="space-y-0.5 mt-2">
                   {bullets.map((bullet, bulletIdx) => (
                     <li
-                      key={`${bullet.substring(0, 30)}-${bulletIdx}`}
+                      key={bulletIdx}
                       className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
                     >
                       {bullet}

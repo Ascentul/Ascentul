@@ -79,7 +79,7 @@ Format as a structured plan with clear steps and timelines.`
           timeout: OPENAI_TIMEOUT_MS,
         }
       )
-      generatedPath = completion.choices[0]?.message?.content || null
+      generatedPath = completion.choices?.[0]?.message?.content || null
     } catch (error) {
       console.error('OpenAI API call failed:', error)
       generatedPath = null

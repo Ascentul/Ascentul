@@ -1,5 +1,29 @@
 'use client';
 
+/**
+ * BlockSuggestions Component
+ *
+ * Displays AI-generated content improvement suggestions for resume blocks.
+ * Supports dismissal with localStorage persistence across browser sessions.
+ *
+ * PERSISTENCE ARCHITECTURE:
+ * - Uses localStorage for client-side persistence (no backend required)
+ * - Syncs dismissals across tabs via storage events
+ * - Read-merge-write pattern reduces (but doesn't eliminate) race conditions
+ *
+ * KNOWN LIMITATION:
+ * localStorage lacks atomic operations, creating a potential race condition when
+ * multiple tabs dismiss different suggestions simultaneously. This is acceptable
+ * for resume editing because:
+ * 1. Concurrent multi-tab editing is rare
+ * 2. Worst case: dismissed suggestion reappears after reload
+ * 3. In-memory state stays correct during active session
+ * 4. Non-critical data (UX preference, not user content)
+ *
+ * For stricter consistency requirements, migrate to IndexedDB transactions or
+ * backend persistence. See inline documentation in handleDismiss() for details.
+ */
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -83,6 +107,31 @@ export function BlockSuggestions({
 
         parsed[blockId] = mergedIds;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+
+        /**
+         * KNOWN LIMITATION: localStorage race condition
+         *
+         * If two tabs dismiss different suggestions simultaneously:
+         * 1. Both read localStorage before either writes
+         * 2. Second write overwrites first, losing one dismissal
+         * 3. In-memory state stays correct via storage events
+         * 4. Lost dismissal only affects post-reload state
+         *
+         * Trade-off: Acceptable for this use case because:
+         * - Concurrent multi-tab resume editing is rare
+         * - Worst case: dismissed suggestion reappears on reload
+         * - User can simply dismiss again (non-critical data)
+         * - In-memory state remains correct during session
+         *
+         * Future migration options if stricter consistency needed:
+         * - IndexedDB with transactions (atomic operations)
+         * - Backend persistence layer (Convex user preferences)
+         * - Browser locks API (experimental, limited support)
+         *
+         * References:
+         * - localStorage is not atomic: https://html.spec.whatwg.org/multipage/webstorage.html
+         * - IndexedDB transactions: https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API
+         */
       } catch (error) {
         console.error('Failed to save dismissed suggestions:', error);
       }
@@ -215,7 +264,7 @@ const getPriorityColorClass = (
         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
         : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900',
   };
-  return colors[priority];
+  return colors[priority] ?? colors.low; // Fallback to low priority styling
 };
 
 /**

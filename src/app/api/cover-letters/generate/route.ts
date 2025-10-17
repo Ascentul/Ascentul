@@ -187,9 +187,9 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
           timeout: OPENAI_TIMEOUT_MS,
         }
       )
-      generatedContent = completion.choices[0]?.message?.content || null
+      generatedContent = completion.choices?.[0]?.message?.content || null
     } catch (e) {
-      // swallow and use fallback
+      console.error('OpenAI API call failed, using fallback:', e)
       generatedContent = null
     }
 
