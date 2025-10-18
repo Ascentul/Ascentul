@@ -105,7 +105,7 @@ export default function ResumeListPage() {
   const deleteResumeMutation = useMutation(api.builder_resumes.deleteResume);
   const { exportResume } = useResumeExport();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [busyRecord, setBusyRecord] = useState<{ id: string; action: "duplicate" | "export" | "delete" } | null>(null);
+  const [busyRecords, setBusyRecords] = useState<Map<string, "duplicate" | "export" | "delete">>(new Map());
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const sortedResumes = useMemo(() => {
@@ -192,7 +192,7 @@ export default function ResumeListPage() {
 
   const handleDuplicate = async (resumeId: string) => {
     if (!user?.id) return;
-    setBusyRecord({ id: resumeId, action: "duplicate" });
+    setBusyRecords(prev => new Map(prev).set(resumeId, "duplicate"));
     try {
       const result = await duplicateResumeMutation({
         clerkId: user.id,
@@ -206,12 +206,16 @@ export default function ResumeListPage() {
       console.error("Failed to duplicate resume:", error);
       toast(TOAST_MESSAGES.resumeDuplicateError);
     } finally {
-      setBusyRecord(null);
+      setBusyRecords(prev => {
+        const next = new Map(prev);
+        next.delete(resumeId);
+        return next;
+      });
     }
   };
 
   const handleExport = async (resumeId: string) => {
-    setBusyRecord({ id: resumeId, action: "export" });
+    setBusyRecords(prev => new Map(prev).set(resumeId, "export"));
     let handledByCallback = false;
     try {
       await exportResume({
@@ -235,7 +239,11 @@ export default function ResumeListPage() {
         );
       }
     } finally {
-      setBusyRecord(null);
+      setBusyRecords(prev => {
+        const next = new Map(prev);
+        next.delete(resumeId);
+        return next;
+      });
     }
   };
 
@@ -246,7 +254,7 @@ export default function ResumeListPage() {
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
 
-    setBusyRecord({ id: deleteConfirmId, action: "delete" });
+    setBusyRecords(prev => new Map(prev).set(deleteConfirmId, "delete"));
     try {
       await deleteResumeMutation({ id: deleteConfirmId as Id<"builder_resumes"> });
       toast(TOAST_MESSAGES.resumeDeleted);
@@ -254,7 +262,11 @@ export default function ResumeListPage() {
       console.error("Failed to delete resume:", error);
       toast(TOAST_MESSAGES.deleteFailed);
     } finally {
-      setBusyRecord(null);
+      setBusyRecords(prev => {
+        const next = new Map(prev);
+        next.delete(deleteConfirmId);
+        return next;
+      });
       setDeleteConfirmId(null);
     }
   };
@@ -271,7 +283,7 @@ export default function ResumeListPage() {
         open={!!deleteConfirmId}
         onOpenChange={(open) => {
           const isDeletionInProgress =
-            busyRecord?.id === deleteConfirmId && busyRecord?.action === "delete";
+            deleteConfirmId !== null && busyRecords.get(deleteConfirmId) === "delete";
           if (!open && !isDeletionInProgress) {
             setDeleteConfirmId(null);
           }
@@ -288,7 +300,7 @@ export default function ResumeListPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              disabled={busyRecord?.id === deleteConfirmId && busyRecord?.action === "delete"}
+              disabled={deleteConfirmId !== null && busyRecords.get(deleteConfirmId) === "delete"}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60"
             >
               Delete
@@ -322,7 +334,7 @@ export default function ResumeListPage() {
                 onDuplicate={handleDuplicate}
                 onExport={handleExport}
                 onDelete={handleDelete}
-                busyAction={busyRecord?.id === resume._id ? busyRecord.action : null}
+                busyAction={busyRecords.get(resume._id) ?? null}
               />
             ))}
           </div>

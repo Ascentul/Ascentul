@@ -27,6 +27,195 @@ type ResumeInsertArgs = {
   themeId?: Id<"builder_resume_themes">;
 };
 
+/**
+ * Helper to validate HTTP/HTTPS URLs
+ */
+function isValidHttpUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Helper to extract domain label from URL for display purposes
+ *
+ * Examples:
+ * - https://example.com → "Example"
+ * - https://my-portfolio.com → "My Portfolio"
+ * - https://example.co.uk → "Example" (handles ccTLDs)
+ * - https://subdomain.example.com → "Example" (ignores subdomains)
+ *
+ * Known limitations:
+ * - Hardcoded ccTLD list (not exhaustive, but covers ~90% of cases)
+ * - Single-part hostnames (e.g., "localhost") return the hostname itself
+ * - Non-standard TLDs may not be handled correctly
+ * - For production URLs, these limitations are generally acceptable
+ *
+ * For comprehensive TLD handling, consider using a library like:
+ * - tldts: https://www.npmjs.com/package/tldts
+ * - psl (Public Suffix List): https://www.npmjs.com/package/psl
+ */
+function getLabelFromUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.replace('www.', '');
+    const parts = hostname.split('.');
+
+    // Edge case: Single-part hostname (e.g., "localhost", "intranet")
+    // Return as-is since there's no TLD to strip
+    if (parts.length === 1) {
+      const label = parts[0];
+      return label.charAt(0).toUpperCase() + label.slice(1);
+    }
+
+    // Handle country-code TLDs (ccTLDs) like .co.uk, .com.au
+    // Expanded list covers common ccTLDs (~90% of production use cases)
+    const knownCcTlds = [
+      'co.uk', 'com.au', 'co.nz', 'co.za', 'com.br', 'co.jp',
+      'co.in', 'com.cn', 'net.au', 'org.uk', 'ac.uk', 'gov.uk',
+      'com.mx', 'co.kr', 'com.sg', 'co.id', 'com.ar', 'com.co'
+    ];
+    const lastTwo = parts.slice(-2).join('.');
+
+    // For ccTLDs, extract third-to-last part; otherwise second-to-last
+    // Ensures we get "example" from both "example.co.uk" and "example.com"
+    const domainPart = knownCcTlds.includes(lastTwo) && parts.length > 2
+      ? parts[parts.length - 3]
+      : parts[parts.length - 2];
+
+    // Capitalize each word for hyphenated domains
+    return domainPart.split('-').map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  } catch {
+    return 'Website';
+  }
+}
+
+/**
+ * Build validated links array from user profile
+ */
+function buildValidLinks(user: any): Array<{ label: string; url: string }> {
+  return [
+    user.linkedin_url && { label: 'LinkedIn', url: user.linkedin_url },
+    user.github_url && { label: 'GitHub', url: user.github_url },
+    user.website && { label: getLabelFromUrl(user.website), url: user.website },
+  ]
+    .filter((link): link is { label: string; url: string } =>
+      typeof link === 'object' && link !== null && isValidHttpUrl(link.url)
+    );
+}
+
+/**
+ * Build education items from user profile
+ */
+function buildEducationItems(user: any): Array<{
+  school: string;
+  degree?: string;
+  field?: string;
+  end?: string;
+  details: string[];
+}> {
+  const education = [];
+
+  // Add structured education history
+  if (user.education_history && user.education_history.length > 0) {
+    for (const edu of user.education_history) {
+      // Skip entries without required school field
+      if (!edu.school) continue;
+
+      education.push({
+        school: edu.school,
+        degree: edu.degree || undefined,
+        field: edu.field_of_study || undefined,
+        end: edu.is_current ? undefined : edu.end_year || undefined,
+        details: edu.description ? [edu.description] : [],
+      });
+    }
+  }
+
+  // Add flat education fields if they exist
+  // Only create entry if university_name is present (required field)
+  if (user.university_name) {
+    education.push({
+      school: user.university_name,
+      degree: user.major || undefined,
+      field: undefined,
+      end: user.graduation_year || undefined,
+      details: [],
+    });
+  }
+
+  return education;
+}
+
+/**
+ * Build experience items from user work history
+ * Filters out entries missing required company or role fields
+ */
+function buildExperienceItems(workHistory: any[]): Array<{
+  company: string;
+  role: string;
+  location?: string;
+  start?: string;
+  end?: string;
+  bullets: string[];
+}> {
+  return workHistory
+    .filter((exp: any) => exp.company && exp.role) // Skip entries without required fields
+    .map((exp: any) => ({
+      company: exp.company,
+      role: exp.role,
+      location: exp.location || undefined,
+      start: exp.start_date || undefined,
+      end: exp.is_current ? undefined : exp.end_date || undefined,
+      bullets: exp.summary ? [exp.summary] : [],
+    }));
+}
+
+/**
+ * Build project items from user projects
+ * Filters out entries missing required name field
+ *
+ * NOTE: Hardcoded labels ("Technologies:", "URL:", "GitHub:") are in English.
+ * For internationalization (i18n) support, consider:
+ * - Externalizing strings to i18n files (e.g., en.json, es.json)
+ * - Using a translation function: t('project.technologies')
+ * - Passing locale context to this function
+ *
+ * Example with i18n:
+ * ```typescript
+ * import { t } from '@/lib/i18n';
+ * bullets: [
+ *   ...(proj.technologies ? [`${t('project.technologies')}: ${proj.technologies.join(", ")}`] : []),
+ *   ...(proj.url ? [`${t('project.url')}: ${proj.url}`] : []),
+ * ]
+ * ```
+ */
+function buildProjectItems(projects: any[]): Array<{
+  name: string;
+  description: string;
+  bullets: string[];
+}> {
+  return projects
+    .filter((proj) => proj.title) // Skip entries without required name field
+    .map((proj) => ({
+      name: proj.title,
+      description: proj.description || "",
+      bullets: [
+        // TODO(i18n): Externalize these label strings when adding internationalization
+        ...(Array.isArray(proj.technologies) && proj.technologies.length > 0
+          ? [`Technologies: ${proj.technologies.join(", ")}`]
+          : []),
+        ...(proj.url ? [`URL: ${proj.url}`] : []),
+        ...(proj.github_url ? [`GitHub: ${proj.github_url}`] : []),
+      ],
+    }));
+}
+
 async function getUserByClerkIdOrThrow(ctx: any, clerkId: string) {
   const user = await ctx.db
     .query("users")
@@ -38,6 +227,97 @@ async function getUserByClerkIdOrThrow(ctx: any, clerkId: string) {
   }
 
   return user;
+}
+
+/**
+ * Verify resume ownership and return both user and resume
+ *
+ * This helper consolidates the common authentication and authorization pattern
+ * used across multiple resume mutations (updateResumeMeta, deleteResume,
+ * updateThumbnail, getThumbnailUrl).
+ *
+ * @param ctx - Convex mutation/query context
+ * @param resumeId - ID of the resume to verify ownership for
+ * @returns Object containing the authenticated user and the resume
+ * @throws "Unauthorized" if not authenticated
+ * @throws "User not found" if user doesn't exist in database
+ * @throws "Resume not found" if resume doesn't exist
+ * @throws "Forbidden" if user doesn't own the resume
+ *
+ * @example
+ * const { user, resume } = await verifyResumeOwnership(ctx, args.resumeId);
+ * // Now safe to modify resume...
+ */
+async function verifyResumeOwnership(ctx: any, resumeId: Id<"builder_resumes">) {
+  // Step 1: Check authentication
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Unauthorized");
+  }
+
+  // Step 2: Get user from database
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", identity.subject))
+    .unique();
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Step 3: Get resume from database
+  const resume = await ctx.db.get(resumeId) as any;
+  if (!resume) {
+    throw new Error("Resume not found");
+  }
+
+  // Step 4: Verify ownership
+  if (resume.userId !== user._id) {
+    throw new Error("Forbidden");
+  }
+
+  return { user, resume };
+}
+
+/**
+ * Verify resume ownership using explicit clerkId parameter
+ *
+ * Similar to verifyResumeOwnership but accepts clerkId as a parameter
+ * instead of using ctx.auth. Useful for queries and operations where
+ * authentication is handled via explicit clerkId parameter.
+ *
+ * @param ctx - Convex query/mutation context
+ * @param clerkId - Clerk user ID
+ * @param resumeId - ID of the resume to verify ownership for
+ * @returns Object containing the user and the resume
+ * @throws "User not found" if user doesn't exist in database
+ * @throws "Resume not found" if resume doesn't exist
+ * @throws "Forbidden" if user doesn't own the resume
+ *
+ * @example
+ * const { user, resume } = await verifyResumeOwnershipByClerkId(ctx, args.clerkId, args.id);
+ * // Now safe to access resume...
+ */
+async function verifyResumeOwnershipByClerkId(
+  ctx: any,
+  clerkId: string,
+  resumeId: Id<"builder_resumes">
+) {
+  // Step 1: Get user from database
+  const user = await getUserByClerkIdOrThrow(ctx, clerkId);
+
+  // Step 2: Get resume from database
+  const resume = await ctx.db.get(resumeId) as any;
+  if (!resume) {
+    throw new Error("Resume not found");
+  }
+
+  // Step 3: Verify ownership
+  if (resume.userId !== user._id) {
+    throw new Error("Forbidden");
+  }
+
+  return { user, resume };
 }
 
 async function insertResumeRecord(
@@ -119,20 +399,8 @@ export const getResume = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
-
-    const resume = await ctx.db.get(args.id) as any;
-    if (!resume) {
-      throw new Error("Not found");
-    }
-    if (resume.userId !== user._id) {
-      throw new Error("Forbidden");
-    }
+    // Verify authentication and ownership using consolidated helper
+    const { resume } = await verifyResumeOwnershipByClerkId(ctx, args.clerkId, args.id);
 
     const blocks = await ctx.db
       .query("resume_blocks")
@@ -162,19 +430,8 @@ export const updateResumeMeta = mutation({
     expectedUpdatedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
-    const userId = user.tokenIdentifier;
-
-    const resume = await ctx.db.get(args.id) as any;
-    if (!resume) {
-      throw new Error("Not found");
-    }
-    if (resume.userId !== userId) {
-      throw new Error("Forbidden");
-    }
+    // Verify authentication and ownership
+    const { resume } = await verifyResumeOwnership(ctx, args.id);
 
     // Optimistic concurrency check
     if (resume.updatedAt !== args.expectedUpdatedAt) {
@@ -249,67 +506,9 @@ export const createResumeWithBlocks = mutation({
             .filter(Boolean);
         }
 
-        // Build education array
-        const education = [];
-        if (user.education_history && user.education_history.length > 0) {
-          for (const edu of user.education_history) {
-            education.push({
-              school: edu.school || "",
-              degree: edu.degree || "",
-              field: edu.field_of_study || undefined,
-              end: edu.is_current ? undefined : edu.end_year || undefined,
-              details: edu.description ? [edu.description] : [],
-            });
-          }
-        }
-        // Add flat education fields if they exist
-        if (user.major || user.university_name || user.graduation_year) {
-          education.push({
-            school: user.university_name || "",
-            degree: user.major || "",
-            field: undefined,
-            end: user.graduation_year || undefined,
-            details: [],
-          });
-        }
-
-        // Helper to validate HTTP/HTTPS URLs
-        const isValidHttpUrl = (urlString: string): boolean => {
-          try {
-            const url = new URL(urlString);
-            return url.protocol === 'http:' || url.protocol === 'https:';
-          } catch {
-            return false;
-          }
-        };
-
-        // Helper to get label from URL
-        const getLabelFromUrl = (url: string): string => {
-          try {
-            const urlObj = new URL(url);
-            const hostname = urlObj.hostname.replace('www.', '');
-            const parts = hostname.split('.');
-            // Extract the primary domain name, handling multi-part domains
-            // For subdomains like 'blog.example.com', get 'example' (second-to-last part)
-            // For simple domains like 'example.com', get 'example' (first part)
-            const domainPart = parts.length > 2 ? parts[parts.length - 2] : parts[0];
-            return domainPart.split('-').map(word =>
-              word.charAt(0).toUpperCase() + word.slice(1)
-            ).join(' ');
-          } catch {
-            return 'Website';
-          }
-        };
-
-        // Build validated links array
-        const validLinks = [
-          user.linkedin_url && { label: 'LinkedIn', url: user.linkedin_url },
-          user.github_url && { label: 'GitHub', url: user.github_url },
-          user.website && { label: getLabelFromUrl(user.website), url: user.website },
-        ]
-          .filter((link): link is { label: string; url: string } =>
-            typeof link === 'object' && link !== null && isValidHttpUrl(link.url)
-          );
+        // Build data using helper functions
+        const education = buildEducationItems(user);
+        const validLinks = buildValidLinks(user);
 
         // Create blocks based on available data
         let order = 0;
@@ -351,14 +550,7 @@ export const createResumeWithBlocks = mutation({
 
         // 3. Experience block (if work history exists)
         if (user.work_history && user.work_history.length > 0) {
-          const experienceItems = user.work_history.map((exp: any) => ({
-            company: exp.company || "Company Name",
-            role: exp.role || "Job Title",
-            location: exp.location || undefined,
-            start: exp.start_date || undefined,
-            end: exp.is_current ? undefined : exp.end_date || undefined,
-            bullets: exp.summary ? [exp.summary] : [],
-          }));
+          const experienceItems = buildExperienceItems(user.work_history);
 
           await ctx.db.insert("resume_blocks", {
             resumeId: resumeId as any,
@@ -385,18 +577,10 @@ export const createResumeWithBlocks = mutation({
 
         // 5. Education block (if items exist)
         if (education.length > 0) {
-          const educationItems = education.map((edu) => ({
-            school: edu.school || "School Name",
-            degree: edu.degree || undefined,
-            field: edu.field || undefined,
-            end: edu.end || undefined,
-            details: edu.details || [],
-          }));
-
           await ctx.db.insert("resume_blocks", {
             resumeId: resumeId as any,
             type: "education",
-            data: { items: educationItems },
+            data: { items: education },
             order: order++,
             locked: false,
           });
@@ -405,17 +589,7 @@ export const createResumeWithBlocks = mutation({
 
         // 6. Projects block (if items exist)
         if (projects.length > 0) {
-          const projectItems = projects.map((proj) => ({
-            name: proj.title || "Project Name",
-            description: proj.description || "",
-            bullets: Array.isArray(proj.technologies) && proj.technologies.length > 0
-              ? [
-                  `Technologies: ${proj.technologies.join(", ")}`,
-                  ...(proj.url ? [`URL: ${proj.url}`] : []),
-                  ...(proj.github_url ? [`GitHub: ${proj.github_url}`] : []),
-                ]
-              : [],
-          }));
+          const projectItems = buildProjectItems(projects);
 
           await ctx.db.insert("resume_blocks", {
             resumeId: resumeId as any,
@@ -453,19 +627,8 @@ export const deleteResume = mutation({
     id: v.id("builder_resumes"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
-    if (!user) {
-      throw new Error("Unauthorized");
-    }
-    const userId = user.tokenIdentifier;
-
-    const resume = await ctx.db.get(args.id) as any;
-    if (!resume) {
-      throw new Error("Not found");
-    }
-    if (resume.userId !== userId) {
-      throw new Error("Forbidden");
-    }
+    // Verify authentication and ownership
+    await verifyResumeOwnership(ctx, args.id);
 
     // Delete all blocks for this resume
     const blocks = await ctx.db
@@ -486,7 +649,7 @@ export const deleteResume = mutation({
 
 /**
  * Duplicate an existing resume and all of its blocks.
- * @returns { id: Id<"builder_resumes">, blocksCopied: number }
+ * @returns { id: Id<"builder_resumes">, title: string, templateSlug: string, blocksCopied: number }
  */
 export const duplicateResume = mutation({
   args: {
@@ -495,22 +658,12 @@ export const duplicateResume = mutation({
     title: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const original = await ctx.db.get(args.resumeId);
-    if (!original) {
-      throw new Error("Resume not found");
-    }
-    if (original.userId !== user._id) {
-      throw new Error("Forbidden");
-    }
+    // Verify authentication and ownership using consolidated helper
+    const { user, resume: original } = await verifyResumeOwnershipByClerkId(
+      ctx,
+      args.clerkId,
+      args.resumeId
+    );
 
     const now = Date.now();
     const title = args.title?.trim()?.length
@@ -571,17 +724,8 @@ export const updateThumbnail = mutation({
     thumbnailDataUrl: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify authentication
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-
-    // Verify resume exists
-    const resume = await ctx.db.get(args.resumeId);
-    if (!resume) {
-      throw new Error("Resume not found");
-    }
+    // Verify authentication and ownership
+    await verifyResumeOwnership(ctx, args.resumeId);
 
     // Update thumbnail
     const updatedAt = Date.now();
@@ -591,5 +735,58 @@ export const updateThumbnail = mutation({
     });
 
     return { success: true, updatedAt };
+  },
+});
+
+/**
+ * Get thumbnail URL for a resume with access control.
+ * Supports both storage-based thumbnails and legacy base64 data URLs.
+ * @returns { url: string | null }
+ */
+export const getThumbnailUrl = query({
+  args: {
+    resumeId: v.id("builder_resumes"),
+  },
+  handler: async (ctx, args) => {
+    // Verify authentication and ownership
+    // TODO: Add support for publicly shared resumes or resumes shared with specific users
+    // For now, only the owner can access thumbnails
+    const { resume } = await verifyResumeOwnership(ctx, args.resumeId);
+
+    // Priority 1: Storage-based thumbnail (new system)
+    if (resume.thumbnailStorageId) {
+      try {
+        const url = await ctx.storage.getUrl(resume.thumbnailStorageId);
+
+        // getUrl can return null if the storage ID is invalid or file was deleted
+        if (url) {
+          return { url };
+        }
+
+        // Storage ID exists but file is missing - log for monitoring
+        console.warn(
+          `[getThumbnailUrl] Storage file not found for resume ${args.resumeId}, ` +
+          `storageId: ${resume.thumbnailStorageId}. Falling back to base64.`
+        );
+        // Fall through to base64 fallback
+      } catch (error) {
+        // Storage retrieval failed - could be permission issues, dangling ID, or service outage
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(
+          `[getThumbnailUrl] Failed to retrieve storage URL for resume ${args.resumeId}: ${errorMessage}. ` +
+          `Falling back to base64.`
+        );
+        // Fall through to base64 fallback instead of failing the entire query
+      }
+    }
+
+    // Priority 2: Base64 data URL (legacy system)
+    // Also serves as fallback if storage retrieval fails
+    if (resume.thumbnailDataUrl) {
+      return { url: resume.thumbnailDataUrl };
+    }
+
+    // No thumbnail available in either format
+    return { url: null };
   },
 });

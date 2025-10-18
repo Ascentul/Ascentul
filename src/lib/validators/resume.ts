@@ -44,11 +44,11 @@ export const resumeThemeSchema = z.object({
 // Header block
 export const headerBlockData = z.object({
   fullName: z.string().trim().min(1, 'Full name is required'),
-  title: z.string().optional(),
+  title: z.string().trim().optional(),
   contact: z.object({
-    email: z.string().email().optional(),
-    phone: z.string().optional(),
-    location: z.string().optional(),
+    email: z.string().trim().email().optional(),
+    phone: z.string().trim().optional(),
+    location: z.string().trim().optional(),
     links: z.array(z.object({
       label: z.string().trim().min(1, 'Link label is required'),
       url: z.string().url(),
@@ -65,10 +65,10 @@ export const summaryBlockData = z.object({
 export const experienceItem = z.object({
   company: z.string().trim().min(1, 'Company name is required'),
   role: z.string().trim().min(1, 'Role/title is required'),
-  location: z.string().optional(),
-  start: z.string().optional(), // Date string like "Jan 2020" or ISO format
-  end: z.string().optional(), // "Present" for current roles
-  bullets: z.array(z.string()).optional(),
+  location: z.string().trim().optional(),
+  start: z.string().trim().optional(), // Date string like "Jan 2020" or ISO format
+  end: z.string().trim().optional(), // "Present" for current roles
+  bullets: z.array(z.string().trim()).optional(),
 });
 
 export const experienceBlockData = z.object({
@@ -78,9 +78,9 @@ export const experienceBlockData = z.object({
 // Education block
 export const educationItem = z.object({
   school: z.string().trim().min(1, 'School name is required'),
-  degree: z.string().optional(),
-  end: z.string().optional(), // Graduation date
-  details: z.array(z.string()).optional(), // GPA, honors, etc.
+  degree: z.string().trim().optional(),
+  end: z.string().trim().optional(), // Graduation date
+  details: z.array(z.string().trim()).optional(), // GPA, honors, etc.
 });
 
 export const educationBlockData = z.object({
@@ -89,8 +89,8 @@ export const educationBlockData = z.object({
 
 // Skills block
 export const skillsBlockData = z.object({
-  primary: z.array(z.string()).optional(),
-  secondary: z.array(z.string()).optional(),
+  primary: z.array(z.string().trim()).optional(),
+  secondary: z.array(z.string().trim()).optional(),
 }).refine(
   (data) => (data.primary?.length ?? 0) > 0 || (data.secondary?.length ?? 0) > 0,
   { message: 'At least one skills list must be provided' }
@@ -99,8 +99,8 @@ export const skillsBlockData = z.object({
 // Projects block
 export const projectItem = z.object({
   name: z.string().trim().min(1, 'Project name is required'),
-  description: z.string().optional(),
-  bullets: z.array(z.string()).optional(),
+  description: z.string().trim().optional(),
+  bullets: z.array(z.string().trim()).optional(),
 });
 
 export const projectsBlockData = z.object({
@@ -110,8 +110,8 @@ export const projectsBlockData = z.object({
 // Custom block (flexible format for awards, certifications, etc.)
 export const customBlockData = z.object({
   heading: z.string().trim().min(1, 'Section heading is required'),
-  content: z.string().optional(), // Freeform text content
-  bullets: z.array(z.string()).optional(), // Alternative: bullet list format
+  content: z.string().trim().optional(), // Freeform text content
+  bullets: z.array(z.string().trim()).optional(), // Alternative: bullet list format
 }).refine(
   (data) => data.content || (data.bullets && data.bullets.length > 0),
   { message: 'Custom block must have either content or bullets' }
@@ -199,7 +199,7 @@ export const customBlock = z.object({
 
 export const resumeSchema = z.object({
   userId: z.string(),
-  title: z.string(),
+  title: z.string().trim().min(1, 'Title is required'),
   templateSlug: z.string(),
   themeId: z.string().optional(),
   version: z.number().optional(),

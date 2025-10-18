@@ -559,8 +559,17 @@ export default defineSchema({
     templateSlug: v.optional(v.string()),
     themeId: v.optional(v.id("builder_resume_themes")),
     version: v.optional(v.number()),
+
+    // TODO: PERFORMANCE - Migrate to storage-based thumbnails
+    // Current issue: Base64-encoded 800px PNG thumbnails cause database bloat
+    // - Base64 adds 33% overhead (67-200KB per resume)
+    // - At scale (10K resumes): 670MB-2GB just for thumbnails
+    // - Impacts query performance and network transfer
+    // Migration plan: See docs/THUMBNAIL_MIGRATION_PLAN.md
+    // DEPRECATED: Use thumbnailStorageId instead
     thumbnailDataUrl: v.optional(v.string()), // Base64-encoded PNG thumbnail (800px width)
-    thumbnailStorageId: v.optional(v.id("_storage")), // Future: Convex file storage ID
+    thumbnailStorageId: v.optional(v.id("_storage")), // Recommended: Convex file storage ID
+
     updatedAt: v.number(),
     createdAt: v.number(),
   })

@@ -35,9 +35,15 @@ async function getConvexClient(authResult: Awaited<ReturnType<typeof auth>>) {
     template: process.env.CLERK_JWT_TEMPLATE || "convex",
   });
 
-  if (token) {
-    client.setAuth(token);
+  if (!token) {
+    throw new Error(
+      "Failed to obtain authentication token. " +
+      "This may indicate a JWT template configuration issue. " +
+      "Verify CLERK_JWT_TEMPLATE matches your Clerk dashboard settings."
+    );
   }
+
+  client.setAuth(token);
 
   return client;
 }

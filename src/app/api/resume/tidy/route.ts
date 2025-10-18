@@ -106,7 +106,7 @@ async function callOpenAIWithRetry(
           ],
         },
         {
-          timeout: 30000, // 30 seconds timeout
+          timeout: 15000, // 15 seconds timeout (allows 3 attempts within 60s maxDuration)
         }
       );
 

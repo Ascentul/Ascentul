@@ -159,6 +159,14 @@ export function BlockSuggestions({
       case 'low':
         return <Lightbulb className="h-4 w-4" />;
       default:
+        // Defensive fallback: handles runtime data issues or type assertions
+        // TypeScript prevents this at compile-time, but protects against:
+        // - Invalid data from localStorage/API
+        // - Type assertions (as any)
+        // - JavaScript usage of this component
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Unknown suggestion priority: ${priority}. Falling back to default icon.`);
+        }
         return <Lightbulb className="h-4 w-4" />;
     }
   };
@@ -264,6 +272,12 @@ const getPriorityColorClass = (
         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
         : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900',
   };
+
+  // Defensive fallback with development warning
+  if (!(priority in colors) && process.env.NODE_ENV === 'development') {
+    console.warn(`Unknown suggestion priority: ${priority}. Falling back to low priority styling.`);
+  }
+
   return colors[priority] ?? colors.low; // Fallback to low priority styling
 };
 

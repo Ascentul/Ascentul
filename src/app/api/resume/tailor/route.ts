@@ -50,7 +50,34 @@ const cooldownMap = new Map<string, number>();
 const COOLDOWN_MS = 20000; // 20 seconds
 const CONTEXT_QUERY_TIMEOUT_MS = 6000; // 6 seconds for Convex read contexts
 
-type QueryReference = FunctionReference<"query", any, any, any>;
+/**
+ * Wraps a promise with a timeout, racing against a rejection after the specified duration.
+ * Ensures timeout is always cleared using .finally() to prevent memory leaks.
+ *
+ * @param promise - The promise to race against the timeout
+ * @param timeoutMs - Timeout duration in milliseconds
+ * @param errorMessage - Error message to throw on timeout
+ * @returns Promise that resolves with the original value or rejects on timeout
+ */
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage: string
+): Promise<T> {
+  let timeoutId: NodeJS.Timeout;
+
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
+
+// Type helpers for Convex queries - visibility set to "public" for user-accessible queries
+// Note: Using 'any' for args and return types since Convex query signatures vary widely
+type QueryReference = FunctionReference<"query", "public", any, any>;
 type QueryResult<Ref extends QueryReference> = FunctionReturnType<Ref>;
 
 /**
@@ -154,29 +181,9 @@ export async function POST(req: NextRequest) {
       projects: [],
     };
 
-    let contextTimeoutHandle: NodeJS.Timeout | undefined;
-    const timeoutPromise: Promise<TailorContextData> = new Promise((_, reject) => {
-      contextTimeoutHandle = setTimeout(() => {
-        reject(
-          new Error(
-            `Convex context queries timed out after ${CONTEXT_QUERY_TIMEOUT_MS}ms`,
-          ),
-        );
-      }, CONTEXT_QUERY_TIMEOUT_MS);
-    });
-
     try {
       // Note: Promise.race cancels waiting on slow responses, but Convex queries
       // continue running in the background. Safe here since these are reads only.
-      const contextPromise = Promise.all([
-        client.query(api.users.getUserByClerkId, { clerkId: userId }),
-        client.query(api.goals.getUserGoals, { clerkId: userId }),
-        client.query(api.applications.getUserApplications, { clerkId: userId }),
-        client.query(api.resumes.getUserResumes, { clerkId: userId }),
-        client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
-        client.query(api.projects.getUserProjects, { clerkId: userId }),
-      ]) as Promise<TailorContextData>;
-
       const [
         userProfile,
         goals,
@@ -184,7 +191,18 @@ export async function POST(req: NextRequest) {
         resumes,
         coverLetters,
         projects,
-      ] = await Promise.race([contextPromise, timeoutPromise]);
+      ] = await withTimeout(
+        Promise.all([
+          client.query(api.users.getUserByClerkId, { clerkId: userId }),
+          client.query(api.goals.getUserGoals, { clerkId: userId }),
+          client.query(api.applications.getUserApplications, { clerkId: userId }),
+          client.query(api.resumes.getUserResumes, { clerkId: userId }),
+          client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
+          client.query(api.projects.getUserProjects, { clerkId: userId }),
+        ]),
+        CONTEXT_QUERY_TIMEOUT_MS,
+        `Convex context queries timed out after ${CONTEXT_QUERY_TIMEOUT_MS}ms`
+      ) as TailorContextData;
 
       resumeContext.userProfile = userProfile ?? null;
       resumeContext.goals = (goals ?? []).slice(0, 5);
@@ -192,10 +210,6 @@ export async function POST(req: NextRequest) {
       resumeContext.resumes = (resumes ?? []).slice(0, 5);
       resumeContext.coverLetters = (coverLetters ?? []).slice(0, 5);
       resumeContext.projects = (projects ?? []).slice(0, 5);
-
-      if (contextTimeoutHandle) {
-        clearTimeout(contextTimeoutHandle);
-      }
 
       logger.debug('Resume context fetched', {
         resumeId,

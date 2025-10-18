@@ -120,7 +120,32 @@ export type Block =
   | (BlockBase & { type: 'projects'; data: ProjectsData })
   | (BlockBase & { type: 'custom'; data: CustomData });
 
-// Type guards
+/**
+ * Runtime type guards for resume block data
+ *
+ * These guards perform shallow-to-moderate validation by checking:
+ * - Property existence and types
+ * - Array types and basic structure
+ * - Required vs optional fields
+ *
+ * Limitations:
+ * - Does not exhaustively validate all nested field combinations
+ * - Does not enforce business rules (e.g., date formats, URL validity)
+ * - Assumes downstream code handles malformed data gracefully
+ *
+ * For stricter validation needs (e.g., API boundaries, user input),
+ * consider using a schema validation library like Zod or io-ts:
+ *
+ * @example
+ * import { z } from 'zod';
+ * const ExperienceItemSchema = z.object({
+ *   company: z.string(),
+ *   role: z.string(),
+ *   location: z.string().optional(),
+ *   // ... more fields
+ * });
+ */
+
 export function isHeaderData(data: any): data is HeaderData {
   if (!data || typeof data.fullName !== 'string') {
     return false;

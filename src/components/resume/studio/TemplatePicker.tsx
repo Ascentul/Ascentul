@@ -15,11 +15,26 @@ interface TemplatePickerProps {
 }
 
 export function TemplatePicker({ currentTemplate, onTemplateChange }: TemplatePickerProps) {
+  // Convex useQuery returns undefined while loading, or the data when ready
+  // For per-query error handling without Error Boundaries, we rely on Convex's error handling:
+  // - useQuery throws errors that are caught by Error Boundaries (current approach)
+  // - Alternative: Use Convex's error state mechanisms if available in future versions
+  //
+  // Note: Wrapping useQuery in try/catch violates Rules of Hooks (hooks must be called unconditionally)
+  // If you need inline error UI, consider:
+  // 1. Wrapping this component with an Error Boundary
+  // 2. Using Convex's error state API if/when available (check Convex docs for latest patterns)
   const templates = useQuery(api.builder_templates.listTemplatesAll);
 
-  if (!templates) {
+  // Loading state
+  if (templates === undefined) {
     return <div className="text-sm text-muted-foreground">Loading templates...</div>;
   }
+
+  // Note: If templates query fails, the error will be caught by an Error Boundary
+  // at a higher level in the component tree. To add custom error UI:
+  // - Wrap <TemplatePicker /> with a React Error Boundary component
+  // - Or check Convex documentation for the latest error handling patterns
 
   const templateCards = useMemo<ReturnType<typeof withTemplatePreview>[]>(
     () => templates.map((template) => withTemplatePreview(template)),

@@ -16,6 +16,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   const router = useRouter()
   const [redirectPath, setRedirectPath] = useState<string | null>(null)
   const [isCreatingUser, setIsCreatingUser] = useState(false)
+  const [creationStartTime, setCreationStartTime] = useState<number | null>(null)
   const createUser = useMutation(api.users.createUser)
 
   // Get user profile from Convex
@@ -32,8 +33,11 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     // userProfile is undefined while loading, null when not found, or an object when found
     // Only create if we know the user doesn't exist (null) and we're not already creating
     if (userProfile === null && !isCreatingUser) {
-      console.log('[AuthWrapper] Creating user profile for:', clerkUser.id)
+      // Immediately set flag to prevent race condition
       setIsCreatingUser(true)
+      setCreationStartTime(Date.now())
+
+      console.log('[AuthWrapper] Creating user profile for:', clerkUser.id)
       createUser({
         clerkId: clerkUser.id,
         email: clerkUser.emailAddresses[0]?.emailAddress || '',
@@ -42,14 +46,49 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
       })
         .then(() => {
           console.log('[AuthWrapper] User profile created successfully')
-          setIsCreatingUser(false)
+          // Don't reset isCreatingUser - let the query refresh handle the state transition
+          // The userProfile will update to an object, which will end the loading state
         })
         .catch((error) => {
           console.error('[AuthWrapper] Failed to create user profile:', error)
           setIsCreatingUser(false)
+          setCreationStartTime(null)
         })
     }
-  }, [clerkUser, userProfile, clerkLoaded, authLoaded, createUser])
+  }, [clerkUser, userProfile, clerkLoaded, authLoaded, isCreatingUser])
+
+  // Timeout mechanism: reset creating state if query doesn't refresh within 10 seconds
+  useEffect(() => {
+    if (!isCreatingUser || !creationStartTime) return
+
+    const CREATION_TIMEOUT_MS = 10000 // 10 seconds
+    const elapsed = Date.now() - creationStartTime
+
+    if (elapsed >= CREATION_TIMEOUT_MS) {
+      console.warn('[AuthWrapper] User creation timed out - resetting state')
+      setIsCreatingUser(false)
+      setCreationStartTime(null)
+      return
+    }
+
+    const remainingTime = CREATION_TIMEOUT_MS - elapsed
+    const timer = setTimeout(() => {
+      console.warn('[AuthWrapper] User creation timed out - resetting state')
+      setIsCreatingUser(false)
+      setCreationStartTime(null)
+    }, remainingTime)
+
+    return () => clearTimeout(timer)
+  }, [isCreatingUser, creationStartTime])
+
+  // Reset creation state when userProfile successfully loads
+  useEffect(() => {
+    if (userProfile && isCreatingUser) {
+      console.log('[AuthWrapper] User profile loaded successfully')
+      setIsCreatingUser(false)
+      setCreationStartTime(null)
+    }
+  }, [userProfile, isCreatingUser])
 
   useEffect(() => {
     // Wait for all auth states to be loaded

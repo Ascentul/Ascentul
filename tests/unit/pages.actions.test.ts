@@ -66,6 +66,12 @@ describe('page actions', () => {
     expect(clonedPage.blocks).toHaveLength(1);
     expect(clonedPage.blocks[0]).not.toBe(blockId);
 
+    // Verify cloned page inherits size and margins from original
+    expect(clonedPage.size).toBe(pages[pageId].size);
+    expect(clonedPage.margins).toEqual(pages[pageId].margins);
+    // Verify margins object is a deep copy (not a reference)
+    expect(clonedPage.margins).not.toBe(pages[pageId].margins);
+
     expect(result.blocks[blockId]).toBeDefined();
     expect(result.blocks[blockId]).toEqual(blocks[blockId]);
 

@@ -215,8 +215,9 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (error: any) {
+        const isTimeout = error.code === 'ETIMEDOUT' || error.message?.toLowerCase().includes('timeout');
         lastError = error.message || 'Unknown error during AI call';
-        console.error(`Attempt ${attempt} - AI call failed:`, error);
+        console.error(`Attempt ${attempt} - AI call failed${isTimeout ? ' (timeout)' : ''}:`, error);
 
         // Check if this is a model-related error and we haven't tried the fallback yet
         const isModelError =
@@ -235,7 +236,7 @@ export async function POST(req: NextRequest) {
 
         if (attempt === 3) {
           return NextResponse.json({
-            error: 'Auto-tidy failed after 3 attempts',
+            error: isTimeout ? 'Auto-tidy timed out after 3 attempts' : 'Auto-tidy failed after 3 attempts',
             details: error.message,
           }, { status: 500 });
         }

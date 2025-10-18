@@ -4,6 +4,19 @@ import OpenAI from 'openai'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 
+/**
+ * Parse timeout value from environment variable with validation
+ * Returns defaultValue if parsing fails or results in NaN/negative number
+ */
+const parseTimeout = (value: string | undefined, defaultValue: number): number => {
+  const parsed = parseInt(value || String(defaultValue), 10);
+  return Number.isNaN(parsed) || parsed <= 0 ? defaultValue : parsed;
+};
+
+// Configurable timeout values (in milliseconds)
+const CONVEX_TIMEOUT_MS = parseTimeout(process.env.CONVEX_TIMEOUT_MS, 10000);
+const OPENAI_TIMEOUT_MS = parseTimeout(process.env.OPENAI_TIMEOUT_MS, 15000);
+
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 }) : null
@@ -30,13 +43,12 @@ export async function POST(request: NextRequest) {
     const client = getClient()
     let userContext = ''
     try {
-      const CONVEX_TIMEOUT_MS = 10000; // 10 seconds
+      let timeoutId: NodeJS.Timeout;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Convex query timeout')), CONVEX_TIMEOUT_MS);
+      });
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Convex query timeout')), CONVEX_TIMEOUT_MS)
-      );
-
-      const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.race([
+      const result = await Promise.race([
         Promise.all([
           client.query(api.users.getUserByClerkId, { clerkId: userId }),
           client.query(api.goals.getUserGoals, { clerkId: userId }),
@@ -46,7 +58,10 @@ export async function POST(request: NextRequest) {
           client.query(api.projects.getUserProjects, { clerkId: userId })
         ]),
         timeoutPromise
-      ]) as [any, any[], any[], any[], any[], any[]];
+      ]);
+
+      clearTimeout(timeoutId);
+      const [userProfile, goals, applications, resumes, coverLetters, projects] = result as [any, any[], any[], any[], any[], any[]];
 
       // Build user context summary
       const contextParts: string[] = []
@@ -109,7 +124,11 @@ Key guidelines:
 
 Always remember you're helping someone with their career development and professional growth.
 
-${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n${userContext}\n` : ''}`
+${userContext ? `\n--- USER CONTEXT ---
+Use the following context to better understand the candidate's background and tailor your advice accordingly.
+Reference specific details from their profile, goals, applications, and projects when providing guidance.
+
+${userContext}\n` : ''}`
 
         const messages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [
           {
@@ -142,14 +161,19 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
             frequency_penalty: 0.1
           },
           {
-            timeout: 15000, // 15 seconds timeout
+            timeout: OPENAI_TIMEOUT_MS,
           }
         )
 
         response = completion.choices?.[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
-      } catch (openaiError) {
+      } catch (openaiError: any) {
         console.error('OpenAI API error:', openaiError)
-        response = 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment.'
+        // Differentiate timeout errors from other API errors for better user feedback
+        if (openaiError?.code === 'ETIMEDOUT' || openaiError?.message?.includes('timeout')) {
+          response = 'The AI is taking longer than expected to respond. Please try again.'
+        } else {
+          response = 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment.'
+        }
       }
     } else {
       // Fallback response when OpenAI is not available

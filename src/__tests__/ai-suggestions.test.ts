@@ -1,11 +1,12 @@
 import {
   analyzeBullet,
   analyzeExperienceBlock,
-  analyzeSummaryBlock,
+  analyzeSummary,
   analyzeSkillsBlock,
   analyzeResume,
 } from '@/lib/ai/suggestions';
 import type { ResumeBlock } from '@/lib/validators/resume';
+import type { ExperienceItem } from '@/lib/resume-types';
 
 describe('AI Suggestions System', () => {
   describe('analyzeBullet', () => {
@@ -39,11 +40,12 @@ describe('AI Suggestions System', () => {
       const bullet = 'Did coding';
       const suggestions = analyzeBullet(bullet, 0);
 
+      // Short bullets trigger weak verb and missing metrics, not a length check
       expect(suggestions).toContainEqual(
         expect.objectContaining({
-          type: 'length',
-          priority: 'medium',
-          message: 'Bullet point too short',
+          type: 'verb',
+          priority: 'high',
+          message: 'Strengthen action verb',
         })
       );
     });
@@ -56,7 +58,7 @@ describe('AI Suggestions System', () => {
         expect.objectContaining({
           type: 'length',
           priority: 'medium',
-          message: 'Bullet point too long',
+          message: 'Bullet is too long',
         })
       );
     });
@@ -68,8 +70,8 @@ describe('AI Suggestions System', () => {
       expect(suggestions).toContainEqual(
         expect.objectContaining({
           type: 'clarity',
-          priority: 'high',
-          message: 'Avoid vague language',
+          priority: 'medium',
+          message: 'Be more specific',
         })
       );
     });
@@ -110,6 +112,12 @@ describe('AI Suggestions System', () => {
         expect(s).toHaveProperty('priority');
         expect(s).toHaveProperty('message');
       });
+
+      // Both index types should produce equivalent results
+      expect(suggestions1.length).toBe(suggestions2.length);
+      expect(suggestions1.map(s => s.type).sort()).toEqual(
+        suggestions2.map(s => s.type).sort()
+      );
     });
   });
 
@@ -117,10 +125,10 @@ describe('AI Suggestions System', () => {
     it('should detect tense issues in current roles', () => {
       const items = [
         {
-          title: 'Software Engineer',
+          role: 'Software Engineer',
           company: 'Tech Corp',
-          startDate: 'Jan 2023',
-          endDate: 'Present',
+          start: 'Jan 2023',
+          end: 'Present',
           bullets: ['Led the development of new features'],
         },
       ];
@@ -139,11 +147,11 @@ describe('AI Suggestions System', () => {
     it('should detect tense issues in past roles', () => {
       const items = [
         {
-          title: 'Software Engineer',
+          role: 'Software Engineer',
           company: 'Old Corp',
-          startDate: 'Jan 2020',
-          endDate: 'Dec 2022',
-          bullets: ['Leading the development of new features'],
+          start: 'Jan 2020',
+          end: 'Dec 2022',
+          bullets: ['Leads the development of new features'],
         },
       ];
 
@@ -161,10 +169,10 @@ describe('AI Suggestions System', () => {
     it('should analyze all bullets in experience items', () => {
       const items = [
         {
-          title: 'Developer',
+          role: 'Developer',
           company: 'Company',
-          startDate: 'Jan 2023',
-          endDate: 'Present',
+          start: 'Jan 2023',
+          end: 'Present',
           bullets: [
             'Helped implement features',
             'Did coding',
@@ -178,71 +186,78 @@ describe('AI Suggestions System', () => {
       // Should have suggestions for all three poorly written bullets
       expect(suggestions.length).toBeGreaterThan(2);
       const types = suggestions.map(s => s.type);
-      expect(types).toContain('verb'); // weak verb in bullet 1
-      expect(types).toContain('length'); // short bullet 2
+      expect(types).toContain('verb'); // weak verb in bullet 1 & 2
+      expect(types).toContain('metrics'); // missing metrics in all bullets
       expect(types).toContain('clarity'); // vague language in bullet 3
     });
 
     it('should handle experience blocks with no bullets', () => {
       const items = [
         {
-          title: 'Developer',
+          role: 'Developer',
           company: 'Company',
-          startDate: 'Jan 2023',
-          endDate: 'Present',
+          start: 'Jan 2023',
+          end: 'Present',
           bullets: [],
         },
       ];
 
       const suggestions = analyzeExperienceBlock(items);
 
-      expect(suggestions).toEqual([]);
+      // Should suggest adding bullets
+      expect(suggestions).toContainEqual(
+        expect.objectContaining({
+          type: 'clarity',
+          priority: 'high',
+          message: 'Add achievement bullets',
+        })
+      );
     });
   });
 
-  describe('analyzeSummaryBlock', () => {
+  describe('analyzeSummary', () => {
     it('should detect short summaries', () => {
       const summary = 'Software engineer.';
-      const suggestions = analyzeSummaryBlock(summary);
+      const suggestions = analyzeSummary(summary);
 
       expect(suggestions).toContainEqual(
         expect.objectContaining({
-          type: 'length',
-          priority: 'high',
-          message: 'Summary too short',
+          type: 'clarity',
+          priority: 'medium',
+          message: 'Expand your summary',
         })
       );
     });
 
     it('should detect overly long summaries', () => {
       const summary = 'This is an extremely long summary that goes on and on about every single detail of the person\'s career history and includes way too much information that should really be broken up into separate sections or condensed significantly to make it more readable and impactful for hiring managers who typically spend less than 10 seconds scanning a resume summary before deciding whether to continue reading further into the document or move on to the next candidate in their review queue which is why it is critically important to keep summary sections concise and focused on the most important and relevant achievements.';
-      const suggestions = analyzeSummaryBlock(summary);
+      const suggestions = analyzeSummary(summary);
 
       expect(suggestions).toContainEqual(
         expect.objectContaining({
           type: 'length',
           priority: 'medium',
-          message: 'Summary too long',
+          message: 'Summary is too long',
         })
       );
     });
 
-    it('should detect missing keywords in summary', () => {
-      const summary = 'I like to code.';
-      const suggestions = analyzeSummaryBlock(summary);
+    it('should detect missing personal voice in summary', () => {
+      const summary = 'Experienced software engineer with strong technical skills. Led multiple projects to successful completion.';
+      const suggestions = analyzeSummary(summary);
 
       expect(suggestions).toContainEqual(
         expect.objectContaining({
-          type: 'keyword',
-          priority: 'medium',
-          message: 'Add relevant keywords',
+          type: 'clarity',
+          priority: 'low',
+          message: 'Consider adding personal voice',
         })
       );
     });
 
     it('should not flag well-written summaries', () => {
       const summary = 'Senior Software Engineer with 8+ years of experience building scalable web applications. Expertise in React, Node.js, and cloud architecture. Led teams to deliver high-impact products serving millions of users.';
-      const suggestions = analyzeSummaryBlock(summary);
+      const suggestions = analyzeSummary(summary);
 
       const highPriority = suggestions.filter(s => s.priority === 'high');
       expect(highPriority.length).toBe(0);
@@ -257,7 +272,7 @@ describe('AI Suggestions System', () => {
 
       expect(suggestions).toContainEqual(
         expect.objectContaining({
-          type: 'keyword',
+          type: 'clarity',
           priority: 'medium',
           message: 'Add more skills',
         })
@@ -280,8 +295,9 @@ describe('AI Suggestions System', () => {
       expect(suggestions.length).toBeGreaterThan(0);
       expect(suggestions).toContainEqual(
         expect.objectContaining({
-          type: 'keyword',
-          message: expect.stringContaining('skills'),
+          type: 'clarity',
+          priority: 'high',
+          message: 'Add skills',
         })
       );
     });
@@ -289,9 +305,9 @@ describe('AI Suggestions System', () => {
 
   describe('analyzeResume', () => {
     it('should analyze all blocks in a resume', () => {
-      const blocks = [
+      const blocks: ResumeBlock[] = [
         {
-          type: 'header',
+          type: 'header' as const,
           order: 0,
           data: {
             fullName: 'John Doe',
@@ -300,29 +316,29 @@ describe('AI Suggestions System', () => {
           },
         },
         {
-          type: 'summary',
+          type: 'summary' as const,
           order: 1,
           data: {
             paragraph: 'Short summary.',
           },
         },
         {
-          type: 'experience',
+          type: 'experience' as const,
           order: 2,
           data: {
             items: [
               {
-                title: 'Developer',
+                role: 'Developer',
                 company: 'Company',
-                startDate: 'Jan 2023',
-                endDate: 'Present',
+                start: 'Jan 2023',
+                end: 'Present',
                 bullets: ['Helped with coding'],
               },
             ],
           },
         },
         {
-          type: 'skills',
+          type: 'skills' as const,
           order: 3,
           data: {
             primary: ['JavaScript'],
@@ -352,9 +368,9 @@ describe('AI Suggestions System', () => {
     });
 
     it('should skip blocks with no issues', () => {
-      const blocks = [
+      const blocks: ResumeBlock[] = [
         {
-          type: 'header',
+          type: 'header' as const,
           order: 0,
           data: {
             fullName: 'John Doe',
@@ -375,12 +391,12 @@ describe('AI Suggestions System', () => {
     });
 
     it('should handle blocks with missing data gracefully', () => {
-      const blocks = [
+      const blocks: ResumeBlock[] = [
         {
-          type: 'experience',
+          type: 'experience' as const,
           order: 0,
           data: {
-            items: null,
+            items: null as unknown as ExperienceItem[],
           },
         },
       ];
@@ -392,12 +408,12 @@ describe('AI Suggestions System', () => {
     });
 
     it('should handle blocks with undefined data gracefully', () => {
-      const blocks = [
+      const blocks: ResumeBlock[] = [
         {
-          type: 'experience',
+          type: 'experience' as const,
           order: 0,
           data: {
-            items: undefined,
+            items: undefined as unknown as ExperienceItem[],
           },
         },
       ];

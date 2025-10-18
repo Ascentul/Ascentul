@@ -48,17 +48,26 @@ export interface Page {
 }
 
 /**
+ * Base properties shared by all resume blocks.
+ */
+interface BaseBlockProperties {
+  order: number;
+  locked?: boolean;
+  frame?: BlockFrame;
+}
+
+/**
  * Discriminated union for type-safe resume blocks.
  * Ensures the `data` field matches the declared block type.
  */
 export type ResumeBlock =
-  | { type: 'header'; data: HeaderData; order: number; locked?: boolean; frame?: BlockFrame }
-  | { type: 'summary'; data: SummaryData; order: number; locked?: boolean; frame?: BlockFrame }
-  | { type: 'experience'; data: ExperienceData; order: number; locked?: boolean; frame?: BlockFrame }
-  | { type: 'education'; data: EducationData; order: number; locked?: boolean; frame?: BlockFrame }
-  | { type: 'skills'; data: SkillsData; order: number; locked?: boolean; frame?: BlockFrame }
-  | { type: 'projects'; data: ProjectsData; order: number; locked?: boolean; frame?: BlockFrame }
-  | { type: 'custom'; data: CustomData; order: number; locked?: boolean; frame?: BlockFrame };
+  | ({ type: 'header'; data: HeaderData } & BaseBlockProperties)
+  | ({ type: 'summary'; data: SummaryData } & BaseBlockProperties)
+  | ({ type: 'experience'; data: ExperienceData } & BaseBlockProperties)
+  | ({ type: 'education'; data: EducationData } & BaseBlockProperties)
+  | ({ type: 'skills'; data: SkillsData } & BaseBlockProperties)
+  | ({ type: 'projects'; data: ProjectsData } & BaseBlockProperties)
+  | ({ type: 'custom'; data: CustomData } & BaseBlockProperties);
 
 /**
  * Resume document metadata as persisted in Convex.
@@ -74,7 +83,16 @@ export interface ResumeDocument {
   templateSlug: string;
   /** Theme ID (optional) */
   themeId?: Id<'builder_resume_themes'>;
-  /** Optional page definitions (editor uses entity model) */
+  /**
+   * Optional page definitions (serialized as array for API/database).
+   *
+   * - Absent: Single-page resumes generated from profiles (AI builder, profile mapper)
+   * - Present: Multi-page resumes created in the editor
+   *
+   * The editor internally uses a normalized entity model (Record<string, Page> and
+   * Record<string, Block>) for efficient lookups and updates. This field stores the
+   * serialized array representation for persistence.
+   */
   pages?: Page[];
   /** Resume content blocks */
   blocks: ResumeBlock[];
@@ -107,10 +125,18 @@ export function getBlockData<T extends ResumeBlock['type']>(
   block: ResumeBlock,
   type: T
 ): Extract<ResumeBlock, { type: T }>['data'] | null {
-  if (isBlockType(block, type)) {
-    return block.data;
+  if (!isBlockType(block, type)) {
+    return null;
   }
-  return null;
+  // Double assertion required due to TypeScript limitation:
+  // After the type guard, block is correctly narrowed to Extract<ResumeBlock, { type: T }>,
+  // but accessing block.data still yields a union of all data types (HeaderData | SummaryData | ...)
+  // instead of the specific data type. TypeScript creates an intersection type for the return value
+  // which conflicts with the union from block.data. The `as any` intermediate step bypasses this.
+  //
+  // Runtime safety: Guaranteed by isBlockType guard which validates block.type === type
+  // Alternative: Use tRPC or zod for runtime type validation to eliminate assertions entirely
+  return block.data as any as Extract<ResumeBlock, { type: T }>['data'];
 }
 
 /**

@@ -120,6 +120,15 @@ export const create = mutation({
       throw new Error("Margins must be non-negative");
     }
 
+    // Validate thumbnailUrl format if provided
+    if (args.thumbnailUrl && args.thumbnailUrl.trim().length > 0) {
+      try {
+        new URL(args.thumbnailUrl);
+      } catch {
+        throw new Error("Invalid URL format for thumbnailUrl");
+      }
+    }
+
     // Check if slug already exists
     const existing = await ctx.db
       .query("builder_resume_templates")
@@ -199,8 +208,19 @@ export const update = mutation({
       }
       updates.name = args.name.trim();
     }
-    if (args.thumbnailUrl !== undefined) updates.thumbnailUrl = args.thumbnailUrl;
-    if (args.thumbnailUrl !== undefined) updates.preview = args.thumbnailUrl ?? template.preview;
+    // Keep preview and thumbnailUrl synchronized to prevent data inconsistency
+    if (args.thumbnailUrl !== undefined) {
+      // Validate URL format if provided and non-empty
+      if (args.thumbnailUrl && args.thumbnailUrl.trim().length > 0) {
+        try {
+          new URL(args.thumbnailUrl);
+        } catch {
+          throw new Error("Invalid URL format for thumbnailUrl");
+        }
+      }
+      updates.thumbnailUrl = args.thumbnailUrl;
+      updates.preview = args.thumbnailUrl;
+    }
     if (args.pageSize !== undefined) updates.pageSize = args.pageSize;
     if (args.margins !== undefined) updates.margins = args.margins;
     if (args.allowedBlocks !== undefined) updates.allowedBlocks = args.allowedBlocks;

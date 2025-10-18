@@ -1,6 +1,7 @@
 import type { HeaderContactLink, HeaderData } from '@/lib/resume/types';
 import { BlockSuggestions } from '../BlockSuggestions';
 import type { ContentSuggestion } from '@/lib/ai/suggestions';
+import { ExternalLink } from 'lucide-react';
 
 interface HeaderBlockProps {
   data: HeaderData;
@@ -89,17 +90,18 @@ export function HeaderBlock({ data, isSelected, suggestions, blockId }: HeaderBl
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-primary transition-colors"
+              className="hover:text-primary transition-colors inline-flex items-center gap-1"
               aria-label={`${link.label} (opens in new window)`}
             >
               {link.label}
+              <ExternalLink className="w-3 h-3" aria-hidden="true" />
             </a>
           ))}
         </div>
       )}
 
       {/* Show suggestions when block is selected */}
-      {isSelected && suggestions && suggestions.length > 0 && blockId && (
+      {isSelected && blockId && suggestions && suggestions.length > 0 && (
         <BlockSuggestions
           blockId={blockId}
           suggestions={suggestions}

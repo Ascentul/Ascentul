@@ -6,6 +6,76 @@
 import type { ResumeBlock } from '@/lib/validators/resume';
 
 /**
+ * Type-safe block data interfaces
+ */
+interface ExperienceBlockData {
+  items: Array<{
+    role: string;
+    company: string;
+    start: string;
+    end: string;
+    bullets?: string[];
+  }>;
+}
+
+interface SkillsBlockData {
+  primary?: string[];
+  secondary?: string[];
+}
+
+interface SummaryBlockData {
+  paragraph: string;
+}
+
+/**
+ * Type guards for block data validation
+ */
+function isExperienceBlockData(data: unknown): data is ExperienceBlockData {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'items' in data &&
+    Array.isArray((data as ExperienceBlockData).items)
+  );
+}
+
+function isSkillsBlockData(data: unknown): data is SkillsBlockData {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    (('primary' in data && Array.isArray((data as SkillsBlockData).primary)) ||
+      ('secondary' in data && Array.isArray((data as SkillsBlockData).secondary)))
+  );
+}
+
+function isSummaryBlockData(data: unknown): data is SummaryBlockData {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'paragraph' in data &&
+    typeof (data as SummaryBlockData).paragraph === 'string'
+  );
+}
+
+/**
+ * Helper to safely get block ID
+ * Supports both database blocks (_id) and client-side blocks (id)
+ */
+function getBlockId(block: ResumeBlock, fallbackIndex: number): string {
+  // Type-safe extension to check for _id property (from database)
+  const blockWithId = block as ResumeBlock & { _id?: unknown };
+  if ('_id' in block && typeof blockWithId._id === 'string') {
+    return blockWithId._id;
+  }
+  // Check if block has an id property (client-side)
+  if ('id' in block && typeof block.id === 'string') {
+    return block.id;
+  }
+  // Fallback to index-based ID
+  return `block-${fallbackIndex}`;
+}
+
+/**
  * Simple hash function for deterministic index generation
  * Uses string character codes to produce a stable numeric hash
  */
@@ -333,7 +403,7 @@ export function analyzeSummary(paragraph: string): ContentSuggestion[] {
       type: 'length',
       priority: 'medium',
       message: 'Summary is too long',
-      detail: 'Keep it concise - 2-3 sentences (200-300 characters)',
+      detail: 'Keep it concise - 2-3 sentences (under 300 characters)',
     });
   }
 
@@ -358,30 +428,30 @@ export function analyzeResume(blocks: ResumeBlock[]): Map<string, ContentSuggest
   const suggestionsByBlock = new Map<string, ContentSuggestion[]>();
 
   blocks.forEach((block, index) => {
-    const blockId = (block as any)._id || `block-${index}`;
+    const blockId = getBlockId(block, index);
     let suggestions: ContentSuggestion[] = [];
 
     if (block.type === 'experience') {
-      const experienceData = block.data as any;
-      if (experienceData?.items && Array.isArray(experienceData.items) && experienceData.items.length > 0) {
-        suggestions = analyzeExperienceBlock(experienceData.items);
+      if (isExperienceBlockData(block.data)) {
+        if (block.data.items.length > 0) {
+          suggestions = analyzeExperienceBlock(block.data.items);
+        }
       }
     } else if (block.type === 'skills') {
-      const skillsData = block.data as any;
-      if (
-        skillsData &&
-        ((Array.isArray(skillsData.primary) && skillsData.primary.length > 0) ||
-          (Array.isArray(skillsData.secondary) && skillsData.secondary.length > 0))
-      ) {
-        suggestions = analyzeSkillsBlock(
-          Array.isArray(skillsData.primary) ? skillsData.primary : [],
-          Array.isArray(skillsData.secondary) ? skillsData.secondary : []
-        );
+      if (isSkillsBlockData(block.data)) {
+        const hasPrimary = Array.isArray(block.data.primary) && block.data.primary.length > 0;
+        const hasSecondary = Array.isArray(block.data.secondary) && block.data.secondary.length > 0;
+
+        if (hasPrimary || hasSecondary) {
+          suggestions = analyzeSkillsBlock(
+            block.data.primary || [],
+            block.data.secondary || []
+          );
+        }
       }
     } else if (block.type === 'summary') {
-      const summaryData = block.data as any;
-      if (summaryData?.paragraph && typeof summaryData.paragraph === 'string' && summaryData.paragraph.trim().length > 0) {
-        suggestions = analyzeSummary(summaryData.paragraph);
+      if (isSummaryBlockData(block.data)) {
+        suggestions = analyzeSummary(block.data.paragraph);
       }
     }
     // Education, projects, custom blocks can be added later

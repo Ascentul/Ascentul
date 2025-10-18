@@ -156,21 +156,21 @@ export function RecordCard({
             icon={Copy}
             label="Duplicate"
             onClick={handleDuplicate}
-            disabled={busyAction === "duplicate"}
+            disabled={busyAction !== null}
             loading={busyAction === "duplicate"}
           />
           <CardAction
             icon={Download}
             label="Export"
             onClick={handleExport}
-            disabled={busyAction === "export"}
+            disabled={busyAction !== null}
             loading={busyAction === "export"}
           />
           <CardAction
             icon={Trash2}
             label="Delete"
             onClick={handleDelete}
-            disabled={busyAction === "delete"}
+            disabled={busyAction !== null}
             loading={busyAction === "delete"}
             tone="danger"
           />

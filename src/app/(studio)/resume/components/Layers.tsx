@@ -108,6 +108,7 @@ export function Layers({
               role="button"
               tabIndex={0}
               aria-selected={selectedBlockId === block._id}
+              aria-label={block.locked ? `${getBlockLabel(block)} (locked)` : undefined}
               className={`flex items-center gap-3 p-3 rounded-lg border transition-[border-color,background-color,box-shadow,opacity] duration-200 cursor-pointer ${
                 selectedBlockId === block._id
                   ? 'border-primary bg-primary/5 ring-2 ring-primary shadow-sm'
@@ -121,7 +122,7 @@ export function Layers({
                 <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 transition-colors hover:text-foreground" />
               )}
               {block.locked && (
-                <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-label="Locked block" />
+                <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
               )}
 
               {/* Block label */}

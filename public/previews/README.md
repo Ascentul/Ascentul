@@ -64,6 +64,35 @@ node scripts/create-template-previews.js
 
 Creates basic SVG placeholders for templates without preview images.
 
+## Validation
+
+### Validate Preview Images Exist
+
+Before deployment, verify that all preview images referenced in template definitions exist:
+
+```bash
+npm run validate:previews
+```
+
+This script:
+- Checks each template in `TEMPLATE_DEFINITIONS` for missing preview images
+- Reports file sizes for existing previews
+- Exits with code 1 if any images are missing (useful for CI/CD)
+- Skips external URLs (CDN-hosted previews)
+
+**Integration with CI/CD:**
+
+Add to your build pipeline to catch missing assets early:
+
+```yaml
+# Example: GitHub Actions
+- name: Validate preview images
+  run: npm run validate:previews
+
+# Example: Vercel build command
+"build": "npm run validate:previews && next build"
+```
+
 ## Usage in Code
 
 The `getPreviewSrc()` function automatically resolves preview paths with flexible extension support.

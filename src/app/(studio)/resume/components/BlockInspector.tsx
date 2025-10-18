@@ -69,12 +69,34 @@ export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: Bl
 
   // Sync local data when block changes
   useEffect(() => {
+    // Clear any pending save when block changes to prevent:
+    // 1. Memory leak (timer fires after component switches/unmounts)
+    // 2. Stale save indicator (old timer completes on wrong block)
+    setDebounceTimer((prevTimer) => {
+      if (prevTimer) {
+        clearTimeout(prevTimer);
+      }
+      return null;
+    });
+
     if (block) {
       setLocalData(JSON.parse(JSON.stringify(block.data)));
     } else {
       setLocalData(null);
     }
   }, [block?._id]);
+
+  // Cleanup timer on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      setDebounceTimer((prevTimer) => {
+        if (prevTimer) {
+          clearTimeout(prevTimer);
+        }
+        return null;
+      });
+    };
+  }, []);
 
   const handleChange = useCallback(
     (newData: BlockData) => {
@@ -145,6 +167,11 @@ export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: Bl
         </div>
       </div>
 
+      {/* Type assertions are safe here because:
+          1. Block is a discriminated union where block.type determines block.data's shape
+          2. localData is initialized from block.data (line 83), maintaining type correspondence
+          3. Data shape is validated at the persistence layer (Convex schema + validators)
+          4. block.type acts as the discriminant, guaranteeing localData matches the expected type */}
       {block.type === 'header' && (
         <HeaderInspector data={localData as HeaderData} onChange={handleChange} />
       )}
@@ -458,30 +485,29 @@ function EducationInspector({ data, onChange }: { data: EducationData; onChange:
     );
   };
 
-  const addDetail = (itemIndex: number) => {
+  const modifyDetails = (
+    itemIndex: number,
+    modifier: (details: string[] | undefined) => string[],
+  ) => {
     updateItems((current) =>
       updateArrayItem(current, itemIndex, (item) => ({
         ...item,
-        details: appendStringEntry(item.details),
+        details: modifier(item.details),
       })),
     );
+  };
+
+  const addDetail = (itemIndex: number) => {
+    modifyDetails(itemIndex, appendStringEntry);
   };
 
   const removeDetail = (itemIndex: number, detailIndex: number) => {
-    updateItems((current) =>
-      updateArrayItem(current, itemIndex, (item) => ({
-        ...item,
-        details: removeStringEntry(item.details, detailIndex),
-      })),
-    );
+    modifyDetails(itemIndex, (details) => removeStringEntry(details, detailIndex));
   };
 
   const updateDetail = (itemIndex: number, detailIndex: number, value: string) => {
-    updateItems((current) =>
-      updateArrayItem(current, itemIndex, (item) => ({
-        ...item,
-        details: updateStringEntry(item.details, detailIndex, value),
-      })),
+    modifyDetails(itemIndex, (details) =>
+      updateStringEntry(details, detailIndex, value),
     );
   };
 

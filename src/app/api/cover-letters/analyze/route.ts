@@ -4,7 +4,17 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "convex/_generated/api";
 import OpenAI from "openai";
 
+/**
+ * Timeout configuration for external API calls.
+ *
+ * UX IMPLICATIONS:
+ * - 30s timeout means users may wait up to 30 seconds before receiving a response
+ * - Under high load, this keeps request threads occupied for extended periods
+ * - Consider reducing timeout (15-20s) for better perceived responsiveness
+ * - Fallback mechanism provides graceful degradation when timeout is reached
+ */
 const OPENAI_TIMEOUT_MS = 30000; // 30 seconds
+const CONVEX_TIMEOUT_MS = 5000; // 5 seconds
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -14,6 +24,28 @@ function getClient() {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL;
   if (!url) throw new Error("Convex URL not configured");
   return new ConvexHttpClient(url);
+}
+
+/**
+ * Wraps a promise with a timeout to prevent hanging operations.
+ *
+ * @param promise - The promise to wrap
+ * @param ms - Timeout in milliseconds
+ * @returns Promise that rejects if timeout is reached
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timeoutId: NodeJS.Timeout;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("Operation timed out")), ms);
+  });
+
+  return Promise.race([
+    promise.then((result) => {
+      clearTimeout(timeoutId);
+      return result;
+    }),
+    timeoutPromise,
+  ]);
 }
 
 type AnalysisResult = {
@@ -276,9 +308,12 @@ export async function POST(request: NextRequest) {
 
     let profile: any | null = null;
     try {
-      profile = await client.query(api.users.getUserByClerkId, {
-        clerkId: userId,
-      });
+      profile = await withTimeout(
+        client.query(api.users.getUserByClerkId, {
+          clerkId: userId,
+        }),
+        CONVEX_TIMEOUT_MS
+      );
     } catch (error) {
       console.error("Failed to fetch career profile for analysis", error);
     }
@@ -315,6 +350,9 @@ ${optimize ? "- Include optimizedLetter (string) that rewrites the cover letter 
 `;
 
       try {
+        // Single OpenAI call site with 30s timeout
+        // Note: Users may wait up to 30 seconds for a response
+        // Fallback mechanism provides graceful degradation on timeout/error
         const completion = await openai.chat.completions.create(
           {
             model: "gpt-4o",

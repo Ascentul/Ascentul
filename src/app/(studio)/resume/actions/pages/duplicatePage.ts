@@ -59,6 +59,8 @@ export function duplicatePage({
     ...originalPage,
     id: newPageId,
     blocks: clonedBlockIds,
+    // Deep copy margins to prevent shared reference
+    margins: { ...originalPage.margins },
   };
 
   const newPages = {

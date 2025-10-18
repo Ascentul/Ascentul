@@ -68,7 +68,9 @@ export type ProjectsData = {
 
 export type CustomData = {
   heading: string;
-  bullets?: string[];
+  content?: string; // Freeform text content
+  bullets?: string[]; // Alternative: bullet list format
+  // Note: Validator requires either content or bullets to be present (see @/lib/validators/resume.ts)
 };
 
 // Helper function to format date ranges

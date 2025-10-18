@@ -124,9 +124,9 @@ export function reflowPages({
   } else {
     for (const measured of sorted) {
       const block = measured.block;
-      const heightInches = Math.max(
-        snapToBaseline(pixelsToInches(Math.max(measured.height, MIN_BLOCK_HEIGHT_PX)), layout.baseline),
-        0,
+      const heightInches = snapToBaseline(
+        pixelsToInches(Math.max(measured.height, MIN_BLOCK_HEIGHT_PX)),
+        layout.baseline
       );
 
       const projectedHeight = currentHeight + heightInches;
@@ -221,6 +221,7 @@ export function reflowPages({
   }
 
   let blocksChanged = false;
+  // Skip block comparison if pages already changed (optimization: changed = pagesChanged || blocksChanged)
   if (!pagesChanged) {
     blocksChanged = Object.entries(nextBlocks).some(([blockId, nextBlock]) => {
       const prevBlock = blocks[blockId];

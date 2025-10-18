@@ -23,6 +23,9 @@ function isProduction(): boolean {
 
 /**
  * Format log message with context
+ *
+ * Safely serializes log data to JSON, handling circular references and
+ * non-serializable values that could crash the application.
  */
 function formatLog(level: LogLevel, message: string, context?: LogContext): string {
   const timestamp = new Date().toISOString();
@@ -33,7 +36,19 @@ function formatLog(level: LogLevel, message: string, context?: LogContext): stri
     message,
   };
 
-  return JSON.stringify(logData);
+  try {
+    return JSON.stringify(logData);
+  } catch (err) {
+    // Fallback if serialization fails (circular references, functions, symbols, etc.)
+    // Preserve error details and context keys to aid debugging
+    return JSON.stringify({
+      timestamp,
+      level: level.toUpperCase(),
+      message,
+      serializationError: err instanceof Error ? err.message : String(err),
+      contextKeys: context ? Object.keys(context) : [],
+    });
+  }
 }
 
 /**

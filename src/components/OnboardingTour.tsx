@@ -332,6 +332,20 @@ export function OnboardingTour({
           border-radius: 8px;
           transition: all 0.3s ease-in-out;
         }
+
+        /* Prevent interaction with non-highlighted elements during tour */
+        /* Covers common focusable elements including details, summary, and contenteditable */
+        .onboarding-tour-active a:not(.onboarding-highlight):not(.onboarding-highlight *),
+        .onboarding-tour-active button:not(.onboarding-highlight):not(.onboarding-highlight *),
+        .onboarding-tour-active input:not(.onboarding-highlight):not(.onboarding-highlight *),
+        .onboarding-tour-active select:not(.onboarding-highlight):not(.onboarding-highlight *),
+        .onboarding-tour-active textarea:not(.onboarding-highlight):not(.onboarding-highlight *),
+        .onboarding-tour-active [tabindex]:not([tabindex="-1"]):not(.onboarding-highlight):not(.onboarding-highlight *),
+        .onboarding-tour-active details:not(.onboarding-highlight):not(.onboarding-highlight *),
+        .onboarding-tour-active summary:not(.onboarding-highlight):not(.onboarding-highlight *),
+        .onboarding-tour-active [contenteditable="true"]:not(.onboarding-highlight):not(.onboarding-highlight *) {
+          pointer-events: none;
+        }
       `}</style>
     </>
   );

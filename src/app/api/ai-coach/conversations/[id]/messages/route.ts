@@ -15,6 +15,28 @@ function getClient() {
   return new ConvexHttpClient(url)
 }
 
+/**
+ * Wraps a promise with a timeout to prevent hanging operations.
+ *
+ * @param promise - The promise to wrap
+ * @param ms - Timeout in milliseconds
+ * @returns Promise that rejects if timeout is reached
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timeoutId: NodeJS.Timeout;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Operation timed out')), ms);
+  });
+
+  return Promise.race([
+    promise.then((result) => {
+      clearTimeout(timeoutId);
+      return result;
+    }),
+    timeoutPromise
+  ]);
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -26,10 +48,13 @@ export async function GET(
     const conversationId = params.id as Id<'ai_coach_conversations'>
     const client = getClient()
 
-    const messages = await client.query(api.ai_coach.getMessages, {
-      clerkId: userId,
-      conversationId
-    })
+    const messages = await withTimeout(
+      client.query(api.ai_coach.getMessages, {
+        clerkId: userId,
+        conversationId
+      }),
+      5000 // 5 second timeout
+    )
 
     return NextResponse.json(messages)
   } catch (error) {
@@ -57,22 +82,28 @@ export async function POST(
     const client = getClient()
 
     // Get conversation history for context
-    const existingMessages = await client.query(api.ai_coach.getMessages, {
-      clerkId: userId,
-      conversationId
-    })
+    const existingMessages = await withTimeout(
+      client.query(api.ai_coach.getMessages, {
+        clerkId: userId,
+        conversationId
+      }),
+      5000 // 5 second timeout
+    )
 
     // Fetch user context data for personalized coaching
     let userContext = ''
     try {
-      const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.all([
-        client.query(api.users.getUserByClerkId, { clerkId: userId }),
-        client.query(api.goals.getUserGoals, { clerkId: userId }),
-        client.query(api.applications.getUserApplications, { clerkId: userId }),
-        client.query(api.resumes.getUserResumes, { clerkId: userId }),
-        client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
-        client.query(api.projects.getUserProjects, { clerkId: userId })
-      ])
+      const [userProfile, goals, applications, resumes, coverLetters, projects] = await withTimeout(
+        Promise.all([
+          client.query(api.users.getUserByClerkId, { clerkId: userId }),
+          client.query(api.goals.getUserGoals, { clerkId: userId }),
+          client.query(api.applications.getUserApplications, { clerkId: userId }),
+          client.query(api.resumes.getUserResumes, { clerkId: userId }),
+          client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
+          client.query(api.projects.getUserProjects, { clerkId: userId })
+        ]),
+        10000 // 10 second timeout for all context queries combined
+      )
 
       // Build user context summary
       const contextParts: string[] = []
@@ -200,21 +231,29 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
         )
 
         aiResponse = completion.choices?.[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
-      } catch (openaiError) {
+      } catch (openaiError: any) {
         console.error('OpenAI API error:', openaiError)
-        aiResponse = 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment.'
+        // Differentiate timeout errors from other API errors for better user feedback
+        if (openaiError?.code === 'ETIMEDOUT' || openaiError?.message?.includes('timeout')) {
+          aiResponse = 'The AI is taking longer than expected to respond. Please try again.'
+        } else {
+          aiResponse = 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment.'
+        }
       }
     } else {
       aiResponse = `Thank you for your question: "${content}". I'm currently unable to access my AI capabilities. Please ensure the OpenAI API is properly configured, or try again later.`
     }
 
     // Save both messages to the database
-    const newMessages = await client.mutation(api.ai_coach.addMessages, {
-      clerkId: userId,
-      conversationId,
-      userMessage: content,
-      aiMessage: aiResponse
-    })
+    const newMessages = await withTimeout(
+      client.mutation(api.ai_coach.addMessages, {
+        clerkId: userId,
+        conversationId,
+        userMessage: content,
+        aiMessage: aiResponse
+      }),
+      5000 // 5 second timeout
+    )
 
     return NextResponse.json(newMessages, { status: 201 })
   } catch (error) {

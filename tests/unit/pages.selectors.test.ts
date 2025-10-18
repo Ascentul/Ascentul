@@ -5,6 +5,7 @@ import type { Block } from '@/lib/resume-types';
 /**
  * Creates a mock ResumeEditorState for testing with proper type safety.
  * Fills in required Block fields that aren't relevant to selector tests.
+ * Validates that all block IDs referenced in pages exist to catch test setup errors early.
  */
 function createMockState(overrides: {
   blocks: Record<string, Partial<Block>>;
@@ -24,6 +25,18 @@ function createMockState(overrides: {
       locked: partialBlock.locked ?? false,
       frame: partialBlock.frame,
     } as Block;
+  }
+
+  // Validate that all block IDs referenced in pages exist
+  for (const page of Object.values(overrides.pages)) {
+    for (const blockId of page.blocks) {
+      if (!blocks[blockId]) {
+        throw new Error(
+          `Test setup error: Page "${page.id}" references non-existent block "${blockId}". ` +
+          `Available blocks: [${Object.keys(blocks).join(', ')}]`
+        );
+      }
+    }
   }
 
   return {
@@ -110,5 +123,54 @@ describe('resume editor selectors', () => {
   it('selects block by id', () => {
     expect(selectBlockById(state, blockId)?.type).toBe('header');
     expect(selectBlockById(state, 'missing')).toBeUndefined();
+  });
+
+  describe('edge cases', () => {
+    it('handles page with empty blocks array', () => {
+      const emptyState = createMockState({
+        pages: {
+          'empty-page': {
+            id: 'empty-page',
+            size: 'Letter',
+            margins: { top: 0.75, right: 0.75, bottom: 0.75, left: 0.75 },
+            blocks: [],
+          },
+        },
+        pageOrder: ['empty-page'],
+        blocks: {},
+        selectedPageId: 'empty-page',
+      });
+      expect(selectBlocksByPageId(emptyState, 'empty-page')).toEqual([]);
+    });
+
+    it('handles state with no blocks', () => {
+      const noBlocksState = createMockState({
+        pages: {
+          'page-1': {
+            id: 'page-1',
+            size: 'Letter',
+            margins: { top: 0.75, right: 0.75, bottom: 0.75, left: 0.75 },
+            blocks: [],
+          },
+        },
+        pageOrder: ['page-1'],
+        blocks: {},
+        selectedPageId: 'page-1',
+      });
+      expect(selectBlockById(noBlocksState, 'any-id')).toBeUndefined();
+      expect(selectBlocksByPageId(noBlocksState, 'page-1')).toEqual([]);
+    });
+
+    it('handles empty state', () => {
+      const emptyState = createMockState({
+        pages: {},
+        pageOrder: [],
+        blocks: {},
+        selectedPageId: '',
+      });
+      expect(selectPageById(emptyState, 'any-id')).toBeUndefined();
+      expect(selectBlockById(emptyState, 'any-id')).toBeUndefined();
+      expect(selectBlocksByPageId(emptyState, 'any-id')).toEqual([]);
+    });
   });
 });

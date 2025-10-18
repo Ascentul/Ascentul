@@ -11,13 +11,28 @@
  * 4. Action validates response with Zod schema
  * 5. Action inserts blocks via builder_blocks.bulkUpdate()
  * 6. Canvas reactively updates via Convex subscription
+ *
+ * TOKEN OPTIMIZATION:
+ * Profile data is aggressively summarized before sending to OpenAI to:
+ * - Reduce prompt token usage (lower costs)
+ * - Stay within model context limits (8K/128K tokens)
+ * - Improve response quality (less noise)
+ * - Faster generation (smaller inputs = faster processing)
+ *
+ * Limits applied (see buildProfileSummary):
+ * - Experience: 3 items max, 4 bullets each, 180 chars/bullet
+ * - Education: 3 items max, 3 details each
+ * - Skills: 12 per category (primary/secondary)
+ * - Projects: 3 items max, 200 char descriptions, 3 bullets each
+ * - Bio/summary: 400 chars max
+ * - Contact links: 4 links max
  */
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { aiResumeResponseSchema, formatZodErrorsForAI } from "../src/lib/validators/resume";
-import type { CareerProfileDTO } from "../src/types/profile";
+import { isCareerProfileDTO, type CareerProfileDTO } from "../src/types/profile";
 
 import type { OpenAI as OpenAIType } from "openai";
 
@@ -136,11 +151,30 @@ function summarizeProjects(profile: CareerProfileDTO) {
   }));
 }
 
+/**
+ * Build optimized profile summary for AI prompt
+ *
+ * Extracts only relevant fields and applies aggressive limits to reduce token usage.
+ * This prevents sending unnecessary data to OpenAI and helps stay within context limits.
+ *
+ * Optimization strategy:
+ * - Extract only resume-relevant fields (excludes internal IDs, metadata, etc.)
+ * - Truncate long text fields (bio, descriptions)
+ * - Limit array lengths (experience, education, skills, projects)
+ * - Remove null/undefined values to reduce JSON size
+ *
+ * Token savings example:
+ * - Full profile with 10 jobs: ~2000 tokens
+ * - Summarized (3 jobs, trimmed): ~500 tokens (75% reduction)
+ *
+ * @param profile - Full user profile from profiles.getMyProfile()
+ * @returns Optimized profile summary for AI consumption
+ */
 function buildProfileSummary(profile: CareerProfileDTO) {
   const contactLinks = Array.isArray(profile.contact?.links)
     ? profile.contact.links
         .filter((link) => typeof link?.label === "string" && typeof link?.url === "string")
-        .slice(0, 4)
+        .slice(0, 4) // Limit to 4 links max
         .map((link) => ({ label: link.label, url: link.url }))
     : [];
 
@@ -153,11 +187,11 @@ function buildProfileSummary(profile: CareerProfileDTO) {
       location: profile.contact?.location,
       links: contactLinks,
     },
-    summary: truncateText(profile.bio, 400),
-    experience: summarizeExperience(profile),
-    education: summarizeEducation(profile),
-    skills: summarizeSkills(profile),
-    projects: summarizeProjects(profile),
+    summary: truncateText(profile.bio, 400), // 400 chars max
+    experience: summarizeExperience(profile), // 3 items, 4 bullets each
+    education: summarizeEducation(profile), // 3 items, 3 details each
+    skills: summarizeSkills(profile), // 12 per category
+    projects: summarizeProjects(profile), // 3 items, 3 bullets each
   };
 }
 
@@ -201,6 +235,16 @@ export const generateBlocks = action({
       };
     }
 
+    // Validate profile shape matches expected CareerProfileDTO
+    if (!isCareerProfileDTO(profile)) {
+      console.error("Profile shape mismatch:", profile);
+      return {
+        success: false,
+        blocksCreated: 0,
+        error: "Profile data is incomplete or invalid. Please update your profile.",
+      };
+    }
+
     // Step 2: Verify resume ownership
     const resume = await ctx.runQuery(api.builder_resumes.getResume, {
       id: args.resumeId,
@@ -216,7 +260,8 @@ export const generateBlocks = action({
     }
 
     // Step 3: Construct AI prompt
-    const profileSummary = buildProfileSummary(profile as CareerProfileDTO);
+    // Type-safe: profile is validated as CareerProfileDTO via isCareerProfileDTO guard
+    const profileSummary = buildProfileSummary(profile);
 
     const systemPrompt = `You are an expert resume writer. Generate a professional resume tailored to the job description provided.
 

@@ -31,7 +31,7 @@ export function SummaryBlock({ data, isSelected, onClick, suggestions, blockId }
       </p>
 
       {/* Show suggestions when block is selected */}
-      {isSelected && suggestions && suggestions.length > 0 && blockId && (
+      {isSelected && blockId && suggestions && suggestions.length > 0 && (
         <BlockSuggestions
           blockId={blockId}
           suggestions={suggestions}

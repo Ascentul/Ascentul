@@ -27,7 +27,6 @@ export function ExperienceBlock({
       className={`space-y-2 transition-all ${
         isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md p-2' : ''
       }`}
-      role="region"
       aria-label="Work experience"
     >
       <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">
@@ -71,14 +70,19 @@ export function ExperienceBlock({
 
               {bullets.length > 0 && (
                 <ul role="list" className="space-y-0.5 mt-2">
-                  {bullets.map((bullet, bulletIdx) => (
-                    <li
-                      key={bulletIdx}
-                      className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
-                    >
-                      {bullet}
-                    </li>
-                  ))}
+                  {bullets.map((bullet, bulletIdx) => {
+                    // Use first 50 chars of bullet + index for stable key
+                    // Handles duplicate bullets while maintaining stability
+                    const bulletKey = `${bullet.slice(0, 50)}-${bulletIdx}`;
+                    return (
+                      <li
+                        key={bulletKey}
+                        className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
+                      >
+                        {bullet}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </article>
@@ -86,7 +90,7 @@ export function ExperienceBlock({
         })}
       </div>
 
-      {isSelected && suggestions && suggestions.length > 0 && blockId && (
+      {isSelected && blockId && suggestions && suggestions.length > 0 && (
         <BlockSuggestions blockId={blockId} suggestions={suggestions} />
       )}
     </section>

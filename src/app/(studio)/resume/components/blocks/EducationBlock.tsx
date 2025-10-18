@@ -85,16 +85,24 @@ export function EducationBlock({
 
               {details.length > 0 && (
                 <ul className="space-y-0.5 mt-2">
-                  {details.map((detail, detailIdx) => (
-                    <li
-                      key={detailIdx}
-                      className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
-                    >
-                      {detail}
-                    </li>
-                  ))}
+                  {details.map((detail, detailIdx) => {
+                    // Use first 50 chars of detail + index for stable key
+                    // Handles duplicate details while maintaining stability
+                    const detailKey = `${itemKey}-${detail.slice(0, 50)}-${detailIdx}`;
+                    return (
+                      <li
+                        key={detailKey}
+                        className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
+                      >
+                        {detail}
+                      </li>
+                    );
+                  })}
                   {truncatedCount > 0 && (
-                    <li className="text-sm text-neutral-500 italic pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400">
+                    <li
+                      key={`${itemKey}-truncated`}
+                      className="text-sm text-neutral-500 italic pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
+                    >
                       ... and {truncatedCount} more
                     </li>
                   )}
@@ -105,7 +113,7 @@ export function EducationBlock({
         })}
       </div>
 
-      {isSelected && suggestions?.length && blockId && (
+      {isSelected && blockId && suggestions && suggestions.length > 0 && (
         <BlockSuggestions blockId={blockId} suggestions={suggestions} />
       )}
     </section>

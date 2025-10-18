@@ -24,7 +24,7 @@ export function ProjectsBlock({ data, isSelected, onClick, suggestions, blockId 
 
   if (!items || items.length === 0) {
     return (
-      <section className="space-y-2" role="region" aria-label="Projects">
+      <section className="space-y-2" aria-label="Projects">
         <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">
           Projects
         </h2>
@@ -39,7 +39,6 @@ export function ProjectsBlock({ data, isSelected, onClick, suggestions, blockId 
         isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md p-2' : ''
       }`}
       onClick={onClick}
-      role="region"
       aria-label="Projects"
     >
       <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">
@@ -66,14 +65,19 @@ export function ProjectsBlock({ data, isSelected, onClick, suggestions, blockId 
               {/* Bullets */}
               {item.bullets && item.bullets.length > 0 && (
                 <ul className="space-y-0.5 mt-2">
-                  {item.bullets.map((bullet, bulletIdx) => (
-                    <li
-                      key={`${itemKey}-bullet-${bulletIdx}`}
-                      className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
-                    >
-                      {bullet}
-                    </li>
-                  ))}
+                  {item.bullets.map((bullet, bulletIdx) => {
+                    // Use first 50 chars of bullet + index for stable key
+                    // Handles duplicate bullets while maintaining stability
+                    const bulletKey = `${itemKey}-${bullet.slice(0, 50)}-${bulletIdx}`;
+                    return (
+                      <li
+                        key={bulletKey}
+                        className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
+                      >
+                        {bullet}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </article>

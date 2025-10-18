@@ -104,7 +104,8 @@ const maxBulletsData: ExperienceData = {
         'Fourth achievement demonstrating collaboration skills.',
         'Fifth achievement showing innovation and problem-solving.',
         'Sixth achievement illustrating long-term impact.',
-        // Seventh+ bullets should be truncated by the component (MAX_BULLETS=6 in ExperienceBlock.tsx)
+        // Note: ExperienceBlock component defines MAX_BULLETS=6 constant
+        // Seventh+ bullets are truncated by ExperienceBlock.tsx (see .slice(0, MAX_BULLETS))
         'Seventh achievement (should be truncated).',
         'Eighth achievement (should also be truncated).',
       ],

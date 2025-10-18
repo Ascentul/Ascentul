@@ -36,8 +36,12 @@ export function setCachedThumbnail(documentId: string, lastUpdated: number | nul
   if (lastUpdated == null) {
     return;
   }
-  cache.delete(documentId);
-  evictOldestIfNeeded();
+  const isUpdate = cache.has(documentId);
+  if (isUpdate) {
+    cache.delete(documentId);
+  } else {
+    evictOldestIfNeeded();
+  }
   cache.set(documentId, { dataUrl, lastUpdated });
 }
 

@@ -11,7 +11,7 @@ interface CustomBlockProps {
 }
 
 export function CustomBlock({ data, isSelected, onClick, suggestions, blockId }: CustomBlockProps) {
-  const { heading, bullets } = data;
+  const { heading, content, bullets } = data;
 
   if (!heading) return null;
 
@@ -27,21 +27,32 @@ export function CustomBlock({ data, isSelected, onClick, suggestions, blockId }:
         {heading}
       </h2>
 
+      {content && (
+        <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">
+          {content}
+        </p>
+      )}
+
       {bullets && bullets.length > 0 && (
         <ul className="space-y-0.5">
-          {bullets.map((item, idx) => (
-            <li
-              key={idx}
-              className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
-            >
-              {item}
-            </li>
-          ))}
+          {bullets.map((item, idx) => {
+            // Use first 50 chars of bullet + index for stable key
+            // Handles duplicate bullets while maintaining stability
+            const bulletKey = `${item.slice(0, 50)}-${idx}`;
+            return (
+              <li
+                key={bulletKey}
+                className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
+              >
+                {item}
+              </li>
+            );
+          })}
         </ul>
       )}
 
       {/* Show suggestions when block is selected */}
-      {isSelected && suggestions?.length && blockId && (
+      {isSelected && blockId && suggestions && suggestions.length > 0 && (
         <BlockSuggestions
           blockId={blockId}
           suggestions={suggestions}

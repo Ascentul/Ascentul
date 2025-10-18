@@ -77,10 +77,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: unknown, errorInfo: ErrorInfo) {
     // Normalize the error to ensure it's a proper Error instance
     // JavaScript allows throwing any value (strings, numbers, objects, etc.)
-    // React passes through whatever was thrown, regardless of TypeScript's Error type annotation
     const normalizedError = normalizeError(error);
 
     // Log error to console in development

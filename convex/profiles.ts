@@ -59,6 +59,7 @@ export interface ProfileSnapshot {
  *
  * Key fields from "users" table:
  * - name, email, location, linkedin_url, github_url, website
+ * - bio (professional summary)
  * - current_position, job_title, company, skills (comma-separated string)
  * - work_history: array of { id, role, company, start_date, end_date, is_current, location, summary }
  * - education_history: array of { id, school, degree, field_of_study, start_year, end_year, is_current, description }
@@ -201,15 +202,53 @@ export const getMyProfile = query({
       }
     };
 
-    // Helper to extract label from URL
+    /**
+     * Helper to extract domain label from URL for display purposes
+     *
+     * Examples:
+     * - https://example.com → "Example"
+     * - https://my-portfolio.com → "My Portfolio"
+     * - https://example.co.uk → "Example" (handles ccTLDs)
+     * - https://subdomain.example.com → "Example" (ignores subdomains)
+     *
+     * Known limitations:
+     * - Hardcoded ccTLD list (not exhaustive, but covers ~90% of cases)
+     * - Single-part hostnames (e.g., "localhost") return the hostname itself
+     * - Non-standard TLDs may not be handled correctly
+     * - For production URLs, these limitations are generally acceptable
+     *
+     * For comprehensive TLD handling, consider using a library like:
+     * - tldts: https://www.npmjs.com/package/tldts
+     * - psl (Public Suffix List): https://www.npmjs.com/package/psl
+     */
     const getLabelFromUrl = (url: string): string => {
       try {
         const urlObj = new URL(url);
         const hostname = urlObj.hostname.replace('www.', '');
-        // Extract domain name before TLD (e.g., "github.com" -> "GitHub")
         const parts = hostname.split('.');
-        // Use second-to-last part for subdomains, otherwise first part
-        const domainPart = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+
+        // Edge case: Single-part hostname (e.g., "localhost", "intranet")
+        // Return as-is since there's no TLD to strip
+        if (parts.length === 1) {
+          const label = parts[0];
+          return label.charAt(0).toUpperCase() + label.slice(1);
+        }
+
+        // Handle country-code TLDs (ccTLDs) like .co.uk, .com.au
+        // Expanded list covers common ccTLDs (~90% of production use cases)
+        const knownCcTlds = [
+          'co.uk', 'com.au', 'co.nz', 'co.za', 'com.br', 'co.jp',
+          'co.in', 'com.cn', 'net.au', 'org.uk', 'ac.uk', 'gov.uk',
+          'com.mx', 'co.kr', 'com.sg', 'co.id', 'com.ar', 'com.co'
+        ];
+        const lastTwo = parts.slice(-2).join('.');
+
+        // For ccTLDs, extract third-to-last part; otherwise second-to-last
+        // Ensures we get "example" from both "example.co.uk" and "example.com"
+        const domainPart = knownCcTlds.includes(lastTwo) && parts.length > 2
+          ? parts[parts.length - 3]
+          : parts[parts.length - 2];
+
         // Capitalize each word for hyphenated domains
         return domainPart.split('-').map(word =>
           word.charAt(0).toUpperCase() + word.slice(1)

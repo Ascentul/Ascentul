@@ -231,9 +231,16 @@ describe('assertValidResumeDocument', () => {
 
     const blocks: Record<string, Block> = {};
 
-    expect(() => assertValidResumeDocument(pages, blocks)).toThrow(
-      /Resume document validation failed/
-    );
-    expect(() => assertValidResumeDocument(pages, blocks)).toThrow(/non-existent block/);
+    // Capture error once for multiple assertions
+    let error: Error | undefined;
+    try {
+      assertValidResumeDocument(pages, blocks);
+    } catch (e) {
+      error = e as Error;
+    }
+
+    expect(error).toBeDefined();
+    expect(error?.message).toMatch(/Resume document validation failed/);
+    expect(error?.message).toMatch(/non-existent block/);
   });
 });

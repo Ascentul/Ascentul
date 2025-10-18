@@ -353,10 +353,9 @@ cat > Dockerfile << 'EOF'
 FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --production
-COPY .next ./.next
-COPY public ./public
-COPY next.config.js ./
+RUN npm ci
+COPY . .
+RUN npm run build
 EXPOSE 3000
 CMD ["npm", "start"]
 EOF
@@ -364,9 +363,7 @@ EOF
 # Build and run
 docker build -t resume-builder .
 docker run -d -p 3000:3000 --name resume-builder \
-  -e NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxx \
-  -e CLERK_SECRET_KEY=sk_live_xxx \
-  # Add all other environment variables
+  --env-file .env.production \
   resume-builder
 ```
 

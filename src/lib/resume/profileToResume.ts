@@ -176,14 +176,25 @@ export function profileToResume(
   }
 
   // 3. EXPERIENCE BLOCK (if items exist, order: 2)
-  if (profile.experience && profile.experience.length > 0) {
+  // Filter out entries missing required company or role fields
+  const validExperience = (profile.experience || []).filter(
+    exp => exp.company && exp.role
+  );
+
+  // Debug logging for filtered experience entries
+  const filteredExpCount = (profile.experience || []).length - validExperience.length;
+  if (filteredExpCount > 0 && process.env.NEXT_PUBLIC_DEBUG_UI === 'true') {
+    console.warn(`[profileToResume] Filtered ${filteredExpCount} experience entries missing required fields (company, role)`);
+  }
+
+  if (validExperience.length > 0) {
     blocks.push({
       type: 'experience',
       order: currentOrder++,
       data: {
-        items: profile.experience.map(exp => ({
-          company: exp.company || 'Company Name',
-          role: exp.role || 'Job Title',
+        items: validExperience.map(exp => ({
+          company: exp.company,
+          role: exp.role,
           location: exp.location,
           start: exp.start,
           end: exp.end,
@@ -206,13 +217,22 @@ export function profileToResume(
   });
 
   // 5. EDUCATION BLOCK (if items exist, order: 4)
-  if (profile.education && profile.education.length > 0) {
+  // Filter out entries missing required school field
+  const validEducation = (profile.education || []).filter(edu => edu.school);
+
+  // Debug logging for filtered education entries
+  const filteredEduCount = (profile.education || []).length - validEducation.length;
+  if (filteredEduCount > 0 && process.env.NEXT_PUBLIC_DEBUG_UI === 'true') {
+    console.warn(`[profileToResume] Filtered ${filteredEduCount} education entries missing required field (school)`);
+  }
+
+  if (validEducation.length > 0) {
     blocks.push({
       type: 'education',
       order: currentOrder++,
       data: {
-        items: profile.education.map(edu => ({
-          school: edu.school || 'School Name',
+        items: validEducation.map(edu => ({
+          school: edu.school,
           degree: edu.degree,
           end: edu.end,
           details: edu.details || [],
@@ -223,13 +243,22 @@ export function profileToResume(
   }
 
   // 6. PROJECTS BLOCK (if items exist, order: 5)
-  if (profile.projects && profile.projects.length > 0) {
+  // Filter out entries missing required name field
+  const validProjects = (profile.projects || []).filter(proj => proj.name);
+
+  // Debug logging for filtered project entries
+  const filteredProjCount = (profile.projects || []).length - validProjects.length;
+  if (filteredProjCount > 0 && process.env.NEXT_PUBLIC_DEBUG_UI === 'true') {
+    console.warn(`[profileToResume] Filtered ${filteredProjCount} project entries missing required field (name)`);
+  }
+
+  if (validProjects.length > 0) {
     blocks.push({
       type: 'projects',
       order: currentOrder++,
       data: {
-        items: profile.projects.map(proj => ({
-          name: proj.name || 'Project Name',
+        items: validProjects.map(proj => ({
+          name: proj.name,
           description: proj.description || '',
           bullets: proj.bullets || [],
         })),

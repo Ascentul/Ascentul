@@ -113,7 +113,17 @@ export default function ResumeStudioPage() {
   // Local state for blocks
   const [localBlocks, setLocalBlocks] = useState<Block[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Refs to track current state for rollback (avoids including localBlocks/blocksMap in deps)
+  const localBlocksRef = useRef<Block[]>(localBlocks);
+  const blocksMapRef = useRef<Record<string, Block>>(blocksMap);
   const [authTimedOut, setAuthTimedOut] = useState(false);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    localBlocksRef.current = localBlocks;
+    blocksMapRef.current = blocksMap;
+  }, [localBlocks, blocksMap]);
   const { blocksWithHeights, registerBlock, remeasure } = useBlockHeights(localBlocks);
 
   const currentPageIndex = useMemo(() => {
@@ -401,8 +411,9 @@ useEffect(() => {
   const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
     if (!user?.id) return;
 
-    const previousBlocks = localBlocks;
-    const previousMap = blocksMap;
+    // Capture current state from refs for rollback (refs avoid re-creating this callback)
+    const previousBlocks = localBlocksRef.current;
+    const previousMap = blocksMapRef.current;
 
     const normalizedBlocks = normalizeBlocks(newBlocks);
     setLocalBlocks(normalizedBlocks);
@@ -423,7 +434,7 @@ useEffect(() => {
       });
     } catch (error) {
       console.error('Failed to save block order:', error);
-      // Rollback to previous state
+      // Rollback to previous state from refs
       setLocalBlocks(previousBlocks);
       setBlocksMap(previousMap);
       toast({
@@ -432,7 +443,7 @@ useEffect(() => {
         variant: 'destructive',
       });
     }
-  }, [user?.id, resumeId, localUpdatedAt, localBlocks, blocksMap, reorderBlocks, toast]);
+  }, [user?.id, resumeId, localUpdatedAt, reorderBlocks, toast]);
 
   const handleResumeUpdatedAtChange = (newUpdatedAt: number) => {
     setLocalUpdatedAt(newUpdatedAt);

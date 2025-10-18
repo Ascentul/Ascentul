@@ -45,7 +45,7 @@ export function SkillsBlock({ data, isSelected, suggestions, blockId }: SkillsBl
       </div>
 
       {/* Show suggestions when block is selected */}
-      {isSelected && suggestions?.length && blockId && (
+      {isSelected && blockId && suggestions && suggestions.length > 0 && (
         <BlockSuggestions
           blockId={blockId}
           suggestions={suggestions}

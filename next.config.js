@@ -5,9 +5,8 @@ if (previewBaseUrl) {
   try {
     previewDomain = new URL(previewBaseUrl).hostname;
   } catch (error) {
-    if (process.env.NEXT_PUBLIC_DEBUG_UI === '1') {
-      console.warn('[next.config] Invalid NEXT_PUBLIC_PREVIEW_BASE_URL:', error);
-    }
+    // Always log configuration errors in production for visibility to operators
+    console.warn('[next.config] Invalid NEXT_PUBLIC_PREVIEW_BASE_URL:', previewBaseUrl, error);
   }
 }
 
@@ -26,7 +25,10 @@ const imgSrcDomains = [
 ];
 
 if (previewDomain) {
-  imgSrcDomains.push(`https://${previewDomain}`);
+  const previewUrl = `https://${previewDomain}`;
+  if (!imgSrcDomains.includes(previewUrl)) {
+    imgSrcDomains.push(previewUrl);
+  }
 }
 
 /** @type {import('next').NextConfig} */

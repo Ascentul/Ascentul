@@ -20,9 +20,27 @@ function safeCompare(a: string, b: string): boolean {
 /**
  * Simple in-memory mutex to prevent concurrent seeding operations.
  *
- * This prevents race conditions where multiple POST requests check
- * `before.templates === 0` simultaneously and both attempt to seed,
- * potentially causing duplicate entries or conflicts.
+ * ⚠️ CRITICAL LIMITATION - SERVERLESS INCOMPATIBLE ⚠️
+ *
+ * This mutex ONLY works in single-instance environments (local development).
+ * In serverless/multi-instance deployments (Vercel, AWS Lambda, Kubernetes, etc.),
+ * each request may be handled by a different instance with its own memory space.
+ * Concurrent requests to different instances will BYPASS this lock entirely.
+ *
+ * Example failure scenario in Vercel:
+ *   Request 1 → Lambda Instance A (mutex.locked = true)
+ *   Request 2 → Lambda Instance B (mutex.locked = false) ❌ BYPASSED!
+ *   Both check `before.templates === 0` and seed simultaneously → duplicates
+ *
+ * Production-ready solutions:
+ *   1. Distributed lock (Redis/DynamoDB) - True cross-instance locking
+ *   2. Idempotency tokens - No external dependencies, works with Convex
+ *   3. Database constraints - Defense in depth (unique indexes)
+ *   4. Single-use deployment script - Simplest for development
+ *
+ * See docs/DEV_SEED_CONCURRENCY.md for detailed implementation guides.
+ *
+ * TODO: Replace with idempotency-based solution before production deployment
  */
 class SeedMutex {
   private locked = false;
@@ -56,7 +74,10 @@ const seedMutex = new SeedMutex();
 
 function validateConvexUrl(): string {
   if (!CONVEX_URL) {
-    throw new Error("Convex URL not set");
+    throw new Error(
+      "NEXT_PUBLIC_CONVEX_URL or CONVEX_URL environment variable is not set. " +
+      "Please add it to your .env.local file."
+    );
   }
   return CONVEX_URL;
 }
@@ -96,47 +117,51 @@ interface SeedResults {
 }
 
 export async function POST(request: Request) {
-  // Acquire mutex lock to prevent concurrent seeding
-  await seedMutex.acquire();
-
   try {
+    // Validate access before acquiring mutex to prevent unauthorized requests from blocking the lock
     const accessError = checkDevAccess(request);
     if (accessError) return accessError;
 
     const url = validateConvexUrl();
-    const convex = new ConvexHttpClient(url);
 
-    // Check current state
-    const before = await convex.query(api.devSeed.hasCatalog, {});
-    const results: SeedResults = { before };
+    // Acquire mutex lock to prevent concurrent seeding (after validation)
+    await seedMutex.acquire();
 
-    // Seed templates if needed
-    if (before.templates === 0) {
-      results.templates = await convex.mutation(api.devSeed.seedTemplates, {});
-    } else {
-      results.templates = { inserted: 0, message: "Templates already exist" };
+    try {
+      const convex = new ConvexHttpClient(url);
+
+      // Check current state
+      const before = await convex.query(api.devSeed.hasCatalog, {});
+      const results: SeedResults = { before };
+
+      // Seed templates if needed
+      if (before.templates === 0) {
+        results.templates = await convex.mutation(api.devSeed.seedTemplates, {});
+      } else {
+        results.templates = { inserted: 0, message: "Templates already exist" };
+      }
+
+      // Seed themes if needed
+      if (before.themes === 0) {
+        results.themes = await convex.mutation(api.devSeed.seedThemes, {});
+      } else {
+        results.themes = { inserted: 0, message: "Themes already exist" };
+      }
+
+      // Check final state
+      results.after = await convex.query(api.devSeed.hasCatalog, {});
+
+      return NextResponse.json(results);
+    } finally {
+      // Always release the lock after seeding operations
+      seedMutex.release();
     }
-
-    // Seed themes if needed
-    if (before.themes === 0) {
-      results.themes = await convex.mutation(api.devSeed.seedThemes, {});
-    } else {
-      results.themes = { inserted: 0, message: "Themes already exist" };
-    }
-
-    // Check final state
-    results.after = await convex.query(api.devSeed.hasCatalog, {});
-
-    return NextResponse.json(results);
   } catch (e: any) {
     console.error("Seed error:", e);
     return NextResponse.json(
       { error: "Failed to seed database" },
       { status: 500 }
     );
-  } finally {
-    // Always release the lock, even if an error occurred
-    seedMutex.release();
   }
 }
 

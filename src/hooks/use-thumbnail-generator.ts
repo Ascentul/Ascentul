@@ -60,8 +60,9 @@ export function useThumbnailGenerator(
    */
   const generateThumbnail = useCallback(
     async (element: HTMLElement, uploadToConvex: boolean = true) => {
-      if (!element) {
-        console.warn('useThumbnailGenerator: No element provided');
+      // Early validation to fail fast
+      if (!element || !element.isConnected) {
+        console.warn('useThumbnailGenerator: Invalid or disconnected element');
         return;
       }
 
@@ -72,29 +73,43 @@ export function useThumbnailGenerator(
 
       // Debounce the generation
       debounceTimerRef.current = setTimeout(async () => {
+        // Re-validate element after debounce delay (may have been removed during wait)
+        // Note: Element could become disconnected from DOM during debounce wait period
+        if (!element || !element.isConnected) {
+          console.warn('useThumbnailGenerator: Element became stale or disconnected');
+          return;
+        }
+
         setIsGenerating(true);
         setError(null);
 
         try {
           const renderTimestamp = Date.now();
 
+          // Disable internal caching to avoid using client-side timestamp
+          // We'll manually cache using the authoritative server timestamp from Convex
           const dataUrl = await renderThumbnail(element, {
             documentId: resumeId ?? 'preview',
             lastUpdated: renderTimestamp,
             width,
-            cacheResult: false,
+            cacheResult: false, // Manual caching below with server timestamp
           });
 
           setThumbnailDataUrl(dataUrl);
 
           // Upload to Convex storage if requested and resumeId is available
+          // TODO: PERFORMANCE - Upload to Convex file storage instead of base64 in database
+          // Current: Stores base64 data URL directly in database (causes bloat)
+          // Recommended: Upload PNG blob to Convex storage, save storage ID
+          // See docs/THUMBNAIL_MIGRATION_PLAN.md for implementation guide
           if (uploadToConvex && resumeId) {
             try {
               const result = await uploadThumbnailMutation({
                 resumeId,
-                thumbnailDataUrl: dataUrl,
+                thumbnailDataUrl: dataUrl, // DEPRECATED: Storing base64 in database
               });
 
+              // Manually cache with server-confirmed timestamp for cache invalidation accuracy
               if (result?.updatedAt) {
                 setCachedThumbnail(resumeId, result.updatedAt, dataUrl);
               }
@@ -102,6 +117,11 @@ export function useThumbnailGenerator(
               console.error('Failed to upload thumbnail to Convex:', uploadError);
               // Don't fail the entire generation if upload fails
             }
+          } else {
+            // Fallback caching when upload is skipped or unavailable
+            // Preserves performance for preview scenarios (uploadToConvex=false) and
+            // temporary states (resumeId=null) by caching locally with render timestamp
+            setCachedThumbnail(resumeId ?? 'preview', renderTimestamp, dataUrl);
           }
 
           onSuccess?.(dataUrl);

@@ -70,6 +70,7 @@ describe('renderThumbnail', () => {
   });
 
   it('evicts least recently used entries when capacity is exceeded', () => {
+    // Cache capacity is 100, so 105 entries will trigger LRU eviction
     for (let i = 0; i < 105; i += 1) {
       setCachedThumbnail(`resume-${i}`, i, `data:image/png;base64,${i}`);
     }

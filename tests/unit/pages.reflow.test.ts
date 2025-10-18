@@ -23,10 +23,8 @@ const createBlock = (id: string, order: number, type: Block['type'] = 'summary')
     type,
     data: type === 'summary'
       ? { paragraph: `Block ${id}` }
-      : type === 'experience'
-      ? { heading: 'Heading', bullets: [] }
-      : { heading: 'Heading', bullets: [] }, // fallback for other types
-  };
+      : { heading: 'Heading', bullets: [] },
+  } as Block;
 };
 
 describe('reflowPages', () => {

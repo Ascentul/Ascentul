@@ -80,9 +80,18 @@ Format as a structured plan with clear steps and timelines.`
         }
       )
       generatedPath = completion.choices?.[0]?.message?.content || null
-    } catch (error) {
-      console.error('OpenAI API call failed:', error)
-      generatedPath = null
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorType = error?.constructor?.name || 'Error';
+      const isTimeout = error.code === 'ETIMEDOUT' || error.message?.toLowerCase().includes('timeout');
+      console.error('OpenAI API call failed:', {
+        errorType,
+        errorMessage,
+        isTimeout,
+        statusCode: error.status,
+        error
+      });
+      generatedPath = null;
     }
 
     if (!generatedPath) {
