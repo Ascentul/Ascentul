@@ -238,8 +238,22 @@ export default function ResumeEditorPage() {
     if (!clerkId) return
 
     const normalizedTitle = title.trim() || "Untitled Resume"
+
+    // Clean up empty social links from contact info
+    const cleanedContactInfo = {
+      ...contactInfo,
+      linkedin: contactInfo.linkedin?.trim() || undefined,
+      github: contactInfo.github?.trim() || undefined,
+      website: contactInfo.website?.trim() || undefined,
+    }
+    // Remove undefined properties to keep JSON clean
+    Object.keys(cleanedContactInfo).forEach(
+      key => cleanedContactInfo[key as keyof typeof cleanedContactInfo] === undefined &&
+        delete cleanedContactInfo[key as keyof typeof cleanedContactInfo]
+    )
+
     const contentPayload = {
-      contactInfo,
+      contactInfo: cleanedContactInfo,
       summary,
       skills: skillsText.split(",").map((s) => s.trim()).filter((s) => s.length > 0),
       experiences,
@@ -438,7 +452,9 @@ export default function ResumeEditorPage() {
         moveY(5)
       }
 
-      const linkParts = [contactInfo.linkedin, contactInfo.github, contactInfo.website].filter(Boolean)
+      // Only include social links that have actual values
+      const linkParts = [contactInfo.linkedin, contactInfo.github, contactInfo.website]
+        .filter((link) => link && typeof link === 'string' && link.trim().length > 0)
       if (linkParts.length) {
         doc.text(linkParts.join(' | '), margin, y)
         moveY(5)

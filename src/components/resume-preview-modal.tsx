@@ -99,7 +99,9 @@ export function ResumePreviewModal({
         moveY(5)
       }
 
-      const linkParts = [linkedin, github, website].filter(Boolean)
+      // Only include social links that have actual non-empty values
+      const linkParts = [linkedin, github, website]
+        .filter((link) => link && typeof link === 'string' && link.trim().length > 0)
       if (linkParts.length) {
         doc.text(linkParts.join(' | '), margin, y)
         moveY(5)
