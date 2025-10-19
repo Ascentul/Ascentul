@@ -463,7 +463,7 @@ export default function CoverLettersPage() {
                 return (
                   <Card
                     key={c._id}
-                    className="group relative overflow-hidden border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-2xl"
+                    className="group relative overflow-hidden border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-lg transition-shadow cursor-pointer rounded-2xl"
                     onClick={() => setPreviewLetter(c)}
                   >
                     <CardContent className="p-0 h-full flex flex-col">
@@ -473,8 +473,8 @@ export default function CoverLettersPage() {
                             <div className="p-2.5 rounded-xl bg-purple-100 text-purple-600 shadow-sm group-hover:bg-purple-200 transition-colors">
                               <FileText className="h-5 w-5" />
                             </div>
-                            <div className="min-w-0">
-                              <h3 className="font-semibold text-sm text-slate-900 truncate">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-semibold text-sm text-slate-900 truncate overflow-hidden">
                                 {c.name || "Untitled Cover Letter"}
                               </h3>
                               <p className="text-xs text-muted-foreground truncate">

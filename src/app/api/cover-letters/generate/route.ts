@@ -141,7 +141,9 @@ Candidate's Career Profile (ground truth - use this data to personalize the lett
 ${userProfileSummary}
 
 Instructions:
-- Produce a COMPREHENSIVE cover letter that includes: a greeting, strong opening paragraph, at least 3-4 detailed body paragraphs, and a compelling closing paragraph with signature.
+- Produce a COMPREHENSIVE cover letter that includes: strong opening paragraph, at least 3-4 detailed body paragraphs, and a compelling closing paragraph.
+- DO NOT include a greeting line (like "Dear Hiring Manager") - that will be added separately.
+- DO NOT include a signature line - the user will add that.
 - The cover letter should be thorough and detailed, aiming for 400-600 words in total.
 - Analyze the job description carefully and identify at least 10-12 key requirements or desired qualifications from the posting.
 - For each key requirement, explain how the candidate's background (from their profile, projects, or experience) demonstrates that qualification.
@@ -151,16 +153,16 @@ Instructions:
 - Address why the candidate is specifically interested in this company and role (if career goals suggest alignment).
 - Keep the tone professional, confident, enthusiastic, and specific to the role and company.
 - Make the letter compelling and substantive - avoid generic statements.
-- Return only the final cover letter text, ready for the user to send.
+- Return only the body text of the cover letter, ready for the user to send.
 
-Structure your response as a complete, professional cover letter with:
+Structure your response as a professional cover letter body with:
 1. Opening paragraph (introduce yourself and express interest)
 2. Body paragraph 1 (discuss most relevant experience and how it aligns with the role)
 3. Body paragraph 2 (highlight specific projects, skills, and accomplishments)
 4. Body paragraph 3 (explain what makes you a great cultural and technical fit)
 5. Closing paragraph (express enthusiasm and call to action)
 
-Remember: Be specific, be thorough, and make every sentence count. Use concrete examples from the candidate's profile.`
+Remember: Be specific, be thorough, and make every sentence count. Use concrete examples from the candidate's profile. Start directly with the opening paragraph - NO greeting line.`
 
     let generatedContent: string | null = null
     let usedFallback = false
