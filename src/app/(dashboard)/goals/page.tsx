@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
 import {
@@ -26,6 +26,7 @@ import GoalCard from '@/components/GoalCard'
 import GoalForm from '@/components/GoalForm'
 import GoalTimeline from '@/components/goals/GoalTimeline'
 import GoalTemplates, { goalTemplates } from '@/components/goals/GoalTemplates'
+import { UpgradeModal } from '@/components/modals/UpgradeModal'
 import { useToast } from '@/hooks/use-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
@@ -36,12 +37,14 @@ export default function Goals() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [sortOption, setSortOption] = useState<string>('dueDate-asc')
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [selectedGoal, setSelectedGoal] = useState<any>(null)
   const [hiddenGoalIds, setHiddenGoalIds] = useState<number[]>([])
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list')
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const isFreeUser = user?.subscription_plan === 'free'
 
   // Fetch goals
   const { data: goals = [], isLoading } = useQuery<any[]>({
@@ -237,9 +240,14 @@ export default function Goals() {
             <h1 className="text-3xl font-bold mb-2 text-[#0C29AB]">Career Goals</h1>
             <p className="text-neutral-500">Track and manage your career goals</p>
           </div>
-          <Button 
+          <Button
             className="mt-4 md:mt-0"
             onClick={() => {
+              // Check free user limit (1 goal max)
+              if (isFreeUser && goals.length >= 1) {
+                setShowUpgradeModal(true)
+                return
+              }
               setSelectedGoal(null)
               setIsAddGoalOpen(true)
             }}
@@ -540,6 +548,13 @@ export default function Goals() {
             />
           </DialogContent>
         </Dialog>
+
+        {/* Upgrade Modal for Free User Limits */}
+        <UpgradeModal
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          feature="goal"
+        />
       </motion.div>
     )
 }

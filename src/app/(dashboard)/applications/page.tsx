@@ -21,7 +21,9 @@ import {
 import { Loader2, Plus, Briefcase, Search } from "lucide-react";
 import { ApplicationCard } from "@/components/applications/ApplicationCard";
 import { ApplicationDetails } from "@/components/applications/ApplicationDetails";
+import { UpgradeModal } from "@/components/modals/UpgradeModal";
 import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { useRouter } from "next/navigation";
@@ -42,8 +44,10 @@ interface Application {
 export default function ApplicationsPage() {
   const router = useRouter();
   const { user, isLoaded: clerkLoaded } = useUser();
+  const { user: authUser } = useAuth();
   const [creating, setCreating] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"applications" | "job-search">(
     "applications",
   );
@@ -63,6 +67,9 @@ export default function ApplicationsPage() {
 
   const [showDetails, setShowDetails] = useState(false);
   const [selected, setSelected] = useState<Application | null>(null);
+
+  // Check if user is on free plan
+  const isFreeUser = authUser?.subscription_plan === "free";
 
   // Handle tab change to redirect to job-search page
   const handleTabChange = (tab: "applications" | "job-search") => {
@@ -144,6 +151,13 @@ export default function ApplicationsPage() {
 
   const createApp = async () => {
     if (!form.company.trim() || !form.job_title.trim()) return;
+
+    // Check free user limit (1 application max)
+    if (isFreeUser && apps.length >= 1) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     setCreating(true);
     try {
       if (!user?.id) return;
@@ -170,6 +184,16 @@ export default function ApplicationsPage() {
     }
   };
 
+  // Handle "New Application" button click
+  const handleNewApplicationClick = () => {
+    // Check free user limit before opening dialog
+    if (isFreeUser && apps.length >= 1) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setShowAddDialog(true);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="mb-6 flex items-center justify-between">
@@ -182,7 +206,7 @@ export default function ApplicationsPage() {
           </p>
         </div>
         <Button
-          onClick={() => setShowAddDialog(true)}
+          onClick={handleNewApplicationClick}
           className="bg-[#0C29AB] hover:bg-[#0C29AB]/90"
         >
           <Plus className="h-4 w-4 mr-2" /> New Application
@@ -509,6 +533,13 @@ export default function ApplicationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upgrade Modal for Free User Limits */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="application"
+      />
     </div>
   );
 }
