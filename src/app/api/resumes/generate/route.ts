@@ -89,15 +89,19 @@ function generateBasicResume(jobDescription: string, userProfile?: UserProfile) 
     }]
   }
 
+  const personalInfo: any = {
+    name: userProfile?.name || 'Your Name',
+    email: userProfile?.email || 'email@example.com',
+    phone: userProfile?.phone || '',
+    location: userProfile?.location || '',
+  }
+
+  // Only include social links if they have actual values
+  if (userProfile?.linkedin_url) personalInfo.linkedin = userProfile.linkedin_url
+  if (userProfile?.github_url) personalInfo.github = userProfile.github_url
+
   return {
-    personalInfo: {
-      name: userProfile?.name || 'Your Name',
-      email: userProfile?.email || 'email@example.com',
-      phone: userProfile?.phone || '',
-      location: userProfile?.location || '',
-      linkedin: userProfile?.linkedin_url || '',
-      github: userProfile?.github_url || '',
-    },
+    personalInfo,
     summary: userProfile?.bio || 'Experienced professional seeking to leverage skills and expertise in a challenging role that aligns with career goals and contributes to organizational success.',
     skills: allSkills,
     experience,
@@ -170,10 +174,10 @@ Return a JSON object with this structure:
   "personalInfo": {
     "name": "string",
     "email": "string",
-    "phone": "string",
-    "location": "string",
-    "linkedin": "string",
-    "github": "string"
+    "phone": "string (optional)",
+    "location": "string (optional)",
+    "linkedin": "string (only if user has a LinkedIn URL)",
+    "github": "string (only if user has a GitHub URL)"
   },
   "summary": "Professional summary (3-4 sentences)",
   "skills": ["skill1", "skill2", ...],
@@ -195,6 +199,8 @@ Return a JSON object with this structure:
   ]
 }
 
+IMPORTANT: Only include social media links (linkedin, github) in personalInfo if the user profile explicitly provides them. Do not generate or invent social media URLs. Omit these fields if not provided in the user profile.
+
 If user profile is provided, use that information. Otherwise, create a template based on the job requirements.
 Focus on keywords from the job description. Make it ATS-friendly.`
 
@@ -210,6 +216,12 @@ Focus on keywords from the job description. Make it ATS-friendly.`
 
         const content = response.choices[0]?.message?.content || '{}'
         const resumeData = JSON.parse(content)
+
+        // Clean up empty social links from AI response
+        if (resumeData.personalInfo) {
+          if (!resumeData.personalInfo.linkedin) delete resumeData.personalInfo.linkedin
+          if (!resumeData.personalInfo.github) delete resumeData.personalInfo.github
+        }
 
         return NextResponse.json({
           success: true,
