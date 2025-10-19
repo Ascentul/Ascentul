@@ -229,24 +229,26 @@ export default function ProfilePage() {
     try {
       if (!clerkUser) throw new Error("No user found");
 
+      // Build updates object, only including non-empty values to let Convex handle filtering
+      const updates: any = {};
+      if (data.bio) updates.bio = data.bio;
+      if (data.email) updates.email = data.email;
+      if (data.phone_number) updates.phone_number = data.phone_number;
+      if (data.city) updates.city = data.city;
+      if (data.linkedin_url) updates.linkedin_url = data.linkedin_url;
+      if (data.major) updates.major = data.major;
+      if (data.university_name) updates.university_name = data.university_name;
+      if (data.graduation_year) updates.graduation_year = data.graduation_year;
+      if (data.current_position) updates.current_position = data.current_position;
+      if (data.current_company) updates.current_company = data.current_company;
+      if (data.experience_level) updates.experience_level = data.experience_level;
+      if (data.industry) updates.industry = data.industry;
+      if (data.skills) updates.skills = data.skills;
+      if (data.career_goals) updates.career_goals = data.career_goals;
+
       await updateUser({
         clerkId: clerkUser.id,
-        updates: {
-          bio: data.bio || "",
-          email: data.email || "",
-          phone_number: data.phone_number || "",
-          city: data.city || "",
-          linkedin_url: data.linkedin_url || "",
-          major: data.major || "",
-          university_name: data.university_name || "",
-          graduation_year: data.graduation_year || "",
-          current_position: data.current_position || "",
-          current_company: data.current_company || "",
-          experience_level: data.experience_level || "",
-          industry: data.industry || "",
-          skills: data.skills || "",
-          career_goals: data.career_goals || "",
-        },
+        updates,
       });
 
       toast({
@@ -257,9 +259,10 @@ export default function ProfilePage() {
       setIsEditingProfile(false);
     } catch (error: any) {
       console.error("Profile update error:", error);
+      const errorMessage = error?.message || "Failed to update profile. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

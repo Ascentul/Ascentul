@@ -90,14 +90,19 @@ export default function AdminUsersPage() {
     sendActivationEmail: true // Default ON for Staff/Super Admin
   })
   const [creatingUser, setCreatingUser] = useState(false)
+  const [createUserError, setCreateUserError] = useState<string | null>(null)
+  const [createUserSuccess, setCreateUserSuccess] = useState(false)
 
   const handleAddUser = async () => {
     if (!newUserForm.name.trim() || !newUserForm.email.trim() || !clerkUser?.id) return
 
     setCreatingUser(true)
+    setCreateUserError(null)
+    setCreateUserSuccess(false)
+
     try {
       // Use createUserByAdmin mutation which conditionally sends activation email
-      await createUserByAdmin({
+      const result = await createUserByAdmin({
         adminClerkId: clerkUser.id,
         email: newUserForm.email,
         name: newUserForm.name,
@@ -105,14 +110,21 @@ export default function AdminUsersPage() {
         sendActivationEmail: newUserForm.sendActivationEmail,
       })
 
-      // Reset form
-      setNewUserForm({ name: '', email: '', role: 'staff', plan: 'free', sendActivationEmail: true })
-      setShowAddUser(false)
+      // Show success message
+      setCreateUserSuccess(true)
+      setCreateUserError(null)
 
-      // Refresh the page to show new user
-      window.location.reload()
+      // Reset form after a short delay so user sees the success message
+      setTimeout(() => {
+        setNewUserForm({ name: '', email: '', role: 'staff', plan: 'free', sendActivationEmail: true })
+        setShowAddUser(false)
+        setCreateUserSuccess(false)
+      }, 1500)
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create user. Please try again.'
       console.error('Error creating user:', error)
+      setCreateUserError(errorMessage)
+      setCreateUserSuccess(false)
     } finally {
       setCreatingUser(false)
     }
@@ -392,57 +404,79 @@ export default function AdminUsersPage() {
             <DialogTitle>Add User</DialogTitle>
             <DialogDescription>Create a new user account and send activation email.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Full Name</label>
-              <Input
-                value={newUserForm.name}
-                onChange={e => setNewUserForm({ ...newUserForm, name: e.target.value })}
-                placeholder="Enter full name"
-              />
+          {createUserSuccess ? (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-green-50 p-4 border border-green-200">
+                <p className="text-sm font-medium text-green-900">User created successfully!</p>
+                <p className="text-sm text-green-800 mt-1">
+                  {newUserForm.sendActivationEmail
+                    ? 'Activation email has been sent.'
+                    : 'No activation email was sent.'}
+                </p>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium">Email Address</label>
-              <Input
-                value={newUserForm.email}
-                onChange={e => setNewUserForm({ ...newUserForm, email: e.target.value })}
-                placeholder="Enter email address"
-                type="email"
-              />
+          ) : (
+            <div className="space-y-4">
+              {createUserError && (
+                <div className="rounded-lg bg-red-50 p-4 border border-red-200">
+                  <p className="text-sm font-medium text-red-900">Error</p>
+                  <p className="text-sm text-red-800 mt-1">{createUserError}</p>
+                </div>
+              )}
+              <div>
+                <label className="text-sm font-medium">Full Name</label>
+                <Input
+                  value={newUserForm.name}
+                  onChange={e => setNewUserForm({ ...newUserForm, name: e.target.value })}
+                  placeholder="Enter full name"
+                  disabled={creatingUser}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Email Address</label>
+                <Input
+                  value={newUserForm.email}
+                  onChange={e => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                  placeholder="Enter email address"
+                  type="email"
+                  disabled={creatingUser}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Role</label>
+                <Select value={newUserForm.role} onValueChange={(v: any) => {
+                  // Update role and set default email checkbox based on role
+                  const isUniversityRole = ['student', 'university_admin', 'advisor'].includes(v)
+                  setNewUserForm({ ...newUserForm, role: v, sendActivationEmail: !isUniversityRole })
+                }} disabled={creatingUser}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="student">Student (University)</SelectItem>
+                    <SelectItem value="staff">Staff</SelectItem>
+                    <SelectItem value="university_admin">University Admin</SelectItem>
+                    <SelectItem value="advisor">Advisor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="sendActivationEmail"
+                  checked={newUserForm.sendActivationEmail}
+                  onChange={e => setNewUserForm({ ...newUserForm, sendActivationEmail: e.target.checked })}
+                  className="rounded"
+                  disabled={creatingUser}
+                />
+                <label htmlFor="sendActivationEmail" className="text-sm font-medium">
+                  Send activation email now
+                </label>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium">Role</label>
-              <Select value={newUserForm.role} onValueChange={(v: any) => {
-                // Update role and set default email checkbox based on role
-                const isUniversityRole = ['student', 'university_admin', 'advisor'].includes(v)
-                setNewUserForm({ ...newUserForm, role: v, sendActivationEmail: !isUniversityRole })
-              }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="student">Student (University)</SelectItem>
-                  <SelectItem value="staff">Staff</SelectItem>
-                  <SelectItem value="university_admin">University Admin</SelectItem>
-                  <SelectItem value="advisor">Advisor</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="sendActivationEmail"
-                checked={newUserForm.sendActivationEmail}
-                onChange={e => setNewUserForm({ ...newUserForm, sendActivationEmail: e.target.checked })}
-                className="rounded"
-              />
-              <label htmlFor="sendActivationEmail" className="text-sm font-medium">
-                Send activation email now
-              </label>
-            </div>
-          </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddUser(false)}>Cancel</Button>
-            <Button onClick={handleAddUser} disabled={creatingUser || !newUserForm.name.trim() || !newUserForm.email.trim()}>
+            <Button variant="outline" onClick={() => setShowAddUser(false)} disabled={creatingUser}>Cancel</Button>
+            <Button onClick={handleAddUser} disabled={creatingUser || !newUserForm.name.trim() || !newUserForm.email.trim() || createUserSuccess}>
               {creatingUser ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</>) : 'Create User'}
             </Button>
           </DialogFooter>

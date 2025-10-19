@@ -333,3 +333,55 @@ export const sendUniversityAdminInvitationEmail = action({
     }
   },
 })
+
+/**
+ * Send payment confirmation email to user after successful payment
+ */
+export const sendPaymentConfirmationEmail = action({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    amount: v.number(),
+    plan: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { sendPaymentConfirmationEmail: sendEmail } = await import("../src/lib/email")
+
+    try {
+      const result = await sendEmail(
+        args.email,
+        args.name,
+        args.amount,
+        args.plan
+      )
+
+      return {
+        success: true,
+        messageId: result.id,
+        message: "Payment confirmation email sent successfully",
+      }
+    } catch (error) {
+      console.error("Failed to send payment confirmation email:", error)
+
+      // Email is non-critical, don't fail the payment process
+      const errorMessage = (error as Error).message
+      if (errorMessage.includes('No email service configured') ||
+          errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
+          errorMessage.includes('SENDGRID_API_KEY')) {
+        console.warn("Email service not configured - payment processed but confirmation email not sent")
+        return {
+          success: false,
+          messageId: null,
+          message: "Payment confirmed, but confirmation email could not be sent (email service not configured)",
+        }
+      }
+
+      // Return failure but don't throw - email is non-critical
+      return {
+        success: false,
+        messageId: null,
+        message: "Email service error: " + errorMessage,
+      }
+    }
+  },
+})

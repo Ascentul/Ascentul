@@ -26,7 +26,8 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
     if (typeof body.category === 'string') updates.category = body.category
     if (typeof body.completed === 'boolean') updates.completed = body.completed
     if (body.completedAt) updates.completed_at = Date.parse(body.completedAt)
-    if (body.completedAt === null) updates.completed_at = null
+    // When completedAt is explicitly null, set to undefined so Convex clears the timestamp
+    if (body.completedAt === null) updates.completed_at = undefined
 
     const client = getClient()
     await client.mutation(api.goals.updateGoal, {

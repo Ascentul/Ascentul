@@ -762,3 +762,52 @@ The Ascentful Partnerships Team`
     html,
   })
 }
+
+/**
+ * Send payment confirmation email
+ */
+export async function sendPaymentConfirmationEmail(
+  email: string,
+  name: string,
+  amount: number,
+  plan: string
+) {
+  const formattedAmount = (amount / 100).toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  })
+
+  const subject = 'Payment Confirmed - Ascentful Premium'
+
+  const text = `Hi [NAME],
+
+Thank you for upgrading to Ascentful Premium!
+
+Payment Confirmation
+Plan: [PLAN]
+Amount: [AMOUNT]
+Date: [DATE]
+
+Your premium features are now active. You can now:
+- Create unlimited applications
+- Create unlimited career goals
+- Add unlimited network contacts
+- Generate unlimited career paths
+- Access to AI career coach
+
+You can manage your subscription at https://app.ascentful.io/account/subscription
+
+If you have any questions, contact us at support@ascentful.io
+
+Best regards,
+The Ascentful Team`.replace('[NAME]', name).replace('[PLAN]', plan).replace('[AMOUNT]', formattedAmount).replace('[DATE]', new Date().toLocaleDateString())
+
+  const html = '<div>Payment confirmation HTML</div>'
+
+  return sendEmail({
+    to: email,
+    subject,
+    text,
+    html,
+  })
+}

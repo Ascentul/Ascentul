@@ -119,6 +119,8 @@ export default function AdminUniversitiesPage() {
   // Grant university account state
   const [showGrantDialog, setShowGrantDialog] = useState(false)
   const [granting, setGranting] = useState(false)
+  const [grantError, setGrantError] = useState<string | null>(null)
+  const [grantSuccess, setGrantSuccess] = useState(false)
   const [grantForm, setGrantForm] = useState<{
     universityId: string
     userEmail: string
@@ -188,13 +190,15 @@ export default function AdminUniversitiesPage() {
   const submitGrantAccount = async () => {
     if (!grantForm.universityId || !grantForm.userEmail.trim()) return
     setGranting(true)
+    setGrantError(null)
+    setGrantSuccess(false)
     try {
       // Find user by email
       const users = usersResult?.page as any[]
       const user = users?.find(u => u.email.toLowerCase() === grantForm.userEmail.toLowerCase())
 
       if (!user) {
-        alert('User not found with that email address')
+        setGrantError('User not found with that email address')
         return
       }
 
@@ -205,20 +209,26 @@ export default function AdminUniversitiesPage() {
         sendInviteEmail: grantForm.sendInviteEmail
       })
 
-      // Reset form and close dialog
-      setGrantForm({
-        universityId: '',
-        userEmail: '',
-        makeAdmin: false,
-        sendInviteEmail: true
-      })
-      setShowGrantDialog(false)
+      // Show success message
+      setGrantSuccess(true)
+      setGrantError(null)
 
-      // Refresh the page to show updated data
-      window.location.reload()
+      // Reset form and close dialog after a short delay
+      setTimeout(() => {
+        setGrantForm({
+          universityId: '',
+          userEmail: '',
+          makeAdmin: false,
+          sendInviteEmail: true
+        })
+        setShowGrantDialog(false)
+        setGrantSuccess(false)
+      }, 1500)
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to grant university access. Please try again.'
       console.error('Error granting university account:', error)
-      alert('Error granting university account')
+      setGrantError(errorMessage)
+      setGrantSuccess(false)
     } finally {
       setGranting(false)
     }
@@ -568,46 +578,66 @@ export default function AdminUniversitiesPage() {
               Grant access to {universities.find(u => u._id === grantForm.universityId)?.name} for an existing user.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">User Email Address</label>
-              <Input
-                value={grantForm.userEmail}
-                onChange={e => setGrantForm({ ...grantForm, userEmail: e.target.value })}
-                placeholder="Enter user's email address"
-                type="email"
-              />
+          {grantSuccess ? (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-green-50 p-4 border border-green-200">
+                <p className="text-sm font-medium text-green-900">Access granted successfully!</p>
+                <p className="text-sm text-green-800 mt-1">
+                  {grantForm.sendInviteEmail ? 'Invitation email has been sent.' : 'No invitation email was sent.'}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="makeAdmin"
-                checked={grantForm.makeAdmin}
-                onChange={e => setGrantForm({ ...grantForm, makeAdmin: e.target.checked })}
-                className="rounded"
-              />
-              <label htmlFor="makeAdmin" className="text-sm font-medium">
-                Make this user a University Admin
-              </label>
+          ) : (
+            <div className="space-y-4">
+              {grantError && (
+                <div className="rounded-lg bg-red-50 p-4 border border-red-200">
+                  <p className="text-sm font-medium text-red-900">Error</p>
+                  <p className="text-sm text-red-800 mt-1">{grantError}</p>
+                </div>
+              )}
+              <div>
+                <label className="text-sm font-medium">User Email Address</label>
+                <Input
+                  value={grantForm.userEmail}
+                  onChange={e => setGrantForm({ ...grantForm, userEmail: e.target.value })}
+                  placeholder="Enter user's email address"
+                  type="email"
+                  disabled={granting}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="makeAdmin"
+                  checked={grantForm.makeAdmin}
+                  onChange={e => setGrantForm({ ...grantForm, makeAdmin: e.target.checked })}
+                  className="rounded"
+                  disabled={granting}
+                />
+                <label htmlFor="makeAdmin" className="text-sm font-medium">
+                  Make this user a University Admin
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="sendInviteEmail"
+                  checked={grantForm.sendInviteEmail}
+                  onChange={e => setGrantForm({ ...grantForm, sendInviteEmail: e.target.checked })}
+                  className="rounded"
+                  disabled={granting}
+                />
+                <label htmlFor="sendInviteEmail" className="text-sm font-medium">
+                  Send invite email
+                </label>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="sendInviteEmail"
-                checked={grantForm.sendInviteEmail}
-                onChange={e => setGrantForm({ ...grantForm, sendInviteEmail: e.target.checked })}
-                className="rounded"
-              />
-              <label htmlFor="sendInviteEmail" className="text-sm font-medium">
-                Send invite email
-              </label>
-            </div>
-          </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowGrantDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowGrantDialog(false)} disabled={granting}>Cancel</Button>
             <Button
               onClick={submitGrantAccount}
-              disabled={granting || !grantForm.userEmail.trim()}
+              disabled={granting || !grantForm.userEmail.trim() || grantSuccess}
             >
               {granting ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Granting...</>

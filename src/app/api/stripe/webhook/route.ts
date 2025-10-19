@@ -56,9 +56,12 @@ export async function POST(request: NextRequest) {
         // For payment links, pull email and customer directly from session
         const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id
         const email = session.customer_details?.email || (session.customer as any)?.email || undefined
+        const name = session.customer_details?.name || 'Valued Customer'
         const clerkIdFromRef = typeof session.client_reference_id === 'string' ? session.client_reference_id : undefined
         // If this created a subscription, session.mode may be 'subscription'
         const subscriptionId = typeof session.subscription === 'string' ? session.subscription : undefined
+        const amount = session.amount_total || 0
+
         if (convex && (email || customerId)) {
           await convex.mutation(api.users.updateSubscriptionByIdentifier, {
             clerkId: clerkIdFromRef,
@@ -69,6 +72,21 @@ export async function POST(request: NextRequest) {
             subscription_status: 'active',
             setStripeIds: true,
           })
+
+          // Send payment confirmation email
+          if (email && amount > 0) {
+            try {
+              await convex.action(api.email.sendPaymentConfirmationEmail, {
+                email,
+                name,
+                amount,
+                plan: 'Premium Monthly',
+              })
+            } catch (emailError) {
+              console.error('Failed to send payment confirmation email:', emailError)
+              // Don't fail the webhook if email fails
+            }
+          }
         }
         break
       }
