@@ -64,6 +64,7 @@ import {
   Plus,
   Trash2,
   Pencil,
+  Phone,
 } from "lucide-react";
 
 // Career Profile Form Schema

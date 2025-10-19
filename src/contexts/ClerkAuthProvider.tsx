@@ -24,6 +24,8 @@ interface UserProfile {
   job_title?: string
   company?: string
   location?: string
+  city?: string
+  phone_number?: string
   website?: string
   skills?: string
   current_position?: string

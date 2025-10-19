@@ -17,6 +17,8 @@ interface UserProfile {
   // Optional avatar fields used by UI components
   profileImage?: string | null
   profile_image?: string | null
+  city?: string
+  phone_number?: string
 }
 
 interface AuthContextType {

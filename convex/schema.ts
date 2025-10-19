@@ -38,6 +38,8 @@ export default defineSchema({
     job_title: v.optional(v.string()),
     company: v.optional(v.string()),
     location: v.optional(v.string()),
+    city: v.optional(v.string()),
+    phone_number: v.optional(v.string()),
     website: v.optional(v.string()),
     skills: v.optional(v.string()), // Comma-separated skills
     current_position: v.optional(v.string()),
