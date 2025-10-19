@@ -111,6 +111,15 @@ export default function NewResumePage() {
   }
 
   const importFromProfile = async () => {
+    if (userProfile === undefined) {
+      toast({
+        title: 'Loading...',
+        description: 'Please wait while we load your profile',
+        variant: 'default'
+      })
+      return
+    }
+
     if (!userProfile) {
       toast({
         title: 'Profile not found',
@@ -122,6 +131,14 @@ export default function NewResumePage() {
 
     setImporting(true)
     try {
+      // Debug logging
+      console.log('Importing from profile:', {
+        userProfile,
+        workHistory: userProfile.work_history,
+        educationHistory: userProfile.education_history,
+        projects: userProjects
+      })
+
       // Map work history to experience
       const experience = (userProfile.work_history || []).map((job: any) => ({
         title: job.role || '',
@@ -132,6 +149,8 @@ export default function NewResumePage() {
         current: job.is_current || false,
         description: job.summary || ''
       }))
+
+      console.log('Mapped experience:', experience)
 
       // Map education history to education
       const education = (userProfile.education_history || []).map((edu: any) => ({
@@ -180,9 +199,11 @@ export default function NewResumePage() {
         variant: 'success'
       })
     } catch (error) {
+      console.error('Import error:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Failed to import profile data'
       toast({
         title: 'Import Failed',
-        description: 'Failed to import profile data',
+        description: errorMsg,
         variant: 'destructive'
       })
     } finally {
@@ -205,7 +226,7 @@ export default function NewResumePage() {
           <Button
             variant="outline"
             onClick={importFromProfile}
-            disabled={importing || !userProfile}
+            disabled={importing || userProfile === null}
           >
             {importing ? (
               <>
