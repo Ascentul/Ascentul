@@ -214,7 +214,7 @@ export default function ProfilePage() {
   // Calculate profile completion based on the 5 main sections
   const calculateProfileCompletion = () => {
     const sections = [
-      !!(displayProfile?.bio && displayProfile?.career_goals), // Career Summary
+      !!displayProfile?.bio, // Career Summary
       !!displayProfile?.linkedin_url, // LinkedIn Profile
       !!(displayProfile?.current_position && displayProfile?.current_company), // Work History
       !!(displayProfile?.major && displayProfile?.university_name), // Education
@@ -249,6 +249,25 @@ export default function ProfilePage() {
       await updateUser({
         clerkId: clerkUser.id,
         updates,
+      });
+
+      // Update form with new data to refresh the display and completion percentage
+      // This ensures the completion percentage recalculates immediately after update
+      profileForm.reset({
+        bio: data.bio || displayProfile?.bio || "",
+        email: data.email || displayProfile?.email || "",
+        phone_number: data.phone_number || displayProfile?.phone_number || "",
+        city: data.city || displayProfile?.city || "",
+        linkedin_url: data.linkedin_url || displayProfile?.linkedin_url || "",
+        major: data.major || displayProfile?.major || "",
+        university_name: data.university_name || displayProfile?.university_name || "",
+        graduation_year: data.graduation_year || displayProfile?.graduation_year || "",
+        current_position: data.current_position || displayProfile?.current_position || "",
+        current_company: data.current_company || displayProfile?.current_company || "",
+        experience_level: data.experience_level || displayProfile?.experience_level || "",
+        industry: data.industry || displayProfile?.industry || "",
+        skills: data.skills || displayProfile?.skills || "",
+        career_goals: data.career_goals || displayProfile?.career_goals || "",
       });
 
       toast({
