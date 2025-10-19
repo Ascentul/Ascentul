@@ -573,6 +573,49 @@ export function ResumePreviewModal({
               </div>
             </div>
           )}
+
+          {/* Projects */}
+          {Array.isArray(content.projects) && content.projects.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Projects</h3>
+              <div className="space-y-4">
+                {content.projects.map((proj: any, idx: number) => (
+                  <div key={idx} className="border-l-2 border-green-500 pl-4">
+                    <h4 className="font-semibold">{proj.title}</h4>
+                    {proj.description && (
+                      <p className="text-sm mt-2 text-gray-700 whitespace-pre-line">{proj.description}</p>
+                    )}
+                    {proj.technologies && proj.technologies.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {proj.technologies.map((tech: string, techIdx: number) => (
+                          <span key={techIdx} className="bg-green-50 text-green-700 px-2 py-0.5 rounded text-xs">
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Achievements & Awards */}
+          {Array.isArray(content.achievements) && content.achievements.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Achievements & Awards</h3>
+              <div className="space-y-3">
+                {content.achievements.map((ach: any, idx: number) => (
+                  <div key={idx} className="border-l-2 border-purple-500 pl-4">
+                    <h4 className="font-semibold">{ach.title}</h4>
+                    {ach.description && (
+                      <p className="text-sm mt-1 text-gray-700">{ach.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

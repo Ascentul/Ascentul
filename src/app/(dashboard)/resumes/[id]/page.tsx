@@ -743,11 +743,13 @@ export default function ResumeEditorPage() {
         moveY(2)
       }
 
-      const fileName = `${(title || contactInfo.name || 'resume').replace(/\s+/g, '_')}.pdf`
+      const fileName = `${(title || contactInfo?.name || 'resume').replace(/\s+/g, '_')}.pdf`
       doc.save(fileName)
       toast({ title: 'Exported', description: 'PDF downloaded successfully.', variant: 'success' })
     } catch (e: any) {
-      toast({ title: 'Export failed', description: e?.message || 'Please try again', variant: 'destructive' })
+      console.error('PDF export error:', e)
+      const errorMsg = e?.message || 'An error occurred during PDF export. Please check your resume data and try again.'
+      toast({ title: 'Export failed', description: errorMsg, variant: 'destructive' })
     }
   }
 
