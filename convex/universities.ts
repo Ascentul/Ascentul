@@ -65,6 +65,7 @@ export const assignUniversityToUser = mutation({
     userClerkId: v.string(),
     universitySlug: v.string(),
     makeAdmin: v.optional(v.boolean()),
+    sendInviteEmail: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -79,12 +80,49 @@ export const assignUniversityToUser = mutation({
       .unique();
     if (!university) throw new Error("University not found");
 
+    // Determine new role if making admin
+    const newRole = args.makeAdmin ? "university_admin" as const : user.role;
+
     await ctx.db.patch(user._id, {
       university_id: university._id,
       subscription_plan: "university",
-      ...(args.makeAdmin ? { role: "university_admin" as const } : {}),
+      ...(args.makeAdmin ? { role: newRole } : {}),
       updated_at: Date.now(),
     });
+
+    // Send invite email if requested and user is pending activation
+    if (args.sendInviteEmail && user.account_status === "pending_activation" && user.activation_token) {
+      try {
+        const { api } = await import("./_generated/api");
+
+        // Determine which email template to use based on role
+        if (newRole === "university_admin") {
+          await ctx.scheduler.runAfter(0, api.email.sendUniversityAdminInvitationEmail, {
+            email: user.email,
+            name: user.name,
+            universityName: university.name,
+            activationToken: user.activation_token,
+          });
+        } else if (newRole === "advisor") {
+          await ctx.scheduler.runAfter(0, api.email.sendUniversityAdvisorInvitationEmail, {
+            email: user.email,
+            name: user.name,
+            universityName: university.name,
+            activationToken: user.activation_token,
+          });
+        } else if (newRole === "student") {
+          await ctx.scheduler.runAfter(0, api.email.sendUniversityStudentInvitationEmail, {
+            email: user.email,
+            name: user.name,
+            universityName: university.name,
+            activationToken: user.activation_token,
+          });
+        }
+      } catch (emailError) {
+        console.warn("Failed to schedule university invitation email:", emailError);
+        // Don't fail the assignment if email scheduling fails
+      }
+    }
 
     return user._id;
   }

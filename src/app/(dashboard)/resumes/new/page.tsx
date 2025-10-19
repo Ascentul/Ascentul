@@ -24,6 +24,11 @@ export default function NewResumePage() {
     clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
   )
 
+  const userProjects = useQuery(
+    api.projects.getUserProjects,
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+  )
+
   const [title, setTitle] = useState('My Resume')
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -39,11 +44,11 @@ export default function NewResumePage() {
       github: ''
     },
     summary: '',
-    skills: [],
-    experience: [],
-    education: [],
-    projects: [],
-    achievements: []
+    skills: [] as any[],
+    experience: [] as any[],
+    education: [] as any[],
+    projects: [] as any[],
+    achievements: [] as any[]
   })
 
   const createResumeMutation = useMutation(api.resumes.createResume)
@@ -117,7 +122,40 @@ export default function NewResumePage() {
 
     setImporting(true)
     try {
-      // Import personal info
+      // Map work history to experience
+      const experience = (userProfile.work_history || []).map((job: any) => ({
+        title: job.role || '',
+        company: job.company || '',
+        location: job.location || '',
+        startDate: job.start_date || '',
+        endDate: job.is_current ? 'Present' : (job.end_date || ''),
+        current: job.is_current || false,
+        description: job.summary || ''
+      }))
+
+      // Map education history to education
+      const education = (userProfile.education_history || []).map((edu: any) => ({
+        degree: edu.degree || '',
+        field: edu.field_of_study || '',
+        school: edu.school || '',
+        location: '',
+        startYear: edu.start_year || '',
+        endYear: edu.end_year || '',
+        graduationYear: edu.end_year || '',
+        gpa: '',
+        honors: ''
+      }))
+
+      // Map projects from projects table
+      const projects = (userProjects || []).map((proj: any) => ({
+        name: proj.title || '',
+        role: proj.role || '',
+        technologies: Array.isArray(proj.technologies) ? proj.technologies.join(', ') : '',
+        description: proj.description || '',
+        url: proj.url || proj.github_url || ''
+      }))
+
+      // Import all profile data
       setResumeContent(prev => ({
         ...prev,
         personalInfo: {
@@ -129,7 +167,11 @@ export default function NewResumePage() {
           github: userProfile.github_url || ''
         },
         summary: userProfile.bio || '',
-        skills: userProfile.skills ? userProfile.skills.split(',').map((s: string) => s.trim()) : []
+        skills: userProfile.skills ? userProfile.skills.split(',').map((s: string) => s.trim()) : [],
+        experience,
+        education,
+        projects,
+        achievements: [] // No data source for achievements yet
       }))
 
       toast({
@@ -319,7 +361,7 @@ export default function NewResumePage() {
               <Link href="/resumes?tab=generate-ai">
                 <Button variant="outline">Generate with AI</Button>
               </Link>
-              <Link href="/resumes?tab=upload-analyze">
+              <Link href="/resumes?tab=my-resumes&action=import">
                 <Button variant="outline">Upload Existing</Button>
               </Link>
             </div>

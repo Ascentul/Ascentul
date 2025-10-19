@@ -43,6 +43,7 @@ export const createUserByAdmin = mutation({
       v.literal("advisor"),
     )),
     university_id: v.optional(v.id("universities")),
+    sendActivationEmail: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     // Verify admin permissions
@@ -100,24 +101,64 @@ export const createUserByAdmin = mutation({
       updated_at: Date.now(),
     })
 
-    // Schedule email to be sent (don't fail if email service is not configured)
-    try {
-      await ctx.scheduler.runAfter(0, api.email.sendActivationEmail, {
-        email: args.email,
-        name: args.name,
-        tempPassword,
-        activationToken,
-      })
-    } catch (emailError) {
-      console.warn("Failed to schedule activation email:", emailError)
-      // Don't fail the user creation if email scheduling fails
+    // Schedule email to be sent if requested (default: true for backwards compatibility)
+    const shouldSendEmail = args.sendActivationEmail !== false
+    if (shouldSendEmail) {
+      try {
+        // Determine which email template to use based on university affiliation
+        if (args.university_id) {
+          // Get university details for the invitation email
+          const university = await ctx.db.get(args.university_id)
+          const universityName = university?.name || "University"
+
+          // Send university-specific invitation email based on role
+          const userRole = args.role || "user"
+
+          if (userRole === "university_admin") {
+            await ctx.scheduler.runAfter(0, api.email.sendUniversityAdminInvitationEmail, {
+              email: args.email,
+              name: args.name,
+              universityName,
+              activationToken,
+            })
+          } else if (userRole === "advisor") {
+            await ctx.scheduler.runAfter(0, api.email.sendUniversityAdvisorInvitationEmail, {
+              email: args.email,
+              name: args.name,
+              universityName,
+              activationToken,
+            })
+          } else {
+            // For students and other university users, send student invitation
+            await ctx.scheduler.runAfter(0, api.email.sendUniversityStudentInvitationEmail, {
+              email: args.email,
+              name: args.name,
+              universityName,
+              activationToken,
+            })
+          }
+        } else {
+          // Non-university users get the generic activation email
+          await ctx.scheduler.runAfter(0, api.email.sendActivationEmail, {
+            email: args.email,
+            name: args.name,
+            tempPassword,
+            activationToken,
+          })
+        }
+      } catch (emailError) {
+        console.warn("Failed to schedule activation email:", emailError)
+        // Don't fail the user creation if email scheduling fails
+      }
     }
 
     return {
       userId,
       activationToken,
       tempPassword, // Return for display to admin
-      message: "User created successfully. Activation email will be sent shortly.",
+      message: shouldSendEmail
+        ? "User created successfully. Activation email will be sent shortly."
+        : "User created successfully. No activation email sent.",
     }
   },
 })
@@ -260,17 +301,51 @@ export const regenerateActivationToken = mutation({
       updated_at: Date.now(),
     })
 
-    // Get app URL from environment
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'
-    const activationUrl = `${appUrl}/activate/${activationToken}`
-
     // Schedule email send (runs in background)
-    await ctx.scheduler.runAfter(0, api.email.sendActivationEmail, {
-      email: user.email,
-      name: user.name,
-      tempPassword,
-      activationToken,
-    })
+    // Use university-specific email template if user is affiliated with a university
+    try {
+      if (user.university_id) {
+        // Get university details for the invitation email
+        const university = await ctx.db.get(user.university_id)
+        const universityName = university?.name || "University"
+
+        // Send university-specific invitation email based on role
+        if (user.role === "university_admin") {
+          await ctx.scheduler.runAfter(0, api.email.sendUniversityAdminInvitationEmail, {
+            email: user.email,
+            name: user.name,
+            universityName,
+            activationToken,
+          })
+        } else if (user.role === "advisor") {
+          await ctx.scheduler.runAfter(0, api.email.sendUniversityAdvisorInvitationEmail, {
+            email: user.email,
+            name: user.name,
+            universityName,
+            activationToken,
+          })
+        } else {
+          // For students and other university users, send student invitation
+          await ctx.scheduler.runAfter(0, api.email.sendUniversityStudentInvitationEmail, {
+            email: user.email,
+            name: user.name,
+            universityName,
+            activationToken,
+          })
+        }
+      } else {
+        // Non-university users get the generic activation email
+        await ctx.scheduler.runAfter(0, api.email.sendActivationEmail, {
+          email: user.email,
+          name: user.name,
+          tempPassword,
+          activationToken,
+        })
+      }
+    } catch (emailError) {
+      console.warn("Failed to schedule activation email:", emailError)
+      throw new Error("Failed to send activation email: " + (emailError as Error).message)
+    }
 
     return {
       success: true,

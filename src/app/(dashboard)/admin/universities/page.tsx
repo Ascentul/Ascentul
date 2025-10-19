@@ -123,10 +123,12 @@ export default function AdminUniversitiesPage() {
     universityId: string
     userEmail: string
     makeAdmin: boolean
+    sendInviteEmail: boolean
   }>({
     universityId: '',
     userEmail: '',
-    makeAdmin: false
+    makeAdmin: false,
+    sendInviteEmail: true // Default ON for invite emails
   })
 
   const submitEdit = async () => {
@@ -199,14 +201,16 @@ export default function AdminUniversitiesPage() {
       await assignUniversityToUser({
         userClerkId: user.clerkId,
         universitySlug: universities.find(u => u._id === grantForm.universityId)?.slug || '',
-        makeAdmin: grantForm.makeAdmin
+        makeAdmin: grantForm.makeAdmin,
+        sendInviteEmail: grantForm.sendInviteEmail
       })
 
       // Reset form and close dialog
       setGrantForm({
         universityId: '',
         userEmail: '',
-        makeAdmin: false
+        makeAdmin: false,
+        sendInviteEmail: true
       })
       setShowGrantDialog(false)
 
@@ -584,6 +588,18 @@ export default function AdminUniversitiesPage() {
               />
               <label htmlFor="makeAdmin" className="text-sm font-medium">
                 Make this user a University Admin
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="sendInviteEmail"
+                checked={grantForm.sendInviteEmail}
+                onChange={e => setGrantForm({ ...grantForm, sendInviteEmail: e.target.checked })}
+                className="rounded"
+              />
+              <label htmlFor="sendInviteEmail" className="text-sm font-medium">
+                Send invite email
               </label>
             </div>
           </div>

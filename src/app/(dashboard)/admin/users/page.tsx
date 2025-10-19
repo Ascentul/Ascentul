@@ -86,7 +86,8 @@ export default function AdminUsersPage() {
     name: '',
     email: '',
     role: 'staff' as UserRow['role'],
-    plan: 'free' as UserRow['subscription_plan']
+    plan: 'free' as UserRow['subscription_plan'],
+    sendActivationEmail: true // Default ON for Staff/Super Admin
   })
   const [creatingUser, setCreatingUser] = useState(false)
 
@@ -95,16 +96,17 @@ export default function AdminUsersPage() {
 
     setCreatingUser(true)
     try {
-      // Use createUserByAdmin mutation which sends activation email
+      // Use createUserByAdmin mutation which conditionally sends activation email
       await createUserByAdmin({
         adminClerkId: clerkUser.id,
         email: newUserForm.email,
         name: newUserForm.name,
         role: newUserForm.role as "user" | "student" | "staff" | "university_admin" | "advisor",
+        sendActivationEmail: newUserForm.sendActivationEmail,
       })
 
       // Reset form
-      setNewUserForm({ name: '', email: '', role: 'staff', plan: 'free' })
+      setNewUserForm({ name: '', email: '', role: 'staff', plan: 'free', sendActivationEmail: true })
       setShowAddUser(false)
 
       // Refresh the page to show new user
@@ -410,7 +412,11 @@ export default function AdminUsersPage() {
             </div>
             <div>
               <label className="text-sm font-medium">Role</label>
-              <Select value={newUserForm.role} onValueChange={(v: any) => setNewUserForm({ ...newUserForm, role: v })}>
+              <Select value={newUserForm.role} onValueChange={(v: any) => {
+                // Update role and set default email checkbox based on role
+                const isUniversityRole = ['student', 'university_admin', 'advisor'].includes(v)
+                setNewUserForm({ ...newUserForm, role: v, sendActivationEmail: !isUniversityRole })
+              }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
@@ -420,6 +426,18 @@ export default function AdminUsersPage() {
                   <SelectItem value="advisor">Advisor</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="sendActivationEmail"
+                checked={newUserForm.sendActivationEmail}
+                onChange={e => setNewUserForm({ ...newUserForm, sendActivationEmail: e.target.checked })}
+                className="rounded"
+              />
+              <label htmlFor="sendActivationEmail" className="text-sm font-medium">
+                Send activation email now
+              </label>
             </div>
           </div>
           <DialogFooter>

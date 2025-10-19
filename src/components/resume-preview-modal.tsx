@@ -49,6 +49,7 @@ export function ResumePreviewModal({
   const exportPDF = () => {
     try {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
+      const selectedTemplate = 'modern' // Use modern template with color by default
       const margin = 15
       const pageWidth = doc.internal.pageSize.getWidth()
       const usableWidth = pageWidth - margin * 2
@@ -63,6 +64,17 @@ export function ResumePreviewModal({
         }
       }
 
+      // Apply template-specific styling for headers
+      const applyTemplateStyle = () => {
+        if (selectedTemplate === "modern") {
+          doc.setTextColor(12, 41, 171) // Primary blue
+        } else if (selectedTemplate === "classic") {
+          doc.setTextColor(0, 0, 0)
+        } else {
+          doc.setTextColor(60, 60, 60)
+        }
+      }
+
       // Header - Name and Contact
       const name = personalInfo.name || userName || 'Resume'
       const email = personalInfo.email || userEmail || ''
@@ -70,10 +82,13 @@ export function ResumePreviewModal({
       const location = personalInfo.location || ''
       const linkedin = personalInfo.linkedin || ''
       const github = personalInfo.github || ''
+      const website = personalInfo.website || ''
 
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(18)
+      doc.setFontSize(20)
+      applyTemplateStyle()
       doc.text(name, margin, y)
+      doc.setTextColor(0, 0, 0) // Reset to black for contact info
       moveY(7)
 
       doc.setFont('helvetica', 'normal')
@@ -84,13 +99,14 @@ export function ResumePreviewModal({
         moveY(5)
       }
 
-      const linkParts = [linkedin, github].filter(Boolean)
+      const linkParts = [linkedin, github, website].filter(Boolean)
       if (linkParts.length) {
         doc.text(linkParts.join(' | '), margin, y)
         moveY(5)
       }
 
       doc.setLineWidth(0.5)
+      doc.setDrawColor(12, 41, 171) // Blue divider line
       doc.line(margin, y, pageWidth - margin, y)
       moveY(6)
 
@@ -98,7 +114,9 @@ export function ResumePreviewModal({
       if (summary) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(12)
+        applyTemplateStyle()
         doc.text('PROFESSIONAL SUMMARY', margin, y)
+        doc.setTextColor(0, 0, 0)
         moveY(6)
 
         doc.setFont('helvetica', 'normal')
@@ -119,7 +137,9 @@ export function ResumePreviewModal({
       if (skills.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(12)
+        applyTemplateStyle()
         doc.text('SKILLS', margin, y)
+        doc.setTextColor(0, 0, 0)
         moveY(6)
 
         doc.setFont('helvetica', 'normal')
@@ -141,7 +161,9 @@ export function ResumePreviewModal({
       if (experience.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(12)
+        applyTemplateStyle()
         doc.text('EXPERIENCE', margin, y)
+        doc.setTextColor(0, 0, 0)
         moveY(6)
 
         experience.forEach((exp: any) => {
@@ -159,22 +181,119 @@ export function ResumePreviewModal({
           doc.setFont('helvetica', 'normal')
           doc.setFontSize(10)
           const company = exp.company || ''
-          const dates = [exp.startDate, exp.endDate].filter(Boolean).join(' - ')
-          const companyLine = [company, dates].filter(Boolean).join(' | ')
+          const location = exp.location || ''
+          const companyLine = [company, location].filter(Boolean).join(' • ')
           if (companyLine) {
             doc.text(companyLine, margin, y)
             moveY(5)
           }
 
+          const dates = exp.current ? `${exp.startDate} - Present` : `${exp.startDate} - ${exp.endDate}`
+          if (exp.startDate || exp.endDate) {
+            doc.text(dates, margin, y)
+            moveY(5)
+          }
+
           if (exp.description) {
-            const wrapped = doc.splitTextToSize(exp.description, usableWidth - 5) as string[]
-            wrapped.forEach((line) => {
-              if (y > pageHeight - margin) {
-                doc.addPage()
-                y = margin
+            // Split by newlines to preserve user's bullet structure
+            const lines = exp.description.split('\n').filter((line: string) => line.trim())
+
+            lines.forEach((line: string) => {
+              const trimmedLine = line.trim()
+
+              // Check if line starts with a bullet marker
+              const bulletMatch = trimmedLine.match(/^([•\-\*]|\d+[\.\)])\s*/)
+              const hasBullet = !!bulletMatch
+              const bulletText = hasBullet ? bulletMatch[0] : '• '
+              const textWithoutBullet = hasBullet ? trimmedLine.substring(bulletMatch[0].length) : trimmedLine
+
+              // Wrap the text (without bullet)
+              const wrappedLines = doc.splitTextToSize(textWithoutBullet, usableWidth - 8) as string[]
+
+              wrappedLines.forEach((wrappedLine, idx) => {
+                if (y > pageHeight - margin) { doc.addPage(); y = margin }
+
+                if (idx === 0) {
+                  // First line gets the bullet
+                  doc.text(`${bulletText}${wrappedLine}`, margin + 2, y)
+                } else {
+                  // Continuation lines are indented without bullet
+                  doc.text(wrappedLine, margin + 6, y)
+                }
+                y += 5
+              })
+            })
+          }
+          moveY(3)
+        })
+      }
+
+      // Projects
+      const projects: any[] = Array.isArray(content.projects) ? content.projects : []
+      if (projects.length > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(12)
+        applyTemplateStyle()
+        doc.text('PROJECTS', margin, y)
+        doc.setTextColor(0, 0, 0)
+        moveY(6)
+
+        projects.forEach((proj: any) => {
+          if (y > pageHeight - margin - 15) { doc.addPage(); y = margin }
+
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(11)
+          doc.text(proj.name || 'Project', margin, y)
+          moveY(5)
+
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(10)
+          if (proj.role) {
+            doc.text(proj.role, margin, y)
+            moveY(5)
+          }
+
+          if (proj.technologies) {
+            doc.text(`Technologies: ${proj.technologies}`, margin, y)
+            moveY(5)
+          }
+
+          if (proj.description) {
+            // Split by newlines to preserve user's structure
+            const lines = proj.description.split('\n').filter((line: string) => line.trim())
+
+            lines.forEach((line: string) => {
+              const trimmedLine = line.trim()
+
+              // Check if line starts with a bullet marker
+              const bulletMatch = trimmedLine.match(/^([•\-\*]|\d+[\.\)])\s*/)
+              const hasBullet = !!bulletMatch
+
+              if (hasBullet) {
+                // Has bullet - extract and preserve it
+                const bulletText = bulletMatch[0]
+                const textWithoutBullet = trimmedLine.substring(bulletMatch[0].length)
+                const wrappedLines = doc.splitTextToSize(textWithoutBullet, usableWidth - 8) as string[]
+
+                wrappedLines.forEach((wrappedLine, idx) => {
+                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
+
+                  if (idx === 0) {
+                    doc.text(`${bulletText}${wrappedLine}`, margin + 2, y)
+                  } else {
+                    doc.text(wrappedLine, margin + 6, y)
+                  }
+                  y += 5
+                })
+              } else {
+                // No bullet - just wrap the text normally
+                const wrappedLines = doc.splitTextToSize(trimmedLine, usableWidth - 5) as string[]
+                wrappedLines.forEach((wrappedLine) => {
+                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
+                  doc.text(wrappedLine, margin + 2, y)
+                  y += 5
+                })
               }
-              doc.text(`• ${line}`, margin + 2, y)
-              y += 5
             })
           }
           moveY(3)
@@ -185,7 +304,9 @@ export function ResumePreviewModal({
       if (education.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(12)
+        applyTemplateStyle()
         doc.text('EDUCATION', margin, y)
+        doc.setTextColor(0, 0, 0)
         moveY(6)
 
         education.forEach((edu: any) => {
@@ -196,19 +317,93 @@ export function ResumePreviewModal({
 
           doc.setFont('helvetica', 'bold')
           doc.setFontSize(11)
-          const degree = edu.degree || 'Degree'
-          doc.text(degree, margin, y)
+          const degreeText = [edu.degree, edu.field].filter(Boolean).join(' in ')
+          doc.text(degreeText || 'Degree', margin, y)
           moveY(5)
 
           doc.setFont('helvetica', 'normal')
           doc.setFontSize(10)
           const school = edu.school || ''
-          const gradYear = edu.graduationYear || ''
-          const eduLine = [school, gradYear].filter(Boolean).join(' | ')
-          if (eduLine) {
-            doc.text(eduLine, margin, y)
+          const location = edu.location || ''
+          const schoolLine = [school, location].filter(Boolean).join(' • ')
+          if (schoolLine) {
+            doc.text(schoolLine, margin, y)
             moveY(5)
           }
+
+          const eduMeta = [
+            edu.startYear && edu.endYear ? `${edu.startYear} - ${edu.endYear}` : edu.graduationYear ? `Class of ${edu.graduationYear}` : edu.endYear,
+            edu.gpa ? `GPA: ${edu.gpa}` : null,
+            edu.honors
+          ].filter(Boolean).join(' • ')
+
+          if (eduMeta) {
+            doc.text(eduMeta, margin, y)
+            moveY(5)
+          }
+          moveY(2)
+        })
+      }
+
+      // Achievements
+      const achievements: any[] = Array.isArray(content.achievements) ? content.achievements : []
+      if (achievements.length > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(12)
+        applyTemplateStyle()
+        doc.text('ACHIEVEMENTS', margin, y)
+        doc.setTextColor(0, 0, 0)
+        moveY(6)
+
+        achievements.forEach((ach: any) => {
+          if (y > pageHeight - margin - 10) { doc.addPage(); y = margin }
+
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(10)
+          const achTitle = (ach.title || ach.name || 'Achievement') + (ach.date ? ` (${ach.date})` : '')
+          doc.text(achTitle, margin, y)
+          moveY(5)
+
+          if (ach.description) {
+            doc.setFont('helvetica', 'normal')
+            // Split by newlines to preserve user's structure
+            const lines = ach.description.split('\n').filter((line: string) => line.trim())
+
+            lines.forEach((line: string) => {
+              const trimmedLine = line.trim()
+
+              // Check if line starts with a bullet marker
+              const bulletMatch = trimmedLine.match(/^([•\-\*]|\d+[\.\)])\s*/)
+              const hasBullet = !!bulletMatch
+
+              if (hasBullet) {
+                // Has bullet - extract and preserve it
+                const bulletText = bulletMatch[0]
+                const textWithoutBullet = trimmedLine.substring(bulletMatch[0].length)
+                const wrappedLines = doc.splitTextToSize(textWithoutBullet, usableWidth - 8) as string[]
+
+                wrappedLines.forEach((wrappedLine, idx) => {
+                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
+
+                  if (idx === 0) {
+                    doc.text(`${bulletText}${wrappedLine}`, margin + 2, y)
+                  } else {
+                    doc.text(wrappedLine, margin + 6, y)
+                  }
+                  y += 5
+                })
+              } else {
+                // No bullet - just wrap the text normally
+                const wrappedLines = doc.splitTextToSize(trimmedLine, usableWidth - 5) as string[]
+                wrappedLines.forEach((wrappedLine) => {
+                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
+                  doc.text(wrappedLine, margin + 2, y)
+                  y += 5
+                })
+              }
+            })
+          }
+          moveY(2)
         })
       }
 
@@ -218,7 +413,9 @@ export function ResumePreviewModal({
         if (y > pageHeight - margin - 20) { doc.addPage(); y = margin }
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(12)
+        applyTemplateStyle()
         doc.text('Additional Content (from uploaded resume)', margin, y)
+        doc.setTextColor(0, 0, 0)
         moveY(6)
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(10)
@@ -299,6 +496,13 @@ export function ResumePreviewModal({
                 <div className="text-blue-600 hover:underline">
                   <a href={personalInfo.github} target="_blank" rel="noopener noreferrer">
                     GitHub
+                  </a>
+                </div>
+              )}
+              {personalInfo.website && (
+                <div className="text-blue-600 hover:underline">
+                  <a href={personalInfo.website} target="_blank" rel="noopener noreferrer">
+                    Website
                   </a>
                 </div>
               )}

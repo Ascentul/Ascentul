@@ -211,3 +211,125 @@ The Ascentul Team`
     }
   },
 })
+
+/**
+ * Send university invitation email to student
+ */
+export const sendUniversityStudentInvitationEmail = action({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    universityName: v.string(),
+    activationToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { sendUniversityInvitationEmail: sendEmail } = await import("../src/lib/email")
+
+    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`
+
+    try {
+      // sendUniversityInvitationEmail expects (email, universityName, inviteLink)
+      const result = await sendEmail(
+        args.email,
+        args.universityName,
+        activationUrl
+      )
+
+      return {
+        success: true,
+        messageId: result.id,
+        message: "University student invitation email sent successfully",
+      }
+    } catch (error) {
+      console.error("Failed to send university student invitation email:", error)
+      return {
+        success: false,
+        messageId: null,
+        message: "Email service not configured: " + (error as Error).message,
+      }
+    }
+  },
+})
+
+/**
+ * Send university invitation email to advisor
+ */
+export const sendUniversityAdvisorInvitationEmail = action({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    universityName: v.string(),
+    activationToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { sendUniversityAdvisorInvitationEmail: sendEmail } = await import("../src/lib/email")
+
+    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`
+
+    try {
+      // sendUniversityAdvisorInvitationEmail expects (email, firstName, universityAdminName, role, inviteLink)
+      const firstName = args.name.split(' ')[0] || args.name
+      const result = await sendEmail(
+        args.email,
+        firstName,
+        'University Admin',
+        'Advisor',
+        activationUrl
+      )
+
+      return {
+        success: true,
+        messageId: result.id,
+        message: "University advisor invitation email sent successfully",
+      }
+    } catch (error) {
+      console.error("Failed to send university advisor invitation email:", error)
+      return {
+        success: false,
+        messageId: null,
+        message: "Email service not configured: " + (error as Error).message,
+      }
+    }
+  },
+})
+
+/**
+ * Send university admin invitation email (from super admin)
+ */
+export const sendUniversityAdminInvitationEmail = action({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    universityName: v.string(),
+    activationToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { sendSuperAdminUniversityInvitationEmail: sendEmail } = await import("../src/lib/email")
+
+    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`
+
+    try {
+      // sendSuperAdminUniversityInvitationEmail expects (email, firstName, universityName, inviteLink)
+      const firstName = args.name.split(' ')[0] || args.name
+      const result = await sendEmail(
+        args.email,
+        firstName,
+        args.universityName,
+        activationUrl
+      )
+
+      return {
+        success: true,
+        messageId: result.id,
+        message: "University admin invitation email sent successfully",
+      }
+    } catch (error) {
+      console.error("Failed to send university admin invitation email:", error)
+      return {
+        success: false,
+        messageId: null,
+        message: "Email service not configured: " + (error as Error).message,
+      }
+    }
+  },
+})

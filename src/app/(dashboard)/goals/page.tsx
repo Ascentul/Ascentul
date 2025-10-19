@@ -99,16 +99,16 @@ export default function Goals() {
   const handleReopenGoal = (goalId: string | number) => {
     const goal = goals.find((g: any) => g.id === goalId)
     if (goal) {
-      apiRequest('PUT', `/api/goals/${goalId}`, { 
-        ...goal, 
-        status: 'active', 
-        completed: false, 
-        completedAt: null 
+      // Only send the specific fields needed for updating
+      apiRequest('PUT', `/api/goals/${goalId}`, {
+        status: 'active',
+        completed: false,
+        completedAt: null
       })
       .then(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/goals'] })
         queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] })
-        
+
         toast({
           title: "Goal Reopened",
           description: "The goal has been moved back to active goals.",
@@ -117,7 +117,7 @@ export default function Goals() {
       })
       .catch((error) => {
         console.error('Error reopening goal:', error)
-        
+
         toast({
           title: "Error",
           description: "Failed to reopen goal. Please try again.",

@@ -103,21 +103,45 @@ export default function UniversityInviteStudentsPage() {
 
     setLoading(true)
     try {
-      const emails = inviteForm.emails.split('\n').filter(email => email.trim())
+      const emails = inviteForm.emails.split('\n')
+        .map(e => e.trim())
+        .filter(e => e && e.includes('@'))
 
-      // For now, just show a message that invitations would be sent
-      // In a real implementation, you would call an API to send invitation emails
-      toast({
-        title: 'Feature Coming Soon',
-        description: `Invitation system for ${emails.length} students will be implemented`,
-        variant: 'default'
+      if (emails.length === 0) {
+        toast({
+          title: 'Error',
+          description: 'Please enter at least one valid email address',
+          variant: 'destructive'
+        })
+        setLoading(false)
+        return
+      }
+
+      // Call the API endpoint to send invitation emails
+      const response = await fetch('/api/university/send-invitations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emails }),
       })
+
+      if (!response.ok) {
+        throw new Error('Failed to send invitations')
+      }
+
+      const result = await response.json()
+
+      toast({
+        title: 'Invitations Sent',
+        description: `Successfully sent ${result.successful} invitation${result.successful !== 1 ? 's' : ''}${result.failed > 0 ? `, ${result.failed} failed` : ''}`,
+        variant: 'success'
+      })
+
       setInviteModalOpen(false)
       setInviteForm({ emails: '', departmentId: 'none', customMessage: '' })
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to process invitations',
+        description: error.message || 'Failed to send invitations',
         variant: 'destructive'
       })
     } finally {

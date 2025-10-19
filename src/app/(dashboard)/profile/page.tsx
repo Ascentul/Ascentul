@@ -69,6 +69,13 @@ import {
 // Career Profile Form Schema
 const careerProfileSchema = z.object({
   bio: z.string().max(500, "Bio must be 500 characters or less").optional(),
+  email: z
+    .string()
+    .email("Please enter a valid email")
+    .optional()
+    .or(z.literal("")),
+  phone_number: z.string().optional(),
+  city: z.string().optional(),
   linkedin_url: z
     .string()
     .url("Please enter a valid LinkedIn URL")
@@ -165,6 +172,9 @@ export default function ProfilePage() {
     resolver: zodResolver(careerProfileSchema),
     defaultValues: {
       bio: displayProfile?.bio || "",
+      email: displayProfile?.email || "",
+      phone_number: displayProfile?.phone_number || "",
+      city: displayProfile?.city || "",
       linkedin_url: displayProfile?.linkedin_url || "",
       major: displayProfile?.major || "",
       university_name: displayProfile?.university_name || "",
@@ -183,6 +193,9 @@ export default function ProfilePage() {
     if (displayProfile && isEditingProfile) {
       profileForm.reset({
         bio: displayProfile.bio || "",
+        email: displayProfile.email || "",
+        phone_number: displayProfile.phone_number || "",
+        city: displayProfile.city || "",
         linkedin_url: displayProfile.linkedin_url || "",
         major: displayProfile.major || "",
         university_name: displayProfile.university_name || "",
@@ -219,6 +232,9 @@ export default function ProfilePage() {
         clerkId: clerkUser.id,
         updates: {
           bio: data.bio || "",
+          email: data.email || "",
+          phone_number: data.phone_number || "",
+          city: data.city || "",
           linkedin_url: data.linkedin_url || "",
           major: data.major || "",
           university_name: data.university_name || "",
@@ -602,10 +618,10 @@ export default function ProfilePage() {
                     {displayProfile.current_company &&
                       ` at ${displayProfile.current_company}`}
                   </p>
-                  {displayProfile.location && (
+                  {displayProfile.city && (
                     <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
-                      {displayProfile.location}
+                      {displayProfile.city}
                     </p>
                   )}
                 </div>
@@ -618,7 +634,23 @@ export default function ProfilePage() {
               </div>
 
               {/* Quick Links */}
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-3 mt-4 flex-wrap">
+                {displayProfile.email && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`mailto:${displayProfile.email}`}>
+                      <Mail className="h-4 w-4 mr-2" />
+                      {displayProfile.email}
+                    </a>
+                  </Button>
+                )}
+                {displayProfile.phone_number && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`tel:${displayProfile.phone_number}`}>
+                      <Phone className="h-4 w-4 mr-2" />
+                      {displayProfile.phone_number}
+                    </a>
+                  </Button>
+                )}
                 {displayProfile.linkedin_url && (
                   <Button variant="outline" size="sm" asChild>
                     <a
@@ -640,14 +672,6 @@ export default function ProfilePage() {
                     >
                       <Globe className="h-4 w-4 mr-2" />
                       Website
-                    </a>
-                  </Button>
-                )}
-                {displayProfile.email && (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`mailto:${displayProfile.email}`}>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Email
                     </a>
                   </Button>
                 )}
@@ -983,22 +1007,79 @@ export default function ProfilePage() {
                 )}
               />
 
-              <FormField
-                control={profileForm.control}
-                name="linkedin_url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>LinkedIn Profile URL</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="https://linkedin.com/in/yourprofile"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={profileForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="your@email.com"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={profileForm.control}
+                  name="phone_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="tel"
+                          placeholder="(555) 123-4567"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={profileForm.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="San Francisco, CA"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={profileForm.control}
+                  name="linkedin_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>LinkedIn Profile URL</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="https://linkedin.com/in/yourprofile"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField

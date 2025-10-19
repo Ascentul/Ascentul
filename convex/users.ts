@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 
 // Get user by Clerk ID
 export const getUserByClerkId = query({
@@ -154,6 +155,20 @@ export const createUser = mutation({
       created_at: Date.now(),
       updated_at: Date.now(),
     });
+
+    // Send welcome email to new self-registered users
+    // Only send if not created by admin and is a regular user
+    if (!args.role || args.role === "user") {
+      try {
+        await ctx.scheduler.runAfter(0, api.email.sendWelcomeEmail, {
+          email: args.email,
+          name: args.name,
+        })
+      } catch (emailError) {
+        console.warn("Failed to schedule welcome email:", emailError)
+        // Don't fail user creation if email scheduling fails
+      }
+    }
 
     return userId;
   },

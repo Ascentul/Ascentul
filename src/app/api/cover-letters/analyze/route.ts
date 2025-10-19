@@ -106,19 +106,33 @@ const extractClosing = (
   letterBody: string,
   profileName?: string,
 ): { body: string; closing: string } => {
+  // Match closing signature at the end of the letter
   const match = letterBody.match(
-    /(\n\n|^)((?:Sincerely|Best regards?|Regards|Thank you|Respectfully)[\s\S]*)$/i,
+    /\n\n((?:Sincerely|Best regards?|Regards|Thank you|Respectfully)[,\s]*(?:\n[^\n]*)*)\s*$/i,
   );
+
   if (!match) {
+    // No closing found - only add one if we have a profile name and the letter doesn't already end with name/signature
+    const endsWithSignature = /\n\n[A-Z][a-z]+(?: [A-Z][a-z]+)*\s*$/.test(letterBody);
+    if (endsWithSignature) {
+      // Letter already has a name at the end, don't add another closing
+      return { body: letterBody.trim(), closing: '' };
+    }
     return {
       body: letterBody.trim(),
-      closing: `Sincerely,\n${profileName || "Your Name"}`,
+      closing: profileName ? `Sincerely,\n${profileName}` : '',
     };
   }
 
-  const closing = match[2].trim();
+  const closing = match[1].trim();
   const body = letterBody.slice(0, match.index).trim();
-  return { body, closing: closing || `Sincerely,\n${profileName || "Your Name"}` };
+
+  // If the extracted closing already has the profile name or looks complete, use it as-is
+  // Otherwise, only add name if we have profileName AND the closing doesn't already have a name
+  const hasName = /\n[A-Z][a-z]+(?: [A-Z][a-z]+)*\s*$/.test(closing);
+  const finalClosing = hasName || !profileName ? closing : `${closing}\n${profileName}`;
+
+  return { body, closing: finalClosing };
 };
 
 const buildOptimizedFallbackLetter = ({
@@ -173,28 +187,8 @@ const buildOptimizedFallbackLetter = ({
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
 
-  const highlights = extractHighlights(jobDescription);
-  const alignmentParagraph = (() => {
-    if (highlights.length) {
-      return `To make this draft actionable, I spell out how my recent wins address your focus on ${formatList(
-        highlights,
-      )}.`;
-    }
-    if (roleTitle || companyName) {
-      return `I tailored this revision specifically to ${
-        roleTitle ? `the ${roleTitle} role` : "the role"
-      }${companyName ? ` at ${companyName}` : ""}, making sure every example connects back to the priorities in your description.`;
-    }
-    return "";
-  })();
-
-  const introParagraph = paragraphs.shift();
-  const reorderedParagraphs = [
-    alignmentParagraph || introParagraph || "",
-    ...(alignmentParagraph && introParagraph
-      ? [introParagraph, ...paragraphs]
-      : paragraphs),
-  ].filter(Boolean);
+  // Simply reorder paragraphs without adding meta-commentary
+  const reorderedParagraphs = paragraphs.filter(Boolean);
 
   return [greeting, "", reorderedParagraphs.join("\n\n"), "", closing]
     .filter((section) => normalizeText(section).length > 0)

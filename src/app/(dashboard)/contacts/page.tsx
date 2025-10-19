@@ -257,6 +257,31 @@ export default function ContactsPage() {
           notes: form.notes || undefined,
         },
       });
+
+      // Build the updated contact object for local state update
+      const updatedContact: Contact = {
+        ...editingContact,
+        name: form.full_name,
+        company: form.company || undefined,
+        position: form.position || undefined,
+        email: form.email || undefined,
+        phone: form.phone || undefined,
+        linkedin_url: form.linkedin_url || undefined,
+        relationship: form.relationship || undefined,
+        notes: form.notes || undefined,
+        updated_at: Date.now(),
+      };
+
+      // Update the detail view if it's showing this contact
+      if (detailContact && detailContact._id === editingContact._id) {
+        setDetailContact(updatedContact);
+        setDetailNotes(form.notes || "");
+      }
+
+      // Close the edit dialog
+      setShowAdd(false);
+
+      // Clear editing state
       setEditingContact(null);
       setForm({
         full_name: "",
@@ -268,6 +293,7 @@ export default function ContactsPage() {
         relationship: "",
         notes: "",
       });
+
       toast({
         title: "Contact updated",
         description: "Your contact has been updated successfully.",
@@ -792,7 +818,12 @@ export default function ContactsPage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => detailContact && startEdit(detailContact)}
+                onClick={() => {
+                  if (detailContact) {
+                    // Use the current detailContact state which includes any unsaved note changes
+                    startEdit(detailContact);
+                  }
+                }}
               >
                 <Pencil className="h-3 w-3 mr-1" /> Edit
               </Button>
