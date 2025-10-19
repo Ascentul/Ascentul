@@ -304,6 +304,12 @@ const Sidebar = React.memo(function Sidebar({
         icon: <BarChart className="h-5 w-5" />,
         href: "/university/analytics",
       },
+      {
+        id: "university-support",
+        title: "Support",
+        icon: <HelpCircle className="h-5 w-5" />,
+        href: "/support",
+      },
     ],
     [],
   );
