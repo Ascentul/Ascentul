@@ -38,7 +38,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UpgradeModal } from "@/components/modals/UpgradeModal";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -234,6 +236,9 @@ function CertificationCard({
 
 export default function CareerPathPage() {
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
+  const isFreeUser = authUser?.subscription_plan === "free";
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [explorationMode, setExplorationMode] = useState<
     "target" | "profile" | "saved"
   >(() => {
@@ -505,6 +510,12 @@ export default function CareerPathPage() {
   };
 
   const generateFromProfile = async () => {
+    // Check free user limit (1 generated path max)
+    if (isFreeUser && generatedPath) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     try {
       setIsSearching(true);
       const res = await apiRequest("POST", "/api/career-paths/generate", {
@@ -1318,6 +1329,13 @@ export default function CareerPathPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Upgrade Modal for Free User Limits */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="careerPath"
+      />
     </div>
   );
 }

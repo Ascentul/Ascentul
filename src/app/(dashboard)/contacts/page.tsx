@@ -59,7 +59,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { UpgradeModal } from "@/components/modals/UpgradeModal";
 import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import {
@@ -110,7 +112,9 @@ interface Interaction {
 
 export default function ContactsPage() {
   const { user: clerkUser } = useUser();
+  const { user: authUser } = useAuth();
   const { toast } = useToast();
+  const isFreeUser = authUser?.subscription_plan === "free";
 
   const contactsData = useQuery(
     api.contacts.getUserContacts,
@@ -137,6 +141,7 @@ export default function ContactsPage() {
 
   const [creating, setCreating] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [form, setForm] = useState({
     full_name: "",
@@ -193,6 +198,13 @@ export default function ContactsPage() {
 
   const createContact = async () => {
     if (!form.full_name.trim()) return;
+
+    // Check free user limit (1 contact max)
+    if (isFreeUser && contactsData && contactsData.length >= 1) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     setCreating(true);
     try {
       if (!clerkUser?.id) return;
@@ -563,6 +575,11 @@ export default function ContactsPage() {
           </div>
           <Button
             onClick={() => {
+              // Check free user limit (1 contact max)
+              if (isFreeUser && contactsData && contactsData.length >= 1) {
+                setShowUpgradeModal(true);
+                return;
+              }
               setEditingContact(null);
               setShowAdd(true);
               setForm({
@@ -1603,6 +1620,13 @@ export default function ContactsPage() {
           )}
         </>
       )}
+
+      {/* Upgrade Modal for Free User Limits */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="contact"
+      />
     </div>
   );
 }
