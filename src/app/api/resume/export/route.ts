@@ -4,6 +4,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../../../convex/_generated/api';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { chromium } from 'playwright';
+import { generatePDFFileName } from '@/lib/pdf/fileName';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,13 +14,14 @@ interface ExportResumeRequest {
   resumeId: Id<"builder_resumes">;
   format: 'pdf';
   templateSlug?: string;
+  clickableLinks?: boolean; // Phase 8: Optional toggle for contact link hyperlinks
 }
 
 /**
  * Generate HTML for resume rendering
  * This creates a complete HTML document with styling that matches the resume builder
  */
-function generateResumeHTML(resume: any, blocks: any[], template: any, theme: any): string {
+function generateResumeHTML(resume: any, blocks: any[], template: any, theme: any, clickableLinks = false): string {
   const pageSize = template?.pageSize || 'Letter';
   const margins = template?.margins || { top: 72, right: 72, bottom: 72, left: 72 };
 
@@ -46,7 +48,7 @@ function generateResumeHTML(resume: any, blocks: any[], template: any, theme: an
   // Generate block HTML
   const blocksHTML = blocks
     .sort((a, b) => a.order - b.order)
-    .map(block => renderBlock(block, { primaryColor, textColor, accentColor, headingFont, bodyFont, headingSize, bodySize }))
+    .map(block => renderBlock(block, { primaryColor, textColor, accentColor, headingFont, bodyFont, headingSize, bodySize }, clickableLinks))
     .join('\n');
 
   return `<!DOCTYPE html>
@@ -209,21 +211,50 @@ function generateResumeHTML(resume: any, blocks: any[], template: any, theme: an
 /**
  * Render individual block to HTML
  */
-function renderBlock(block: any, styles: any): string {
+function renderBlock(block: any, styles: any, clickableLinks = false): string {
   const { type, data } = block;
+  const debugEnabled = process.env.NEXT_PUBLIC_DEBUG_UI === 'true';
 
   switch (type) {
     case 'header':
+      // Phase 8: Contact validation and optional clickable links
+      const email = data.contact?.email || '';
+      const phone = data.contact?.phone || '';
+      const location = data.contact?.location || '';
+
+      // Build contact line with validation
+      const contactParts: string[] = [];
+      if (email) {
+        contactParts.push(clickableLinks
+          ? `<a href="mailto:${escapeHTML(email)}">${escapeHTML(email)}</a>`
+          : escapeHTML(email));
+      }
+      if (phone) {
+        contactParts.push(clickableLinks
+          ? `<a href="tel:${escapeHTML(phone.replace(/\s/g, ''))}">${escapeHTML(phone)}</a>`
+          : escapeHTML(phone));
+      }
+      if (location) {
+        contactParts.push(escapeHTML(location));
+      }
+
+      // Debug warning for missing contact fields
+      if (debugEnabled && (!email || !phone)) {
+        console.warn(`[PDF Export] Header block missing contact fields: email=${!!email}, phone=${!!phone}`);
+      }
+
       return `<div class="resume-block header-block">
         <div class="header-name">${escapeHTML(data.fullName || '')}</div>
         ${data.title ? `<div class="header-title">${escapeHTML(data.title)}</div>` : ''}
         <div class="header-contact">
-          ${[data.contact?.email, data.contact?.phone, data.contact?.location].filter(Boolean).join(' • ')}
+          ${contactParts.length > 0 ? contactParts.join(' • ') : ''}
         </div>
         ${data.contact?.links && data.contact.links.length > 0 ? `
           <div class="header-links">
             ${data.contact.links.map((link: any) =>
-              `<a href="${escapeHTML(link.url)}">${escapeHTML(link.label)}</a>`
+              clickableLinks
+                ? `<a href="${escapeHTML(link.url)}">${escapeHTML(link.label)}</a>`
+                : escapeHTML(link.label)
             ).join(' • ')}
           </div>
         ` : ''}
@@ -338,6 +369,7 @@ function escapeHTML(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
+
 /**
  * Export resume to PDF using Playwright
  */
@@ -349,7 +381,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body: ExportResumeRequest = await req.json();
-    const { resumeId, format } = body;
+    const { resumeId, format, clickableLinks = false } = body;
 
     if (!resumeId || !format) {
       return NextResponse.json(
@@ -399,8 +431,13 @@ export async function POST(req: NextRequest) {
       clerkId: userId,
     });
 
-    // Generate HTML
-    const html = generateResumeHTML(resumeData, blocks, template, theme);
+    // Phase 8: Extract full name from header block for file naming
+    const headerBlock = blocks.find((b: any) => b.type === 'header');
+    const fullName = headerBlock?.data?.fullName || resumeData.title || 'Resume';
+    const templateSlug = resumeData.templateSlug || 'template';
+
+    // Generate HTML with clickable links option
+    const html = generateResumeHTML(resumeData, blocks, template, theme, clickableLinks);
 
     // Launch Playwright browser
     const browser = await chromium.launch({
@@ -447,18 +484,27 @@ export async function POST(req: NextRequest) {
         storageId,
       });
 
+      // Phase 8: Generate file name in format FullName-Template-YYYYMMDD.pdf
+      const fileName = generatePDFFileName(fullName, templateSlug);
+
       return NextResponse.json({
         success: true,
         exportId: exportRecord.id,
         url: exportRecord.url,
         format: 'pdf',
+        fileName, // Phase 8: Include generated file name
         message: 'Resume exported to PDF successfully',
       });
     } finally {
       await browser.close();
     }
   } catch (error: any) {
-    console.error('Resume export error:', error);
+    // Phase 8: Gate debug logging behind DEBUG_UI flag
+    const debugEnabled = process.env.NEXT_PUBLIC_DEBUG_UI === 'true';
+    if (debugEnabled) {
+      console.error('[PDF Export] Error:', error);
+    }
+
     return NextResponse.json(
       { error: error.message || 'Failed to export resume' },
       { status: 500 }

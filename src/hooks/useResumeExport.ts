@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Id } from '../../convex/_generated/dataModel';
+import { logEvent } from '@/lib/telemetry';
 
 interface ExportState {
   isExporting: boolean;
@@ -12,6 +13,7 @@ interface ExportState {
 interface ExportOptions {
   resumeId: Id<'builder_resumes'>;
   format: 'pdf';
+  clickableLinks?: boolean; // Phase 8: Optional toggle for contact link hyperlinks
   onSuccess?: (url: string) => void;
   onError?: (error: string) => void;
 }
@@ -30,7 +32,7 @@ export function useResumeExport() {
   });
 
   const exportResume = async (options: ExportOptions) => {
-    const { resumeId, format, onSuccess, onError } = options;
+    const { resumeId, format, clickableLinks = false, onSuccess, onError } = options;
 
     // Reset state
     setState({
@@ -40,6 +42,8 @@ export function useResumeExport() {
       error: null,
       exportId: null,
     });
+
+    logEvent('export_started', { format, resumeId });
 
     try {
       // Call export API
@@ -51,6 +55,7 @@ export function useResumeExport() {
         body: JSON.stringify({
           resumeId,
           format,
+          clickableLinks, // Phase 8: Pass clickable links option
         }),
       });
 
@@ -76,9 +81,13 @@ export function useResumeExport() {
           exportId: data.exportId,
         });
 
-        // Trigger automatic download
-        triggerDownload(data.url, `resume.${format}`);
+        // Phase 8: Use fileName from API response if available
+        const fileName = data.fileName || `resume.${format}`;
 
+        // Trigger automatic download
+        triggerDownload(data.url, fileName);
+
+        logEvent('export_succeeded', { format, url: data.url, exportId: data.exportId });
         onSuccess?.(data.url);
       } else {
         throw new Error('Export failed: No URL returned');
@@ -94,6 +103,7 @@ export function useResumeExport() {
         exportId: null,
       });
 
+      logEvent('export_failed', { format, error: errorMessage });
       onError?.(errorMessage);
     }
   };

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
-import { Copy, Download, ExternalLink, FileText, Trash2 } from "lucide-react";
+import { Copy, Download, ExternalLink, FileText, Trash2, Edit2, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getCachedThumbnail } from "@/lib/thumbnail/cache";
 import { getTemplateDefinitionBySlug } from "@/lib/templates";
@@ -23,6 +23,7 @@ export interface RecordCardProps {
   onDuplicate: (resumeId: string) => Promise<void> | void;
   onExport: (resumeId: string) => Promise<void> | void;
   onDelete: (resumeId: string) => Promise<void> | void;
+  onRename?: (resumeId: string, newTitle: string) => Promise<void> | void; // Phase 8: Inline rename
   busyAction?: "duplicate" | "export" | "delete" | null;
 }
 
@@ -84,10 +85,16 @@ export function RecordCard({
   onDuplicate,
   onExport,
   onDelete,
+  onRename,
   busyAction = null,
 }: RecordCardProps) {
   const [imageError, setImageError] = useState(false);
   const cachedThumbnail = getCachedThumbnail(resume._id, resume.updatedAt ?? undefined);
+
+  // Phase 8: Inline rename state
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const safeThumbnail =
     (isSafeDataUrl(resume.thumbnailDataUrl) || isSafeHttpUrl(resume.thumbnailDataUrl))
@@ -117,6 +124,45 @@ export function RecordCard({
   const handleDuplicate = () => onDuplicate(resume._id);
   const handleExport = () => onExport(resume._id);
   const handleDelete = () => onDelete(resume._id);
+
+  // Phase 8: Inline rename handlers
+  const startRename = () => {
+    if (onRename) {
+      setEditTitle(title);
+      setIsRenaming(true);
+    }
+  };
+
+  const saveRename = async () => {
+    const trimmed = editTitle.trim();
+    if (trimmed && trimmed !== title && onRename) {
+      await onRename(resume._id, trimmed);
+    }
+    setIsRenaming(false);
+  };
+
+  const cancelRename = () => {
+    setEditTitle(title);
+    setIsRenaming(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveRename();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelRename();
+    }
+  };
+
+  // Focus input when entering rename mode
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isRenaming]);
 
   return (
     <article
@@ -178,7 +224,63 @@ export function RecordCard({
       </button>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="line-clamp-2 text-sm font-semibold text-foreground">{title}</h3>
+        {/* Phase 8: Inline rename with Enter to save, Escape to cancel */}
+        {isRenaming ? (
+          <div className="flex items-center gap-1">
+            <input
+              ref={inputRef}
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={saveRename}
+              className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              maxLength={100}
+            />
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                saveRename();
+              }}
+              className="p-1 text-green-600 hover:bg-green-50 rounded"
+              aria-label="Save"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                cancelRename();
+              }}
+              className="p-1 text-red-600 hover:bg-red-50 rounded"
+              aria-label="Cancel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <h3 className="flex-1 line-clamp-2 text-sm font-semibold text-foreground">{title}</h3>
+            {onRename && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startRename();
+                }}
+                className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"
+                aria-label="Rename"
+                data-testid="edit-icon"
+              >
+                <Edit2 className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">{updatedLabel}</p>
       </div>
     </article>

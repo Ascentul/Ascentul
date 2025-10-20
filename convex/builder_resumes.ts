@@ -455,6 +455,43 @@ export const updateResumeMeta = mutation({
 });
 
 /**
+ * Phase 8: Rename resume title
+ * Simple mutation for inline rename with validation
+ */
+export const renameResume = mutation({
+  args: {
+    id: v.id("builder_resumes"),
+    title: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Verify authentication and ownership
+    await verifyResumeOwnership(ctx, args.id);
+
+    // Validate title length
+    const trimmedTitle = args.title.trim();
+    if (trimmedTitle.length === 0) {
+      throw new Error("Title cannot be empty");
+    }
+    if (trimmedTitle.length > 100) {
+      throw new Error("Title cannot exceed 100 characters");
+    }
+
+    // Update title and timestamp
+    const updatedAt = Date.now();
+    await ctx.db.patch(args.id as any, {
+      title: trimmedTitle,
+      updatedAt,
+    });
+
+    return {
+      id: args.id,
+      title: trimmedTitle,
+      updatedAt,
+    };
+  },
+});
+
+/**
  * Create a new resume with auto-populated blocks from user profile.
  * @returns { id: Id<"builder_resumes">, title: string, templateSlug: string, themeId?: Id<"builder_resume_themes">, blocksCreated: number, autoPopulateError: boolean }
  */
