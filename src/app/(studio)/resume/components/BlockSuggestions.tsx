@@ -273,7 +273,11 @@ const getPriorityColorClass = (
         : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900',
   };
 
-  // Defensive fallback with development warning
+  // Defensive fallback: handles runtime data issues or type assertions
+  // TypeScript prevents this at compile-time, but protects against:
+  // - Invalid data from localStorage/API
+  // - Type assertions (as any)
+  // - JavaScript usage of this component
   if (!(priority in colors) && process.env.NODE_ENV === 'development') {
     console.warn(`Unknown suggestion priority: ${priority}. Falling back to low priority styling.`);
   }

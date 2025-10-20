@@ -141,6 +141,11 @@ npm audit --audit-level=high --production
 - `0`: No vulnerabilities found at or above the specified level
 - `1`: Vulnerabilities found - ensure your CI/CD pipeline treats this as a build failure
 
+**In CI/CD pipelines**, always verify that non-zero exit codes halt the deployment stage:
+- Most providers (GitHub Actions, GitLab CI, CircleCI) fail steps on non-zero exit codes by default, but confirm this in your workflow.
+- Explicitly check that `npm audit` returning `1` stops the pipeline.
+- Refer to the sample workflow in [Automated Dependency Updates](#automated-dependency-updates) for a reference implementation.
+
 For CI/CD pipelines, use `npm audit --audit-level=high --production` to prevent deploying code with serious security issues while allowing time to address moderate vulnerabilities in development dependencies.
 
 **Handling audit failures:**
@@ -361,6 +366,8 @@ CMD ["npm", "start"]
 EOF
 
 # Build and run
+# IMPORTANT: Ensure .env.production exists in the current directory before running Docker commands.
+# See "Option B: Use a .env.production file" above for setup steps.
 docker build -t resume-builder .
 docker run -d -p 3000:3000 --name resume-builder \
   --env-file .env.production \
@@ -597,6 +604,11 @@ server {
         proxy_cache_bypass $http_authorization $cookie_session $cookie___clerk_session;
         proxy_no_cache $http_authorization $cookie_session $cookie___clerk_session;
     }
+
+    # TODO/MAINTENANCE: Review this cache bypass logic when upgrading authentication:
+    # - If switching from Clerk to a different provider, update cookie names
+    # - If adding new authentication methods, extend the bypass conditions
+    # - Document any custom session/auth cookies in team runbooks
 }
 
 # Create cache directory and set permissions
@@ -1252,14 +1264,14 @@ updates:
       production-dependencies:
         dependency-type: "production"
         update-types:
-          - "minor"
-          - "patch"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
 
       development-dependencies:
         dependency-type: "development"
         update-types:
-          - "minor"
-          - "patch"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
 
     # Auto-merge patch updates (configure branch protection rules)
     labels:

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
  * Responsive design breakpoint system
  *
  * These breakpoints define the viewport width ranges for different device categories.
- * Should align with Tailwind CSS breakpoints and design system specifications.
+ * Inspired by Tailwind CSS breakpoints, but adapted to explicit range checks used in this app.
  *
  * Breakpoint ranges:
  * - Mobile:  0px - 768px   (smartphones, small tablets in portrait)
@@ -80,6 +80,7 @@ export function useIsDesktop(): boolean {
 
 /**
  * Detects touch devices (no hover support, coarse pointer)
+ * Note: Hybrid devices with both touch and pointer input may not match this media query.
  * @returns true if device has touch input without hover capability
  */
 export function useIsTouchDevice(): boolean {

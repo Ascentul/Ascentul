@@ -42,19 +42,36 @@ function safeCompare(a: string, b: string): boolean {
  *
  * TODO: Replace with idempotency-based solution before production deployment
  */
+const MUTEX_TIMEOUT_MS = 30000;
+
+class MutexTimeoutError extends Error {
+  constructor(message = 'Mutex acquisition timeout') {
+    super(message);
+    this.name = 'MutexTimeoutError';
+  }
+}
+
 class SeedMutex {
   private locked = false;
-  private waitQueue: Array<() => void> = [];
+  private waitQueue: Array<{ resolve: () => void; reject: (error: Error) => void; timeoutId: NodeJS.Timeout }> = [];
 
-  async acquire(): Promise<void> {
+  async acquire(timeoutMs: number = MUTEX_TIMEOUT_MS): Promise<void> {
     if (!this.locked) {
       this.locked = true;
       return;
     }
 
     // Wait in queue until lock is released
-    return new Promise<void>((resolve) => {
-      this.waitQueue.push(resolve);
+    return new Promise<void>((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const index = this.waitQueue.findIndex((entry) => entry.resolve === resolve);
+        if (index > -1) {
+          this.waitQueue.splice(index, 1);
+          reject(new MutexTimeoutError());
+        }
+      }, timeoutMs);
+
+      this.waitQueue.push({ resolve, reject, timeoutId });
     });
   }
 
@@ -62,7 +79,9 @@ class SeedMutex {
     const next = this.waitQueue.shift();
     if (next) {
       // Pass lock to next waiting request
-      next();
+      clearTimeout(next.timeoutId);
+      this.locked = true;
+      next.resolve();
     } else {
       // No one waiting, unlock
       this.locked = false;
@@ -158,6 +177,17 @@ export async function POST(request: Request) {
     }
   } catch (e: any) {
     console.error("Seed error:", e);
+    if (e instanceof MutexTimeoutError) {
+      return NextResponse.json(
+        {
+          error: "Another seeding operation is currently running. Please wait and try again.",
+        },
+        {
+          status: 503,
+          headers: { 'Retry-After': String(Math.ceil(MUTEX_TIMEOUT_MS / 6000)) },
+        }
+      );
+    }
     return NextResponse.json(
       { error: "Failed to seed database" },
       { status: 500 }

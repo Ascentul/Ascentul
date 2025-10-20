@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { HeaderBlock } from '@/app/(studio)/resume/components/blocks/HeaderBlock';
 import type { HeaderData } from '@/lib/resume/types';
 
+// Default rich header showcasing a typical mix of contact fields.
 const exampleData: HeaderData = {
   fullName: 'Jane Doe',
   title: 'Senior Software Engineer',
@@ -17,11 +18,13 @@ const exampleData: HeaderData = {
   },
 };
 
+// Minimal header without title or contact details.
 const minimalData: HeaderData = {
   fullName: 'John Smith',
   contact: {},
 };
 
+// Header with basic email-only contact details.
 const emailOnlyData: HeaderData = {
   fullName: 'Alice Johnson',
   title: 'Product Manager',
@@ -30,6 +33,7 @@ const emailOnlyData: HeaderData = {
   },
 };
 
+// Stress-test header with numerous external links.
 const manyLinksData: HeaderData = {
   fullName: 'Bob Developer',
   title: 'Full Stack Engineer',
@@ -47,6 +51,7 @@ const manyLinksData: HeaderData = {
   },
 };
 
+// Header with extremely long identifiers to validate wrapping behavior.
 const longNamesData: HeaderData = {
   fullName: 'Dr. Alexandra Catherine Montgomery-Wellington III',
   title: 'Distinguished Research Scientist and Principal Software Architect',
@@ -60,23 +65,11 @@ const longNamesData: HeaderData = {
   },
 };
 
+// Header retains title but intentionally omits all contact details.
 const noContactData: HeaderData = {
   fullName: 'Sarah Williams',
   title: 'UX Designer',
   contact: {},
-};
-
-const allContactTypesData: HeaderData = {
-  fullName: 'Michael Chen',
-  title: 'DevOps Engineer',
-  contact: {
-    email: 'michael@example.com',
-    phone: '(555) 987-6543',
-    location: 'Austin, TX',
-    links: [
-      { label: 'Website', url: 'https://michaelchen.io' },
-    ],
-  },
 };
 
 const meta: Meta<typeof HeaderBlock> = {
@@ -109,12 +102,26 @@ export const Default: Story = {
   args: {
     data: exampleData,
   },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Baseline header showcasing a balanced set of contact details.',
+      },
+    },
+  },
 };
 
 export const DefaultSelected: Story = {
   args: {
     data: exampleData,
     isSelected: true,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Same as the default view, but with the selection highlight to mirror editor focus state.',
+      },
+    },
   },
 };
 
@@ -162,6 +169,13 @@ export const ManyLinksSelected: Story = {
     data: manyLinksData,
     isSelected: true,
   },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Selected state for a header with numerous external links, useful for testing scroll and focus handling.',
+      },
+    },
+  },
 };
 
 export const LongNames: Story = {
@@ -190,14 +204,14 @@ export const NoContactInfo: Story = {
   },
 };
 
-export const AllContactTypes: Story = {
+export const FullContactDetails: Story = {
   args: {
-    data: allContactTypesData,
+    data: exampleData,
   },
   parameters: {
     docs: {
       description: {
-        story: 'Demonstrates all contact field types: email, phone, location, and external link with icon.',
+        story: 'Complete header example including every contact field type (email, phone, location, and website link).',
       },
     },
   },

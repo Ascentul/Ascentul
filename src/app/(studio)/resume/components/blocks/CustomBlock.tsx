@@ -12,6 +12,7 @@ interface CustomBlockProps {
 
 export function CustomBlock({ data, isSelected, onClick, suggestions, blockId }: CustomBlockProps) {
   const { heading, content, bullets } = data;
+  const bulletOccurrences = new Map<string, number>();
 
   if (!heading) return null;
 
@@ -35,13 +36,14 @@ export function CustomBlock({ data, isSelected, onClick, suggestions, blockId }:
 
       {bullets && bullets.length > 0 && (
         <ul className="space-y-0.5">
-          {bullets.map((item, idx) => {
-            // Use first 50 chars of bullet + index for stable key
-            // Handles duplicate bullets while maintaining stability
-            const bulletKey = `${item.slice(0, 50)}-${idx}`;
+          {bullets.map((item) => {
+            const count = bulletOccurrences.get(item) ?? 0;
+            bulletOccurrences.set(item, count + 1);
+            const key = count === 0 ? item : `${item}-${count}`;
+
             return (
               <li
-                key={bulletKey}
+                key={key}
                 className="text-sm text-neutral-700 leading-relaxed pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-neutral-400"
               >
                 {item}

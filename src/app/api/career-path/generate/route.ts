@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
-import OpenAI from 'openai'
+import type { Doc } from 'convex/_generated/dataModel'
+import OpenAI, { APIConnectionTimeoutError } from 'openai'
 
 export const runtime = 'nodejs'
 
@@ -80,15 +81,25 @@ Format as a structured plan with clear steps and timelines.`
         }
       )
       generatedPath = completion.choices?.[0]?.message?.content || null
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorType = error?.constructor?.name || 'Error';
-      const isTimeout = error.code === 'ETIMEDOUT' || error.message?.toLowerCase().includes('timeout');
+      const errorType = error instanceof Error ? error.constructor?.name ?? 'Error' : typeof error;
+
+      const isTimeout =
+        error instanceof APIConnectionTimeoutError ||
+        (error instanceof Error && error.message.toLowerCase().includes('timeout'));
+
+      let statusCode: number | undefined;
+      if (error && typeof error === 'object' && 'status' in error) {
+        const status = (error as { status: unknown }).status;
+        statusCode = typeof status === 'number' ? status : undefined;
+      }
+
       console.error('OpenAI API call failed:', {
         errorType,
         errorMessage,
         isTimeout,
-        statusCode: error.status,
+        statusCode,
         error
       });
       generatedPath = null;
@@ -101,7 +112,7 @@ Format as a structured plan with clear steps and timelines.`
     }
 
     // Save the generated career path with graceful degradation (Convex)
-    let careerPath: any = null
+    let careerPath: Doc<'career_paths'> | null = null
     let saveWarning: string | undefined
     try {
       careerPath = await client.mutation(api.career_paths.createCareerPath, {
@@ -112,10 +123,12 @@ Format as a structured plan with clear steps and timelines.`
         steps: { planText: generatedPath, inputs: { currentRole, targetRole, skills, experience, timeframe } },
         status: 'active',
       })
-    } catch {
+    } catch (saveError: unknown) {
+      console.error('Failed to save career path to Convex:', saveError)
       saveWarning = 'Career path generated but could not be saved.'
     }
 
+    
     return NextResponse.json({
       careerPath,
       generatedPath,

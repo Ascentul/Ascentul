@@ -40,12 +40,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 
   return Promise.race([
-    promise.then((result) => {
-      clearTimeout(timeoutId);
-      return result;
-    }),
+    promise,
     timeoutPromise,
-  ]);
+  ]).finally(() => {
+    clearTimeout(timeoutId);
+  });
 }
 
 type AnalysisResult = {

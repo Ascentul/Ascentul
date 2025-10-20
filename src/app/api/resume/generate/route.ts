@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
@@ -16,6 +17,7 @@ export const maxDuration = 60;
 
 /**
  * Calculate exponential backoff delay for retry attempts
+ * Local helper scoped to this route; export if other modules need identical behavior.
  * @param attempt - Current attempt number (1-indexed)
  * @param maxDelay - Maximum delay in milliseconds (default: 5000ms)
  * @returns Delay in milliseconds (1s, 2s, 4s, 5s, 5s, ...)
@@ -163,8 +165,8 @@ export async function POST(req: NextRequest) {
 
     // 9. Call OpenAI with retry and fallback
     // Timing calculation for 60s maxDuration:
-    // - 2 models × 2 attempts × (12s timeout + 1s backoff) = 52s worst case
-    // - Leaves 8s buffer for processing, validation, and DB operations
+    // - 2 models × [(12s timeout + 1s backoff) + 12s timeout] = 50s worst case
+    // - Leaves 10s buffer for processing, validation, and DB operations
     let aiResponse: string | null = null;
     const maxAttempts = 2; // Reduced from 3 to fit within 60s maxDuration
     const REQUEST_TIMEOUT = 12000; // 12s (reduced from 15s to fit timing budget)
@@ -302,19 +304,31 @@ export async function POST(req: NextRequest) {
         resumeId,
         blockCount: parsedBlocks.length,
       });
-    } catch (error: any) {
-      logger.error("Validation error while parsing AI response", error, {
+    } catch (error: unknown) {
+      const safeError = error instanceof Error ? error : new Error(String(error));
+      const responsePreview = aiResponse.substring(0, 200);
+      logger.error("Validation error while parsing AI response", safeError, {
         resumeId,
-        responsePreview: aiResponse.substring(0, 200),
+        responsePreview,
       });
-      const errorMsg = error.errors
-        ? error.errors.map((e: any) => `${e.path.join(".")}: ${e.message}`).join("; ")
-        : error.message;
+
+      let errorDetails: string;
+      if (error instanceof ZodError) {
+        errorDetails = error.errors
+          .map((e) => `${e.path.join(".")}: ${e.message}`)
+          .join("; ");
+      } else if (error instanceof SyntaxError) {
+        errorDetails = `Failed to parse AI response as JSON: ${error.message}`;
+      } else if (error instanceof Error) {
+        errorDetails = error.message;
+      } else {
+        errorDetails = "Unknown validation error";
+      }
 
       return NextResponse.json(
         {
           error: "AI generated invalid resume format",
-          details: errorMsg,
+          details: errorDetails,
           rawResponse: aiResponse.substring(0, 500),
         },
         { status: 502 }

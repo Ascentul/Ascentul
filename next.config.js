@@ -5,7 +5,7 @@ if (previewBaseUrl) {
   try {
     previewDomain = new URL(previewBaseUrl).hostname;
   } catch (error) {
-    // Always log configuration errors in production for visibility to operators
+    // Always log configuration errors for visibility to operators
     console.warn('[next.config] Invalid NEXT_PUBLIC_PREVIEW_BASE_URL:', previewBaseUrl, error);
   }
 }

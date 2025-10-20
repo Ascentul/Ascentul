@@ -1,5 +1,7 @@
 import { renderThumbnail } from '@/lib/thumbnail/renderThumbnail';
-import { clearThumbnailCache, getCachedThumbnail, setCachedThumbnail } from '@/lib/thumbnail/cache';
+import { clearThumbnailCache, getCachedThumbnail, setCachedThumbnail, THUMBNAIL_CACHE_CAPACITY } from '@/lib/thumbnail/cache';
+
+const CACHE_CAPACITY = THUMBNAIL_CACHE_CAPACITY;
 
 const toDataURL = jest.fn(() => 'data:image/png;base64,mock');
 const mockCanvas = {
@@ -70,13 +72,13 @@ describe('renderThumbnail', () => {
   });
 
   it('evicts least recently used entries when capacity is exceeded', () => {
-    // Cache capacity is 100, so 105 entries will trigger LRU eviction
-    for (let i = 0; i < 105; i += 1) {
+    // Cache capacity exceeds limit to trigger LRU eviction
+    for (let i = 0; i < CACHE_CAPACITY + 5; i += 1) {
       setCachedThumbnail(`resume-${i}`, i, `data:image/png;base64,${i}`);
     }
 
     expect(getCachedThumbnail('resume-0', 0)).toBeNull();
-    expect(getCachedThumbnail('resume-104', 104)).toBe(`data:image/png;base64,104`);
+    expect(getCachedThumbnail(`resume-${CACHE_CAPACITY + 4}`, CACHE_CAPACITY + 4)).toBe(`data:image/png;base64,${CACHE_CAPACITY + 4}`);
   });
 
   it('bypasses cache when cacheResult is false', async () => {

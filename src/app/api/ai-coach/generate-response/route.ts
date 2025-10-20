@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import OpenAI from 'openai'
+import OpenAI, { APIConnectionTimeoutError } from 'openai'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 
@@ -17,9 +17,111 @@ const parseTimeout = (value: string | undefined, defaultValue: number): number =
 const CONVEX_TIMEOUT_MS = parseTimeout(process.env.CONVEX_TIMEOUT_MS, 10000);
 const OPENAI_TIMEOUT_MS = parseTimeout(process.env.OPENAI_TIMEOUT_MS, 15000);
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-}) : null
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage = 'Operation timeout'
+): Promise<T> {
+  let timeoutId: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+type CoachWorkHistory = {
+  role?: string;
+  company?: string;
+  start_date?: string;
+  end_date?: string;
+  is_current?: boolean;
+  location?: string;
+  summary?: string;
+};
+
+type CoachEducationHistory = {
+  degree?: string;
+  field_of_study?: string;
+  institution?: string;
+  start_date?: string;
+  end_date?: string;
+  graduation_date?: string;
+  gpa?: string;
+  activities?: string;
+  is_current?: boolean;
+};
+
+type CoachUserProfile = {
+  name?: string;
+  current_position?: string;
+  current_company?: string;
+  industry?: string;
+  experience_level?: string;
+  skills?: string | string[];
+  career_goals?: string;
+  work_history?: CoachWorkHistory[];
+  education_history?: CoachEducationHistory[];
+} | null;
+
+type CoachGoal = {
+  title?: string;
+  status?: string;
+};
+
+type CoachApplication = {
+  job_title?: string;
+  company?: string;
+  status?: string;
+};
+
+type CoachProject = {
+  title?: string;
+  description?: string;
+  company?: string;
+};
+
+type CoachResume = Record<string, unknown>;
+type CoachCoverLetter = Record<string, unknown>;
+
+type CoachUserContext = {
+  userProfile: CoachUserProfile;
+  goals: CoachGoal[];
+  applications: CoachApplication[];
+  resumes: CoachResume[];
+  coverLetters: CoachCoverLetter[];
+  projects: CoachProject[];
+};
+
+type CoachContextTuple = [
+  CoachUserContext['userProfile'],
+  CoachUserContext['goals'],
+  CoachUserContext['applications'],
+  CoachUserContext['resumes'],
+  CoachUserContext['coverLetters'],
+  CoachUserContext['projects'],
+];
+
+type CoachConversationMessage = {
+  isUser: boolean;
+  message: string;
+};
+
+type CoachRequestBody = {
+  query?: string;
+  conversationHistory?: CoachConversationMessage[];
+};
 
 function getClient() {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL
@@ -32,8 +134,11 @@ export async function POST(request: NextRequest) {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const body = await request.json()
-    const { query, conversationHistory = [] } = body
+    const body = (await request.json()) as Partial<CoachRequestBody>;
+    const { query, conversationHistory = [] } = body;
+    const history: CoachConversationMessage[] = Array.isArray(conversationHistory)
+      ? (conversationHistory as CoachConversationMessage[])
+      : [];
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 })
@@ -43,25 +148,20 @@ export async function POST(request: NextRequest) {
     const client = getClient()
     let userContext = ''
     try {
-      let timeoutId: NodeJS.Timeout;
-      const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('Convex query timeout')), CONVEX_TIMEOUT_MS);
-      });
-
-      const result = await Promise.race([
+      const result = await withTimeout(
         Promise.all([
           client.query(api.users.getUserByClerkId, { clerkId: userId }),
           client.query(api.goals.getUserGoals, { clerkId: userId }),
           client.query(api.applications.getUserApplications, { clerkId: userId }),
           client.query(api.resumes.getUserResumes, { clerkId: userId }),
           client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
-          client.query(api.projects.getUserProjects, { clerkId: userId })
-        ]),
-        timeoutPromise
-      ]);
+          client.query(api.projects.getUserProjects, { clerkId: userId }),
+        ]) as Promise<CoachContextTuple>,
+        CONVEX_TIMEOUT_MS,
+        'Convex query timeout'
+      );
 
-      clearTimeout(timeoutId);
-      const [userProfile, goals, applications, resumes, coverLetters, projects] = result as [any, any[], any[], any[], any[], any[]];
+      const [userProfile, goals, applications, resumes, coverLetters, projects] = result;
 
       // Build user context summary
       const contextParts: string[] = []
@@ -79,21 +179,21 @@ export async function POST(request: NextRequest) {
 
       if (goals && goals.length > 0) {
         contextParts.push('\n--- CAREER GOALS ---')
-        goals.slice(0, 5).forEach((goal: any, idx: number) => {
+        goals.slice(0, 5).forEach((goal, idx) => {
           contextParts.push(`${idx + 1}. ${goal.title} (Status: ${goal.status})`)
         })
       }
 
       if (applications && applications.length > 0) {
         contextParts.push('\n--- RECENT JOB APPLICATIONS ---')
-        applications.slice(0, 8).forEach((app: any, idx: number) => {
+        applications.slice(0, 8).forEach((app, idx) => {
           contextParts.push(`${idx + 1}. ${app.job_title} at ${app.company} (Status: ${app.status})`)
         })
       }
 
       if (projects && projects.length > 0) {
         contextParts.push('\n--- PROJECTS & EXPERIENCE ---')
-        projects.slice(0, 5).forEach((project: any, idx: number) => {
+        projects.slice(0, 5).forEach((project, idx) => {
           contextParts.push(`${idx + 1}. ${project.title}`)
           if (project.description) contextParts.push(`   ${project.description}`)
         })
@@ -138,7 +238,7 @@ ${userContext}\n` : ''}`
         ]
 
         // Add conversation history
-        conversationHistory.forEach((msg: any) => {
+        history.forEach((msg) => {
           messages.push({
             role: msg.isUser ? 'user' : 'assistant',
             content: msg.message
@@ -166,10 +266,16 @@ ${userContext}\n` : ''}`
         )
 
         response = completion.choices?.[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
-      } catch (openaiError: any) {
+      } catch (openaiError: unknown) {
         console.error('OpenAI API error:', openaiError)
-        // Differentiate timeout errors from other API errors for better user feedback
-        if (openaiError?.code === 'ETIMEDOUT' || openaiError?.message?.includes('timeout')) {
+        const isTimeoutError =
+          openaiError instanceof APIConnectionTimeoutError ||
+          (typeof openaiError === 'object' &&
+            openaiError !== null &&
+            'name' in openaiError &&
+            (openaiError as { name?: unknown }).name === 'APIConnectionTimeoutError');
+
+        if (isTimeoutError) {
           response = 'The AI is taking longer than expected to respond. Please try again.'
         } else {
           response = 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment.'

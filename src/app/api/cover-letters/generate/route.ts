@@ -189,7 +189,22 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
       )
       generatedContent = completion.choices?.[0]?.message?.content || null
     } catch (e) {
-      console.error('OpenAI API call failed, using fallback:', e)
+      const error = e instanceof OpenAI.APIError
+        ? e
+        : e instanceof Error
+          ? e
+          : new Error(String(e));
+
+      const status = typeof (error as any).status === 'number' ? (error as any).status : undefined;
+      const code = typeof (error as any).code === 'string' ? (error as any).code : undefined;
+
+      console.error('OpenAI API call failed, using fallback:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        status,
+        code,
+      });
       generatedContent = null
     }
 
@@ -260,7 +275,10 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
         closing: 'Sincerely,',
         source: 'ai_generated',
       })
-    } catch {
+    } catch (saveError: unknown) {
+      const errorMessage = saveError instanceof Error ? saveError.message : String(saveError)
+      const errorStack = saveError instanceof Error ? saveError.stack : undefined
+      console.warn('Cover letter persistence failed:', { message: errorMessage, stack: errorStack })
       saveWarning = 'Cover letter generated but could not be saved.'
     }
 

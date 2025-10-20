@@ -35,6 +35,15 @@ const previewsDir = path.join(__dirname, '../public/previews');
 const templatesConfigPath = path.join(__dirname, 'templates-config.json');
 const templateDefsPath = path.join(__dirname, '../src/lib/templates/index.ts');
 
+// XML escaping utility
+const escapeXml = (value) =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
 // Parse command line arguments
 const args = process.argv.slice(2);
 const skipExisting = args.includes('--skip-existing');
@@ -155,14 +164,6 @@ function generateSVG(template) {
   ) {
     throw new Error('Invalid template object: missing required properties or invalid color format');
   }
-
-  const escapeXml = (value) =>
-    String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
 
   const safeName = escapeXml(template.name);
   const safeDescription = escapeXml(template.description);

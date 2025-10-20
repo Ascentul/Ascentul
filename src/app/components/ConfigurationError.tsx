@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 interface HelpStep {
+  id?: string;
   text: string;
   code?: string;
 }
@@ -57,7 +58,7 @@ export function ConfigurationError({
             </summary>
             <ol className="mt-2 space-y-1 pl-5 list-decimal text-red-800">
               {steps.map((step, index) => (
-                <li key={index}>
+                <li key={step.id ?? `${step.text}-${index}`}>
                   {step.text}
                   {step.code && (
                     <code className="ml-1 rounded bg-red-100 px-1.5 py-0.5 text-xs font-mono text-red-900">

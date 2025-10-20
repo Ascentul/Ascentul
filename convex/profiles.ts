@@ -221,6 +221,13 @@ export const getMyProfile = query({
      * - tldts: https://www.npmjs.com/package/tldts
      * - psl (Public Suffix List): https://www.npmjs.com/package/psl
      */
+// Common country-code top-level domains (ccTLDs) used for domain extraction
+// Covers ~90% of production use cases
+const KNOWN_CCTLDS = [
+  'co.uk', 'com.au', 'co.nz', 'co.za', 'com.br', 'co.jp',
+  'co.in', 'com.cn', 'net.au', 'org.uk', 'ac.uk', 'gov.uk',
+  'com.mx', 'co.kr', 'com.sg', 'co.id', 'com.ar', 'com.co'
+];
     const getLabelFromUrl = (url: string): string => {
       try {
         const urlObj = new URL(url);
@@ -235,17 +242,12 @@ export const getMyProfile = query({
         }
 
         // Handle country-code TLDs (ccTLDs) like .co.uk, .com.au
-        // Expanded list covers common ccTLDs (~90% of production use cases)
-        const knownCcTlds = [
-          'co.uk', 'com.au', 'co.nz', 'co.za', 'com.br', 'co.jp',
-          'co.in', 'com.cn', 'net.au', 'org.uk', 'ac.uk', 'gov.uk',
-          'com.mx', 'co.kr', 'com.sg', 'co.id', 'com.ar', 'com.co'
-        ];
+        // Handle country-code TLDs (ccTLDs) using precomputed list
         const lastTwo = parts.slice(-2).join('.');
 
         // For ccTLDs, extract third-to-last part; otherwise second-to-last
         // Ensures we get "example" from both "example.co.uk" and "example.com"
-        const domainPart = knownCcTlds.includes(lastTwo) && parts.length > 2
+        const domainPart = KNOWN_CCTLDS.includes(lastTwo) && parts.length > 2
           ? parts[parts.length - 3]
           : parts[parts.length - 2];
 

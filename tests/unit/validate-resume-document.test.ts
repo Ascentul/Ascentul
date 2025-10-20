@@ -236,11 +236,15 @@ describe('assertValidResumeDocument', () => {
     try {
       assertValidResumeDocument(pages, blocks);
     } catch (e) {
-      error = e as Error;
+      if (e instanceof Error) {
+        error = e;
+      } else {
+        throw new Error('Expected Error instance but caught: ' + typeof e);
+      }
     }
 
     expect(error).toBeDefined();
-    expect(error?.message).toMatch(/Resume document validation failed/);
-    expect(error?.message).toMatch(/non-existent block/);
+    expect(error.message).toMatch(/Resume document validation failed/);
+    expect(error.message).toMatch(/non-existent block/);
   });
 });

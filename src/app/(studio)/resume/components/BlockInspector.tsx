@@ -273,7 +273,8 @@ function HeaderInspector({ data, onChange }: { data: HeaderData; onChange: (data
               .map((s) => s.trim())
               .filter(Boolean);
             const existingLinks = data.contact?.links || [];
-            const linkObjects = urls.map((url) => {
+            const uniqueUrls = Array.from(new Set(urls));
+            const linkObjects = uniqueUrls.map((url) => {
               const existing = existingLinks.find((link) => link.url === url);
               return existing || { label: url, url };
             });

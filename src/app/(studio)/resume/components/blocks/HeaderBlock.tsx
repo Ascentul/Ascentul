@@ -3,6 +3,15 @@ import { BlockSuggestions } from '../BlockSuggestions';
 import type { ContentSuggestion } from '@/lib/ai/suggestions';
 import { ExternalLink } from 'lucide-react';
 
+const isValidUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url);
+    return ['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol);
+  } catch {
+    return /^(mailto:|tel:).+/.test(url) || /^https?:\/\/.+/.test(url);
+  }
+};
+
 interface HeaderBlockProps {
   data: HeaderData;
   isSelected?: boolean;
@@ -13,33 +22,32 @@ interface HeaderBlockProps {
 export function HeaderBlock({ data, isSelected, suggestions, blockId }: HeaderBlockProps) {
   const { fullName, title, contact } = data;
   const { email, phone, location, links } = contact || {};
-  const safeLinks: HeaderContactLink[] = Array.isArray(links)
-    ? (links as unknown[]).map((entry) => {
-        if (!entry) {
+  const rawLinks: unknown[] = Array.isArray(links) ? links : [];
+  const safeLinks: HeaderContactLink[] = rawLinks
+    .map((entry) => {
+      if (!entry) {
+        return null;
+      }
+      if (typeof entry === 'string') {
+        const trimmed = entry.trim();
+        if (!trimmed || !isValidUrl(trimmed)) {
           return null;
         }
-        if (typeof entry === 'string') {
-          const trimmed = entry.trim();
-          if (!trimmed) {
-            return null;
-          }
-          return { label: trimmed, url: trimmed };
+        return { label: trimmed, url: trimmed };
+      }
+      if (typeof entry === 'object' && entry !== null) {
+        const candidate = entry as Record<string, unknown>;
+        const rawUrl = typeof candidate.url === 'string' ? candidate.url.trim() : '';
+        if (!rawUrl || !isValidUrl(rawUrl)) {
+          return null;
         }
-        if (typeof entry === 'object') {
-          const linkObject = entry as HeaderContactLink & { label?: string; url?: string };
-          const normalizedUrl = typeof linkObject.url === 'string' ? linkObject.url.trim() : '';
-          if (!normalizedUrl) {
-            return null;
-          }
-          const normalizedLabel =
-            typeof linkObject.label === 'string' && linkObject.label.trim().length > 0
-              ? linkObject.label.trim()
-              : normalizedUrl;
-          return { label: normalizedLabel, url: normalizedUrl };
-        }
-        return null;
-      }).filter((link): link is HeaderContactLink => Boolean(link))
-    : [];
+        const rawLabel = typeof candidate.label === 'string' ? candidate.label.trim() : '';
+        const normalizedLabel = rawLabel.length > 0 ? rawLabel : rawUrl;
+        return { label: normalizedLabel, url: rawUrl };
+      }
+      return null;
+    })
+    .filter((link): link is HeaderContactLink => Boolean(link));
 
   return (
     <header
@@ -101,7 +109,7 @@ export function HeaderBlock({ data, isSelected, suggestions, blockId }: HeaderBl
       )}
 
       {/* Show suggestions when block is selected */}
-      {isSelected && blockId && suggestions && suggestions.length > 0 && (
+      {isSelected && blockId && suggestions?.length > 0 && (
         <BlockSuggestions
           blockId={blockId}
           suggestions={suggestions}

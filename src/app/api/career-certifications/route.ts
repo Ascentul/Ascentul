@@ -37,6 +37,10 @@ Skills: ${skills.map((s) => `${s.name}(${s.level})`).join(', ')}`
             timeout: 15000, // 15 seconds timeout
           }
         )
+        if (!completion?.choices?.length) {
+          console.warn('OpenAI returned no choices:', { status: completion?.status, model: completion?.model })
+          throw new Error('Invalid OpenAI response')
+        }
         const content = completion.choices?.[0]?.message?.content || ''
         try {
           const parsed = JSON.parse(content)

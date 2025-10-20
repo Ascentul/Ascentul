@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import type { Id } from 'convex/_generated/dataModel'
-import OpenAI from 'openai'
+import OpenAI, { APIConnectionTimeoutError } from 'openai'
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -29,10 +29,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 
   return Promise.race([
-    promise.then((result) => {
-      clearTimeout(timeoutId);
-      return result;
-    }),
+    promise.finally(() => clearTimeout(timeoutId)),
     timeoutPromise
   ]);
 }
@@ -234,7 +231,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
       } catch (openaiError: any) {
         console.error('OpenAI API error:', openaiError)
         // Differentiate timeout errors from other API errors for better user feedback
-        if (openaiError?.code === 'ETIMEDOUT' || openaiError?.message?.includes('timeout')) {
+        if (openaiError instanceof APIConnectionTimeoutError || openaiError?.name === 'APIConnectionTimeoutError' || openaiError?.message?.toLowerCase()?.includes('timeout')) {
           aiResponse = 'The AI is taking longer than expected to respond. Please try again.'
         } else {
           aiResponse = 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment.'

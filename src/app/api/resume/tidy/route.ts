@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { ConvexHttpClient } from 'convex/browser';
@@ -54,20 +55,22 @@ async function checkCooldown(resumeId: string): Promise<{ allowed: boolean; rema
   // Set cooldown
   cooldownMap.set(resumeId, now);
 
-  // Incremental cleanup: avoid O(n) spikes by cleaning up oldest entries by timestamp
-  // More efficient than full cleanup and keeps map size bounded
+  // Incremental cleanup: iterate in insertion order to avoid sort overhead
+  // Keeps map size bounded without O(n log n) cost on every request
   if (cooldownMap.size > 100) {
     const CLEANUP_AGE = 60 * 1000; // 1 minute (enough buffer beyond 20s cooldown)
     const MAX_CLEANUP_PER_REQUEST = 10; // Clean up 10 oldest entries at a time
+    const MAX_EXAMINE_PER_REQUEST = 50;
 
-    // Sort by timestamp (oldest first) to ensure we clean actual oldest entries
-    const sortedEntries = Array.from(cooldownMap.entries())
-      .sort(([, a], [, b]) => a - b) // Sort by timestamp ascending (oldest first)
-      .slice(0, MAX_CLEANUP_PER_REQUEST);
-
-    for (const [key, timestamp] of sortedEntries) {
+    let cleaned = 0;
+    let examined = 0;
+    for (const [key, timestamp] of cooldownMap.entries()) {
+      if (cleaned >= MAX_CLEANUP_PER_REQUEST) break;
+      if (examined >= MAX_EXAMINE_PER_REQUEST) break;
+      examined++;
       if (now - timestamp > CLEANUP_AGE) {
         cooldownMap.delete(key);
+        cleaned++;
       }
     }
   }
@@ -78,116 +81,22 @@ async function checkCooldown(resumeId: string): Promise<{ allowed: boolean; rema
 /**
  * Call OpenAI API with retry logic and model fallback
  * @param userPrompt - The prompt to send to OpenAI
- * @param maxAttempts - Maximum number of retry attempts (default: 3)
+ * @param maxAttempts - Maximum number of attempts for the primary model (default: 3).
+ *                      A single additional attempt is made automatically if the fallback model is required.
  * @returns The AI response string
  * @throws Error if all attempts fail
  */
-async function callOpenAIWithRetry(
-  userPrompt: string,
-  maxAttempts: number = 3
-): Promise<string> {
-  let currentModel = getModel();
-  let hasTriedFallback = false;
-  let aiResponse: string | null = null;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      console.log(`AI attempt ${attempt}/${maxAttempts} with model: ${currentModel}`);
-
-      const completion = await openai.chat.completions.create(
-        {
-          model: currentModel,
-          temperature: 0.2,
-          max_tokens: 2000,
-          response_format: { type: 'json_object' },
-          messages: [
-            { role: 'system', content: AUTO_TIDY_SYSTEM_PROMPT },
-            { role: 'user', content: userPrompt },
-          ],
-        },
-        {
-          timeout: 15000, // 15 seconds timeout (allows 3 attempts within 60s maxDuration)
-        }
-      );
-
-      aiResponse = completion.choices?.[0]?.message?.content;
-
-      if (aiResponse) {
-        console.log('AI response received, length:', aiResponse.length);
-        return aiResponse;
-      }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorCode = (error as any)?.code;
-      const errorStatus = (error as any)?.status;
-
-      console.error(`AI attempt ${attempt} failed:`, errorMessage);
-
-      // Check if this is a model-related error (e.g., model not available, invalid model name)
-      const isModelError =
-        errorCode === 'model_not_found' ||
-        errorStatus === 404 ||
-        (errorMessage && /model.*not.*found|invalid.*model/i.test(errorMessage));
-
-      // Model fallback: Give a "free retry" without counting against maxAttempts
-      // This ensures users aren't penalized for OpenAI API model availability issues
-      if (isModelError && !hasTriedFallback && currentModel !== FALLBACK_MODEL) {
-        console.log(`Model error detected. Falling back to ${FALLBACK_MODEL}`);
-        currentModel = FALLBACK_MODEL;
-        hasTriedFallback = true;
-
-        // Decrement attempt counter to retry with fallback model at the same attempt number
-        // Example: If attempt=2 fails with model error, decrement to attempt=1, then loop
-        // increments back to attempt=2 for the fallback retry. This effectively gives
-        // a "free" retry for model fallback, so total attempts can be maxAttempts + 1.
-        attempt--;
-        continue;
-      }
-
-      if (attempt === maxAttempts) {
-        throw new Error(`AI tidy failed: ${errorMessage}`);
-      }
-
-      // Exponential backoff
-      await new Promise((resolve) => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt - 1), 5000)));
+async function parseTidyResponse(aiResponse: string): Promise<ResumeBlock[]> {
+  let jsonStr = aiResponse.trim();
+  if (jsonStr.startsWith("```")) {
+    jsonStr = jsonStr.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "");
+  } else {
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
     }
   }
 
-  throw new Error('Failed to get AI response after all attempts');
-}
-
-/**
- * Parse and validate AI response into ResumeBlock array
- * @param aiResponse - Raw AI response string
- * @returns Validated array of ResumeBlock objects
- * @throws Error if parsing or validation fails
- */
-async function parseTidyResponse(aiResponse: string): Promise<ResumeBlock[]> {
-  const extractFirstJSON = (text: string): string | null => {
-    let normalized = text.trim();
-    if (normalized.startsWith("```")) {
-      normalized = normalized.replace(/^```json\s*/i, "").replace(/^```\s*/i, "");
-      normalized = normalized.replace(/```\s*$/i, "");
-    }
-
-    let depth = 0;
-    let start = -1;
-    for (let i = 0; i < normalized.length; i++) {
-      const char = normalized[i];
-      if (char === "{") {
-        if (depth === 0) start = i;
-        depth++;
-      } else if (char === "}") {
-        depth--;
-        if (depth === 0 && start !== -1) {
-          return normalized.slice(start, i + 1);
-        }
-      }
-    }
-    return null;
-  };
-
-  const jsonStr = extractFirstJSON(aiResponse) ?? aiResponse.trim();
   const parsed = JSON.parse(jsonStr);
 
   // Validate with Zod
@@ -301,24 +210,35 @@ export async function POST(req: NextRequest) {
     } catch (error: unknown) {
       console.error('Validation error:', error);
 
-      // Handle Zod validation errors which have an 'errors' array
-      const zodErrors = (error as any)?.errors;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorMsg = zodErrors
-        ? zodErrors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join('; ')
-        : errorMessage;
+      if (error instanceof ZodError) {
+        const errorMsg = error.errors
+          .map((e) => `${e.path.join('.')}: ${e.message}`)
+          .join('; ');
+        const truncatedErrorMsg = errorMsg.length > 1000
+          ? `${errorMsg.slice(0, 1000)}... (truncated)`
+          : errorMsg;
 
+        return NextResponse.json(
+          {
+            error: 'AI generated invalid resume format',
+            details: truncatedErrorMsg,
+            rawResponse: aiResponse.substring(0, 500),
+          },
+          { status: 502 }
+        );
+      }
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return NextResponse.json(
         {
           error: 'AI generated invalid resume format',
-          details: errorMsg,
+          details: errorMessage,
           rawResponse: aiResponse.substring(0, 500),
         },
         { status: 502 }
       );
     }
 
-    // 9. Return tidied blocks (client will handle applying them)
     console.log(`Successfully tidied ${parsedBlocks.length} blocks`);
 
     return NextResponse.json({

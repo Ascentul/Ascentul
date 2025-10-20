@@ -509,7 +509,8 @@
   - [ ] URL inputs validated and sanitized
   - [ ] File uploads restricted to safe types
   - [ ] HTML entities encoded in user-generated content
-  - [ ] No `dangerouslySetInnerHTML` without sanitization
+  - [ ] Avoid `dangerouslySetInnerHTML`; prefer safe React rendering or trusted libraries
+  - [ ] If `dangerouslySetInnerHTML` is unavoidable, sanitize with dompurify and encode output
 
 - [ ] **Output Encoding**
   - [ ] All dynamic content properly escaped
@@ -561,7 +562,9 @@
   - [ ] No PII in URL parameters or query strings
   - [ ] Error messages don't leak sensitive data
   - [ ] Analytics tools don't capture PII
-  - [ ] Browser autofill handles sensitive fields securely
+  - [ ] Password fields use `autocomplete="current-password"`
+  - [ ] Password managers can autofill credentials without errors
+  - [ ] No custom autocomplete logic interferes with browser security features
 
 - [ ] **API Keys & Credentials**
   - [ ] No API keys in client-side code

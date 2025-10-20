@@ -448,11 +448,31 @@ if (process.env.NODE_ENV !== 'development') {
  * - Alert if duration approaches 80% of TTL
  * - Track lock acquisition failures (429 responses)
  */
+
+```typescript
+// lib/redis-config.ts
+export function getRedisLockTTL(): number {
+  const rawValue = process.env.REDIS_LOCK_TTL ?? '60';
+  const parsed = parseInt(rawValue, 10);
+
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    console.warn(
+      `[Redis] Invalid REDIS_LOCK_TTL value "${rawValue}". Falling back to default TTL of 60 seconds.`
+    );
+    return 60;
+  }
+
+  return parsed;
+}
+```
+
+import { getRedisLockTTL } from '@/lib/redis-config';
+
 class DistributedSeedMutex {
   private readonly lockKey = 'dev:seed:lock';
   // Configurable TTL with safe default of 60 seconds
   // Override via environment variable: REDIS_LOCK_TTL=90
-  private readonly lockTTL = parseInt(process.env.REDIS_LOCK_TTL || '60', 10);
+  private readonly lockTTL = getRedisLockTTL();
 
   async acquire(): Promise<boolean> {
     try {
@@ -774,7 +794,7 @@ export async function POST(request: Request) {
 
     // Monitor operation duration with clock skew protection
     const duration = Date.now() - startTime;
-    const lockTTL = parseInt(process.env.REDIS_LOCK_TTL || '60', 10) * 1000; // Convert to ms
+    const lockTTL = getRedisLockTTL() * 1000; // Convert to ms
     const ttlThreshold = lockTTL * 0.8; // Alert if using >80% of TTL
 
     // Guard against clock skew (negative duration shouldn't happen but could in edge cases)
@@ -959,8 +979,18 @@ import { NextResponse } from 'next/server';
 import { DistributedSeedMutex } from '@/lib/redis-mutex';
 
 export async function GET() {
-  const mutex = new DistributedSeedMutex();
-  const health = await mutex.healthCheck();
+  let health: { status: string; healthy: boolean };
+  try {
+    const mutex = new DistributedSeedMutex();
+    health = await mutex.healthCheck();
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[Health] Failed to check Redis health:', errorMessage);
+    health = {
+      status: 'error',
+      healthy: false,
+    };
+  }
 
   return NextResponse.json(health, {
     status: health.healthy ? 200 : 503,
@@ -1098,7 +1128,7 @@ redisInstance.on('reconnecting', (delay) => {
 // Add TTL monitoring to route handler for alerting
 // In your POST handler after operation completes:
 const duration = Date.now() - startTime;
-const lockTTL = parseInt(process.env.REDIS_LOCK_TTL || '60', 10) * 1000;
+const lockTTL = getRedisLockTTL() * 1000;
 
 if (duration > lockTTL * 0.8) {
   // Alert via monitoring service
@@ -1290,10 +1320,17 @@ The singleton pattern used in `getRedis()` intentionally reuses **one connection
 
 - **Traditional servers (PM2, Docker)**: One connection is shared across all incoming requests within the same process. This is safe because ioredis uses connection pooling internally and commands are queued.
 
-- **Monitoring**: Track connection count in your Redis dashboard. Expected pattern:
+- **Monitoring**: Track connection count in your Redis dashboard.
   - Development (single instance): 1 connection
   - Production (N serverless instances): N connections (one per active instance)
-  - If you see connection count continuously growing, investigate for connection leaks
+  - Expected behavior:
+    - Increases gradually during traffic spikes as new instances spin up
+    - Plateaus once traffic stabilizes
+    - Decreases during low-traffic periods as instances scale down
+  - **Investigate immediately if:**
+    - Connection count exceeds 2-3× your maximum expected concurrent instances
+    - Connection count never decreases during low traffic (possible instance leak)
+    - Connection count spikes periodically without traffic changes (possible handler leak)
 
 **Connection Lifecycle:**
 
@@ -1523,6 +1560,9 @@ export const seedAll = internalMutation({
      * - Use Convex action with external mutex service
      * - Redesign to make seed operations idempotent (insert-or-ignore pattern)
      */
+    // IMPORTANT: If you ever need to call this from public-facing endpoints or
+    // from multiple sources, implement the Redis distributed lock or idempotency
+    // token approaches documented in DEV_SEED_CONCURRENCY.md immediately.
 
     // Safety: Check for seed lock to prevent concurrent/duplicate runs
     // This provides additional protection beyond the template count check
@@ -2068,7 +2108,7 @@ echo "🔍 Database Verification:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Check for duplicate templates
-if command -v npx &> /dev/null; then
+if command -v npx >/dev/null 2>&1 && [ -n "$CONVEX_URL" ]; then
   echo "Checking for duplicate entries..."
   npx convex query devSeed:checkDuplicates 2>&1
 
@@ -2076,8 +2116,11 @@ if command -v npx &> /dev/null; then
   echo ""
   echo "Verifying template count..."
   actual_count=$(npx convex query builder_resume_templates:count 2>&1 | tail -1)
+  echo "Reported total: $actual_count"
+else
+  echo "⚠️  Database verification skipped (requires Convex CLI and CONVEX_URL)"
+fi
 
-  # Dynamically determine expected count from seed data or environment variable
   # Set SEED_EXPECTED_TEMPLATES in your environment or CI configuration
   expected_count=${SEED_EXPECTED_TEMPLATES:-3}
 
@@ -2477,12 +2520,30 @@ class SeedMutex { /* ... */ }
 - Update documentation
 - Add migration notes
 
+### Emergency Rollback
+
+If Redis-based locking causes issues in production:
+
+1. **Immediate**: Revert the route handler to use idempotency tokens (Solution 2)
+   - Keep `NODE_ENV=production` (do NOT switch to development)
+   - Rely on database-level uniqueness constraints as the final safeguard
+2. **Within 1 hour**: Diagnose root cause (e.g., Redis connectivity, TTL misconfiguration, authentication failure)
+3. **Within 24 hours**: Resolve the issue and redeploy the Redis-based solution
+4. **Document**: Capture a post-mortem to prevent recurrence
+
+Always maintain a tested fallback strategy before switching to the distributed lock.
+
+
 ## References
 
-- [Redis SETNX for Distributed Locking](https://redis.io/docs/manual/patterns/distributed-locks/)
-- [Idempotency in Distributed Systems](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)
-- [Convex Transactions](https://docs.convex.dev/database/writes#transactions)
-- [Next.js API Routes in Serverless](https://nextjs.org/docs/api-routes/introduction)
+- [Redis Distributed Locks (Redlock)](https://redis.io/docs/latest/develop/use/keyspace/locking/)
+- [Preventing Deadlocks](https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/deadlocks/)
+- [ioredis GitHub: Connection & Retry Strategies](https://github.com/luin/ioredis#connection-events)
+- [Idempotency in Distributed Systems](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-apis/)
+- [Convex Transactions & Constraints](https://docs.convex.dev/database/writes)
+- [Next.js Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)
+- [Designing Data-Intensive Applications - Distributed Systems](https://dataintensive.net)
+- [Patterns of Distributed Systems: Distributed Locking](https://martinfowler.com/articles/patterns-of-distributed-systems/)
 
 ---
 

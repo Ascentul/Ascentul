@@ -172,7 +172,7 @@ export function NewResumeDialog({ open, onOpenChange, onSubmit }: NewResumeDialo
                       AI will create professional resume content based on your target role
                     </p>
                     {autoPopulate && generateWithAI && (
-                      <p className="text-xs mt-1 text-amber-600 dark:text-amber-500">
+                      <p className="text-xs mt-1 text-amber-600 dark:text-amber-500" role="status">
                         Note: AI-generated content will override imported profile data
                       </p>
                     )}

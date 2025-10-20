@@ -9,7 +9,7 @@ export interface ThumbnailCacheEntry {
 }
 
 // NOTE: Each dataURL may consume several hundred KB of memory. Monitor usage if this cap is raised.
-const MAX_CACHE_SIZE = 100;
+export const THUMBNAIL_CACHE_CAPACITY = 100;
 const cache = new Map<string, ThumbnailCacheEntry>();
 
 export function getCachedThumbnail(documentId: string, lastUpdated?: number | null): string | null {
@@ -54,7 +54,7 @@ export function clearThumbnailCache(): void {
 }
 
 function evictOldestIfNeeded(): void {
-  while (cache.size >= MAX_CACHE_SIZE) {
+  while (cache.size >= THUMBNAIL_CACHE_CAPACITY) {
     const oldestKey = cache.keys().next().value as string | undefined;
     if (oldestKey === undefined) {
       break;

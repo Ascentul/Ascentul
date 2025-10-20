@@ -65,7 +65,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     const elapsed = Date.now() - creationStartTime
 
     if (elapsed >= CREATION_TIMEOUT_MS) {
-      console.warn('[AuthWrapper] User creation timed out - resetting state')
+      console.warn('[AuthWrapper] User creation exceeded timeout - resetting state')
       setIsCreatingUser(false)
       setCreationStartTime(null)
       return

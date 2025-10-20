@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
@@ -75,7 +75,7 @@ export function OnboardingTour({
 
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isVisible]);
+  }, [isVisible, handleSkip]);
 
   // Update target element and position when step changes
   useEffect(() => {
@@ -177,46 +177,46 @@ export function OnboardingTour({
     // mitigates performance impact, but memoization is cleaner.
   }, [currentStep, isVisible, steps]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
       handleComplete();
     }
-  };
+  }, [currentStep, steps.length, handleComplete]);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
-  };
+  }, [currentStep]);
 
-  const persistCompletion = (key: string) => {
+  const persistCompletion = useCallback((key: string) => {
     try {
       localStorage.setItem(key, 'true');
     } catch (error) {
       // localStorage unavailable - continue anyway
       console.warn('localStorage unavailable, onboarding state will not persist');
     }
-  };
+  }, []);
 
-  const handleComplete = () => {
+  const handleComplete = useCallback(() => {
     persistCompletion(localStorageKey);
     setIsVisible(false);
     if (targetElement) {
       targetElement.classList.remove('onboarding-highlight');
     }
     onComplete?.();
-  };
+  }, [localStorageKey, targetElement, onComplete, persistCompletion]);
 
-  const handleSkip = () => {
+  const handleSkip = useCallback(() => {
     persistCompletion(localStorageKey);
     setIsVisible(false);
     if (targetElement) {
       targetElement.classList.remove('onboarding-highlight');
     }
     onSkip?.();
-  };
+  }, [localStorageKey, targetElement, onSkip, persistCompletion]);
 
   if (!isVisible || steps.length === 0) {
     return null;
@@ -357,7 +357,7 @@ export function OnboardingTour({
 export function useOnboarding(localStorageKey = 'onboarding-completed') {
   const [hasCompleted, setHasCompleted] = useState(() => {
     // Initialize from localStorage immediately to avoid flash of incorrect state
-    if (typeof window === 'undefined') return true;
+    if (typeof window === 'undefined') return false;
     try {
       return !!localStorage.getItem(localStorageKey);
     } catch (error) {

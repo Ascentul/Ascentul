@@ -145,18 +145,25 @@ export async function POST(req: NextRequest) {
     // Set cooldown after verifying ownership
     cooldownMap.set(resumeId, now);
 
-    // Incremental cleanup: avoid O(n) spikes by cleaning up oldest entries by timestamp
+    // Incremental cleanup: filter expired entries first, then cap map size
     if (cooldownMap.size > 100) {
       const CLEANUP_AGE = 60 * 1000; // 1 minute (enough buffer beyond 20s cooldown)
       const MAX_CLEANUP_PER_REQUEST = 10; // Clean up 10 oldest entries at a time
 
-      // Sort by timestamp (oldest first) to ensure we clean actual oldest entries
-      const sortedEntries = Array.from(cooldownMap.entries())
-        .sort(([, a], [, b]) => a - b) // Sort by timestamp ascending (oldest first)
+      const expiredEntries = Array.from(cooldownMap.entries())
+        .filter(([, timestamp]) => now - timestamp > CLEANUP_AGE)
         .slice(0, MAX_CLEANUP_PER_REQUEST);
 
-      for (const [key, timestamp] of sortedEntries) {
-        if (now - timestamp > CLEANUP_AGE) {
+      for (const [key] of expiredEntries) {
+        cooldownMap.delete(key);
+      }
+
+      if (cooldownMap.size > 100) {
+        const oldestEntries = Array.from(cooldownMap.entries())
+          .sort(([, a], [, b]) => a - b)
+          .slice(0, MAX_CLEANUP_PER_REQUEST);
+
+        for (const [key] of oldestEntries) {
           cooldownMap.delete(key);
         }
       }

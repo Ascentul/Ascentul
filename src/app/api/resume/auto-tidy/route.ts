@@ -223,7 +223,7 @@ export async function POST(req: NextRequest) {
         const isModelError =
           error.code === 'model_not_found' ||
           error.status === 404 ||
-          (error.message && /model.*not.*found|invalid.*model/i.test(error.message));
+          (error.message && /(model|deployment).*(?:not found|does not exist|is not available)|invalid.*model(?:\s+name)?/i.test(error.message));
 
         if (isModelError && !hasTriedFallback && currentModel !== FALLBACK_MODEL) {
           console.log(`Model error detected. Falling back to ${FALLBACK_MODEL}`);

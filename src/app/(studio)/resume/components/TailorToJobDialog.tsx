@@ -13,7 +13,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import type { Id } from '../../../../../convex/_generated/dataModel';
-import type { ResumeBlock } from '@/lib/validators/resume';
+import type {
+  ResumeBlock,
+  HeaderBlockData,
+  SummaryBlockData,
+  SkillsBlockData,
+  ExperienceItem as ResumeExperienceItem,
+  EducationItem,
+  ProjectItem as ResumeProjectItem,
+  CustomBlockData,
+} from '@/lib/validators/resume';
 
 interface TailorToJobDialogProps {
   open: boolean;
@@ -22,6 +31,45 @@ interface TailorToJobDialogProps {
   currentBlocks: ResumeBlock[];
   onAccept: (tailoredBlocks: ResumeBlock[]) => void;
 }
+
+type TailoredHeaderData = {
+  name?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+} & Partial<HeaderBlockData>;
+
+type TailoredSummaryData = {
+  text?: string;
+} & Partial<SummaryBlockData>;
+
+type TailoredSkillsCategory = {
+  name?: string;
+  skills?: string[];
+};
+
+type TailoredSkillsData = {
+  categories?: TailoredSkillsCategory[];
+} & Partial<SkillsBlockData>;
+
+type TailoredExperienceItem = {
+  title?: string;
+  startDate?: string;
+  endDate?: string;
+} & Partial<ResumeExperienceItem>;
+
+type TailoredEducationItem = {
+  graduationDate?: string;
+  startDate?: string;
+} & Partial<EducationItem>;
+
+type TailoredProjectItem = {
+  technologies?: string[];
+} & Partial<ResumeProjectItem>;
+
+type TailoredCustomData = {
+  title?: string;
+} & Partial<CustomBlockData>;
 
 export function TailorToJobDialog({
   open,
@@ -43,6 +91,8 @@ export function TailorToJobDialog({
     setError(null);
     onOpenChange(false);
   };
+
+
 
   const handleGenerate = async () => {
     if (!jobDescription.trim()) return;
@@ -248,97 +298,203 @@ function renderBlockContent(block: ResumeBlock): React.ReactNode {
 
   // Header block
   if (block.type === 'header') {
+    const headerData = data as TailoredHeaderData;
+    const fullName = headerData.fullName ?? headerData.name;
+    const title = headerData.title;
+    const contactEmail = headerData.contact?.email ?? headerData.email;
+    const contactPhone = headerData.contact?.phone ?? headerData.phone;
+    const contactLocation = headerData.contact?.location ?? headerData.location;
+
     return (
       <>
-        <div className="font-semibold">{data.name}</div>
-        {data.title && <div className="text-gray-600">{data.title}</div>}
-        {data.email && <div className="text-sm">{data.email}</div>}
-        {data.phone && <div className="text-sm">{data.phone}</div>}
-        {data.location && <div className="text-sm">{data.location}</div>}
+        {fullName && <div className="font-semibold">{fullName}</div>}
+        {title && <div className="text-gray-600">{title}</div>}
+        {contactEmail && <div className="text-sm">{contactEmail}</div>}
+        {contactPhone && <div className="text-sm">{contactPhone}</div>}
+        {contactLocation && <div className="text-sm">{contactLocation}</div>}
       </>
     );
   }
 
   // Summary block
   if (block.type === 'summary') {
-    return <div className="whitespace-pre-wrap">{data.text}</div>;
+    const summaryData = data as TailoredSummaryData;
+    const content = summaryData.paragraph ?? summaryData.text ?? '';
+    return <div className="whitespace-pre-wrap">{content}</div>;
   }
 
   // Skills block
   if (block.type === 'skills') {
+    const skillsData = data as TailoredSkillsData;
+    const categories = skillsData.categories ?? [];
+    const primary = skillsData.primary ?? [];
+    const secondary = skillsData.secondary ?? [];
+
+    if (categories.length > 0) {
+      return (
+        <>
+          {categories.map((category, i) => {
+            if (!category?.name && !(category?.skills && category.skills.length > 0)) return null;
+            return (
+              <div key={`${category.name ?? 'category'}-${i}`}>
+                {category.name && (
+                  <>
+                    <span className="font-medium">{category.name}:</span>{' '}
+                  </>
+                )}
+                {category.skills?.join(', ')}
+              </div>
+            );
+          })}
+        </>
+      );
+    }
+
     return (
       <>
-        {data.categories?.map((cat: any, i: number) => (
-          <div key={i}>
-            <span className="font-medium">{cat.name}:</span>{' '}
-            {cat.skills?.join(', ')}
+        {primary.length > 0 && (
+          <div>
+            <span className="font-medium">Primary:</span>{' '}
+            {primary.join(', ')}
           </div>
-        ))}
+        )}
+        {secondary.length > 0 && (
+          <div>
+            <span className="font-medium">Secondary:</span>{' '}
+            {secondary.join(', ')}
+          </div>
+        )}
       </>
     );
   }
 
   // Experience block
   if (block.type === 'experience') {
+    const experienceData = data as TailoredExperienceData;
+    const items = experienceData.items ?? [];
+
     return (
       <>
-        {data.items?.map((item: any, i: number) => (
-          <div key={i} className="mb-3 last:mb-0">
-            <div className="font-medium">{item.title} - {item.company}</div>
-            <div className="text-xs text-gray-600">{item.startDate} - {item.endDate}</div>
-            {item.bullets && (
-              <ul className="list-disc list-inside mt-1 text-sm">
-                {item.bullets.map((bullet: string, j: number) => (
-                  <li key={j}>{bullet}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
+        {items.map((item, i) => {
+          const role = item.role ?? item.title ?? '';
+          const company = item.company ?? '';
+          const heading = [role, company].filter(Boolean).join(' - ');
+          const start = item.start ?? item.startDate ?? '';
+          const end = item.end ?? item.endDate ?? '';
+          const timeframe = [start, end].filter(Boolean).join(' - ');
+          const bullets = item.bullets ?? [];
+
+          return (
+            <div key={`experience-${i}`} className="mb-3 last:mb-0">
+              {heading && <div className="font-medium">{heading}</div>}
+              {timeframe && (
+                <div className="text-xs text-gray-600">{timeframe}</div>
+              )}
+              {bullets.length > 0 && (
+                <ul className="list-disc list-inside mt-1 text-sm">
+                  {bullets.map((bullet, j) => (
+                    <li key={`experience-${i}-bullet-${j}`}>{bullet}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
       </>
     );
   }
 
   // Education block
   if (block.type === 'education') {
+    const educationData = data as TailoredEducationData;
+    const items = educationData.items ?? [];
+
     return (
       <>
-        {data.items?.map((item: any, i: number) => (
-          <div key={i} className="mb-2 last:mb-0">
-            <div className="font-medium">{item.degree}</div>
-            <div className="text-sm">{item.school}</div>
-            <div className="text-xs text-gray-600">{item.graduationDate}</div>
-          </div>
-        ))}
+        {items.map((item, i) => {
+          const degree = item.degree ?? '';
+          const school = item.school ?? '';
+          const graduationValue =
+            item.graduationDate ?? item.end ?? item.startDate ?? '';
+          const graduationLabel = item.graduationDate
+            ? 'Graduated'
+            : item.end
+            ? 'Ended'
+            : item.startDate
+            ? 'Started'
+            : '';
+
+          return (
+            <div key={`education-${i}`} className="mb-2 last:mb-0">
+              {degree && <div className="font-medium">{degree}</div>}
+              {school && <div className="text-sm">{school}</div>}
+              {graduationValue && (
+                <div className="text-xs text-gray-600">
+                  {graduationLabel ? `${graduationLabel}: ` : ''}
+                  {graduationValue}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </>
     );
   }
 
   // Projects block
   if (block.type === 'projects') {
+    const projectsData = data as TailoredProjectsData;
+    const items = projectsData.items ?? [];
+
     return (
       <>
-        {data.items?.map((item: any, i: number) => (
-          <div key={i} className="mb-3 last:mb-0">
-            <div className="font-medium">{item.name}</div>
-            {item.description && <div className="text-sm">{item.description}</div>}
-            {item.technologies && (
-              <div className="text-xs text-gray-600 mt-1">
-                Tech: {item.technologies.join(', ')}
-              </div>
-            )}
-          </div>
-        ))}
+        {items.map((item, i) => {
+          const technologies = item.technologies ?? [];
+          const bullets = item.bullets ?? [];
+
+          return (
+            <div key={`project-${i}`} className="mb-3 last:mb-0">
+              {item.name && <div className="font-medium">{item.name}</div>}
+              {item.description && (
+                <div className="text-sm">{item.description}</div>
+              )}
+              {technologies.length > 0 && (
+                <div className="text-xs text-gray-600 mt-1">
+                  Tech: {technologies.join(', ')}
+                </div>
+              )}
+              {bullets.length > 0 && (
+                <ul className="list-disc list-inside mt-1 text-sm">
+                  {bullets.map((bullet, j) => (
+                    <li key={`project-${i}-bullet-${j}`}>{bullet}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
       </>
     );
   }
 
   // Custom block
   if (block.type === 'custom') {
+    const customData = data as TailoredCustomData;
+    const heading = customData.heading ?? customData.title;
+    const bullets = customData.bullets ?? [];
+    const content = customData.content ?? '';
+
     return (
       <>
-        <div className="font-medium">{data.title}</div>
-        <div className="whitespace-pre-wrap text-sm">{data.content}</div>
+        {heading && <div className="font-medium">{heading}</div>}
+        {content && <div className="whitespace-pre-wrap text-sm">{content}</div>}
+        {bullets.length > 0 && (
+          <ul className="list-disc list-inside mt-1 text-sm">
+            {bullets.map((bullet, index) => (
+              <li key={`custom-bullet-${index}`}>{bullet}</li>
+            ))}
+          </ul>
+        )}
       </>
     );
   }

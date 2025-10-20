@@ -31,21 +31,70 @@ interface SummaryBlockData {
  * Type guards for block data validation
  */
 function isExperienceBlockData(data: unknown): data is ExperienceBlockData {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'items' in data &&
-    Array.isArray((data as ExperienceBlockData).items)
-  );
+  if (typeof data !== 'object' || data === null || !('items' in data)) {
+    return false;
+  }
+
+  const items = (data as ExperienceBlockData).items;
+  if (!Array.isArray(items)) {
+    return false;
+  }
+
+  return items.every((item) => {
+    if (typeof item !== 'object' || item === null) {
+      return false;
+    }
+
+    const { role, company, start, end, bullets } = item as {
+      role?: unknown;
+      company?: unknown;
+      start?: unknown;
+      end?: unknown;
+      bullets?: unknown;
+    };
+
+    if (
+      typeof role !== 'string' ||
+      typeof company !== 'string' ||
+      typeof start !== 'string' ||
+      typeof end !== 'string'
+    ) {
+      return false;
+    }
+
+    if (bullets !== undefined) {
+      return Array.isArray(bullets) && bullets.every((bullet) => typeof bullet === 'string');
+    }
+
+    return true;
+  });
 }
 
 function isSkillsBlockData(data: unknown): data is SkillsBlockData {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    (('primary' in data && Array.isArray((data as SkillsBlockData).primary)) ||
-      ('secondary' in data && Array.isArray((data as SkillsBlockData).secondary)))
-  );
+  if (typeof data !== 'object' || data === null) {
+    return false;
+  }
+
+  const { primary, secondary } = data as SkillsBlockData;
+  const isStringArray = (value: unknown): value is string[] =>
+    Array.isArray(value) && value.every((item) => typeof item === 'string');
+
+  const hasPrimary = primary !== undefined;
+  const hasSecondary = secondary !== undefined;
+
+  if (!hasPrimary && !hasSecondary) {
+    return false;
+  }
+
+  if (primary !== undefined && !isStringArray(primary)) {
+    return false;
+  }
+
+  if (secondary !== undefined && !isStringArray(secondary)) {
+    return false;
+  }
+
+  return true;
 }
 
 function isSummaryBlockData(data: unknown): data is SummaryBlockData {
@@ -83,7 +132,7 @@ function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash = hash & hash; // Convert to 32-bit integer
+    hash = hash | 0; // Convert to 32-bit integer
   }
   return Math.abs(hash);
 }
@@ -403,7 +452,7 @@ export function analyzeSummary(paragraph: string): ContentSuggestion[] {
       type: 'length',
       priority: 'medium',
       message: 'Summary is too long',
-      detail: 'Keep it concise - 2-3 sentences (under 300 characters)',
+      detail: 'Keep it concise - 2-3 sentences (300 characters or less)',
     });
   }
 

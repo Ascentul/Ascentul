@@ -188,8 +188,8 @@ describe('getBase64Overhead', () => {
   });
 
   it('should calculate exact size for 4 bytes', () => {
-    // 4 bytes need 8 base64 characters (4 data + 2 padding + 2 data)
-    // ceil(4/3) = 2, so 2 * 4 = 8
+    // 4 bytes need 8 base64 characters
+    // ceil(4/3) = 2 groups, so 2 * 4 = 8 characters total
     const result = getBase64Overhead(4);
 
     expect(result.binarySize).toBe(4);

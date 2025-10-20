@@ -338,7 +338,7 @@ export function useThumbnailGenerator(resumeId, options = {}) {
 
     // RECOMMENDED: Extract blob directly from canvas (most efficient)
     return new Promise((resolve, reject) => {
-      canvas.toBlob(async (blob) => {
+      canvas.toBlob(async (blob: Blob | null) => {
         if (!blob) {
           reject(new Error('Failed to create blob from canvas'));
           return;
@@ -396,7 +396,10 @@ export const uploadThumbnailToStorage = mutation({
     if (!resume) {
       throw new Error("Resume not found");
     }
-    // Add ownership check here
+    // Verify ownership
+    if (resume.userId !== identity.subject) {
+      throw new Error("Forbidden: You do not own this resume");
+    }
 
     // Upload to Convex storage
     const storageId = await ctx.storage.store(args.thumbnailBlob);
@@ -705,13 +708,15 @@ async function migrateThumbnails(ctx: any) {
     cursor = page.nextCursor;
 
     // Safety check: ensure cursor changed to prevent infinite loops
-    // Note: This check uses strict equality (===) which assumes:
-    // 1. Convex cursors are stable strings that can be compared with ===
-    // 2. Cursor format doesn't change between requests
-    // 3. No cursor encoding/normalization happens
-    //
-    // The resume ID tracking above provides defense-in-depth if this check
-    // fails due to cursor format changes or encoding issues.
+    // Layer 3: Cursor Comparison (Secondary Defense - REQUIRED)
+    // - Uses strict equality (`cursor === previousCursor`) for detection.
+    // - Assumes cursors are stable strings without encoding changes.
+    // Limitations & Why Layer 2 matters:
+    // - If Convex changes cursor encoding/serialization, different cursors could
+    //   compare equal (or the same cursor could compare unequal).
+    // - Layer 2 resume ID tracking is immune to encoding changes and serves as
+    //   the PRIMARY defense. This check provides an early warning but should
+    //   never replace ID tracking.
     if (cursor !== null && cursor === previousCursor) {
       console.error('Pagination cursor did not change between iterations');
       console.error(`Previous cursor: ${previousCursor}`);
@@ -848,12 +853,64 @@ npx convex query builder_resumes:listResumesForMigration '{"limit": 10}'
    await ctx.db.patch(userId, { isAdmin: true });
    ```
 
-3. **Audit logging**: Consider logging migration query access:
+3. **Audit logging (required)**: Persist every migration query invocation (who, when, status) to a dedicated audit log store:
    ```typescript
-   console.log(`[AUDIT] Migration query accessed by ${identity.email} at ${new Date().toISOString()}`);
+   await ctx.db.insert('auditLogs', {
+     userId: user._id,
+     email: identity.email,
+     action: 'listResumesForMigration',
+     timestamp: Date.now(),
+     status: 'success',
+     ipAddress: ctx.request?.headers.get('x-forwarded-for'),
+   });
+   ```
+   - Retain audit logs per compliance policy (e.g., 90–365 days) and restrict access to security/ops teams.
+
+4. **Rate limiting (required before broader exposure)**: Implement a per-admin limiter (e.g., token bucket of 10 requests/minute) so repeated calls cannot exhaust resources.
+   - Configure automatic cleanup so rate-limit records do not grow unbounded:
+     - Preferred: apply a TTL/expiration on `seed_rate_limits` if the database supports it.
+     - Alternative: run a scheduled mutation that deletes entries older than the window. Example:
+       ```typescript
+       export const cleanupExpiredSeedRateLimits = mutation({
+         handler: async (ctx) => {
+           const windowStart = Date.now() - 60_000;
+           const expired = await ctx.db
+             .query('seed_rate_limits')
+             .filter((entry) => entry.timestamp < windowStart)
+             .collect();
+
+           let deleted = 0;
+           for (const entry of expired) {
+             await ctx.db.delete(entry._id);
+             deleted++;
+           }
+
+           return { deleted };
+         },
+       });
+       ```
+     - Schedule the cleanup (cron/background job) before enabling rate limits in higher environments.
+   ```typescript
+   const RATE_LIMIT_MAX = 10; // per admin per minute
+   const now = Date.now();
+   const windowStart = now - 60_000;
+
+   const usage = await ctx.db.query('seed_rate_limits')
+     .withIndex('by_admin', (q) => q.eq('adminId', user._id))
+     .filter((entry) => entry.timestamp >= windowStart)
+     .collect();
+
+   if (usage.length >= RATE_LIMIT_MAX) {
+     throw new Error('Rate limit exceeded for migration query');
+   }
+
+   await ctx.db.insert('seed_rate_limits', {
+     adminId: user._id,
+     timestamp: now,
+   });
    ```
 
-4. **Rate limiting**: Migration script runs client-side, so implement query rate limits if needed
+   - Monitor rate-limit breaches and alert on sustained violations; adjust thresholds before expanding access.
 
 ### Phase 4: Deprecate Base64 Field (Week 3)
 
@@ -1142,6 +1199,8 @@ canvas.toBlob((blob) => {
 
 ```typescript
 // In scripts/migrate-thumbnails.ts
+import { FEATURE_FLAGS } from '@/convex/lib/featureFlags';
+
 async function migrateThumbnails(ctx: any) {
   const startTime = Date.now();
   const metrics = {
@@ -1152,6 +1211,8 @@ async function migrateThumbnails(ctx: any) {
     batches: 0,
     errors: [] as Array<{ resumeId: string; error: string }>,
   };
+  const progressInterval = FEATURE_FLAGS.THUMBNAIL_MIGRATION_PROGRESS_LOG_INTERVAL;
+  // Ops guidance: keep this interval at 100-500 for 10k-100k migrations to avoid noisy logs.
 
   console.log(`[${new Date().toISOString()}] Starting thumbnail migration...`);
 
@@ -1204,7 +1265,9 @@ async function migrateThumbnails(ctx: any) {
         });
 
         metrics.migrated++;
-        console.log(`  ✓ Migrated resume ${resume._id} (${blob.size} bytes)`);
+        if (progressInterval > 0 && metrics.migrated % progressInterval === 0) {
+          console.log(`  • Progress: ${metrics.migrated} resumes migrated so far`);
+        }
       } catch (error) {
         metrics.failed++;
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1214,7 +1277,9 @@ async function migrateThumbnails(ctx: any) {
     }
 
     const batchDuration = Date.now() - batchStartTime;
-    console.log(`[Batch ${metrics.batches}] Completed in ${batchDuration}ms\n`);
+    const avgTimePerResume = page.resumes.length > 0 ? (batchDuration / page.resumes.length).toFixed(2) : '0';
+    console.log(`[Batch ${metrics.batches}] Completed in ${batchDuration}ms (${avgTimePerResume}ms/resume)`);
+
 
     // Save previous cursor for validation
     const previousCursor = cursor;
@@ -1254,6 +1319,8 @@ async function migrateThumbnails(ctx: any) {
   return metrics;
 }
 ```
+
+Progress logging is configured via the `THUMBNAIL_MIGRATION_PROGRESS_LOG_INTERVAL` feature flag, so ops teams can tune visibility without code changes (default 100 logs roughly once per 100 migrated resumes).
 
 ### Production Monitoring
 
@@ -1411,6 +1478,11 @@ describe('dataUrlToBlob', () => {
 **2. Size Calculation Tests** (`tests/unit/thumbnail-sizing.test.ts`):
 
 ```typescript
+const calculateReduction = (before: number, after: number) => {
+  if (before <= 0) return 0;
+  return ((before - after) / before) * 100;
+};
+
 describe('thumbnail size calculations', () => {
   it('should correctly calculate base64 overhead', () => {
     const binarySize = 100000; // 100KB
@@ -1426,6 +1498,16 @@ describe('thumbnail size calculations', () => {
     const reduction = ((before - after) / before) * 100;
 
     expect(reduction).toBeCloseTo(66.7, 1);
+  });
+
+  it('should handle zero-byte files', () => {
+    expect(() => calculateReduction(0, 0)).not.toThrow();
+    expect(calculateReduction(0, 0)).toBe(0);
+  });
+
+  it('should handle very large files', () => {
+    const reduction = calculateReduction(100_000_000, 50_000_000);
+    expect(reduction).toBeCloseTo(50, 1);
   });
 });
 ```
@@ -1776,6 +1858,24 @@ describe('RecordCard Thumbnail Display', () => {
     expect(src).toMatch(/^data:image\/(png|jpeg);base64,/);
   });
 
+
+  test('should honor base64 rollback flag', async ({ page }) => {
+    // Simulate feature flag override so legacy data path is used
+    await page.route('**/api/feature-flags', (route) => {
+      route.fulfill({
+        status: 200,
+        body: JSON.stringify({ THUMBNAIL_PREFER_BASE64: true }),
+      });
+    });
+
+    await page.goto('/dashboard');
+
+    const thumbnail = page.locator("[data-testid='resume-thumbnail']").first();
+    await expect(thumbnail).toBeVisible();
+
+    const src = await thumbnail.getAttribute('src');
+    expect(src).toMatch(/^data:image\/(png|jpeg);base64,/);
+  });
   test('should lazy load thumbnails', async ({ page }) => {
     await page.goto('/dashboard');
 
@@ -1942,7 +2042,7 @@ describe('thumbnail fallback behavior', () => {
     const t = convexTest();
 
     // ✅ Use Vitest's env mocking utilities for proper test isolation
-    const { unstubAllEnvs } = vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'true');
+    vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'true');
 
     try {
       const storageId = await t.storage.store(new Uint8Array([1, 2, 3]));
@@ -1959,7 +2059,7 @@ describe('thumbnail fallback behavior', () => {
       expect(result.source).toBe('base64');
     } finally {
       // Always clean up env mocks to prevent side effects
-      unstubAllEnvs();
+      vi.unstubAllEnvs();
     }
   });
 
@@ -1967,7 +2067,7 @@ describe('thumbnail fallback behavior', () => {
     const t = convexTest();
 
     // Explicitly ensure flag is not set (test isolation)
-    const { unstubAllEnvs } = vi.stubEnv('THUMBNAIL_PREFER_BASE64', undefined);
+    vi.stubEnv('THUMBNAIL_PREFER_BASE64', '');
 
     try {
       const storageId = await t.storage.store(new Uint8Array([1, 2, 3]));
@@ -1983,7 +2083,7 @@ describe('thumbnail fallback behavior', () => {
       // Should use storage by default
       expect(result.source).toBe('storage');
     } finally {
-      unstubAllEnvs();
+      vi.unstubAllEnvs();
     }
   });
 });
@@ -2019,12 +2119,12 @@ import { vi } from 'vitest';
 
 it('test with feature flag', () => {
   // Vitest provides proper env stubbing
-  const { unstubAllEnvs } = vi.stubEnv('FEATURE_FLAG', 'true');
+  vi.stubEnv('FEATURE_FLAG', 'true');
 
   try {
     // Test code here
   } finally {
-    unstubAllEnvs(); // Always cleanup, even on test failure
+    vi.unstubAllEnvs(); // Always cleanup, even on test failure
   }
 });
 ```
@@ -2093,8 +2193,8 @@ describe('Thumbnail Tests', () => {
   });
 
   it('test with feature flag enabled', async () => {
-    const { unstubAllEnvs } = vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'true');
-    envCleanup = unstubAllEnvs;
+    vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'true');
+    envCleanup = () => vi.unstubAllEnvs();
 
     // Test code - cleanup happens automatically in afterEach
     const result = await t.query(...);
@@ -2103,8 +2203,8 @@ describe('Thumbnail Tests', () => {
 
   it('test with feature flag disabled', async () => {
     // Previous test's env is already cleaned up
-    const { unstubAllEnvs } = vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'false');
-    envCleanup = unstubAllEnvs;
+    vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'false');
+    envCleanup = () => vi.unstubAllEnvs();
 
     const result = await t.query(...);
     expect(result.source).toBe('storage');
@@ -2122,19 +2222,16 @@ async function testWithEnv<T>(
   env: Record<string, string | undefined>,
   testFn: () => Promise<T>
 ): Promise<T> {
-  const cleanups: Array<() => void> = [];
-
   try {
     // Stub all env vars
     for (const [key, value] of Object.entries(env)) {
-      const { unstubAllEnvs } = vi.stubEnv(key, value);
-      cleanups.push(unstubAllEnvs);
+      vi.stubEnv(key, value ?? '');
     }
 
     return await testFn();
   } finally {
     // Always cleanup, even on test failure or assertion error
-    cleanups.forEach(cleanup => cleanup());
+    vi.unstubAllEnvs();
   }
 }
 
@@ -2185,11 +2282,11 @@ it('test', async () => {
 
 // ✅ CORRECT: try-finally guarantees cleanup
 it('test', async () => {
-  const { unstubAllEnvs } = vi.stubEnv('FLAG', 'true');
+  vi.stubEnv('FLAG', 'true');
   try {
     await someAsyncOperation();
   } finally {
-    unstubAllEnvs(); // Always executes
+    vi.unstubAllEnvs(); // Always executes
   }
 });
 ```
@@ -2259,6 +2356,13 @@ export const FEATURE_FLAGS = {
    * @default 100
    */
   THUMBNAIL_MIGRATION_BATCH_SIZE: parseIntEnv('THUMBNAIL_MIGRATION_BATCH_SIZE', 100),
+  /**
+   * THUMBNAIL_MIGRATION_PROGRESS_LOG_INTERVAL
+   * Successful migrations between progress log entries
+   *
+   * @default 100
+   */
+  THUMBNAIL_MIGRATION_PROGRESS_LOG_INTERVAL: parseIntEnv('THUMBNAIL_MIGRATION_PROGRESS_LOG_INTERVAL', 100, { min: 1 }),
 } as const;
 
 /**
@@ -2368,88 +2472,7 @@ export const getThumbnailUrl = query({
 });
 ```
 
-**Testing Feature Flags:**
-
-```typescript
-// tests/lib/featureFlags.test.ts
-import { vi } from 'vitest';
-
-describe('Feature Flags', () => {
-  afterEach(() => {
-    // IMPORTANT: Module cache must be cleared after each test to ensure
-    // fresh env parsing. ES modules cache at import time, so changing
-    // environment variables requires module re-evaluation.
-    //
-    // Why this is necessary:
-    // - Feature flags are evaluated at module load time (top-level code)
-    // - Changing process.env after import has no effect on cached values
-    // - vi.resetModules() clears the module cache, forcing re-import
-    // - This pattern is required even in watch mode
-    //
-    // Alternative approaches that DON'T work:
-    // ❌ Using import statements (always cached)
-    // ❌ Changing process.env without resetModules (values already cached)
-    // ❌ Moving resetModules to beforeEach (cache cleared too early)
-    vi.resetModules();
-  });
-
-  it('should parse valid boolean values', () => {
-    const { unstubAllEnvs } = vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'true');
-    try {
-      // Must use require() instead of import to get fresh module after resetModules()
-      // import statements are hoisted and evaluated before test setup
-      const { FEATURE_FLAGS } = require('@/convex/lib/featureFlags');
-      expect(FEATURE_FLAGS.THUMBNAIL_PREFER_BASE64).toBe(true);
-    } finally {
-      unstubAllEnvs();
-    }
-  });
-
-  it('should use default for invalid boolean values', () => {
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation();
-    const { unstubAllEnvs } = vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'invalid');
-
-    try {
-      const { FEATURE_FLAGS } = require('@/convex/lib/featureFlags');
-
-      expect(FEATURE_FLAGS.THUMBNAIL_PREFER_BASE64).toBe(false); // Default
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid boolean value')
-      );
-    } finally {
-      unstubAllEnvs();
-      consoleWarnSpy.mockRestore();
-    }
-  });
-
-  it('should parse integer with validation', () => {
-    const { unstubAllEnvs } = vi.stubEnv('THUMBNAIL_MIGRATION_BATCH_SIZE', '50');
-    try {
-      const { FEATURE_FLAGS } = require('@/convex/lib/featureFlags');
-      expect(FEATURE_FLAGS.THUMBNAIL_MIGRATION_BATCH_SIZE).toBe(50);
-    } finally {
-      unstubAllEnvs();
-    }
-  });
-
-  it('should handle negative integers by using default', () => {
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation();
-    const { unstubAllEnvs } = vi.stubEnv('THUMBNAIL_MIGRATION_BATCH_SIZE', '-10');
-
-    try {
-      const { FEATURE_FLAGS } = require('@/convex/lib/featureFlags');
-
-      expect(FEATURE_FLAGS.THUMBNAIL_MIGRATION_BATCH_SIZE).toBe(100); // Default
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid integer value')
-      );
-    } finally {
-      unstubAllEnvs();
-      consoleWarnSpy.mockRestore();
-    }
-  });
-});
-```
+For detailed feature flag testing patterns (e.g., `vi.resetModules()`, `require()` usage, shared helpers), see [Testing Guide – Module Cache & Feature Flags](../TESTING_GUIDE.md#module-cache-feature-flags).
 
 **Testing Pattern Explanation: Why require() Instead of import**
 
@@ -2465,14 +2488,16 @@ The test pattern above uses `require()` instead of ES6 `import` statements. This
 ```typescript
 // ❌ This DOESN'T work - import is hoisted, happens before stubEnv
 import { FEATURE_FLAGS } from '@/convex/lib/featureFlags'; // Always uses initial env
-const { unstubAllEnvs } = vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'true');
+vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'true');
 expect(FEATURE_FLAGS.THUMBNAIL_PREFER_BASE64).toBe(true); // FAILS
+vi.unstubAllEnvs(); // Cleanup
 
 // ✅ This WORKS - require() is called after stubEnv and resetModules
-const { unstubAllEnvs } = vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'true');
+vi.stubEnv('THUMBNAIL_PREFER_BASE64', 'true');
 vi.resetModules(); // Clear module cache
 const { FEATURE_FLAGS } = require('@/convex/lib/featureFlags'); // Fresh import
 expect(FEATURE_FLAGS.THUMBNAIL_PREFER_BASE64).toBe(true); // PASSES
+vi.unstubAllEnvs(); // Cleanup
 ```
 
 **Common Pitfalls:**
@@ -2491,6 +2516,72 @@ expect(FEATURE_FLAGS.THUMBNAIL_PREFER_BASE64).toBe(true); // PASSES
 - If feature flags are read lazily (function-based getters)
 - If configuration is passed as constructor arguments
 - If values can be mocked/injected without module re-import
+
+**Reusable Test Helper (Recommended)**
+
+To reduce boilerplate and prevent mistakes with manual `afterEach` cleanup, wrap the pattern in a shared helper. This centralizes the `vi.stubEnv` + `vi.resetModules` sequence and guarantees cleanup even if the test throws:
+
+```typescript
+// tests/helpers/featureFlagTestHelper.ts
+import { vi } from 'vitest';
+
+/**
+ * Vitest API reference:
+ * vi.stubEnv(name: string, value: string): Vitest
+ *   - name: env var key to override
+ *   - value: replacement string shared with process.env
+ * vi.unstubAllEnvs(): void — restores all stubbed values.
+ */
+export function testWithFeatureFlag<T>(
+  flags: Record<string, string>,
+  testFn: () => Promise<T>
+): Promise<T>;
+export function testWithFeatureFlag<T>(
+  flags: Record<string, string>,
+  testFn: () => T
+): T;
+export function testWithFeatureFlag<T>(
+  flags: Record<string, string>,
+  testFn: () => Promise<T> | T
+): Promise<T> | T {
+  const cleanup = () => {
+    vi.unstubAllEnvs();
+  };
+
+  try {
+    for (const [key, value] of Object.entries(flags)) {
+      vi.stubEnv(key, value);
+    }
+
+    vi.resetModules(); // Ensure fresh import with new env values
+    const result = testFn();
+    if (result instanceof Promise) {
+      return result.finally(cleanup);
+    }
+
+    cleanup();
+    return result;
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
+}
+
+// Usage in tests
+it('should use storage by default', async () => {
+  const result = await testWithFeatureFlag({}, async () => {
+    const { FEATURE_FLAGS } = await import('@/convex/lib/featureFlags');
+    return FEATURE_FLAGS.THUMBNAIL_PREFER_BASE64;
+  });
+  expect(result).toBe(false);
+});
+```
+
+**Benefits:**
+- Eliminates duplicate cleanup logic across test files
+- Reduces risk of forgetting `vi.resetModules()` after stubbing
+- Makes the intent of each test clearer (`testWithFeatureFlag` wrapper reads like documentation)
+- Easy to extend with additional assertions or logging (e.g., capture warnings about invalid env values)
 
 **Benefits:**
 
@@ -2545,19 +2636,33 @@ The `parseBooleanEnv` and `parseIntEnv` helper functions are generic utilities t
  * @packageDocumentation
  */
 
+export interface ParseOptions<T> {
+  /**
+   * Optional validator invoked after parsing. Return `{ valid: false }` to reject the value.
+   */
+  validate?: (value: T) => { valid: boolean; reason?: string };
+}
+
 /**
  * Parse boolean environment variable with validation
  *
  * @param key - Environment variable name
  * @param defaultValue - Default value if not set or invalid
+ * @param options - Optional validation hook
  * @returns Parsed boolean value
  *
  * @example
- * const enabled = parseBooleanEnv('FEATURE_ENABLED', false);
+ * const enabled = parseBooleanEnv('FEATURE_ENABLED', false, {
+ *   validate: (value) => value ? { valid: true } : { valid: false, reason: 'Feature requires manual opt-in' }
+ * });
  *
  * @since v1
  */
-export function parseBooleanEnv(key: string, defaultValue: boolean): boolean {
+export function parseBooleanEnv(
+  key: string,
+  defaultValue: boolean,
+  options?: ParseOptions<boolean>
+): boolean {
   const value = process.env[key];
 
   if (value === undefined || value === '') {
@@ -2572,7 +2677,20 @@ export function parseBooleanEnv(key: string, defaultValue: boolean): boolean {
     return defaultValue;
   }
 
-  return value === 'true';
+  const parsed = value === 'true';
+
+  if (options?.validate) {
+    const { valid, reason } = options.validate(parsed);
+    if (!valid) {
+      console.warn(
+        `Validation failed for ${key}. ` +
+        `${reason ? `Reason: ${reason}. ` : ''}Using default: ${defaultValue}`
+      );
+      return defaultValue;
+    }
+  }
+
+  return parsed;
 }
 
 /**
@@ -2589,10 +2707,15 @@ export function parseBooleanEnv(key: string, defaultValue: boolean): boolean {
  *
  * @since v1
  */
+export interface IntParseOptions extends ParseOptions<number> {
+  min?: number;
+  max?: number;
+}
+
 export function parseIntEnv(
   key: string,
   defaultValue: number,
-  options?: { min?: number; max?: number }
+  options?: IntParseOptions
 ): number {
   const value = process.env[key];
 
@@ -2625,6 +2748,17 @@ export function parseIntEnv(
       `Using default: ${defaultValue}`
     );
     return defaultValue;
+  }
+
+  if (options?.validate) {
+    const { valid, reason } = options.validate(parsed);
+    if (!valid) {
+      console.warn(
+        `Validation failed for ${key}. ` +
+        `${reason ? `Reason: ${reason}. ` : ''}Using default: ${defaultValue}`
+      );
+      return defaultValue;
+    }
   }
 
   return parsed;
@@ -2676,6 +2810,7 @@ import { parseBooleanEnv, parseIntEnv } from './env-utils';
 export const FEATURE_FLAGS = {
   THUMBNAIL_PREFER_BASE64: parseBooleanEnv('THUMBNAIL_PREFER_BASE64', false),
   THUMBNAIL_MIGRATION_BATCH_SIZE: parseIntEnv('THUMBNAIL_MIGRATION_BATCH_SIZE', 100, {
+  THUMBNAIL_MIGRATION_PROGRESS_LOG_INTERVAL: parseIntEnv('THUMBNAIL_MIGRATION_PROGRESS_LOG_INTERVAL', 100, { min: 1, max: 1000 }),
     min: 1,
     max: 1000
   }),
@@ -2790,11 +2925,15 @@ export const SERVER_CONFIG = {
              );
 
              // Execute batch when it reaches batchSize
-             if (batch.length >= batchSize) {
-               await Promise.all(batch);
-               console.log(`Batch complete: ${repaired} repaired, ${checked} checked`);
-               batch = []; // Reset batch
-             }
+            if (batch.length >= batchSize) {
+              const batchStartTime = Date.now();
+              await Promise.all(batch);
+              const batchDuration = Date.now() - batchStartTime;
+              console.log(
+                `Batch complete in ${batchDuration}ms - ${batch.length} repairs this batch (${repaired} total, ${checked} checked)`
+              );
+              batch = []; // Reset batch
+            }
            }
          }
 
@@ -2805,10 +2944,14 @@ export const SERVER_CONFIG = {
        }
 
        // Execute remaining batch
-       if (batch.length > 0) {
-         await Promise.all(batch);
-         console.log(`Final batch complete: ${repaired} repaired, ${checked} checked`);
-       }
+      if (batch.length > 0) {
+        const batchStartTime = Date.now();
+        await Promise.all(batch);
+        const batchDuration = Date.now() - batchStartTime;
+        console.log(
+          `Final batch complete in ${batchDuration}ms - ${batch.length} repairs this batch (${repaired} total, ${checked} checked)`
+        );
+      }
 
        console.log(`\nRepair complete: ${repaired} dangling storage IDs cleared`);
        return {
@@ -2968,6 +3111,7 @@ Trigger rollback if:
 | Phase 5: Remove Legacy | 1 week | Low | Low |
 | **Total** | **5 weeks** | **Medium** | **High** |
 
+**Note:** Table assumes Phases 1-5 proceed while approvals are wrapping up. If approvals are strictly sequential, expect additional buffer (≈1 week).
 ## Immediate Action Items
 
 **⚠️ PREREQUISITE - Phase 0 Validation (MUST BE COMPLETED FIRST):**
@@ -2985,6 +3129,7 @@ Trigger rollback if:
 8. 🔲 **Final Go/No-Go decision** documented in sign-off template
 
 **⚠️ GATE CHECK: All 8 items above must be complete before proceeding to Phase 1**
+**Recommended default**: While approvals are pending, begin preparation work (code review, UI updates) in parallel—use the Parallel Path Strategy below and treat fully sequential execution as a fallback for ultra-fast approval cycles.
 
 **Only after Phase 0 sign-off is complete:**
 
@@ -2992,15 +3137,17 @@ Trigger rollback if:
 7. 🔲 Implement chosen configuration (width/format from validation)
 8. 🔲 Add lazy loading to RecordCard
 9. 🔲 Create implementation ticket for storage migration (Phases 1-5)
-10. 🔲 Schedule migration for next sprint
+10. 🔲 Implement admin query audit logging + rate limiter before exposing migration tooling
+11. 🔲 Schedule migration for next sprint
 
 **Estimated Timeline:**
-- Phase 0 (Validation): 2-3 days
+- Phase 0 (Validation & approvals): 1-2 weeks
 - Phase 1-5 (Implementation): 4 weeks
+- **Total**: 5-6 weeks (depends on approval cycle length)
 
 **Timeline Feasibility Notes:**
 
-The **2-3 day Phase 0 estimate** assumes ideal conditions:
+The **1-2 week Phase 0 estimate** assumes coordinated approvals; 2-3 days only applies in exceptionally fast orgs:
 - ✅ Validation script runs quickly (depends on dataset size)
 - ✅ QA turnaround is 1-2 business days maximum
 - ✅ PM is available for same-day or next-day approval
@@ -3065,22 +3212,52 @@ Day 3-7: QA review + PM approval (waiting...)
 - [Web Performance Best Practices](https://web.dev/fast/)
 
 ## Questions & Decisions
+1. **Should we keep base64 for backups?**
+   - ✅ Yes, we intentionally keep both fields during migration (see [Risk Mitigation](#risk-mitigation) and [Phase 3: Migrate Existing Data](#phase-3-migrate-existing-data-week-2))
+   - ✅ Base64 is deprecated but remains as fallback until Phase 5 (documented in [Risk Mitigation](#risk-mitigation))
+   - ✅ During rollback scenarios, base64 is required to restore thumbnails
 
-**Q: Why not use external storage (S3, Cloudflare R2)?**
-A: Convex storage is already available, includes CDN, and simplifies architecture. No need for external dependencies.
+2. **What if storage fails during migration?**
+   - ✅ We only delete `thumbnailStorageId` if storage lookup fails (see [Rollback Procedure](#rollback-procedure))
+   - ✅ Base64 stays intact (we never delete `thumbnailDataUrl`) for safe fallback ([Rollback Procedure](#rollback-procedure))
+   - ✅ Migration script detects storage failures and logs them (validated in [Rollback Validation Tests](#rollback-validation-tests))
+   - ✅ We can retry failed storage uploads without data loss
 
-**Q: What about users with slow connections?**
-A: Convex CDN with edge caching will improve load times globally. Consider adding progressive image loading.
+3. **Can we pause and resume migration safely?**
+   - ✅ Yes — resumability is built in via cursor-based pagination plus duplicate detection *(see summary below)*.
+   - ✅ Combined storage ID + base64 fallback checks keep data consistent (full details: [Pagination Safety](#pagination-safety-defense-in-depth-strategy))
+   - ✅ Resume markers let us restart safely from the last checkpoint (covered in [Phase 3: Migrate Existing Data](#phase-3-migrate-existing-data-week-2))
 
-**Q: Should we use WebP instead of PNG?**
-A: WebP offers better compression but PNG has better browser support. Consider as future enhancement.
+4. **What if we find new template types later?**
+   - ✅ Run Phase 0 validation again with new templates
+   - ✅ Update thumbnail settings (size/format) and rerun migration for new templates only
+   - ✅ No need to re-migrate old templates once storage IDs are in place
 
-**Q: What about thumbnail regeneration?**
-A: Keep existing regeneration logic, just change storage destination from database to file storage.
+5. **What if thumbnails are embedded in PDFs or exports?**
+   - ✅ Export pipeline keeps using base64 fallback until Phase 4; nothing breaks mid-migration.
+   - ✅ During phases 1-3, both storage and base64 representations remain available.
+   - ✅ Plan to update export pipeline once storage is fully rolled out (see [Phase 4: Deprecate Base64](#phase-4-deprecate-base64-week-4)).
+   - During phases 1-3 the export code should continue calling `getThumbnailUrl`, which already prioritizes storage URLs (Convex storage ID) and falls back to base64 when storage is unavailable.
+   - In Phase 4 update the export pipeline to embed CDN/storage URLs (or the fetched binary) instead of the legacy base64 string, then remove the base64 fallback once rollout is complete.
+   - Document the exact rollout steps for the export code in Phase 4 (feature flag or staged deploy) so exports never break mid-migration.
 
----
+6. **How do we manage storage quota limits?**
+   - ✅ Monitor storage usage via provider dashboards (Convex storage metrics, CDN reports)
+   - ✅ Migration script logs total bytes uploaded and per-batch sizes
+   - ✅ Add alerts for usage thresholds (e.g., 75%, 90%)
+   - ✅ Consider automated pruning for unused thumbnails (Phase 5+ enhancement)
 
-**Status**: 📋 Draft - Pending Review
-**Owner**: Engineering Team
-**Created**: 2025-01-16
-**Last Updated**: 2025-01-16
+7. **What is the retention policy for legacy files?**
+   - ✅ Base64 data remains until Phase 5 removal
+   - ✅ Storage files are retained indefinitely unless explicitly deleted
+   - ✅ Establish policy (e.g., purge thumbnails for deleted resumes after X days)
+
+8. **Can users delete or update thumbnails after migration?**
+   - ✅ Future UI improvements will allow manual thumbnail refresh/delete
+   - ✅ Backend supports storage replacement; ensure we remove old storage files when updating
+   - ✅ Until UI is updated, support can run repair script to clear broken storage IDs
+
+9. **What’s the cost impact of using file storage?**
+   - ✅ Rough budget: ~30KB per thumbnail → 30MB per 1,000 resumes *(baseline planning assumption)*.
+   - ✅ Compare storage provider pricing (Convex, CDN, backups) and factor egress costs for public thumbnails (see [Cost Tracking](#cost-management--monitoring)).
+   - ✅ Monitor monthly spend during Phase 3 migration to validate assumptions; adjust if usage deviates materially.

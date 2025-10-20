@@ -6,6 +6,14 @@ import { api } from "../../../../../convex/_generated/api";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const TEMPLATE_NAME = process.env.CLERK_JWT_TEMPLATE || "convex";
+if (!process.env.CLERK_JWT_TEMPLATE) {
+  console.warn(
+    `CLERK_JWT_TEMPLATE not set, falling back to "${TEMPLATE_NAME}". ` +
+    `Ensure this matches your Clerk dashboard JWT template name.`
+  );
+}
+
 /**
  * Creates an authenticated Convex HTTP client for this debug endpoint.
  *
@@ -24,7 +32,7 @@ async function getConvexClient() {
 
   const client = new ConvexHttpClient(convexUrl);
   const token = await auth().getToken({
-    template: process.env.CLERK_JWT_TEMPLATE || "convex",
+    template: TEMPLATE_NAME,
   });
 
   if (!token) {

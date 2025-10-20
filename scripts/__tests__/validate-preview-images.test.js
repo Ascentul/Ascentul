@@ -8,13 +8,14 @@
  */
 
 describe('Field extraction regex patterns', () => {
-  // Extract regex patterns from the script
-  // These patterns match the ones in validate-preview-images.js
+  // Extract regex patterns from the script implementation to avoid duplication
   // Note: Group 1 is the quote character, group 2 is the actual value
-  const idPattern = /id:\s*(["'])((?:(?!\1)[^\\]|\\.)*)\1/;
-  const slugPattern = /slug:\s*(["'])((?:(?!\1)[^\\]|\\.)*)\1/;
-  const namePattern = /name:\s*(["'])((?:(?!\1)[^\\]|\\.)*)\1/;
-  const previewPattern = /preview:\s*(["'])((?:(?!\1)[^\\]|\\.)*)\1/;
+  const {
+    idPattern,
+    slugPattern,
+    namePattern,
+    previewPattern,
+  } = require('../validate-preview-images.js');
 
   describe('namePattern - apostrophes', () => {
     it('should extract name with apostrophe in double quotes', () => {

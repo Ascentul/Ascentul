@@ -107,11 +107,18 @@
 - [ ] Run Lighthouse on all critical pages
 
 ### Load Testing
-- [ ] System tested with expected traffic volume
-- [ ] Concurrent user testing performed
+- [ ] System sustain-tested for expected traffic volume (target: ≥250 concurrent users / ≥20 RPS)
+- [ ] Concurrent user testing performed with documented ramp-up and steady-state periods
 - [ ] Database query performance validated
 - [ ] API endpoint response times acceptable
 - [ ] No memory leaks detected under load
+- [ ] SSL/TLS termination path exercised under peak load (CDN and origin)
+- [ ] Cache layers (CDN, application, database) validated; hit rate and eviction metrics meet targets under sustained load
+
+#### Load Testing Targets – Rationale
+- Baseline capacity numbers (≥250 concurrent users or ≥20 RPS) come from the Q4 product requirements doc (“Resume Builder Scalability”), which models peak traffic during campus recruiting events. Maintain this target unless the demand forecast is updated.
+- Cache hit rate goals (≥85% CDN/application, <5% evictions/hour) align with the sizing assumptions in the infra cost model. Record actual metrics in the performance test report; raise any sustained deviations before launch.
+- If the workload profile or target markets change, update the forecast and revise these checkpoints instead of accepting the defaults blindly.
 
 ---
 
@@ -349,6 +356,7 @@
 - [ ] Error messages are clear and actionable
 - [ ] Success messages are encouraging and specific
 - [ ] Button labels are descriptive (not just "Click here")
+- [ ] Internationalization/localization review completed (RTL layout, locale-aware dates/numbers/currency, translated content validated)
 
 ### Links & References
 - [ ] All external links tested and working
@@ -379,7 +387,7 @@
 - [ ] Previous version rollback tested
 - [ ] Database rollback strategy documented
 - [ ] Rollback decision criteria defined
-- [ ] Rollback can be executed within 5 minutes
+- [ ] Rollback can be executed within 5 minutes (scope: application redeploy + config revert; database rollback pre-staged, scripted, and tested)
 
 ### Business Continuity
 - [ ] Critical dependencies identified

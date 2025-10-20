@@ -201,7 +201,7 @@ function buildProjectItems(projects: any[]): Array<{
   bullets: string[];
 }> {
   return projects
-    .filter((proj) => proj.title) // Skip entries without required name field
+    .filter((proj) => proj.title) // Skip entries without required title field
     .map((proj) => ({
       name: proj.title,
       description: proj.description || "",
@@ -700,6 +700,7 @@ export const duplicateResume = mutation({
         });
       }
     } catch (error) {
+      console.error("Block duplication failed:", error);
       // Convex automatically rolls back all database writes on error,
       // including the resume created on line 520. No manual cleanup needed.
       throw new Error(`Failed to duplicate resume blocks: ${error instanceof Error ? error.message : 'Unknown error'}`);

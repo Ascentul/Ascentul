@@ -121,22 +121,26 @@ export function isBlockType<T extends ResumeBlock['type']>(
 /**
  * Safe getter for block data with type narrowing.
  */
-export function getBlockData<T extends ResumeBlock['type']>(
+export function getBlockData(block: ResumeBlock, type: 'header'): HeaderData | null;
+export function getBlockData(block: ResumeBlock, type: 'summary'): SummaryData | null;
+export function getBlockData(block: ResumeBlock, type: 'experience'): ExperienceData | null;
+export function getBlockData(block: ResumeBlock, type: 'education'): EducationData | null;
+export function getBlockData(block: ResumeBlock, type: 'skills'): SkillsData | null;
+export function getBlockData(block: ResumeBlock, type: 'projects'): ProjectsData | null;
+export function getBlockData(block: ResumeBlock, type: 'custom'): CustomData | null;
+export function getBlockData(
   block: ResumeBlock,
-  type: T
-): Extract<ResumeBlock, { type: T }>['data'] | null {
-  if (!isBlockType(block, type)) {
-    return null;
-  }
-  // Double assertion required due to TypeScript limitation:
-  // After the type guard, block is correctly narrowed to Extract<ResumeBlock, { type: T }>,
-  // but accessing block.data still yields a union of all data types (HeaderData | SummaryData | ...)
-  // instead of the specific data type. TypeScript creates an intersection type for the return value
-  // which conflicts with the union from block.data. The `as any` intermediate step bypasses this.
-  //
-  // Runtime safety: Guaranteed by isBlockType guard which validates block.type === type
-  // Alternative: Use tRPC or zod for runtime type validation to eliminate assertions entirely
-  return block.data as any as Extract<ResumeBlock, { type: T }>['data'];
+  type: ResumeBlock['type']
+):
+  | HeaderData
+  | SummaryData
+  | ExperienceData
+  | EducationData
+  | SkillsData
+  | ProjectsData
+  | CustomData
+  | null {
+  return block.type === type ? block.data : null;
 }
 
 /**

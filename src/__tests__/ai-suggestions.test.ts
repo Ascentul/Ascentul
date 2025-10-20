@@ -390,13 +390,16 @@ describe('AI Suggestions System', () => {
       expect(suggestionsByBlock.size).toBe(0);
     });
 
-    it('should handle blocks with missing data gracefully', () => {
+    it.each([
+      ['null', null],
+      ['undefined', undefined],
+    ])('should handle blocks with %s data gracefully', (_, value) => {
       const blocks: ResumeBlock[] = [
         {
           type: 'experience' as const,
           order: 0,
           data: {
-            items: null as unknown as ExperienceItem[],
+            items: value as unknown as ExperienceItem[],
           },
         },
       ];
@@ -405,23 +408,7 @@ describe('AI Suggestions System', () => {
 
       // Should not throw error
       expect(suggestionsByBlock).toBeDefined();
-    });
-
-    it('should handle blocks with undefined data gracefully', () => {
-      const blocks: ResumeBlock[] = [
-        {
-          type: 'experience' as const,
-          order: 0,
-          data: {
-            items: undefined as unknown as ExperienceItem[],
-          },
-        },
-      ];
-
-      const suggestionsByBlock = analyzeResume(blocks);
-
-      // Should not throw error
-      expect(suggestionsByBlock).toBeDefined();
+      expect(suggestionsByBlock.size).toBe(0);
     });
   });
 });

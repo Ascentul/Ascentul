@@ -150,10 +150,10 @@ Return JSON with the following TypeScript shape without extra commentary:
               return NextResponse.json({ ...parsed, usedModel: model, usedFallback: false })
             }
           } catch {
-            // continue to next model
+            console.warn(`JSON parse failed for model ${model}, trying next`)
           }
-        } catch {
-          // try next model
+        } catch (modelError) {
+          console.warn(`Model ${model} invocation failed, trying next`, modelError)
         }
       }
     }

@@ -118,6 +118,83 @@ Once conflicts are resolved, test these core flows:
 - [ ] **Enterprise Dashboard**
   - [ ] Platform-wide statistics
   - [ ] Multi-university analytics
+
+## Testing Patterns
+
+### Module Cache & Feature Flags
+
+Feature flag modules evaluate environment variables at import time. Changing `process.env` after an ESM import will not refresh cached values. Use the shared helper below to guarantee clean setup/teardown in Vitest:
+
+```typescript
+// tests/helpers/featureFlagTestHelper.ts
+import { vi } from 'vitest';
+
+/**
+ * Vitest API reference for env helpers:
+ * vi.stubEnv(name: string, value: string): Vitest
+ *   - name: environment variable to override
+ *   - value: replacement string that will be visible via process.env[name]
+ * Cleanup is performed globally with vi.unstubAllEnvs().
+ */
+export function testWithFeatureFlag<T>(
+  flags: Record<string, string>,
+  testFn: () => Promise<T>
+): Promise<T>;
+export function testWithFeatureFlag<T>(
+  flags: Record<string, string>,
+  testFn: () => T
+): T;
+export function testWithFeatureFlag<T>(
+  flags: Record<string, string>,
+  testFn: () => Promise<T> | T
+): Promise<T> | T {
+  const cleanup = () => {
+    vi.unstubAllEnvs();
+  };
+
+  try {
+    for (const [key, value] of Object.entries(flags)) {
+      vi.stubEnv(key, value);
+    }
+
+    vi.resetModules();
+    const result = testFn();
+    if (result instanceof Promise) {
+      return result.finally(cleanup);
+    }
+
+    cleanup();
+    return result;
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
+}
+```
+
+Usage:
+
+```typescript
+import { testWithFeatureFlag } from '../helpers/featureFlagTestHelper';
+
+it('reads feature flag overrides', async () => {
+  const flagValue = await testWithFeatureFlag(
+    { THUMBNAIL_PREFER_BASE64: 'true' },
+    async () => {
+      const { FEATURE_FLAGS } = await import('@/convex/lib/featureFlags');
+      return FEATURE_FLAGS.THUMBNAIL_PREFER_BASE64;
+    }
+  );
+
+  expect(flagValue).toBe(true);
+});
+```
+
+- Always call `require`/dynamic `import()` **after** `vi.resetModules()` so the module reloads with the stubbed env vars.
+- Wrap `vi.stubEnv` in `try/finally` (the helper handles this for you) to avoid leaking environment state into other tests.
+- Note: Feature flag module parses string env vars into typed values (e.g., `'true'` → `true`).
+- Helpers should always use `try/finally` for cleanup so parallel test runs don't leak state.
+- For other env-sensitive modules, create similar helpers (e.g., `testWithEnv`, `testWithMockedStorage`) and follow the same cleanup pattern to avoid test pollution.
   - [ ] System health monitoring
   - [ ] Revenue and growth metrics
 

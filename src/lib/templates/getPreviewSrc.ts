@@ -52,16 +52,16 @@ export function getPreviewSrc({ preview, previewAssetId, extension = 'png' }: Pr
 
   // Priority 3: Filename with extension (e.g., "grid-compact.png")
   if (trimmedPreview) {
-    return `${PUBLIC_PREVIEW_DIR}/${trimmedPreview}`;
+    return `${PUBLIC_PREVIEW_DIR}/${encodeURIComponent(trimmedPreview)}`;
   }
 
   // Priority 4: Remote CDN fallback
   const remoteBase = process.env.NEXT_PUBLIC_PREVIEW_BASE_URL;
   if (remoteBase) {
     const cleanBase = normalizeBaseUrl(remoteBase);
-    return `${cleanBase}/${previewAssetId}.${extension}`;
+    return `${cleanBase}/${encodeURIComponent(previewAssetId)}.${extension}`;
   }
 
   // Priority 5: Local fallback with extension
-  return `${PUBLIC_PREVIEW_DIR}/${previewAssetId}.${extension}`;
+  return `${PUBLIC_PREVIEW_DIR}/${encodeURIComponent(previewAssetId)}.${extension}`;
 }

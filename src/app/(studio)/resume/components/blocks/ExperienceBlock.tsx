@@ -19,6 +19,7 @@ export function ExperienceBlock({
   blockId,
 }: ExperienceBlockProps) {
   const items = Array.isArray(data?.items) ? data.items : [];
+  const experienceKeyOccurrences = new Map<string, number>();
 
   if (items.length === 0) return null;
 
@@ -34,7 +35,7 @@ export function ExperienceBlock({
       </h2>
 
       <div className="space-y-6">
-        {items.map((item: ExperienceItem, idx) => {
+        {items.map((item: ExperienceItem) => {
           const role = item?.role?.trim() ?? '';
           const company = item?.company?.trim() ?? '';
           const heading =
@@ -48,11 +49,17 @@ export function ExperienceBlock({
             ? item.bullets.filter(Boolean).slice(0, MAX_BULLETS)
             : [];
 
-          // Generate stable key: prefer id, fallback to combination of fields + index
-          // Note: Always include idx in fallback to guarantee uniqueness and prevent
-          // React key collisions when multiple items share identical metadata
+          // Generate stable key: prefer id-based values, fallback to content-derived key
           const itemWithId = item as ExperienceItem & { id?: string; _id?: string };
-          const key = itemWithId.id ?? itemWithId._id ?? `${role}-${company}-${item?.start}-${idx}`;
+          const baseFallback =
+            [role, company, item?.start ?? '', item?.end ?? '', location]
+              .map((segment) => (segment || '').toString().trim())
+              .filter(Boolean)
+              .join('|') || 'experience-item';
+          const occurrence = experienceKeyOccurrences.get(baseFallback) ?? 0;
+          experienceKeyOccurrences.set(baseFallback, occurrence + 1);
+          const fallbackKey = occurrence === 0 ? baseFallback : `${baseFallback}-${occurrence}`;
+          const key = itemWithId.id ?? itemWithId._id ?? fallbackKey;
 
           return (
             <article key={key} className="space-y-1">

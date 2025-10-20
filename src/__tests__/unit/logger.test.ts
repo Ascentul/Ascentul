@@ -37,6 +37,7 @@ describe('logger', () => {
       expect(parsed.level).toBe('INFO');
       expect(parsed.message).toBe('Test message');
       expect(parsed.timestamp).toBeDefined();
+      expect(parsed.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     });
 
     it('should log a message with context', () => {
@@ -112,6 +113,39 @@ describe('logger', () => {
       expect(parsed.level).toBe('WARN');
       expect(parsed.message).toBe('Warning message');
       expect(parsed.reason).toBe('timeout');
+    });
+
+    it('should handle circular references in warning context', () => {
+      const circular: any = { reason: 'timeout' };
+      circular.self = circular;
+
+      logWarn('Warning with circular context', circular);
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      const logOutput = consoleWarnSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed.level).toBe('WARN');
+      expect(parsed.message).toBe('Warning with circular context');
+      expect(parsed.serializationError).toBe('Failed to serialize log context');
+    });
+
+    it('should handle non-serializable values in warning context', () => {
+      const withFunction = {
+        reason: 'timeout',
+        callback: () => console.log('noop'),
+        id: Symbol('warn'),
+      };
+
+      logWarn('Warning with non-serializable context', withFunction);
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      const logOutput = consoleWarnSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed.level).toBe('WARN');
+      expect(parsed.message).toBe('Warning with non-serializable context');
+      expect(parsed.serializationError).toBe('Failed to serialize log context');
     });
   });
 

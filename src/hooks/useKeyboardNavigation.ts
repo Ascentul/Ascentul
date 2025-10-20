@@ -1,5 +1,16 @@
 import { useEffect, useRef, RefObject, useState } from 'react';
 
+function isElementVisible(el: HTMLElement): boolean {
+  const style = window.getComputedStyle(el);
+  if (style.display === 'none' || style.visibility === 'hidden') {
+    return false;
+  }
+  if (style.position === 'fixed') {
+    return true;
+  }
+  return el.offsetParent !== null;
+}
+
 /**
  * Hook to enable keyboard navigation for a list of elements
  * Returns the current index which triggers re-renders when navigation occurs
@@ -32,10 +43,7 @@ export function useKeyboardNavigation<T extends HTMLElement>({
     const handleKeyDown = (event: KeyboardEvent) => {
       const items = (Array.from(
         container.querySelectorAll(itemSelector)
-      ) as T[]).filter(el => {
-        const style = window.getComputedStyle(el);
-        return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
-      });
+      ) as T[]).filter(isElementVisible);
 
       if (items.length === 0) return;
 
@@ -142,10 +150,7 @@ export function useFocusTrap(
       container.querySelectorAll<HTMLElement>(
         'button:not([disabled]):not(:disabled), [href], input:not([disabled]):not(:disabled), select:not([disabled]):not(:disabled), textarea:not([disabled]):not(:disabled), [tabindex]:not([tabindex="-1"]), details, summary, [contenteditable]'
       )
-    ).filter(el => {
-      const style = window.getComputedStyle(el);
-      return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
-    });
+    ).filter(isElementVisible);
     const firstInitialElement = initialFocusableElements[0];
     firstInitialElement?.focus();
 
@@ -157,10 +162,7 @@ export function useFocusTrap(
         container.querySelectorAll<HTMLElement>(
           'button:not([disabled]):not(:disabled), [href], input:not([disabled]):not(:disabled), select:not([disabled]):not(:disabled), textarea:not([disabled]):not(:disabled), [tabindex]:not([tabindex="-1"]), details, summary, [contenteditable]'
         )
-      ).filter(el => {
-        const style = window.getComputedStyle(el);
-        return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
-      });
+      ).filter(isElementVisible);
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
 

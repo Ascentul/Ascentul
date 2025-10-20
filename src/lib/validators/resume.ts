@@ -68,7 +68,7 @@ export const experienceItem = z.object({
   location: z.string().trim().optional(),
   start: z.string().trim().optional(), // Date string like "Jan 2020" or ISO format
   end: z.string().trim().optional(), // "Present" for current roles
-  bullets: z.array(z.string().trim()).optional(),
+  bullets: z.array(z.string().trim().min(1, { message: 'Bullet point cannot be empty' })).optional(),
 });
 
 export const experienceBlockData = z.object({
@@ -80,7 +80,7 @@ export const educationItem = z.object({
   school: z.string().trim().min(1, 'School name is required'),
   degree: z.string().trim().optional(),
   end: z.string().trim().optional(), // Graduation date
-  details: z.array(z.string().trim()).optional(), // GPA, honors, etc.
+  details: z.array(z.string().trim().min(1, { message: 'Detail cannot be empty' })).optional(), // GPA, honors, etc.
 });
 
 export const educationBlockData = z.object({
@@ -89,8 +89,8 @@ export const educationBlockData = z.object({
 
 // Skills block
 export const skillsBlockData = z.object({
-  primary: z.array(z.string().trim()).optional(),
-  secondary: z.array(z.string().trim()).optional(),
+  primary: z.array(z.string().trim().min(1, { message: 'Skill cannot be empty' })).optional(),
+  secondary: z.array(z.string().trim().min(1, { message: 'Skill cannot be empty' })).optional(),
 }).refine(
   (data) => (data.primary?.length ?? 0) > 0 || (data.secondary?.length ?? 0) > 0,
   { message: 'At least one skills list must be provided' }
@@ -100,7 +100,7 @@ export const skillsBlockData = z.object({
 export const projectItem = z.object({
   name: z.string().trim().min(1, 'Project name is required'),
   description: z.string().trim().optional(),
-  bullets: z.array(z.string().trim()).optional(),
+  bullets: z.array(z.string().trim().min(1, { message: 'Bullet point cannot be empty' })).optional(),
 });
 
 export const projectsBlockData = z.object({
@@ -111,7 +111,7 @@ export const projectsBlockData = z.object({
 export const customBlockData = z.object({
   heading: z.string().trim().min(1, 'Section heading is required'),
   content: z.string().trim().optional(), // Freeform text content
-  bullets: z.array(z.string().trim()).optional(), // Alternative: bullet list format
+  bullets: z.array(z.string().trim().min(1, { message: 'Bullet point cannot be empty' })).optional(), // Alternative: bullet list format
 }).refine(
   (data) => data.content || (data.bullets && data.bullets.length > 0),
   { message: 'Custom block must have either content or bullets' }

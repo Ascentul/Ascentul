@@ -123,7 +123,10 @@ export const create = mutation({
     // Validate thumbnailUrl format if provided
     if (args.thumbnailUrl && args.thumbnailUrl.trim().length > 0) {
       try {
-        new URL(args.thumbnailUrl);
+        const url = new URL(args.thumbnailUrl);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          throw new Error("thumbnailUrl must use http or https protocol");
+        }
       } catch {
         throw new Error("Invalid URL format for thumbnailUrl");
       }
@@ -213,7 +216,10 @@ export const update = mutation({
       // Validate URL format if provided and non-empty
       if (args.thumbnailUrl && args.thumbnailUrl.trim().length > 0) {
         try {
-          new URL(args.thumbnailUrl);
+          const url = new URL(args.thumbnailUrl);
+          if (!['http:', 'https:'].includes(url.protocol)) {
+            throw new Error("thumbnailUrl must use http or https protocol");
+          }
         } catch {
           throw new Error("Invalid URL format for thumbnailUrl");
         }

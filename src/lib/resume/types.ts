@@ -28,6 +28,13 @@ export type ExperienceItem = {
   end?: string; // Can be "Present" for current roles
   location?: string;
   bullets?: string[];
+  // TODO: Consolidate ID fields for cleaner architecture
+  // Currently supports both id and _id for multi-source compatibility:
+  // - id: Used by client-side generated items (UUID)
+  // - _id: Used by Convex database documents
+  // Future improvement: Normalize to single ID field at data boundary layer
+  id?: string;
+  _id?: string;
 };
 
 export type ExperienceData = {
@@ -60,6 +67,13 @@ export type ProjectItem = {
   name: string;
   description: string;
   bullets?: string[];
+  // TODO: Consolidate ID fields for cleaner architecture
+  // Currently supports both id and _id for multi-source compatibility:
+  // - id: Used by client-side generated items (UUID)
+  // - _id: Used by Convex database documents
+  // Future improvement: Normalize to single ID field at data boundary layer
+  id?: string;
+  _id?: string;
 };
 
 export type ProjectsData = {
@@ -68,10 +82,10 @@ export type ProjectsData = {
 
 export type CustomData = {
   heading: string;
-  content?: string; // Freeform text content
-  bullets?: string[]; // Alternative: bullet list format
-  // Note: Validator requires either content or bullets to be present (see @/lib/validators/resume.ts)
-};
+} & (
+  | { content: string; bullets?: string[] }
+  | { content?: string; bullets: string[] }
+);
 
 // Helper function to format date ranges
 export function fmtDates(start?: string, end?: string): string {

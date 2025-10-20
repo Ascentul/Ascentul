@@ -108,7 +108,7 @@ export function Layers({
               role="button"
               tabIndex={0}
               aria-selected={selectedBlockId === block._id}
-              aria-label={block.locked ? `${getBlockLabel(block)} (locked)` : undefined}
+              aria-label={block.locked ? `${getBlockLabel(block)} (locked)` : getBlockLabel(block)}
               className={`flex items-center gap-3 p-3 rounded-lg border transition-[border-color,background-color,box-shadow,opacity] duration-200 cursor-pointer ${
                 selectedBlockId === block._id
                   ? 'border-primary bg-primary/5 ring-2 ring-primary shadow-sm'

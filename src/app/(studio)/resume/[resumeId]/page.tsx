@@ -38,6 +38,8 @@ import { useBlockHeights } from '@/hooks/use-block-heights';
 import { duplicatePage } from '../actions/pages/duplicatePage';
 import { reflowPages } from '../actions/pages/reflow';
 
+const REFLOW_MAX_ITERATIONS = 5;
+
 const normalizeBlocks = (blocks: Block[]): Block[] => {
   let mutated = false;
   const normalized = blocks.map((block) => {
@@ -336,15 +338,15 @@ useEffect(() => {
       return;
     }
 
-    const result = reflowPages({
-      blocksWithHeights,
-      pages: editorPages,
-      pageOrder,
-      blocks: blocksMap,
-      layout: layoutConfig,
-      pageSize,
-      maxIterations: 5,
-    });
+      const result = reflowPages({
+        blocksWithHeights,
+        pages: editorPages,
+        pageOrder,
+        blocks: blocksMap,
+        layout: layoutConfig,
+        pageSize,
+        maxIterations: REFLOW_MAX_ITERATIONS,
+      });
 
     if (process.env.NEXT_PUBLIC_DEBUG_UI === '1' && result.log.length > 0) {
       result.log.forEach((entry) => console.debug('[reflow]', entry));
