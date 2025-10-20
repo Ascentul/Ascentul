@@ -117,17 +117,16 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
 export async function sendActivationEmail(
   email: string,
   name: string,
-  tempPassword: string,
   activationUrl: string
 ): Promise<EmailResult> {
   const firstName = name.split(' ')[0]
-  const subject = 'Welcome to Ascentul - Activate Your Account'
+  const subject = 'Welcome to Ascentful - Activate Your Account'
 
   const text = `Hi ${firstName},
 
-Your Ascentul account has been created by your university administrator.
+Your Ascentful account has been created by your administrator.
 
-To activate your account and set your password, please click the link below:
+To activate your account and set up your password, please click the link below:
 
 ${activationUrl}
 
@@ -140,12 +139,12 @@ This activation link will expire in 24 hours for security. Once activated, you c
 
 After activation, log in at https://app.ascentful.io
 
-If you did not expect this email or have questions, please contact your university administrator or our support team.
+If you did not expect this email or have questions, please contact your administrator or our support team.
 
-Welcome to Ascentul - we're excited to support your career journey!
+Welcome to Ascentful - we're excited to support your career journey!
 
 Best,
-The Ascentul Team`
+The Ascentful Team`
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">

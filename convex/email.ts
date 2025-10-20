@@ -9,14 +9,13 @@ import { action } from "./_generated/server"
 import { v } from "convex/values"
 
 /**
- * Send activation email to newly created user
+ * Send activation email to newly created user with magic link
  * This is an action because it calls external email service
  */
 export const sendActivationEmail = action({
   args: {
     email: v.string(),
     name: v.string(),
-    tempPassword: v.string(),
     activationToken: v.string(),
   },
   handler: async (ctx, args) => {
@@ -29,7 +28,6 @@ export const sendActivationEmail = action({
       const result = await sendEmail(
         args.email,
         args.name,
-        args.tempPassword,
         activationUrl
       )
 

@@ -14,21 +14,10 @@ function generateActivationToken(): string {
   return `act_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
 
-/**
- * Generate a random temporary password
- */
-function generateTempPassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*'
-  let password = ''
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return password
-}
 
 /**
  * Create a new user account (admin only)
- * User will receive activation email with temporary password
+ * User will receive activation email with magic link to set up account
  */
 export const createUserByAdmin = mutation({
   args: {
@@ -73,9 +62,8 @@ export const createUserByAdmin = mutation({
       throw new Error("User with this email already exists")
     }
 
-    // Generate activation token and temp password
+    // Generate activation token
     const activationToken = generateActivationToken()
-    const tempPassword = generateTempPassword()
     const activationExpiresAt = Date.now() + (24 * 60 * 60 * 1000) // 24 hours
 
     // Create user with pending activation status
@@ -94,7 +82,6 @@ export const createUserByAdmin = mutation({
       account_status: "pending_activation",
       activation_token: activationToken,
       activation_expires_at: activationExpiresAt,
-      temp_password: tempPassword, // In production, this should be hashed
       created_by_admin: true,
       onboarding_completed: false,
       created_at: Date.now(),
@@ -142,7 +129,6 @@ export const createUserByAdmin = mutation({
           await ctx.scheduler.runAfter(0, api.email.sendActivationEmail, {
             email: args.email,
             name: args.name,
-            tempPassword,
             activationToken,
           })
         }
@@ -155,7 +141,6 @@ export const createUserByAdmin = mutation({
     return {
       userId,
       activationToken,
-      tempPassword, // Return for display to admin
       message: shouldSendEmail
         ? "User created successfully. Activation email will be sent shortly."
         : "User created successfully. No activation email sent.",
@@ -286,16 +271,14 @@ export const regenerateActivationToken = mutation({
       throw new Error("Unauthorized: Cannot manage users outside your university")
     }
 
-    // Generate new activation token and temp password
+    // Generate new activation token
     const activationToken = generateActivationToken()
-    const tempPassword = generateTempPassword()
     const expiresAt = Date.now() + (24 * 60 * 60 * 1000) // 24 hours
 
     // Update user with new token
     await ctx.db.patch(user._id, {
       activation_token: activationToken,
       activation_expires_at: expiresAt,
-      temp_password: tempPassword,
       clerkId: `pending_${activationToken}`, // Ensure consistent pending state
       account_status: "pending_activation",
       updated_at: Date.now(),
@@ -338,7 +321,6 @@ export const regenerateActivationToken = mutation({
         await ctx.scheduler.runAfter(0, api.email.sendActivationEmail, {
           email: user.email,
           name: user.name,
-          tempPassword,
           activationToken,
         })
       }
