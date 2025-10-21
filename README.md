@@ -41,6 +41,34 @@ Fill these keys in `.env.local` (see `.env.example`):
 - Stripe (optional features): `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, plus price/payment-link variables if used
 - Template Previews (optional): `NEXT_PUBLIC_PREVIEW_BASE_URL` (for remote CDN hosting)
 
+### Debug & Development
+
+- `NEXT_PUBLIC_DEBUG_UI='1'` - Enable debug panel and verbose logging
+  - **Debug Panel**: Press `Cmd/Ctrl + Backtick` to toggle the debug overlay
+  - Shows resume state (document ID, page count, selected block, template, theme, last AI action, last save time)
+  - **Telemetry**: Events logged to browser console with `[telemetry]` prefix
+  - **Error Details**: Shows detailed error messages and stack traces when errors occur
+  - See `docs/editor.md` for complete debug feature documentation
+
+### Resume Builder V2 Rollout
+
+- `NEXT_PUBLIC_RESUME_V2_STORE='true'` - Enable Resume Builder V2 features
+- `NEXT_PUBLIC_V2_ROLLOUT_PERCENT='25'` - Percentage of users to enable (0-100)
+
+**Rollout schedule:**
+1. Week 1: 5% (internal team + early adopters)
+2. Week 2: 25% (monitor error rates and metrics)
+3. Week 3: 50% (if metrics look good)
+4. Week 4: 100% (GA)
+
+**Monitoring:**
+- Error rates: <1% of sessions
+- Export success rate: >95%
+- Layout switch completion: >80%
+- AI suggestion apply rate: >40%
+
+See `CHANGELOG.md` and `docs/QA_CHECKLIST.md` for full details.
+
 Do not add Supabase variables—this project has fully migrated to Clerk + Convex.
 
 ## Documentation
