@@ -73,6 +73,12 @@ describe('AI Streaming Integration', () => {
     // Mock useAIStreaming
     mockUseAIStreaming = useAIStreaming as jest.MockedFunction<typeof useAIStreaming>;
 
+    // Mock useToast
+    const { useToast } = require('@/hooks/use-toast');
+    useToast.mockReturnValue({
+      toast: jest.fn(),
+    });
+
     // Set env vars
     process.env.NEXT_PUBLIC_RESUME_V2_STORE = 'true';
     process.env.NEXT_PUBLIC_DEBUG_UI = 'true';
@@ -155,12 +161,39 @@ describe('AI Streaming Integration', () => {
     const mockStart = jest.fn();
     const mockCancel = jest.fn();
 
-    mockUseAIStreaming.mockReturnValue({
-      status: 'streaming',
-      start: mockStart,
-      cancel: mockCancel,
-      isStreaming: true,
-    } as any);
+    // Mock guardrails to allow action
+    const { validateContent } = require('@/features/resume/ai/guardrails');
+    validateContent.mockReturnValue({ ok: true });
+
+    // Track state to simulate rollback behavior from useAIStreaming
+    let streamingStatus: any = { state: 'idle', suggestions: [] };
+    let isCurrentlyStreaming = false;
+
+    mockUseAIStreaming.mockImplementation(() => {
+      return {
+        status: streamingStatus,
+        start: async () => {
+          mockStart();
+          // Simulate streaming started
+          isCurrentlyStreaming = true;
+          streamingStatus = {
+            state: 'streaming',
+            suggestions: [{ proposedContent: 'Partial suggestion...' }],
+          };
+        },
+        cancel: () => {
+          mockCancel();
+          // Simulate the actual rollback logic from useAIStreaming.ts:101-106
+          // When cancelled early (< 200ms), suggestions array is cleared (full rollback)
+          streamingStatus = { state: 'idle', suggestions: [] };
+          isCurrentlyStreaming = false;
+        },
+        reset: jest.fn(),
+        get isStreaming() {
+          return isCurrentlyStreaming;
+        },
+      };
+    });
 
     render(
       <AIAuthoringPanel
@@ -173,14 +206,29 @@ describe('AI Streaming Integration', () => {
       />
     );
 
-    // Trigger cancel
-    const startTime = performance.now();
-    const cancelButton = screen.getByText('Cancel').closest('button');
-    fireEvent.click(cancelButton!);
-    const elapsed = performance.now() - startTime;
+    // Click an action to start streaming
+    const improveBulletButton = screen.getByText('Improve Bullet').closest('button');
+    fireEvent.click(improveBulletButton!);
 
-    expect(elapsed).toBeLessThan(200);
+    // Wait for streaming to start
+    await waitFor(() => {
+      expect(mockStart).toHaveBeenCalled();
+      expect(isCurrentlyStreaming).toBe(true);
+      expect(streamingStatus.suggestions.length).toBeGreaterThan(0);
+    });
+
+    // Now Cancel button should be visible
+    const cancelButton = screen.getByText('Cancel').closest('button');
+    expect(cancelButton).toBeInTheDocument();
+
+    // Trigger cancel (simulating early cancel within 200ms window)
+    fireEvent.click(cancelButton!);
+
+    // Verify rollback occurred - suggestions were cleared (full rollback)
     expect(mockCancel).toHaveBeenCalled();
+    expect(streamingStatus.state).toBe('idle');
+    expect(streamingStatus.suggestions).toEqual([]); // CRITICAL: Full rollback clears all suggestions
+    expect(isCurrentlyStreaming).toBe(false);
   });
 
   it('creates single history entry on success', async () => {

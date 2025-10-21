@@ -85,8 +85,7 @@ export function DebugPanel({
 
   return (
     <Card
-      className="fixed bottom-4 right-4 w-80 shadow-2xl border-2 border-primary z-50 bg-background/95 backdrop-blur"
-      style={{ maxHeight: '80vh', overflow: 'auto' }}
+      className="fixed bottom-4 right-4 w-80 max-h-[80vh] overflow-auto shadow-2xl border-2 border-primary z-50 bg-background/95 backdrop-blur"
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">

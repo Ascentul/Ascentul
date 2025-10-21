@@ -59,8 +59,8 @@ function parseSuggestions(text: string): AISuggestion[] {
     const suggestions = Array.isArray(parsed) ? parsed : parsed.suggestions || [];
 
     // Add unique IDs to suggestions that don't have them
-    return suggestions.map((s: any, index: number) => ({
-      id: s.id || `suggestion-${Date.now()}-${index}`,
+    return suggestions.map((s: AISuggestion, index: number) => ({
+      id: s.id || `suggestion-${Date.now()}-${Math.random().toString(36).slice(2, 11)}-${index}`,
       actionType: s.actionType || 'rewrite_bullet',
       severity: s.severity || 'info',
       message: s.message || 'Improve content',

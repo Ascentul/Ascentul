@@ -25,6 +25,8 @@ interface HiddenBlockBadgeProps {
  *   <HiddenBlockBadge onShow={() => actions.updateBlockProps(block.id, { isHidden: false })} />
  * )}
  */
+import { cn } from '@/lib/utils';
+
 export function HiddenBlockBadge({ onShow, className }: HiddenBlockBadgeProps) {
   return (
     <div className={`inline-flex items-center gap-2 ${className || ''}`}>

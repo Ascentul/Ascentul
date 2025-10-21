@@ -120,14 +120,14 @@ function seedProfile(actions: ReturnType<typeof useEditorActions>, pageId: strin
 
 function createBroker(): { broker: MutationBroker; convex: Record<string, jest.Mock> } {
   const convex = {
-    createBlock: jest.fn(async () => ({})),
-    updateBlock: jest.fn(async (payload: any) => payload),
-    deleteBlock: jest.fn(async () => ({})),
-    reorderBlock: jest.fn(async () => ({})),
-    createPage: jest.fn(async () => ({})),
-    duplicatePage: jest.fn(async () => ({})),
-    reflowPages: jest.fn(async () => ({})),
-    updateResumeMeta: jest.fn(async (payload: any) => ({
+    createBlock: jest.fn(async (_payload) => ({})),
+    updateBlock: jest.fn(async (payload) => payload),
+    deleteBlock: jest.fn(async (_payload) => ({})),
+    reorderBlock: jest.fn(async (_payload) => ({})),
+    createPage: jest.fn(async (_payload) => ({})),
+    duplicatePage: jest.fn(async (_payload) => ({})),
+    reflowPages: jest.fn(async (_payload) => ({})),
+    updateResumeMeta: jest.fn(async (payload) => ({
       themeId: payload.themeId ?? 'theme_default',
       updatedAt: Date.now(),
     })),

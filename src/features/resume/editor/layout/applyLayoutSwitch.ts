@@ -4,19 +4,24 @@ import type { Block } from '@/lib/resume-types';
 import { migrateLayout } from './migrateLayout';
 
 /**
- * Apply layout switch orchestrator
+ * Apply layout switch orchestrator (Phase 5 implementation)
  *
- * Coordinates the entire layout switch process:
- * 1. Collect current block IDs and types
+ * Coordinates the layout switch process:
+ * 1. Collect current block IDs and types from all pages
  * 2. Call migration mapper to assign blocks to regions
- * 3. Update blocksById with new parentIds
+ * 3. Apply migrated block order to the first page (main + overflow regions)
  * 4. Return new snapshot for single history push
+ *
+ * **Phase 5 limitations:**
+ * - No multi-region support yet (all blocks on single page)
+ * - No parentId updates (blocks remain in flat structure)
+ * - Future phases will implement true multi-column layouts
  *
  * Note: Reflow is called separately by the store after applying this snapshot.
  *
  * @param currentSnapshot - Current editor state
  * @param targetLayout - Layout definition to switch to
- * @returns New editor snapshot with migrated layout
+ * @returns New editor snapshot with updated block order
  */
 export function applyLayoutSwitch(
   currentSnapshot: EditorSnapshot,
@@ -48,8 +53,25 @@ export function applyLayoutSwitch(
   const mainRegionBlocks = migrationResult.regionAssignments['main'] || [];
   const overflowBlocks = migrationResult.overflow || [];
 
-  // For Phase 5: Keep existing page structure, just preserve block order
+  // Apply the migrated block order to pages
+  // For Phase 5: Single-page layout with all blocks in order (main + overflow)
   // Future phases will create actual multi-region pages
+  const migratedBlockOrder = [...mainRegionBlocks, ...overflowBlocks];
+
+  const nextPagesById = { ...currentSnapshot.pagesById };
+
+  // Apply block order to the first page (or create one if none exists)
+  if (currentSnapshot.pageOrder.length > 0) {
+    const firstPageId = currentSnapshot.pageOrder[0];
+    const firstPage = nextPagesById[firstPageId];
+
+    if (firstPage) {
+      nextPagesById[firstPageId] = {
+        ...firstPage,
+        blockIds: migratedBlockOrder,
+      };
+    }
+  }
 
   // Build new blocksById with updated metadata (if needed)
   const nextBlocksById = { ...currentSnapshot.blocksById };
@@ -60,6 +82,7 @@ export function applyLayoutSwitch(
   return {
     ...currentSnapshot,
     blocksById: nextBlocksById,
+    pagesById: nextPagesById,
     isDirty: true,
     lastChangedAt: Date.now(),
   };

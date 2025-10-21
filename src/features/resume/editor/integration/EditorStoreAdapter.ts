@@ -92,6 +92,7 @@ export interface IEditorStoreAdapter {
 export interface StoreInstance {
   getState: () => EditorState;
   updateBlockProps: (blockId: string, props: Record<string, unknown>) => void;
+  updateDocMeta: (meta: DocMeta) => void;
 }
 
 /**
@@ -142,7 +143,7 @@ export class EditorStoreAdapter implements IEditorStoreAdapter {
   }
 
   updateDocMeta(meta: DocMeta): void {
-    throw new Error('updateDocMeta is not implemented. DocMeta updates must be handled through the applyAIEdit flow.');
+    this.store.updateDocMeta(meta);
   }
 
   getSelectedBlockId(): string | null {

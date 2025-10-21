@@ -10,14 +10,12 @@ describe('editor health snapshot', () => {
   });
 
   it('returns defaults when untouched', () => {
-    resetEditorHealthSnapshot();
     const snapshot = getEditorHealthSnapshot();
     expect(snapshot.selectionCount).toBe(0);
     expect(snapshot.isDirty).toBe(false);
   });
 
   it('updates selection count and dirty state', () => {
-    resetEditorHealthSnapshot();
     updateEditorHealthSnapshot({ selectionCount: 3, isDirty: true });
     const snapshot = getEditorHealthSnapshot();
     expect(snapshot.selectionCount).toBe(3);

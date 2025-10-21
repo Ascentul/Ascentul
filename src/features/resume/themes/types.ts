@@ -10,7 +10,7 @@ export interface ThemeFonts {
 }
 
 /**
- * Theme font size configuration (in rem units)
+ * Theme font size configuration (unitless values to be applied as rem)
  */
 export interface ThemeFontSizes {
   xs?: number;
@@ -35,7 +35,7 @@ export interface ThemeColors {
 }
 
 /**
- * Theme spacing configuration (scale multiplier)
+ * Theme spacing configuration (scale multiplier and gap values)
  */
 export interface ThemeSpacing {
   scale?: number;

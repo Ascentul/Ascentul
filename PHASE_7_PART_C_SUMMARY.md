@@ -394,6 +394,8 @@ Due to time constraints and the simplified implementation, tests were not writte
 
 ### Minor Limitations
 
+> For high-level limitations, see also the AIAuthoringPanel section and Validation Checklist above; detailed breakdown lives here.
+
 1. **No Loading State Persistence** - If panel closes during streaming, state is lost
 2. **No Action Queuing** - Can't queue multiple actions
 3. **No Batch Apply** - Must apply one action at a time

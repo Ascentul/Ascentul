@@ -16,11 +16,14 @@ const getLayoutButtonClasses = (isCurrent: boolean, isDisabled: boolean) => {
   const baseClasses =
     'w-full text-left p-4 rounded-xl border transition-all duration-200';
 
-  const stateClasses = isCurrent
-    ? 'border-primary bg-primary/5 ring-2 ring-primary shadow-sm'
-    : isDisabled
-      ? 'border-border'
-      : 'border-border hover:border-primary/50 hover:bg-muted/50 hover:shadow-md hover:scale-[1.02]';
+  let stateClasses: string;
+  if (isCurrent) {
+    stateClasses = 'border-primary bg-primary/5 ring-2 ring-primary shadow-sm';
+  } else if (isDisabled) {
+    stateClasses = 'border-border';
+  } else {
+    stateClasses = 'border-border hover:border-primary/50 hover:bg-muted/50 hover:shadow-md hover:scale-[1.02]';
+  }
 
   const interactionClasses = isDisabled
     ? 'opacity-50 cursor-not-allowed'
@@ -42,7 +45,14 @@ const getLayoutButtonClasses = (isCurrent: boolean, isDisabled: boolean) => {
  *   onChangeLayout={(layout) => editorActions.switchLayout(layout)}
  * />
  */
-export function LayoutPicker({
+export const LayoutHeader = () => (
+  <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-foreground">
+    <Columns className="w-4 h-4" />
+    Layout
+  </h3>
+);
+
+function LayoutPicker({
   currentTemplateSlug,
   currentLayoutId,
   onChangeLayout,
@@ -58,10 +68,7 @@ export function LayoutPicker({
   if (!currentTemplateSlug) {
     return (
       <div className="p-4">
-        <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-foreground">
-          <Columns className="w-4 h-4" />
-          Layout
-        </h3>
+        <LayoutHeader />
         <div className="text-sm text-muted-foreground py-8 text-center">
           Select a template to view layouts
         </div>
@@ -73,10 +80,7 @@ export function LayoutPicker({
   if (availableLayouts.length === 0) {
     return (
       <div className="p-4">
-        <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-foreground">
-          <Columns className="w-4 h-4" />
-          Layout
-        </h3>
+        <LayoutHeader />
         <div className="text-sm text-muted-foreground py-8 text-center">
           No layouts available for this template
         </div>
@@ -86,16 +90,15 @@ export function LayoutPicker({
 
   return (
     <div className="p-4">
-      <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-foreground">
-        <Columns className="w-4 h-4" />
-        Layout
-      </h3>
+      <LayoutHeader />
       <div className="space-y-3">
         {availableLayouts.map((layout) => (
           <button
             key={layout.id}
             onClick={() => onChangeLayout(layout)}
             disabled={disabled}
+            aria-pressed={currentLayoutId === layout.id}
+            aria-label={`Select ${layout.name} layout`}
             className={getLayoutButtonClasses(
               currentLayoutId === layout.id,
               Boolean(disabled),

@@ -1,6 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { getSuggestions, createTextDiff } from '@/features/resume/coach/suggestions';
 import type { EditorSnapshot } from '@/features/resume/editor/types/editorTypes';
+import type { Id } from '../../convex/_generated/dataModel';
 
 describe('Coach Suggestions - Phase 6', () => {
   const mockSnapshot: EditorSnapshot = {
@@ -45,7 +46,7 @@ describe('Coach Suggestions - Phase 6', () => {
     pageOrder: ['page1'],
     selectedIds: [],
     docMeta: {
-      resumeId: 'resume1' as any,
+      resumeId: 'resume1' as Id<'builder_resumes'>,
       title: 'Test Resume',
       templateSlug: 'modern',
       updatedAt: Date.now(),
@@ -67,16 +68,19 @@ describe('Coach Suggestions - Phase 6', () => {
       const suggestions = getSuggestions(mockSnapshot);
 
       const actionTypes = suggestions.map(s => s.actionType);
-      const expectedTypes: Array<import('@/features/resume/coach/suggestions').SuggestionActionType> = [
-        'tighten-summary',
-        'fix-passive-voice',
-        'strengthen-verb',
-        'add-metrics'
-      ];
 
-      // At least some expected types should be present
-      const hasExpectedTypes = expectedTypes.some(type => actionTypes.includes(type));
-      expect(hasExpectedTypes).toBe(true);
+      // Verify critical suggestion types are present based on mock data
+      // Mock has "very deep", "really scalable" -> should trigger tighten-summary
+      expect(actionTypes).toContain('tighten-summary');
+
+      // Mock has "Responsible for" -> should trigger fix-passive-voice
+      expect(actionTypes).toContain('fix-passive-voice');
+
+      // Mock has "Helped improve" -> should trigger strengthen-verb
+      expect(actionTypes).toContain('strengthen-verb');
+
+      // Mock has bullets without numbers -> should trigger add-metrics
+      expect(actionTypes).toContain('add-metrics');
     });
 
     it('should suggest tightening long summary with filler words', () => {

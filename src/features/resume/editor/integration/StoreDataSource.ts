@@ -1,6 +1,21 @@
+import { useMemo } from 'react';
 import { useEditorStore } from '../state/editorStore';
 import type { CanvasDataSource, PageId, Selection, Block, Page } from "./CanvasDataSource";
 import type { EditorBlockNode, EditorPageNode } from '../types/editorTypes';
+
+/**
+ * Page dimension constants in PostScript points
+ *
+ * PostScript points: 1 point = 1/72 inch
+ * - Letter: 8.5" × 11" = 612 × 792 points
+ * - A4: 210mm × 297mm ≈ 595 × 842 points
+ */
+const PAGE_DIMENSIONS = {
+  Letter: { width: 612, height: 792 },
+  A4: { width: 595, height: 842 },
+} as const;
+
+const DEFAULT_PAGE = 'Letter';
 
 function mapBlockToCanvas(block: EditorBlockNode): Block {
   return {
@@ -13,10 +28,7 @@ function mapBlockToCanvas(block: EditorBlockNode): Block {
 }
 
 function mapPageToCanvas(page: EditorPageNode): Page {
-  const config = {
-    width: page.size === 'Letter' ? 612 : page.size === 'A4' ? 595 : 612,
-    height: page.size === 'Letter' ? 792 : page.size === 'A4' ? 842 : 792,
-  };
+  const config = PAGE_DIMENSIONS[page.size] ?? PAGE_DIMENSIONS[DEFAULT_PAGE];
 
   return {
     id: page.id,
@@ -45,7 +57,8 @@ export function useStoreDataSource(): CanvasDataSource {
   const store = useEditorStore();
 
   // Create a stable data source that uses the store
-  const dataSource: CanvasDataSource = {
+  // useMemo ensures the dataSource object maintains referential equality across renders
+  return useMemo(() => ({
     getBlocks: () => {
       const state = store.getState();
       const mapped: Record<string, Block> = {};
@@ -83,7 +96,5 @@ export function useStoreDataSource(): CanvasDataSource {
     onChange: (cb) => {
       return store.subscribe(cb);
     },
-  };
-
-  return dataSource;
+  }), [store]);
 }

@@ -60,15 +60,27 @@ describe('Inspector Binding - Phase 4', () => {
     const canUndo = useEditorSelector((state) => state.canUndo);
     const canRedo = useEditorSelector((state) => state.canRedo);
 
+    const startRef = React.useRef<number | null>(null);
+    const [latency, setLatency] = React.useState<number | null>(null);
+
+    React.useEffect(() => {
+      if (startRef.current !== null && blockData && 'fullName' in blockData && blockData.fullName === 'Jane Smith') {
+        setLatency(performance.now() - startRef.current);
+        startRef.current = null;
+      }
+    }, [blockData]);
+
     return (
       <div>
         <div data-testid="block-data">{JSON.stringify(blockData)}</div>
+        <div data-testid="latency">{latency ?? ''}</div>
         <div data-testid="can-undo">{canUndo ? 'true' : 'false'}</div>
         <div data-testid="can-redo">{canRedo ? 'true' : 'false'}</div>
         <button
           data-testid="update-btn"
           onClick={() => {
             if (blockData && 'fullName' in blockData) {
+              startRef.current = performance.now();
               actions.updateBlockProps(blockId, {
                 ...blockData,
                 fullName: 'Jane Smith',
@@ -135,20 +147,16 @@ describe('Inspector Binding - Phase 4', () => {
       );
 
       const updateBtn = screen.getByTestId('update-btn');
-      const blockDataElement = screen.getByTestId('block-data');
+      const latencyElement = screen.getByTestId('latency');
 
-      const startTime = performance.now();
       updateBtn.click();
 
-      // Wait for DOM update
       await waitFor(() => {
-        const updatedData = JSON.parse(blockDataElement.textContent || '{}');
-        return updatedData.fullName === 'Jane Smith';
+        expect(latencyElement.textContent).not.toBe('');
       });
 
-      const latency = performance.now() - startTime;
-      // Verify reasonable update latency (lenient for CI stability)
-      expect(latency).toBeLessThan(100);
+      const latency = parseFloat(latencyElement.textContent || '0');
+      expect(latency).toBeLessThan(8);
     });
   });
 

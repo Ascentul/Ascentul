@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,9 +54,9 @@ export function CoachingTab({ broker, className }: CoachingTabProps) {
     suggestion: null,
     currentValue: '',
   });
+  const [suggestions, setSuggestions] = useState<CoachSuggestion[]>([]);
 
-  // Generate suggestions from current snapshot
-  const suggestions = useMemo(() => {
+  useEffect(() => {
     setIsAnalyzing(true);
     const startTime = performance.now();
 
@@ -68,8 +68,8 @@ export function CoachingTab({ broker, className }: CoachingTabProps) {
       duration_ms: Math.round(duration),
     });
 
+    setSuggestions(result);
     setIsAnalyzing(false);
-    return result;
   }, [snapshot]);
 
   const handlePreview = useCallback((suggestion: CoachSuggestion) => {

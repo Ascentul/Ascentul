@@ -14,6 +14,9 @@ jest.mock('@/lib/telemetry');
 
 const mockResumeId = 'test-resume-id' as Id<'builder_resumes'>;
 
+const mockConsoleError = () => jest.spyOn(console, 'error').mockImplementation(() => {});
+const restoreConsoleError = (spy: jest.SpyInstance) => spy.mockRestore();
+
 describe('applyAIEdit (Production)', () => {
   let mockAdapter: jest.Mocked<IEditorStoreAdapter>;
   let mockBroker: jest.Mocked<MutationBroker>;
@@ -36,6 +39,9 @@ describe('applyAIEdit (Production)', () => {
       setBlockText: jest.fn(),
       getDocMeta: jest.fn(() => mockDocMeta),
       updateDocMeta: jest.fn(),
+      setDocMeta: jest.fn((meta: DocMeta) => {
+        mockDocMeta = meta;
+      }),
       getSelectedBlockId: jest.fn(() => 'block-1'),
       snapshotBlock: jest.fn(() => ({ text: 'Original text' })),
       restoreBlock: jest.fn(),
@@ -96,6 +102,12 @@ describe('applyAIEdit (Production)', () => {
       { ts: 5, action: 'improveBullet', target: 'block-1', diffPreview: 'preview-4' },
     ];
 
+    const metaSnapshots: DocMeta[] = [];
+    mockAdapter.setDocMeta.mockImplementation((meta: DocMeta) => {
+      metaSnapshots.push(meta);
+      mockDocMeta = meta;
+    });
+
     // Add 6th entry
     const result = await applyAIEdit({
       resumeId: mockResumeId,
@@ -107,10 +119,11 @@ describe('applyAIEdit (Production)', () => {
     });
 
     expect(result.ok).toBe(true);
-
-    // Note: The addAIEdit function is called internally but we can't verify
-    // the DocMeta state directly since it's memory-only. In a real test,
-    // we would need to mock addAIEdit or verify through the adapter mock.
+    expect(metaSnapshots).not.toHaveLength(0);
+    const finalMeta = metaSnapshots.pop()!;
+    expect(finalMeta.aiEdits).toBeDefined();
+    expect(finalMeta.aiEdits).toHaveLength(5);
+    expect(finalMeta.aiEdits?.[4]?.diffPreview).toBe('New content');
   });
 
   it('error: full rollback, no broker call, returns error', async () => {
@@ -207,7 +220,7 @@ describe('applyAIEdit (Production)', () => {
       throw new Error('Restore failed');
     });
 
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleErrorSpy = mockConsoleError();
 
     // Should not throw
     expect(() => {
@@ -219,7 +232,7 @@ describe('applyAIEdit (Production)', () => {
       expect.any(Error)
     );
 
-    consoleErrorSpy.mockRestore();
+    restoreConsoleError(consoleErrorSpy);
   });
 
   it('handles rollback failure during error flow', async () => {
@@ -231,7 +244,7 @@ describe('applyAIEdit (Production)', () => {
       throw new Error('Rollback failed');
     });
 
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleErrorSpy = mockConsoleError();
 
     const result = await applyAIEdit({
       resumeId: mockResumeId,
@@ -250,11 +263,20 @@ describe('applyAIEdit (Production)', () => {
       expect.any(Error)
     );
 
-    consoleErrorSpy.mockRestore();
+    restoreConsoleError(consoleErrorSpy);
   });
 
   it('truncates diffPreview to 50 characters', async () => {
     const longContent = 'A'.repeat(100);
+
+    const capturedDiffs: string[] = [];
+    mockAdapter.setDocMeta.mockImplementation((meta: DocMeta) => {
+      const last = meta.aiEdits?.[meta.aiEdits.length - 1];
+      if (last) {
+        capturedDiffs.push(last.diffPreview);
+      }
+      mockDocMeta = meta;
+    });
 
     const result = await applyAIEdit({
       resumeId: mockResumeId,
@@ -267,8 +289,8 @@ describe('applyAIEdit (Production)', () => {
 
     expect(result.ok).toBe(true);
 
-    // The diffPreview is created internally with addAIEdit
-    // In a real test, we would verify through DocMeta state
+    expect(capturedDiffs).toHaveLength(1);
+    expect(capturedDiffs[0]).toBe('A'.repeat(50) + '...');
   });
 
   it('logs telemetry events when debug enabled', async () => {

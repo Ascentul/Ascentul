@@ -12,4 +12,5 @@ test("editor mounts with legacy data source", () => {
     subscribe: () => () => {},
   };
   render(<EditorProvider legacyDeps={legacyDeps}><div>Editor</div></EditorProvider>);
+  expect(screen.getByText('Editor')).toBeInTheDocument();
 });

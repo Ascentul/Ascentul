@@ -81,8 +81,8 @@ describe('History System', () => {
         history = pushHistory(history, snapshot, { type: 'create', blockId: `s${i}` });
       }
 
-      // Past should not exceed 100
-      expect(history.past.length).toBeLessThanOrEqual(100);
+      // Past should be exactly 100 (ring buffer enforces limit)
+      expect(history.past.length).toBe(100);
     });
   });
 
@@ -103,6 +103,27 @@ describe('History System', () => {
 
       // Past should still be 1 because it coalesced
       expect(history.past.length).toBe(1);
+      expect(history.present.snapshot).toBe(snapshot3);
+    });
+
+    it('should not coalesce text edits outside 250ms window', async () => {
+      const snapshot1 = createMockSnapshot('s1');
+      let history = createHistoryState(snapshot1, { type: 'doc-meta' });
+
+      // First edit
+      const snapshot2 = createMockSnapshot('s2');
+      history = pushHistory(history, snapshot2, { type: 'block-prop', blockId: 'b1', propKey: 'text' });
+
+      expect(history.past.length).toBe(1);
+
+      // Wait longer than coalescing window
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Second edit after delay - should not coalesce
+      const snapshot3 = createMockSnapshot('s3');
+      history = pushHistory(history, snapshot3, { type: 'block-prop', blockId: 'b1', propKey: 'text' });
+
+      expect(history.past.length).toBe(2);
       expect(history.present.snapshot).toBe(snapshot3);
     });
 

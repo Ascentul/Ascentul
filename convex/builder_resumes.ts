@@ -27,6 +27,17 @@ type ResumeInsertArgs = {
   themeId?: Id<"builder_resume_themes">;
 };
 
+function validateResumeTitle(title: string): string {
+  const trimmed = title.trim();
+  if (trimmed.length === 0) {
+    throw new Error("Title cannot be empty");
+  }
+  if (trimmed.length > 100) {
+    throw new Error("Title cannot exceed 100 characters");
+  }
+  return trimmed;
+}
+
 /**
  * Helper to validate HTTP/HTTPS URLs
  */
@@ -441,7 +452,7 @@ export const updateResumeMeta = mutation({
     const updates: any = {
       updatedAt: Date.now(),
     };
-    if (args.title !== undefined) updates.title = args.title;
+    if (args.title !== undefined) updates.title = validateResumeTitle(args.title);
     if (args.templateSlug !== undefined) updates.templateSlug = args.templateSlug;
     if (args.themeId !== undefined) updates.themeId = args.themeId;
 
@@ -456,25 +467,25 @@ export const updateResumeMeta = mutation({
 
 /**
  * Phase 8: Rename resume title
- * Simple mutation for inline rename with validation
+ * Simple mutation for inline rename with validation and optimistic concurrency control
  */
 export const renameResume = mutation({
   args: {
     id: v.id("builder_resumes"),
     title: v.string(),
+    expectedUpdatedAt: v.number(),
   },
   handler: async (ctx, args) => {
     // Verify authentication and ownership
-    await verifyResumeOwnership(ctx, args.id);
+    const { resume } = await verifyResumeOwnership(ctx, args.id);
+
+    // Optimistic concurrency check
+    if (resume.updatedAt !== args.expectedUpdatedAt) {
+      throw new Error("Conflict: resume was updated by another process");
+    }
 
     // Validate title length
-    const trimmedTitle = args.title.trim();
-    if (trimmedTitle.length === 0) {
-      throw new Error("Title cannot be empty");
-    }
-    if (trimmedTitle.length > 100) {
-      throw new Error("Title cannot exceed 100 characters");
-    }
+    const trimmedTitle = validateResumeTitle(args.title);
 
     // Update title and timestamp
     const updatedAt = Date.now();

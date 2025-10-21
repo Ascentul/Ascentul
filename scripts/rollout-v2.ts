@@ -30,7 +30,7 @@ function simpleHash(input: string): number {
     hash = Math.imul(hash, 16777619); // FNV prime
   }
 
-  return Math.abs(hash);
+  return hash >>> 0; // Convert to unsigned 32-bit integer
 }
 
 /**
@@ -74,14 +74,39 @@ export function isV2Enabled(userId: string, rolloutPercent: number): boolean {
  * @returns Rollout percentage (0-100)
  */
 export function getRolloutPercent(): number {
+  let percent: number;
+
   if (typeof window === 'undefined') {
     // Server-side: Use process.env
-    return parseInt(process.env.NEXT_PUBLIC_V2_ROLLOUT_PERCENT || '0', 10);
+    percent = parseInt(process.env.NEXT_PUBLIC_V2_ROLLOUT_PERCENT || '0', 10);
   } else {
     // Client-side: Parse from window
-    const percent = (window as any).__NEXT_DATA__?.props?.pageProps?.rolloutPercent;
-    return percent || 0;
+    percent = (window as any).__NEXT_DATA__?.props?.pageProps?.rolloutPercent || 0;
   }
+
+  if (!Number.isFinite(percent) || percent < 0) {
+    return 0;
+  }
+
+  if (percent > 100) {
+    return 100;
+  }
+
+  return percent;
+}
+
+/**
+ * Get V2 feature flag status from environment
+ *
+ * Note: NEXT_PUBLIC_ variables are inlined at build time by Next.js,
+ * so this works consistently in both server and client environments.
+ * Unlike NEXT_PUBLIC_V2_ROLLOUT_PERCENT which may need runtime access,
+ * the feature flag is a simple boolean that's safe to inline.
+ *
+ * @returns true if V2 feature flag is enabled
+ */
+export function isFeatureFlagEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_RESUME_V2_STORE === 'true';
 }
 
 /**
@@ -103,9 +128,7 @@ export function getRolloutPercent(): number {
  */
 export function shouldEnableV2(userId: string): boolean {
   // Check master feature flag first
-  const featureFlagEnabled = process.env.NEXT_PUBLIC_RESUME_V2_STORE === 'true';
-
-  if (!featureFlagEnabled) {
+  if (!isFeatureFlagEnabled()) {
     return false;
   }
 

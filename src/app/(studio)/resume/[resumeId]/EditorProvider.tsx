@@ -4,9 +4,7 @@ import { createLegacyDataSource } from "@/features/resume/editor/integration/Leg
 import { useStoreDataSource } from "@/features/resume/editor/integration/StoreDataSource";
 import type { CanvasDataSource } from "@/features/resume/editor/integration/CanvasDataSource";
 import { EditorStoreProvider, hydrateFromServer, type ResumeHydrationInput } from "@/features/resume/editor/state/editorStore";
-import type { Block as ConvexBlock } from "@/lib/resume-types";
-import type { Id } from "../../../../../convex/_generated/dataModel";
-import React, { createContext, useContext, useMemo } from "react";
+import React, { createContext, useContext } from "react";
 
 const Ctx = createContext<CanvasDataSource | null>(null);
 export function useCanvasDataSource() {
@@ -18,23 +16,11 @@ export function useCanvasDataSource() {
 type Props = {
   children: React.ReactNode;
   legacyDeps: Parameters<typeof createLegacyDataSource>[0];
-  resumeData?: {
-    resume: {
-      _id: Id<'builder_resumes'>;
-      title?: string;
-      templateSlug?: string;
-      themeId?: Id<'builder_resume_themes'>;
-      updatedAt?: number;
-      version?: number;
-      pages?: Array<{
-        id: string;
-        size?: string;
-        margins?: any;
-        blocks?: string[];
-      }>;
-    } | null;
-    blocks: ConvexBlock[];
-  };
+  /**
+   * Server-side resume data for hydration
+   * Type matches ResumeHydrationInput to avoid unsafe type assertions
+   */
+  resumeData?: ResumeHydrationInput;
 };
 
 // Inner component that uses the store
@@ -47,7 +33,8 @@ export default function EditorProvider({ children, legacyDeps, resumeData }: Pro
   const useStore = !!process.env.NEXT_PUBLIC_RESUME_V2_STORE;
 
   if (useStore && resumeData) {
-    const initialSnapshot = hydrateFromServer(resumeData as ResumeHydrationInput);
+    // No type assertion needed - resumeData is already typed as ResumeHydrationInput
+    const initialSnapshot = hydrateFromServer(resumeData);
     return (
       <EditorStoreProvider initialSnapshot={initialSnapshot}>
         <StoreBasedProvider>{children}</StoreBasedProvider>

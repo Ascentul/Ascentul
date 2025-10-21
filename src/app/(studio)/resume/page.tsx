@@ -106,7 +106,7 @@ export default function ResumeListPage() {
   const renameResumeMutation = useMutation(api.builder_resumes.renameResume); // Phase 8: Inline rename
   const { exportResume } = useResumeExport();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [busyRecords, setBusyRecords] = useState<Map<string, "duplicate" | "export" | "delete">>(new Map());
+  const [busyRecords, setBusyRecords] = useState<Map<string, "duplicate" | "export" | "delete" | "rename">>(new Map());
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const sortedResumes = useMemo(() => {
@@ -274,6 +274,7 @@ export default function ResumeListPage() {
 
   // Phase 8: Handle inline rename
   const handleRename = async (resumeId: string, newTitle: string) => {
+    setBusyRecords(prev => new Map(prev).set(resumeId, "rename"));
     try {
       await renameResumeMutation({ id: resumeId as Id<"builder_resumes">, title: newTitle });
       toast({
@@ -286,6 +287,12 @@ export default function ResumeListPage() {
         title: "Rename failed",
         description: error instanceof Error ? error.message : "Could not rename resume",
         variant: "destructive",
+      });
+    } finally {
+      setBusyRecords(prev => {
+        const next = new Map(prev);
+        next.delete(resumeId);
+        return next;
       });
     }
   };

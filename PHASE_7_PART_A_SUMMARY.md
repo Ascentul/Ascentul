@@ -14,11 +14,14 @@ Part A implements the foundational infrastructure for streaming AI suggestions a
 
 ### Key Features
 
-1. **Streaming Suggestions API** - Real-time suggestion delivery via Server-Sent Events (SSE)
+1. **Streaming Suggestions API** - Progressive suggestion delivery via Server-Sent Events (SSE)
 2. **Apply Suggestion API** - Atomic application of AI suggestions to resume content
 3. **Client-Side Streaming Hook** - React hook for consuming streaming suggestions
 4. **Telemetry Integration** - Full event tracking for debugging and analytics
 5. **Type-Safe Architecture** - Comprehensive TypeScript types for all streaming operations
+
+**Note on "Progressive" vs "Real-Time" Streaming:**
+This implementation uses progressive delivery (batched chunks after OpenAI response completes) rather than true token-by-token streaming. See Architecture Decisions below for rationale.
 
 ---
 
@@ -160,14 +163,18 @@ Added new event types:
 - Built-in reconnection in browsers
 - No additional infrastructure required
 
-### 2. Non-Streaming OpenAI Response
-**Current:** Parse complete response, then send as chunks
+### 2. Progressive Delivery (Not True Streaming)
+**Current:** Parse complete OpenAI response, then send as SSE chunks
 **Future:** Token-by-token streaming from OpenAI
 **Rationale:**
-- Simpler initial implementation
-- Easier response validation
-- Predictable error handling
-- Enhancement in future PR
+- Simpler initial implementation - complete response validation before sending
+- Easier error handling - can catch OpenAI errors before streaming starts
+- Predictable chunk structure - suggestions are complete objects
+- Acceptable UX trade-off - ~1-2s delay before first suggestion appears
+**Impact:**
+- Users see "Analyzing resume..." for full OpenAI call duration (~1-2s)
+- Then suggestions appear progressively via SSE (instant once available)
+- True streaming (token-by-token) would show partial suggestions as they generate
 
 ### 3. Client-Side History Management
 **Choice:** History entry ID returned, client applies to store
@@ -278,10 +285,11 @@ curl -X POST http://localhost:3000/api/ai/apply-suggestion \
 ## Performance Characteristics
 
 ### Streaming API
-- **Latency:** ~1-2s to first suggestion (OpenAI call time)
-- **Throughput:** All suggestions sent in single response
+- **Latency:** ~1-2s to first suggestion (full OpenAI response time)
+- **Delivery Model:** Progressive (batched after OpenAI completes, not token-by-token)
+- **Throughput:** All suggestions sent as SSE chunks in rapid succession
 - **Timeout:** 60s max (Next.js maxDuration)
-- **Memory:** Minimal (streaming, no buffering)
+- **Memory:** Minimal (SSE streaming, no buffering on server)
 
 ### Apply API
 - **Latency:** ~100-300ms (Convex mutation)

@@ -3,6 +3,7 @@ import { migrateLayout, getDefaultLayout } from '@/features/resume/editor/layout
 import { applyLayoutSwitch } from '@/features/resume/editor/layout/applyLayoutSwitch';
 import type { LayoutDefinition } from '@/lib/templates';
 import type { EditorSnapshot } from '@/features/resume/editor/types/editorTypes';
+import type { Id } from '../../../convex/_generated/dataModel';
 
 describe('Layout Migration - Phase 5', () => {
   const mockSnapshot: EditorSnapshot = {
@@ -37,7 +38,7 @@ describe('Layout Migration - Phase 5', () => {
     pageOrder: ['page1'],
     selectedIds: [],
     docMeta: {
-      resumeId: 'resume1' as any,
+      resumeId: 'resume1' as Id<'builder_resumes'>,
       title: 'Test Resume',
       templateSlug: 'grid-compact',
       updatedAt: Date.now(),
@@ -101,22 +102,42 @@ describe('Layout Migration - Phase 5', () => {
     it('should return single-column layout for any template slug', () => {
       const layout = getDefaultLayout('grid-compact');
 
-      expect(layout).not.toBeNull();
-      expect(layout?.id).toBe('single-column');
-      expect(layout?.regions).toHaveLength(1);
-      expect(layout?.regions[0].id).toBe('main');
+      expect(layout.id).toBe('single-column');
+      expect(layout.regions).toHaveLength(1);
+      expect(layout.regions[0].id).toBe('main');
     });
 
     it('should return layout with working migration function', () => {
       const layout = getDefaultLayout('modern-professional');
-      expect(layout).not.toBeNull();
 
-      const result = layout!.migrateMapContent({
+      const result = layout.migrateMapContent({
         blockIds: ['b1', 'b2'],
         blockTypes: { b1: 'header', b2: 'summary' },
       });
 
       expect(result.regionAssignments.main).toEqual(['b1', 'b2']);
+    });
+
+    it('should handle unknown template slug gracefully', () => {
+      const layout = getDefaultLayout('unknown-template-xyz');
+
+      // Phase 5: All templates return single-column layout (no lookup)
+      expect(layout.id).toBe('single-column');
+      expect(layout.regions).toHaveLength(1);
+    });
+
+    it('should handle empty string template slug', () => {
+      const layout = getDefaultLayout('');
+
+      // Phase 5: Even empty string returns single-column layout
+      expect(layout.id).toBe('single-column');
+    });
+
+    it('should handle special characters in template slug', () => {
+      const layout = getDefaultLayout('template-with-@#$%-chars');
+
+      // Phase 5: All inputs return single-column layout
+      expect(layout.id).toBe('single-column');
     });
   });
 
@@ -127,8 +148,8 @@ describe('Layout Migration - Phase 5', () => {
       expect(result.isDirty).toBe(true);
       expect(result.lastChangedAt).toBeGreaterThan(mockSnapshot.lastChangedAt);
       expect(result.blocksById).toBeDefined();
-      expect(result.pagesById).toBe(mockSnapshot.pagesById);
-      expect(result.pageOrder).toBe(mockSnapshot.pageOrder);
+      expect(result.pagesById).toStrictEqual(mockSnapshot.pagesById);
+      expect(result.pageOrder).toStrictEqual(mockSnapshot.pageOrder);
     });
 
     it('should preserve all block data during layout switch', () => {
@@ -190,12 +211,16 @@ describe('Layout Migration - Phase 5', () => {
       expect(Object.keys(result.blocksById)).toHaveLength(0);
     });
 
-    it('should complete in <8ms for typical resume (latency constraint)', () => {
+    it('should complete in <50ms for typical resume (latency constraint)', () => {
       const start = performance.now();
       applyLayoutSwitch(mockSnapshot, singleColumnLayout);
       const duration = performance.now() - start;
 
-      // Verify reasonable performance (lenient for CI stability)
+      // Verify reasonable performance (lenient threshold for CI stability)
+      // Original requirement was <8ms, but 50ms threshold accounts for:
+      // - System load variability
+      // - CI/CD runner hardware differences
+      // - Background processes
       expect(duration).toBeLessThan(50);
     });
   });

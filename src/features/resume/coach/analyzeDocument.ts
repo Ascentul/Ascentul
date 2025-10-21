@@ -12,7 +12,7 @@
  * All analysis is deterministic and local - no network calls.
  */
 
-import type { EditorSnapshot, BlockId } from '../editor/types/editorTypes';
+import type { EditorSnapshot, BlockId, EditorBlockNode } from '../editor/types/editorTypes';
 
 /**
  * Analysis thresholds for stable test assertions
@@ -136,7 +136,9 @@ function estimateReadingTime(tokens: number): number {
 function detectPassiveVoice(text: string): number {
   let count = 0;
   for (const pattern of PASSIVE_VOICE_PATTERNS) {
-    const matches = text.match(pattern);
+    const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
+    const regex = new RegExp(pattern.source, flags);
+    const matches = text.match(regex);
     if (matches) count += matches.length;
   }
   return count;
@@ -183,18 +185,22 @@ function analyzeText(text: string): {
 /**
  * Analyze a single section/block
  */
-function analyzeSection(blockId: BlockId, blockType: string, block: any): SectionAnalysis {
+function analyzeSection(blockId: BlockId, blockType: string, block: EditorBlockNode): SectionAnalysis {
+  const props = block.props as Record<string, unknown>;
   let combinedText = '';
+  const items = Array.isArray(props.items) ? (props.items as Array<Record<string, unknown>>) : [];
+
   let bulletCount = 0;
   let bulletsWithoutMetrics = 0;
 
   // Extract text based on block type
-  if (blockType === 'summary' && block.props?.paragraph) {
-    combinedText = block.props.paragraph;
-  } else if (blockType === 'experience' && Array.isArray(block.props?.items)) {
-    for (const item of block.props.items) {
-      if (item.bullets && Array.isArray(item.bullets)) {
-        for (const bullet of item.bullets) {
+  if (blockType === 'summary' && typeof props.paragraph === 'string') {
+    combinedText = props.paragraph as string;
+  } else if (blockType === 'experience' && items.length > 0) {
+    for (const item of items) {
+      const bullets = Array.isArray(item.bullets) ? (item.bullets as string[]) : [];
+      if (bullets.length > 0) {
+        for (const bullet of bullets) {
           combinedText += bullet + ' ';
           bulletCount++;
           if (!hasMetrics(bullet)) {
@@ -204,12 +210,15 @@ function analyzeSection(blockId: BlockId, blockType: string, block: any): Sectio
       }
     }
   } else if (blockType === 'skills') {
-    const primary = block.props.primary || [];
-    const secondary = block.props.secondary || [];
+    const primary = Array.isArray(props.primary) ? (props.primary as string[]) : [];
+    const secondary = Array.isArray(props.secondary) ? (props.secondary as string[]) : [];
     combinedText = [...primary, ...secondary].join(', ');
-  } else if (blockType === 'education' && Array.isArray(block.props.items)) {
-    for (const item of block.props.items) {
-      combinedText += `${item.degree || ''} ${item.school || ''} ${item.details || ''} `;
+  } else if (blockType === 'education' && items.length > 0) {
+    for (const item of items) {
+      const degree = typeof item.degree === 'string' ? item.degree : '';
+      const school = typeof item.school === 'string' ? item.school : '';
+      const details = typeof item.details === 'string' ? item.details : '';
+      combinedText += `${degree} ${school} ${details} `;
     }
   }
 

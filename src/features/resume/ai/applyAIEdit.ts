@@ -92,17 +92,11 @@ export async function applyAIEdit(options: ApplyAIEditOptions): Promise<ApplyAIE
     adapter.setBlockText(blockId, finalContent);
 
     // 3. Persist via broker (single call)
-    const currentText = adapter.getBlockText(blockId);
-    if (!currentText) {
-      throw new Error('Failed to read updated block text');
-    }
-
-    // Enqueue block update
     const mutationResult = await broker.enqueue({
       kind: 'block.update',
       payload: {
         id: blockId,
-        text: currentText, // Use the text property for simplicity
+        text: finalContent,
       },
     });
 
@@ -122,11 +116,11 @@ export async function applyAIEdit(options: ApplyAIEditOptions): Promise<ApplyAIE
       diffPreview: finalContent.slice(0, 50) + (finalContent.length > 50 ? '...' : ''),
     });
 
-    adapter.setDocMeta(updatedMeta);
+    adapter.updateDocMeta(updatedMeta);
 
-    // Note: DocMeta with aiEdits is memory-only, not persisted to Convex
-    // The aiEdits field exists in EditorState.docMeta during the session
-    // but is lost on page refresh. This is acceptable for MVP.
+    // Note: aiEdits audit log is stored in-memory only (EditorState.docMeta)
+    // It persists during the editing session but is not synced to Convex.
+    // The audit log is lost on page refresh. This is acceptable for MVP.
 
     if (debugEnabled) {
       logEvent('ai_action_completed', {

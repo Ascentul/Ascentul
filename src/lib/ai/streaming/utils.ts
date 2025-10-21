@@ -139,7 +139,6 @@ export function createSSEStream(
 export function createDurationTracker() {
   const startTime = Date.now();
   return {
-    elapsed: () => Date.now() - startTime,
     getDuration: () => Date.now() - startTime,
   };
 }

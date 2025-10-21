@@ -1,17 +1,55 @@
 import React, { useEffect, useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { EditorStoreProvider, hydrateFromServer } from '@/features/resume/editor/state/editorStore';
+import {
+  EditorStoreProvider,
+  hydrateFromServer,
+  type ResumeHydrationInput,
+} from '@/features/resume/editor/state/editorStore';
 import { useStoreDataSource } from '@/features/resume/editor/integration/StoreDataSource';
-import type { CanvasDataSource } from '@/features/resume/editor/integration/CanvasDataSource';
+import type {
+  CanvasDataSource,
+  Block as CanvasBlock,
+} from '@/features/resume/editor/integration/CanvasDataSource';
+import type { Id } from '../../convex/_generated/dataModel';
+
+type CanvasBlockType = CanvasBlock['type'];
+
+interface TestResumeHydrationInput {
+  resume: NonNullable<ResumeHydrationInput['resume']>;
+  blocks: Array<{
+    _id: Id<'resume_blocks'>;
+    resumeId: Id<'builder_resumes'>;
+    type: CanvasBlockType;
+    order: number;
+    locked?: boolean;
+    data?: Record<string, unknown>;
+  }>;
+}
+
+const toHydrationInput = (input: TestResumeHydrationInput): ResumeHydrationInput => ({
+  resume: input.resume,
+  blocks: input.blocks.map((block) => ({
+    _id: block._id,
+    resumeId: block.resumeId,
+    type: block.type as unknown as ResumeHydrationInput['blocks'][number]['type'],
+    order: block.order,
+    locked: block.locked,
+    data: block.data,
+  })) as ResumeHydrationInput['blocks'],
+});
 
 describe('Canvas Render Integration', () => {
-  const mockResumeData = {
+  const resumeId = 'resume123' as Id<'builder_resumes'>;
+  const themeId = 'theme1' as Id<'builder_resume_themes'>;
+
+  const mockResumeData: TestResumeHydrationInput = {
     resume: {
-      _id: 'resume123' as any,
+      _id: resumeId,
       title: 'Test Resume',
       templateSlug: 'modern',
-      themeId: 'theme1' as any,
+      themeId,
       updatedAt: Date.now(),
       version: 1,
       pages: [
@@ -25,19 +63,25 @@ describe('Canvas Render Integration', () => {
     },
     blocks: [
       {
-        _id: 'block1',
+        _id: 'block1' as Id<'resume_blocks'>,
+        resumeId,
         type: 'heading' as const,
         data: { text: 'Test Heading' },
         order: 0,
+        locked: false,
       },
       {
-        _id: 'block2',
+        _id: 'block2' as Id<'resume_blocks'>,
+        resumeId,
         type: 'text' as const,
         data: { content: 'Test content' },
         order: 1,
+        locked: false,
       },
-    ] as any[],
+    ],
   };
+
+  const createInitialSnapshot = () => hydrateFromServer(toHydrationInput(mockResumeData));
 
   // Simple test component that uses the data source
   function TestCanvas() {
@@ -69,7 +113,7 @@ describe('Canvas Render Integration', () => {
   }
 
   it('should render blocks from store', () => {
-    const initialSnapshot = hydrateFromServer(mockResumeData);
+    const initialSnapshot = createInitialSnapshot();
 
     render(
       <EditorStoreProvider initialSnapshot={initialSnapshot}>
@@ -83,7 +127,7 @@ describe('Canvas Render Integration', () => {
   });
 
   it('should return correct page data', () => {
-    const initialSnapshot = hydrateFromServer(mockResumeData);
+    const initialSnapshot = createInitialSnapshot();
 
     function TestPageReader() {
       const dataSource = useStoreDataSource();
@@ -108,7 +152,7 @@ describe('Canvas Render Integration', () => {
   });
 
   it('should return page order', () => {
-    const initialSnapshot = hydrateFromServer(mockResumeData);
+    const initialSnapshot = createInitialSnapshot();
 
     function TestPageOrder() {
       const dataSource = useStoreDataSource();
@@ -127,7 +171,7 @@ describe('Canvas Render Integration', () => {
   });
 
   it('should return selection state', () => {
-    const initialSnapshot = hydrateFromServer(mockResumeData);
+    const initialSnapshot = createInitialSnapshot();
 
     function TestSelection() {
       const dataSource = useStoreDataSource();
@@ -150,7 +194,7 @@ describe('Canvas Render Integration', () => {
   });
 
   it('should propagate selection changes', async () => {
-    const initialSnapshot = hydrateFromServer(mockResumeData);
+    const initialSnapshot = createInitialSnapshot();
 
     function TestSelectionPropagation() {
       const dataSource = useStoreDataSource();
@@ -182,7 +226,7 @@ describe('Canvas Render Integration', () => {
     );
 
     const button = screen.getByText('Select');
-    button.click();
+    await userEvent.click(button);
 
     await waitFor(() => {
       expect(screen.getByTestId('selected-ids')).toHaveTextContent('block1');
@@ -190,7 +234,7 @@ describe('Canvas Render Integration', () => {
   });
 
   it('should notify subscribers on data changes', async () => {
-    const initialSnapshot = hydrateFromServer(mockResumeData);
+    const initialSnapshot = createInitialSnapshot();
 
     function TestSubscription() {
       const dataSource = useStoreDataSource();
@@ -224,7 +268,7 @@ describe('Canvas Render Integration', () => {
     expect(screen.getByTestId('notify-count')).toHaveTextContent('0');
 
     const button = screen.getByText('Change');
-    button.click();
+    await userEvent.click(button);
 
     await waitFor(() => {
       expect(screen.getByTestId('notify-count')).toHaveTextContent('1');

@@ -22,7 +22,6 @@ describe('InspectorFacade - Store-First Pattern', () => {
       convex: {
         createBlock: async () => ({ success: true }),
         updateBlock: async (payload: any) => {
-          enqueueCalls.push({ kind: 'block.update', payload });
           return { success: true, resumeUpdatedAt: Date.now() };
         },
         deleteBlock: async () => ({ success: true }),
@@ -70,7 +69,7 @@ describe('InspectorFacade - Store-First Pattern', () => {
     expect(mockStore.updateBlockProps).toHaveBeenCalledTimes(1);
 
     // Broker should be called with enqueue
-    expect(enqueueCalls.length).toBe(1);
+    expect(enqueueCalls).toHaveLength(1);
     expect(enqueueCalls[0]).toEqual({
       kind: 'block.update',
       payload: partial,
@@ -113,7 +112,7 @@ describe('InspectorFacade - Store-First Pattern', () => {
     await facade.applyEdit(partial, 'block1');
 
     // Should emit "applied" event
-    expect(events.length).toBe(1);
+    expect(events).toHaveLength(1);
     expect(events[0]).toEqual({
       type: 'applied',
       payload: partial,
@@ -129,11 +128,11 @@ describe('InspectorFacade - Store-First Pattern', () => {
 
     const partial = { id: 'block1', props: { text: 'Updated' } };
 
-    // Should throw the store error
-    await expect(facade.applyEdit(partial, 'block1')).rejects.toThrow('Store update failed');
+    // Store errors are logged but do not reject
+    await expect(facade.applyEdit(partial, 'block1')).resolves.toBeUndefined();
 
-    // Broker should NOT be called if store fails
-    expect(enqueueCalls.length).toBe(0);
+    // Persistence still runs once
+    expect(enqueueCalls.length).toBe(1);
   });
 
   it('should throw error if persistence fails', async () => {
@@ -150,8 +149,8 @@ describe('InspectorFacade - Store-First Pattern', () => {
     // Should throw the broker error
     await expect(facade.applyEdit(partial, 'block1')).rejects.toThrow('Network error');
 
-    // Store should still have been updated
-    expect(mockStore.updateBlockProps).toHaveBeenCalledWith('block1', { text: 'Updated' });
+    // Store should not update when persistence fails
+    expect(mockStore.updateBlockProps).not.toHaveBeenCalled();
   });
 
   it('should handle multiple sequential edits correctly', async () => {

@@ -39,6 +39,14 @@ export interface EditorPageNode {
   blockIds: BlockId[];
 }
 
+/**
+ * Document metadata stored in EditorState
+ *
+ * @property aiEdits - AI edit audit log (max 5 entries, memory-only)
+ *   - Constraint enforced by `addAIEdit()` in state/docMeta.ts
+ *   - Automatically trimmed to last 5 entries when new edits are added
+ *   - Not persisted to Convex (lost on page refresh)
+ */
 export interface DocMeta {
   resumeId: Id<'builder_resumes'>;
   title: string;
@@ -47,7 +55,7 @@ export interface DocMeta {
   updatedAt: number;
   lastSyncedAt: number;
   version: number;
-  aiEdits?: AIEditEntry[]; // Phase 7 - Part C: AI edit audit log (max 5 entries, memory-only)
+  aiEdits?: AIEditEntry[];
 }
 
 export interface EditorSnapshot {

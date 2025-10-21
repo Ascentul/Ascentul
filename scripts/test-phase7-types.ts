@@ -89,7 +89,7 @@ const applyResponse: ApplySuggestionResponse = {
     type: 'experience',
     data: {},
     title: 'Experience',
-  } as any,
+  },
   historyEntryId: 'ai-apply-123',
 };
 

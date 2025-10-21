@@ -12,12 +12,25 @@ import { useEditorActions } from '../state/editorStore';
  * - Intercepts shortcuts when focus is outside input/textarea (Canvas, buttons)
  * - Allows native browser undo/redo when focus is inside input/textarea (Inspector)
  */
+
+const getPlatform = () => {
+  if (typeof navigator === 'undefined') {
+    return '';
+  }
+  const uaDataPlatform = (navigator as any).userAgentData?.platform;
+  if (uaDataPlatform) {
+    return uaDataPlatform;
+  }
+  return navigator.platform || navigator.userAgent || '';
+};
+
 export function useHistoryShortcuts() {
   const actions = useEditorActions();
 
   useEffect(() => {
+    const platform = getPlatform();
+    const isMac = /mac/i.test(platform);
     const handleKeyDown = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
 
       if (!cmdOrCtrl) return;
@@ -25,7 +38,11 @@ export function useHistoryShortcuts() {
       // Ignore if focus is in Inspector input/textarea - allow native undo/redo
       const target = e.target as HTMLElement;
       const tagName = target?.tagName?.toLowerCase();
-      if (tagName === 'input' || tagName === 'textarea') {
+      if (
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        target?.isContentEditable
+      ) {
         return;
       }
 

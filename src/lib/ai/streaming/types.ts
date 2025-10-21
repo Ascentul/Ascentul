@@ -149,28 +149,34 @@ export interface ApplySuggestionRequest {
 
 /**
  * Response from apply suggestion endpoint
+ *
+ * Uses discriminated union to ensure type safety:
+ * - Success responses MUST have updatedBlock
+ * - Error responses MUST have error message
+ * - Impossible states are prevented (e.g., success: true with error field)
  */
-export interface ApplySuggestionResponse {
-  success: boolean;
-
-  /** Updated block after applying suggestion */
-  updatedBlock?: ResumeBlock;
-
-  /** Error message if success is false */
-  error?: string;
-
-  /** History entry ID for undo support */
-  historyEntryId?: string;
-
-  /** Sanitization details when content required redaction */
-  sanitized?: {
-    redactions: number;
-    patterns: Array<'ssn' | 'phone' | 'email'>;
-  };
-
-  /** Indicates response came from idempotency cache */
-  idempotent?: boolean;
-}
+export type ApplySuggestionResponse =
+  | {
+      success: true;
+      /** Updated block after applying suggestion */
+      updatedBlock: ResumeBlock;
+      /** History entry ID for undo support */
+      historyEntryId?: string;
+      /** Sanitization details when content required redaction */
+      sanitized?: {
+        redactions: number;
+        patterns: Array<'ssn' | 'phone' | 'email'>;
+      };
+      /** Indicates response came from idempotency cache */
+      idempotent?: boolean;
+    }
+  | {
+      success: false;
+      /** Error message explaining why suggestion could not be applied */
+      error: string;
+      /** Indicates response came from idempotency cache */
+      idempotent?: boolean;
+    };
 
 /**
  * State of the streaming process

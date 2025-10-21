@@ -1,10 +1,26 @@
 import type { MutationBroker } from "./MutationBroker";
 
-export type EditOptions = { coalesceKey?: string; source?: "inspector" | "canvas" };
+/**
+ * Options for edit operations
+ * @property source - Source of the edit (for telemetry/debugging)
+ * @property coalesceKey - Reserved for future debouncing logic (not yet implemented)
+ */
+export type EditOptions = {
+  /** Source of the edit - used for telemetry and debugging */
+  source?: "inspector" | "canvas";
+  /** Reserved for future debouncing of rapid edits (not yet implemented) */
+  coalesceKey?: string;
+};
+
 export type EditPartial = { id: string; props: Record<string, unknown> };
 
 export type InspectorFacade = {
-  applyEdit(partial: EditPartial, targetId: string, options?: EditOptions): Promise<void>;
+  /**
+   * Apply an edit to a block
+   * @param partial - Block ID and props to update
+   * @param options - Optional metadata for telemetry/debugging
+   */
+  applyEdit(partial: EditPartial, options?: EditOptions): Promise<void>;
   commit(): Promise<void>;
   revert(): Promise<void>;
   onEvent(cb: (e: { type: "applied" | "committed" | "reverted"; payload?: unknown }) => void): () => void;
@@ -25,7 +41,15 @@ export function createInspectorFacade(
   }
 
   return {
-    async applyEdit(partial: EditPartial, _targetId: string, _options?: EditOptions) {
+    async applyEdit(partial: EditPartial, options?: EditOptions) {
+      // Log source for debugging/telemetry if provided
+      if (options?.source && process.env.NEXT_PUBLIC_DEBUG_UI === 'true') {
+        console.debug(`[InspectorFacade] applyEdit from ${options.source}:`, {
+          blockId: partial.id,
+          propsKeys: Object.keys(partial.props),
+        });
+      }
+
       // Wait for persistence first
       const res = await broker.enqueue({ kind: "block.update", payload: partial });
       if (!res.ok) {

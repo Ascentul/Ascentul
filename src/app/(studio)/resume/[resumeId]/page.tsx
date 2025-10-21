@@ -164,13 +164,12 @@ export default function ResumeStudioPage() {
   // V2 store flag
   const useV2Store = !!process.env.NEXT_PUBLIC_RESUME_V2_STORE;
 
-  // Mount keyboard shortcuts for V2 store
-  if (useV2Store) {
-    useHistoryShortcuts();
-  }
+  // Always call hooks unconditionally (Rules of Hooks)
+  useHistoryShortcuts();
+  const editorActions = useEditorActions();
 
-  // V2 store actions (call unconditionally to satisfy rules of hooks)
-  const editorActions = useV2Store ? useEditorActions() : null;
+  // Disable V2 features if flag is off
+  const enableV2Features = useV2Store;
 
   // Fetch resume data
   const resumeData = useQuery(
@@ -200,18 +199,18 @@ export default function ResumeStudioPage() {
     () =>
       createMutationBroker({
         convex: {
-          createBlock: async (payload: any) => createBlock(payload),
-          updateBlock: async (payload: EditPartial) =>
+          createBlock: async (payload) => createBlock(payload),
+          updateBlock: async (payload) =>
             updateBlock({
               id: payload.id,
               ...(payload.props ?? {}),
             }),
-          deleteBlock: async (payload: any) => deleteBlock(payload),
-          reorderBlock: async (payload: any) => reorderBlocks(payload),
-          createPage: async () => { throw new Error('createPage not implemented'); },
-          duplicatePage: async () => { throw new Error('duplicatePage not implemented'); },
-          reflowPages: async () => { throw new Error('reflowPages not implemented'); },
-          updateResumeMeta: async (payload: any) => updateResumeMeta(payload),
+          deleteBlock: async (payload) => deleteBlock(payload),
+          reorderBlock: async (payload) => reorderBlocks(payload),
+          createPage: async (_payload) => { throw new Error('createPage not implemented'); },
+          duplicatePage: async (_payload) => { throw new Error('duplicatePage not implemented'); },
+          reflowPages: async (_payload) => { throw new Error('reflowPages not implemented'); },
+          updateResumeMeta: async (payload) => updateResumeMeta(payload),
         },
       }),
     [createBlock, updateBlock, deleteBlock, reorderBlocks, updateResumeMeta]
@@ -356,6 +355,12 @@ useEffect(() => {
       } else if (isMod && e.shiftKey && e.key === 'L') {
         e.preventDefault();
         setActiveTab('layers');
+      } else if (isMod && e.shiftKey && e.key === 'C') {
+        // Only allow coaching shortcut if V2 features are enabled
+        if (enableV2Features) {
+          e.preventDefault();
+          setActiveTab('coaching');
+        }
       } else if (e.key === 'Escape') {
         e.preventDefault();
         setSelectedBlockId(null);
@@ -364,7 +369,7 @@ useEffect(() => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [enableV2Features]);
 
   useEffect(() => {
     setTotalPages(pageOrder.length || 1);
@@ -678,7 +683,7 @@ useEffect(() => {
   const handleDuplicatePage = useCallback(() => {
     if (!selectedPageId) return;
 
-    if (useV2Store && editorActions) {
+    if (enableV2Features && editorActions) {
       // V2 store path: Use EditorStore actions
       const newPageId = editorActions.duplicatePage(selectedPageId);
       setSelectedPageId(newPageId);
@@ -712,7 +717,7 @@ useEffect(() => {
         description: 'A copy of the current page was created.',
       });
     }
-  }, [selectedPageId, useV2Store, editorActions, editorPages, pageOrder, blocksMap, toast]);
+  }, [selectedPageId, enableV2Features, editorActions, editorPages, pageOrder, blocksMap, toast]);
 
   const handleAddSection = useCallback(async () => {
     if (!user?.id) return;
@@ -878,7 +883,7 @@ useEffect(() => {
           </div>
           <div className="flex items-center gap-2">
             {/* Undo/Redo - Only visible when V2 store is enabled */}
-            {useV2Store && <UndoRedoToolbar />}
+            {enableV2Features && <UndoRedoToolbar />}
 
             {/* AI Actions */}
             <AIActionsToolbar
@@ -1002,7 +1007,7 @@ useEffect(() => {
           } overflow-hidden`}
         >
           {isLeftSidebarOpen && (
-            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} showCoaching={useV2Store}>
+            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} showCoaching={enableV2Features}>
               {activeTab === 'layers' && (
                 <Layers
                   blocks={localBlocks}
@@ -1025,7 +1030,7 @@ useEffect(() => {
                   disabled={isUpdatingMeta}
                 />
               )}
-              {activeTab === 'coaching' && useV2Store && (
+              {activeTab === 'coaching' && enableV2Features && (
                 <CoachingTab broker={mutationBroker} />
               )}
             </Sidebar>

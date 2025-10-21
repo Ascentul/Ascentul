@@ -7,6 +7,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+// Detect platform for cross-platform keyboard shortcuts
+const isMac = typeof window !== 'undefined' &&
+  /(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent);
+const modKey = isMac ? 'Cmd' : 'Ctrl';
+
 interface SidebarProps {
   activeTab: 'layers' | 'themes' | 'templates' | 'coaching';
   onTabChange: (tab: 'layers' | 'themes' | 'templates' | 'coaching') => void;
@@ -15,6 +20,11 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, onTabChange, children, showCoaching = false }: SidebarProps) {
+  // Validate that coaching tab isn't active when hidden
+  if (activeTab === 'coaching' && !showCoaching) {
+    console.error('Invalid state: coaching tab is active but showCoaching is false');
+  }
+
   const gridCols = showCoaching ? 'grid-cols-4' : 'grid-cols-3';
 
   return (
@@ -40,7 +50,7 @@ export function Sidebar({ activeTab, onTabChange, children, showCoaching = false
             </TooltipTrigger>
             <TooltipContent side="bottom">
               <p className="text-xs">
-                Cmd+Shift+L <span className="text-muted-foreground">(Ctrl+Shift+L on Windows)</span>
+                {modKey}+Shift+L
               </p>
             </TooltipContent>
           </Tooltip>
@@ -63,7 +73,7 @@ export function Sidebar({ activeTab, onTabChange, children, showCoaching = false
             </TooltipTrigger>
             <TooltipContent side="bottom">
               <p className="text-xs">
-                Cmd+Shift+H <span className="text-muted-foreground">(Ctrl+Shift+H on Windows)</span>
+                {modKey}+Shift+H
               </p>
             </TooltipContent>
           </Tooltip>
@@ -86,7 +96,7 @@ export function Sidebar({ activeTab, onTabChange, children, showCoaching = false
             </TooltipTrigger>
             <TooltipContent side="bottom">
               <p className="text-xs">
-                Cmd+Shift+T <span className="text-muted-foreground">(Ctrl+Shift+T on Windows)</span>
+                {modKey}+Shift+T
               </p>
             </TooltipContent>
           </Tooltip>
@@ -109,7 +119,9 @@ export function Sidebar({ activeTab, onTabChange, children, showCoaching = false
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom">
-                <p className="text-xs">AI-powered suggestions</p>
+                <p className="text-xs">
+                  {modKey}+Shift+C
+                </p>
               </TooltipContent>
             </Tooltip>
           )}

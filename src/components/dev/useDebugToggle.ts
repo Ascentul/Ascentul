@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const STORAGE_KEY = 'debug-panel-open';
 const TOGGLE_KEY = '`'; // Backtick key
@@ -22,7 +22,7 @@ export function useDebugToggle() {
     }
   });
 
-  const toggle = () => {
+  const toggle = useCallback(() => {
     setIsOpen((prev) => {
       const next = !prev;
       try {
@@ -32,7 +32,7 @@ export function useDebugToggle() {
       }
       return next;
     });
-  };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -45,7 +45,7 @@ export function useDebugToggle() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [toggle]);
 
   return { isOpen, toggle };
 }

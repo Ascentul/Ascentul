@@ -78,7 +78,7 @@ Part B implements content guardrails and action orchestration for AI-powered res
   - `IMPROVE_BULLET_SYSTEM_PROMPT` - Instructions for bullet improvement
   - `FIX_TENSE_SYSTEM_PROMPT` - Instructions for tense fixing
   - `TRANSLATE_SYSTEM_PROMPT` - Instructions for translation
-  - Builder functions: `buildGenerateSummaryPrompt()`, `buildRewriteExperiencePrompt()`, etc.
+  - Builder functions: `buildGenerateSummaryPrompt()`, `buildRewriteExperiencePrompt()`, `buildTailorToJobPrompt()`, `buildImproveBulletPrompt()`, `buildFixTensePrompt()`, `buildTranslatePrompt()`
 - **Features:**
   - Consistent formatting instructions across all actions
   - Context-aware prompt building (includes target role, company when provided)
@@ -225,9 +225,14 @@ Part B implements content guardrails and action orchestration for AI-powered res
 
 #### `src/lib/telemetry.ts`
 **Changes:**
-1. Added new event types:
+1. Added new event types for guardrails (Phase 7 - Part B):
    ```typescript
-   export type TelemetryEventType =
+   export type TelemetryEvent =
+     // ... Template & Theme (2), Page Actions (2), AI Actions (3), Export (3), Coach (2)
+     // ... Editor Stability (5), Editing Quality (4), Layout (6), Records Grid (4)
+     // ... AI Authoring metrics (10+), Export metrics (2+)
+
+     // Streaming Suggestions (Phase 7 - Part A) - EXISTING (7 events)
      | 'ai_stream_started'
      | 'ai_stream_suggestion_received'
      | 'ai_stream_completed'
@@ -235,10 +240,20 @@ Part B implements content guardrails and action orchestration for AI-powered res
      | 'ai_stream_cancelled'
      | 'ai_suggestion_applied'
      | 'ai_suggestion_apply_failed'
-     | 'ai_guardrail_blocked'      // NEW
-     | 'ai_content_sanitized'      // NEW
-     | ...existing events
+
+     // Guardrails (Phase 7 - Part B) - NEW IN THIS PHASE (2 events)
+     | 'ai_guardrail_blocked'      // ← NEW: PII/sensitive content detected
+     | 'ai_content_sanitized'      // ← NEW: Content sanitized (e.g., links removed)
+
+     // Audit Log (Phase 7 - Part C) - 1 event
+     | 'ai_audit_added'
+
+     // ... (53 total event types across all phases)
    ```
+
+   **Phase 7 Part B additions**: 2 new event types
+   - `ai_guardrail_blocked`: Emitted when PII or sensitive content is detected
+   - `ai_content_sanitized`: Emitted when content is sanitized (e.g., external links removed)
 
 ---
 
@@ -533,6 +548,49 @@ const result = validateContent('Led team of 5 engineers to deliver project ahead
 // result.ok === true
 ```
 
+### Validation Failure - Empty Input
+```typescript
+const result = validateContent('');
+// result.ok === false
+// result.code === 'INVALID_INPUT'
+// result.reason === 'Content cannot be empty'
+```
+
+### Validation Failure - Job Description Dump
+```typescript
+const longJDText = `We are looking for a Senior Engineer with 5+ years of experience.
+Requirements: Bachelor's degree in CS, expert in TypeScript, React...
+[500+ word job posting dump]`;
+
+const result = validateContent(longJDText);
+// result.ok === false
+// result.code === 'JD_DUMP'
+// result.reason === 'Content appears to be a raw job description dump (523 words). Please provide structured, concise content.'
+```
+
+### Validation Failure - SSN Detected
+```typescript
+const result = validateContent('My SSN is 123-45-6789 for verification.');
+// result.ok === false
+// result.code === 'PII_DETECTED'
+// result.reason === 'Content contains what appears to be a Social Security Number. Please remove sensitive information.'
+```
+
+### Validation Failure - URL Spam
+```typescript
+// URLs not allowed
+const result1 = validateContent('Check out https://example.com', { allowUrls: false });
+// result1.ok === false
+// result1.code === 'URL_SPAM'
+// result1.reason === 'URLs are not allowed in this content'
+
+// Too many URLs
+const result2 = validateContent('Link1: http://a.com Link2: http://b.com ... Link6: http://f.com');
+// result2.ok === false
+// result2.code === 'URL_SPAM'
+// result2.reason === 'Too many URLs detected (6). Maximum allowed: 5'
+```
+
 ### Validation Failure - Unprofessional Language
 ```typescript
 const result = validateContent('This project was awesome lol!');
@@ -541,7 +599,7 @@ const result = validateContent('This project was awesome lol!');
 // result.reason === 'Unprofessional language detected: lol. Please use professional tone.'
 ```
 
-### Validation Failure - PII Detected
+### Validation Failure - PII Email Detected (Non-Contact Content)
 ```typescript
 const result = validateContent('Contact me at john@gmail.com for more info');
 // result.ok === false
@@ -549,25 +607,54 @@ const result = validateContent('Contact me at john@gmail.com for more info');
 // result.reason === 'Personal email addresses detected: john@gmail.com. These should only appear in contact information.'
 ```
 
-### Sanitization
+### Validation Success - Email in Contact Info (Edge Case)
+```typescript
+const result = validateContent('john@gmail.com', { isContactInfo: true });
+// result.ok === true
+// Personal emails ARE allowed when isContactInfo flag is set
+```
+
+### Sanitization - Multiple PII Patterns
 ```typescript
 const result = sanitize('Call me at 555-123-4567, email test@gmail.com, SSN 123-45-6789');
 // result.text === 'Call me at [REDACTED], email [EMAIL], SSN [REDACTED]'
 // result.redactions === 3
-// result.patterns === ['phone', 'email', 'ssn']
+// result.patterns === ['ssn', 'phone', 'email']
 ```
 
-### Action Prompt Generation
+### Sanitization - No Redactions
 ```typescript
-const prompts = getActionPrompt('generateSummary', {
-  targetRole: 'Senior Engineer',
-  experienceYears: 10,
-  keySkills: ['TypeScript', 'React', 'Node.js'],
-});
+const result = sanitize('Led team of 5 engineers.');
+// result.text === 'Led team of 5 engineers.'
+// result.redactions === 0
+// result.patterns === []
+```
 
-// prompts.systemPrompt === GENERATE_SUMMARY_SYSTEM_PROMPT
-// prompts.userPrompt === 'Generate a professional summary for a Senior Engineer with...'
-// prompts.action === 'generateSummary'
+### Sanitization - Professional Email Preserved (Edge Case)
+```typescript
+const result = sanitize('Contact: john@company.com or jane@startup.io');
+// result.text === 'Contact: john@company.com or jane@startup.io'
+// result.redactions === 0
+// result.patterns === []
+// Professional emails (company domains) are NOT redacted
+```
+
+### Validation + Sanitization Combined
+```typescript
+const result = validateAndSanitize('Experience: 10 years. Phone: 555-123-4567');
+// result.ok === true
+// result.sanitized.text === 'Experience: 10 years. Phone: [REDACTED]'
+// result.sanitized.redactions === 1
+// result.sanitized.patterns === ['phone']
+```
+
+### Validation + Sanitization - Validation Fails
+```typescript
+const result = validateAndSanitize('This is awesome lol!');
+// result.ok === false
+// result.code === 'UNPROFESSIONAL'
+// result.sanitized === undefined
+// Sanitization is NOT performed if validation fails
 ```
 
 ---

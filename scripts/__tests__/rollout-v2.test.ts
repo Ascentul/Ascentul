@@ -18,22 +18,16 @@ describe('V2 Rollout - isV2Enabled', () => {
     expect(isV2Enabled('  ', 50)).toBe(false);
   });
 
-  it('should be deterministic for same user', () => {
+  it('should be deterministic for same user (multiple calls)', () => {
     const userId = 'user@example.com';
-    const result1 = isV2Enabled(userId, 50);
-    const result2 = isV2Enabled(userId, 50);
-    expect(result1).toBe(result2);
-  });
-
-  it('should give consistent results across sessions', () => {
-    const userId = 'john.doe@example.com';
     const results: boolean[] = [];
 
+    // Call function 10 times - all results should be identical
     for (let i = 0; i < 10; i++) {
       results.push(isV2Enabled(userId, 50));
     }
 
-    // All results should be identical
+    // Verify all results are the same (Set size of 1 means all identical)
     expect(new Set(results).size).toBe(1);
   });
 });
@@ -57,25 +51,13 @@ describe('V2 Rollout - Hash Distribution', () => {
 });
 
 describe('V2 Rollout - Accuracy', () => {
-  it('should match 5% rollout target within 1%', () => {
-    const result = __testing.testRolloutAccuracy(5, 10000);
-    expect(result.error).toBeLessThan(1);
-  });
-
-  it('should match 25% rollout target within 1%', () => {
-    const result = __testing.testRolloutAccuracy(25, 10000);
-    expect(result.error).toBeLessThan(1);
-  });
-
-  it('should match 50% rollout target within 1%', () => {
-    const result = __testing.testRolloutAccuracy(50, 10000);
-    expect(result.error).toBeLessThan(1);
-  });
-
-  it('should match 75% rollout target within 1%', () => {
-    const result = __testing.testRolloutAccuracy(75, 10000);
-    expect(result.error).toBeLessThan(1);
-  });
+  it.each([5, 25, 50, 75])(
+    'should match %d% rollout target within 1%',
+    (percentage) => {
+      const result = __testing.testRolloutAccuracy(percentage, 10000);
+      expect(result.error).toBeLessThan(1);
+    }
+  );
 });
 
 describe('V2 Rollout - Edge Cases', () => {

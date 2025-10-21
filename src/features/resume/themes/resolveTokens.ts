@@ -84,9 +84,9 @@ export function resolveThemeTokens(theme: Theme | null | undefined): ThemeTokens
 
   return {
     fonts: {
-      body: theme.fonts?.body || DEFAULT_THEME_TOKENS.fonts.body,
-      heading: theme.fonts?.heading || DEFAULT_THEME_TOKENS.fonts.heading,
-      mono: theme.fonts?.mono || DEFAULT_THEME_TOKENS.fonts.mono,
+      body: theme.fonts?.body ?? DEFAULT_THEME_TOKENS.fonts.body,
+      heading: theme.fonts?.heading ?? DEFAULT_THEME_TOKENS.fonts.heading,
+      mono: theme.fonts?.mono ?? DEFAULT_THEME_TOKENS.fonts.mono,
     },
     fontSizes: {
       xs: theme.fontSizes?.xs ?? DEFAULT_THEME_TOKENS.fontSizes.xs,
@@ -98,12 +98,12 @@ export function resolveThemeTokens(theme: Theme | null | undefined): ThemeTokens
       '3xl': theme.fontSizes?.['3xl'] ?? DEFAULT_THEME_TOKENS.fontSizes['3xl'],
     },
     colors: {
-      primary: theme.colors?.primary || DEFAULT_THEME_TOKENS.colors.primary,
-      secondary: theme.colors?.secondary || DEFAULT_THEME_TOKENS.colors.secondary,
-      accent: theme.colors?.accent || DEFAULT_THEME_TOKENS.colors.accent,
-      text: theme.colors?.text || DEFAULT_THEME_TOKENS.colors.text,
-      background: theme.colors?.background || DEFAULT_THEME_TOKENS.colors.background,
-      muted: theme.colors?.muted || DEFAULT_THEME_TOKENS.colors.muted,
+      primary: theme.colors?.primary ?? DEFAULT_THEME_TOKENS.colors.primary,
+      secondary: theme.colors?.secondary ?? DEFAULT_THEME_TOKENS.colors.secondary,
+      accent: theme.colors?.accent ?? DEFAULT_THEME_TOKENS.colors.accent,
+      text: theme.colors?.text ?? DEFAULT_THEME_TOKENS.colors.text,
+      background: theme.colors?.background ?? DEFAULT_THEME_TOKENS.colors.background,
+      muted: theme.colors?.muted ?? DEFAULT_THEME_TOKENS.colors.muted,
     },
     spacing: {
       scale: theme.spacing?.scale ?? DEFAULT_THEME_TOKENS.spacing.scale,

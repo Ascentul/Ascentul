@@ -1,4 +1,4 @@
-import packageInfo from '@/../package.json';
+import packageInfo from '../../package.json';
 
 const fallbackVersion =
   typeof packageInfo.version === 'string' && packageInfo.version.trim().length > 0

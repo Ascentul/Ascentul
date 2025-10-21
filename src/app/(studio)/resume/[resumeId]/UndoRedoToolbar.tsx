@@ -5,18 +5,15 @@ import { Button } from '@/components/ui/button';
 import { useCanUndo, useCanRedo } from '@/features/resume/editor/state/selectors';
 import { useEditorActions } from '@/features/resume/editor/state/editorStore';
 
+// Detect platform for cross-platform keyboard shortcuts
+const isMac = typeof window !== 'undefined' &&
+  /(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent);
+const modKey = isMac ? 'Cmd' : 'Ctrl';
+
 export function UndoRedoToolbar() {
   const canUndo = useCanUndo();
   const canRedo = useCanRedo();
   const actions = useEditorActions();
-
-  const handleUndo = useCallback(() => {
-    actions.undo();
-  }, [actions]);
-
-  const handleRedo = useCallback(() => {
-    actions.redo();
-  }, [actions]);
 
   return (
     <div className="flex items-center gap-1 border-r pr-2 mr-1">
@@ -24,8 +21,8 @@ export function UndoRedoToolbar() {
         variant="ghost"
         size="sm"
         disabled={!canUndo}
-        onClick={handleUndo}
-        title="Undo (Cmd+Z)"
+        onClick={() => actions.undo()}
+        title={`Undo (${modKey}+Z)`}
       >
         Undo
       </Button>
@@ -33,8 +30,9 @@ export function UndoRedoToolbar() {
         variant="ghost"
         size="sm"
         disabled={!canRedo}
-        onClick={handleRedo}
-        title="Redo (Cmd+Shift+Z)"
+        onClick={() => actions.redo()}
+        aria-label="Redo"
+        title={`Redo (${modKey}+Shift+Z)`}
       >
         Redo
       </Button>

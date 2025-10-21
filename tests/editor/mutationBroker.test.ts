@@ -1,33 +1,41 @@
-import { createMutationBroker } from "@/features/resume/editor/integration/MutationBroker";
+import { createMutationBroker, type BlockUpdatePayload } from "@/features/resume/editor/integration/MutationBroker";
 
-test("broker success and error handlers fire", async () => {
-  const okBroker = createMutationBroker({
+test('broker fires onSuccess handler', async () => {
+  const broker = createMutationBroker({
     convex: {
       createBlock: async () => ({}),
-      updateBlock: async (p: any) => p,
+      updateBlock: async (payload: BlockUpdatePayload) => payload,
       deleteBlock: async () => ({}),
       reorderBlock: async () => ({}),
       updateResumeMeta: async () => ({}),
     },
   });
   let ok = false;
-  okBroker.onSuccess(() => { ok = true; });
-  const res = await okBroker.runNow({ kind: "block.update", payload: { id: "x", props: {} } });
+  broker.onSuccess(() => {
+    ok = true;
+  });
+  const res = await broker.runNow({ kind: 'block.update', payload: { id: 'x', props: {} } });
   expect(res.ok).toBe(true);
   expect(ok).toBe(true);
+});
 
-  const errBroker = createMutationBroker({
+test('broker fires onError handler', async () => {
+  const broker = createMutationBroker({
     convex: {
       createBlock: async () => ({}),
-      updateBlock: async () => { throw new Error("boom"); },
+      updateBlock: async (_payload: BlockUpdatePayload) => {
+        throw new Error('boom');
+      },
       deleteBlock: async () => ({}),
       reorderBlock: async () => ({}),
       updateResumeMeta: async () => ({}),
     },
   });
   let erred = false;
-  errBroker.onError(() => { erred = true; });
-  const res2 = await errBroker.runNow({ kind: "block.update", payload: {} });
-  expect(res2.ok).toBe(false);
+  broker.onError(() => {
+    erred = true;
+  });
+  const res = await broker.runNow({ kind: 'block.update', payload: { id: 'x', props: {} } });
+  expect(res.ok).toBe(false);
   expect(erred).toBe(true);
 });

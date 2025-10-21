@@ -147,24 +147,24 @@ describe('Apply Edit Guardrail Integration', () => {
       expect(sanitized.text).toContain('[REDACTED]');
     });
 
-    it('multiple PII types redacted', () => {
+    it('multiple PII types redacted in single pass', () => {
       const content = 'Call 555-123-4567, email test@gmail.com, SSN 123-45-6789';
 
-      // First attempt: fails validation due to SSN
-      const validation = validateContent(content);
-      expect(validation.ok).toBe(false);
+      const sanitized = sanitize(content);
 
-      // If content is pre-sanitized by user:
-      const manualSanitized = 'Call 555-123-4567, email test@gmail.com';
-      const validation2 = validateContent(manualSanitized);
-      expect(validation2.ok).toBe(false); // Still fails due to email
+      // Should redact all three PII types
+      expect(sanitized.text).not.toContain('555-123-4567');
+      expect(sanitized.text).not.toContain('test@gmail.com');
+      expect(sanitized.text).not.toContain('123-45-6789');
 
-      const manualSanitized2 = 'Call 555-123-4567';
-      const validation3 = validateContent(manualSanitized2);
-      expect(validation3.ok).toBe(true);
+      // Should detect all three pattern types
+      expect(sanitized.redactions).toBeGreaterThanOrEqual(3);
+      expect(sanitized.patterns).toContain('phone');
+      expect(sanitized.patterns).toContain('email');
+      expect(sanitized.patterns).toContain('ssn');
 
-      const sanitized = sanitize(manualSanitized2);
-      expect(sanitized.text).toBe('Call [REDACTED]');
+      // Verify final text has redactions
+      expect(sanitized.text).toContain('[REDACTED]');
     });
   });
 
@@ -202,23 +202,29 @@ describe('Apply Edit Guardrail Integration', () => {
       // In actual API: no history entry
     });
 
-    it('sanitization path: validate → sanitize (with changes) → persist sanitized', () => {
+    it('demonstrates order issue: validate-then-sanitize rejects cleanable content', () => {
       const proposedContent = 'Reach out at john@gmail.com for more info';
 
-      // This would fail validation (email in body)
+      // Current flow: validate first
       const validation = validateContent(proposedContent);
-      expect(validation.ok).toBe(false);
+      expect(validation.ok).toBe(false); // Email detected → rejected
+      // In actual API: returns 400 here, no sanitization happens
 
-      // But if we sanitize first (hypothetically):
+      // Alternative flow: sanitize first (NOT current implementation)
       const sanitized = sanitize(proposedContent);
       expect(sanitized.text).toBe('Reach out at [EMAIL] for more info');
 
-      // Then re-validate sanitized content:
+      // After sanitization, validation would pass:
       const validation2 = validateContent(sanitized.text);
       expect(validation2.ok).toBe(true);
 
-      // In actual flow: we validate first, so this content would be rejected
-      // This test shows sanitization can clean content, but we validate before sanitizing
+      // This test demonstrates that validate→sanitize order rejects content
+      // that sanitize→validate would accept. Current architecture prioritizes
+      // fail-fast rejection over content cleaning.
+      //
+      // Design decision: Validate before sanitize
+      // - Pro: Faster rejection of bad content
+      // - Con: Rejects content that could be auto-fixed by sanitization
     });
   });
 

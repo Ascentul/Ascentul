@@ -633,6 +633,18 @@ class EditorStore {
     this.history = replacePresent(this.history, snapshot);
     this.applySnapshot(snapshot);
   }
+
+  updateDocMeta(docMeta: DocMeta) {
+    const snapshot: EditorSnapshot = {
+      ...this.state,
+      docMeta,
+      lastChangedAt: Date.now(),
+    };
+    // Don't create history entry for docMeta updates (metadata-only change)
+    // Use replacePresent to update current state without affecting undo/redo
+    this.history = replacePresent(this.history, snapshot);
+    this.applySnapshot(snapshot);
+  }
 }
 
 const StoreContext = createContext<EditorStore | null>(null);

@@ -10,6 +10,14 @@ const targetFiles = [
 ];
 
 const thresholdKb = Number(process.env.EDITOR_BUNDLE_THRESHOLD_KB || 380);
+if (isNaN(thresholdKb) || thresholdKb <= 0) {
+  console.error(
+    `[bundle-check] Invalid EDITOR_BUNDLE_THRESHOLD_KB="${process.env.EDITOR_BUNDLE_THRESHOLD_KB}". ` +
+    'Must be a positive number. Defaulting to 380kB would be misleading, so aborting.'
+  );
+  process.exitCode = 1;
+  process.exit(1);
+}
 
 function getFileSizeBytes(filePath) {
   if (!fs.existsSync(filePath)) {

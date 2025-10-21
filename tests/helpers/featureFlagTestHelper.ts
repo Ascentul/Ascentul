@@ -32,16 +32,34 @@ const stubEnv = (key: string, value: string): Unstub => {
   };
 };
 
+/**
+ * Reset module cache to ensure environment variables are re-evaluated
+ *
+ * This is necessary when changing environment variables during tests to ensure
+ * modules that read `process.env` at import time pick up the new values.
+ *
+ * **Framework Support:**
+ * - Vitest: Uses `vi.resetModules()`
+ * - Jest: Uses `jest.resetModules()` if available
+ * - Fallback: No-op (module state may persist between tests)
+ *
+ * **Note on Fallback:**
+ * If neither framework is detected, this function does nothing. This may cause
+ * tests to fail if modules cache environment variables at import time. In such
+ * cases, ensure you're running tests with Vitest or Jest, or refactor code to
+ * read environment variables at runtime instead of import time.
+ */
 const resetModules = () => {
   if (isVitest) {
     globalAny.vi!.resetModules();
   } else if (typeof globalAny.jest?.resetModules === 'function') {
     globalAny.jest.resetModules();
   }
+  // No-op fallback: Module state will persist if no test framework is detected.
+  // This is acceptable for most cases but may cause issues with modules that
+  // cache environment variables at import time.
 };
 
-export function testWithFeatureFlag<T>(flags: Flags, testFn: TestFn<T>): Promise<T>;
-export function testWithFeatureFlag<T>(flags: Flags, testFn: TestFn<T>): T;
 export function testWithFeatureFlag<T>(flags: Flags, testFn: TestFn<T>): Promise<T> | T {
   const unstubFns: Unstub[] = [];
 

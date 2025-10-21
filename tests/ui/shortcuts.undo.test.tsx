@@ -5,6 +5,16 @@ import { EditorStoreProvider, hydrateFromServer, useEditorStore, useEditorAction
 import { useHistoryShortcuts } from '@/features/resume/editor/input/useHistoryShortcuts';
 
 describe('Keyboard Shortcuts - Undo/Redo', () => {
+  let platformSpy: jest.SpyInstance<string, []>;
+
+  beforeEach(() => {
+    platformSpy = jest.spyOn(navigator, 'platform', 'get');
+  });
+
+  afterEach(() => {
+    platformSpy.mockRestore();
+  });
+
   const mockResumeData = {
     resume: {
       _id: 'resume123' as any,
@@ -57,12 +67,7 @@ describe('Keyboard Shortcuts - Undo/Redo', () => {
   it('should handle Cmd+Z for undo in Canvas (Mac)', async () => {
     const initialSnapshot = hydrateFromServer(mockResumeData);
 
-    // Mock Mac platform
-    Object.defineProperty(navigator, 'platform', {
-      value: 'MacIntel',
-      writable: true,
-      configurable: true,
-    });
+    platformSpy.mockReturnValue('MacIntel');
 
     render(
       <EditorStoreProvider initialSnapshot={initialSnapshot}>
@@ -102,12 +107,7 @@ describe('Keyboard Shortcuts - Undo/Redo', () => {
   it('should handle Ctrl+Z for undo in Canvas (Windows)', async () => {
     const initialSnapshot = hydrateFromServer(mockResumeData);
 
-    // Mock Windows platform
-    Object.defineProperty(navigator, 'platform', {
-      value: 'Win32',
-      writable: true,
-      configurable: true,
-    });
+    platformSpy.mockReturnValue('Win32');
 
     render(
       <EditorStoreProvider initialSnapshot={initialSnapshot}>
@@ -141,11 +141,7 @@ describe('Keyboard Shortcuts - Undo/Redo', () => {
   it('should handle Cmd+Shift+Z for redo', async () => {
     const initialSnapshot = hydrateFromServer(mockResumeData);
 
-    Object.defineProperty(navigator, 'platform', {
-      value: 'MacIntel',
-      writable: true,
-      configurable: true,
-    });
+    platformSpy.mockReturnValue('MacIntel');
 
     render(
       <EditorStoreProvider initialSnapshot={initialSnapshot}>
@@ -217,11 +213,7 @@ describe('Keyboard Shortcuts - Undo/Redo', () => {
       );
     }
 
-    Object.defineProperty(navigator, 'platform', {
-      value: 'MacIntel',
-      writable: true,
-      configurable: true,
-    });
+    platformSpy.mockReturnValue('MacIntel');
 
     render(
       <EditorStoreProvider initialSnapshot={initialSnapshot}>
