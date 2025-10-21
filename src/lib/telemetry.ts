@@ -99,15 +99,17 @@ export function logEvent(
 ): void {
   // Only log when NEXT_PUBLIC_DEBUG_UI is enabled
   // This prevents noise in production and respects user privacy
-  if (!process.env.NEXT_PUBLIC_DEBUG_UI) {
+  if (process.env.NEXT_PUBLIC_DEBUG_UI !== "true") {
+    return;
+  }
     return;
   }
 
   const timestamp = new Date().toISOString();
   const event = {
+    ...payload,
     name,
     timestamp,
-    ...payload,
   };
 
   // Use console.debug for developer-focused logging
@@ -133,9 +135,9 @@ export function startTimer(
   return (completionEvent: TelemetryEvent) => {
     const duration = performance.now() - startTime;
     logEvent(completionEvent, {
+      ...metadata,
       operation,
       duration_ms: Math.round(duration),
-      ...metadata,
     });
   };
 }

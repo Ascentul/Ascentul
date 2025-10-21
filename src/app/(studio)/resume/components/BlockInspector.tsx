@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
-import type { Id } from '../../../../../convex/_generated/dataModel';
 import type {
   Block,
   BlockData,
@@ -23,6 +22,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2, Plus, Trash2, Check } from 'lucide-react';
+import { createMutationBroker } from '@/features/resume/editor/integration/MutationBroker';
+import {
+  createInspectorFacade,
+  type EditPartial,
+} from '@/features/resume/editor/integration/InspectorFacade';
+import { useEditorStore, useEditorActions } from '@/features/resume/editor/state/editorStore';
+import { useBlockData } from '@/features/resume/editor/state/selectors';
 
 const addArrayItem = <T,>(items: T[], newItem: T): T[] => [...items, newItem];
 const removeArrayItem = <T,>(items: T[], index: number): T[] =>
@@ -60,15 +66,76 @@ interface BlockInspectorProps {
 }
 
 export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: BlockInspectorProps) {
+  // V2 Store flag and hooks
+  const useV2Store = process.env.NEXT_PUBLIC_RESUME_V2_STORE === 'true';
+  const editorStore = useV2Store ? useEditorStore() : undefined;
+  const editorActions = useV2Store ? useEditorActions() : undefined;
+  const storeBlockData = useV2Store && block ? useBlockData(block._id) : undefined;
+
+  // Legacy state (only used when V2 disabled)
   const [localData, setLocalData] = useState<BlockData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
-  const updateBlock = useMutation(api.builder_blocks.update);
+  const createBlockMutation = useMutation(api.builder_blocks.create);
+  const updateBlockMutation = useMutation(api.builder_blocks.update);
+  const deleteBlockMutation = useMutation(api.builder_blocks.deleteBlock);
+  const reorderBlockMutation = useMutation(api.builder_blocks.reorder);
+  const updateResumeMetaMutation = useMutation(api.resumes.updateResumeMeta);
 
-  // Sync local data when block changes
+  const mutationBroker = useMemo(
+    () =>
+      createMutationBroker({
+        convex: {
+          createBlock: async (payload: any) => createBlockMutation(payload),
+          updateBlock: async (payload: EditPartial) =>
+            updateBlockMutation({
+              id: payload.id,
+              ...(payload.props ?? {}),
+            }),
+          deleteBlock: async (payload: any) => deleteBlockMutation(payload),
+          reorderBlock: async (payload: any) => reorderBlockMutation(payload),
+          // Page methods not used in BlockInspector, but required by MutationBroker type
+          createPage: async () => { throw new Error('createPage not implemented in BlockInspector'); },
+          duplicatePage: async () => { throw new Error('duplicatePage not implemented in BlockInspector'); },
+          reflowPages: async () => { throw new Error('reflowPages not implemented in BlockInspector'); },
+          updateResumeMeta: async (payload: any) => updateResumeMetaMutation(payload),
+        },
+      }),
+    [
+      createBlockMutation,
+      updateBlockMutation,
+      deleteBlockMutation,
+      reorderBlockMutation,
+      updateResumeMetaMutation,
+    ],
+  );
+
+  const inspector = useMemo(
+    () => createInspectorFacade(
+      mutationBroker,
+      editorStore ? { updateBlockProps: editorStore.updateBlockProps.bind(editorStore) } : undefined
+    ),
+    [mutationBroker, editorStore]
+  );
+
   useEffect(() => {
+    const unsubscribe = mutationBroker.onSuccess((op, res) => {
+      if (op.kind === 'block.update') {
+        const nextUpdatedAt = res?.resumeUpdatedAt ?? res?.updatedAt;
+        if (typeof nextUpdatedAt === 'number') {
+          onUpdate(nextUpdatedAt);
+        }
+      }
+    });
+    return unsubscribe;
+  }, [mutationBroker, onUpdate]);
+
+  // Legacy: Sync local data when block changes (only when V2 disabled)
+  useEffect(() => {
+    if (useV2Store) return; // Skip legacy sync in V2 mode
+
     // Clear any pending save when block changes to prevent:
     // 1. Memory leak (timer fires after component switches/unmounts)
     // 2. Stale save indicator (old timer completes on wrong block)
@@ -84,10 +151,12 @@ export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: Bl
     } else {
       setLocalData(null);
     }
-  }, [block?._id]);
+  }, [block?._id, useV2Store]);
 
-  // Cleanup timer on unmount to prevent memory leaks
+  // Legacy: Cleanup timer on unmount (only when V2 disabled)
   useEffect(() => {
+    if (useV2Store) return;
+
     return () => {
       setDebounceTimer((prevTimer) => {
         if (prevTimer) {
@@ -96,9 +165,37 @@ export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: Bl
         return null;
       });
     };
-  }, []);
+  }, [useV2Store]);
 
-  const handleChange = useCallback(
+  // V2: Store-first change handler (instant updates, no debounce)
+  const handleChangeV2 = useCallback(
+    (newData: BlockData) => {
+      if (!block || !editorActions) return;
+
+      // Update store immediately - data goes directly into props
+      editorActions.updateBlockProps(block._id, newData as Record<string, unknown>);
+
+      // Enqueue persistence in background - server expects { data: ... } format
+      inspector.applyEdit(
+        {
+          id: block._id,
+          props: {
+            clerkId,
+            data: newData,
+            expectedResumeUpdatedAt: resumeUpdatedAt,
+          },
+        },
+        block._id,
+        { source: 'inspector' },
+      ).catch((error) => {
+        console.error('Failed to persist block update:', error);
+      });
+    },
+    [block, editorActions, inspector, clerkId, resumeUpdatedAt]
+  );
+
+  // Legacy: Debounced change handler (400ms delay)
+  const handleChangeLegacy = useCallback(
     (newData: BlockData) => {
       setLocalData(newData);
 
@@ -114,14 +211,18 @@ export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: Bl
 
           setIsSaving(true);
           try {
-            const result = await updateBlock({
-              id: block._id,
-              clerkId,
-              data: newData,
-              expectedResumeUpdatedAt: resumeUpdatedAt,
-            });
-
-            onUpdate(result.resumeUpdatedAt);
+            await inspector.applyEdit(
+              {
+                id: block._id,
+                props: {
+                  clerkId,
+                  data: newData,
+                  expectedResumeUpdatedAt: resumeUpdatedAt,
+                },
+              },
+              block._id,
+              { source: 'inspector' },
+            );
 
             // Show "Saved" briefly
             setShowSaved(true);
@@ -134,10 +235,13 @@ export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: Bl
         }, 400);
       });
     },
-    [block, clerkId, resumeUpdatedAt, updateBlock, onUpdate]
+    [block, clerkId, resumeUpdatedAt, inspector]
   );
 
-  if (!block || !localData) {
+  const handleChange = useV2Store ? handleChangeV2 : handleChangeLegacy;
+  const currentData = useV2Store ? storeBlockData : localData;
+
+  if (!block || !currentData) {
     return (
       <div className="p-4">
         <div className="text-sm text-muted-foreground text-center py-8">
@@ -152,13 +256,13 @@ export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: Bl
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold">Inspector</h3>
         <div className="flex items-center gap-2">
-          {isSaving && (
+          {!useV2Store && isSaving && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Loader2 className="w-3 h-3 animate-spin" />
               Saving...
             </span>
           )}
-          {showSaved && (
+          {!useV2Store && showSaved && (
             <span className="text-xs text-green-600 flex items-center gap-1">
               <Check className="w-3 h-3" />
               Saved
@@ -169,29 +273,29 @@ export function BlockInspector({ block, clerkId, resumeUpdatedAt, onUpdate }: Bl
 
       {/* Type assertions are safe here because:
           1. Block is a discriminated union where block.type determines block.data's shape
-          2. localData is initialized from block.data (line 83), maintaining type correspondence
+          2. currentData comes from block.data (either store or local state), maintaining type correspondence
           3. Data shape is validated at the persistence layer (Convex schema + validators)
-          4. block.type acts as the discriminant, guaranteeing localData matches the expected type */}
+          4. block.type acts as the discriminant, guaranteeing currentData matches the expected type */}
       {block.type === 'header' && (
-        <HeaderInspector data={localData as HeaderData} onChange={handleChange} />
+        <HeaderInspector data={currentData as HeaderData} onChange={handleChange} />
       )}
       {block.type === 'summary' && (
-        <SummaryInspector data={localData as SummaryData} onChange={handleChange} />
+        <SummaryInspector data={currentData as SummaryData} onChange={handleChange} />
       )}
       {block.type === 'experience' && (
-        <ExperienceInspector data={localData as ExperienceData} onChange={handleChange} />
+        <ExperienceInspector data={currentData as ExperienceData} onChange={handleChange} />
       )}
       {block.type === 'education' && (
-        <EducationInspector data={localData as EducationData} onChange={handleChange} />
+        <EducationInspector data={currentData as EducationData} onChange={handleChange} />
       )}
       {block.type === 'skills' && (
-        <SkillsInspector data={localData as SkillsData} onChange={handleChange} />
+        <SkillsInspector data={currentData as SkillsData} onChange={handleChange} />
       )}
       {block.type === 'projects' && (
-        <ProjectsInspector data={localData as ProjectsData} onChange={handleChange} />
+        <ProjectsInspector data={currentData as ProjectsData} onChange={handleChange} />
       )}
       {block.type === 'custom' && (
-        <CustomInspector data={localData as CustomData} onChange={handleChange} />
+        <CustomInspector data={currentData as CustomData} onChange={handleChange} />
       )}
     </div>
   );

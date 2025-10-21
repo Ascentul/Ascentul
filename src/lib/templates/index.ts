@@ -1,3 +1,5 @@
+import type { RegionSpec, BlockId } from '@/features/resume/editor/types/editorTypes';
+
 export type TemplateBlockType =
   | "header"
   | "summary"
@@ -6,6 +8,44 @@ export type TemplateBlockType =
   | "skills"
   | "projects"
   | "custom";
+
+/**
+ * Layout migration result
+ */
+export interface LayoutMigrationResult {
+  /** Block IDs assigned to each region */
+  regionAssignments: Record<string, BlockId[]>;
+  /** Block IDs that couldn't be mapped (go to Overflow) */
+  overflow: BlockId[];
+}
+
+/**
+ * Layout migration arguments
+ */
+export interface LayoutMigrationArgs {
+  /** Current block IDs in original order */
+  blockIds: BlockId[];
+  /** Block type map for semantic hints */
+  blockTypes: Record<BlockId, TemplateBlockType>;
+}
+
+/**
+ * Layout definition for a template
+ */
+export interface LayoutDefinition {
+  /** Stable layout identifier */
+  id: string;
+  /** Display name */
+  name: string;
+  /** Region specifications */
+  regions: RegionSpec[];
+  /** Optional layout constraints or metadata */
+  constraints?: {
+    maxBlocksPerRegion?: Record<string, number>;
+  };
+  /** Migration function to map blocks from previous layout */
+  migrateMapContent: (args: LayoutMigrationArgs) => LayoutMigrationResult;
+}
 
 export interface TemplateDefinition {
   /** Stable template identifier used for assets */
@@ -22,7 +62,26 @@ export interface TemplateDefinition {
   allowedBlocks: TemplateBlockType[];
   /** Optional description for the picker */
   description?: string;
+  /** Available layouts for this template */
+  layouts?: LayoutDefinition[];
+  /** Default layout ID */
+  defaultLayoutId?: string;
 }
+
+/**
+ * Default single-column layout used by all templates
+ */
+const DEFAULT_SINGLE_COLUMN_LAYOUT: LayoutDefinition = {
+  id: 'single-column',
+  name: 'Single Column',
+  regions: [
+    { id: 'main', label: 'Main Content', semantic: 'main' },
+  ],
+  migrateMapContent: ({ blockIds }) => ({
+    regionAssignments: { main: blockIds },
+    overflow: [],
+  }),
+};
 
 /**
  * Template catalogue used to enrich Convex template records with preview metadata.
@@ -42,6 +101,8 @@ export const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
     pageSize: "Letter",
     allowedBlocks: ["header", "summary", "experience", "education", "skills", "projects"],
     description: "Dense grid layout that maximizes space while keeping sections evenly aligned.",
+    layouts: [DEFAULT_SINGLE_COLUMN_LAYOUT],
+    defaultLayoutId: 'single-column',
   },
   {
     id: "minimal-serif",
@@ -51,6 +112,8 @@ export const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
     pageSize: "Letter",
     allowedBlocks: ["header", "summary", "experience", "education", "skills"],
     description: "Elegant serif typography with generous spacing for senior roles and academics.",
+    layouts: [DEFAULT_SINGLE_COLUMN_LAYOUT],
+    defaultLayoutId: 'single-column',
   },
   {
     id: "modern-sidebar",
@@ -60,6 +123,8 @@ export const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
     pageSize: "A4",
     allowedBlocks: ["header", "summary", "experience", "projects", "skills"],
     description: "Contemporary two-column layout with a dedicated sidebar for quick facts.",
+    layouts: [DEFAULT_SINGLE_COLUMN_LAYOUT],
+    defaultLayoutId: 'single-column',
   },
 ];
 

@@ -136,7 +136,13 @@ export function RecordCard({
   const saveRename = async () => {
     const trimmed = editTitle.trim();
     if (trimmed && trimmed !== title && onRename) {
-      await onRename(resume._id, trimmed);
+      try {
+        await onRename(resume._id, trimmed);
+      } catch (error) {
+        console.error("Failed to rename resume:", error);
+        // Optionally: show user-facing error message
+        return; // Don't exit rename mode on error
+      }
     }
     setIsRenaming(false);
   };
@@ -272,7 +278,7 @@ export function RecordCard({
                   e.stopPropagation();
                   startRename();
                 }}
-                className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"
+                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Rename"
                 data-testid="edit-icon"
               >

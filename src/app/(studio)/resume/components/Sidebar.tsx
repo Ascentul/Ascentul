@@ -1,6 +1,6 @@
 'use client';
 
-import { Layers, Palette, Layout } from 'lucide-react';
+import { Layers, Palette, Layout, Lightbulb } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -8,17 +8,20 @@ import {
 } from '@/components/ui/tooltip';
 
 interface SidebarProps {
-  activeTab: 'layers' | 'themes' | 'templates';
-  onTabChange: (tab: 'layers' | 'themes' | 'templates') => void;
+  activeTab: 'layers' | 'themes' | 'templates' | 'coaching';
+  onTabChange: (tab: 'layers' | 'themes' | 'templates' | 'coaching') => void;
   children: React.ReactNode;
+  showCoaching?: boolean;
 }
 
-export function Sidebar({ activeTab, onTabChange, children }: SidebarProps) {
+export function Sidebar({ activeTab, onTabChange, children, showCoaching = false }: SidebarProps) {
+  const gridCols = showCoaching ? 'grid-cols-4' : 'grid-cols-3';
+
   return (
     <div className="h-full flex flex-col bg-background border-r">
       {/* Segmented Control */}
       <div className="flex-shrink-0 p-4 border-b" role="tablist" aria-label="Sidebar panels">
-        <div className="min-w-0 grid grid-cols-3 gap-1 p-1 rounded-xl border bg-muted/30 shadow-sm">
+        <div className={`min-w-0 grid ${gridCols} gap-1 p-1 rounded-xl border bg-muted/30 shadow-sm`}>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -87,6 +90,29 @@ export function Sidebar({ activeTab, onTabChange, children }: SidebarProps) {
               </p>
             </TooltipContent>
           </Tooltip>
+
+          {showCoaching && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  id="coaching-tab"
+                  role="tab"
+                  aria-selected={activeTab === 'coaching'}
+                  aria-current={activeTab === 'coaching' ? 'page' : undefined}
+                  aria-controls="coaching-panel"
+                  onClick={() => onTabChange('coaching')}
+                  data-active={activeTab === 'coaching'}
+                  className="min-w-0 overflow-hidden inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[active=true]:bg-white data-[active=true]:text-foreground data-[active=true]:shadow-md"
+                >
+                  <Lightbulb className="w-4 h-4 flex-shrink-0" />
+                  <span className="block max-w-full truncate">Coaching</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p className="text-xs">AI-powered suggestions</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </div>
 

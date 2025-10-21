@@ -82,12 +82,14 @@ export function useResumeExport() {
         });
 
         // Phase 8: Use fileName from API response if available
-        const fileName = data.fileName || `resume.${format}`;
+        const sanitizedFileName = data.fileName 
+          ? data.fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+          : `resume.${format}`;
 
         // Trigger automatic download
-        triggerDownload(data.url, fileName);
+        triggerDownload(data.url, sanitizedFileName);
 
-        logEvent('export_succeeded', { format, url: data.url, exportId: data.exportId });
+        logEvent('export_succeeded', { format, exportId: data.exportId });
         onSuccess?.(data.url);
       } else {
         throw new Error('Export failed: No URL returned');

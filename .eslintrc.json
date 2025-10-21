@@ -2,5 +2,23 @@
   "extends": ["next/core-web-vitals"],
   "rules": {
     "react/no-unescaped-entities": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/features/resume/editor/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@/convex/client",
+                "message": "Use MutationBroker inside editor code"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

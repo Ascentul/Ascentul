@@ -500,9 +500,12 @@ export async function POST(req: NextRequest) {
     }
   } catch (error: any) {
     // Phase 8: Gate debug logging behind DEBUG_UI flag
-    const debugEnabled = process.env.NEXT_PUBLIC_DEBUG_UI === 'true';
-    if (debugEnabled) {
-      console.error('[PDF Export] Error:', error);
+    // Always log errors for production debugging
+    console.error('[PDF Export] Error:', error.message);
+    
+    // Log full stack trace only in debug mode
+    if (process.env.NEXT_PUBLIC_DEBUG_UI === 'true') {
+      console.error('[PDF Export] Stack trace:', error.stack);
     }
 
     return NextResponse.json(

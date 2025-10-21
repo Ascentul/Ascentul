@@ -9,11 +9,15 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Sparkles, Loader2, Wand2, FileEdit, Zap } from 'lucide-react';
+import { Sparkles, Loader2, Wand2, FileEdit, Zap, Pencil } from 'lucide-react';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import type { ResumeBlock } from '@/lib/validators/resume';
+import type { MutationBroker } from '@/features/resume/editor/integration/MutationBroker';
+import type { EditorStore } from '@/features/resume/editor/state/editorStore';
 import { TailorToJobDialog } from './TailorToJobDialog';
 import { GenerateDialog } from './GenerateDialog';
+import { AIAuthoringPanel } from './AIAuthoringPanel';
+import { logEvent } from '@/lib/telemetry';
 
 // Timeout for AI operations (30 seconds)
 const TIDY_REQUEST_TIMEOUT_MS = 30000;
@@ -25,6 +29,9 @@ interface AIActionsToolbarProps {
   disabled?: boolean;
   onError?: (error: string) => void;
   onSuccess?: (message: string) => void;
+  // Phase 7 - Part C: Optional props for AI Authoring Panel
+  store?: EditorStore;
+  broker?: MutationBroker;
 }
 
 type AIAction = 'generate' | 'tailor' | 'tidy';
@@ -36,10 +43,17 @@ export function AIActionsToolbar({
   disabled = false,
   onError,
   onSuccess,
+  store,
+  broker,
 }: AIActionsToolbarProps) {
   const [loading, setLoading] = useState<AIAction | null>(null);
   const [showTailorDialog, setShowTailorDialog] = useState(false);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [showAuthoringPanel, setShowAuthoringPanel] = useState(false); // Phase 7 - Part C
+
+  // Phase 7 - Part C: Check if AI Authoring Panel is available
+  const v2Enabled = process.env.NEXT_PUBLIC_RESUME_V2_STORE === 'true';
+  const authoringPanelAvailable = v2Enabled && store && broker;
 
   const handleGenerate = () => {
     setShowGenerateDialog(true);
@@ -56,6 +70,7 @@ export function AIActionsToolbar({
     }
 
     setLoading('tidy');
+    logEvent('ai_action_started', { action: 'tidy' });
     const abortController = new AbortController();
     const timeoutId = setTimeout(() => abortController.abort(), TIDY_REQUEST_TIMEOUT_MS);
 
@@ -85,13 +100,16 @@ export function AIActionsToolbar({
       // Update blocks with tidied content
       onBlocksUpdate(result.blocks);
       const count = result.count ?? result.blocks.length;
+      logEvent('ai_action_completed', { action: 'tidy', blocksCount: count });
       onSuccess?.(`Tidied ${count} ${count === 1 ? 'block' : 'blocks'} successfully!`);
     } catch (error: any) {
       if (error.name === 'AbortError') {
+        logEvent('ai_action_failed', { action: 'tidy', error: 'timeout' });
         onError?.('Request timed out. Please try again.');
         return;
       }
       console.error('Tidy error:', error);
+      logEvent('ai_action_failed', { action: 'tidy', error: error.message });
       onError?.(error.message || 'Failed to tidy resume. Please try again.');
     } finally {
       clearTimeout(timeoutId);
@@ -173,6 +191,26 @@ export function AIActionsToolbar({
                 </span>
               </div>
             </DropdownMenuItem>
+
+            {/* Phase 7 - Part C: AI Authoring Panel */}
+            {authoringPanelAvailable && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setShowAuthoringPanel(true)}
+                  disabled={isDisabled || currentBlocks.length === 0}
+                  className="gap-2 cursor-pointer"
+                >
+                  <Pencil className="h-4 w-4" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">AI Authoring</span>
+                    <span className="text-xs text-muted-foreground">
+                      Advanced AI writing tools
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -180,9 +218,15 @@ export function AIActionsToolbar({
       {/* Generate Dialog */}
       <GenerateDialog
         open={showGenerateDialog}
-        onOpenChange={setShowGenerateDialog}
+        onOpenChange={(open) => {
+          if (open) {
+            logEvent('ai_action_started', { action: 'generate' });
+          }
+          setShowGenerateDialog(open);
+        }}
         resumeId={resumeId}
         onAccept={(generatedBlocks) => {
+          logEvent('ai_action_completed', { action: 'generate', blocksCount: generatedBlocks.length });
           onBlocksUpdate(generatedBlocks);
           onSuccess?.('Resume generated successfully!');
         }}
@@ -191,14 +235,31 @@ export function AIActionsToolbar({
       {/* Tailor to Job Dialog */}
       <TailorToJobDialog
         open={showTailorDialog}
-        onOpenChange={setShowTailorDialog}
+        onOpenChange={(open) => {
+          if (open) {
+            logEvent('ai_action_started', { action: 'tailor' });
+          }
+          setShowTailorDialog(open);
+        }}
         resumeId={resumeId}
         currentBlocks={currentBlocks}
         onAccept={(tailoredBlocks) => {
+          logEvent('ai_action_completed', { action: 'tailor', blocksCount: tailoredBlocks.length });
           onBlocksUpdate(tailoredBlocks);
           onSuccess?.('Resume tailored successfully!');
         }}
       />
+
+      {/* Phase 7 - Part C: AI Authoring Panel */}
+      {authoringPanelAvailable && store && broker && (
+        <AIAuthoringPanel
+          open={showAuthoringPanel}
+          onOpenChange={setShowAuthoringPanel}
+          resumeId={resumeId}
+          store={store}
+          broker={broker}
+        />
+      )}
     </>
   );
 }

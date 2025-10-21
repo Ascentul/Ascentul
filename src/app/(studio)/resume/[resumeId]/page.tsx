@@ -9,10 +9,13 @@ import { api } from '../../../../../convex/_generated/api';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { normalizeResumeBlock, type Block } from '@/lib/resume-types';
 import type { Page } from '@/types/resume';
+import { useHistoryShortcuts } from '@/features/resume/editor/input/useHistoryShortcuts';
+import { useEditorActions } from '@/features/resume/editor/state/editorStore';
 import { Layers } from '../components/Layers';
 import { BlockInspector } from '../components/BlockInspector';
 import { ThemePanel } from '../components/ThemePanel';
 import { TemplatePicker } from '../components/TemplatePicker';
+import { CoachingTab } from '../components/CoachingTab';
 import { Sidebar } from '../components/Sidebar';
 import { PageControls } from '../components/PageControls';
 import { AIActionsToolbar } from '../components/AIActionsToolbar';
@@ -37,6 +40,13 @@ import { PAGE_CONFIGS, type LayoutConfig } from '@/lib/resume-layout';
 import { useBlockHeights } from '@/hooks/use-block-heights';
 import { duplicatePage } from '../actions/pages/duplicatePage';
 import { reflowPages } from '../actions/pages/reflow';
+import { logEvent } from '@/lib/telemetry';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { DebugPanel } from '@/components/dev/DebugPanel';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { UndoRedoToolbar } from './UndoRedoToolbar';
+import { createMutationBroker } from '@/features/resume/editor/integration/MutationBroker';
+import type { EditPartial } from '@/features/resume/editor/integration/InspectorFacade';
 
 const REFLOW_MAX_ITERATIONS = 5;
 
@@ -86,7 +96,7 @@ export default function ResumeStudioPage() {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightInspectorOpen, setIsRightInspectorOpen] = useState(true);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'layers' | 'themes' | 'templates'>('layers');
+  const [activeTab, setActiveTab] = useState<'layers' | 'themes' | 'templates' | 'coaching'>('layers');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isInserting, setIsInserting] = useState(false);
   const [isUpdatingMeta, setIsUpdatingMeta] = useState(false);
@@ -151,6 +161,17 @@ export default function ResumeStudioPage() {
   const showAuthLoading = !userLoaded;
   const isSignedOut = userLoaded && !user?.id;
 
+  // V2 store flag
+  const useV2Store = !!process.env.NEXT_PUBLIC_RESUME_V2_STORE;
+
+  // Mount keyboard shortcuts for V2 store
+  if (useV2Store) {
+    useHistoryShortcuts();
+  }
+
+  // V2 store actions (call unconditionally to satisfy rules of hooks)
+  const editorActions = useV2Store ? useEditorActions() : null;
+
   // Fetch resume data
   const resumeData = useQuery(
     api.builder_resumes_v2.get,
@@ -165,8 +186,36 @@ export default function ResumeStudioPage() {
   // Mutation for inserting blocks
   const createBlock = useMutation(api.builder_blocks.create);
 
+  // Mutation for updating blocks
+  const updateBlock = useMutation(api.builder_blocks.update);
+
+  // Mutation for deleting blocks
+  const deleteBlock = useMutation(api.builder_blocks.delete);
+
   // Mutation for reordering blocks
   const reorderBlocks = useMutation(api.builder_blocks.reorder);
+
+  // Create mutation broker for CoachingTab
+  const mutationBroker = useMemo(
+    () =>
+      createMutationBroker({
+        convex: {
+          createBlock: async (payload: any) => createBlock(payload),
+          updateBlock: async (payload: EditPartial) =>
+            updateBlock({
+              id: payload.id,
+              ...(payload.props ?? {}),
+            }),
+          deleteBlock: async (payload: any) => deleteBlock(payload),
+          reorderBlock: async (payload: any) => reorderBlocks(payload),
+          createPage: async () => { throw new Error('createPage not implemented'); },
+          duplicatePage: async () => { throw new Error('duplicatePage not implemented'); },
+          reflowPages: async () => { throw new Error('reflowPages not implemented'); },
+          updateResumeMeta: async (payload: any) => updateResumeMeta(payload),
+        },
+      }),
+    [createBlock, updateBlock, deleteBlock, reorderBlocks, updateResumeMeta]
+  );
 
   // Type guard for Convex error responses
 const isConvexError = (
@@ -487,6 +536,7 @@ useEffect(() => {
 
       setLocalThemeId(result.themeId);
       setLocalUpdatedAt(result.updatedAt);
+      logEvent('theme_applied', { themeId: result.themeId });
 
       toast({
         title: 'Theme updated',
@@ -517,6 +567,7 @@ useEffect(() => {
 
       setLocalTemplateSlug(result.templateSlug);
       setLocalUpdatedAt(result.updatedAt);
+      logEvent('template_selected', { templateSlug: result.templateSlug });
 
       toast({
         title: 'Template updated',
@@ -627,28 +678,41 @@ useEffect(() => {
   const handleDuplicatePage = useCallback(() => {
     if (!selectedPageId) return;
 
-    const result = duplicatePage({
-      pageId: selectedPageId,
-      pages: editorPages,
-      pageOrder,
-      blocks: blocksMap,
-    });
+    if (useV2Store && editorActions) {
+      // V2 store path: Use EditorStore actions
+      const newPageId = editorActions.duplicatePage(selectedPageId);
+      setSelectedPageId(newPageId);
+      logEvent('page_duplicated', { pageId: selectedPageId, newPageId });
+      toast({
+        title: 'Page duplicated',
+        description: 'A copy of the current page was created.',
+      });
+    } else {
+      // Legacy path: Direct state manipulation
+      const result = duplicatePage({
+        pageId: selectedPageId,
+        pages: editorPages,
+        pageOrder,
+        blocks: blocksMap,
+      });
 
-    const normalizedBlocksRecord = normalizeBlockRecord(result.blocks);
-    const nextLocalBlocks = Object.values(normalizedBlocksRecord).sort(
-      (a, b) => (a.order ?? 0) - (b.order ?? 0)
-    );
+      const normalizedBlocksRecord = normalizeBlockRecord(result.blocks);
+      const nextLocalBlocks = Object.values(normalizedBlocksRecord).sort(
+        (a, b) => (a.order ?? 0) - (b.order ?? 0)
+      );
 
-    setEditorPages(result.pages);
-    setPageOrder(result.pageOrder);
-    setBlocksMap(normalizedBlocksRecord);
-    setLocalBlocks(nextLocalBlocks);
-    setSelectedPageId(result.pageId);
-    toast({
-      title: 'Page duplicated',
-      description: 'A copy of the current page was created.',
-    });
-  }, [selectedPageId, editorPages, pageOrder, blocksMap, toast]);
+      setEditorPages(result.pages);
+      setPageOrder(result.pageOrder);
+      setBlocksMap(normalizedBlocksRecord);
+      setLocalBlocks(nextLocalBlocks);
+      setSelectedPageId(result.pageId);
+      logEvent('page_duplicated', { pageId: selectedPageId, newPageId: result.pageId });
+      toast({
+        title: 'Page duplicated',
+        description: 'A copy of the current page was created.',
+      });
+    }
+  }, [selectedPageId, useV2Store, editorActions, editorPages, pageOrder, blocksMap, toast]);
 
   const handleAddSection = useCallback(async () => {
     if (!user?.id) return;
@@ -813,6 +877,9 @@ useEffect(() => {
             )}
           </div>
           <div className="flex items-center gap-2">
+            {/* Undo/Redo - Only visible when V2 store is enabled */}
+            {useV2Store && <UndoRedoToolbar />}
+
             {/* AI Actions */}
             <AIActionsToolbar
               resumeId={resumeId as Id<"builder_resumes">}
@@ -909,6 +976,24 @@ useEffect(() => {
       </div>
 
       {/* Main Studio Area */}
+      <ErrorBoundary
+        showDetails={!!process.env.NEXT_PUBLIC_DEBUG_UI}
+        fallback={({ reset }) => (
+          <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+            <Card className="max-w-md">
+              <CardHeader>
+                <CardTitle>Resume Editor Error</CardTitle>
+                <CardDescription>
+                  The editor encountered an unexpected error. Click retry to reload the canvas.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={reset} className="w-full">Retry</Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      >
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar */}
         <div
@@ -917,7 +1002,7 @@ useEffect(() => {
           } overflow-hidden`}
         >
           {isLeftSidebarOpen && (
-            <Sidebar activeTab={activeTab} onTabChange={setActiveTab}>
+            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} showCoaching={useV2Store}>
               {activeTab === 'layers' && (
                 <Layers
                   blocks={localBlocks}
@@ -939,6 +1024,9 @@ useEffect(() => {
                   onChangeTemplate={handleChangeTemplate}
                   disabled={isUpdatingMeta}
                 />
+              )}
+              {activeTab === 'coaching' && useV2Store && (
+                <CoachingTab broker={mutationBroker} />
               )}
             </Sidebar>
           )}
@@ -1041,6 +1129,20 @@ useEffect(() => {
           )}
         </div>
       </div>
+      </ErrorBoundary>
+
+      {/* Debug Panel - only renders when NEXT_PUBLIC_DEBUG_UI is set */}
+      {process.env.NEXT_PUBLIC_DEBUG_UI && (
+        <DebugPanel
+          documentId={resumeId as string}
+          pageCount={pageOrder.length}
+          selectedBlockId={selectedBlockId}
+          templateId={localTemplateSlug}
+          themeId={localThemeId as string | undefined}
+          lastAIAction={isGenerating ? 'generating' : null}
+          lastSaveAt={localUpdatedAt}
+        />
+      )}
     </div>
   );
 }
