@@ -31,6 +31,18 @@ if (previewDomain) {
   }
 }
 
+const isProd = process.env.NODE_ENV === 'production';
+const scriptSrcDirectives = [
+  "'self'",
+  "https://*.clerk.accounts.dev",
+  "https://challenges.cloudflare.com",
+  "https://js.stripe.com",
+];
+
+if (!isProd) {
+  scriptSrcDirectives.push("'unsafe-inline'", "'unsafe-eval'");
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -71,7 +83,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://js.stripe.com",
+              `script-src ${scriptSrcDirectives.join(' ')}`,
               "worker-src 'self' blob:",
               "child-src 'self' blob:",
               "style-src 'self' 'unsafe-inline'",

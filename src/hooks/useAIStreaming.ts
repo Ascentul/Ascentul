@@ -15,17 +15,7 @@ import {
 } from '@/lib/ai/streaming';
 import { logEvent } from '@/lib/telemetry';
 
-export interface UseAIStreamingOptions {
-  /** Called when a new suggestion arrives */
-  onSuggestion?: (suggestion: AISuggestion) => void;
-
-  /** Called when streaming completes successfully */
-  onComplete?: (suggestions: AISuggestion[]) => void;
-
-  /** Called when an error occurs */
-  onError?: (error: Error) => void;
-
-type UseAIStreamingOptions = {
+export type UseAIStreamingOptions = {
   /** Called when a new suggestion arrives */
   onSuggestion?: (suggestion: AISuggestion) => void;
 
@@ -38,7 +28,6 @@ type UseAIStreamingOptions = {
   | { autoStart?: false; request?: StreamSuggestionsRequest }
   | { autoStart: true; request: StreamSuggestionsRequest }
 );
-}
 
 export interface UseAIStreamingReturn {
   /** Current streaming state */
@@ -66,6 +55,8 @@ export interface UseAIStreamingReturn {
  *   onSuggestion: (suggestion) => console.log('New suggestion:', suggestion),
  *   onComplete: (all) => console.log('Done! Total:', all.length),
  * });
+ * ```
+ */
 export function useAIStreaming(options: UseAIStreamingOptions = {}): UseAIStreamingReturn {
   const {
     onSuggestion,
@@ -300,14 +291,6 @@ export function useAIStreaming(options: UseAIStreamingOptions = {}): UseAIStream
 
   const isStreaming = status.state === 'connecting' || status.state === 'streaming';
 
-  return {
-    status,
-    start,
-    cancel,
-    reset,
-    isStreaming,
-  };
-}
   return {
     status,
     start,

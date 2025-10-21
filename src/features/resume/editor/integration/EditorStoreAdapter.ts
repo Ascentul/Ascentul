@@ -9,21 +9,79 @@ import type { AIEditEntry } from '../state/docMeta';
 /**
  * Stable interface for AI edit operations
  * Hides EditorStore implementation details from AI features
+ *
+ * ## Null Handling Policy
+ *
+ * Read operations (queries) are **lenient** - they return `null` for missing blocks:
+ * - `getBlockText()` → `null` if block not found
+ * - `snapshotBlock()` → `null` if block not found
+ * - `getSelectedBlockId()` → `null` if no selection
+ *
+ * Write operations (commands) are **strict** - they throw errors for missing blocks:
+ * - `setBlockText()` → throws Error if block not found
+ * - `restoreBlock()` → throws Error if block not found
+ *
+ * This asymmetry is intentional:
+ * - Queries should gracefully handle missing data
+ * - Mutations should fail loudly to prevent silent data corruption
  */
 export interface IEditorStoreAdapter {
-  // Block operations
+  /**
+   * Get text content from a block
+   * @param blockId - Block ID to read from
+   * @returns Text content, or `null` if block not found (lenient)
+   */
   getBlockText(blockId: string): string | null;
+
+  /**
+   * Update text content of a block
+   *
+   * **Supported block types**: `summary`, `custom`
+   *
+   * **Unsupported block types**: `experience`, `education`, `projects`, `skills`
+   * (these require structured data, not plain text)
+   *
+   * **Partially supported**: `header` (only updates `name` field, ignores email/phone)
+   *
+   * @param blockId - Block ID to update
+   * @param text - New text content
+   * @throws {Error} If block not found (strict - fail fast)
+   * @throws {Error} If block type doesn't support text editing
+   */
   setBlockText(blockId: string, text: string): void;
 
-  // DocMeta operations (memory-only, not persisted to Convex)
+  /**
+   * Get document metadata (memory-only, not persisted to Convex)
+   * @returns Current document metadata
+   */
   getDocMeta(): DocMeta;
+
+  /**
+   * Update document metadata
+   * @param meta - New metadata
+   * @throws {Error} Not implemented - must use applyAIEdit flow
+   */
   updateDocMeta(meta: DocMeta): void;
 
-  // Selection
+  /**
+   * Get the currently selected block ID
+   * @returns Selected block ID, or `null` if no selection (lenient)
+   */
   getSelectedBlockId(): string | null;
 
-  // Snapshot/restore for rollback
+  /**
+   * Create a snapshot of block props for rollback
+   * @param blockId - Block ID to snapshot
+   * @returns Deep clone of block props, or `null` if block not found (lenient)
+   */
   snapshotBlock(blockId: string): Record<string, unknown> | null;
+
+  /**
+   * Restore block props from a snapshot
+   * @param blockId - Block ID to restore
+   * @param props - Props to restore
+   * @throws {Error} If block not found (strict - fail fast)
+   */
   restoreBlock(blockId: string, props: Record<string, unknown>): void;
 }
 
@@ -59,6 +117,16 @@ export class EditorStoreAdapter implements IEditorStoreAdapter {
 
     if (!block) {
       throw new Error(`Block ${blockId} not found`);
+    }
+
+    // Only simple text blocks support setBlockText
+    // Structured blocks (experience, education, projects, skills) require structured data
+    const unsupportedTypes = ['experience', 'education', 'projects', 'skills'] as const;
+    if (unsupportedTypes.includes(block.type as any)) {
+      throw new Error(
+        `setBlockText is not supported for block type '${block.type}'. ` +
+        `Structured blocks require updating via structured data, not plain text.`
+      );
     }
 
     // Determine which property to update based on block type
@@ -110,7 +178,6 @@ export class EditorStoreAdapter implements IEditorStoreAdapter {
           .join(' | ');
 
       case 'summary':
-      case 'objective':
         return String(props.text ?? '');
 
       case 'experience':
@@ -145,26 +212,23 @@ export class EditorStoreAdapter implements IEditorStoreAdapter {
   ): Record<string, unknown> {
     const { type, props } = block;
 
-    // For simplicity, most blocks use 'text' property
-    // More complex block types would need structured parsing
+    // Note: setBlockText validates block types before calling this method
+    // This switch only handles supported types
     switch (type) {
       case 'header':
-        // For header, keep existing structure and only update name
+        // For header, only update name field (not email/phone)
+        // This creates asymmetry with extractTextFromBlock which concatenates all fields
+        // TODO: Consider parsing concatenated text back into separate fields
         return { ...props, name: text };
 
-      case 'experience':
-      case 'education':
-      case 'projects':
-        // For structured blocks, keep existing items structure
-        // Real implementation would need to parse text into items
-        return props;
-
-      case 'skills':
-        // For skills, keep existing structure
-        return props;
+      case 'summary':
+      case 'custom':
+        // Simple text blocks - update 'text' property
+        return { ...props, text };
 
       default:
-        // For simple text blocks (summary, objective, etc.)
+        // Should never reach here due to validation in setBlockText
+        // but provide fallback for safety
         return { ...props, text };
     }
   }

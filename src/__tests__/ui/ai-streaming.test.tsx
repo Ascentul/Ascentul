@@ -82,7 +82,6 @@ describe('AI Streaming Integration', () => {
     delete process.env.NEXT_PUBLIC_RESUME_V2_STORE;
     delete process.env.NEXT_PUBLIC_DEBUG_UI;
   });
-  });
 
   it('opens panel and shows action buttons', () => {
     const mockStart = jest.fn();

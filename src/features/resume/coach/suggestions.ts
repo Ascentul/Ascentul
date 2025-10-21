@@ -198,7 +198,10 @@ export function getSuggestions(snapshot: EditorSnapshot): CoachSuggestion[] {
                   were: 'Functioned as',
                 };
                 const strongVerb = verbMap[firstWord] || 'Led';
-                const improved = currentValue.replace(new RegExp(`^${firstWord}`, 'i'), strongVerb);
+
+                // Escape regex special characters to prevent ReDoS attacks
+                const escapedWord = firstWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const improved = currentValue.replace(new RegExp(`^${escapedWord}`, 'i'), strongVerb);
                 return createTextDiff(currentValue, improved);
               },
             });
@@ -285,8 +288,14 @@ export function setValueAtPath(obj: any, path: string, value: any): any {
       current[part] = isNextArray ? [] : {};
     } else if (Array.isArray(current[part])) {
       current[part] = [...current[part]];
-    } else if (typeof current[part] === 'object') {
+    } else if (typeof current[part] === 'object' && current[part] !== null) {
       current[part] = { ...current[part] };
+    } else {
+      // Path tries to traverse through a primitive value (string, number, boolean)
+      const currentPath = parts.slice(0, i + 1).join('.');
+      throw new Error(
+        `Cannot set path "${path}": "${currentPath}" is a ${typeof current[part]} (${JSON.stringify(current[part])}), not an object or array`
+      );
     }
 
     current = current[part];

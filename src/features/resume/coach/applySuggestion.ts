@@ -20,6 +20,17 @@ export interface ApplySuggestionOptions {
   onError?: (error: Error) => void;
 }
 
+export interface BatchApplyResult {
+  applied: number;
+  skipped: number;
+  skippedReasons: Array<{
+    suggestionId: string;
+    reason: 'block_not_found' | 'path_not_found';
+    blockId?: string;
+    targetPath?: string;
+  }>;
+}
+
 /**
  * Apply a coach suggestion to the editor
  *
@@ -104,26 +115,45 @@ export async function applySuggestion(
  * @param store - EditorStore instance
  * @param broker - MutationBroker for persistence
  * @param options - Optional callbacks
+ * @returns Result object with applied/skipped counts and reasons
  */
 export async function applySuggestionsBatch(
   suggestions: CoachSuggestion[],
   store: EditorStore,
   broker: MutationBroker,
   options: ApplySuggestionOptions = {}
-): Promise<void> {
+): Promise<BatchApplyResult> {
   const { onSuccess, onError } = options;
 
   try {
     const currentState = store.getState();
     const updates: Array<{ blockId: string; changes: Record<string, unknown> }> = [];
+    const skippedReasons: BatchApplyResult['skippedReasons'] = [];
 
-    // Prepare all updates
+    // Prepare all updates, tracking skipped suggestions
     for (const suggestion of suggestions) {
       const block = currentState.blocksById[suggestion.blockId];
-      if (!block) continue;
+      if (!block) {
+        console.warn(`[applySuggestionsBatch] Block not found: ${suggestion.blockId}`);
+        skippedReasons.push({
+          suggestionId: suggestion.id,
+          reason: 'block_not_found',
+          blockId: suggestion.blockId,
+        });
+        continue;
+      }
 
       const currentValue = getValueAtPath(block, suggestion.targetPath);
-      if (currentValue === undefined) continue;
+      if (currentValue === undefined) {
+        console.warn(`[applySuggestionsBatch] Path not found: ${suggestion.targetPath} in block ${suggestion.blockId}`);
+        skippedReasons.push({
+          suggestionId: suggestion.id,
+          reason: 'path_not_found',
+          blockId: suggestion.blockId,
+          targetPath: suggestion.targetPath,
+        });
+        continue;
+      }
 
       const diff = suggestion.preview(currentValue);
       const newValue = diff.after;
@@ -135,15 +165,28 @@ export async function applySuggestionsBatch(
       });
     }
 
+    const result: BatchApplyResult = {
+      applied: updates.length,
+      skipped: skippedReasons.length,
+      skippedReasons,
+    };
+
     if (updates.length === 0) {
-      throw new Error('No valid suggestions to apply');
+      const error = new Error(
+        `No valid suggestions to apply. All ${suggestions.length} suggestions were skipped.`
+      );
+      if (onError) {
+        onError(error);
+      }
+      throw error;
     }
 
     // Step 1: Batch update store (single history entry)
     store.updateBlockPropsBatch(updates);
 
     // Step 2: Enqueue persistence for each block
-    const results = await Promise.all(
+    // Use Promise.allSettled to track individual successes/failures
+    const results = await Promise.allSettled(
       updates.map(update =>
         broker.enqueue({
           kind: 'block.update',
@@ -155,16 +198,72 @@ export async function applySuggestionsBatch(
       )
     );
 
-    // Check for failures
-    const failures = results.filter(r => !r.ok);
-    if (failures.length > 0) {
-      const firstError = failures[0] as { ok: false; error: Error };
-      throw firstError.error;
+    // Check for failures - collect all errors with their indices
+    const failureDetails: Array<{ index: number; blockId: string; error: string }> = [];
+
+    results.forEach((r, index) => {
+      const blockId = updates[index]?.blockId || 'unknown';
+
+      if (r.status === 'rejected') {
+        failureDetails.push({
+          index,
+          blockId,
+          error: String(r.reason),
+        });
+      } else if (r.status === 'fulfilled' && !r.value.ok) {
+        const value = r.value as { ok: false; error: Error };
+        failureDetails.push({
+          index,
+          blockId,
+          error: value.error.message,
+        });
+      }
+    });
+
+    if (failureDetails.length > 0) {
+      // Collect detailed error information
+      const errorSummaries = failureDetails.map(
+        (f) => `  - Block ${f.blockId}: ${f.error}`
+      );
+
+      const errorMessage = `Failed to persist ${failureDetails.length}/${updates.length} suggestions:\n${errorSummaries.join('\n')}`;
+
+      // Log comprehensive error details for debugging
+      console.error('[applySuggestionsBatch] Persistence failures:', {
+        totalUpdates: updates.length,
+        succeeded: updates.length - failureDetails.length,
+        failed: failureDetails.length,
+        failureDetails, // Full details with indices
+      });
+
+      // Create custom error that preserves all error information
+      const batchError = new Error(errorMessage);
+
+      // Attach all individual errors for programmatic access
+      (batchError as any).errors = failureDetails.map((f) => ({
+        blockId: f.blockId,
+        error: f.error,
+        index: f.index,
+      }));
+
+      // Note: Store is already updated (optimistic update pattern)
+      // isDirty flag will remain true, allowing manual retry
+      throw batchError;
+    }
+
+    // Log partial success if some suggestions were skipped
+    if (result.skipped > 0) {
+      console.warn(
+        `[applySuggestionsBatch] Partial success: ${result.applied} applied, ${result.skipped} skipped`,
+        result.skippedReasons
+      );
     }
 
     if (onSuccess) {
       onSuccess();
     }
+
+    return result;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
 

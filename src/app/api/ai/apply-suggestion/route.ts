@@ -12,8 +12,9 @@ import type {
   ApplySuggestionRequest,
   ApplySuggestionResponse,
 } from '@/lib/ai/streaming/types';
-import { validateContent, sanitize } from '@/features/resume/ai/guardrails';
+import { validateContent, sanitize, type SanitizeResult } from '@/features/resume/ai/guardrails';
 import { logEvent } from '@/lib/telemetry';
+import { applySuggestionSchema } from './schema';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,43 @@ export const maxDuration = 10; // Short timeout - simple mutations
  */
 function checkV2Enabled(): boolean {
   return process.env.NEXT_PUBLIC_RESUME_V2_STORE === 'true';
+}
+
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 20;
+const rateLimiter = new Map<string, number[]>();
+
+const IDEMPOTENCY_TTL_MS = 5 * 60 * 1000;
+type IdempotencyStatus = {
+  timestamp: number;
+  status: 'processing' | 'completed';
+  response?: ApplySuggestionResponse;
+};
+const idempotencyCache = new Map<string, IdempotencyStatus>();
+
+function recordRequestTimestamp(userId: string): boolean {
+  const now = Date.now();
+  const windowStart = now - RATE_LIMIT_WINDOW_MS;
+  const timestamps = rateLimiter.get(userId)?.filter((ts) => ts >= windowStart) ?? [];
+  if (timestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
+    rateLimiter.set(userId, timestamps);
+    return false;
+  }
+  timestamps.push(now);
+  rateLimiter.set(userId, timestamps);
+  return true;
+}
+
+function purgeIdempotencyCache(now: number) {
+  for (const [key, entry] of idempotencyCache.entries()) {
+    if (now - entry.timestamp > IDEMPOTENCY_TTL_MS) {
+      idempotencyCache.delete(key);
+    }
+  }
+}
+
+function buildIdempotencyKey(resumeId: string, suggestionId: string, customKey?: string) {
+  return customKey ?? `${resumeId}:${suggestionId}`;
 }
 
 /**
@@ -37,7 +75,7 @@ async function applySuggestionToBlock(
   blockId: string,
   suggestion: ApplySuggestionRequest['suggestion'],
   editedContent?: string
-): Promise<any> {
+): Promise<{ block: any; sanitized: SanitizeResult }> {
   // Fetch the current resume and blocks
   const result = await convex.query(api.builder_resumes.getResume, {
     id: resumeId,
@@ -104,8 +142,11 @@ async function applySuggestionToBlock(
 
   // Return updated block
   return {
-    ...block,
-    data: updatedData,
+    block: {
+      ...block,
+      data: updatedData,
+    },
+    sanitized,
   };
 }
 
@@ -204,6 +245,7 @@ function applyContentChange(
  * Applies an AI suggestion to resume content
  */
 export async function POST(req: NextRequest) {
+  let cachedKey: string | null = null;
   try {
     // 1. Check V2 flag
     if (!checkV2Enabled()) {
@@ -221,7 +263,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Parse request
-    let body: ApplySuggestionRequest;
+    let body: unknown;
     try {
       body = await req.json();
     } catch (error) {
@@ -231,14 +273,49 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { resumeId, suggestion, editedContent } = body;
-
-    if (!resumeId || !suggestion) {
+    const parsed = applySuggestionSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Missing required fields: resumeId and suggestion' },
+        {
+          error: 'Invalid request payload',
+          details: parsed.error.flatten(),
+        },
         { status: 400 }
       );
     }
+
+    const { resumeId, suggestion, editedContent, idempotencyKey } = parsed.data;
+
+    if (!recordRequestTimestamp(userId)) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please slow down and try again.' },
+        { status: 429 }
+      );
+    }
+
+    const now = Date.now();
+    purgeIdempotencyCache(now);
+
+    const idKey = buildIdempotencyKey(resumeId, suggestion.id, idempotencyKey);
+    cachedKey = idKey;
+    const existing = idempotencyCache.get(idKey);
+    if (existing) {
+      if (existing.status === 'processing') {
+        return NextResponse.json(
+          { error: 'Suggestion already processing. Please retry shortly.' },
+          { status: 409 }
+        );
+      }
+
+      if (existing.response) {
+        return NextResponse.json(
+          { ...existing.response, idempotent: true },
+          existing.response.success ? { status: 200 } : { status: 400 }
+        );
+      }
+    }
+
+    idempotencyCache.set(idKey, { timestamp: now, status: 'processing' });
 
     // 4. Initialize Convex client
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
@@ -259,7 +336,7 @@ export async function POST(req: NextRequest) {
 
     // 6. Apply the suggestion
     try {
-      const updatedBlock = await applySuggestionToBlock(
+      const { block: updatedBlock, sanitized } = await applySuggestionToBlock(
         convex,
         userId,
         resumeId as Id<'builder_resumes'>,
@@ -272,6 +349,12 @@ export async function POST(req: NextRequest) {
         success: true,
         updatedBlock,
         historyEntryId: `ai-apply-${Date.now()}`, // Client will handle history
+        sanitized: sanitized.redactions > 0
+          ? {
+              redactions: sanitized.redactions,
+              patterns: sanitized.patterns,
+            }
+          : undefined,
       };
 
       console.log(`[apply-suggestion] Successfully applied suggestion ${suggestion.id}`);
@@ -279,6 +362,19 @@ export async function POST(req: NextRequest) {
         suggestion_id: suggestion.id,
         action_type: suggestion.actionType,
         block_type: updatedBlock.type,
+      });
+      if (sanitized.redactions > 0) {
+        logEvent('ai_content_sanitized', {
+          suggestion_id: suggestion.id,
+          redactions: sanitized.redactions,
+          patterns: sanitized.patterns,
+        });
+      }
+
+      idempotencyCache.set(idKey, {
+        timestamp: Date.now(),
+        status: 'completed',
+        response,
       });
 
       return NextResponse.json(response);
@@ -306,11 +402,16 @@ export async function POST(req: NextRequest) {
         error: error instanceof Error ? error.message : 'Failed to apply suggestion',
       };
 
+      idempotencyCache.delete(idKey);
+
       return NextResponse.json(response, { status: 400 });
     }
   } catch (error) {
     console.error('[apply-suggestion] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to apply suggestion';
+    if (cachedKey) {
+      idempotencyCache.delete(cachedKey);
+    }
     return NextResponse.json(
       { error: errorMessage },
       { status: 500 }

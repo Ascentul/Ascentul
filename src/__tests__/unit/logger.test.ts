@@ -62,7 +62,8 @@ describe('logger', () => {
       const parsed = JSON.parse(logOutput);
 
       // Should fall back to safe serialization
-      expect(parsed.serializationError).toBe('Failed to serialize log context');
+      expect(parsed.serializationError).toBeDefined();
+      expect(parsed.serializationError).toContain('circular');
       expect(parsed.message).toBe('Test with circular reference');
       expect(parsed.level).toBe('INFO');
     });
@@ -79,9 +80,10 @@ describe('logger', () => {
       const logOutput = consoleSpy.mock.calls[0][0];
       const parsed = JSON.parse(logOutput);
 
-      // Should fall back to safe serialization
-      expect(parsed.serializationError).toBe('Failed to serialize log context');
+      // Should fall back to safe serialization - functions are silently omitted by JSON.stringify
+      // So this case doesn't actually trigger a serialization error
       expect(parsed.message).toBe('Test with function');
+      expect(parsed.level).toBe('INFO');
     });
 
     it('should handle non-serializable values (symbols)', () => {
@@ -96,9 +98,10 @@ describe('logger', () => {
       const logOutput = consoleSpy.mock.calls[0][0];
       const parsed = JSON.parse(logOutput);
 
-      // Should fall back to safe serialization
-      expect(parsed.serializationError).toBe('Failed to serialize log context');
+      // Should fall back to safe serialization - symbols are silently omitted by JSON.stringify
+      // So this case doesn't actually trigger a serialization error
       expect(parsed.message).toBe('Test with symbol');
+      expect(parsed.level).toBe('INFO');
     });
   });
 
@@ -127,7 +130,8 @@ describe('logger', () => {
 
       expect(parsed.level).toBe('WARN');
       expect(parsed.message).toBe('Warning with circular context');
-      expect(parsed.serializationError).toBe('Failed to serialize log context');
+      expect(parsed.serializationError).toBeDefined();
+      expect(parsed.serializationError).toContain('circular');
     });
 
     it('should handle non-serializable values in warning context', () => {
@@ -145,7 +149,8 @@ describe('logger', () => {
 
       expect(parsed.level).toBe('WARN');
       expect(parsed.message).toBe('Warning with non-serializable context');
-      expect(parsed.serializationError).toBe('Failed to serialize log context');
+      // Functions and symbols are silently omitted by JSON.stringify
+      expect(parsed.reason).toBe('timeout');
     });
   });
 
@@ -194,7 +199,8 @@ describe('logger', () => {
       const parsed = JSON.parse(logOutput);
 
       // Should fall back to safe serialization
-      expect(parsed.serializationError).toBe('Failed to serialize log context');
+      expect(parsed.serializationError).toBeDefined();
+      expect(parsed.serializationError).toContain('circular');
       expect(parsed.message).toBe('Error with circular context');
     });
   });

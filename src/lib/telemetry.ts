@@ -102,8 +102,6 @@ export function logEvent(
   if (process.env.NEXT_PUBLIC_DEBUG_UI !== "true") {
     return;
   }
-    return;
-  }
 
   const timestamp = new Date().toISOString();
   const event = {

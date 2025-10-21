@@ -287,7 +287,7 @@ curl -X POST http://localhost:3000/api/ai/apply-suggestion \
 - **Latency:** ~100-300ms (Convex mutation)
 - **Timeout:** 10s max
 - **Atomicity:** Single mutation per apply
-- **Idempotency:** Not enforced (client should prevent double-apply)
+- **Idempotency:** ⚠️ **NOT ENFORCED** - See BLOCKER #4 below
 
 ---
 
@@ -299,9 +299,15 @@ curl -X POST http://localhost:3000/api/ai/apply-suggestion \
    - Suggestions batched after complete OpenAI response
    - Future: Token-by-token streaming for real-time feel
 
-2. **No Rate Limiting**
-   - Client can spam streaming requests
-   - Future: Add rate limiting (Redis/Vercel KV)
+2. **🚨 CRITICAL: No Rate Limiting** ⚠️ SECURITY RISK
+   - **Risk:** Malicious users can spam `/api/ai/stream-suggestions` → unbounded OpenAI API costs
+   - **Impact:** Single user could trigger hundreds of expensive API calls (each ~1-2s of GPT-4 inference)
+   - **Required for production:** This is a security and cost control requirement, not optional
+   - **Solution:** Implement rate limiting BEFORE production deployment
+     - Option 1: Vercel Edge Middleware with KV store (recommended for Next.js)
+     - Option 2: Convex rate limiting via database tracking
+     - Option 3: Token bucket algorithm with Redis/Upstash
+   - **Recommendation:** 5 requests per minute per user, 20 per hour
 
 3. **Simplified Content Application**
    - Basic content replacement logic
@@ -415,13 +421,146 @@ All features implemented using:
 
 ---
 
-## Questions for Review
+## 🚨 Production Blockers - MUST RESOLVE BEFORE MERGE
 
-1. Is the 200ms cancellation window appropriate?
-2. Should we add rate limiting now or defer to Part B?
-3. Is the apply content logic too simplistic? (currently basic replacement)
-4. Should suggestions be persisted in Convex for recall?
-5. Do we need request/response validation beyond TypeScript types?
+### CRITICAL (Security/Data Safety)
+
+1. **❌ BLOCKER: Rate Limiting Required**
+   - **Status:** NOT IMPLEMENTED
+   - **Risk:** Unbounded OpenAI API costs ($1000s potential)
+   - **Decision:** MUST implement before production (see [SECURITY_RATE_LIMITING_REQUIRED.md](SECURITY_RATE_LIMITING_REQUIRED.md))
+   - **Recommendation:** Vercel Edge Middleware + Upstash Redis (5 req/min per user)
+   - **Owner:** Backend team
+   - **ETA:** 1-2 days
+
+2. **⚠️ BLOCKER: Request/Response Validation**
+   - **Status:** TypeScript types only (insufficient for runtime)
+   - **Risk:** Malformed payloads bypass validation → server crashes, data corruption
+   - **Decision:** MUST add Zod schemas for runtime validation
+   - **Locations:**
+     - `POST /api/ai/stream-suggestions` request body
+     - OpenAI API response parsing
+     - Client-side suggestion objects
+   - **Owner:** API team
+   - **ETA:** 4-8 hours
+
+3. **⚠️ BLOCKER: Content Application Safety**
+   - **Status:** Basic string replacement (line 67-82 in `applyAIEdit.ts`)
+   - **Risk:** Data loss if AI returns malformed content, no rollback mechanism
+   - **Decision:** MUST add validation before applying:
+     ```typescript
+     // Required checks:
+     - Non-empty content validation
+     - Schema validation (bullets must be arrays, etc.)
+     - Diff preview generation
+     - User confirmation for destructive changes
+     ```
+   - **Owner:** Editor team
+   - **ETA:** 1 day
+
+4. **🔴 BLOCKER: No Idempotency Protection**
+   - **Status:** NOT IMPLEMENTED - Line 290 dismisses this as "client should prevent"
+   - **Risk:** CRITICAL data corruption scenario:
+     ```
+     1. Client applies suggestion → mutation succeeds
+     2. Network timeout → client never receives success response
+     3. Client retries → suggestion applied TWICE
+     4. Resume content corrupted (duplicate bullets, mangled text)
+     ```
+   - **Impact:** Lost work, data integrity issues, poor UX
+   - **Real-world trigger:** Mobile networks, slow connections, server restarts
+   - **Decision:** MUST implement server-side idempotency
+   - **Solution Options:**
+
+     **Option A: Idempotency Keys (RECOMMENDED)**
+     ```typescript
+     // Client sends idempotency key with request
+     await applyAIEdit({
+       suggestionId: 'suggestion-123',
+       resumeId: 'resume-abc',
+       idempotencyKey: `${suggestionId}-${Date.now()}`,
+     });
+
+     // Server deduplicates
+     const existing = await ctx.db
+       .query('applied_suggestions')
+       .withIndex('by_idempotency_key', (q) =>
+         q.eq('idempotencyKey', idempotencyKey))
+       .first();
+
+     if (existing) {
+       return { success: true, alreadyApplied: true };
+     }
+     ```
+
+     **Option B: Suggestion State Tracking**
+     ```typescript
+     // Track applied suggestions in database
+     const suggestion = await ctx.db
+       .query('ai_suggestions')
+       .filter((q) => q.eq(q.field('id'), suggestionId))
+       .first();
+
+     if (suggestion?.applied) {
+       return { success: true, alreadyApplied: true };
+     }
+
+     // Apply + mark as applied atomically
+     await ctx.db.patch(suggestionId, { applied: true });
+     ```
+
+     **Option C: Content Hashing (Fallback)**
+     ```typescript
+     // Hash proposed content + check for duplicates
+     const contentHash = hashContent(proposedContent);
+     const recentApplies = await getRecentApplies(resumeId, 60_000); // 1min window
+
+     if (recentApplies.some(a => a.contentHash === contentHash)) {
+       return { success: true, duplicate: true };
+     }
+     ```
+
+   - **Recommendation:** Option A (idempotency keys) - industry standard
+   - **Owner:** Backend team
+   - **ETA:** 4-6 hours
+   - **Testing:** Simulate network retry scenarios
+
+### HIGH PRIORITY (UX/Reliability)
+
+5. **Cancellation Window Tuning**
+   - **Status:** Hardcoded 200ms (line 47 in `useAIStreaming.ts`)
+   - **Question:** Is 200ms appropriate for all networks?
+   - **Decision:** KEEP 200ms for MVP, add telemetry to measure actual cancellation latency
+   - **Action:** Add `logEvent('ai_cancellation_latency', { duration })` metric
+   - **Owner:** Frontend team
+   - **ETA:** 2 hours
+
+6. **Suggestion Persistence**
+   - **Status:** Ephemeral (lost on page refresh)
+   - **Question:** Should suggestions be cached in Convex?
+   - **Decision:** DEFER to Part C (not blocking)
+   - **Rationale:** MVP can function without persistence; adds complexity
+   - **Future:** Store in `ai_suggestions` table with 24h TTL
+
+---
+
+## ✅ Merge Checklist
+
+Before merging to `main`, verify:
+
+- [ ] **BLOCKER #1:** Rate limiting implemented and tested
+- [ ] **BLOCKER #2:** Zod validation added to API routes
+- [ ] **BLOCKER #3:** Content application safety checks in place
+- [ ] **BLOCKER #4:** Idempotency protection implemented
+- [ ] All tests passing (56/56 currently passing)
+- [ ] Security documentation reviewed
+- [ ] OpenAI spend alerts configured ($100/day threshold)
+- [ ] Feature flag verified (`NEXT_PUBLIC_RESUME_V2_STORE=true`)
+- [ ] Telemetry events firing correctly
+- [ ] Error handling covers all edge cases
+- [ ] Network retry scenarios tested (idempotency)
+
+**Current Status:** ❌ **NOT READY FOR PRODUCTION** - 4 blockers remain
 
 ---
 
@@ -429,11 +568,31 @@ All features implemented using:
 
 Part A provides a solid foundation for AI-powered authoring assistance:
 
-- ✅ Clean, type-safe API contracts
-- ✅ Efficient streaming architecture
-- ✅ Seamless integration with existing infrastructure
-- ✅ No new dependencies
-- ✅ Full telemetry coverage
-- ✅ Feature-flagged for safe rollout
+**✅ Completed:**
+- Clean, type-safe API contracts
+- Efficient streaming architecture
+- Seamless integration with existing infrastructure
+- No new dependencies
+- Full telemetry coverage
+- Feature-flagged for safe rollout
+- Comprehensive test coverage (56/56 tests passing)
 
-Ready for review and Part B implementation.
+**❌ Blockers (MUST FIX):**
+1. Rate limiting implementation (security/cost)
+2. Runtime validation with Zod schemas (robustness)
+3. Content application safety checks (data integrity)
+4. Idempotency protection (data consistency)
+
+**Current Status:**
+- ✅ Code review complete
+- ✅ Architecture solid
+- ❌ **NOT production-ready** - 4 critical blockers remain
+- 📋 See "Production Blockers" section above for action items
+
+**Next Steps:**
+1. Implement rate limiting (1-2 days)
+2. Add Zod validation (4-8 hours)
+3. Add content safety checks (1 day)
+4. Add idempotency protection (4-6 hours)
+5. Security review
+6. Part B implementation (guardrails & actions)

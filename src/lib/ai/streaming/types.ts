@@ -142,6 +142,9 @@ export interface ApplySuggestionRequest {
 
   /** User can optionally edit the proposed content before applying */
   editedContent?: string;
+
+  /** Optional idempotency key supplied by client */
+  idempotencyKey?: string;
 }
 
 /**
@@ -158,6 +161,15 @@ export interface ApplySuggestionResponse {
 
   /** History entry ID for undo support */
   historyEntryId?: string;
+
+  /** Sanitization details when content required redaction */
+  sanitized?: {
+    redactions: number;
+    patterns: Array<'ssn' | 'phone' | 'email'>;
+  };
+
+  /** Indicates response came from idempotency cache */
+  idempotent?: boolean;
 }
 
 /**

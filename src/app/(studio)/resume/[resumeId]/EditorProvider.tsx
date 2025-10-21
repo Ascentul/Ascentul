@@ -57,6 +57,5 @@ export default function EditorProvider({ children, legacyDeps, resumeData }: Pro
 
   // Legacy path
   const ds = createLegacyDataSource(legacyDeps);
-  );
   return <Ctx.Provider value={ds}>{children}</Ctx.Provider>;
 }

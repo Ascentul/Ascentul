@@ -5,6 +5,7 @@
 - `NEXT_PUBLIC_RESUME_V2_STORE = false`: open an existing resume, verify legacy data source loads blocks and no store warnings in console. Duplicate a page to ensure broker stub still works.
 - `NEXT_PUBLIC_RESUME_V2_STORE = true`: repeat duplicate + AI flows; confirm `MutationBroker` executes and store selection persists after refresh.
 - Toggle `NEXT_PUBLIC_DEBUG_UI` while V2 store is on to ensure debug panel shortcut (Cmd/Ctrl + `) appears only when flag truthy and telemetry console.debug statements emit.
+- Exercise `/api/ai/apply-suggestion` rate limiting by sending >20 requests/min and confirm 429 responses; verify idempotency cache by replaying the same suggestion ID (expect 200 with `idempotent=true`).
 
 ## Rollback Steps
 1. Flip `NEXT_PUBLIC_RESUME_V2_STORE` to `false` (or remove) in Vercel/Env to force legacy data path; redeploy Edge config only.
