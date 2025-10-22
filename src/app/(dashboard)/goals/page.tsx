@@ -407,6 +407,11 @@ export default function Goals() {
               </p>
               <Button
                 onClick={() => {
+                  // Check free user limit (1 goal max)
+                  if (isFreeUser && goals.length >= 1) {
+                    setShowUpgradeModal(true)
+                    return
+                  }
                   setSelectedGoal(null)
                   setIsAddGoalOpen(true)
                 }}

@@ -41,6 +41,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ProjectPreviewModal } from "@/components/project-preview-modal";
+import { UpgradeModal } from "@/components/modals/UpgradeModal";
 
 interface Project {
   _id: string;
@@ -65,15 +66,24 @@ export default function ProjectsPage() {
     api.projects.getUserProjects,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   ) as Project[] | undefined;
+
+  const userData = useQuery(
+    api.users.getUserByClerkId,
+    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+  );
+
   const createProjectMutation = useMutation(api.projects.createProject);
   const updateProjectMutation = useMutation(api.projects.updateProject);
   const deleteProjectMutation = useMutation(api.projects.deleteProject);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
   const [previewProject, setPreviewProject] = useState<Project | null>(null);
+
+  const isFreeUser = userData?.subscription_plan === "free";
 
   const [formData, setFormData] = useState({
     title: "",
@@ -139,12 +149,18 @@ export default function ProjectsPage() {
       });
       setShowCreateForm(false);
       resetForm();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create project. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      // Check if error is about free plan limit
+      if (error?.message?.includes("Free plan limit reached")) {
+        setShowCreateForm(false);
+        setShowUpgradeModal(true);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create project. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -298,7 +314,16 @@ export default function ProjectsPage() {
             Showcase your projects and technical work
           </p>
         </div>
-        <Button onClick={() => setShowCreateForm(true)}>
+        <Button
+          onClick={() => {
+            // Check free user limit (1 project max)
+            if (isFreeUser && projects && projects.length >= 1) {
+              setShowUpgradeModal(true);
+              return;
+            }
+            setShowCreateForm(true);
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Add Project
         </Button>
@@ -545,7 +570,16 @@ export default function ProjectsPage() {
                 Start building your portfolio by adding your first project.
               </p>
             </div>
-            <Button onClick={() => setShowCreateForm(true)}>
+            <Button
+              onClick={() => {
+                // Check free user limit (1 project max)
+                if (isFreeUser && projects && projects.length >= 1) {
+                  setShowUpgradeModal(true);
+                  return;
+                }
+                setShowCreateForm(true);
+              }}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Add Your First Project
             </Button>
@@ -710,6 +744,13 @@ export default function ProjectsPage() {
           ))}
         </div>
       )}
+
+      {/* Upgrade Modal for Free User Limits */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="project"
+      />
     </div>
   );
 }

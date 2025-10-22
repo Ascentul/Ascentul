@@ -15,7 +15,7 @@ interface UpgradeModalProps {
 export function UpgradeModal({ open, onOpenChange, feature, limit }: UpgradeModalProps) {
   const handleUpgrade = () => {
     // Navigate to pricing or subscription page
-    window.location.href = '/account/subscription'
+    window.location.href = '/pricing'
   }
 
   const featureDescriptions: Record<string, { title: string; description: string }> = {
@@ -34,6 +34,10 @@ export function UpgradeModal({ open, onOpenChange, feature, limit }: UpgradeModa
     careerPath: {
       title: 'Career Path Limit Reached',
       description: 'Free accounts can generate 1 career path. Upgrade to Premium to generate unlimited career paths and explore more opportunities.',
+    },
+    project: {
+      title: 'Project Limit Reached',
+      description: 'Free accounts can create only 1 project. Upgrade to Premium to showcase unlimited projects in your portfolio.',
     },
     aiCoach: {
       title: 'Premium Feature',
@@ -65,6 +69,7 @@ export function UpgradeModal({ open, onOpenChange, feature, limit }: UpgradeModa
               <li>✓ Unlimited career goals</li>
               <li>✓ Unlimited network contacts</li>
               <li>✓ Unlimited career paths</li>
+              <li>✓ Unlimited projects portfolio</li>
               <li>✓ AI-powered career coaching</li>
               <li>✓ Advanced analytics & insights</li>
             </ul>

@@ -794,7 +794,7 @@ Your premium features are now active. You can now:
 - Generate unlimited career paths
 - Access to AI career coach
 
-You can manage your subscription at https://app.ascentful.io/account/subscription
+You can manage your subscription at https://app.ascentful.io/pricing
 
 If you have any questions, contact us at support@ascentful.io
 

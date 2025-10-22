@@ -10,6 +10,8 @@ import React, {
 import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
+import { useQuery } from "convex/react";
+import { api } from "convex/_generated/api";
 import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
@@ -102,6 +104,13 @@ const Sidebar = React.memo(function Sidebar({
   const router = useRouter();
   const { user: clerkUser } = useUser();
   const { user, signOut, isAdmin } = useAuth();
+
+  // Fetch usage data for free plan progress
+  const usageData = useQuery(
+    api.usage.getUserUsage,
+    user?.clerkId ? { clerkId: user.clerkId } : "skip"
+  );
+
   const isUniversityUser = useMemo(
     () =>
       user?.role === "university_admin" ||
@@ -700,32 +709,22 @@ const Sidebar = React.memo(function Sidebar({
               <div className="mt-3">
                 <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
                   <span>Free Plan</span>
-                  <span>3/5 goals</span>
+                  {usageData ? (
+                    <span>{usageData.stepsCompleted}/{usageData.totalSteps} steps</span>
+                  ) : (
+                    <span>Loading...</span>
+                  )}
                 </div>
-                <Progress value={60} className="h-2" />
-                <button
-                  onClick={async () => {
-                    try {
-                      const response = await fetch("/api/stripe/checkout", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          plan: "premium",
-                          interval: "monthly",
-                        }),
-                      });
-                      const data = await response.json();
-                      if (data.url) {
-                        window.location.href = data.url;
-                      }
-                    } catch (error) {
-                      console.error("Checkout error:", error);
-                    }
-                  }}
+                <Progress
+                  value={usageData ? (usageData.stepsCompleted / usageData.totalSteps) * 100 : 0}
+                  className="h-2"
+                />
+                <Link
+                  href="/pricing"
                   className="text-xs text-primary hover:underline mt-1 block cursor-pointer"
                 >
                   Upgrade to Pro
-                </button>
+                </Link>
               </div>
             )}
           </div>

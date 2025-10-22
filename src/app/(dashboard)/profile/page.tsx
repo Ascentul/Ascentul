@@ -217,7 +217,9 @@ export default function ProfilePage() {
       !!displayProfile?.bio, // Career Summary
       !!displayProfile?.linkedin_url, // LinkedIn Profile
       Array.isArray((displayProfile as any)?.work_history) && (displayProfile as any).work_history.length > 0, // Work History
-      Array.isArray((displayProfile as any)?.education_history) && (displayProfile as any).education_history.length > 0, // Education
+      // Check for education in either new format (education_history array) OR legacy format (major/university_name)
+      (Array.isArray((displayProfile as any)?.education_history) && (displayProfile as any).education_history.length > 0) ||
+      (!!displayProfile?.major || !!displayProfile?.university_name), // Education
       !!displayProfile?.skills, // Skills
     ];
     const completed = sections.filter(Boolean).length;
@@ -537,7 +539,9 @@ export default function ProfilePage() {
     careerSummary: !!displayProfile?.bio,
     linkedinProfile: !!displayProfile?.linkedin_url,
     workHistory: Array.isArray((displayProfile as any)?.work_history) && (displayProfile as any).work_history.length > 0,
-    education: Array.isArray((displayProfile as any)?.education_history) && (displayProfile as any).education_history.length > 0,
+    // Check for education in either new format (education_history array) OR legacy format (major/university_name)
+    education: (Array.isArray((displayProfile as any)?.education_history) && (displayProfile as any).education_history.length > 0) ||
+      (!!displayProfile?.major || !!displayProfile?.university_name),
     skills: !!displayProfile?.skills,
   };
 
