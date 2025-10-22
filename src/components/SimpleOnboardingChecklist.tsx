@@ -32,6 +32,7 @@ export function SimpleOnboardingChecklist() {
   const goals = useQuery(api.goals.getUserGoals, clerkId ? { clerkId } : 'skip')
   const applications = useQuery(api.applications.getUserApplications, clerkId ? { clerkId } : 'skip')
   const contacts = useQuery(api.contacts.getUserContacts, clerkId ? { clerkId } : 'skip')
+  const userProfile = useQuery(api.users.getUserByClerkId, clerkId ? { clerkId } : 'skip')
 
   const checklistItems = useMemo(() => {
     const completedTasks = onboardingProgress?.completed_tasks || []
@@ -41,7 +42,18 @@ export function SimpleOnboardingChecklist() {
     const hasGoal = (goals && goals.length > 0) || completedTasks.includes('career-goal')
     const hasApplication = (applications && applications.length > 0) || completedTasks.includes('job-application')
     const hasContact = (contacts && contacts.length > 0) || completedTasks.includes('network-contact')
-    const hasProfile = completedTasks.includes('career-profile')
+
+    // Calculate profile completion based on 5 sections (matching profile page logic)
+    const profileSections = [
+      !!userProfile?.bio, // Career Summary
+      !!userProfile?.linkedin_url, // LinkedIn Profile
+      Array.isArray((userProfile as any)?.work_history) && (userProfile as any).work_history.length > 0, // Work History
+      (Array.isArray((userProfile as any)?.education_history) && (userProfile as any).education_history.length > 0) ||
+      (!!userProfile?.major || !!userProfile?.university_name), // Education
+      !!userProfile?.skills, // Skills
+    ]
+    const profileComplete = profileSections.filter(Boolean).length === profileSections.length
+    const hasProfile = profileComplete || completedTasks.includes('career-profile')
 
     return [
       {
@@ -80,7 +92,7 @@ export function SimpleOnboardingChecklist() {
         href: '/contacts'
       }
     ]
-  }, [onboardingProgress, resumes, goals, applications, contacts])
+  }, [onboardingProgress, resumes, goals, applications, contacts, userProfile])
 
   // Auto-update onboarding progress when items are completed
   useEffect(() => {
