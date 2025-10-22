@@ -119,7 +119,7 @@ function isJobDescriptionDump(text: string, maxWords: number): boolean {
   const hasJDLanguage = jdIndicators.some((pattern) => pattern.test(text));
 
   // Long text + job posting language = likely a dump
-  if (hasJDLanguage && wordCount > maxWords) {
+  if (hasJDLanguage) {
     return true;
   }
 

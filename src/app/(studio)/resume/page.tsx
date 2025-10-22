@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { RecordCard } from "@/components/records/RecordCard";
 import { useResumeExport } from "@/hooks/useResumeExport";
+import { sortResumesByUpdatedAt } from "@/lib/sorting/resumeSort";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -90,6 +91,15 @@ const TOAST_MESSAGES = {
     description: "We couldn't delete that resume. Please try again.",
     variant: "destructive" as const,
   },
+  resumeRenamed: (title: string) => ({
+    title: "Resume renamed",
+    description: `Updated to "${title}"`,
+  }),
+  renameFailed: {
+    title: "Rename failed",
+    description: "We couldn't rename that resume. Please try again.",
+    variant: "destructive" as const,
+  },
 };
 
 export default function ResumeListPage() {
@@ -111,7 +121,7 @@ export default function ResumeListPage() {
 
   const sortedResumes = useMemo(() => {
     if (!resumes) return [];
-    return [...resumes].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+    return sortResumesByUpdatedAt(resumes);
   }, [resumes]);
 
   const showAiGenerationError = () => {
@@ -277,17 +287,10 @@ export default function ResumeListPage() {
     setBusyRecords(prev => new Map(prev).set(resumeId, "rename"));
     try {
       await renameResumeMutation({ id: resumeId as Id<"builder_resumes">, title: newTitle });
-      toast({
-        title: "Resume renamed",
-        description: `Updated to "${newTitle}"`,
-      });
+      toast(TOAST_MESSAGES.resumeRenamed(newTitle));
     } catch (error) {
       console.error("Failed to rename resume:", error);
-      toast({
-        title: "Rename failed",
-        description: error instanceof Error ? error.message : "Could not rename resume",
-        variant: "destructive",
-      });
+      toast(TOAST_MESSAGES.renameFailed);
     } finally {
       setBusyRecords(prev => {
         const next = new Map(prev);

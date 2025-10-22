@@ -33,16 +33,20 @@ interface ThemeProviderProps {
  * </ThemeProvider>
  */
 export function ThemeProvider({ theme, children }: ThemeProviderProps) {
-  const cssVars = useMemo(() => resolveThemeToCSSVars(theme ?? null), [theme]);
-  const classes = useMemo(() => resolveThemeToClasses(theme ?? null), [theme]);
+  // Normalize theme once to avoid repeated ?? null operations
+  // This prevents unnecessary recomputations if theme alternates between null/undefined
+  const normalizedTheme = theme ?? null;
+
+  const cssVars = useMemo(() => resolveThemeToCSSVars(normalizedTheme), [normalizedTheme]);
+  const classes = useMemo(() => resolveThemeToClasses(normalizedTheme), [normalizedTheme]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({
-      theme: theme ?? null,
+      theme: normalizedTheme,
       cssVars,
       classes,
     }),
-    [theme, cssVars, classes]
+    [normalizedTheme, cssVars, classes]
   );
 
   return (
@@ -50,7 +54,7 @@ export function ThemeProvider({ theme, children }: ThemeProviderProps) {
       <div
         style={cssVars as React.CSSProperties}
         className="theme-root"
-        data-theme-id={theme?.id}
+        data-theme-id={normalizedTheme?.id}
       >
         {children}
       </div>

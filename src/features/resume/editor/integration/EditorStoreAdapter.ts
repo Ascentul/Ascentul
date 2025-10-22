@@ -5,6 +5,7 @@
 
 import type { EditorState, DocMeta, EditorBlockNode } from '../types/editorTypes';
 import type { AIEditEntry } from '../state/docMeta';
+import type { ExperienceItem, EducationItem, ProjectItem } from '@/lib/resume-types';
 
 /**
  * Stable interface for AI edit operations
@@ -151,6 +152,13 @@ export class EditorStoreAdapter implements IEditorStoreAdapter {
     return state.selectedIds[0] ?? null;
   }
 
+const cloneProps = <T>(value: T): T => {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+};
+
   snapshotBlock(blockId: string): Record<string, unknown> | null {
     const state = this.store.getState();
     const block = state.blocksById[blockId];
@@ -158,7 +166,7 @@ export class EditorStoreAdapter implements IEditorStoreAdapter {
     if (!block) return null;
 
     // Deep clone to prevent mutations
-    return JSON.parse(JSON.stringify(block.props));
+    return cloneProps(block.props);
   }
 
   restoreBlock(blockId: string, props: Record<string, unknown>): void {
@@ -182,13 +190,34 @@ export class EditorStoreAdapter implements IEditorStoreAdapter {
         return String(props.text ?? '');
 
       case 'experience':
+        if (Array.isArray(props.items)) {
+          return props.items
+            .map((item: ExperienceItem) => [
+              item.role,
+              item.company,
+              ...(Array.isArray(item.bullets) ? item.bullets : []),
+            ].filter(Boolean).join('\n'))
+            .join('\n\n');
+        }
+        return '';
+
       case 'education':
+        if (Array.isArray(props.items)) {
+          return props.items
+            .map((item: EducationItem) => [
+              item.degree,
+              item.school,
+              ...(Array.isArray(item.details) ? item.details : []),
+            ].filter(Boolean).join('\n'))
+            .join('\n\n');
+        }
+        return '';
+
       case 'projects':
         if (Array.isArray(props.items)) {
           return props.items
-            .map((item: any) => [
-              item.title,
-              item.company ?? item.institution ?? item.name,
+            .map((item: ProjectItem) => [
+              item.name,
               item.description,
               ...(Array.isArray(item.bullets) ? item.bullets : []),
             ].filter(Boolean).join('\n'))
@@ -198,7 +227,10 @@ export class EditorStoreAdapter implements IEditorStoreAdapter {
 
       case 'skills':
         if (Array.isArray(props.skills)) {
-          return props.skills.map((s: any) => s.name ?? s).join(', ');
+          // Skills can be strings or objects with a name property
+          return props.skills.map((s: string | { name: string }) =>
+            typeof s === 'string' ? s : s.name
+          ).join(', ');
         }
         return '';
 

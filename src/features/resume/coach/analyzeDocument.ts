@@ -40,8 +40,8 @@ export const ANALYSIS_THRESHOLDS = {
  * Passive voice patterns (simple heuristics)
  */
 const PASSIVE_VOICE_PATTERNS = [
-  /\b(was|were|is|are|been|being)\s+(being\s+)?\w+ed\b/i,
-  /\b(was|were|is|are)\s+(being\s+)?\w+en\b/i,
+  /\b(was|were|is|are|been|being)\s+\w+ed\b/i,
+  /\b(was|were|is|are|been|being)\s+\w+en\b/i,
   /\bresponsible for\b/i,
   /\btasked with\b/i,
   /\binvolved in\b/i,
@@ -148,11 +148,10 @@ function detectPassiveVoice(text: string): number {
  * Detect jargon terms
  */
 function detectJargon(text: string): number {
-  const lowerText = text.toLowerCase();
   let count = 0;
   for (const term of JARGON_TERMS) {
     const regex = new RegExp(`\\b${term}\\b`, 'gi');
-    const matches = lowerText.match(regex);
+    const matches = text.match(regex);
     if (matches) count += matches.length;
   }
   return count;

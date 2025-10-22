@@ -127,8 +127,7 @@ async function applySuggestionToBlock(
   // Apply suggestion based on action type and block type
   const updatedData = applyContentChange(
     block,
-    suggestion.actionType,
-    suggestion.itemIndex,
+    suggestion,
     finalContent
   );
 
@@ -152,13 +151,36 @@ async function applySuggestionToBlock(
 
 /**
  * Apply content changes based on suggestion type
+ *
+ * ## Bullet Format Support
+ *
+ * For experience/project bullets, the function expects:
+ * - `newContent`: Plain text content WITHOUT bullet markers (e.g., "Led team of 5 engineers")
+ * - `bulletIndex`: Zero-based index of the bullet to replace (e.g., 0 for first bullet)
+ * - The function automatically trims whitespace from `newContent`
+ *
+ * ### Supported Flow:
+ * 1. AI generates suggestion with `itemIndex` (which experience/project) and `bulletIndex` (which bullet)
+ * 2. API receives clean text content in `newContent` (no markers like "- " or "• ")
+ * 3. Function replaces the specific bullet at `items[itemIndex].bullets[bulletIndex]`
+ *
+ * ### Validation:
+ * - Throws if `bulletIndex` is negative or >= bullets.length
+ * - Defaults to index 0 if `bulletIndex` is not provided
+ * - Creates new bullets array if none exists
+ *
+ * @param block - Resume block to modify
+ * @param suggestion - AI suggestion containing indices and action type
+ * @param newContent - Clean text content (pre-sanitized, no bullet markers)
+ * @returns Updated block data
+ * @throws {Error} If indices are out of bounds or block structure is invalid
  */
 function applyContentChange(
   block: any,
-  actionType: string,
-  itemIndex: number | undefined,
+  suggestion: ApplySuggestionRequest['suggestion'],
   newContent: string
 ): any {
+  const { actionType, itemIndex, bulletIndex } = suggestion;
   const data = { ...block.data };
 
   switch (block.type) {
@@ -171,23 +193,21 @@ function applyContentChange(
 
         // For experience blocks, we typically modify bullets
         if (actionType === 'rewrite_bullet' || actionType === 'strengthen_verb' || actionType === 'add_metric') {
-          // Parse bullet index from suggestion if available
-          // For now, assume we're rewriting the entire bullets array or specific bullet
-          // This is simplified - in production, you'd parse more precisely
-          if (Array.isArray(item.bullets)) {
-            // If newContent looks like a single bullet, replace first bullet
-            // Otherwise, try to parse as bullet list
-            const bulletLines = newContent.split('\n').filter(line => line.trim());
-            if (bulletLines.length === 1) {
-              // Single bullet - replace first or specified bullet
-              item.bullets[0] = newContent.trim();
-            } else {
-              // Multiple bullets - replace all
-              item.bullets = bulletLines.map(line => line.replace(/^[-•*]\s*/, '').trim());
-            }
-          } else {
+          if (!Array.isArray(item.bullets)) {
             // No bullets yet - create array with new content
             item.bullets = [newContent.trim()];
+          } else {
+            // Use bulletIndex from suggestion if provided, otherwise default to 0
+            const bulletIdx = bulletIndex ?? 0;
+
+            if (bulletIdx < 0 || bulletIdx >= item.bullets.length) {
+              throw new Error(
+                `Bullet index ${bulletIdx} is out of bounds (bullets array has ${item.bullets.length} items)`
+              );
+            }
+
+            // Replace the specific bullet at the given index
+            item.bullets[bulletIdx] = newContent.trim();
           }
         }
 
@@ -229,8 +249,39 @@ function applyContentChange(
       break;
     }
 
+    case 'projects': {
+      if (itemIndex !== undefined && data.items && Array.isArray(data.items)) {
+        const item = data.items[itemIndex];
+        if (!item) {
+          throw new Error(`Project item at index ${itemIndex} not found`);
+        }
+
+        // Projects have similar bullet structure to experience
+        if (actionType === 'rewrite_bullet' || actionType === 'strengthen_verb' || actionType === 'add_metric') {
+          if (!Array.isArray(item.bullets)) {
+            // No bullets yet - create array with new content
+            item.bullets = [newContent.trim()];
+          } else {
+            // Use bulletIndex from suggestion if provided, otherwise default to 0
+            const bulletIdx = bulletIndex ?? 0;
+
+            if (bulletIdx < 0 || bulletIdx >= item.bullets.length) {
+              throw new Error(
+                `Bullet index ${bulletIdx} is out of bounds (bullets array has ${item.bullets.length} items)`
+              );
+            }
+
+            // Replace the specific bullet at the given index
+            item.bullets[bulletIdx] = newContent.trim();
+          }
+        }
+
+        data.items[itemIndex] = item;
+      }
+      break;
+    }
+
     case 'header':
-    case 'projects':
       throw new Error(`Block type '${block.type}' does not support AI suggestions`);
 
     default:
@@ -348,7 +399,7 @@ export async function POST(req: NextRequest) {
       const response: ApplySuggestionResponse = {
         success: true,
         updatedBlock,
-        historyEntryId: `ai-apply-${Date.now()}`, // Client will handle history
+        // historyEntryId omitted - client handles history tracking
         sanitized: sanitized.redactions > 0
           ? {
               redactions: sanitized.redactions,

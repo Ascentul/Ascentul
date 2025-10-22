@@ -6,6 +6,7 @@
  */
 
 import type { EditorSnapshot, BlockId } from '../editor/types/editorTypes';
+import { diffWords } from 'diff';
 import type { SectionAnalysis } from './analyzeDocument';
 import { analyzeDocument } from './analyzeDocument';
 
@@ -25,7 +26,7 @@ export interface CoachSuggestion {
   actionType: SuggestionActionType;
   targetPath: string; // JSON path to the property (e.g., "props.paragraph" or "props.items.0.bullets.1")
   severity: 'high' | 'medium' | 'low';
-  preview: (currentValue: any) => TextDiff;
+  preview: (currentValue: string) => TextDiff;
 }
 
 export interface TextDiff {
@@ -41,52 +42,14 @@ export interface DiffChange {
 
 /**
  * Create a simple text diff for preview
- * Uses basic word-level diffing
+ * Uses word-level diffing via the `diff` library for better accuracy
  */
 export function createTextDiff(before: string, after: string): TextDiff {
-  const beforeWords = before.split(/(\s+)/);
-  const afterWords = after.split(/(\s+)/);
-
-  const changes: DiffChange[] = [];
-  let i = 0;
-  let j = 0;
-
-  while (i < beforeWords.length || j < afterWords.length) {
-    if (i >= beforeWords.length) {
-      // Remaining words are additions
-      changes.push({ type: 'add', text: afterWords[j] });
-      j++;
-    } else if (j >= afterWords.length) {
-      // Remaining words are removals
-      changes.push({ type: 'remove', text: beforeWords[i] });
-      i++;
-    } else if (beforeWords[i] === afterWords[j]) {
-      // Words match
-      changes.push({ type: 'unchanged', text: beforeWords[i] });
-      i++;
-      j++;
-    } else {
-      // Words differ - check if it's a replacement or add/remove
-      const beforeRest = beforeWords.slice(i).join('');
-      const afterRest = afterWords.slice(j).join('');
-
-      if (beforeRest.includes(afterWords[j])) {
-        // Word was removed
-        changes.push({ type: 'remove', text: beforeWords[i] });
-        i++;
-      } else if (afterRest.includes(beforeWords[i])) {
-        // Word was added
-        changes.push({ type: 'add', text: afterWords[j] });
-        j++;
-      } else {
-        // Word was changed
-        changes.push({ type: 'remove', text: beforeWords[i] });
-        changes.push({ type: 'add', text: afterWords[j] });
-        i++;
-        j++;
-      }
-    }
-  }
+  const diffParts = diffWords(before, after);
+  const changes: DiffChange[] = diffParts.map((part) => ({
+    type: part.added ? 'add' : part.removed ? 'remove' : 'unchanged',
+    text: part.value,
+  }));
 
   return { before, after, changes };
 }
@@ -158,7 +121,15 @@ export function getSuggestions(snapshot: EditorSnapshot): CoachSuggestion[] {
 
         item.bullets.forEach((bullet: string, bulletIndex: number) => {
           // Check for missing metrics
-          if (!/(%|\$|x|\d+k\+|\d+\s*(hours?|days?|weeks?))/.test(bullet)) {
+          // Enhanced pattern catches:
+          // - Percentages: 25%, 10-20%
+          // - Currency: $50K, €100, £1M
+          // - Multipliers: 2x, 3×, doubled, tripled, halved
+          // - Quantities: 100+, 5K, 10M, 500 users, 3 weeks
+          // - Ranges: 10-20%, 5–10 hours
+          const hasMetrics = /(%|\$|€|£|\d+[xX×]|\d+[KMB]\+?|\d+\+|\d+[-–]\d+|doubled?|tripled?|halved?|\d+\s+(hours?|days?|weeks?|months?|years?|users?|customers?|projects?|items?|files?|requests?))/.test(bullet);
+
+          if (!hasMetrics) {
             suggestions.push({
               id: `${section.blockId}-${itemIndex}-${bulletIndex}-metrics`,
               blockId: section.blockId,
@@ -227,14 +198,14 @@ export function getSuggestions(snapshot: EditorSnapshot): CoachSuggestion[] {
               targetPath: `props.items.${itemIndex}.bullets.${bulletIndex}`,
               severity: 'medium',
               preview: (currentValue: string) => {
-                // Remove boilerplate
+                // Remove boilerplate (use lowercase for replacements to avoid mid-sentence capitalization issues)
                 const trimmed = currentValue
                   .replace(/\bresponsible for\s+/gi, '')
                   .replace(/\bduties included\s+/gi, '')
                   .replace(/\btasked with\s+/gi, '')
-                  .replace(/\bhandled\s+/gi, 'Managed ')
+                  .replace(/\bhandled\s+/gi, 'managed ')
                   .trim();
-                // Capitalize first letter
+                // Capitalize first letter (handles proper sentence capitalization)
                 const fixed = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
                 return createTextDiff(currentValue, fixed);
               },

@@ -209,6 +209,10 @@ export function AIAuthoringPanel({
       // Get block metadata for context
       const snapshot = store.getState();
       const block = snapshot.blocksById[selectedBlockId];
+      
+      if (!block) {
+        throw new Error('Selected block not found in editor state');
+      }
 
       // Generate prompts using Part B actions
       const context = {

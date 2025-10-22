@@ -21,7 +21,6 @@ export function useDebugToggle() {
       return false;
     }
   });
-
   const toggle = useCallback(() => {
     setIsOpen((prev) => {
       const next = !prev;
@@ -33,7 +32,6 @@ export function useDebugToggle() {
       return next;
     });
   }, []);
-
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Check for Cmd (Mac) or Ctrl (Windows/Linux) + Backtick

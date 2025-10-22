@@ -79,6 +79,11 @@ function BlockInspectorV2({ block, clerkId, resumeUpdatedAt, onUpdate }: BlockIn
   const blockIdForHook = block?._id ?? '__no_block__';
   const storeBlockData = useBlockData(blockIdForHook);
 
+  // Track persistence status for user feedback
+  const [persistenceStatus, setPersistenceStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [persistenceError, setPersistenceError] = useState<string | null>(null);
+  const persistenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const createBlockMutation = useMutation(api.builder_blocks.create);
   const updateBlockMutation = useMutation(api.builder_blocks.update);
   const deleteBlockMutation = useMutation(api.builder_blocks.deleteBlock);
@@ -98,13 +103,15 @@ function BlockInspectorV2({ block, clerkId, resumeUpdatedAt, onUpdate }: BlockIn
           deleteBlock: async (payload) => deleteBlockMutation(payload),
           reorderBlock: async (payload) => reorderBlockMutation(payload),
           createPage: async (_payload) => {
-            throw new Error('createPage not implemented in BlockInspector');
+            console.warn('createPage not supported in BlockInspector');
+            return undefined as any;
           },
           duplicatePage: async (_payload) => {
-            throw new Error('duplicatePage not implemented in BlockInspector');
+            console.warn('duplicatePage not supported in BlockInspector');
+            return undefined as any;
           },
           reflowPages: async (_payload) => {
-            throw new Error('reflowPages not implemented in BlockInspector');
+            console.warn('reflowPages not supported in BlockInspector');
           },
           updateResumeMeta: async (payload) => updateResumeMetaMutation(payload),
         },
@@ -138,12 +145,32 @@ function BlockInspectorV2({ block, clerkId, resumeUpdatedAt, onUpdate }: BlockIn
     return unsubscribe;
   }, [mutationBroker, onUpdate]);
 
+  // Cleanup persistence timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (persistenceTimeoutRef.current) {
+        clearTimeout(persistenceTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleChange = useCallback(
     (newData: BlockData) => {
       if (!block) return;
 
+      // Update store immediately for instant UI feedback
       editorActions.updateBlockProps(block._id, newData as Record<string, unknown>);
 
+      // Set pending status
+      setPersistenceStatus('pending');
+      setPersistenceError(null);
+
+      // Clear any existing timeout
+      if (persistenceTimeoutRef.current) {
+        clearTimeout(persistenceTimeoutRef.current);
+      }
+
+      // Persist changes to server
       inspector
         .applyEdit(
           {
@@ -157,8 +184,17 @@ function BlockInspectorV2({ block, clerkId, resumeUpdatedAt, onUpdate }: BlockIn
           block._id,
           { source: 'inspector' },
         )
+        .then(() => {
+          setPersistenceStatus('success');
+          // Auto-hide success indicator after 2s
+          persistenceTimeoutRef.current = setTimeout(() => {
+            setPersistenceStatus('idle');
+          }, 2000);
+        })
         .catch((error) => {
           console.error('Failed to persist block update:', error);
+          setPersistenceStatus('error');
+          setPersistenceError(error instanceof Error ? error.message : 'Failed to save changes');
         });
     },
     [block, editorActions, inspector, clerkId, resumeUpdatedAt],
@@ -166,12 +202,20 @@ function BlockInspectorV2({ block, clerkId, resumeUpdatedAt, onUpdate }: BlockIn
 
   const currentData = block ? (storeBlockData as BlockData | null | undefined) ?? null : null;
 
+  // Convert persistence status to legacy-compatible format for UI
+  const statusForUI = persistenceStatus === 'idle' || persistenceStatus === 'success'
+    ? { isSaving: false, showSaved: persistenceStatus === 'success' }
+    : persistenceStatus === 'pending'
+    ? { isSaving: true, showSaved: false }
+    : undefined; // error state handled separately
+
   return (
     <InspectorLayout
       block={block}
       data={currentData}
       onChange={handleChange}
-      status={undefined}
+      status={statusForUI}
+      error={persistenceStatus === 'error' ? persistenceError : undefined}
     />
   );
 }
@@ -201,13 +245,15 @@ function BlockInspectorLegacy({ block, clerkId, resumeUpdatedAt, onUpdate }: Blo
           deleteBlock: async (payload) => deleteBlockMutation(payload),
           reorderBlock: async (payload) => reorderBlockMutation(payload),
           createPage: async (_payload) => {
-            throw new Error('createPage not implemented in BlockInspector');
+            console.warn('createPage not supported in BlockInspector');
+            return undefined as any;
           },
           duplicatePage: async (_payload) => {
-            throw new Error('duplicatePage not implemented in BlockInspector');
+            console.warn('duplicatePage not supported in BlockInspector');
+            return undefined as any;
           },
           reflowPages: async (_payload) => {
-            throw new Error('reflowPages not implemented in BlockInspector');
+            console.warn('reflowPages not supported in BlockInspector');
           },
           updateResumeMeta: async (payload) => updateResumeMetaMutation(payload),
         },
@@ -319,9 +365,10 @@ interface InspectorLayoutProps {
     isSaving: boolean;
     showSaved: boolean;
   };
+  error?: string | null;
 }
 
-function InspectorLayout({ block, data, onChange, status }: InspectorLayoutProps) {
+function InspectorLayout({ block, data, onChange, status, error }: InspectorLayoutProps) {
   if (!block || !data) {
     return (
       <div className="p-4">
@@ -336,22 +383,29 @@ function InspectorLayout({ block, data, onChange, status }: InspectorLayoutProps
     <div className="p-4 h-full overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold">Inspector</h3>
-        {status && (
-          <div className="flex items-center gap-2">
-            {status.isSaving && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Saving...
-              </span>
-            )}
-            {!status.isSaving && status.showSaved && (
-              <span className="text-xs text-green-600 flex items-center gap-1">
-                <Check className="w-3 h-3" />
-                Saved
-              </span>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {status && status.isSaving && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Saving...
+            </span>
+          )}
+          {status && !status.isSaving && status.showSaved && (
+            <span className="text-xs text-green-600 flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              Saved
+            </span>
+          )}
+          {error && (
+            <span className="text-xs text-red-600 flex items-center gap-1" title={error}>
+              <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor">
+                <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm0-1A6 6 0 1 1 8 2a6 6 0 0 1 0 12z"/>
+                <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+              </svg>
+              Failed to save
+            </span>
+          )}
+        </div>
       </div>
 
       {block.type === 'header' && (
@@ -378,157 +432,6 @@ function InspectorLayout({ block, data, onChange, status }: InspectorLayoutProps
     </div>
   );
 }
-
-  const [localData, setLocalData] = useState<BlockData | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showSaved, setShowSaved] = useState(false);
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
-
-  const createBlockMutation = useMutation(api.builder_blocks.create);
-  const updateBlockMutation = useMutation(api.builder_blocks.update);
-  const deleteBlockMutation = useMutation(api.builder_blocks.deleteBlock);
-  const reorderBlockMutation = useMutation(api.builder_blocks.reorder);
-  const updateResumeMetaMutation = useMutation(api.resumes.updateResumeMeta);
-
-  const mutationBroker = useMemo(
-    () =>
-      createMutationBroker({
-        convex: {
-          createBlock: async (payload) => createBlockMutation(payload),
-          updateBlock: async (payload) =>
-            updateBlockMutation({
-              id: payload.id,
-              ...(payload.props ?? {}),
-            }),
-          deleteBlock: async (payload) => deleteBlockMutation(payload),
-          reorderBlock: async (payload) => reorderBlockMutation(payload),
-          // Page methods not used in BlockInspector, but required by MutationBroker type
-          createPage: async (_payload) => { throw new Error('createPage not implemented in BlockInspector'); },
-          duplicatePage: async (_payload) => { throw new Error('duplicatePage not implemented in BlockInspector'); },
-          reflowPages: async (_payload) => { throw new Error('reflowPages not implemented in BlockInspector'); },
-          updateResumeMeta: async (payload) => updateResumeMetaMutation(payload),
-        },
-      }),
-    [
-      createBlockMutation,
-      updateBlockMutation,
-      deleteBlockMutation,
-      reorderBlockMutation,
-      updateResumeMetaMutation,
-    ],
-  );
-
-  const inspector = useMemo(
-    () => createInspectorFacade(
-      mutationBroker,
-      editorStore ? { updateBlockProps: editorStore.updateBlockProps.bind(editorStore) } : undefined
-    ),
-    [mutationBroker, editorStore]
-  );
-
-  useEffect(() => {
-    const unsubscribe = mutationBroker.onSuccess((op, res) => {
-      if (op.kind === 'block.update') {
-        const nextUpdatedAt = res?.resumeUpdatedAt ?? res?.updatedAt;
-        if (typeof nextUpdatedAt === 'number') {
-          onUpdate(nextUpdatedAt);
-        }
-      }
-    });
-    return unsubscribe;
-  }, [mutationBroker, onUpdate]);
-
-  // Legacy: Sync local data when block changes (only when V2 disabled)
-  useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-    }
-
-    if (block) {
-      setLocalData(JSON.parse(JSON.stringify(block.data)));
-    } else {
-      setLocalData(null);
-    }
-  }, [block?._id]);
-
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-      }
-    };
-  }, []);
-
-  // V2: Store-first change handler (instant updates, no debounce)
-  const handleChangeV2 = useCallback(
-    (newData: BlockData) => {
-      if (!block || !editorActions) return;
-
-      // Update store immediately - data goes directly into props
-      editorActions.updateBlockProps(block._id, newData as Record<string, unknown>);
-
-      // Enqueue persistence in background - server expects { data: ... } format
-      inspector.applyEdit(
-        {
-          id: block._id,
-          props: {
-            clerkId,
-            data: newData,
-            expectedResumeUpdatedAt: resumeUpdatedAt,
-          },
-        },
-        { source: 'inspector' },
-      ).catch((error) => {
-        console.error('Failed to persist block update:', error);
-      });
-    },
-    [block, editorActions, inspector, clerkId, resumeUpdatedAt]
-  );
-
-  // Legacy: Debounced change handler (400ms delay)
-  const handleChangeLegacy = useCallback(
-    (newData: BlockData) => {
-      setLocalData(newData);
-
-      setDebounceTimer((prevTimer) => {
-        // Clear existing timer
-        if (prevTimer) {
-          clearTimeout(prevTimer);
-        }
-
-        // Set new timer
-        return setTimeout(async () => {
-          if (!block) return;
-
-          setIsSaving(true);
-          try {
-            await inspector.applyEdit(
-              {
-                id: block._id,
-                props: {
-                  clerkId,
-                  data: newData,
-                  expectedResumeUpdatedAt: resumeUpdatedAt,
-                },
-              },
-              { source: 'inspector' },
-            );
-
-            // Show "Saved" briefly
-            setShowSaved(true);
-            setTimeout(() => setShowSaved(false), 2000);
-          } catch (error) {
-            console.error('Failed to update block:', error);
-          } finally {
-            setIsSaving(false);
-          }
-        }, 400);
-      });
-    },
-    [block, clerkId, resumeUpdatedAt, inspector]
-  );
 
 // Header Inspector
 function HeaderInspector({ data, onChange }: { data: HeaderData; onChange: (data: HeaderData) => void }) {

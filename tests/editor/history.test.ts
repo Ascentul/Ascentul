@@ -7,16 +7,25 @@ import {
   canRedo,
   replacePresent,
 } from '@/features/resume/editor/state/history';
-import type { EditorSnapshot } from '@/features/resume/editor/types/editorTypes';
+import type { EditorSnapshot, EditorBlockNode } from '@/features/resume/editor/types/editorTypes';
+import type { Id } from '../../convex/_generated/dataModel';
 
 describe('History System', () => {
   const createMockSnapshot = (value: string): EditorSnapshot => ({
-    blocksById: { [value]: { id: value, type: 'text', parentId: null, props: {} } as any },
+    blocksById: {
+      [value]: {
+        id: value,
+        type: 'text',
+        parentId: null,
+        props: {},
+        children: undefined,
+      } as EditorBlockNode
+    },
     pagesById: {},
     pageOrder: [],
     selectedIds: [],
     docMeta: {
-      resumeId: 'test' as any,
+      resumeId: 'test' as Id<'builder_resumes'>,
       title: 'Test',
       updatedAt: Date.now(),
       lastSyncedAt: Date.now(),

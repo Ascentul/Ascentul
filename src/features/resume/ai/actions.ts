@@ -284,5 +284,9 @@ export function getActionDescription(action: AIAction): string {
       return 'Fix tense consistency';
     case 'translate':
       return 'Translate content';
+    default: {
+      const _exhaustive: never = action;
+      throw new Error(`Unknown action: ${_exhaustive}`);
+    }
   }
 }

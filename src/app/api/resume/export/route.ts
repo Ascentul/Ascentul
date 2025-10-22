@@ -5,6 +5,9 @@ import { api } from '../../../../../convex/_generated/api';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { chromium } from 'playwright';
 import { generatePDFFileName } from '@/lib/pdf/fileName';
+import { buildContactParts, renderContactLink } from '@/lib/pdf/contactRenderer';
+import type { ContactLink } from '@/lib/pdf/contactRenderer';
+import { buildPageConfig } from '@/lib/pdf/pageConfig';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,19 +25,9 @@ interface ExportResumeRequest {
  * This creates a complete HTML document with styling that matches the resume builder
  */
 function generateResumeHTML(resume: any, blocks: any[], template: any, theme: any, clickableLinks = false): string {
-  const pageSize = template?.pageSize || 'Letter';
-  const margins = template?.margins || { top: 72, right: 72, bottom: 72, left: 72 };
-
-  // Convert margins from pixels to CSS units (assuming 96 DPI)
-  const marginTop = `${margins.top / 96}in`;
-  const marginRight = `${margins.right / 96}in`;
-  const marginBottom = `${margins.bottom / 96}in`;
-  const marginLeft = `${margins.left / 96}in`;
-
-  // Page dimensions
-  const pageDimensions = pageSize === 'A4'
-    ? { width: '210mm', height: '297mm' }
-    : { width: '8.5in', height: '11in' };
+  // Build page configuration using extracted utility
+  const pageConfig = buildPageConfig(template);
+  const { pageSize, dimensions: pageDimensions, margins } = pageConfig;
 
   // Theme colors and fonts
   const primaryColor = theme?.colors?.primary || '#1a1a1a';
@@ -66,7 +59,7 @@ function generateResumeHTML(resume: any, blocks: any[], template: any, theme: an
 
     @page {
       size: ${pageDimensions.width} ${pageDimensions.height};
-      margin: ${marginTop} ${marginRight} ${marginBottom} ${marginLeft};
+      margin: ${margins.top} ${margins.right} ${margins.bottom} ${margins.left};
     }
 
     body {
@@ -218,29 +211,14 @@ function renderBlock(block: any, styles: any, clickableLinks = false): string {
   switch (type) {
     case 'header':
       // Phase 8: Contact validation and optional clickable links
+      const contactParts = buildContactParts(data.contact, { clickableLinks });
+
+      // Debug warning for missing contact fields
       const email = data.contact?.email || '';
       const phone = data.contact?.phone || '';
       const location = data.contact?.location || '';
-
-      // Build contact line with validation
-      const contactParts: string[] = [];
-      if (email) {
-        contactParts.push(clickableLinks
-          ? `<a href="mailto:${escapeHTML(email)}">${escapeHTML(email)}</a>`
-          : escapeHTML(email));
-      }
-      if (phone) {
-        contactParts.push(clickableLinks
-          ? `<a href="tel:${escapeHTML(phone.replace(/\s/g, ''))}">${escapeHTML(phone)}</a>`
-          : escapeHTML(phone));
-      }
-      if (location) {
-        contactParts.push(escapeHTML(location));
-      }
-
-      // Debug warning for missing contact fields
-      if (debugEnabled && (!email || !phone)) {
-        console.warn(`[PDF Export] Header block missing contact fields: email=${!!email}, phone=${!!phone}`);
+      if (debugEnabled && (!email || !phone || !location)) {
+        console.warn(`[PDF Export] Header block missing contact fields: email=${!!email}, phone=${!!phone}, location=${!!location}`);
       }
 
       return `<div class="resume-block header-block">
@@ -251,10 +229,8 @@ function renderBlock(block: any, styles: any, clickableLinks = false): string {
         </div>
         ${data.contact?.links && data.contact.links.length > 0 ? `
           <div class="header-links">
-            ${data.contact.links.map((link: any) =>
-              clickableLinks
-                ? `<a href="${escapeHTML(link.url)}">${escapeHTML(link.label)}</a>`
-                : escapeHTML(link.label)
+            ${data.contact.links.map((link: ContactLink) =>
+              renderContactLink(link, { clickableLinks })
             ).join(' • ')}
           </div>
         ` : ''}

@@ -5,11 +5,10 @@ import { useEditorSelector } from './editorStore';
 
 export const useSelectedIds = () => useEditorSelector((state) => state.selectedIds);
 
-export const useBlocksById = () =>
-  useEditorSelector((state) => state.blocksById, (a, b) => a === b);
+// Note: Default equality (Object.is) is sufficient for reference comparison
+export const useBlocksById = () => useEditorSelector((state) => state.blocksById);
 
-export const usePagesById = () =>
-  useEditorSelector((state) => state.pagesById, (a, b) => a === b);
+export const usePagesById = () => useEditorSelector((state) => state.pagesById);
 
 export const usePageOrder = () =>
   useEditorSelector((state) => state.pageOrder, (a, b) => {
@@ -25,24 +24,24 @@ export const useCanUndo = () => useEditorSelector((state) => state.canUndo);
 
 export const useCanRedo = () => useEditorSelector((state) => state.canRedo);
 
+// Note: Default equality (Object.is) is sufficient for reference comparison
 export const useBlockById = (blockId: BlockId) =>
-  useEditorSelector((state) => state.blocksById[blockId], (a, b) => a === b);
+  useEditorSelector((state) => state.blocksById[blockId]);
 
 /**
  * Subscribe to a specific property of a block for granular updates.
  * Only re-renders when the specific property changes.
  *
+ * Note: Uses default Object.is equality (reference comparison)
+ *
  * @example
  * const fullName = useBlockProp<string>('block-1', 'fullName');
  */
 export const useBlockProp = <T = unknown>(blockId: BlockId, propKey: string): T | undefined => {
-  return useEditorSelector(
-    (state) => {
-      const block = state.blocksById[blockId];
-      return block?.props[propKey] as T | undefined;
-    },
-    (a, b) => a === b,
-  );
+  return useEditorSelector((state) => {
+    const block = state.blocksById[blockId];
+    return block?.props[propKey] as T | undefined;
+  });
 };
 
 /**
@@ -50,17 +49,16 @@ export const useBlockProp = <T = unknown>(blockId: BlockId, propKey: string): T 
  * Use this when you need the full block data.
  * Note: In EditorStore, block data is stored directly in props, not in props.data
  *
+ * Uses default Object.is equality (reference comparison)
+ *
  * @example
  * const headerData = useBlockData<HeaderData>('block-1');
  */
 export const useBlockData = <T extends BlockData = BlockData>(blockId: BlockId): T | undefined => {
-  return useEditorSelector(
-    (state) => {
-      const block = state.blocksById[blockId];
-      return block?.props as T | undefined;
-    },
-    (a, b) => a === b,
-  );
+  return useEditorSelector((state) => {
+    const block = state.blocksById[blockId];
+    return block?.props as T | undefined;
+  });
 };
 
 export const useBlocksForPage = (pageId: PageId): EditorBlockNode[] => {
@@ -74,7 +72,8 @@ export const useBlocksForPage = (pageId: PageId): EditorBlockNode[] => {
     },
     (a, b) => {
       if (a.length !== b.length) return false;
-      return a.every((block, index) => block?.id === b[index]?.id && block?.props === b[index]?.props);
+      // Type guard filter ensures all elements are EditorBlockNode, so optional chaining is unnecessary
+      return a.every((block, index) => block.id === b[index].id && block.props === b[index].props);
     },
   );
 };

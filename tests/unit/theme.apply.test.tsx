@@ -255,8 +255,12 @@ describe('Theme Application - Phase 5', () => {
       const classes = resolveThemeToClasses(mockTheme);
       const tokens = resolveThemeTokens(mockTheme);
 
-      // Verify synchronous execution by checking results are immediately defined
-      // (No timing assertion - performance.now() has insufficient resolution for sub-millisecond operations)
+      // Verify synchronous execution by ensuring results are not Promises
+      expect(cssVars).not.toBeInstanceOf(Promise);
+      expect(classes).not.toBeInstanceOf(Promise);
+      expect(tokens).not.toBeInstanceOf(Promise);
+      
+      // Also verify results are immediately usable
       expect(cssVars).toBeDefined();
       expect(classes).toBeDefined();
       expect(tokens).toBeDefined();

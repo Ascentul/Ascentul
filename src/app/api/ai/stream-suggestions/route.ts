@@ -234,7 +234,13 @@ export async function POST(req: NextRequest) {
           ],
           temperature: AI_CONFIG.TEMPERATURE.PRECISE,
           max_tokens: AI_CONFIG.MAX_TOKENS.MEDIUM,
+          timeout: 45000, // 45 seconds - leave buffer before maxDuration
         });
+          },
+          {
+            timeout: AI_CONFIG.TIMEOUT,
+          }
+        );
 
         const aiResponse = completion.choices[0]?.message?.content || '';
 

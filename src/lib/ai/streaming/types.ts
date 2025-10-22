@@ -46,6 +46,9 @@ export interface AISuggestion {
   /** Target item index within the block (for experience bullets, skills, etc.) */
   itemIndex?: number;
 
+  /** Target bullet index within the item (for experience/project bullets) */
+  bulletIndex?: number;
+
   /** Proposed replacement content (if applicable) */
   proposedContent?: string;
 

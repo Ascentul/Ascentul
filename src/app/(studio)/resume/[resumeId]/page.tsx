@@ -683,15 +683,12 @@ useEffect(() => {
   const handleDuplicatePage = useCallback(() => {
     if (!selectedPageId) return;
 
+    let newPageId: string | undefined;
+
     if (enableV2Features && editorActions) {
       // V2 store path: Use EditorStore actions
-      const newPageId = editorActions.duplicatePage(selectedPageId);
+      newPageId = editorActions.duplicatePage(selectedPageId);
       setSelectedPageId(newPageId);
-      logEvent('page_duplicated', { pageId: selectedPageId, newPageId });
-      toast({
-        title: 'Page duplicated',
-        description: 'A copy of the current page was created.',
-      });
     } else {
       // Legacy path: Direct state manipulation
       const result = duplicatePage({
@@ -711,12 +708,16 @@ useEffect(() => {
       setBlocksMap(normalizedBlocksRecord);
       setLocalBlocks(nextLocalBlocks);
       setSelectedPageId(result.pageId);
-      logEvent('page_duplicated', { pageId: selectedPageId, newPageId: result.pageId });
-      toast({
-        title: 'Page duplicated',
-        description: 'A copy of the current page was created.',
-      });
+      newPageId = result.pageId;
     }
+
+    if (!newPageId) return;
+
+    logEvent('page_duplicated', { pageId: selectedPageId, newPageId });
+    toast({
+      title: 'Page duplicated',
+      description: 'A copy of the current page was created.',
+    });
   }, [selectedPageId, enableV2Features, editorActions, editorPages, pageOrder, blocksMap, toast]);
 
   const handleAddSection = useCallback(async () => {

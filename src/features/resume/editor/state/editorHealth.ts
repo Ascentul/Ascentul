@@ -6,12 +6,16 @@ type EditorHealthSnapshot = {
 
 const GLOBAL_KEY = '__ASCENTFUL_EDITOR_HEALTH__';
 
+const DEFAULT_SNAPSHOT: Pick<EditorHealthSnapshot, 'selectionCount' | 'isDirty'> = {
+  selectionCount: 0,
+  isDirty: false,
+};
+
 const getMutableSnapshot = (): EditorHealthSnapshot => {
   const target = globalThis as typeof globalThis & Record<string, EditorHealthSnapshot>;
   if (!target[GLOBAL_KEY]) {
     target[GLOBAL_KEY] = {
-      selectionCount: 0,
-      isDirty: false,
+      ...DEFAULT_SNAPSHOT,
       lastUpdated: Date.now(),
     };
   }
@@ -47,8 +51,7 @@ export const updateEditorHealthSnapshot = (
 export const resetEditorHealthSnapshot = (): void => {
   const target = globalThis as typeof globalThis & Record<string, EditorHealthSnapshot>;
   target[GLOBAL_KEY] = {
-    selectionCount: 0,
-    isDirty: false,
+    ...DEFAULT_SNAPSHOT,
     lastUpdated: Date.now(),
   };
 };

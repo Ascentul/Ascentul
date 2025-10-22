@@ -6,6 +6,7 @@ import { EditorStoreProvider, hydrateFromServer } from '@/features/resume/editor
 import { createMutationBroker } from '@/features/resume/editor/integration/MutationBroker';
 import { applySuggestion } from '@/features/resume/coach/applySuggestion';
 import { getSuggestions } from '@/features/resume/coach/suggestions';
+import type { Id } from '../../convex/_generated/dataModel';
 
 describe('Coach Apply - Phase 6', () => {
   beforeAll(() => {
@@ -18,10 +19,10 @@ describe('Coach Apply - Phase 6', () => {
 
   const mockResumeData = {
     resume: {
-      _id: 'resume123' as any,
+      _id: 'resume123' as Id<'builder_resumes'>,
       title: 'Test Resume',
       templateSlug: 'modern',
-      themeId: 'theme1' as any,
+      themeId: 'theme1' as Id<'builder_resume_themes'>,
       updatedAt: Date.now(),
       version: 1,
       pages: [
@@ -35,12 +36,14 @@ describe('Coach Apply - Phase 6', () => {
     },
     blocks: [
       {
-        _id: 'block1',
+        _id: 'block1' as Id<'resume_blocks'>,
+        resumeId: 'resume123' as Id<'builder_resumes'>,
         type: 'summary' as const,
         data: { paragraph: 'Responsible for managing teams and projects.' },
         order: 0,
+        locked: false,
       },
-    ] as any[],
+    ],
   };
 
   const mockConvex = {
@@ -168,12 +171,13 @@ describe('Coach Apply - Phase 6', () => {
     it('should preserve undo/redo functionality', async () => {
       const initialSnapshot = hydrateFromServer(mockResumeData);
       let storeInstance: any;
+      let actionsInstance: any;
 
       function TestComponent() {
         const store = require('@/features/resume/editor/state/editorStore').useEditorStore();
         const actions = require('@/features/resume/editor/state/editorStore').useEditorActions();
         storeInstance = store;
-        (window as any).editorActions = actions;
+        actionsInstance = actions;
 
         // Subscribe to store changes to trigger re-renders
         const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
@@ -206,7 +210,7 @@ describe('Coach Apply - Phase 6', () => {
       });
 
       // Undo
-      (window as any).editorActions.undo();
+      actionsInstance.undo();
 
       await waitFor(() => {
         const undoParagraph = screen.getByTestId('paragraph').textContent;
@@ -214,7 +218,7 @@ describe('Coach Apply - Phase 6', () => {
       });
 
       // Redo
-      (window as any).editorActions.redo();
+      actionsInstance.redo();
 
       await waitFor(() => {
         const redoParagraph = screen.getByTestId('paragraph').textContent;

@@ -9,11 +9,9 @@
  */
 
 import type { MutationBroker } from '../editor/integration/MutationBroker';
+import type { EditorStore } from '../editor/state/editorStore';
 import type { CoachSuggestion } from './suggestions';
 import { getValueAtPath, setValueAtPath } from './suggestions';
-
-// EditorStore type (use return type from useEditorStore)
-type EditorStore = ReturnType<typeof import('../editor/state/editorStore').useEditorStore>;
 
 export interface ApplySuggestionOptions {
   onSuccess?: () => void;
@@ -62,6 +60,13 @@ export async function applySuggestion(
     const currentValue = getValueAtPath(block, suggestion.targetPath);
     if (currentValue === undefined) {
       throw new Error(`Path ${suggestion.targetPath} not found in block ${suggestion.blockId}`);
+    }
+
+    // Ensure currentValue is a string (all suggestions target text content)
+    if (typeof currentValue !== 'string') {
+      throw new Error(
+        `Expected string value at ${suggestion.targetPath}, but got ${typeof currentValue}`
+      );
     }
 
     // Generate preview to get the new value
@@ -149,6 +154,18 @@ export async function applySuggestionsBatch(
         skippedReasons.push({
           suggestionId: suggestion.id,
           reason: 'path_not_found',
+          blockId: suggestion.blockId,
+          targetPath: suggestion.targetPath,
+        });
+        continue;
+      }
+
+      // Ensure currentValue is a string (all suggestions target text content)
+      if (typeof currentValue !== 'string') {
+        console.warn(`[applySuggestionsBatch] Invalid value type: expected string at ${suggestion.targetPath}, got ${typeof currentValue}`);
+        skippedReasons.push({
+          suggestionId: suggestion.id,
+          reason: 'path_not_found', // Use existing reason, or consider adding 'invalid_type'
           blockId: suggestion.blockId,
           targetPath: suggestion.targetPath,
         });

@@ -1,6 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { analyzeDocument, ANALYSIS_THRESHOLDS } from '@/features/resume/coach/analyzeDocument';
 import type { EditorSnapshot } from '@/features/resume/editor/types/editorTypes';
+import type { Id } from '../../convex/_generated/dataModel';
 
 describe('Coach Analyzer - Phase 6', () => {
   const mockSnapshot: EditorSnapshot = {
@@ -45,7 +46,7 @@ describe('Coach Analyzer - Phase 6', () => {
     pageOrder: ['page1'],
     selectedIds: [],
     docMeta: {
-      resumeId: 'resume1' as any,
+      resumeId: 'resume1' as Id<'builder_resumes'>,
       title: 'Test Resume',
       templateSlug: 'modern',
       updatedAt: Date.now(),

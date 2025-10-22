@@ -19,6 +19,25 @@ interface ExportOptions {
 }
 
 /**
+ * API response from /api/resume/export endpoint
+ *
+ * Uses discriminated union for type safety:
+ * - Success responses MUST have url and exportId
+ * - Error responses MUST have error message
+ */
+type ExportApiResponse =
+  | {
+      success: true;
+      url: string;
+      exportId: Id<'builder_resume_exports'>;
+      fileName?: string;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
+/**
  * Custom hook for exporting resumes to PDF
  * Handles loading states and automatic download
  */
@@ -70,9 +89,10 @@ export function useResumeExport() {
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      const data: ExportApiResponse = await response.json();
 
-      if (data.success && data.url) {
+      if (data.success) {
+        // TypeScript now knows data has url and exportId properties
         setState({
           isExporting: false,
           progress: 'complete',
@@ -82,7 +102,7 @@ export function useResumeExport() {
         });
 
         // Phase 8: Use fileName from API response if available
-        const sanitizedFileName = data.fileName 
+        const sanitizedFileName = data.fileName
           ? data.fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
           : `resume.${format}`;
 
@@ -92,7 +112,8 @@ export function useResumeExport() {
         logEvent('export_succeeded', { format, exportId: data.exportId });
         onSuccess?.(data.url);
       } else {
-        throw new Error('Export failed: No URL returned');
+        // TypeScript now knows data has error property
+        throw new Error(data.error || 'Export failed');
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to export resume';

@@ -14,9 +14,6 @@ jest.mock('@/lib/telemetry');
 
 const mockResumeId = 'test-resume-id' as Id<'builder_resumes'>;
 
-const mockConsoleError = () => jest.spyOn(console, 'error').mockImplementation(() => {});
-const restoreConsoleError = (spy: jest.SpyInstance) => spy.mockRestore();
-
 describe('applyAIEdit (Production)', () => {
   let mockAdapter: jest.Mocked<IEditorStoreAdapter>;
   let mockBroker: jest.Mocked<MutationBroker>;
@@ -38,7 +35,9 @@ describe('applyAIEdit (Production)', () => {
       getBlockText: jest.fn(() => 'Updated text'),
       setBlockText: jest.fn(),
       getDocMeta: jest.fn(() => mockDocMeta),
-      updateDocMeta: jest.fn(),
+      updateDocMeta: jest.fn((meta: DocMeta) => {
+        mockDocMeta = meta;
+      }),
       setDocMeta: jest.fn((meta: DocMeta) => {
         mockDocMeta = meta;
       }),
@@ -58,6 +57,7 @@ describe('applyAIEdit (Production)', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    delete process.env.NEXT_PUBLIC_DEBUG_UI;
   });
 
   it('success: one broker call, audit appended, max 5 entries', async () => {
@@ -93,6 +93,8 @@ describe('applyAIEdit (Production)', () => {
   });
 
   it('audit log trimmed to 5 entries', async () => {
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(6);
+
     // Pre-populate with 5 entries
     mockDocMeta.aiEdits = [
       { ts: 1, action: 'improveBullet', target: 'block-1', diffPreview: 'preview-0' },
@@ -101,12 +103,6 @@ describe('applyAIEdit (Production)', () => {
       { ts: 4, action: 'improveBullet', target: 'block-1', diffPreview: 'preview-3' },
       { ts: 5, action: 'improveBullet', target: 'block-1', diffPreview: 'preview-4' },
     ];
-
-    const metaSnapshots: DocMeta[] = [];
-    mockAdapter.setDocMeta.mockImplementation((meta: DocMeta) => {
-      metaSnapshots.push(meta);
-      mockDocMeta = meta;
-    });
 
     // Add 6th entry
     const result = await applyAIEdit({
@@ -119,11 +115,18 @@ describe('applyAIEdit (Production)', () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(metaSnapshots).not.toHaveLength(0);
-    const finalMeta = metaSnapshots.pop()!;
-    expect(finalMeta.aiEdits).toBeDefined();
-    expect(finalMeta.aiEdits).toHaveLength(5);
-    expect(finalMeta.aiEdits?.[4]?.diffPreview).toBe('New content');
+
+    expect(mockAdapter.updateDocMeta).toHaveBeenCalledTimes(1);
+    expect(mockDocMeta.aiEdits).toHaveLength(5);
+    expect(mockDocMeta.aiEdits?.[0]?.ts).toBe(2);
+    expect(mockDocMeta.aiEdits?.[4]).toMatchObject({
+      ts: 6,
+      action: 'improveBullet',
+      target: 'block-1',
+      diffPreview: 'New content',
+    });
+
+    nowSpy.mockRestore();
   });
 
   it('error: full rollback, no broker call, returns error', async () => {
@@ -220,7 +223,7 @@ describe('applyAIEdit (Production)', () => {
       throw new Error('Restore failed');
     });
 
-    const consoleErrorSpy = mockConsoleError();
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
     // Should not throw
     expect(() => {
@@ -232,7 +235,7 @@ describe('applyAIEdit (Production)', () => {
       expect.any(Error)
     );
 
-    restoreConsoleError(consoleErrorSpy);
+    consoleErrorSpy.mockRestore();
   });
 
   it('handles rollback failure during error flow', async () => {
@@ -244,7 +247,7 @@ describe('applyAIEdit (Production)', () => {
       throw new Error('Rollback failed');
     });
 
-    const consoleErrorSpy = mockConsoleError();
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
     const result = await applyAIEdit({
       resumeId: mockResumeId,
@@ -263,7 +266,7 @@ describe('applyAIEdit (Production)', () => {
       expect.any(Error)
     );
 
-    restoreConsoleError(consoleErrorSpy);
+    consoleErrorSpy.mockRestore();
   });
 
   it('truncates diffPreview to 50 characters', async () => {

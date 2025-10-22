@@ -105,6 +105,7 @@ export function CoachingTab({ broker, className }: CoachingTabProps) {
 
   const handleApply = useCallback(async (suggestion: CoachSuggestion) => {
     setApplyingId(suggestion.id);
+    let handledError = false;
 
     try {
       await applySuggestion(suggestion, store, broker, {
@@ -120,10 +121,10 @@ export function CoachingTab({ broker, className }: CoachingTabProps) {
             duration: 3000,
           });
 
-          // Close preview if open
           closePreview();
         },
         onError: (error) => {
+          handledError = true;
           toast({
             title: 'Failed to apply suggestion',
             description: error.message,
@@ -133,34 +134,36 @@ export function CoachingTab({ broker, className }: CoachingTabProps) {
         },
       });
     } catch (error) {
-      // Error already handled by onError callback
-      console.error('Apply suggestion error:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      if (!handledError) {
+        toast({
+          title: 'Failed to apply suggestion',
+          description: err.message,
+          variant: 'destructive',
+          duration: 5000,
+        });
+      }
+      console.error('[CoachingTab] applySuggestion threw synchronously:', err);
+      throw err;
     } finally {
       setApplyingId(null);
     }
   }, [store, broker, toast, closePreview]);
 
-  const getSeverityIcon = (severity: 'high' | 'medium' | 'low') => {
-    switch (severity) {
-      case 'high':
-        return <AlertCircle className="h-4 w-4 text-red-600" />;
-      case 'medium':
-        return <Info className="h-4 w-4 text-amber-600" />;
-      case 'low':
-        return <Lightbulb className="h-4 w-4 text-blue-600" />;
-    }
-  };
-
-  const getSeverityColor = (severity: 'high' | 'medium' | 'low') => {
-    switch (severity) {
-      case 'high':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'low':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-    }
-  };
+  const severityConfig = {
+    high: {
+      icon: <AlertCircle className="h-4 w-4 text-red-600" />,
+      color: 'bg-red-100 text-red-800 border-red-200',
+    },
+    medium: {
+      icon: <Info className="h-4 w-4 text-amber-600" />,
+      color: 'bg-amber-100 text-amber-800 border-amber-200',
+    },
+    low: {
+      icon: <Lightbulb className="h-4 w-4 text-blue-600" />,
+      color: 'bg-blue-100 text-blue-800 border-blue-200',
+    },
+  } as const;
 
   if (isAnalyzing) {
     return (
@@ -197,6 +200,8 @@ export function CoachingTab({ broker, className }: CoachingTabProps) {
     );
   }
 
+  const activeSuggestion = previewState.suggestion;
+
   return (
     <>
       <Card className={className}>
@@ -216,13 +221,13 @@ export function CoachingTab({ broker, className }: CoachingTabProps) {
               className="flex flex-col gap-2 p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow"
             >
               <div className="flex items-start gap-2">
-                {getSeverityIcon(suggestion.severity)}
+                {severityConfig[suggestion.severity].icon}
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{suggestion.title}</p>
                     <Badge
                       variant="outline"
-                      className={`text-xs ${getSeverityColor(suggestion.severity)}`}
+                      className={`text-xs ${severityConfig[suggestion.severity].color}`}
                     >
                       {suggestion.severity}
                     </Badge>
@@ -269,15 +274,15 @@ export function CoachingTab({ broker, className }: CoachingTabProps) {
       </Card>
 
       {/* Preview Modal */}
-      {previewState.isOpen && previewState.suggestion && (
+      {previewState.isOpen && activeSuggestion ? (
         <PreviewDiffModal
-          suggestion={previewState.suggestion}
+          suggestion={activeSuggestion}
           currentValue={previewState.currentValue}
           onClose={closePreview}
-          onApply={() => handleApply(previewState.suggestion!)}
-          isApplying={applyingId === previewState.suggestion.id}
+          onApply={() => handleApply(activeSuggestion)}
+          isApplying={applyingId === activeSuggestion.id}
         />
-      )}
+      ) : null}
     </>
   );
 }
@@ -300,11 +305,28 @@ function PreviewDiffModal({
 }) {
   const diff = suggestion.preview(currentValue);
 
+  // Handle Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isApplying) {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose, isApplying]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" 
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
       <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[80vh] overflow-auto m-4" onClick={(e) => e.stopPropagation()}>
         <div className="p-4 border-b">
-          <h3 className="text-lg font-semibold">{suggestion.title}</h3>
+          <h3 id="modal-title" className="text-lg font-semibold">{suggestion.title}</h3>
           <p className="text-sm text-muted-foreground mt-1">{suggestion.reason}</p>
         </div>
 
@@ -356,14 +378,14 @@ function DiffHighlight({ changes }: { changes: Array<{ type: 'add' | 'remove' | 
       {changes.map((change, idx) => {
         if (change.type === 'add') {
           return (
-            <span key={idx} className="bg-green-200 text-green-900">
+            <span key={`${idx}-${change.type}-${change.text.slice(0, 10)}`} className="bg-green-200 text-green-900">
               {change.text}
             </span>
           );
         } else if (change.type === 'remove') {
           return null; // Don't show removals in "after" view
         } else {
-          return <span key={idx}>{change.text}</span>;
+          return <span key={`${idx}-${change.type}-${change.text.slice(0, 10)}`}>{change.text}</span>;
         }
       })}
     </>

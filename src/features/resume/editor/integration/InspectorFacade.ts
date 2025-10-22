@@ -21,8 +21,8 @@ export type InspectorFacade = {
    * @param options - Optional metadata for telemetry/debugging
    */
   applyEdit(partial: EditPartial, options?: EditOptions): Promise<void>;
-  commit(): Promise<void>;
-  revert(): Promise<void>;
+  commit(): void;
+  revert(): void;
   onEvent(cb: (e: { type: "applied" | "committed" | "reverted"; payload?: unknown }) => void): () => void;
 };
 
@@ -66,8 +66,8 @@ export function createInspectorFacade(
       }
       emit({ type: "applied", payload: partial });
     },
-    async commit() { emit({ type: "committed" }); },
-    async revert() { emit({ type: "reverted" }); },
+    commit() { emit({ type: "committed" }); },
+    revert() { emit({ type: "reverted" }); },
     onEvent(cb) { listeners.add(cb); return () => listeners.delete(cb); },
   };
 }

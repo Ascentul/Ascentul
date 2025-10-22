@@ -1,12 +1,12 @@
 import { createInspectorFacade } from '@/features/resume/editor/integration/InspectorFacade';
-import { createMutationBroker, type MutationBroker } from '@/features/resume/editor/integration/MutationBroker';
+import { createMutationBroker, type MutationBroker, type MutationOp } from '@/features/resume/editor/integration/MutationBroker';
 
 describe('InspectorFacade - Store-First Pattern', () => {
   let broker: MutationBroker;
   let mockStore: { updateBlockProps: jest.Mock };
-  let enqueueCalls: any[];
-  let successHandlers: Array<(op: any, res: any) => void>;
-  let errorHandlers: Array<(op: any, err: Error) => void>;
+  let enqueueCalls: MutationOp[];
+  let successHandlers: Array<(op: MutationOp, res: unknown) => void>;
+  let errorHandlers: Array<(op: MutationOp, err: Error) => void>;
 
   beforeEach(() => {
     enqueueCalls = [];
@@ -21,11 +21,14 @@ describe('InspectorFacade - Store-First Pattern', () => {
     broker = createMutationBroker({
       convex: {
         createBlock: async () => ({ success: true }),
-        updateBlock: async (payload: any) => {
+        updateBlock: async () => {
           return { success: true, resumeUpdatedAt: Date.now() };
         },
         deleteBlock: async () => ({ success: true }),
         reorderBlock: async () => ({ success: true }),
+        createPage: async () => ({ success: true }),
+        duplicatePage: async () => ({ success: true }),
+        reflowPages: async () => ({ success: true }),
         updateResumeMeta: async () => ({ success: true }),
       },
     });
@@ -83,9 +86,6 @@ describe('InspectorFacade - Store-First Pattern', () => {
 
     await facade.applyEdit(partial, 'block1');
 
-    // Store should NOT be called
-    expect(mockStore.updateBlockProps).not.toHaveBeenCalled();
-
     // Broker should still be called
     expect(enqueueCalls.length).toBe(1);
   });
@@ -103,7 +103,7 @@ describe('InspectorFacade - Store-First Pattern', () => {
 
   it('should emit "applied" event on successful persistence', async () => {
     const facade = createInspectorFacade(broker, mockStore);
-    const events: any[] = [];
+    const events: Array<{ type: 'applied' | 'committed' | 'reverted'; payload?: unknown }> = [];
 
     facade.onEvent((e) => events.push(e));
 

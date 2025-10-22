@@ -55,7 +55,7 @@ export function resolveThemeToCSSVars(theme: Theme | null | undefined): Record<s
  * <div className={classes.bodyClass}>Body text</div>
  * <h1 className={classes.headingClass}>Heading</h1>
  */
-export function resolveThemeToClasses(theme: Theme | null | undefined): {
+export function resolveThemeToClasses(_theme: Theme | null | undefined): {
   bodyClass: string;
   headingClass: string;
   mutedClass: string;

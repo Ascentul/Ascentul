@@ -87,10 +87,13 @@
    - Add postmortem link when available
 
 ## Alerting & Thresholds
-- `builder_error_boundary_triggered` (Log-based): alert when >5 errors in 5 min.
-- `builder_export_failed` (Telemetry counter): alert when error rate ≥2% (≥20 errors per 1k exports).
-- `ai_action_failed` (Telemetry counter): warn when 3 failures within 5 minutes for the same resume.
-- CloudWatch heartbeat (`/api/editor/health`): alert if stale (>5 min) or `storeActive=false` during the first 2 hours post-deployment.
+- `builder_error_boundary_triggered` (CloudWatch Logs): alert to PagerDuty + #eng-incidents when >5 errors in 5 min (baseline: ~2 errors/day in prod). Query: [CloudWatch Insights link](link-to-saved-query).
+- `builder_export_failed` (Telemetry counter): alert when error rate >2% per 1k exports.
+- `ai_action_failed` (Segment event): warn to Slack #ai-actions when 3 consecutive failures for same resume within 10 min. Manual silence: [DataDog muting docs](link).
+- CloudWatch heartbeat (`/api/editor/health`): alert if stale (>5 min) or `storeActive=false` during rollout window.
+  - Alert if stale (>5 min) always.
+  - Alert if `storeActive=false` between [Rollout Start: Oct 21 14:00 UTC] and [Rollout Complete: Oct 21 16:00 UTC]. Mute alert outside window.
+  - Baseline: expect `storeActive=true` post-rollout; if `false`, indicates store initialization failure.
 
 ## Contact Ladder & Escalation
 

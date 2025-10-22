@@ -93,6 +93,7 @@ export function RecordCard({
 
   // Phase 8: Inline rename state
   const [isRenaming, setIsRenaming] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -136,13 +137,16 @@ export function RecordCard({
   const saveRename = async () => {
     const trimmed = editTitle.trim();
     if (trimmed && trimmed !== title && onRename) {
+      setIsSaving(true);
       try {
         await onRename(resume._id, trimmed);
       } catch (error) {
         console.error("Failed to rename resume:", error);
         // Optionally: show user-facing error message
+        setIsSaving(false);
         return; // Don't exit rename mode on error
       }
+      setIsSaving(false);
     }
     setIsRenaming(false);
   };
@@ -240,6 +244,7 @@ export function RecordCard({
               onChange={(e) => setEditTitle(e.target.value)}
               onKeyDown={handleKeyDown}
               onBlur={saveRename}
+              disabled={isSaving}
               className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               maxLength={100}
             />
@@ -250,6 +255,7 @@ export function RecordCard({
                 e.stopPropagation();
                 saveRename();
               }}
+              disabled={isSaving}
               className="p-1 text-green-600 hover:bg-green-50 rounded"
               aria-label="Save"
             >
@@ -262,6 +268,7 @@ export function RecordCard({
                 e.stopPropagation();
                 cancelRename();
               }}
+              disabled={isSaving}
               className="p-1 text-red-600 hover:bg-red-50 rounded"
               aria-label="Cancel"
             >

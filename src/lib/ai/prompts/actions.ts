@@ -110,26 +110,31 @@ export function buildGenerateSummaryPrompt(context: {
 }): string {
   const { currentContent, targetRole, experienceYears, keySkills } = context;
 
-  let prompt = 'Generate a professional summary';
+  // Build the main prompt sentence
+  const parts = ['Generate a professional summary'];
 
   if (targetRole) {
-    prompt += ` for a ${targetRole} position`;
+    parts.push(`for a ${targetRole} position`);
   }
 
   if (experienceYears) {
-    prompt += ` with ${experienceYears}+ years of experience`;
+    parts.push(`with ${experienceYears}+ years of experience`);
   }
 
+  const sections = [parts.join(' ')];
+
+  // Add key skills section if provided
   if (keySkills && keySkills.length > 0) {
-    prompt += `\n\nKey skills to highlight: ${keySkills.join(', ')}`;
+    sections.push(`Key skills to highlight: ${keySkills.join(', ')}`);
   }
 
+  // Add current content reference if provided
   if (currentContent) {
-    prompt += `\n\nCurrent summary (for reference):\n${currentContent}`;
-    prompt += `\n\nImprove this summary or generate a new one that is more compelling.`;
+    sections.push(`Current summary (for reference):\n${currentContent}`);
+    sections.push('Improve this summary or generate a new one that is more compelling.');
   }
 
-  return prompt;
+  return sections.join('\n\n');
 }
 
 /**

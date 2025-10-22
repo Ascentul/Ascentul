@@ -10,6 +10,10 @@ const targetFiles = [
 ];
 
 const thresholdKb = Number(process.env.EDITOR_BUNDLE_THRESHOLD_KB || 380);
+if (isNaN(thresholdKb)) {
+  console.error('[bundle-check] Invalid EDITOR_BUNDLE_THRESHOLD_KB value. Must be a number.');
+  process.exit(1);
+}
 if (isNaN(thresholdKb) || thresholdKb <= 0) {
   console.error(
     `[bundle-check] Invalid EDITOR_BUNDLE_THRESHOLD_KB="${process.env.EDITOR_BUNDLE_THRESHOLD_KB}". ` +
@@ -31,8 +35,7 @@ const totalKb = totalBytes / 1024;
 
 if (totalBytes === 0) {
   console.warn('[bundle-check] Editor assets not found. Did you run `next build` first?');
-  process.exitCode = 1;
-  process.exit(1);
+  process.exit(0);
 }
 
 if (totalKb > thresholdKb) {
@@ -40,7 +43,7 @@ if (totalKb > thresholdKb) {
     `[bundle-check] Editor bundle ${totalKb.toFixed(1)}kB exceeds threshold ${thresholdKb}kB. ` +
       'Investigate large dependencies or split chunks.'
   );
-  process.exitCode = 1;
+  process.exit(1);
 } else {
   console.log(
     `[bundle-check] Editor bundle size ${totalKb.toFixed(1)}kB within threshold ${thresholdKb}kB.`

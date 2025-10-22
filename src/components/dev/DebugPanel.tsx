@@ -104,6 +104,7 @@ export function DebugPanel({
               size="icon"
               className="h-6 w-6"
               onClick={() => setIsCollapsed(!isCollapsed)}
+              aria-label={isCollapsed ? "Expand debug panel" : "Collapse debug panel"}
             >
               {isCollapsed ? (
                 <ChevronDown className="h-3 w-3" />
@@ -116,6 +117,7 @@ export function DebugPanel({
               size="icon"
               className="h-6 w-6"
               onClick={toggle}
+              aria-label="Close debug panel"
             >
               <X className="h-3 w-3" />
             </Button>
@@ -139,8 +141,9 @@ export function DebugPanel({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                 onClick={() => copyToClipboard(value, label)}
+                aria-label={`Copy ${label}`}
               >
                 <Copy className="h-3 w-3" />
               </Button>

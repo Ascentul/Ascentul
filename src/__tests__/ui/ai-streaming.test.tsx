@@ -4,12 +4,11 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { renderHook, act } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { AIAuthoringPanel } from '@/app/(studio)/resume/components/AIAuthoringPanel';
 import { useAIStreaming } from '@/hooks/useAIStreaming';
 import type { Id } from '../../../convex/_generated/dataModel';
 import type { MutationBroker } from '@/features/resume/editor/integration/MutationBroker';
-import type { IEditorStoreAdapter } from '@/features/resume/editor/integration/EditorStoreAdapter';
 
 // Mock dependencies
 jest.mock('@/hooks/useAIStreaming');
@@ -23,7 +22,6 @@ const mockResumeId = 'test-resume-id' as Id<'builder_resumes'>;
 describe('AI Streaming Integration', () => {
   let mockStore: any;
   let mockBroker: jest.Mocked<MutationBroker>;
-  let mockAdapter: jest.Mocked<IEditorStoreAdapter>;
   let mockUseAIStreaming: jest.MockedFunction<typeof useAIStreaming>;
 
   beforeEach(() => {
@@ -59,16 +57,9 @@ describe('AI Streaming Integration', () => {
       enqueue: jest.fn(async (op) => ({ ok: true })),
     } as any;
 
-    // Mock adapter
-    mockAdapter = {
-      getBlockText: jest.fn(() => 'Original text'),
-      setBlockText: jest.fn(),
-      getDocMeta: jest.fn(() => mockStore.getState().docMeta),
-      updateDocMeta: jest.fn(),
-      getSelectedBlockId: jest.fn(() => 'block-1'),
-      snapshotBlock: jest.fn(() => ({ text: 'Original text' })),
-      restoreBlock: jest.fn(),
-    } as any;
+    // Configure applyAIEdit mock
+    const { applyAIEdit } = require('@/features/resume/ai/applyAIEdit');
+    applyAIEdit.mockResolvedValue({ ok: true });
 
     // Mock useAIStreaming
     mockUseAIStreaming = useAIStreaming as jest.MockedFunction<typeof useAIStreaming>;
@@ -82,7 +73,6 @@ describe('AI Streaming Integration', () => {
     // Set env vars
     process.env.NEXT_PUBLIC_RESUME_V2_STORE = 'true';
     process.env.NEXT_PUBLIC_DEBUG_UI = 'true';
-  });
   afterEach(() => {
     jest.clearAllMocks();
     delete process.env.NEXT_PUBLIC_RESUME_V2_STORE;
@@ -246,9 +236,6 @@ describe('AI Streaming Integration', () => {
         isStreaming: false,
       } as any;
     });
-
-    const { applyAIEdit } = require('@/features/resume/ai/applyAIEdit');
-    applyAIEdit.mockResolvedValue({ ok: true });
 
     render(
       <AIAuthoringPanel

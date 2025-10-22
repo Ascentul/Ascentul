@@ -34,6 +34,8 @@ describe('Apply Edit Guardrail Integration', () => {
     });
 
     it('JD dump detected → blocks before mutation', () => {
+      // JD dump detection triggers when content exceeds 500 words (default threshold)
+      // Repeated content creates ~700+ words to reliably trigger the check
       const jdDump = `
         We are looking for a Senior Software Engineer to join our team.
         Requirements: 5+ years of experience in software development.
@@ -98,10 +100,21 @@ describe('Apply Edit Guardrail Integration', () => {
       const sanitized = sanitize(content);
       expect(sanitized.text).toBe(content);
       expect(sanitized.redactions).toBe(0);
+      expect(sanitized.patterns).toHaveLength(0);
     });
   });
 
   describe('Contact Info Special Cases', () => {
+    it('redacts personal email addresses during sanitization', () => {
+      const content = 'Email me at john.doe@gmail.com for details.';
+
+      const sanitized = sanitize(content);
+
+      expect(sanitized.text).toBe('Email me at [EMAIL] for details.');
+      expect(sanitized.redactions).toBe(1);
+      expect(sanitized.patterns).toContain('email');
+    });
+
     it('email allowed in header/contact block', () => {
       const email = 'john.doe@gmail.com';
 
@@ -145,6 +158,8 @@ describe('Apply Edit Guardrail Integration', () => {
       expect(sanitized.text).toContain('Led team of 5');
       expect(sanitized.text).toContain('increased revenue by 30%');
       expect(sanitized.text).toContain('[REDACTED]');
+      expect(sanitized.redactions).toBe(1);
+      expect(sanitized.patterns).toContain('phone');
     });
 
     it('multiple PII types redacted in single pass', () => {
@@ -184,6 +199,7 @@ describe('Apply Edit Guardrail Integration', () => {
       // Step 3: Would call applySuggestionToBlock with finalContent
       expect(finalContent).toBe(proposedContent); // No changes
       expect(sanitized.redactions).toBe(0);
+      expect(sanitized.patterns).toHaveLength(0);
 
       // In actual API: broker.enqueue() called once
       // In actual API: single history entry created
@@ -213,6 +229,8 @@ describe('Apply Edit Guardrail Integration', () => {
       // Alternative flow: sanitize first (NOT current implementation)
       const sanitized = sanitize(proposedContent);
       expect(sanitized.text).toBe('Reach out at [EMAIL] for more info');
+      expect(sanitized.redactions).toBe(1);
+      expect(sanitized.patterns).toContain('email');
 
       // After sanitization, validation would pass:
       const validation2 = validateContent(sanitized.text);

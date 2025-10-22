@@ -79,8 +79,8 @@ describe('Records Grid - RecordCard', () => {
         await user.hover(card);
       }
 
-      // All 4 actions should be visible (use getAllByLabelText for duplicate labels)
-      expect(screen.getAllByLabelText(/open/i).length).toBeGreaterThanOrEqual(1);
+      // All 4 actions should be visible
+      expect(screen.getByLabelText('Open')).toBeInTheDocument();
       expect(screen.getByLabelText(/duplicate/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/export/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/delete/i)).toBeInTheDocument();
@@ -370,46 +370,5 @@ describe('Records Grid - RecordCard', () => {
   });
 });
 
-describe('Records Grid - Sort Order', () => {
-  it('should sort resumes by updatedAt descending (newest first)', () => {
-    const resumes = [
-      { _id: '1', title: 'Old Resume', updatedAt: 1000, templateSlug: 'modern' },
-      { _id: '2', title: 'Recent Resume', updatedAt: 3000, templateSlug: 'modern' },
-      { _id: '3', title: 'Middle Resume', updatedAt: 2000, templateSlug: 'modern' },
-    ];
-
-    // Sort logic from page.tsx
-    const sorted = [...resumes].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
-
-    expect(sorted[0]._id).toBe('2'); // newest (3000)
-    expect(sorted[1]._id).toBe('3'); // middle (2000)
-    expect(sorted[2]._id).toBe('1'); // oldest (1000)
-  });
-
-  it('should handle missing updatedAt as 0', () => {
-    const resumes = [
-      { _id: '1', title: 'No Date Resume', templateSlug: 'modern' },
-      { _id: '2', title: 'Recent Resume', updatedAt: 2000, templateSlug: 'modern' },
-    ];
-
-    const sorted = [...resumes].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
-
-    expect(sorted[0]._id).toBe('2'); // has date (2000)
-    expect(sorted[1]._id).toBe('1'); // no date (treated as 0)
-  });
-
-  it('should maintain order for equal updatedAt values', () => {
-    const resumes = [
-      { _id: '1', title: 'Resume A', updatedAt: 1000, templateSlug: 'modern' },
-      { _id: '2', title: 'Resume B', updatedAt: 1000, templateSlug: 'modern' },
-      { _id: '3', title: 'Resume C', updatedAt: 1000, templateSlug: 'modern' },
-    ];
-
-    const sorted = [...resumes].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
-
-    // Should preserve original order when equal
-    expect(sorted[0]._id).toBe('1');
-    expect(sorted[1]._id).toBe('2');
-    expect(sorted[2]._id).toBe('3');
-  });
-});
+// Sort order tests have been moved to src/__tests__/unit/resumeSort.test.ts
+// to test the actual sortResumesByUpdatedAt utility function directly

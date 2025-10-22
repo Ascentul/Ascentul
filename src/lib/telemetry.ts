@@ -12,6 +12,26 @@
 
 /**
  * Telemetry event names - strict typing for event catalog
+ *
+ * **Event Naming Convention:**
+ * - Use action-based names (e.g., `export_succeeded`, `ai_authoring_cancelled`)
+ * - Include metrics as payload properties (e.g., `duration_ms`, `latency_ms`)
+ * - Do NOT create event names for metrics (e.g., avoid `export_duration_ms`)
+ *
+ * **Duration Metrics:**
+ * Use `startTimer()` helper to automatically add `duration_ms` to completion events:
+ * ```ts
+ * const endTimer = startTimer('export', { format: 'pdf' });
+ * // ... do work ...
+ * endTimer('export_succeeded'); // Logs with duration_ms in payload
+ * ```
+ *
+ * **Custom Metrics:**
+ * Pass metrics as payload properties on action events:
+ * ```ts
+ * logEvent('ai_authoring_cancelled', { cancel_latency_ms: 234 });
+ * logEvent('ai_guardrail_blocked', { reason: 'pii', redactions: 3 });
+ * ```
  */
 export type TelemetryEvent =
   // Template & Theme
@@ -28,6 +48,7 @@ export type TelemetryEvent =
   | 'export_started'
   | 'export_succeeded'
   | 'export_failed'
+  | 'export_clickable_links_enabled'
   // Coach Actions (Phase 6)
   | 'coach_analyzed'
   | 'coach_suggestion_applied'
@@ -67,15 +88,6 @@ export type TelemetryEvent =
   | 'ai_authoring_started'
   | 'ai_authoring_completed'
   | 'ai_authoring_cancelled'
-  | 'ai_authoring_cancel_latency_ms'
-  | 'ai_guardrail_pii_blocked'
-  | 'ai_guardrail_secret_blocked'
-  | 'ai_streaming_duration_ms'
-  | 'ai_broker_persist_success'
-  | 'ai_broker_persist_failed'
-  // Export (Phase 8 - Observability)
-  | 'export_duration_ms'
-  | 'export_clickable_links_enabled'
   // Records Grid (Phase 8)
   | 'records_grid_rename_started'
   | 'records_grid_rename_completed'

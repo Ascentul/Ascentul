@@ -10,6 +10,7 @@ import {
 } from '@/features/resume/editor/state/editorStore';
 import { useBlockData } from '@/features/resume/editor/state/selectors';
 import type { HeaderData, SummaryData } from '@/lib/resume-types';
+import type { Id } from '../../convex/_generated/dataModel';
 
 describe('Inspector Binding - Phase 4', () => {
   beforeAll(() => {
@@ -23,10 +24,10 @@ describe('Inspector Binding - Phase 4', () => {
 
   const mockResumeData = {
     resume: {
-      _id: 'resume123' as any,
+      _id: 'resume123' as Id<'builder_resumes'>,
       title: 'Test Resume',
       templateSlug: 'modern',
-      themeId: 'theme1' as any,
+      themeId: 'theme1' as Id<'builder_resume_themes'>,
       updatedAt: Date.now(),
       version: 1,
       pages: [
@@ -40,18 +41,22 @@ describe('Inspector Binding - Phase 4', () => {
     },
     blocks: [
       {
-        _id: 'block1',
+        _id: 'block1' as Id<'resume_blocks'>,
+        resumeId: 'resume123' as Id<'builder_resumes'>,
         type: 'header' as const,
         data: { fullName: 'John Doe', title: 'Software Engineer' } as HeaderData,
         order: 0,
+        locked: false,
       },
       {
-        _id: 'block2',
+        _id: 'block2' as Id<'resume_blocks'>,
+        resumeId: 'resume123' as Id<'builder_resumes'>,
         type: 'summary' as const,
         data: { paragraph: 'Original summary text' } as SummaryData,
         order: 1,
+        locked: false,
       },
-    ] as any[],
+    ],
   };
 
   function TestComponent({ blockId }: { blockId: string }) {
@@ -388,15 +393,19 @@ describe('Inspector Binding - Phase 4', () => {
   });
 
   describe('Selector granularity: Minimal re-renders', () => {
-    let renderCount = 0;
+    function OptimizedComponent({ blockId, onRender }: { blockId: string; onRender: () => void }) {
+      const renderCountRef = React.useRef(0);
+      renderCountRef.current++;
 
-    function OptimizedComponent({ blockId }: { blockId: string }) {
-      renderCount++;
+      React.useEffect(() => {
+        onRender();
+      });
+
       const blockData = useBlockData(blockId);
 
       return (
         <div>
-          <div data-testid="render-count">{renderCount}</div>
+          <div data-testid="render-count">{renderCountRef.current}</div>
           <div data-testid="block-data">{JSON.stringify(blockData)}</div>
         </div>
       );
@@ -420,29 +429,31 @@ describe('Inspector Binding - Phase 4', () => {
     }
 
     it('should not re-render when unrelated block updates', async () => {
-      renderCount = 0;
+      let renderCount = 0;
       const initialSnapshot = hydrateFromServer(mockResumeData);
 
       render(
         <EditorStoreProvider initialSnapshot={initialSnapshot}>
-          <OptimizedComponent blockId="block1" />
+          <OptimizedComponent blockId="block1" onRender={() => renderCount++} />
           <UpdaterComponent />
         </EditorStoreProvider>
       );
 
-      // Initial render
-      expect(screen.getByTestId('render-count')).toHaveTextContent('1');
+      // Initial render (1 or 2 for React 18 strict mode)
+      await waitFor(() => {
+        expect(renderCount).toBeGreaterThanOrEqual(1);
+      });
+      const initialRenderCount = renderCount;
 
       // Update different block
       const updateBtn = screen.getByTestId('update-other-block');
       updateBtn.click();
 
-      // Wait a bit to ensure no re-render
+      // Wait a bit to ensure no additional re-render
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Should not re-render (still 1, or maybe 2 for React 18 strict mode)
-      const count = parseInt(screen.getByTestId('render-count').textContent || '0');
-      expect(count).toBeLessThanOrEqual(2);
+      // Should not have additional re-renders beyond initial mount
+      expect(renderCount).toBe(initialRenderCount);
     });
   });
 });

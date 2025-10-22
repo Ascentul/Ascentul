@@ -1,8 +1,9 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { EditorStoreProvider, hydrateFromServer, useEditorStore, useEditorActions } from '@/features/resume/editor/state/editorStore';
+import { EditorStoreProvider, hydrateFromServer, useEditorSelector, useEditorActions } from '@/features/resume/editor/state/editorStore';
 import { useHistoryShortcuts } from '@/features/resume/editor/input/useHistoryShortcuts';
+import type { Id } from '../../convex/_generated/dataModel';
 
 describe('Keyboard Shortcuts - Undo/Redo', () => {
   let platformSpy: jest.SpyInstance<string, []>;
@@ -17,10 +18,10 @@ describe('Keyboard Shortcuts - Undo/Redo', () => {
 
   const mockResumeData = {
     resume: {
-      _id: 'resume123' as any,
+      _id: 'resume123' as Id<'builder_resumes'>,
       title: 'Test Resume',
       templateSlug: 'modern',
-      themeId: 'theme1' as any,
+      themeId: 'theme1' as Id<'builder_resume_themes'>,
       updatedAt: Date.now(),
       version: 1,
       pages: [
@@ -34,29 +35,31 @@ describe('Keyboard Shortcuts - Undo/Redo', () => {
     },
     blocks: [
       {
-        _id: 'block1',
-        type: 'heading' as const,
-        data: { text: 'Original Text' },
+        _id: 'block1' as Id<'resume_blocks'>,
+        resumeId: 'resume123' as Id<'builder_resumes'>,
+        type: 'summary' as const,
+        data: { paragraph: 'Original Text' },
         order: 0,
+        locked: false,
       },
-    ] as any[],
+    ],
   };
 
   function TestComponent() {
     useHistoryShortcuts();
-    const store = useEditorStore();
     const actions = useEditorActions();
-    const state = store.getState();
-    const block1 = state.blocksById['block1'];
+    const block1 = useEditorSelector((state) => state.blocksById['block1']);
+    const canUndo = useEditorSelector((state) => state.canUndo);
+    const canRedo = useEditorSelector((state) => state.canRedo);
 
     return (
       <div>
-        <div data-testid="block-text">{(block1?.props.text as string) || 'N/A'}</div>
-        <div data-testid="can-undo">{state.canUndo ? 'true' : 'false'}</div>
-        <div data-testid="can-redo">{state.canRedo ? 'true' : 'false'}</div>
+        <div data-testid="block-text">{(block1?.props.paragraph as string) || 'N/A'}</div>
+        <div data-testid="can-undo">{canUndo ? 'true' : 'false'}</div>
+        <div data-testid="can-redo">{canRedo ? 'true' : 'false'}</div>
         <button
           data-testid="update-btn"
-          onClick={() => actions.updateBlockProps('block1', { text: 'Updated Text' })}
+          onClick={() => actions.updateBlockProps('block1', { paragraph: 'Updated Text' })}
         >
           Update
         </button>
@@ -191,13 +194,12 @@ describe('Keyboard Shortcuts - Undo/Redo', () => {
 
     function TestWithInput() {
       useHistoryShortcuts();
-      const store = useEditorStore();
       const actions = useEditorActions();
-      const state = store.getState();
+      const canUndo = useEditorSelector((state) => state.canUndo);
 
       return (
         <div>
-          <div data-testid="can-undo">{state.canUndo ? 'true' : 'false'}</div>
+          <div data-testid="can-undo">{canUndo ? 'true' : 'false'}</div>
           <input
             data-testid="test-input"
             type="text"
@@ -205,7 +207,7 @@ describe('Keyboard Shortcuts - Undo/Redo', () => {
           />
           <button
             data-testid="make-change"
-            onClick={() => actions.updateBlockProps('block1', { text: 'Changed' })}
+            onClick={() => actions.updateBlockProps('block1', { paragraph: 'Changed' })}
           >
             Change
           </button>

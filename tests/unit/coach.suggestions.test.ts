@@ -138,13 +138,12 @@ describe('Coach Suggestions - Phase 6', () => {
           current = current?.[part];
         }
 
-        if (current) {
-          const diff = suggestion.preview(current);
-          expect(diff).toBeDefined();
-          expect(diff.before).toBeDefined();
-          expect(diff.after).toBeDefined();
-          expect(diff.changes).toBeDefined();
-        }
+        expect(current).toBeDefined();
+        const diff = suggestion.preview(current);
+        expect(diff).toBeDefined();
+        expect(diff.before).toBeDefined();
+        expect(diff.after).toBeDefined();
+        expect(diff.changes).toBeDefined();
       }
     });
   });

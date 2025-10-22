@@ -31,7 +31,7 @@ export function Sidebar({ activeTab, onTabChange, children, showCoaching = false
     <div className="h-full flex flex-col bg-background border-r">
       {/* Segmented Control */}
       <div className="flex-shrink-0 p-4 border-b" role="tablist" aria-label="Sidebar panels">
-        <div className={`min-w-0 grid ${gridCols} gap-1 p-1 rounded-xl border bg-muted/30 shadow-sm`}>
+        <div className={`min-w-0 grid ${showCoaching ? 'grid-cols-4' : 'grid-cols-3'} gap-1 p-1 rounded-xl border bg-muted/30 shadow-sm`}>
           <Tooltip>
             <TooltipTrigger asChild>
               <button

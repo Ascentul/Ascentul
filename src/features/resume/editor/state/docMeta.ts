@@ -19,16 +19,35 @@ export type DocMeta = {
   aiEdits?: AIEditEntry[];     // Phase 7 - Part C: AI edit audit log (max 5 entries)
 };
 
+function isAIEditEntry(entry: unknown): entry is AIEditEntry {
+  if (!entry || typeof entry !== 'object') return false;
+  const candidate = entry as Record<string, unknown>;
+  return (
+    typeof candidate.ts === 'number' &&
+    typeof candidate.action === 'string' &&
+    typeof candidate.target === 'string' &&
+    typeof candidate.diffPreview === 'string'
+  );
+}
+
 export function normalizeDocMeta(input: any): DocMeta {
   return {
-    resumeId: String(input?._id ?? input?.resumeId ?? ""),
-    title: String(input?.title ?? "Untitled"),
+    resumeId: String(input?._id ?? input?.resumeId ?? "").trim() || "",
+    title: typeof input?.title === "string" && input.title.trim() 
+      ? input.title.trim() 
+      : "Untitled",
     templateSlug: input?.templateSlug ?? undefined,
     themeId: input?.themeId ?? undefined,
-    updatedAt: Number(input?.updatedAt ?? Date.now()),
+    updatedAt: typeof input?.updatedAt === "number" && !isNaN(input.updatedAt)
+      ? input.updatedAt
+      : Date.now(),
     lastSyncedAt: Date.now(),
-    version: Number(input?.version ?? 0),
-    aiEdits: Array.isArray(input?.aiEdits) ? input.aiEdits.slice(-5) : undefined,
+    version: typeof input?.version === "number" && !isNaN(input.version)
+      ? Math.max(0, Math.floor(input.version))
+      : 0,
+    aiEdits: Array.isArray(input?.aiEdits)
+      ? input.aiEdits.filter(isAIEditEntry).slice(-5)
+      : undefined,
   };
 }
 

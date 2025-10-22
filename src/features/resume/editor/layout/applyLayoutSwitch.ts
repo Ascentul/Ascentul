@@ -1,6 +1,5 @@
 import type { EditorSnapshot, BlockId } from '../types/editorTypes';
 import type { LayoutDefinition, TemplateBlockType } from '@/lib/templates';
-import type { Block } from '@/lib/resume-types';
 import { migrateLayout } from './migrateLayout';
 
 /**
@@ -73,15 +72,11 @@ export function applyLayoutSwitch(
     }
   }
 
-  // Build new blocksById with updated metadata (if needed)
-  const nextBlocksById = { ...currentSnapshot.blocksById };
-
-  // No actual parentId changes for Phase 5 since we're not implementing true regions yet
-  // This is a placeholder for future multi-column layouts
+  // Phase 5: No parentId updates needed since we're not implementing true regions yet
+  // blocksById remains unchanged (future phases will update block metadata for multi-column layouts)
 
   return {
     ...currentSnapshot,
-    blocksById: nextBlocksById,
     pagesById: nextPagesById,
     isDirty: true,
     lastChangedAt: Date.now(),

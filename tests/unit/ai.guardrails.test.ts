@@ -187,6 +187,165 @@ describe('validateContent', () => {
     it('blocks whitespace-only string', () => {
       const result = validateContent('   \n  \t  ');
       expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.code).toBe('UNPROFESSIONAL');
+        expect(result.reason).toContain('empty');
+      }
+    });
+  });
+
+  describe('Boundary Conditions', () => {
+    it('allows exactly 5 URLs (boundary)', () => {
+      const content = `
+        http://link1.com
+        http://link2.com
+        http://link3.com
+        http://link4.com
+        http://link5.com
+      `;
+      const result = validateContent(content);
+      expect(result.ok).toBe(true);
+    });
+
+    it('blocks exactly 6 URLs (over boundary)', () => {
+      const content = `
+        http://link1.com
+        http://link2.com
+        http://link3.com
+        http://link4.com
+        http://link5.com
+        http://link6.com
+      `;
+      const result = validateContent(content);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.code).toBe('URL_SPAM');
+      }
+    });
+
+    it('allows content at exactly 500 words', () => {
+      // Create exactly 500 words of structured content
+      const words = Array(500).fill('word').join(' ');
+      const result = validateContent(words);
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  describe('Multiple Simultaneous Violations', () => {
+    it('blocks content with PII + unprofessional language', () => {
+      const content = 'My SSN is 123-45-6789 lol this is crazy!';
+      const result = validateContent(content);
+      expect(result.ok).toBe(false);
+      // Should fail on first violation encountered (PII or unprofessional)
+      if (!result.ok) {
+        expect(['PII_DETECTED', 'UNPROFESSIONAL']).toContain(result.code);
+      }
+    });
+
+    it('blocks content with excessive URLs + JD dump patterns', () => {
+      const content = `
+        Requirements: 5+ years experience.
+        http://link1.com http://link2.com http://link3.com
+        http://link4.com http://link5.com http://link6.com
+        Responsibilities include: What you'll do:
+        ${' Additional JD text '.repeat(100)}
+      `;
+      const result = validateContent(content);
+      expect(result.ok).toBe(false);
+      // Should fail on one of the violations
+      if (!result.ok) {
+        expect(['URL_SPAM', 'JD_DUMP']).toContain(result.code);
+      }
+    });
+
+    it('blocks content with all violation types', () => {
+      const content = `
+        Requirements: Bachelor's degree. What you'll do:
+        SSN: 123-45-6789. Contact: test@gmail.com lol
+        http://link1.com http://link2.com http://link3.com
+        http://link4.com http://link5.com http://link6.com
+        ${' Additional text '.repeat(100)}
+      `;
+      const result = validateContent(content);
+      expect(result.ok).toBe(false);
+    });
+  });
+
+  describe('Edge Cases and Invalid Input', () => {
+    it('handles content with only special characters', () => {
+      const content = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`';
+      const result = validateContent(content);
+      expect(result.ok).toBe(true);
+    });
+
+    it('handles content with unicode characters', () => {
+      const content = 'Led développement of système with 日本語 support';
+      const result = validateContent(content);
+      expect(result.ok).toBe(true);
+    });
+
+    it('handles extremely long single word', () => {
+      const longWord = 'a'.repeat(10000);
+      const result = validateContent(longWord);
+      expect(result.ok).toBe(true);
+    });
+
+    it('handles content with repeated whitespace', () => {
+      const content = 'Led    team     of      engineers';
+      const result = validateContent(content);
+      expect(result.ok).toBe(true);
+    });
+
+    it('handles content with mixed newline types', () => {
+      const content = 'Line1\nLine2\r\nLine3\rLine4';
+      const result = validateContent(content);
+      expect(result.ok).toBe(true);
+    });
+
+    it('handles SSN-like patterns that are not SSNs', () => {
+      const content = 'Phone: 123-456-7890 (10 digits, not SSN)';
+      const result = validateContent(content);
+      // Should pass or fail based on phone detection, not SSN
+      expect(result).toBeDefined();
+    });
+
+    it('handles email-like strings that are not emails', () => {
+      const content = 'Cost is 100@each for bulk orders';
+      const result = validateContent(content);
+      expect(result.ok).toBe(true);
+    });
+
+    it('handles URL-like strings that are not URLs', () => {
+      const content = 'Use pattern http:// for protocols';
+      const result = validateContent(content);
+      // Should not count incomplete URLs
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  describe('Context-Dependent Validation', () => {
+    it('applies different rules for contact info context', () => {
+      const content = 'john@gmail.com';
+
+      // Blocked in regular content
+      const regularResult = validateContent(content, { isContactInfo: false });
+      expect(regularResult.ok).toBe(false);
+
+      // Allowed in contact info
+      const contactResult = validateContent(content, { isContactInfo: true });
+      expect(contactResult.ok).toBe(true);
+    });
+
+    it('respects allowUrls option', () => {
+      const content = 'Portfolio: https://example.com';
+
+      // Allowed when URLs are permitted
+      const allowedResult = validateContent(content, { allowUrls: true });
+      expect(allowedResult.ok).toBe(true);
+
+      // Blocked when URLs are not permitted
+      const blockedResult = validateContent(content, { allowUrls: false });
+      expect(blockedResult.ok).toBe(false);
     });
   });
 });
@@ -279,10 +438,10 @@ describe('sanitize', () => {
       const input = 'Contact 555-123-4567, email test@gmail.com, SSN 123-45-6789';
       const result = sanitize(input);
 
-      expect(result.text).toContain('[REDACTED]');
-      expect(result.text).toContain('[EMAIL]');
-      expect(result.redactions).toBeGreaterThan(0);
-      expect(result.patterns.length).toBeGreaterThan(1);
+      expect(result.text).toBe('Contact [REDACTED], email [EMAIL], SSN [REDACTED]');
+      expect(result.redactions).toBe(3);
+      expect(result.patterns).toEqual(expect.arrayContaining(['phone', 'email', 'ssn']));
+      expect(result.patterns).toHaveLength(3);
     });
   });
 

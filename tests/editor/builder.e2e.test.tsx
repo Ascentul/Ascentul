@@ -155,7 +155,7 @@ describe('Resume Builder V2 end-to-end flow', () => {
     }
   });
 
-  it('creates resume, switches layout, edits content, improves bullet, and exports PDF', async () => {
+  it('creates resume and seeds profile data', async () => {
     await testWithFeatureFlag(
       {
         NEXT_PUBLIC_RESUME_V2_STORE: 'true',
@@ -171,7 +171,27 @@ describe('Resume Builder V2 end-to-end flow', () => {
         });
 
         const seededState = store.getState();
-        expect(seededState.pagesById[pageId as string].blockIds).toHaveLength(3);
+        expect(seededState.pagesById[pageId!]?.blockIds).toHaveLength(3);
+        expect(seededState.blocksById['header-block']).toBeDefined();
+        expect(seededState.blocksById['summary-block']).toBeDefined();
+        expect(seededState.blocksById['experience-block']).toBeDefined();
+      },
+    );
+  });
+
+  it('switches layout and updates theme', async () => {
+    await testWithFeatureFlag(
+      {
+        NEXT_PUBLIC_RESUME_V2_STORE: 'true',
+        NEXT_PUBLIC_DEBUG_UI: 'true',
+      },
+      async () => {
+        const { store, actions } = createStoreBundle();
+        const pageId = store.getState().pageOrder[0];
+
+        act(() => {
+          seedProfile(actions, pageId as string);
+        });
 
         // Switch layout
         const targetLayout = TEMPLATE_DEFINITIONS[0]?.layouts?.[0];
@@ -182,8 +202,8 @@ describe('Resume Builder V2 end-to-end flow', () => {
         });
         expect(store.getState().isDirty).toBe(true);
 
+        // Update theme
         const { broker, convex } = createBroker();
-
         const themeResult = await broker.runNow({
           kind: 'resume.updateMeta',
           payload: {
@@ -191,11 +211,30 @@ describe('Resume Builder V2 end-to-end flow', () => {
             themeId: 'theme_bold',
           },
         });
+
         expect(themeResult.ok).toBe(true);
         expect(convex.updateResumeMeta).toHaveBeenCalledWith(
           expect.objectContaining({ themeId: 'theme_bold' }),
         );
+      },
+    );
+  });
 
+  it('edits block content and applies AI improvements', async () => {
+    await testWithFeatureFlag(
+      {
+        NEXT_PUBLIC_RESUME_V2_STORE: 'true',
+        NEXT_PUBLIC_DEBUG_UI: 'true',
+      },
+      async () => {
+        const { store, actions } = createStoreBundle();
+        const pageId = store.getState().pageOrder[0];
+
+        act(() => {
+          seedProfile(actions, pageId as string);
+        });
+
+        // Edit content
         act(() => {
           actions.updateBlockProps('summary-block', {
             text: 'Updated summary content for inspector edit.',
@@ -203,6 +242,8 @@ describe('Resume Builder V2 end-to-end flow', () => {
         });
         expect(store.getState().blocksById['summary-block'].props.text).toContain('Updated summary');
 
+        // Apply AI improvements
+        const { broker, convex } = createBroker();
         const adapter = createEditorStoreAdapter(store);
         const aiResult = await applyAIEdit({
           resumeId: store.getState().docMeta.resumeId,
@@ -212,6 +253,7 @@ describe('Resume Builder V2 end-to-end flow', () => {
           adapter,
           broker,
         });
+
         expect(aiResult.ok).toBe(true);
         expect(convex.updateBlock).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -223,6 +265,23 @@ describe('Resume Builder V2 end-to-end flow', () => {
         const loggedEvents = logEvent.mock.calls.map((call) => call[0]);
         expect(loggedEvents).toContain('ai_action_started');
         expect(loggedEvents).toContain('ai_action_completed');
+      },
+    );
+  });
+
+  it('exports resume as PDF', async () => {
+    await testWithFeatureFlag(
+      {
+        NEXT_PUBLIC_RESUME_V2_STORE: 'true',
+        NEXT_PUBLIC_DEBUG_UI: 'true',
+      },
+      async () => {
+        const { store, actions } = createStoreBundle();
+        const pageId = store.getState().pageOrder[0];
+
+        act(() => {
+          seedProfile(actions, pageId as string);
+        });
 
         const fetchMock = jest.fn().mockResolvedValue({
           ok: true,

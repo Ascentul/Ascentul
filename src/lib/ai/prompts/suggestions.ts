@@ -16,10 +16,11 @@ Guidelines:
 - Provide specific, actionable suggestions with proposed rewrites when applicable
 - Prioritize suggestions by severity: critical (must-fix), warning (should-fix), info (nice-to-have)
 - For experience bullets: emphasize quantifiable achievements, strong action verbs, and appropriate tense
+- When targeting experience bullets, specify both itemIndex (job) and bulletIndex (bullet within the job)
 - For summaries: ensure concise, compelling value proposition
 - For skills: validate relevance and appropriate quantity
 - Output suggestions in a structured JSON format for easy parsing
-- Each suggestion should target a specific block and item (if applicable)
+- Each suggestion should target a specific block and item/bullet (if applicable)
 - Propose specific replacement content when suggesting rewrites
 
 Response Format:
@@ -32,7 +33,8 @@ Return a JSON object with this structure:
       "message": "Brief description of the issue",
       "detail": "Detailed explanation and reasoning",
       "blockId": "target block ID",
-      "itemIndex": 0 (optional, for bullets/items within block),
+      "itemIndex": 0 (optional, index within the block, e.g., experience item),
+      "bulletIndex": 0 (optional, index of the bullet within the item when applicable),
       "proposedContent": "Suggested replacement text",
       "confidence": 0.95 (0-1 score, optional)
     }
@@ -102,14 +104,15 @@ export function generateSuggestionsPrompt(
       if (data.paragraph) {
         prompt += `${data.paragraph}\n\n`;
       }
-    } else if (block.type === 'education') {
-      const data = block.data as { items?: Array<{ degree: string; school: string; year?: string }> };
-      if (data.items) {
-        for (const item of data.items) {
-          prompt += `- ${item.degree} from ${item.school}${item.year ? ` (${item.year})` : ''}\n`;
-        }
+  } else if (block.type === 'education') {
+    const data = block.data as { items?: Array<{ degree: string; school: string; year?: string }> };
+    if (data.items) {
+      for (let i = 0; i < data.items.length; i++) {
+        const item = data.items[i];
+        prompt += `**Item ${i}:** ${item.degree} from ${item.school}${item.year ? ` (${item.year})` : ''}\n`;
       }
-      prompt += '\n';
+    }
+    prompt += '\n';
     } else {
       // Generic handling for other block types
       prompt += `${JSON.stringify(block.data, null, 2)}\n\n`;

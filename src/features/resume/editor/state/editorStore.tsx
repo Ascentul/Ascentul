@@ -65,7 +65,12 @@ const warnOnce = (() => {
   };
 })();
 
-const deepClone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
+const deepClone = <T,>(value: T): T => {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+};
 
 const defaultMargins = (size: PageSize) => {
   const config = PAGE_CONFIGS[size] ?? PAGE_CONFIGS.Letter;
@@ -158,7 +163,7 @@ export const hydrateFromServer = (input: ResumeHydrationInput): EditorSnapshot =
   return snapshot;
 };
 
-class EditorStore {
+export class EditorStore {
   private state: EditorState;
   private history: HistoryState;
   private listeners: Set<Listener> = new Set();
@@ -535,6 +540,9 @@ class EditorStore {
   }
 
   private getDefaultPageSize(): PageSize {
+    if (this.state.pageOrder.length === 0) {
+      return 'Letter';
+    }
     const firstPage = this.state.pagesById[this.state.pageOrder[0]];
     return firstPage?.size ?? 'Letter';
   }

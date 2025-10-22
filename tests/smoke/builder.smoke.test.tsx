@@ -55,19 +55,24 @@ jest.mock('@/hooks/use-toast', () => ({
   }),
 }));
 
+const createMockLegacyDeps = () => ({
+  getBlocksMap: () => ({} as any),
+  getPage: () => undefined as any,
+  getPageOrder: () => [] as any,
+  getSelection: () => ({ ids: [], lastChangedAt: Date.now() }),
+  setSelection: () => {},
+  subscribe: () => () => {},
+});
+
 describe('Resume Builder Smoke Test', () => {
   // No global console suppression - let errors surface naturally
+  let mockDeps: ReturnType<typeof createMockLegacyDeps>;
+
+  beforeEach(() => {
+    mockDeps = createMockLegacyDeps();
+  });
 
   it('renders editor without crashing', () => {
-    const mockDeps = {
-      getBlocksMap: () => ({} as any),
-      getPage: () => undefined as any,
-      getPageOrder: () => [] as any,
-      getSelection: () => ({ ids: [], lastChangedAt: Date.now() }),
-      setSelection: () => {},
-      subscribe: () => () => {},
-    };
-
     const { container } = render(
       <EditorProvider legacyDeps={mockDeps}>
         <div data-testid="editor-canvas">Canvas Placeholder</div>
@@ -82,15 +87,6 @@ describe('Resume Builder Smoke Test', () => {
     const mockCreateBlock = jest.fn().mockResolvedValue({ _id: 'block_123' });
 
     // Mock the mutation broker
-    const mockDeps = {
-      getBlocksMap: () => ({} as any),
-      getPage: () => undefined as any,
-      getPageOrder: () => [] as any,
-      getSelection: () => ({ ids: [], lastChangedAt: Date.now() }),
-      setSelection: () => {},
-      subscribe: () => () => {},
-    };
-
     render(
       <EditorProvider legacyDeps={mockDeps}>
         <div data-testid="editor-canvas">Canvas</div>
@@ -117,15 +113,6 @@ describe('Resume Builder Smoke Test', () => {
         exportId: 'export_123',
       }),
     });
-
-    const mockDeps = {
-      getBlocksMap: () => ({} as any),
-      getPage: () => undefined as any,
-      getPageOrder: () => [] as any,
-      getSelection: () => ({ ids: [], lastChangedAt: Date.now() }),
-      setSelection: () => {},
-      subscribe: () => () => {},
-    };
 
     render(
       <EditorProvider legacyDeps={mockDeps}>
@@ -160,15 +147,6 @@ describe('Resume Builder Smoke Test', () => {
   });
 
   it('does not throw unhandled errors during render', () => {
-    const mockDeps = {
-      getBlocksMap: () => ({} as any),
-      getPage: () => undefined as any,
-      getPageOrder: () => [] as any,
-      getSelection: () => ({ ids: [], lastChangedAt: Date.now() }),
-      setSelection: () => {},
-      subscribe: () => () => {},
-    };
-
     expect(() => {
       render(
         <EditorProvider legacyDeps={mockDeps}>

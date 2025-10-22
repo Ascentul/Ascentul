@@ -41,14 +41,19 @@ function mapPageToCanvas(page: EditorPageNode): Page {
 // Factory function for use outside React components
 // Returns a data source that will throw if accessed before store is set
 export function createStoreDataSource(): CanvasDataSource {
-  const notReady = () => { throw new Error('StoreDataSource: store not initialized. Use useStoreDataSource() in React components.'); };
+  const notReady = () => {
+    throw new Error(
+      'StoreDataSource: store not initialized. Use useStoreDataSource() in React components.'
+    );
+  };
+
   return {
-    getBlocks: notReady as any,
-    getPage: notReady as any,
-    getPageOrder: notReady as any,
-    getSelection: notReady as any,
-    select: notReady,
-    onChange: notReady as any,
+    getBlocks: notReady as unknown as CanvasDataSource['getBlocks'],
+    getPage: notReady as unknown as CanvasDataSource['getPage'],
+    getPageOrder: notReady as unknown as CanvasDataSource['getPageOrder'],
+    getSelection: notReady as unknown as () => Selection,
+    select: notReady as CanvasDataSource['select'],
+    onChange: notReady as CanvasDataSource['onChange'],
   };
 }
 
@@ -56,45 +61,48 @@ export function createStoreDataSource(): CanvasDataSource {
 export function useStoreDataSource(): CanvasDataSource {
   const store = useEditorStore();
 
-  // Create a stable data source that uses the store
-  // useMemo ensures the dataSource object maintains referential equality across renders
-  return useMemo(() => ({
-    getBlocks: () => {
-      const state = store.getState();
-      const mapped: Record<string, Block> = {};
+  return useMemo(() => {
+    // Create a stable data source that uses the store
+    const dataSource: CanvasDataSource = {
+      getBlocks: () => {
+        const state = store.getState();
+        const mapped: Record<string, Block> = {};
 
-      for (const [id, block] of Object.entries(state.blocksById)) {
-        mapped[id] = mapBlockToCanvas(block);
-      }
+        for (const [id, block] of Object.entries(state.blocksById)) {
+          mapped[id] = mapBlockToCanvas(block);
+        }
 
-      return mapped;
-    },
+        return mapped;
+      },
 
-    getPage: (id: PageId) => {
-      const state = store.getState();
-      const page = state.pagesById[id];
-      return page ? mapPageToCanvas(page) : undefined;
-    },
+      getPage: (id: PageId) => {
+        const state = store.getState();
+        const page = state.pagesById[id];
+        return page ? mapPageToCanvas(page) : undefined;
+      },
 
-    getPageOrder: () => {
-      const state = store.getState();
-      return state.pageOrder;
-    },
+      getPageOrder: () => {
+        const state = store.getState();
+        return state.pageOrder;
+      },
 
-    getSelection: () => {
-      const state = store.getState();
-      return {
-        ids: state.selectedIds,
-        lastChangedAt: state.lastChangedAt,
-      };
-    },
+      getSelection: () => {
+        const state = store.getState();
+        return {
+          ids: state.selectedIds,
+          lastChangedAt: state.lastChangedAt,
+        };
+      },
 
-    select: (ids) => {
-      store.select(ids);
-    },
+      select: (ids) => {
+        store.select(ids);
+      },
 
-    onChange: (cb) => {
-      return store.subscribe(cb);
-    },
-  }), [store]);
+      onChange: (cb) => {
+        return store.subscribe(cb);
+      },
+    };
+
+    return dataSource;
+  }, [store]);
 }
