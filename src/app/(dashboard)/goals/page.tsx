@@ -343,11 +343,16 @@ export default function Goals() {
         
         {/* Goal Templates Section */}
         <motion.div variants={subtleUp} className="mb-6">
-          <GoalTemplates 
+          <GoalTemplates
             onSelectTemplate={(templateId) => {
+              // Check free user limit (1 goal max)
+              if (isFreeUser && goals.length >= 1) {
+                setShowUpgradeModal(true)
+                return
+              }
               setSelectedTemplate(templateId)
               setIsAddGoalOpen(true)
-            }} 
+            }}
           />
         </motion.div>
         

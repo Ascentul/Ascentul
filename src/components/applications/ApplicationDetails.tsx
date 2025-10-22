@@ -332,6 +332,7 @@ export function ApplicationDetails({
       });
       setLocal(updated);
       onChanged?.(updated);
+      onOpenChange(false);
       return;
     }
 
@@ -350,6 +351,7 @@ export function ApplicationDetails({
     };
     setLocal(updated);
     onChanged?.(updated);
+    onOpenChange(false);
   };
 
   return (

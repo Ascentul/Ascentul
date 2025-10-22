@@ -66,6 +66,15 @@ export default function AdminSettingsPage() {
     debugMode: false
   })
 
+  const [generalSettings, setGeneralSettings] = useState({
+    platformName: 'Ascentful',
+    supportEmail: 'support@ascentful.com',
+    baseUrl: 'https://app.ascentful.com',
+    defaultTimezone: 'UTC',
+    universityPlanLimit: 1000,
+    premiumPlanLimit: 100
+  })
+
   // Update state when platformSettings loads
   React.useEffect(() => {
     if (platformSettings) {
@@ -86,6 +95,14 @@ export default function AdminSettingsPage() {
         sessionTimeout: platformSettings.session_timeout || 24,
         maxFileUploadSize: platformSettings.max_file_upload_size || 10,
         debugMode: platformSettings.debug_mode ?? false,
+      })
+      setGeneralSettings({
+        platformName: platformSettings.platform_name || 'Ascentful',
+        supportEmail: platformSettings.support_email || 'support@ascentful.com',
+        baseUrl: platformSettings.base_url || 'https://app.ascentful.com',
+        defaultTimezone: platformSettings.default_timezone || 'UTC',
+        universityPlanLimit: platformSettings.university_plan_limit || 1000,
+        premiumPlanLimit: platformSettings.premium_plan_limit || 100,
       })
       setSecuritySettings({
         twoFactorRequired: platformSettings.two_factor_required ?? false,
@@ -153,7 +170,16 @@ export default function AdminSettingsPage() {
       let settingsToSave = {}
 
       // Map settings based on type
-      if (settingsType === 'AI') {
+      if (settingsType === 'General') {
+        settingsToSave = {
+          platform_name: generalSettings.platformName,
+          support_email: generalSettings.supportEmail,
+          base_url: generalSettings.baseUrl,
+          default_timezone: generalSettings.defaultTimezone,
+          university_plan_limit: generalSettings.universityPlanLimit,
+          premium_plan_limit: generalSettings.premiumPlanLimit,
+        }
+      } else if (settingsType === 'AI') {
         settingsToSave = {
           openai_enabled: aiSettings.openaiEnabled,
           openai_model: aiSettings.model,
@@ -273,25 +299,41 @@ export default function AdminSettingsPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Platform Name</Label>
-                    <Input defaultValue="Ascentful" />
+                    <Input
+                      value={generalSettings.platformName}
+                      onChange={(e) => setGeneralSettings(prev => ({ ...prev, platformName: e.target.value }))}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Support Email</Label>
-                    <Input defaultValue="support@ascentful.com" />
+                    <Input
+                      value={generalSettings.supportEmail}
+                      onChange={(e) => setGeneralSettings(prev => ({ ...prev, supportEmail: e.target.value }))}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Default University Plan Limit</Label>
-                    <Input type="number" defaultValue="1000" />
+                    <Input
+                      type="number"
+                      value={generalSettings.universityPlanLimit}
+                      onChange={(e) => setGeneralSettings(prev => ({ ...prev, universityPlanLimit: parseInt(e.target.value) }))}
+                    />
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Base URL</Label>
-                    <Input defaultValue="https://app.ascentful.com" />
+                    <Input
+                      value={generalSettings.baseUrl}
+                      onChange={(e) => setGeneralSettings(prev => ({ ...prev, baseUrl: e.target.value }))}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Default Time Zone</Label>
-                    <Select defaultValue="UTC">
+                    <Select
+                      value={generalSettings.defaultTimezone}
+                      onValueChange={(value) => setGeneralSettings(prev => ({ ...prev, defaultTimezone: value }))}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -305,7 +347,11 @@ export default function AdminSettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Default Premium Plan Limit</Label>
-                    <Input type="number" defaultValue="100" />
+                    <Input
+                      type="number"
+                      value={generalSettings.premiumPlanLimit}
+                      onChange={(e) => setGeneralSettings(prev => ({ ...prev, premiumPlanLimit: parseInt(e.target.value) }))}
+                    />
                   </div>
                 </div>
               </div>

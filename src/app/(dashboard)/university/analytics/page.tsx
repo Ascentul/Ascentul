@@ -602,8 +602,9 @@ export default function UniversityAnalyticsPage() {
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={100}
+                      outerRadius={80}
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      labelLine
                     >
                       {[
                         { name: "Applications", value: analyticsData.applications.total, color: "#4F46E5" },
@@ -777,8 +778,9 @@ export default function UniversityAnalyticsPage() {
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={100}
+                      outerRadius={80}
                       label={({ name, value }) => `${name}: ${value}`}
+                      labelLine
                     >
                       {[
                         { name: "Inactive >60d", value: students?.filter((s: any) => s.role === "user" && (!s.last_active || Date.now() - s.last_active > 60 * 24 * 60 * 60 * 1000)).length || 0, color: "#F97316" },

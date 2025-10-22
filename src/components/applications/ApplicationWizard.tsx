@@ -196,7 +196,7 @@ export function ApplicationWizard({
 
         {step === 4 && (
           <div className="space-y-3">
-            <div className="text-sm">
+            <div className="text-sm break-words overflow-hidden">
               <div>
                 <strong>Job:</strong> {job.title}
               </div>
@@ -205,7 +205,7 @@ export function ApplicationWizard({
               </div>
               {job.url ? (
                 <div>
-                  <strong>URL:</strong> {job.url}
+                  <strong>URL:</strong> <span className="break-all">{job.url}</span>
                 </div>
               ) : null}
               {resumeId ? (

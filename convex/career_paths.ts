@@ -109,6 +109,18 @@ export const createCareerPath = mutation({
 
     if (!user) throw new Error("User not found");
 
+    // Check free plan limit
+    if (user.subscription_plan === "free") {
+      const existingPaths = await ctx.db
+        .query("career_paths")
+        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .collect();
+
+      if (existingPaths.length >= 1) {
+        throw new Error("Free plan limit reached. Upgrade to Premium for unlimited career paths.");
+      }
+    }
+
     const now = Date.now();
     const id = await ctx.db.insert("career_paths", {
       user_id: user._id,

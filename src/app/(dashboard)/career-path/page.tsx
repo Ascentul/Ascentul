@@ -460,6 +460,13 @@ export default function CareerPathPage() {
       });
       return;
     }
+
+    // Check free user limit (1 career path max in database)
+    if (isFreeUser && savedPaths.length >= 1) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     try {
       setIsSearching(true);
       const res = await apiRequest(
@@ -510,8 +517,8 @@ export default function CareerPathPage() {
   };
 
   const generateFromProfile = async () => {
-    // Check free user limit (1 generated path max)
-    if (isFreeUser && generatedPath) {
+    // Check free user limit (1 career path max in database)
+    if (isFreeUser && savedPaths.length >= 1) {
       setShowUpgradeModal(true);
       return;
     }

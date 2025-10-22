@@ -35,7 +35,7 @@ export default function NewResumePage() {
 
   // Initial resume template
   const [resumeContent, setResumeContent] = useState({
-    personalInfo: {
+    contactInfo: {
       name: clerkUser?.fullName || '',
       email: clerkUser?.primaryEmailAddress?.emailAddress || '',
       phone: '',
@@ -100,11 +100,11 @@ export default function NewResumePage() {
     }
   }
 
-  const updatePersonalInfo = (field: string, value: string) => {
+  const updateContactInfo = (field: string, value: string) => {
     setResumeContent(prev => ({
       ...prev,
-      personalInfo: {
-        ...prev.personalInfo,
+      contactInfo: {
+        ...prev.contactInfo,
         [field]: value
       }
     }))
@@ -174,10 +174,18 @@ export default function NewResumePage() {
         url: proj.url || proj.github_url || ''
       }))
 
+      // Map achievements from achievements_history
+      const achievements = (userProfile.achievements_history || []).map((ach: any) => ({
+        id: Date.now().toString() + Math.random(), // Ensure unique IDs
+        title: ach.title || '',
+        description: ach.description || '',
+        date: ach.date || ''
+      }))
+
       // Import all profile data
       setResumeContent(prev => ({
         ...prev,
-        personalInfo: {
+        contactInfo: {
           name: userProfile.name || clerkUser?.fullName || '',
           email: userProfile.email || clerkUser?.primaryEmailAddress?.emailAddress || '',
           phone: clerkUser?.phoneNumbers?.[0]?.phoneNumber || '',
@@ -190,7 +198,7 @@ export default function NewResumePage() {
         experience,
         education,
         projects,
-        achievements: [] // No data source for achievements yet
+        achievements
       }))
 
       toast({
@@ -291,8 +299,8 @@ export default function NewResumePage() {
                 <Input
                   id="name"
                   placeholder="John Doe"
-                  value={resumeContent.personalInfo.name}
-                  onChange={(e) => updatePersonalInfo('name', e.target.value)}
+                  value={resumeContent.contactInfo.name}
+                  onChange={(e) => updateContactInfo('name', e.target.value)}
                 />
               </div>
 
@@ -302,8 +310,8 @@ export default function NewResumePage() {
                   id="email"
                   type="email"
                   placeholder="john@example.com"
-                  value={resumeContent.personalInfo.email}
-                  onChange={(e) => updatePersonalInfo('email', e.target.value)}
+                  value={resumeContent.contactInfo.email}
+                  onChange={(e) => updateContactInfo('email', e.target.value)}
                 />
               </div>
 
@@ -312,8 +320,8 @@ export default function NewResumePage() {
                 <Input
                   id="phone"
                   placeholder="+1 (555) 123-4567"
-                  value={resumeContent.personalInfo.phone}
-                  onChange={(e) => updatePersonalInfo('phone', e.target.value)}
+                  value={resumeContent.contactInfo.phone}
+                  onChange={(e) => updateContactInfo('phone', e.target.value)}
                 />
               </div>
 
@@ -322,8 +330,8 @@ export default function NewResumePage() {
                 <Input
                   id="location"
                   placeholder="New York, NY"
-                  value={resumeContent.personalInfo.location}
-                  onChange={(e) => updatePersonalInfo('location', e.target.value)}
+                  value={resumeContent.contactInfo.location}
+                  onChange={(e) => updateContactInfo('location', e.target.value)}
                 />
               </div>
 
@@ -332,8 +340,8 @@ export default function NewResumePage() {
                 <Input
                   id="linkedin"
                   placeholder="linkedin.com/in/johndoe"
-                  value={resumeContent.personalInfo.linkedin}
-                  onChange={(e) => updatePersonalInfo('linkedin', e.target.value)}
+                  value={resumeContent.contactInfo.linkedin}
+                  onChange={(e) => updateContactInfo('linkedin', e.target.value)}
                 />
               </div>
 
@@ -342,8 +350,8 @@ export default function NewResumePage() {
                 <Input
                   id="github"
                   placeholder="github.com/johndoe"
-                  value={resumeContent.personalInfo.github}
-                  onChange={(e) => updatePersonalInfo('github', e.target.value)}
+                  value={resumeContent.contactInfo.github}
+                  onChange={(e) => updateContactInfo('github', e.target.value)}
                 />
               </div>
             </div>

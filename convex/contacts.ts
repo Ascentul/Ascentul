@@ -44,6 +44,18 @@ export const createContact = mutation({
 
     if (!user) throw new Error("User not found");
 
+    // Check free plan limit
+    if (user.subscription_plan === "free") {
+      const existingContacts = await ctx.db
+        .query("networking_contacts")
+        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .collect();
+
+      if (existingContacts.length >= 1) {
+        throw new Error("Free plan limit reached. Upgrade to Premium for unlimited contacts.");
+      }
+    }
+
     const now = Date.now();
     const id = await ctx.db.insert("networking_contacts", {
       user_id: user._id,

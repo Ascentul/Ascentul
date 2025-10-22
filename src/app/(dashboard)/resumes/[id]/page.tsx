@@ -97,6 +97,11 @@ export default function ResumeEditorPage() {
     clerkId ? { clerkId } : "skip"
   ) as any
 
+  const userProjects = useQuery(
+    api.projects.getUserProjects,
+    clerkId ? { clerkId } : "skip"
+  )
+
   const createResumeMutation = useMutation(api.resumes.createResume)
   const updateResume = useMutation(api.resumes.updateResume)
   const deleteResume = useMutation(api.resumes.deleteResume)
@@ -113,7 +118,7 @@ export default function ResumeEditorPage() {
   })
   const [summary, setSummary] = useState("")
   const [skillsText, setSkillsText] = useState("")
-  const [experiences, setExperiences] = useState<Experience[]>([])
+  const [experience, setExperience] = useState<Experience[]>([])
   const [education, setEducation] = useState<Education[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [achievements, setAchievements] = useState<Achievement[]>([])
@@ -131,8 +136,8 @@ export default function ResumeEditorPage() {
     setTitle(resume.title || "")
     const content = resume.content || {}
 
-    // Contact Info
-    setContactInfo(content.contactInfo || {
+    // Contact Info - check both contactInfo and personalInfo for backward compatibility
+    const contactData = content.contactInfo || content.personalInfo || {
       name: "",
       email: "",
       phone: "",
@@ -140,11 +145,12 @@ export default function ResumeEditorPage() {
       linkedin: "",
       github: "",
       website: ""
-    })
+    }
+    setContactInfo(contactData)
 
     setSummary(content.summary || "")
     setSkillsText((content.skills || []).join(", "))
-    setExperiences(content.experiences || [])
+    setExperience(content.experience || [])
     setEducation(content.education || [])
     setProjects(content.projects || [])
     setAchievements(content.achievements || [])
@@ -161,14 +167,81 @@ export default function ResumeEditorPage() {
   }, [resume, router])
 
   const importFromProfile = async () => {
+    if (userProfile === undefined) {
+      toast({
+        title: 'Loading...',
+        description: 'Please wait while we load your profile',
+        variant: 'default'
+      })
+      return
+    }
+
     if (!userProfile) {
-      toast({ title: "Profile not found", description: "Please complete your career profile first", variant: "destructive" })
+      toast({
+        title: 'Profile not found',
+        description: 'Please complete your career profile first',
+        variant: 'destructive'
+      })
       return
     }
 
     setImporting(true)
     try {
-      // Import contact info
+      // Debug logging
+      console.log('Importing from profile:', {
+        userProfile,
+        workHistory: userProfile.work_history,
+        educationHistory: userProfile.education_history,
+        projects: userProjects
+      })
+
+      // Map work history to experience
+      const experienceData = (userProfile.work_history || []).map((job: any) => ({
+        id: Date.now().toString() + Math.random(), // Ensure unique IDs
+        title: job.role || '',
+        company: job.company || '',
+        location: job.location || '',
+        startDate: job.start_date || '',
+        endDate: job.is_current ? 'Present' : (job.end_date || ''),
+        current: job.is_current || false,
+        description: job.summary || ''
+      }))
+
+      console.log('Mapped experience:', experienceData)
+
+      // Map education history to education
+      const educationData = (userProfile.education_history || []).map((edu: any) => ({
+        id: Date.now().toString() + Math.random(), // Ensure unique IDs
+        degree: edu.degree || '',
+        field: edu.field_of_study || '',
+        school: edu.school || '',
+        location: '',
+        startYear: edu.start_year || '',
+        endYear: edu.end_year || '',
+        graduationYear: edu.end_year || '',
+        gpa: '',
+        honors: ''
+      }))
+
+      // Map projects from projects table
+      const projectsData = (userProjects || []).map((proj: any) => ({
+        id: Date.now().toString() + Math.random(), // Ensure unique IDs
+        name: proj.title || '',
+        role: proj.role || '',
+        technologies: Array.isArray(proj.technologies) ? proj.technologies.join(', ') : '',
+        description: proj.description || '',
+        url: proj.url || proj.github_url || ''
+      }))
+
+      // Map achievements from achievements_history
+      const achievementsData = (userProfile.achievements_history || []).map((ach: any) => ({
+        id: Date.now().toString() + Math.random(), // Ensure unique IDs
+        title: ach.title || '',
+        description: ach.description || '',
+        date: ach.date || ''
+      }))
+
+      // Import all profile data
       setContactInfo({
         name: userProfile.name || user?.fullName || "",
         email: userProfile.email || user?.primaryEmailAddress?.emailAddress || "",
@@ -179,44 +252,12 @@ export default function ResumeEditorPage() {
         website: userProfile.website || ""
       })
 
-      // Import summary/bio
       setSummary(userProfile.bio || "")
-
-      // Import skills
-      if (userProfile.skills) {
-        setSkillsText(userProfile.skills)
-      }
-
-      // Import current position as experience
-      if (userProfile.current_position || userProfile.current_company) {
-        const currentExp: Experience = {
-          id: Date.now().toString(),
-          title: userProfile.current_position || "",
-          company: userProfile.current_company || "",
-          location: "",
-          startDate: "",
-          endDate: "",
-          current: true,
-          description: ""
-        }
-        setExperiences(prev => [currentExp, ...prev])
-      }
-
-      // Import education
-      if (userProfile.university_name || userProfile.major) {
-        const edu: Education = {
-          id: Date.now().toString(),
-          school: userProfile.university_name || "",
-          degree: userProfile.education || "",
-          field: userProfile.major || "",
-          location: "",
-          startYear: "",
-          endYear: userProfile.graduation_year || "",
-          gpa: "",
-          honors: ""
-        }
-        setEducation(prev => [edu, ...prev])
-      }
+      setSkillsText(userProfile.skills || "")
+      setExperience(experienceData)
+      setEducation(educationData)
+      setProjects(projectsData)
+      setAchievements(achievementsData)
 
       toast({
         title: "Profile Imported",
@@ -224,9 +265,11 @@ export default function ResumeEditorPage() {
         variant: "success"
       })
     } catch (error) {
+      console.error('Import error:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Failed to import profile data'
       toast({
         title: "Import Failed",
-        description: "Failed to import profile data",
+        description: errorMsg,
         variant: "destructive"
       })
     } finally {
@@ -256,7 +299,7 @@ export default function ResumeEditorPage() {
       contactInfo: cleanedContactInfo,
       summary,
       skills: skillsText.split(",").map((s) => s.trim()).filter((s) => s.length > 0),
-      experiences,
+      experience,
       education,
       projects,
       achievements,
@@ -324,15 +367,15 @@ export default function ResumeEditorPage() {
       current: false,
       description: ""
     }
-    setExperiences([...experiences, newExp])
+    setExperience([...experience, newExp])
   }
 
   const removeExperience = (id: string) => {
-    setExperiences(experiences.filter(exp => exp.id !== id))
+    setExperience(experience.filter(exp => exp.id !== id))
   }
 
   const updateExperience = (id: string, field: keyof Experience, value: any) => {
-    setExperiences(experiences.map(exp =>
+    setExperience(experience.map(exp =>
       exp.id === id ? { ...exp, [field]: value } : exp
     ))
   }
@@ -506,7 +549,7 @@ export default function ResumeEditorPage() {
       }
 
       // Experience
-      if (experiences.length > 0) {
+      if (experience.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(12)
         applyTemplateStyle()
@@ -514,7 +557,7 @@ export default function ResumeEditorPage() {
         doc.setTextColor(0, 0, 0)
         moveY(6)
 
-        experiences.forEach((exp, idx) => {
+        experience.forEach((exp, idx) => {
           if (y > pageHeight - margin - 20) { doc.addPage(); y = margin }
 
           doc.setFont('helvetica', 'bold')
@@ -969,10 +1012,10 @@ export default function ResumeEditorPage() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-6">
-              {experiences.length === 0 ? (
+              {experience.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No experience added yet. Click "Add Experience" to get started.</p>
               ) : (
-                experiences.map((exp, idx) => (
+                experience.map((exp, idx) => (
                   <div key={exp.id} className="border rounded-lg p-4 space-y-4 relative">
                     <Button
                       variant="ghost"

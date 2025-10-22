@@ -57,6 +57,18 @@ export const createGoal = mutation({
 
     if (!user) throw new Error("User not found");
 
+    // Check free plan limit
+    if (user.subscription_plan === "free") {
+      const existingGoals = await ctx.db
+        .query("goals")
+        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .collect();
+
+      if (existingGoals.length >= 1) {
+        throw new Error("Free plan limit reached. Upgrade to Premium for unlimited goals.");
+      }
+    }
+
     const now = Date.now();
     const id = await ctx.db.insert("goals", {
       user_id: user._id,

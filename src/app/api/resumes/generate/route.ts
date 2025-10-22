@@ -25,6 +25,8 @@ interface UserProfile {
   industry?: string
   work_history?: any[]
   education_history?: any[]
+  achievements_history?: any[]
+  projects?: any[]
 }
 
 function generateBasicResume(jobDescription: string, userProfile?: UserProfile) {
@@ -76,8 +78,8 @@ function generateBasicResume(jobDescription: string, userProfile?: UserProfile) 
   if (userProfile?.education_history && Array.isArray(userProfile.education_history) && userProfile.education_history.length > 0) {
     education = userProfile.education_history.map((edu: any) => ({
       degree: `${edu.degree || 'Bachelor'} in ${edu.field_of_study || 'Field'}`,
-      school: edu.institution || '',
-      graduationYear: edu.end_date || edu.graduation_date || '',
+      school: edu.institution || edu.school || '',
+      graduationYear: edu.end_date || edu.graduation_date || edu.end_year || '',
       gpa: edu.gpa || undefined,
     }))
   } else if (userProfile?.university_name) {
@@ -87,6 +89,33 @@ function generateBasicResume(jobDescription: string, userProfile?: UserProfile) 
       school: userProfile.university_name,
       graduationYear: userProfile.graduation_year || '',
     }]
+  }
+
+  // Build projects section from projects
+  let projects: any[] = []
+  if (userProfile?.projects && Array.isArray(userProfile.projects) && userProfile.projects.length > 0) {
+    projects = userProfile.projects.map((proj: any) => ({
+      title: proj.title || 'Project',
+      role: proj.role || undefined,
+      company: proj.company || undefined,
+      startDate: proj.start_date ? new Date(proj.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : undefined,
+      endDate: proj.end_date ? new Date(proj.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : undefined,
+      description: proj.description || '',
+      technologies: proj.technologies || [],
+      url: proj.url || undefined,
+      github_url: proj.github_url || undefined,
+    }))
+  }
+
+  // Build achievements section from achievements history
+  let achievements: any[] = []
+  if (userProfile?.achievements_history && Array.isArray(userProfile.achievements_history) && userProfile.achievements_history.length > 0) {
+    achievements = userProfile.achievements_history.map((ach: any) => ({
+      title: ach.title || 'Achievement',
+      organization: ach.organization || undefined,
+      date: ach.date || undefined,
+      description: ach.description || '',
+    }))
   }
 
   const personalInfo: any = {
@@ -106,6 +135,8 @@ function generateBasicResume(jobDescription: string, userProfile?: UserProfile) 
     skills: allSkills,
     experience,
     education,
+    projects: projects.length > 0 ? projects : undefined,
+    achievements: achievements.length > 0 ? achievements : undefined,
   }
 }
 
@@ -155,10 +186,42 @@ GitHub: ${userProfile.github_url || 'N/A'}
           profileContext += '\nEducation History:\n'
           userProfile.education_history.forEach((edu: any, idx: number) => {
             profileContext += `${idx + 1}. ${edu.degree || 'N/A'} in ${edu.field_of_study || 'N/A'}\n`
-            profileContext += `   Institution: ${edu.institution || 'N/A'}\n`
-            profileContext += `   Duration: ${edu.start_date || 'N/A'} - ${edu.is_current ? 'Present' : (edu.end_date || edu.graduation_date || 'N/A')}\n`
+            profileContext += `   Institution: ${edu.institution || edu.school || 'N/A'}\n`
+            profileContext += `   Duration: ${edu.start_year || edu.start_date || 'N/A'} - ${edu.is_current ? 'Present' : (edu.end_year || edu.end_date || edu.graduation_date || 'N/A')}\n`
             if (edu.gpa) profileContext += `   GPA: ${edu.gpa}\n`
-            if (edu.activities) profileContext += `   Activities: ${edu.activities}\n`
+            if (edu.activities || edu.description) profileContext += `   Activities: ${edu.activities || edu.description}\n`
+            profileContext += '\n'
+          })
+        }
+
+        // Add projects if available
+        if (userProfile?.projects && Array.isArray(userProfile.projects) && userProfile.projects.length > 0) {
+          profileContext += '\nProjects:\n'
+          userProfile.projects.forEach((proj: any, idx: number) => {
+            profileContext += `${idx + 1}. ${proj.title || 'N/A'}\n`
+            if (proj.role) profileContext += `   Role: ${proj.role}\n`
+            if (proj.company) profileContext += `   Company: ${proj.company}\n`
+            if (proj.start_date || proj.end_date) {
+              const startDate = proj.start_date ? new Date(proj.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'
+              const endDate = proj.end_date ? new Date(proj.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Present'
+              profileContext += `   Duration: ${startDate} - ${endDate}\n`
+            }
+            if (proj.description) profileContext += `   Description: ${proj.description}\n`
+            if (proj.technologies && proj.technologies.length > 0) profileContext += `   Technologies: ${proj.technologies.join(', ')}\n`
+            if (proj.url) profileContext += `   URL: ${proj.url}\n`
+            if (proj.github_url) profileContext += `   GitHub: ${proj.github_url}\n`
+            profileContext += '\n'
+          })
+        }
+
+        // Add achievements if available
+        if (userProfile?.achievements_history && Array.isArray(userProfile.achievements_history) && userProfile.achievements_history.length > 0) {
+          profileContext += '\nAchievements & Awards:\n'
+          userProfile.achievements_history.forEach((ach: any, idx: number) => {
+            profileContext += `${idx + 1}. ${ach.title || 'N/A'}\n`
+            if (ach.organization) profileContext += `   Organization: ${ach.organization}\n`
+            if (ach.date) profileContext += `   Date: ${ach.date}\n`
+            if (ach.description) profileContext += `   Description: ${ach.description}\n`
             profileContext += '\n'
           })
         }
@@ -196,10 +259,34 @@ Return a JSON object with this structure:
       "school": "School Name",
       "graduationYear": "YYYY"
     }
+  ],
+  "projects": [
+    {
+      "title": "Project Title",
+      "role": "Your Role (optional)",
+      "company": "Company (optional)",
+      "startDate": "MM/YYYY (optional)",
+      "endDate": "MM/YYYY or Present (optional)",
+      "description": "Project description and key accomplishments",
+      "technologies": ["tech1", "tech2", ...],
+      "url": "Project URL (optional)",
+      "github_url": "GitHub URL (optional)"
+    }
+  ],
+  "achievements": [
+    {
+      "title": "Achievement Title",
+      "organization": "Organization Name (optional)",
+      "date": "Date (optional)",
+      "description": "Achievement description"
+    }
   ]
 }
 
-IMPORTANT: Only include social media links (linkedin, github) in personalInfo if the user profile explicitly provides them. Do not generate or invent social media URLs. Omit these fields if not provided in the user profile.
+IMPORTANT:
+- Only include social media links (linkedin, github) in personalInfo if the user profile explicitly provides them. Do not generate or invent social media URLs. Omit these fields if not provided in the user profile.
+- Only include "projects" section if the user has projects in their profile. Omit if not provided.
+- Only include "achievements" section if the user has achievements in their profile. Omit if not provided.
 
 If user profile is provided, use that information. Otherwise, create a template based on the job requirements.
 Focus on keywords from the job description. Make it ATS-friendly.`

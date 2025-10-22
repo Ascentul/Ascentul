@@ -46,11 +46,10 @@ export function CareerGoalsSummary() {
 
   // Ensure goals is an array and filter to show only active goals (not completed)
   const goalsArray = Array.isArray(goals) ? goals : [];
-  const activeGoals = goalsArray
-    .filter(
-      (goal) => goal.status !== "completed" && goal.status !== "cancelled",
-    )
-    .slice(0, 3); // Show top 3
+  const allActiveGoals = goalsArray.filter(
+    (goal) => goal.status !== "completed" && goal.status !== "cancelled",
+  );
+  const activeGoals = allActiveGoals.slice(0, 3); // Show top 3
   const shouldStretch =
     activeGoals.length > 0 &&
     activeGoals.some(
@@ -201,10 +200,10 @@ export function CareerGoalsSummary() {
                 </div>
               ))}
 
-              {totalGoals > 3 && (
+              {allActiveGoals.length > 3 && (
                 <div className="pt-2 border-t">
                   <p className="text-xs text-muted-foreground text-center">
-                    +{totalGoals - 3} more goals
+                    +{allActiveGoals.length - 3} more goals
                   </p>
                 </div>
               )}

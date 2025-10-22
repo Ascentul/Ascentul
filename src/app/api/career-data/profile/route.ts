@@ -93,13 +93,20 @@ export async function GET(request: NextRequest) {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Try to fetch user profile from Convex, but gracefully degrade if unavailable
+    // Try to fetch user profile and projects from Convex, but gracefully degrade if unavailable
     let user: any = null
+    let projects: any[] = []
     const url = process.env.NEXT_PUBLIC_CONVEX_URL
     if (url) {
       try {
         const client = new ConvexHttpClient(url)
         user = await client.query(api.users.getUserByClerkId, { clerkId: userId })
+        // Fetch user's projects
+        try {
+          projects = await client.query(api.projects.getUserProjects, { clerkId: userId }) || []
+        } catch {
+          // ignore; projects are optional
+        }
       } catch {
         // ignore; can still return a mock profile
       }
@@ -109,16 +116,25 @@ export async function GET(request: NextRequest) {
     const profile = {
       name: user?.name || 'User',
       email: user?.email || undefined,
+      phone: user?.phone_number || undefined,
+      location: user?.location || undefined,
+      linkedin_url: user?.linkedin_url || undefined,
+      github_url: user?.github_url || undefined,
       currentRole: user?.current_position || user?.role || 'Professional',
       currentLevel: user?.experience_level || 'mid',
       skills: user?.skills || ['Communication', 'Problem Solving'],
       experienceYears: calculateExperienceYears(user?.work_history),
       education: formatEducationHistory(user),
+      education_history: user?.education_history || [],
       workHistory: formatWorkHistory(user?.work_history),
+      work_history: user?.work_history || [],
+      achievements_history: user?.achievements_history || [],
+      projects: projects || [],
       industry: user?.industry,
       bio: user?.bio,
       career_goals: user?.career_goals,
-      location: user?.location,
+      current_position: user?.current_position,
+      current_company: user?.current_company,
     }
 
     return NextResponse.json(profile)

@@ -757,6 +757,31 @@ export async function POST(request: NextRequest) {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    // Check free plan limit before generating
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (convexUrl) {
+      try {
+        const convexClient = new ConvexHttpClient(convexUrl)
+
+        // Get user to check subscription plan
+        const user = await convexClient.query(api.users.getUserByClerkId, { clerkId: userId })
+
+        if (user && user.subscription_plan === 'free') {
+          // Count existing career paths
+          const existingPaths = await convexClient.query(api.career_paths.getUserCareerPaths, { clerkId: userId })
+
+          if (existingPaths && existingPaths.length >= 1) {
+            return NextResponse.json(
+              { error: 'Free plan limit reached. Upgrade to Premium for unlimited career paths.' },
+              { status: 403 }
+            )
+          }
+        }
+      } catch (limitCheckError) {
+        console.warn('Career path limit check failed, proceeding with generation', limitCheckError)
+      }
+    }
+
     const body = await request.json().catch(() => ({}))
     const profileData = body?.profileData || {}
 

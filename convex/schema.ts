@@ -73,6 +73,17 @@ export default defineSchema({
         }),
       ),
     ),
+    achievements_history: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          title: v.optional(v.string()),
+          description: v.optional(v.string()),
+          date: v.optional(v.string()),
+          organization: v.optional(v.string()),
+        }),
+      ),
+    ),
     university_name: v.optional(v.string()),
     major: v.optional(v.string()),
     graduation_year: v.optional(v.string()),

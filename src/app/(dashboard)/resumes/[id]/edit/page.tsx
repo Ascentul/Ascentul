@@ -40,14 +40,17 @@ export default function EditResumePage({ params }: PageProps) {
   useEffect(() => {
     if (resume) {
       setTitle(resume.title || 'My Resume')
-      setResumeContent(resume.content || {
-        personalInfo: {},
-        summary: '',
-        skills: [],
-        experience: [],
-        education: [],
-        projects: [],
-        achievements: []
+      // Check both contactInfo and personalInfo for backward compatibility
+      const content = resume.content || {}
+      const contactData = content.contactInfo || content.personalInfo || {}
+      setResumeContent({
+        contactInfo: contactData,
+        summary: content.summary || '',
+        skills: content.skills || [],
+        experience: content.experience || [],
+        education: content.education || [],
+        projects: content.projects || [],
+        achievements: content.achievements || []
       })
     }
   }, [resume])
@@ -83,11 +86,11 @@ export default function EditResumePage({ params }: PageProps) {
     }
   }
 
-  const updatePersonalInfo = (field: string, value: string) => {
+  const updateContactInfo = (field: string, value: string) => {
     setResumeContent((prev: any) => ({
       ...prev,
-      personalInfo: {
-        ...prev.personalInfo,
+      contactInfo: {
+        ...prev.contactInfo,
         [field]: value
       }
     }))
@@ -237,29 +240,29 @@ export default function EditResumePage({ params }: PageProps) {
               <div className="space-y-2">
                 <Label>Full Name</Label>
                 <Input
-                  value={resumeContent.personalInfo?.name || ''}
-                  onChange={(e) => updatePersonalInfo('name', e.target.value)}
+                  value={resumeContent.contactInfo?.name || ''}
+                  onChange={(e) => updateContactInfo('name', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
                 <Input
-                  value={resumeContent.personalInfo?.email || ''}
-                  onChange={(e) => updatePersonalInfo('email', e.target.value)}
+                  value={resumeContent.contactInfo?.email || ''}
+                  onChange={(e) => updateContactInfo('email', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Phone</Label>
                 <Input
-                  value={resumeContent.personalInfo?.phone || ''}
-                  onChange={(e) => updatePersonalInfo('phone', e.target.value)}
+                  value={resumeContent.contactInfo?.phone || ''}
+                  onChange={(e) => updateContactInfo('phone', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Location</Label>
                 <Input
-                  value={resumeContent.personalInfo?.location || ''}
-                  onChange={(e) => updatePersonalInfo('location', e.target.value)}
+                  value={resumeContent.contactInfo?.location || ''}
+                  onChange={(e) => updateContactInfo('location', e.target.value)}
                 />
               </div>
             </div>

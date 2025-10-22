@@ -48,6 +48,18 @@ export const createApplication = mutation({
       throw new Error("User not found");
     }
 
+    // Check free plan limit
+    if (user.subscription_plan === "free") {
+      const existingApplications = await ctx.db
+        .query("applications")
+        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .collect();
+
+      if (existingApplications.length >= 1) {
+        throw new Error("Free plan limit reached. Upgrade to Premium for unlimited applications.");
+      }
+    }
+
     const applicationId = await ctx.db.insert("applications", {
       user_id: user._id,
       company: args.company,

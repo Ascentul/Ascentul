@@ -167,7 +167,7 @@ export function FollowupActionsSummary() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+            <div className="space-y-3">
               {activeActions.map((action) => (
                 <div key={action._id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div className="flex items-center space-x-3 flex-1">
@@ -178,8 +178,8 @@ export function FollowupActionsSummary() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-2 mb-1 flex-wrap">
-                        <h3 className="font-medium text-sm break-words">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-medium text-sm truncate">
                           {action.description || action.notes || 'Follow-up action'}
                         </h3>
                         <Badge variant="outline" className={`text-xs flex-shrink-0 ${getStatusColor(action.completed, action.due_date)}`}>

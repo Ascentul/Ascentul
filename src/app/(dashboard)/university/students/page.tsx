@@ -1291,6 +1291,8 @@ export default function UniversityStudentsPage() {
                     setStudentDetailsOpen(false);
                   }
                 }}
+                disabled={!selectedStudent?.clerkId}
+                title={!selectedStudent?.clerkId ? "Student must activate their account first" : ""}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 View Career Profile

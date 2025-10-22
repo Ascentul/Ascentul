@@ -216,8 +216,8 @@ export default function ProfilePage() {
     const sections = [
       !!displayProfile?.bio, // Career Summary
       !!displayProfile?.linkedin_url, // LinkedIn Profile
-      !!(displayProfile?.current_position && displayProfile?.current_company), // Work History
-      !!(displayProfile?.major && displayProfile?.university_name), // Education
+      Array.isArray((displayProfile as any)?.work_history) && (displayProfile as any).work_history.length > 0, // Work History
+      Array.isArray((displayProfile as any)?.education_history) && (displayProfile as any).education_history.length > 0, // Education
       !!displayProfile?.skills, // Skills
     ];
     const completed = sections.filter(Boolean).length;
@@ -534,12 +534,10 @@ export default function ProfilePage() {
 
   const profileCompletion = calculateProfileCompletion();
   const completedSections = {
-    careerSummary: !!(displayProfile?.bio && displayProfile?.career_goals),
+    careerSummary: !!displayProfile?.bio,
     linkedinProfile: !!displayProfile?.linkedin_url,
-    workHistory: !!(
-      displayProfile?.current_position && displayProfile?.current_company
-    ),
-    education: !!(displayProfile?.major && displayProfile?.university_name),
+    workHistory: Array.isArray((displayProfile as any)?.work_history) && (displayProfile as any).work_history.length > 0,
+    education: Array.isArray((displayProfile as any)?.education_history) && (displayProfile as any).education_history.length > 0,
     skills: !!displayProfile?.skills,
   };
 

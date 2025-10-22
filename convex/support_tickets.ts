@@ -12,7 +12,7 @@ export const listTickets = query({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
+    const isAdmin = ["super_admin", "admin"].includes(
       currentUser.role
     );
 

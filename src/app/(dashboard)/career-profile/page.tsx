@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import {
-  User, Briefcase, Calendar, Edit, CheckCircle2, Loader2, GraduationCap, Plus, Trash2, Linkedin
+  User, Briefcase, Calendar, Edit, CheckCircle2, Loader2, GraduationCap, Plus, Trash2, Linkedin, Award, FolderKanban
 } from 'lucide-react'
 
 // Career profile form schema
@@ -49,6 +49,14 @@ const workEntrySchema = z.object({
   summary: z.string().optional(),
 })
 
+const achievementEntrySchema = z.object({
+  id: z.string(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  date: z.string().optional(),
+  organization: z.string().optional(),
+})
+
 const careerProfileFormSchema = z.object({
   currentPosition: z.string().optional(),
   currentCompany: z.string().optional(),
@@ -60,6 +68,7 @@ const careerProfileFormSchema = z.object({
   skills: z.string().optional(),
   education: z.array(educationEntrySchema),
   workHistory: z.array(workEntrySchema),
+  achievements: z.array(achievementEntrySchema),
   careerGoals: z.string().max(300, "Career goals must be less than 300 characters").optional(),
 })
 
@@ -85,6 +94,14 @@ const createEmptyWorkEntry = () => ({
   endDate: '',
   isCurrent: false,
   summary: '',
+})
+
+const createEmptyAchievementEntry = () => ({
+  id: uuid(),
+  title: '',
+  description: '',
+  date: '',
+  organization: '',
 })
 
 const normalizeString = (value?: string | null) => {
@@ -113,11 +130,25 @@ const hasWorkContent = (entry: z.infer<typeof workEntrySchema>) =>
     normalizeString(entry.summary)
   )
 
+const hasAchievementContent = (entry: z.infer<typeof achievementEntrySchema>) =>
+  !!(
+    normalizeString(entry.title) ||
+    normalizeString(entry.description) ||
+    normalizeString(entry.date) ||
+    normalizeString(entry.organization)
+  )
+
 export default function CareerProfilePage() {
   const { user: clerkUser } = useUser()
   const { user: userProfile } = useAuth()
   const { toast } = useToast()
   const updateUser = useMutation(api.users.updateUser)
+
+  // Fetch user projects
+  const userProjects = useQuery(
+    api.projects.getUserProjects,
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+  )
 
   // State for editing
   const [isEditingProfile, setIsEditingProfile] = useState(false)
@@ -137,6 +168,7 @@ export default function CareerProfilePage() {
       skills: '',
       education: [createEmptyEducationEntry()],
       workHistory: [createEmptyWorkEntry()],
+      achievements: [createEmptyAchievementEntry()],
       careerGoals: '',
     },
   })
@@ -149,6 +181,11 @@ export default function CareerProfilePage() {
   const workHistoryFieldArray = useFieldArray({
     control: careerProfileForm.control,
     name: 'workHistory',
+  })
+
+  const achievementsFieldArray = useFieldArray({
+    control: careerProfileForm.control,
+    name: 'achievements',
   })
 
   // Load user data into form when available
@@ -181,12 +218,26 @@ export default function CareerProfilePage() {
           }))
         : []
 
+      const achievementEntries = Array.isArray(profile.achievements_history)
+        ? profile.achievements_history.map((item: any) => ({
+            id: item.id || uuid(),
+            title: item.title || '',
+            description: item.description || '',
+            date: item.date || '',
+            organization: item.organization || '',
+          }))
+        : []
+
       if (educationEntries.length === 0) {
         educationEntries.push(createEmptyEducationEntry())
       }
 
       if (workEntries.length === 0) {
         workEntries.push(createEmptyWorkEntry())
+      }
+
+      if (achievementEntries.length === 0) {
+        achievementEntries.push(createEmptyAchievementEntry())
       }
 
       careerProfileForm.reset({
@@ -201,6 +252,7 @@ export default function CareerProfilePage() {
         skills: profile.skills || '',
         education: educationEntries,
         workHistory: workEntries,
+        achievements: achievementEntries,
         careerGoals: profile.career_goals || '',
       })
     }
@@ -237,6 +289,16 @@ export default function CareerProfilePage() {
           summary: normalizeString(entry.summary),
         }))
 
+      const achievementUpdates = (data.achievements ?? [])
+        .filter((entry) => hasAchievementContent(entry))
+        .map((entry) => ({
+          id: entry.id || uuid(),
+          title: normalizeString(entry.title),
+          description: normalizeString(entry.description),
+          date: normalizeString(entry.date),
+          organization: normalizeString(entry.organization),
+        }))
+
       await updateUser({
         clerkId: clerkUser.id,
         updates: {
@@ -250,6 +312,7 @@ export default function CareerProfilePage() {
           skills: normalizeString(data.skills),
           education_history: educationUpdates.length > 0 ? educationUpdates : undefined,
           work_history: workUpdates.length > 0 ? workUpdates : undefined,
+          achievements_history: achievementUpdates.length > 0 ? achievementUpdates : undefined,
           career_goals: normalizeString(data.careerGoals),
         } as any,
       })
@@ -296,6 +359,9 @@ export default function CareerProfilePage() {
     : []
   const workHistory = Array.isArray((userProfile as any).work_history)
     ? (userProfile as any).work_history
+    : []
+  const achievementsHistory = Array.isArray((userProfile as any).achievements_history)
+    ? (userProfile as any).achievements_history
     : []
 
   return (
@@ -516,6 +582,130 @@ export default function CareerProfilePage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Achievements */}
+          {achievementsHistory.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5" />
+                  Achievements & Awards
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {achievementsHistory.map((entry: any, index: number) => (
+                    <div
+                      key={entry.id || `achievement-${index}`}
+                      className="space-y-1 border-b pb-3 last:border-none last:pb-0"
+                    >
+                      <p className="font-medium">
+                        {entry.title || 'Achievement'}
+                      </p>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        {entry.organization && <p>{entry.organization}</p>}
+                        {entry.date && <p>{entry.date}</p>}
+                        {entry.description && (
+                          <p className="text-sm leading-relaxed">{entry.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Projects */}
+          {userProjects && userProjects.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FolderKanban className="h-5 w-5" />
+                  Projects
+                </CardTitle>
+                <CardDescription>
+                  Projects from your portfolio{' '}
+                  <a href="/projects" className="text-primary hover:underline">
+                    (Manage in Projects)
+                  </a>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {userProjects.map((project: any, index: number) => {
+                    const startDate = project.start_date
+                      ? new Date(project.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                      : null
+                    const endDate = project.end_date
+                      ? new Date(project.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                      : 'Present'
+                    const timeline = startDate ? `${startDate} - ${endDate}` : null
+
+                    return (
+                      <div
+                        key={project._id || `project-${index}`}
+                        className="space-y-2 border-b pb-4 last:border-none last:pb-0"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-medium">{project.title || 'Project'}</p>
+                            {project.role && (
+                              <p className="text-sm text-muted-foreground">{project.role}</p>
+                            )}
+                            {project.company && (
+                              <p className="text-sm text-muted-foreground">{project.company}</p>
+                            )}
+                          </div>
+                          {timeline && (
+                            <p className="text-xs text-muted-foreground">{timeline}</p>
+                          )}
+                        </div>
+                        {project.description && (
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {project.description}
+                          </p>
+                        )}
+                        {project.technologies && project.technologies.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {project.technologies.map((tech: string, idx: number) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {tech}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        {(project.url || project.github_url) && (
+                          <div className="flex gap-3 text-xs">
+                            {project.url && (
+                              <a
+                                href={project.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                View Project →
+                              </a>
+                            )}
+                            {project.github_url && (
+                              <a
+                                href={project.github_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                GitHub →
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Career Goals */}
           {(userProfile as any).career_goals && (
@@ -1040,6 +1230,103 @@ export default function CareerProfilePage() {
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Role
+                </Button>
+              </section>
+
+              <Separator />
+
+              <section className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Achievements & Awards</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Highlight certifications, awards, publications, or notable professional accomplishments.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  {achievementsFieldArray.fields.map((field, index) => (
+                    <div key={field.id} className="space-y-4 rounded-lg border p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Achievement #{index + 1}</span>
+                        {achievementsFieldArray.fields.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => achievementsFieldArray.remove(index)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={careerProfileForm.control}
+                          name={`achievements.${index}.title` as const}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Achievement Title</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. Employee of the Year" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={careerProfileForm.control}
+                          name={`achievements.${index}.date` as const}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Date</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. 2024" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormField
+                        control={careerProfileForm.control}
+                        name={`achievements.${index}.organization` as const}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Organization</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Google, IEEE, etc." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={careerProfileForm.control}
+                        name={`achievements.${index}.description` as const}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Brief description of the achievement..."
+                                rows={2}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => achievementsFieldArray.append(createEmptyAchievementEntry())}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Achievement
                 </Button>
               </section>
 
