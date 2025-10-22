@@ -259,7 +259,24 @@ export default function ResumesPage() {
 
   const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !clerkId) return
+
+    if (!file) {
+      toast({
+        title: "No File Selected",
+        description: "Please select a PDF file to import",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!clerkId) {
+      toast({
+        title: "Not Ready",
+        description: "Please wait for the page to finish loading before importing",
+        variant: "destructive",
+      })
+      return
+    }
 
     setImporting(true)
 
@@ -965,7 +982,7 @@ export default function ResumesPage() {
                 <Button
                   variant="outline"
                   onClick={handleImportClick}
-                  disabled={importing}
+                  disabled={importing || !clerkId}
                 >
                   {importing ? (
                     <>

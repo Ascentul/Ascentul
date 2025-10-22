@@ -444,6 +444,11 @@ export default function JobSearchPage() {
                     )}
                     <Button
                       onClick={() => {
+                        // Open job posting in new tab
+                        if (job.url) {
+                          window.open(job.url, '_blank', 'noopener,noreferrer');
+                        }
+                        // Open wizard modal
                         setWizardJob({
                           title: job.title,
                           company: job.company,
