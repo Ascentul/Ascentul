@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     const stripe = new Stripe(stripeSecret, {
-      apiVersion: "2025-02-24.acacia",
+      apiVersion: "2023-10-16",
     });
     const client = getClient();
 

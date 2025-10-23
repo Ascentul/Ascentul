@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { promises as fs } from 'fs'
 import path from 'path'
 
@@ -9,26 +10,37 @@ function ensureUploadsPath(...segments: string[]) {
   return path.join(process.cwd(), 'uploads', ...segments)
 }
 
-function getExtFromFilename(name: string | undefined, fallback: string) {
-  if (!name) return fallback
-  const ext = path.extname(name)
-  return ext || fallback
+const MAX_RESUME_BYTES = 10 * 1024 * 1024 // 10MB
+const ALLOWED_RESUME_EXT = new Set(['.pdf', '.docx'])
+
+function getResumeExtension(name: string | undefined): string {
+  const ext = name ? path.extname(name).toLowerCase() : ''
+  if (ext && ALLOWED_RESUME_EXT.has(ext)) return ext
+  return '.pdf'
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const form = await request.formData()
     const file = form.get('file') as File | null
-    const userId = (form.get('userId') as string) || 'anonymous'
 
     if (!file) {
       return NextResponse.json({ error: 'Missing file field' }, { status: 400 })
     }
 
+    if (file.size > MAX_RESUME_BYTES) {
+      return NextResponse.json({ error: 'File too large' }, { status: 413 })
+    }
+
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    const ext = getExtFromFilename(file.name, '.pdf')
+    const ext = getResumeExtension(file.name)
     const filename = `resume_${userId}_${Date.now()}${ext}`
     const dir = ensureUploadsPath('resumes')
     const fullPath = path.join(dir, filename)

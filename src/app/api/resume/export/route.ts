@@ -8,6 +8,8 @@ import { generatePDFFileName } from '@/lib/pdf/fileName';
 import { buildContactParts, renderContactLink } from '@/lib/pdf/contactRenderer';
 import type { ContactLink } from '@/lib/pdf/contactRenderer';
 import { buildPageConfig } from '@/lib/pdf/pageConfig';
+import { getVisualThemeById, DEFAULT_VISUAL_THEME } from '@/features/resume/themes/visual-presets';
+import type { VisualTheme } from '@/features/resume/themes/visual-theme-types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,12 +26,12 @@ interface ExportResumeRequest {
  * Generate HTML for resume rendering
  * This creates a complete HTML document with styling that matches the resume builder
  */
-function generateResumeHTML(resume: any, blocks: any[], template: any, theme: any, clickableLinks = false): string {
+function generateResumeHTML(resume: any, blocks: any[], template: any, theme: any, visualTheme: VisualTheme | null, clickableLinks = false): string {
   // Build page configuration using extracted utility
   const pageConfig = buildPageConfig(template);
   const { pageSize, dimensions: pageDimensions, margins } = pageConfig;
 
-  // Theme colors and fonts
+  // Theme colors and fonts (basic theme - fallback)
   const primaryColor = theme?.colors?.primary || '#1a1a1a';
   const textColor = theme?.colors?.text || '#333333';
   const accentColor = theme?.colors?.accent || '#0066cc';
@@ -37,6 +39,14 @@ function generateResumeHTML(resume: any, blocks: any[], template: any, theme: an
   const bodyFont = theme?.fonts?.body || 'Arial, sans-serif';
   const headingSize = theme?.fontSizes?.heading || 14;
   const bodySize = theme?.fontSizes?.body || 11;
+
+  // Visual theme overrides (if present)
+  const vt = visualTheme;
+  const vtPrimaryColor = vt?.palette.primary || primaryColor;
+  const vtTextColor = vt?.palette.text || textColor;
+  const vtAccentColor = vt?.palette.accent || accentColor;
+  const vtSurfaceAlt = vt?.palette.surfaceAlt || '#f5f5f5';
+  const vtHasSidebar = vt?.components.sidebar.enabled || false;
 
   // Generate block HTML
   const blocksHTML = blocks
@@ -192,6 +202,46 @@ function generateResumeHTML(resume: any, blocks: any[], template: any, theme: an
 
     .skill-items {
       display: inline;
+    }
+
+    /* Visual theme sidebar support */
+    ${vtHasSidebar ? `
+    .resume-container {
+      display: flex;
+    }
+
+    .resume-sidebar {
+      width: 30%;
+      background-color: ${vtSurfaceAlt};
+      padding: 1.5em;
+      color: ${vtTextColor};
+    }
+
+    .resume-main {
+      flex: 1;
+      padding: 1.5em;
+    }
+    ` : ''}
+
+    /* Print media queries to preserve backgrounds */
+    @media print {
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+
+      body {
+        background-color: white !important;
+      }
+
+      .resume-sidebar {
+        background-color: ${vtSurfaceAlt} !important;
+      }
+
+      h2 {
+        border-bottom-color: ${vtAccentColor} !important;
+      }
     }
   </style>
 </head>
@@ -407,13 +457,19 @@ export async function POST(req: NextRequest) {
       clerkId: userId,
     });
 
+    // Get visual theme if specified
+    let visualTheme: VisualTheme | null = null;
+    if (resumeData.visualThemeId) {
+      visualTheme = getVisualThemeById(resumeData.visualThemeId) || DEFAULT_VISUAL_THEME;
+    }
+
     // Phase 8: Extract full name from header block for file naming
     const headerBlock = blocks.find((b: any) => b.type === 'header');
     const fullName = headerBlock?.data?.fullName || resumeData.title || 'Resume';
     const templateSlug = resumeData.templateSlug || 'template';
 
-    // Generate HTML with clickable links option
-    const html = generateResumeHTML(resumeData, blocks, template, theme, clickableLinks);
+    // Generate HTML with visual theme and clickable links option
+    const html = generateResumeHTML(resumeData, blocks, template, theme, visualTheme, clickableLinks);
 
     // Launch Playwright browser
     const browser = await chromium.launch({

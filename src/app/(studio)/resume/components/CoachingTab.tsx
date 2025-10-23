@@ -143,8 +143,7 @@ export function CoachingTab({ broker, className }: CoachingTabProps) {
           duration: 5000,
         });
       }
-      console.error('[CoachingTab] applySuggestion threw synchronously:', err);
-      throw err;
+      console.error('[CoachingTab] applySuggestion threw an error:', err);
     } finally {
       setApplyingId(null);
     }

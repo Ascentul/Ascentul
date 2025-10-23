@@ -18,9 +18,7 @@ export function CustomBlock({ data, isSelected, onClick, suggestions, blockId }:
 
   return (
     <section
-      className={`space-y-2 transition-all ${
-        isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md p-2' : ''
-      }`}
+      className="space-y-2 transition-all"
       onClick={onClick}
       aria-label={`Custom section: ${heading}`}
     >

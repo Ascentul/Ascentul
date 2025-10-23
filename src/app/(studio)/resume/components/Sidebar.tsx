@@ -1,135 +1,21 @@
 'use client';
 
-import { Layers, Palette, Layout, Lightbulb } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-
-// Detect platform for cross-platform keyboard shortcuts
-const isMac = typeof window !== 'undefined' &&
-  /(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent);
-const modKey = isMac ? 'Cmd' : 'Ctrl';
+/**
+ * @deprecated This component is being phased out in favor of LeftSidebarNav + content panels.
+ * The horizontal toggle has been removed. This wrapper now only provides the panel container.
+ */
 
 interface SidebarProps {
   activeTab: 'layers' | 'themes' | 'templates' | 'coaching';
-  onTabChange: (tab: 'layers' | 'themes' | 'templates' | 'coaching') => void;
   children: React.ReactNode;
   showCoaching?: boolean;
 }
 
-export function Sidebar({ activeTab, onTabChange, children, showCoaching = false }: SidebarProps) {
-  // Validate that coaching tab isn't active when hidden
-  if (activeTab === 'coaching' && !showCoaching) {
-    console.error('Invalid state: coaching tab is active but showCoaching is false');
-  }
-
-  const gridCols = showCoaching ? 'grid-cols-4' : 'grid-cols-3';
-
+export function Sidebar({ activeTab, children }: SidebarProps) {
   return (
-    <div className="h-full flex flex-col bg-background border-r">
-      {/* Segmented Control */}
-      <div className="flex-shrink-0 p-4 border-b" role="tablist" aria-label="Sidebar panels">
-        <div className={`min-w-0 grid ${showCoaching ? 'grid-cols-4' : 'grid-cols-3'} gap-1 p-1 rounded-xl border bg-muted/30 shadow-sm`}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                id="layers-tab"
-                role="tab"
-                aria-selected={activeTab === 'layers'}
-                aria-current={activeTab === 'layers' ? 'page' : undefined}
-                aria-controls="layers-panel"
-                onClick={() => onTabChange('layers')}
-                data-active={activeTab === 'layers'}
-                className="min-w-0 overflow-hidden inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[active=true]:bg-white data-[active=true]:text-foreground data-[active=true]:shadow-md"
-              >
-                <Layers className="w-4 h-4 flex-shrink-0" />
-                <span className="block max-w-full truncate">Layers</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p className="text-xs">
-                {modKey}+Shift+L
-              </p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                id="themes-tab"
-                role="tab"
-                aria-selected={activeTab === 'themes'}
-                aria-current={activeTab === 'themes' ? 'page' : undefined}
-                aria-controls="themes-panel"
-                onClick={() => onTabChange('themes')}
-                data-active={activeTab === 'themes'}
-                className="min-w-0 overflow-hidden inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[active=true]:bg-white data-[active=true]:text-foreground data-[active=true]:shadow-md"
-              >
-                <Palette className="w-4 h-4 flex-shrink-0" />
-                <span className="block max-w-full truncate">Themes</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p className="text-xs">
-                {modKey}+Shift+H
-              </p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                id="templates-tab"
-                role="tab"
-                aria-selected={activeTab === 'templates'}
-                aria-current={activeTab === 'templates' ? 'page' : undefined}
-                aria-controls="templates-panel"
-                onClick={() => onTabChange('templates')}
-                data-active={activeTab === 'templates'}
-                className="min-w-0 overflow-hidden inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[active=true]:bg-white data-[active=true]:text-foreground data-[active=true]:shadow-md"
-              >
-                <Layout className="w-4 h-4 flex-shrink-0" />
-                <span className="block max-w-full truncate">Templates</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p className="text-xs">
-                {modKey}+Shift+T
-              </p>
-            </TooltipContent>
-          </Tooltip>
-
-          {showCoaching && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  id="coaching-tab"
-                  role="tab"
-                  aria-selected={activeTab === 'coaching'}
-                  aria-current={activeTab === 'coaching' ? 'page' : undefined}
-                  aria-controls="coaching-panel"
-                  onClick={() => onTabChange('coaching')}
-                  data-active={activeTab === 'coaching'}
-                  className="min-w-0 overflow-hidden inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-muted-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[active=true]:bg-white data-[active=true]:text-foreground data-[active=true]:shadow-md"
-                >
-                  <Lightbulb className="w-4 h-4 flex-shrink-0" />
-                  <span className="block max-w-full truncate">Coaching</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <p className="text-xs">
-                  {modKey}+Shift+C
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-      </div>
-
+    <div className="h-full flex flex-col bg-background border-r w-80">
       {/* Scrollable Content */}
-      <div 
+      <div
         role="tabpanel"
         id={`${activeTab}-panel`}
         aria-labelledby={`${activeTab}-tab`}

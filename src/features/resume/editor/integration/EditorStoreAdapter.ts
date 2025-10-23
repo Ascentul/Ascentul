@@ -97,6 +97,16 @@ export interface StoreInstance {
 }
 
 /**
+ * Helper function to deep clone values
+ */
+const cloneProps = <T>(value: T): T => {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+};
+
+/**
  * EditorStore adapter implementation
  * Provides stable API for AI edit operations
  */
@@ -151,13 +161,6 @@ export class EditorStoreAdapter implements IEditorStoreAdapter {
     const state = this.store.getState();
     return state.selectedIds[0] ?? null;
   }
-
-const cloneProps = <T>(value: T): T => {
-  if (typeof structuredClone === 'function') {
-    return structuredClone(value);
-  }
-  return JSON.parse(JSON.stringify(value));
-};
 
   snapshotBlock(blockId: string): Record<string, unknown> | null {
     const state = this.store.getState();

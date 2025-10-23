@@ -51,7 +51,10 @@ export async function POST(req: NextRequest) {
 
     // Verify resume ownership
     try {
-      const resume = await client.query(api.builder_resumes.getResume, { id: resumeId });
+      const resume = await client.query(api.builder_resumes.getResume, {
+        id: resumeId,
+        clerkId: userId,
+      });
       if (!resume) {
         return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
       }
@@ -95,13 +98,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the updated resume with all blocks
-    const updatedResume = await client.query(api.builder_resumes.getResume, { id: resumeId });
+    const updatedResume = await client.query(api.builder_resumes.getResume, {
+      id: resumeId,
+      clerkId: userId,
+    });
 
     return NextResponse.json({
       success: true,
       updatedBlocks,
       errors: errors.length > 0 ? errors : undefined,
-      blocks: updatedResume.blocks,
+      blocks: updatedResume?.blocks ?? [],
       message: `Saved ${updatedBlocks.length} blocks${errors.length > 0 ? ` with ${errors.length} errors` : ''}`,
     });
   } catch (error: any) {

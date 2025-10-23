@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Check OpenAI configuration
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.OPENAI_API_KEY || !openai) {
       return NextResponse.json(
         { error: 'AI not configured. OPENAI_API_KEY environment variable is missing.' },
         { status: 503 }
@@ -202,6 +202,7 @@ export async function POST(req: NextRequest) {
 
     // 7. Create streaming response
     const model = getModel();
+    const openAIClient = openai;
     const tracker = createDurationTracker();
 
     const stream = createSSEStream(async (send) => {
@@ -226,16 +227,15 @@ export async function POST(req: NextRequest) {
         // Call OpenAI with streaming disabled (we'll parse complete response)
         // Note: We're not using OpenAI streaming here to keep response parsing simpler
         // Future enhancement: implement true token-by-token streaming
-        const completion = await openai.chat.completions.create({
-          model,
-          messages: [
-            { role: 'system', content: SUGGESTIONS_SYSTEM_PROMPT },
-            { role: 'user', content: userPrompt },
-          ],
-          temperature: AI_CONFIG.TEMPERATURE.PRECISE,
-          max_tokens: AI_CONFIG.MAX_TOKENS.MEDIUM,
-          timeout: 45000, // 45 seconds - leave buffer before maxDuration
-        });
+        const completion = await openAIClient.chat.completions.create(
+          {
+            model,
+            messages: [
+              { role: 'system', content: SUGGESTIONS_SYSTEM_PROMPT },
+              { role: 'user', content: userPrompt },
+            ],
+            temperature: AI_CONFIG.TEMPERATURE.PRECISE,
+            max_tokens: AI_CONFIG.MAX_TOKENS.MEDIUM,
           },
           {
             timeout: AI_CONFIG.TIMEOUT,

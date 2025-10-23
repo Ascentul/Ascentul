@@ -285,12 +285,10 @@ function BlockInspectorLegacy({ block, clerkId, resumeUpdatedAt, onUpdate }: Blo
   }, [mutationBroker, onUpdate]);
 
   useEffect(() => {
-    setDebounceTimer((prevTimer) => {
-      if (prevTimer) {
-        clearTimeout(prevTimer);
-      }
-      return null;
-    });
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
 
     if (block) {
       setLocalData(JSON.parse(JSON.stringify(block.data)));
@@ -301,12 +299,10 @@ function BlockInspectorLegacy({ block, clerkId, resumeUpdatedAt, onUpdate }: Blo
 
   useEffect(() => {
     return () => {
-      setDebounceTimer((prevTimer) => {
-        if (prevTimer) {
-          clearTimeout(prevTimer);
-        }
-        return null;
-      });
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
     };
   }, []);
 

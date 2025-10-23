@@ -195,6 +195,12 @@ function buildProfileSummary(profile: CareerProfileDTO) {
   };
 }
 
+type GenerateBlocksResult = {
+  success: boolean;
+  blocksCreated: number;
+  error?: string;
+};
+
 /**
  * Generate resume blocks using AI based on job description and user profile
  *
@@ -212,7 +218,7 @@ export const generateBlocks = action({
     jobDescription: v.string(),
     clearExisting: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<GenerateBlocksResult> => {
     const openaiClient = await getOpenAIClient();
 
     // Guard: Ensure OpenAI is available
@@ -333,12 +339,15 @@ Generate a resume with blocks in this order:
         const validated = aiResumeResponseSchema.parse(parsedResponse);
 
         // Step 6: Insert blocks via bulkUpdate mutation
-        const result = await ctx.runMutation(api.builder_blocks.bulkUpdate, {
-          resumeId: args.resumeId,
-          clerkId: args.clerkId,
-          blocks: validated.blocks,
-          clearExisting: args.clearExisting ?? true,
-        });
+        const result: { createdCount: number } = await ctx.runMutation(
+          api.builder_blocks.bulkUpdate,
+          {
+            resumeId: args.resumeId,
+            clerkId: args.clerkId,
+            blocks: validated.blocks,
+            clearExisting: args.clearExisting ?? true,
+          }
+        );
 
         return {
           success: true,

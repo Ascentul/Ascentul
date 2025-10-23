@@ -8,13 +8,6 @@
 import "server-only";
 import OpenAI from "openai";
 
-const key = process.env.OPENAI_API_KEY;
+const key = process.env.OPENAI_API_KEY ?? null;
 
-if (!key) {
-  throw new Error(
-    "Missing OPENAI_API_KEY environment variable. " +
-    "Add it to .env.local for development or configure in your deployment environment."
-  );
-}
-
-export const openai = new OpenAI({ apiKey: key });
+export const openai: OpenAI | null = key ? new OpenAI({ apiKey: key }) : null;

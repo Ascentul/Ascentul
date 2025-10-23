@@ -32,7 +32,23 @@ export const listTemplates = query({
  */
 export const listTemplatesAll = query({
   args: {},
-  handler: listTemplates.handler,
+  handler: async (ctx) => {
+    const templates = await ctx.db
+      .query("builder_resume_templates")
+      .withIndex("by_name")
+      .order("asc")
+      .collect();
+
+    return templates.map((template) => ({
+      id: template._id,
+      slug: template.slug,
+      name: template.name,
+      preview: template.preview ?? template.thumbnailUrl ?? null,
+      thumbnailUrl: template.thumbnailUrl,
+      pageSize: template.pageSize,
+      allowedBlocks: template.allowedBlocks,
+    }));
+  },
 });
 
 /**

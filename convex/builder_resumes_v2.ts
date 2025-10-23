@@ -145,6 +145,7 @@ export const get = query({
         title: resume.title,
         templateSlug: resume.templateSlug,
         themeId: resume.themeId,
+        visualThemeId: resume.visualThemeId,
         version: resume.version,
         createdAt: resume.createdAt,
         updatedAt: resume.updatedAt,

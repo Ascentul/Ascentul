@@ -25,9 +25,7 @@ export function ExperienceBlock({
 
   return (
     <section
-      className={`space-y-2 transition-all ${
-        isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md p-2' : ''
-      }`}
+      className="space-y-2"
       aria-label="Work experience"
     >
       <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">

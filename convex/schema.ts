@@ -558,6 +558,7 @@ export default defineSchema({
     title: v.string(),
     templateSlug: v.optional(v.string()),
     themeId: v.optional(v.id("builder_resume_themes")),
+    visualThemeId: v.optional(v.string()), // Visual theme ID (e.g., 'navy-sidebar', 'emerald-sidebar')
     version: v.optional(v.number()),
 
     // TODO: PERFORMANCE - Migrate to storage-based thumbnails

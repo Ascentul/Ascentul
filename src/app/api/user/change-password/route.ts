@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { auth, clerkClient } from '@clerk/nextjs/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,53 +12,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createClient()
-
-    // Get the current user from the session
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
+    const { userId } = await auth()
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Authorization header required' },
+        { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Invalid or expired token' },
-        { status: 401 }
-      )
-    }
-
-    // Verify current password by attempting to sign in
-    const { error: verifyError } = await supabase.auth.signInWithPassword({
-      email: user.email!,
-      password: currentPassword,
-    })
-
-    if (verifyError) {
+    const client = clerkClient
+    try {
+      await client.users.verifyPassword({ userId, password: currentPassword })
+    } catch (error: any) {
+      console.error('Password verification failed:', error)
       return NextResponse.json(
         { error: 'Current password is incorrect' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
-    // Update password using admin API
-    const { error: updateError } = await supabase.auth.admin.updateUserById(
-      user.id,
-      { password: newPassword }
-    )
-
-    if (updateError) {
-      console.error('Error updating password:', updateError)
-      return NextResponse.json(
-        { error: 'Failed to update password' },
-        { status: 500 }
-      )
-    }
+    await client.users.updateUser(userId, { password: newPassword })
 
     return NextResponse.json({
       message: 'Password updated successfully'

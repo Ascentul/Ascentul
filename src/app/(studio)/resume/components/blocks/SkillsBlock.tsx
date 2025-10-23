@@ -30,9 +30,7 @@ export function SkillsBlock({ data, isSelected, suggestions, blockId }: SkillsBl
 
   return (
     <section
-      className={`space-y-2 transition-all ${
-        isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md p-2' : ''
-      }`}
+      className="space-y-2 transition-all"
       aria-label="Skills"
     >
       <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">

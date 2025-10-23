@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { promises as fs } from 'fs'
 import path from 'path'
 
@@ -9,26 +10,37 @@ function ensureUploadsPath(...segments: string[]) {
   return path.join(process.cwd(), 'uploads', ...segments)
 }
 
-function getExtFromFilename(name: string | undefined, fallback: string) {
-  if (!name) return fallback
-  const ext = path.extname(name)
-  return ext || fallback
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5MB limit
+const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp'])
+
+function getSafeExtension(name: string | undefined): string {
+  const ext = name ? path.extname(name).toLowerCase() : ''
+  if (ext && ALLOWED_EXTENSIONS.has(ext)) return ext
+  return '.jpg'
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const form = await request.formData()
     const file = form.get('file') as File | null
-    const userId = (form.get('userId') as string) || 'anonymous'
 
     if (!file) {
       return NextResponse.json({ error: 'Missing file field' }, { status: 400 })
     }
 
+    if (file.size > MAX_IMAGE_BYTES) {
+      return NextResponse.json({ error: 'File too large' }, { status: 413 })
+    }
+
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    const ext = getExtFromFilename(file.name, '.jpg')
+    const ext = getSafeExtension(file.name)
     const filename = `profile_${userId}_${Date.now()}${ext}`
     const dir = ensureUploadsPath('images')
     const fullPath = path.join(dir, filename)

@@ -291,4 +291,12 @@ export function useAIStreaming(options: UseAIStreamingOptions = {}): UseAIStream
 
   const isStreaming = status.state === 'connecting' || status.state === 'streaming';
 
+  return {
+    status,
+    start,
+    cancel,
+    reset,
+    isStreaming,
+  };
+}
 

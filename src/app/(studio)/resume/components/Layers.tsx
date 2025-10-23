@@ -30,7 +30,15 @@ export function Layers({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const getBlockLabel = (block: Block): string => {
-    return BLOCK_TYPE_LABELS[block.type] ?? 'Unknown';
+    const label = BLOCK_TYPE_LABELS[block.type] ?? 'Unknown';
+    if (label === 'Unknown') {
+      console.warn('[Layers] Unknown block type detected:', {
+        id: block._id,
+        type: block.type,
+        fullBlock: block
+      });
+    }
+    return label;
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {

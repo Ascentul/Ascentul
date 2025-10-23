@@ -51,9 +51,7 @@ export function HeaderBlock({ data, isSelected, suggestions, blockId }: HeaderBl
 
   return (
     <header
-      className={`pb-6 border-b border-neutral-200 transition-all ${
-        isSelected ? 'ring-2 ring-primary ring-offset-2 rounded-md' : ''
-      }`}
+      className="pb-6 border-b border-neutral-200 transition-all"
       aria-label="Resume header"
     >
       {/* Full Name */}

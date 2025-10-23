@@ -43,12 +43,11 @@ export async function POST(request: NextRequest) {
     const convex = convexUrl ? new ConvexHttpClient(convexUrl) : null
 
     let event: Stripe.Event
-    if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret)
-    } else {
-      // If no webhook secret present, try to parse (useful for local testing)
-      event = JSON.parse(rawBody)
+    if (!webhookSecret) {
+      console.error('Stripe webhook secret is not configured')
+      return NextResponse.json({ error: 'Webhook misconfigured' }, { status: 500 })
     }
+    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret)
 
     switch (event.type) {
       case 'checkout.session.completed': {

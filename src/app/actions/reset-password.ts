@@ -4,7 +4,7 @@ import { clerkClient } from '@clerk/nextjs/server'
 
 export async function resetUserPassword(email: string, newPassword: string) {
   try {
-    const client = await clerkClient()
+    const client = clerkClient
 
     // Find user by email
     const users = await client.users.getUserList({ emailAddress: [email] })

@@ -668,11 +668,8 @@ export const EditorStoreProvider = ({
   return <StoreContext.Provider value={storeRef.current}>{children}</StoreContext.Provider>;
 };
 
-export const useEditorStore = (): EditorStore => {
+export const useEditorStore = (): EditorStore | null => {
   const store = useContext(StoreContext);
-  if (!store) {
-    throw new Error('useEditorStore must be used within EditorStoreProvider');
-  }
   return store;
 };
 
@@ -681,6 +678,11 @@ export const useEditorSelector = <T,>(
   equalityFn: (a: T, b: T) => boolean = Object.is,
 ): T => {
   const store = useEditorStore();
+
+  if (!store) {
+    throw new Error('useEditorSelector must be used within EditorStoreProvider');
+  }
+
   const lastValueRef = useRef<T>(selector(store.getState()));
 
   const getSnapshot = () => lastValueRef.current;
@@ -699,8 +701,10 @@ export const useEditorSelector = <T,>(
 
 export const useEditorActions = () => {
   const store = useEditorStore();
-  return useMemo(
-    () => ({
+  return useMemo(() => {
+    if (!store) return null;
+
+    return {
       select: store.select.bind(store) as (ids: BlockId[]) => void,
       clearSelection: store.clearSelection.bind(store) as () => void,
       createBlock: store.createBlock.bind(store) as (
@@ -731,7 +735,6 @@ export const useEditorActions = () => {
       redo: store.redo.bind(store) as () => void,
       markSaved: store.markSaved.bind(store) as (resumeId: Id<'builder_resumes'>, timestamp: number) => void,
       switchLayout: store.switchLayout.bind(store) as (targetLayout: LayoutDefinition) => void,
-    }),
-    [store],
-  );
+    };
+  }, [store]);
 };

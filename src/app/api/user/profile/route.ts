@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { auth } from '@clerk/nextjs/server'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from 'convex/_generated/api'
 
 export async function PUT(request: NextRequest) {
   try {
@@ -12,55 +14,32 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const supabase = createClient()
-
-    // Get the current user from the session
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
+    const authResult = await auth()
+    const { userId } = authResult
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Authorization header required' },
+        { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Invalid or expired token' },
-        { status: 401 }
-      )
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!convexUrl) {
+      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
     }
 
-    // Update user profile in database
-    const { data: updatedUser, error: updateError } = await supabase
-      .from('users')
-      .update({ name, email })
-      .eq('id', user.id)
-      .select()
-      .single()
-
-    if (updateError) {
-      console.error('Error updating user profile:', updateError)
-      return NextResponse.json(
-        { error: 'Failed to update profile' },
-        { status: 500 }
-      )
+    const convex = new ConvexHttpClient(convexUrl)
+    const token = await authResult.getToken({ template: 'convex' }).catch(() => null)
+    if (token) {
+      convex.setAuth(token)
     }
 
-    // Update auth user email if it changed
-    if (email !== user.email) {
-      const { error: emailUpdateError } = await supabase.auth.admin.updateUserById(
-        user.id,
-        { email }
-      )
+    await convex.mutation(api.users.updateUser, {
+      clerkId: userId,
+      updates: { name, email },
+    })
 
-      if (emailUpdateError) {
-        console.error('Error updating auth email:', emailUpdateError)
-        // Continue anyway, profile was updated
-      }
-    }
+    const updatedUser = await convex.query(api.users.getUserByClerkId, { clerkId: userId })
 
     return NextResponse.json({
       user: updatedUser,

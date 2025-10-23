@@ -118,6 +118,7 @@ export const updateResumeMeta = mutation({
     title: v.optional(v.string()),
     templateSlug: v.optional(v.string()),
     themeId: v.optional(v.id("builder_resume_themes")),
+    visualThemeId: v.optional(v.string()),
     expectedUpdatedAt: v.number(),
   },
   handler: async (ctx, args) => {
@@ -149,6 +150,7 @@ export const updateResumeMeta = mutation({
     if (args.title !== undefined) updates.title = args.title;
     if (args.templateSlug !== undefined) updates.templateSlug = args.templateSlug;
     if (args.themeId !== undefined) updates.themeId = args.themeId;
+    if (args.visualThemeId !== undefined) updates.visualThemeId = args.visualThemeId;
 
     // Apply updates
     await ctx.db.patch(args.id, updates);
@@ -159,6 +161,7 @@ export const updateResumeMeta = mutation({
       updatedAt: updates.updatedAt,
       templateSlug: updates.templateSlug ?? resume.templateSlug,
       themeId: updates.themeId ?? resume.themeId,
+      visualThemeId: updates.visualThemeId ?? resume.visualThemeId,
     };
   },
 });

@@ -107,25 +107,23 @@ export async function POST(request: NextRequest) {
       'Role',
       'Department',
       'Joined Date',
-      'Last Updated',
-      'Goals Set',
-      'Applications Submitted',
-      'Resumes Created',
-      'Cover Letters Created'
+      'Last Updated'
     ]
 
-    const csvRows = students.map(student => [
-      student.name || '',
-      student.email || '',
-      student.role || '',
-      student.university_id ? departments.find(d => d._id === student.university_id as any)?.name || '' : '',
-      student.created_at ? new Date(student.created_at).toLocaleDateString() : '',
-      student.updated_at ? new Date(student.updated_at).toLocaleDateString() : '',
-      Math.floor(Math.random() * 10), // Mock goals count
-      Math.floor(Math.random() * 5), // Mock applications count
-      Math.floor(Math.random() * 3), // Mock resumes count
-      Math.floor(Math.random() * 2) // Mock cover letters count
-    ])
+    const csvRows = students.map(student => {
+      const departmentName = student.department_id
+        ? departments.find(d => d._id === student.department_id)?.name || 'Unassigned'
+        : 'Unassigned'
+
+      return [
+        student.name || '',
+        student.email || '',
+        student.role || '',
+        departmentName,
+        student.created_at ? new Date(student.created_at).toLocaleDateString() : '',
+        student.updated_at ? new Date(student.updated_at).toLocaleDateString() : ''
+      ]
+    })
 
     // Escape CSV cells to handle commas and quotes
     const escapeCSV = (field: string | number) => {

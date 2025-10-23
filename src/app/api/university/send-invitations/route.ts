@@ -4,13 +4,23 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
 import { sendUniversityInvitationEmail } from '@/lib/email';
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const authResult = await auth();
+    const { userId } = authResult;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) {
+      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 });
+    }
+
+    const convex = new ConvexHttpClient(convexUrl);
+    const token = await authResult.getToken({ template: 'convex' }).catch(() => null);
+    if (token) {
+      convex.setAuth(token);
     }
 
     const body = await req.json();
@@ -23,7 +33,16 @@ export async function POST(req: NextRequest) {
     // Get the university admin's info to fetch university name
     const adminUser = await convex.query(api.users.getUserByClerkId, { clerkId: userId });
 
-    if (!adminUser || !adminUser.university_id) {
+    if (!adminUser) {
+      return NextResponse.json({ error: 'User record not found' }, { status: 404 });
+    }
+
+    const allowedRoles = new Set(['admin', 'super_admin', 'university_admin']);
+    if (!allowedRoles.has(adminUser.role)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    if (!adminUser.university_id) {
       return NextResponse.json({ error: 'University admin not found' }, { status: 404 });
     }
 

@@ -73,6 +73,8 @@ describe('AI Streaming Integration', () => {
     // Set env vars
     process.env.NEXT_PUBLIC_RESUME_V2_STORE = 'true';
     process.env.NEXT_PUBLIC_DEBUG_UI = 'true';
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
     delete process.env.NEXT_PUBLIC_RESUME_V2_STORE;

@@ -17,6 +17,7 @@ import { ThemePanel } from '../components/ThemePanel';
 import { TemplatePicker } from '../components/TemplatePicker';
 import { CoachingTab } from '../components/CoachingTab';
 import { Sidebar } from '../components/Sidebar';
+import { LeftSidebarNav } from '@/components/navigation/LeftSidebarNav';
 import { PageControls } from '../components/PageControls';
 import { AIActionsToolbar } from '../components/AIActionsToolbar';
 import { HeaderBlock } from '../components/blocks/HeaderBlock';
@@ -34,7 +35,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChevronLeft, ChevronRight, Loader2, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Settings, Copy, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PAGE_CONFIGS, type LayoutConfig } from '@/lib/resume-layout';
 import { useBlockHeights } from '@/hooks/use-block-heights';
@@ -161,8 +162,8 @@ export default function ResumeStudioPage() {
   const showAuthLoading = !userLoaded;
   const isSignedOut = userLoaded && !user?.id;
 
-  // V2 store flag
-  const useV2Store = !!process.env.NEXT_PUBLIC_RESUME_V2_STORE;
+  // V2 store flag - properly parse the string value
+  const useV2Store = process.env.NEXT_PUBLIC_RESUME_V2_STORE === 'true';
 
   // Always call hooks unconditionally (Rules of Hooks)
   useHistoryShortcuts();
@@ -189,7 +190,7 @@ export default function ResumeStudioPage() {
   const updateBlock = useMutation(api.builder_blocks.update);
 
   // Mutation for deleting blocks
-  const deleteBlock = useMutation(api.builder_blocks.delete);
+  const deleteBlock = useMutation(api.builder_blocks.remove);
 
   // Mutation for reordering blocks
   const reorderBlocks = useMutation(api.builder_blocks.reorder);
@@ -434,6 +435,73 @@ useEffect(() => {
     }
   };
 
+  // Block action handlers
+  const handleDuplicateBlock = useCallback(async (block: Block) => {
+    if (!user?.id) return;
+
+    try {
+      await createBlock({
+        clerkId: user.id,
+        resumeId: resumeId as Id<"builder_resumes">,
+        type: block.type,
+        data: block.data,
+        order: block.order + 0.5,
+        locked: block.locked || false,
+      });
+
+      toast({
+        title: 'Block duplicated',
+        description: 'The block has been duplicated successfully.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to duplicate block.',
+        variant: 'destructive',
+      });
+    }
+  }, [user?.id, resumeId, createBlock, toast]);
+
+  const handleDeleteBlock = useCallback(async (blockId: string) => {
+    if (!user?.id) return;
+
+    // Store previous state for rollback
+    const previousBlocks = localBlocks;
+    const previousMap = blocksMap;
+
+    // Optimistically remove block from local state
+    const newBlocks = localBlocks.filter(b => b._id !== blockId);
+    setLocalBlocks(newBlocks);
+    setBlocksMap(toBlockMap(newBlocks));
+
+    // Clear selection if deleted block was selected
+    if (selectedBlockId === blockId) {
+      setSelectedBlockId(null);
+    }
+
+    try {
+      await deleteBlock({
+        clerkId: user.id,
+        id: blockId as Id<"resume_blocks">,
+      });
+
+      toast({
+        title: 'Block deleted',
+        description: 'The block has been deleted successfully.',
+      });
+    } catch (error: any) {
+      // Rollback on error
+      setLocalBlocks(previousBlocks);
+      setBlocksMap(previousMap);
+
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete block.',
+        variant: 'destructive',
+      });
+    }
+  }, [user?.id, selectedBlockId, localBlocks, blocksMap, deleteBlock, toast]);
+
   const renderBlockContent = (block: Block): ReactNode => {
     const isSelected = selectedBlockId === block._id;
     const commonProps = {
@@ -441,27 +509,38 @@ useEffect(() => {
       blockId: block._id,
     };
 
+    let blockContent: ReactNode;
     switch (block.type) {
       case 'header':
-        return <HeaderBlock data={block.data as HeaderData} {...commonProps} />;
+        blockContent = <HeaderBlock data={block.data as HeaderData} {...commonProps} />;
+        break;
       case 'summary':
-        return <SummaryBlock data={block.data as SummaryData} {...commonProps} />;
+        blockContent = <SummaryBlock data={block.data as SummaryData} {...commonProps} />;
+        break;
       case 'experience':
-        return <ExperienceBlock data={block.data as ExperienceData} {...commonProps} />;
+        blockContent = <ExperienceBlock data={block.data as ExperienceData} {...commonProps} />;
+        break;
       case 'education':
-        return <EducationBlock data={block.data as EducationData} {...commonProps} />;
+        blockContent = <EducationBlock data={block.data as EducationData} {...commonProps} />;
+        break;
       case 'skills':
-        return <SkillsBlock data={block.data as SkillsData} {...commonProps} />;
+        blockContent = <SkillsBlock data={block.data as SkillsData} {...commonProps} />;
+        break;
       case 'projects':
-        return <ProjectsBlock data={block.data as ProjectsData} {...commonProps} />;
+        blockContent = <ProjectsBlock data={block.data as ProjectsData} {...commonProps} />;
+        break;
       case 'custom':
-        return <CustomBlock data={block.data as CustomData} {...commonProps} />;
+        blockContent = <CustomBlock data={block.data as CustomData} {...commonProps} />;
+        break;
       default:
         // Exhaustiveness check: will cause compile error if new block type is added but not handled
         const _exhaustiveCheck: never = block.type;
         console.warn(`Unknown block type: ${String(_exhaustiveCheck)}`);
-        return null;
+        blockContent = null;
     }
+
+    // Just return the block content - click handling is done by parent
+    return blockContent;
   };
 
   const handleBlockReorder = useCallback(async (newBlocks: Block[]) => {
@@ -500,6 +579,26 @@ useEffect(() => {
       });
     }
   }, [user?.id, resumeId, localUpdatedAt, reorderBlocks, toast]);
+
+  const handleMoveBlockUp = useCallback(async (blockId: string) => {
+    const blockIndex = localBlocks.findIndex(b => b._id === blockId);
+    if (blockIndex <= 0) return; // Already at top
+
+    const newBlocks = [...localBlocks];
+    [newBlocks[blockIndex - 1], newBlocks[blockIndex]] = [newBlocks[blockIndex], newBlocks[blockIndex - 1]];
+
+    await handleBlockReorder(newBlocks);
+  }, [localBlocks, handleBlockReorder]);
+
+  const handleMoveBlockDown = useCallback(async (blockId: string) => {
+    const blockIndex = localBlocks.findIndex(b => b._id === blockId);
+    if (blockIndex < 0 || blockIndex >= localBlocks.length - 1) return; // Already at bottom or not found
+
+    const newBlocks = [...localBlocks];
+    [newBlocks[blockIndex], newBlocks[blockIndex + 1]] = [newBlocks[blockIndex + 1], newBlocks[blockIndex]];
+
+    await handleBlockReorder(newBlocks);
+  }, [localBlocks, handleBlockReorder]);
 
   const handleResumeUpdatedAtChange = (newUpdatedAt: number) => {
     setLocalUpdatedAt(newUpdatedAt);
@@ -1001,14 +1100,23 @@ useEffect(() => {
         )}
       >
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar */}
+        {/* Left Sidebar Navigation */}
+        {isLeftSidebarOpen && (
+          <LeftSidebarNav
+            active={activeTab}
+            onSelect={setActiveTab}
+            showCoaching={enableV2Features}
+          />
+        )}
+
+        {/* Left Sidebar Content */}
         <div
           className={`transition-all duration-300 ${
             isLeftSidebarOpen ? 'w-80' : 'w-0'
           } overflow-hidden`}
         >
           {isLeftSidebarOpen && (
-            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} showCoaching={enableV2Features}>
+            <Sidebar activeTab={activeTab} showCoaching={enableV2Features}>
               {activeTab === 'layers' && (
                 <Layers
                   blocks={localBlocks}
@@ -1070,26 +1178,86 @@ useEffect(() => {
           <div className="relative mx-auto my-8 shadow-xl bg-white transition-opacity duration-200" style={{ width: '8.5in', minHeight: '11in', opacity: isUpdatingMeta ? 0.5 : 1 }}>
             {/* Render blocks with click-to-select */}
             <div className="p-12 space-y-6">
-              {currentPageBlocks.map((block) => (
-                <button
-                  key={block._id}
-                  ref={(node) => registerBlock(block._id, node)}
-                  onClick={() => handleSelectBlock(block._id)}
-                  className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
-                    selectedBlockId === block._id
-                      ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2 shadow-md scale-[1.01]'
-                      : 'border-transparent hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
-                  } focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2`}
-                  aria-selected={selectedBlockId === block._id}
-                >
-                  <div className="text-sm font-medium text-gray-500 mb-2">
-                    {block.type.charAt(0).toUpperCase() + block.type.slice(1)}
+              {currentPageBlocks.filter(block => block && block.type).map((block) => {
+                const isSelected = selectedBlockId === block._id;
+                const blockIndex = currentPageBlocks.findIndex(b => b._id === block._id);
+
+                return (
+                  <div key={block._id} className="relative">
+                    {/* Block Action Toolbar - shown above selected block */}
+                    {isSelected && (
+                      <div className="absolute -top-12 left-0 right-0 flex justify-center z-10 pointer-events-auto">
+                        <div className="flex items-center gap-1 bg-primary text-primary-foreground rounded-md shadow-lg px-2 py-1">
+                          <button
+                            type="button"
+                            className="h-7 w-7 p-0 flex items-center justify-center rounded hover:bg-primary-foreground/20 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDuplicateBlock(block);
+                            }}
+                            title="Duplicate block"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            className="h-7 w-7 p-0 flex items-center justify-center rounded hover:bg-primary-foreground/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveBlockUp(block._id);
+                            }}
+                            title="Move up"
+                            disabled={blockIndex === 0}
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            className="h-7 w-7 p-0 flex items-center justify-center rounded hover:bg-primary-foreground/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveBlockDown(block._id);
+                            }}
+                            title="Move down"
+                            disabled={blockIndex === currentPageBlocks.length - 1}
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            className="h-7 w-7 p-0 flex items-center justify-center rounded hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteBlock(block._id);
+                            }}
+                            title="Delete block"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      ref={(node) => registerBlock(block._id, node)}
+                      onClick={() => handleSelectBlock(block._id)}
+                      className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                        isSelected
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2 shadow-md scale-[1.01]'
+                          : 'border-transparent hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
+                      } focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-2`}
+                      aria-selected={isSelected}
+                    >
+                      <div className="text-sm font-medium text-gray-500 mb-2">
+                        {block.type.charAt(0).toUpperCase() + block.type.slice(1)}
+                      </div>
+                      <div className="space-y-2">
+                        {renderBlockContent(block)}
+                      </div>
+                    </button>
                   </div>
-                  <div className="space-y-2">
-                    {renderBlockContent(block)}
-                  </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           </div>
 
