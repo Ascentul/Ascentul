@@ -281,64 +281,50 @@ export const getAdminAnalytics = query({
     ]);
 
     // Calculate MAU for each month for each university
-    // Wrap in try-catch to prevent production crashes due to large dataset timeouts
-    try {
-      // Optional limit controlled by environment variable
-      const uniLimit = Number(process.env.ANALYTICS_UNI_LIMIT ?? "0");
-      const universitiesToProcess = uniLimit > 0 ? universities.slice(0, uniLimit) : universities;
+    for (const boundary of monthBoundariesForMAU) {
+      const monthData: { month: string; [key: string]: string | number } = { month: boundary.label };
 
-      for (const boundary of monthBoundariesForMAU) {
-        const monthData: { month: string; [key: string]: string | number } = { month: boundary.label };
+      for (const uni of universities) {
+        const uniUsers = await ctx.db
+          .query("users")
+          .withIndex("by_university", (q) => q.eq("university_id", uni._id))
+          .collect();
 
-        for (const uni of universitiesToProcess) {
-          const uniUsers = await ctx.db
-            .query("users")
-            .withIndex("by_university", (q) => q.eq("university_id", uni._id))
-            .collect();
+        const userIds = uniUsers.map(u => u._id);
 
-          const userIds = uniUsers.map(u => u._id);
+        // Get activity for this month
+        const monthApps = allApps.filter(a =>
+          userIds.includes(a.user_id) &&
+          a.created_at >= boundary.start &&
+          a.created_at <= boundary.end
+        );
+        const monthResumes = allResumes.filter(r =>
+          userIds.includes(r.user_id) &&
+          r.created_at >= boundary.start &&
+          r.created_at <= boundary.end
+        );
+        const monthGoals = allGoals.filter(g =>
+          userIds.includes(g.user_id) &&
+          g.created_at >= boundary.start &&
+          g.created_at <= boundary.end
+        );
+        const monthProjects = allProjects.filter(p =>
+          userIds.includes(p.user_id) &&
+          p.created_at >= boundary.start &&
+          p.created_at <= boundary.end
+        );
 
-          // Get activity for this month
-          const monthApps = allApps.filter(a =>
-            userIds.includes(a.user_id) &&
-            a.created_at >= boundary.start &&
-            a.created_at <= boundary.end
-          );
-          const monthResumes = allResumes.filter(r =>
-            userIds.includes(r.user_id) &&
-            r.created_at >= boundary.start &&
-            r.created_at <= boundary.end
-          );
-          const monthGoals = allGoals.filter(g =>
-            userIds.includes(g.user_id) &&
-            g.created_at >= boundary.start &&
-            g.created_at <= boundary.end
-          );
-          const monthProjects = allProjects.filter(p =>
-            userIds.includes(p.user_id) &&
-            p.created_at >= boundary.start &&
-            p.created_at <= boundary.end
-          );
+        const activeUsersThisMonth = new Set([
+          ...monthApps.map(a => a.user_id),
+          ...monthResumes.map(r => r.user_id),
+          ...monthGoals.map(g => g.user_id),
+          ...monthProjects.map(p => p.user_id),
+        ]);
 
-          const activeUsersThisMonth = new Set([
-            ...monthApps.map(a => a.user_id),
-            ...monthResumes.map(r => r.user_id),
-            ...monthGoals.map(g => g.user_id),
-            ...monthProjects.map(p => p.user_id),
-          ]);
-
-          monthData[uni.name] = activeUsersThisMonth.size;
-        }
-
-        mauTrends.push(monthData);
+        monthData[uni.name] = activeUsersThisMonth.size;
       }
-    } catch (error) {
-      // If MAU calculation fails, return empty trends instead of crashing
-      console.error("MAU trends calculation failed:", error);
-      // Return placeholder data
-      for (const boundary of monthBoundariesForMAU) {
-        mauTrends.push({ month: boundary.label });
-      }
+
+      mauTrends.push(monthData);
     }
 
     // Calculate activity data (last 7 days) - optimized
