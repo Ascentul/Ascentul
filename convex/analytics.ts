@@ -44,8 +44,8 @@ export const getAdminAnalytics = query({
       usersQuery = usersQuery.filter((q) => q.eq(q.field("subscription_plan"), args.subscriptionFilter));
     }
 
-    // Paginate user collection (limit to 10k users for performance)
-    const users = await usersQuery.take(10000);
+    // Paginate user collection (limit to 2k users for bandwidth optimization)
+    const users = await usersQuery.take(2000);
 
     // Calculate metrics
     const totalUsers = users.length;
@@ -121,8 +121,8 @@ export const getAdminAnalytics = query({
     // Get universities for university data
     const universities = await ctx.db.query("universities").collect();
 
-    // Get all support tickets for detailed metrics
-    const allSupportTickets = await ctx.db.query("support_tickets").take(10000);
+    // Get all support tickets for detailed metrics (limited for bandwidth)
+    const allSupportTickets = await ctx.db.query("support_tickets").take(2000);
 
     const openTickets = allSupportTickets.filter(t => t.status === "open" || t.status === "in_progress");
     const todayStart = new Date();
@@ -191,21 +191,21 @@ export const getAdminAnalytics = query({
         // Calculate MAU (users with activity in last 30 days)
         const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
 
-        // Get recent activity from various features
+        // Get recent activity from various features (reduced limits for bandwidth)
         const userIds = uniUsers.map(u => u._id);
         const [recentApps, recentResumes, recentGoals, recentProjects] = await Promise.all([
           ctx.db.query("applications")
             .filter((q) => q.gte(q.field("created_at"), thirtyDaysAgo))
-            .take(10000),
+            .take(1000),
           ctx.db.query("resumes")
             .filter((q) => q.gte(q.field("created_at"), thirtyDaysAgo))
-            .take(10000),
+            .take(1000),
           ctx.db.query("goals")
             .filter((q) => q.gte(q.field("created_at"), thirtyDaysAgo))
-            .take(10000),
+            .take(1000),
           ctx.db.query("projects")
             .filter((q) => q.gte(q.field("created_at"), thirtyDaysAgo))
-            .take(10000),
+            .take(1000),
         ]);
 
         // Get unique users with activity
@@ -218,13 +218,13 @@ export const getAdminAnalytics = query({
 
         const mau = activeUserIds.size;
 
-        // Calculate feature usage for this university
+        // Calculate feature usage for this university (reduced limits)
         const [uniApps, uniResumes, uniGoals, uniProjects, uniCoverLetters] = await Promise.all([
-          ctx.db.query("applications").take(10000),
-          ctx.db.query("resumes").take(10000),
-          ctx.db.query("goals").take(10000),
-          ctx.db.query("projects").take(10000),
-          ctx.db.query("cover_letters").take(10000),
+          ctx.db.query("applications").take(1000),
+          ctx.db.query("resumes").take(1000),
+          ctx.db.query("goals").take(1000),
+          ctx.db.query("projects").take(1000),
+          ctx.db.query("cover_letters").take(1000),
         ]);
 
         const featureUsage = {
@@ -263,21 +263,21 @@ export const getAdminAnalytics = query({
       monthBoundariesForMAU.push({ start: monthStart, end: monthEnd, label });
     }
 
-    // Get all activity for the last 6 months
+    // Get all activity for the last 6 months (reduced limits)
     const sixMonthsAgo = monthBoundariesForMAU[0].start;
     const [allApps, allResumes, allGoals, allProjects] = await Promise.all([
       ctx.db.query("applications")
         .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-        .take(10000),
+        .take(1000),
       ctx.db.query("resumes")
         .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-        .take(10000),
+        .take(1000),
       ctx.db.query("goals")
         .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-        .take(10000),
+        .take(1000),
       ctx.db.query("projects")
         .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-        .take(10000),
+        .take(1000),
     ]);
 
     // Calculate MAU for each month for each university
@@ -399,13 +399,13 @@ export const getAdminAnalytics = query({
 async function getFeatureUsage(ctx: any, users: any[]) {
   const userCount = users.length || 1; // Prevent division by zero
 
-  // Parallelize all feature queries
+  // Parallelize all feature queries (reduced limits for bandwidth)
   const [resumes, applications, coverLetters, goals, projects] = await Promise.all([
-    ctx.db.query("resumes").take(10000),
-    ctx.db.query("applications").take(10000),
-    ctx.db.query("cover_letters").take(10000),
-    ctx.db.query("goals").take(10000),
-    ctx.db.query("projects").take(10000),
+    ctx.db.query("resumes").take(1000),
+    ctx.db.query("applications").take(1000),
+    ctx.db.query("cover_letters").take(1000),
+    ctx.db.query("goals").take(1000),
+    ctx.db.query("projects").take(1000),
   ]);
 
   return [
@@ -821,11 +821,11 @@ export const getRevenueAnalytics = query({
       throw new Error("Unauthorized");
     }
 
-    // Get all successful payments
+    // Get all successful payments (reduced limit for bandwidth)
     const payments = await ctx.db
       .query("stripe_payments")
       .withIndex("by_status", (q) => q.eq("status", "succeeded"))
-      .take(10000);
+      .take(2000);
 
     // Calculate total revenue
     const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0) / 100; // Convert cents to dollars
@@ -847,7 +847,7 @@ export const getRevenueAnalytics = query({
       ? Math.round(((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
       : 0;
 
-    // Get active paying users
+    // Get active paying users (reduced limit for bandwidth)
     const activeUsers = await ctx.db
       .query("users")
       .filter((q) =>
@@ -859,7 +859,7 @@ export const getRevenueAnalytics = query({
           )
         )
       )
-      .take(10000);
+      .take(2000);
 
     const payingUsersCount = activeUsers.length;
 
@@ -888,10 +888,10 @@ export const getRevenueAnalytics = query({
       });
     }
 
-    // Get subscription lifecycle data
+    // Get subscription lifecycle data (reduced limit for bandwidth)
     const subscriptionEvents = await ctx.db
       .query("stripe_subscription_events")
-      .take(10000);
+      .take(2000);
 
     // Calculate churn rate from last month
     const lastMonthCancellations = subscriptionEvents.filter(e =>

@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
             subscription_plan: 'premium',
             subscription_status: 'active',
             setStripeIds: true,
+            onboarding_completed: true, // Auto-complete onboarding for premium users
           })
 
           // Send payment confirmation email

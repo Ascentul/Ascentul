@@ -53,6 +53,7 @@ export const updateSubscriptionByIdentifier = mutation({
       v.literal("past_due"),
     ),
     setStripeIds: v.optional(v.boolean()),
+    onboarding_completed: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     let user = null as any;
@@ -97,6 +98,9 @@ export const updateSubscriptionByIdentifier = mutation({
             stripe_subscription_id:
               args.stripeSubscriptionId ?? user.stripe_subscription_id,
           }
+        : {}),
+      ...(args.onboarding_completed !== undefined
+        ? { onboarding_completed: args.onboarding_completed }
         : {}),
       updated_at: Date.now(),
     });
@@ -476,6 +480,58 @@ export const getAllUsers = query({
       });
 
     return users;
+  },
+});
+
+// Get all users with minimal fields (admin only) - optimized for bandwidth
+export const getAllUsersMinimal = query({
+  args: {
+    clerkId: v.string(),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // Check if user is admin
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    // Only Super Admin can access global user list
+    if (!currentUser || currentUser.role !== "super_admin") {
+      throw new Error("Unauthorized");
+    }
+
+    const users = await ctx.db
+      .query("users")
+      .order("desc")
+      .paginate({
+        numItems: args.limit || 50,
+        cursor: null,
+      });
+
+    // Return only essential fields to reduce bandwidth
+    const minimalUsers = {
+      ...users,
+      page: users.page.map((user) => ({
+        _id: user._id,
+        _creationTime: user._creationTime,
+        clerkId: user.clerkId,
+        email: user.email,
+        name: user.name,
+        username: user.username,
+        role: user.role,
+        subscription_plan: user.subscription_plan,
+        subscription_status: user.subscription_status,
+        university_id: user.university_id,
+        profile_image: user.profile_image,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        // Exclude: education_history, work_history, achievements_history, bio, etc.
+      })),
+    };
+
+    return minimalUsers;
   },
 });
 

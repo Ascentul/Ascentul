@@ -46,7 +46,7 @@ export default function AdminDashboardPage() {
   const { user } = useAuth()
   const [activeView, setActiveView] = React.useState<'system' | 'universities' | 'users' | 'revenue'>('system')
 
-  const users = useQuery(api.users.getAllUsers, clerkUser?.id ? { clerkId: clerkUser.id, limit: 100 } : 'skip')
+  const users = useQuery(api.users.getAllUsersMinimal, clerkUser?.id ? { clerkId: clerkUser.id, limit: 50 } : 'skip')
   const analytics = useQuery(api.analytics.getAdminAnalytics, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
   const revenueData = useQuery(api.analytics.getRevenueAnalytics, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
 

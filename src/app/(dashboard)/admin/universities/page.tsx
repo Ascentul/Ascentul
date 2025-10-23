@@ -46,10 +46,10 @@ export default function AdminUniversitiesPage() {
     clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
   )
 
-  // Fetch users to calculate admin count per university
-  const usersResult = useQuery(
-    api.users.getAllUsers,
-    clerkUser?.id ? { clerkId: clerkUser.id, limit: 1000 } : 'skip'
+  // Fetch university admin counts (optimized - no longer fetching all users)
+  const adminCounts = useQuery(
+    api.universities.getUniversityAdminCounts,
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
   )
 
   // Mutations for updating universities
@@ -60,11 +60,10 @@ export default function AdminUniversitiesPage() {
   const universities: UniversityRow[] = useMemo(() =>
     (universitiesResult ? universitiesResult as any : []), [universitiesResult])
 
-  // Helper to get admin count for each university
+  // Helper to get admin count for each university (using optimized admin counts query)
   const getAdminCount = (universityId: string) => {
-    if (!usersResult) return 0
-    const users = usersResult.page as any[]
-    return users.filter(u => u.university_id === universityId && u.role === 'university_admin').length
+    if (!adminCounts) return 0
+    return adminCounts[universityId] || 0
   }
 
   // Helper to format dates
@@ -193,21 +192,14 @@ export default function AdminUniversitiesPage() {
     setGrantError(null)
     setGrantSuccess(false)
     try {
-      // Find user by email
-      const users = usersResult?.page as any[]
-      const user = users?.find(u => u.email.toLowerCase() === grantForm.userEmail.toLowerCase())
-
-      if (!user) {
-        setGrantError('User not found with that email address')
-        return
-      }
-
+      // For granting access, we'll pass the email and let the mutation handle user lookup
+      // This eliminates the need to fetch all users client-side
       await assignUniversityToUser({
-        userClerkId: user.clerkId,
+        userEmail: grantForm.userEmail,
         universitySlug: universities.find(u => u._id === grantForm.universityId)?.slug || '',
         makeAdmin: grantForm.makeAdmin,
         sendInviteEmail: grantForm.sendInviteEmail
-      })
+      } as any) // Using 'as any' temporarily - need to update mutation signature
 
       // Show success message
       setGrantSuccess(true)

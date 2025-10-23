@@ -50,6 +50,31 @@ Copy `.env.example` to `.env.local` and configure:
 
 ⚠️ **Do not add Supabase variables** - project has migrated to Clerk + Convex.
 
+## Stripe Payment Links Configuration
+
+The app uses Stripe Payment Links for premium subscriptions during onboarding. To configure:
+
+1. **Create Payment Links in Stripe Dashboard:**
+   - Go to Stripe Dashboard → Payment Links
+   - Create a Monthly payment link ($9.99/month)
+   - Create an Annual payment link ($99/year)
+
+2. **Configure Success URL:**
+   - For each payment link, set the success URL to: `https://yourdomain.com/onboarding`
+   - This ensures users are redirected back to complete onboarding after payment
+
+3. **Set Environment Variables:**
+   - `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY` = Monthly payment link URL
+   - `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ANNUAL` = Annual payment link URL
+
+4. **How it works:**
+   - New users select a plan during onboarding → redirected to Stripe Payment Link
+   - After successful payment → Stripe webhook updates subscription status
+   - Webhook automatically sets `onboarding_completed: true` for premium users
+   - Success URL redirects user back to `/onboarding`
+   - OnboardingFlow detects active premium subscription and skips plan selection
+   - User completes remaining onboarding steps (education, dream job)
+
 ## Architecture
 
 ### Authentication & Authorization

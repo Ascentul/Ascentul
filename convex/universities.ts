@@ -59,19 +59,35 @@ export const createUniversity = mutation({
   }
 });
 
-// Assign a university to a user by Clerk ID and optionally make them an admin
+// Assign a university to a user by Clerk ID or email and optionally make them an admin
 export const assignUniversityToUser = mutation({
   args: {
-    userClerkId: v.string(),
+    userClerkId: v.optional(v.string()),
+    userEmail: v.optional(v.string()),
     universitySlug: v.string(),
     makeAdmin: v.optional(v.boolean()),
     sendInviteEmail: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", q => q.eq("clerkId", args.userClerkId))
-      .unique();
+    // Find user by clerkId or email - at least one must be provided
+    if (!args.userClerkId && !args.userEmail) {
+      throw new Error("Either userClerkId or userEmail must be provided");
+    }
+
+    let user = null;
+
+    if (args.userClerkId) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", q => q.eq("clerkId", args.userClerkId!))
+        .unique();
+    } else if (args.userEmail) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", q => q.eq("email", args.userEmail!))
+        .unique();
+    }
+
     if (!user) throw new Error("User not found");
 
     const university = await ctx.db
@@ -258,5 +274,29 @@ export const getUniversityBySlug = query({
       .query("universities")
       .withIndex("by_slug", q => q.eq("slug", args.slug))
       .unique();
+  }
+});
+
+// Get university admin counts for all universities (optimized for bandwidth)
+// Returns a map of university_id -> count of admins
+export const getUniversityAdminCounts = query({
+  args: { clerkId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    // Fetch all university_admin users using the by_role index
+    const admins = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("role"), "university_admin"))
+      .collect();
+
+    // Count admins per university
+    const counts: Record<string, number> = {};
+    for (const admin of admins) {
+      if (admin.university_id) {
+        const uniId = admin.university_id as string;
+        counts[uniId] = (counts[uniId] || 0) + 1;
+      }
+    }
+
+    return counts;
   }
 });

@@ -39,10 +39,10 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | UserRow['subscription_status']>('all')
   const [universityFilter, setUniversityFilter] = useState<'all' | string>('all')
 
-  // Fetch users (first page only for MVP)
+  // Fetch users with minimal fields (optimized for bandwidth, reduced limit)
   const usersResult = useQuery(
-    api.users.getAllUsers,
-    clerkUser?.id ? { clerkId: clerkUser.id, limit: 100 } : 'skip'
+    api.users.getAllUsersMinimal,
+    clerkUser?.id ? { clerkId: clerkUser.id, limit: 50 } : 'skip'
   )
 
   // Fetch universities for the university column

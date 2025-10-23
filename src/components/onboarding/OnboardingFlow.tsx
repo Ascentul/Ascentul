@@ -52,13 +52,19 @@ export function OnboardingFlow() {
   // Check if user is from a university (should skip plan selection)
   const isUniversityUser = user?.university_id != null;
 
-  // Dynamically calculate total steps based on user type
-  const totalSteps = isUniversityUser ? 2 : 3; // 3 steps for regular users (plan + 2 onboarding), 2 for university users
-  const planSelectionStep = 1;
-  const educationStep = isUniversityUser ? 1 : 2;
-  const dreamJobStep = isUniversityUser ? 2 : 3;
+  // Check if user has active premium subscription (should skip plan selection)
+  const hasPremiumSubscription = user?.subscription_plan === 'premium' && user?.subscription_status === 'active';
 
-  const [step, setStep] = useState<number>(isUniversityUser ? educationStep : planSelectionStep);
+  // Users who should skip plan selection: university users OR users with active premium
+  const shouldSkipPlanSelection = isUniversityUser || hasPremiumSubscription;
+
+  // Dynamically calculate total steps based on user type
+  const totalSteps = shouldSkipPlanSelection ? 2 : 3; // 3 steps for regular users (plan + 2 onboarding), 2 for others
+  const planSelectionStep = 1;
+  const educationStep = shouldSkipPlanSelection ? 1 : 2;
+  const dreamJobStep = shouldSkipPlanSelection ? 2 : 3;
+
+  const [step, setStep] = useState<number>(shouldSkipPlanSelection ? educationStep : planSelectionStep);
   const [data, setData] = useState<OnboardingData>(defaultOnboardingData);
   const [progress, setProgress] = useState<number>(0);
   const [isSavingOnboarding, setIsSavingOnboarding] = useState<boolean>(false);
@@ -139,7 +145,7 @@ export function OnboardingFlow() {
   };
 
   const handleBack = () => {
-    const minStep = isUniversityUser ? educationStep : planSelectionStep;
+    const minStep = shouldSkipPlanSelection ? educationStep : planSelectionStep;
     if (step > minStep) {
       setStep(step - 1);
     }
@@ -182,8 +188,8 @@ export function OnboardingFlow() {
   };
 
   const renderStep = () => {
-    // Plan Selection Step (only for non-university users)
-    if (!isUniversityUser && step === planSelectionStep) {
+    // Plan Selection Step (only for users without premium subscription)
+    if (!shouldSkipPlanSelection && step === planSelectionStep) {
       return (
         <div className="space-y-6">
           <CardHeader>
@@ -384,7 +390,7 @@ export function OnboardingFlow() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-              {!isUniversityUser && (
+              {!shouldSkipPlanSelection && (
                 <Button variant="outline" onClick={handleBack}>
                   <ChevronLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
@@ -392,7 +398,7 @@ export function OnboardingFlow() {
               <Button
                 onClick={handleNext}
                 disabled={!data.major || !data.graduationYear}
-                className={isUniversityUser ? "ml-auto" : ""}
+                className={shouldSkipPlanSelection ? "ml-auto" : ""}
               >
                 Next <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
