@@ -119,6 +119,7 @@ export const createUser = mutation({
     )),
   },
   handler: async (ctx, args) => {
+    // First, try to find existing user by Clerk ID
     const existingUser = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -139,6 +140,35 @@ export const createUser = mutation({
         updated_at: Date.now(),
       });
       return existingUser._id;
+    }
+
+    // Check if there's a pending university student with this email (invited but not yet signed up)
+    const pendingUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .filter((q) => q.or(
+        q.eq(q.field("clerkId"), ""),
+        q.eq(q.field("account_status"), "pending_activation")
+      ))
+      .first();
+
+    if (pendingUser) {
+      // Activate the pending user by updating with Clerk ID
+      await ctx.db.patch(pendingUser._id, {
+        clerkId: args.clerkId,
+        name: args.name,
+        username: args.username || pendingUser.username,
+        profile_image: args.profile_image,
+        account_status: "active",
+        // Preserve university assignment from invitation
+        // Update cached subscription data if provided, otherwise keep university plan
+        subscription_plan: args.subscription_plan || pendingUser.subscription_plan || "free",
+        subscription_status: args.subscription_status || pendingUser.subscription_status || "active",
+        updated_at: Date.now(),
+      });
+
+      console.log(`[createUser] Activated pending university student: ${args.email}`);
+      return pendingUser._id;
     }
 
     // Create new user

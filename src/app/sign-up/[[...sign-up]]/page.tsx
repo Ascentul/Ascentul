@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSignUp, useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -14,6 +14,7 @@ import { Mail, CheckCircle, ArrowLeft, Eye, EyeOff, Chrome, Users, Zap, BookOpen
 
 export default function Page() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { isLoaded, signUp, setActive } = useSignUp()
   const { isLoaded: authLoaded, isSignedIn } = useAuth()
   const { toast } = useToast()
@@ -32,6 +33,13 @@ export default function Page() {
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [resending, setResending] = useState(false)
+
+  // University invitation parameters from URL
+  const [universityInvite, setUniversityInvite] = useState<{
+    email?: string
+    university?: string
+  }>({})
+
 
   // Password strength functions
   const calculatePasswordStrength = (password: string) => {
@@ -67,6 +75,25 @@ export default function Page() {
       default: return ''
     }
   }
+
+  // Check for university invitation parameters in URL
+  useEffect(() => {
+    const inviteEmail = searchParams.get('email')
+    const inviteUniversity = searchParams.get('university')
+
+    if (inviteEmail || inviteUniversity) {
+      setUniversityInvite({
+        email: inviteEmail || undefined,
+        university: inviteUniversity || undefined,
+      })
+
+      // Pre-fill email and switch to university tab
+      if (inviteEmail) {
+        setEmail(inviteEmail)
+        setTab('university')
+      }
+    }
+  }, [searchParams])
 
   // If a session already exists, redirect to dashboard
   useEffect(() => {
@@ -162,6 +189,32 @@ export default function Page() {
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId })
+
+        // If this is a university invitation signup, link the student to their university
+        if (universityInvite.email && universityInvite.university) {
+          try {
+            // Call API to activate pending university student account
+            const response = await fetch('/api/university/activate-student', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: email,
+                clerkId: result.createdUserId,
+              }),
+            })
+
+            if (response.ok) {
+              toast({
+                title: "Welcome to your university!",
+                description: `You now have premium access through ${universityInvite.university}`,
+              })
+            }
+          } catch (activationError) {
+            console.error('Failed to activate university student:', activationError)
+            // Don't fail the signup if activation fails - user can still use the app
+          }
+        }
+
         toast({
           title: "Email verified successfully!",
           description: "Welcome to Ascentful!",

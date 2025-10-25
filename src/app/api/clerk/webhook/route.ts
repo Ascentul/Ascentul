@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Webhook } from 'svix'
+import { clerkClient } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 
@@ -64,16 +65,42 @@ export async function POST(request: NextRequest) {
         const subscriptionPlan = determineSubscriptionPlan(metadata)
         const subscriptionStatus = determineSubscriptionStatus(metadata)
 
-        await convex.mutation(api.users.createUserFromClerk, {
+        const userEmail = userData.email_addresses?.[0]?.email_address || ''
+
+        // Create/activate user in Convex
+        const userId = await convex.mutation(api.users.createUserFromClerk, {
           clerkId: userData.id,
-          email: userData.email_addresses?.[0]?.email_address || '',
+          email: userEmail,
           name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'User',
           profile_image: userData.image_url,
           subscription_plan: subscriptionPlan,
           subscription_status: subscriptionStatus,
         })
 
-        console.log(`[Clerk Webhook] Created user: ${userData.id}`)
+        console.log(`[Clerk Webhook] Created/activated user: ${userData.id}`)
+
+        // Check if this user was a pending university student
+        // If so, sync university_id to Clerk metadata
+        const convexUser = await convex.query(api.users.getUserByClerkId, {
+          clerkId: userData.id,
+        })
+
+        if (convexUser && convexUser.university_id && !metadata.university_id) {
+          try {
+            const client = await clerkClient()
+            await client.users.updateUser(userData.id, {
+              publicMetadata: {
+                ...metadata,
+                university_id: convexUser.university_id,
+                role: convexUser.role || 'user',
+              },
+            })
+            console.log(`[Clerk Webhook] Synced university_id to Clerk for ${userEmail}`)
+          } catch (syncError) {
+            console.error('[Clerk Webhook] Failed to sync university_id to Clerk:', syncError)
+          }
+        }
+
         break
       }
 
