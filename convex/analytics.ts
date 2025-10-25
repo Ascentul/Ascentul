@@ -840,7 +840,7 @@ export const getUserDashboardAnalytics = query({
       recentActivity,
       // Data for child components to avoid separate queries
       onboardingProgress: {
-        completed_tasks: user.onboarding_progress?.completed_tasks || [],
+        completed_tasks: user.completed_tasks || [],
         resumesCount: resumes.length,
         goalsCount: goals.length,
         applicationsCount: applications.length,
@@ -857,7 +857,7 @@ export const getUserDashboardAnalytics = query({
         usage: usageData,
         stepsCompleted,
         totalSteps: 4,
-        subscriptionPlan: user.subscription_plan,
+        subscriptionPlan: user.subscription_plan || "free",
       },
       interviewsData: {
         applications: applications,
