@@ -4,6 +4,7 @@ import React, { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -43,7 +44,7 @@ import {
   Area,
 } from 'recharts'
 
-export default function AdminDashboardPage() {
+function AdminDashboardPage() {
   const router = useRouter()
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
   const { user: convexUser } = useAuth()
@@ -86,35 +87,14 @@ export default function AdminDashboardPage() {
     shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
   )
 
-  // Track query error state
-  const [queryError, setQueryError] = React.useState(false)
-
-  // Log any errors from the analytics query
+  // Log query state for debugging
   React.useEffect(() => {
     if (overviewAnalytics === undefined && shouldQuery) {
       console.log('[AdminDashboard] Analytics query is loading...')
-      setQueryError(false)
-    } else if (overviewAnalytics === null && shouldQuery) {
-      console.error('[AdminDashboard] Analytics query failed')
-      setQueryError(true)
     } else if (overviewAnalytics) {
-      console.log('[AdminDashboard] Analytics loaded successfully:', overviewAnalytics)
-      setQueryError(false)
+      console.log('[AdminDashboard] Analytics loaded successfully')
     }
   }, [overviewAnalytics, shouldQuery])
-
-  // Catch and handle query errors
-  React.useEffect(() => {
-    const handleError = (event: ErrorEvent) => {
-      if (event.message?.includes('analytics:getOverviewAnalytics')) {
-        console.error('[AdminDashboard] Caught analytics query error:', event.error)
-        setQueryError(true)
-        event.preventDefault() // Prevent error from crashing the app
-      }
-    }
-    window.addEventListener('error', handleError)
-    return () => window.removeEventListener('error', handleError)
-  }, [])
 
   // Load university analytics only when Universities tab is active
   const universityAnalytics = useQuery(
@@ -200,49 +180,9 @@ export default function AdminDashboardPage() {
     )
   }
 
-  // Show error state if query failed
-  if (queryError) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Analytics Backend Error
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              The analytics system is experiencing a backend error. This needs to be resolved by deploying the latest Convex changes.
-            </p>
-            <div className="bg-muted p-4 rounded-md text-sm">
-              <p className="font-semibold mb-2">For the developer:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Deploy the updated <code>/convex/analytics.ts</code> file with improved error messages</li>
-                <li>Check Convex logs for the specific error</li>
-                <li>The authorization is working correctly (user has super_admin role)</li>
-              </ul>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={() => {
-                setQueryError(false)
-                window.location.reload()
-              }} variant="default">
-                Retry
-              </Button>
-              <Button onClick={() => router.push('/dashboard')} variant="outline">
-                Go to Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   // Only wait for overview analytics to load initially
   // If undefined after shouldQuery is true, show loading
-  if (!overviewAnalytics && shouldQuery && !queryError) {
+  if (!overviewAnalytics && shouldQuery) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="flex items-center justify-center py-16 flex-col gap-4">
@@ -1340,3 +1280,12 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
     </div>
   )
 })
+
+// Wrap the page with Error Boundary to catch Convex query errors
+export default function AdminDashboardPageWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <AdminDashboardPage />
+    </ErrorBoundary>
+  )
+}
