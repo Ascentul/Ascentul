@@ -38,8 +38,8 @@ export default function RootLayout({
           {publishableKey ? (
             <ClerkProvider
               publishableKey={publishableKey}
-              signInFallbackRedirectUrl="/dashboard"
-              signUpFallbackRedirectUrl="/dashboard"
+              signInFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL || "/dashboard"}
+              signUpFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL || "/dashboard"}
             >
               <ConvexClientProvider>
                 <ClerkAuthProvider>

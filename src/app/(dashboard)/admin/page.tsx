@@ -42,30 +42,38 @@ import {
 } from 'recharts'
 
 export default function AdminDashboardPage() {
-  const { user: clerkUser } = useUser()
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
   const { user } = useAuth()
   const [activeView, setActiveView] = React.useState<'system' | 'universities' | 'users' | 'revenue'>('system')
   const [activeAnalyticsTab, setActiveAnalyticsTab] = React.useState<'overview' | 'analytics' | 'universities' | 'users' | 'system'>('overview')
 
+  // Check permissions BEFORE making queries
+  const role = useMemo(() => user?.role, [user?.role])
+  const canAccess = useMemo(() => role === 'super_admin' || role === 'admin', [role])
+
   // OPTIMIZED: Load only Overview analytics by default (lightweight)
-  const overviewAnalytics = useQuery(api.analytics.getOverviewAnalytics, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
+  // Only query if user has access AND clerkUser is loaded
+  const overviewAnalytics = useQuery(
+    api.analytics.getOverviewAnalytics,
+    clerkLoaded && canAccess && clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+  )
 
   // Load university analytics only when Universities tab is active
   const universityAnalytics = useQuery(
     api.analytics.getUniversityAnalytics,
-    clerkUser?.id && activeAnalyticsTab === 'universities' ? { clerkId: clerkUser.id } : 'skip'
+    clerkLoaded && canAccess && clerkUser?.id && activeAnalyticsTab === 'universities' ? { clerkId: clerkUser.id } : 'skip'
   )
 
   // Load revenue analytics only when Revenue view or Users tab is active
   const revenueData = useQuery(
     api.analytics.getRevenueAnalytics,
-    clerkUser?.id && (activeView === 'revenue' || activeAnalyticsTab === 'users') ? { clerkId: clerkUser.id } : 'skip'
+    clerkLoaded && canAccess && clerkUser?.id && (activeView === 'revenue' || activeAnalyticsTab === 'users') ? { clerkId: clerkUser.id } : 'skip'
   )
 
   // Load minimal users only when Users tab is active
   const users = useQuery(
     api.users.getAllUsersMinimal,
-    clerkUser?.id && activeAnalyticsTab === 'users' ? { clerkId: clerkUser.id, limit: 50 } : 'skip'
+    clerkLoaded && canAccess && clerkUser?.id && activeAnalyticsTab === 'users' ? { clerkId: clerkUser.id, limit: 50 } : 'skip'
   )
 
   // Memoize analytics data from overviewAnalytics
@@ -108,9 +116,18 @@ export default function AdminDashboardPage() {
   )
   const mauTrends = useMemo(() => universityAnalytics?.mauTrends || [], [universityAnalytics?.mauTrends])
 
-  const role = useMemo(() => user?.role, [user?.role])
-  const canAccess = useMemo(() => role === 'super_admin' || role === 'admin', [role])
+  // Show loading state while checking permissions
+  if (!user || !clerkLoaded) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    )
+  }
 
+  // Show unauthorized message if user doesn't have access
   if (!canAccess) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
