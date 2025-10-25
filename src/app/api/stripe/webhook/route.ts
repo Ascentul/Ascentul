@@ -63,30 +63,45 @@ export async function POST(request: NextRequest) {
         const amount = session.amount_total || 0
 
         if (convex && (email || customerId)) {
-          await convex.mutation(api.users.updateSubscriptionByIdentifier, {
-            clerkId: clerkIdFromRef,
-            email,
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscriptionId,
-            subscription_plan: 'premium',
-            subscription_status: 'active',
-            setStripeIds: true,
-            onboarding_completed: true, // Auto-complete onboarding for premium users
-          })
+          try {
+            console.log('[Stripe Webhook] Processing checkout.session.completed:', {
+              email,
+              customerId,
+              clerkId: clerkIdFromRef,
+              subscriptionId,
+            })
 
-          // Send payment confirmation email
-          if (email && amount > 0) {
-            try {
-              await convex.action(api.email.sendPaymentConfirmationEmail, {
-                email,
-                name,
-                amount,
-                plan: 'Premium Monthly',
-              })
-            } catch (emailError) {
-              console.error('Failed to send payment confirmation email:', emailError)
-              // Don't fail the webhook if email fails
+            await convex.mutation(api.users.updateSubscriptionByIdentifier, {
+              clerkId: clerkIdFromRef,
+              email,
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscriptionId,
+              subscription_plan: 'premium',
+              subscription_status: 'active',
+              setStripeIds: true,
+              // Don't set onboarding_completed - let user complete education/dream job steps
+            })
+
+            console.log('[Stripe Webhook] Successfully updated user subscription to premium')
+
+            // Send payment confirmation email
+            if (email && amount > 0) {
+              try {
+                await convex.action(api.email.sendPaymentConfirmationEmail, {
+                  email,
+                  name,
+                  amount,
+                  plan: 'Premium Monthly',
+                })
+              } catch (emailError) {
+                console.error('Failed to send payment confirmation email:', emailError)
+                // Don't fail the webhook if email fails
+              }
             }
+          } catch (updateError) {
+            console.error('[Stripe Webhook] Failed to update subscription:', updateError)
+            // Log but don't fail the webhook - user can contact support
+            // We still return success to Stripe to avoid retries
           }
         }
         break

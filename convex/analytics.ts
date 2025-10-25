@@ -172,8 +172,9 @@ export const getAdminAnalytics = query({
     ];
 
     // Create real university data from actual universities with detailed metrics
+    // Limit to top 10 universities to prevent excessive data fetching and stay under 16MB limit
     const universityData = await Promise.all(
-      universities.map(async (uni) => {
+      universities.slice(0, 10).map(async (uni) => {
         const uniUsers = await ctx.db
           .query("users")
           .withIndex("by_university", (q) => q.eq("university_id", uni._id))
@@ -218,21 +219,34 @@ export const getAdminAnalytics = query({
 
         const mau = activeUserIds.size;
 
-        // Calculate feature usage for this university (reduced limits)
+        // Calculate feature usage for this university using indexed queries with by_user filter
+        // This significantly reduces data transfer by only fetching records for users in this university
         const [uniApps, uniResumes, uniGoals, uniProjects, uniCoverLetters] = await Promise.all([
-          ctx.db.query("applications").take(1000),
-          ctx.db.query("resumes").take(1000),
-          ctx.db.query("goals").take(1000),
-          ctx.db.query("projects").take(1000),
-          ctx.db.query("cover_letters").take(1000),
+          // For each query, we'll fetch a limited set and filter by userIds
+          // Using take() with a reasonable limit to prevent excessive data fetching
+          Promise.all(userIds.slice(0, 50).map(userId =>
+            ctx.db.query("applications").withIndex("by_user", (q) => q.eq("user_id", userId)).take(20)
+          )).then(results => results.flat()),
+          Promise.all(userIds.slice(0, 50).map(userId =>
+            ctx.db.query("resumes").withIndex("by_user", (q) => q.eq("user_id", userId)).take(10)
+          )).then(results => results.flat()),
+          Promise.all(userIds.slice(0, 50).map(userId =>
+            ctx.db.query("goals").withIndex("by_user", (q) => q.eq("user_id", userId)).take(10)
+          )).then(results => results.flat()),
+          Promise.all(userIds.slice(0, 50).map(userId =>
+            ctx.db.query("projects").withIndex("by_user", (q) => q.eq("user_id", userId)).take(10)
+          )).then(results => results.flat()),
+          Promise.all(userIds.slice(0, 50).map(userId =>
+            ctx.db.query("cover_letters").withIndex("by_user", (q) => q.eq("user_id", userId)).take(10)
+          )).then(results => results.flat()),
         ]);
 
         const featureUsage = {
-          applications: uniApps.filter(a => userIds.includes(a.user_id)).length,
-          resumes: uniResumes.filter(r => userIds.includes(r.user_id)).length,
-          goals: uniGoals.filter(g => userIds.includes(g.user_id)).length,
-          projects: uniProjects.filter(p => userIds.includes(p.user_id)).length,
-          coverLetters: uniCoverLetters.filter(c => userIds.includes(c.user_id)).length,
+          applications: uniApps.length,
+          resumes: uniResumes.length,
+          goals: uniGoals.length,
+          projects: uniProjects.length,
+          coverLetters: uniCoverLetters.length,
         };
 
         return {
@@ -280,17 +294,23 @@ export const getAdminAnalytics = query({
         .take(1000),
     ]);
 
+    // Pre-fetch all university users ONCE (not inside the loop)
+    // This prevents N database queries where N = universities.length
+    const universityUsersMap = new Map();
+    for (const uni of universities.slice(0, 10)) { // Limit to top 10 universities to prevent excessive data
+      const uniUsers = await ctx.db
+        .query("users")
+        .withIndex("by_university", (q) => q.eq("university_id", uni._id))
+        .collect();
+      universityUsersMap.set(uni._id, uniUsers.map(u => u._id));
+    }
+
     // Calculate MAU for each month for each university
     for (const boundary of monthBoundariesForMAU) {
       const monthData: { month: string; [key: string]: string | number } = { month: boundary.label };
 
-      for (const uni of universities) {
-        const uniUsers = await ctx.db
-          .query("users")
-          .withIndex("by_university", (q) => q.eq("university_id", uni._id))
-          .collect();
-
-        const userIds = uniUsers.map(u => u._id);
+      for (const uni of universities.slice(0, 10)) { // Match the limit above
+        const userIds = universityUsersMap.get(uni._id) || [];
 
         // Get activity for this month
         const monthApps = allApps.filter(a =>
@@ -398,14 +418,29 @@ export const getAdminAnalytics = query({
 // Helper function to calculate feature usage
 async function getFeatureUsage(ctx: any, users: any[]) {
   const userCount = users.length || 1; // Prevent division by zero
+  const userIds = users.map(u => u._id);
 
-  // Parallelize all feature queries (reduced limits for bandwidth)
+  // Limit to first 100 users to prevent excessive queries
+  const limitedUserIds = userIds.slice(0, 100);
+
+  // Fetch feature data only for the filtered users using indexed queries
+  // This significantly reduces data transfer compared to fetching all records
   const [resumes, applications, coverLetters, goals, projects] = await Promise.all([
-    ctx.db.query("resumes").take(1000),
-    ctx.db.query("applications").take(1000),
-    ctx.db.query("cover_letters").take(1000),
-    ctx.db.query("goals").take(1000),
-    ctx.db.query("projects").take(1000),
+    Promise.all(limitedUserIds.map(userId =>
+      ctx.db.query("resumes").withIndex("by_user", (q: any) => q.eq("user_id", userId)).take(10)
+    )).then(results => results.flat()),
+    Promise.all(limitedUserIds.map(userId =>
+      ctx.db.query("applications").withIndex("by_user", (q: any) => q.eq("user_id", userId)).take(20)
+    )).then(results => results.flat()),
+    Promise.all(limitedUserIds.map(userId =>
+      ctx.db.query("cover_letters").withIndex("by_user", (q: any) => q.eq("user_id", userId)).take(10)
+    )).then(results => results.flat()),
+    Promise.all(limitedUserIds.map(userId =>
+      ctx.db.query("goals").withIndex("by_user", (q: any) => q.eq("user_id", userId)).take(10)
+    )).then(results => results.flat()),
+    Promise.all(limitedUserIds.map(userId =>
+      ctx.db.query("projects").withIndex("by_user", (q: any) => q.eq("user_id", userId)).take(10)
+    )).then(results => results.flat()),
   ]);
 
   return [

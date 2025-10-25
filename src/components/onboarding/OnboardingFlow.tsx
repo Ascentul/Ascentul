@@ -58,6 +58,11 @@ export function OnboardingFlow() {
   // Users who should skip plan selection: university users OR users with active premium
   const shouldSkipPlanSelection = isUniversityUser || hasPremiumSubscription;
 
+  // Payment verification state
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+
   // Dynamically calculate total steps based on user type
   const totalSteps = shouldSkipPlanSelection ? 2 : 3; // 3 steps for regular users (plan + 2 onboarding), 2 for others
   const planSelectionStep = 1;
@@ -75,6 +80,64 @@ export function OnboardingFlow() {
   useEffect(() => {
     setProgress(Math.floor((step / totalSteps) * 100));
   }, [step, totalSteps]);
+
+  // Check for payment verification after redirect from Stripe
+  useEffect(() => {
+    // Only check if user exists and we're on the plan selection step
+    if (!user || step !== planSelectionStep || shouldSkipPlanSelection) return;
+
+    // Check if we're coming back from a payment (URL param or localStorage flag)
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromPayment = urlParams.get('payment') === 'processing' ||
+                       sessionStorage.getItem('awaiting_payment') === 'true';
+
+    if (!fromPayment) return;
+
+    // Start verification process
+    setIsVerifyingPayment(true);
+    setVerificationError(null);
+
+    // Poll for subscription update (max 30 seconds, check every 2 seconds)
+    const maxAttempts = 15;
+    const pollInterval = 2000;
+
+    const pollTimer = setInterval(() => {
+      setVerificationAttempts(prev => {
+        const nextAttempt = prev + 1;
+
+        if (nextAttempt >= maxAttempts) {
+          clearInterval(pollTimer);
+          setIsVerifyingPayment(false);
+          sessionStorage.removeItem('awaiting_payment');
+          setVerificationError(
+            'Payment verification is taking longer than expected. Your payment was successful, but the account upgrade may take a few minutes. Please refresh the page or contact support if the issue persists.'
+          );
+          return nextAttempt;
+        }
+
+        // Check if subscription was updated
+        if (user?.subscription_plan === 'premium' && user?.subscription_status === 'active') {
+          clearInterval(pollTimer);
+          setIsVerifyingPayment(false);
+          sessionStorage.removeItem('awaiting_payment');
+
+          toast({
+            title: "Payment successful!",
+            description: "Your premium subscription is now active.",
+            variant: "success",
+          });
+
+          // Move to next step (education)
+          setStep(educationStep);
+          return nextAttempt;
+        }
+
+        return nextAttempt;
+      });
+    }, pollInterval);
+
+    return () => clearInterval(pollTimer);
+  }, [user, step, planSelectionStep, shouldSkipPlanSelection, educationStep, toast]);
 
   const handleDataChange = (key: keyof OnboardingData, value: string) => {
     setData((prevData) => ({
@@ -135,6 +198,9 @@ export function OnboardingFlow() {
       if (user?.email) url.searchParams.set('prefilled_email', user.email);
       if (user?.clerkId) url.searchParams.set('client_reference_id', user.clerkId);
 
+      // Set flag to trigger payment verification when user returns
+      sessionStorage.setItem('awaiting_payment', 'true');
+
       // Redirect to Stripe
       window.location.href = url.toString();
     } catch (e) {
@@ -190,6 +256,32 @@ export function OnboardingFlow() {
   const renderStep = () => {
     // Plan Selection Step (only for users without premium subscription)
     if (!shouldSkipPlanSelection && step === planSelectionStep) {
+      // Show payment verification UI if verifying
+      if (isVerifyingPayment) {
+        return (
+          <div className="space-y-6">
+            <CardHeader>
+              <CardTitle className="text-2xl">Verifying Your Payment</CardTitle>
+              <CardDescription>
+                Please wait while we confirm your payment and activate your premium subscription.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                <p className="text-lg font-medium mb-2">Processing payment...</p>
+                <p className="text-sm text-muted-foreground text-center max-w-md">
+                  This usually takes just a few seconds. We're confirming your payment with Stripe and setting up your premium account.
+                </p>
+                <div className="mt-6 text-xs text-muted-foreground">
+                  Attempt {verificationAttempts} of 15
+                </div>
+              </div>
+            </CardContent>
+          </div>
+        );
+      }
+
       return (
         <div className="space-y-6">
           <CardHeader>
@@ -199,6 +291,24 @@ export function OnboardingFlow() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {verificationError && (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">Verification Delayed</p>
+                  <p className="text-sm text-yellow-700 mb-2">{verificationError}</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.location.reload()}
+                    className="mt-2"
+                  >
+                    Refresh Page
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {paymentError && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
                 <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
