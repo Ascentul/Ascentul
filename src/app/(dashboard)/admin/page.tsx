@@ -69,7 +69,7 @@ function AdminDashboardPage() {
     })
   }, [clerkLoaded, clerkUser, convexUser, clerkRole, canAccess])
 
-  // OPTIMIZED: Load only Overview analytics by default (lightweight)
+  // OPTIMIZED: Use multiple smaller queries instead of one monolithic query
   // Only query if user has access based on CLERK role
   const shouldQuery = React.useMemo(() => {
     const result = !!(clerkLoaded && canAccess && clerkUser?.id)
@@ -82,19 +82,51 @@ function AdminDashboardPage() {
     return result
   }, [clerkLoaded, canAccess, clerkUser?.id, clerkRole])
 
-  const overviewAnalytics = useQuery(
-    api.analytics.getOverviewAnalytics,
+  // Load critical stats first (lightweight, fast)
+  const systemStats = useQuery(
+    api.analytics.getSystemStatsOptimized,
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
+  )
+
+  const supportMetrics = useQuery(
+    api.analytics.getSupportMetricsOptimized,
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
+  )
+
+  // Load chart data (can load progressively)
+  const userGrowthData = useQuery(
+    api.analytics.getUserGrowthOptimized,
+    shouldQuery ? { clerkId: clerkUser!.id, monthsBack: 6 } : 'skip'
+  )
+
+  const activityData = useQuery(
+    api.analytics.getActivityDataOptimized,
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
+  )
+
+  const subscriptionData = useQuery(
+    api.analytics.getSubscriptionDistributionOptimized,
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
+  )
+
+  const recentUsers = useQuery(
+    api.analytics.getRecentUsersOptimized,
+    shouldQuery ? { clerkId: clerkUser!.id, limit: 10 } : 'skip'
+  )
+
+  const topUniversities = useQuery(
+    api.analytics.getTopUniversitiesOptimized,
     shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
   )
 
   // Log query state for debugging
   React.useEffect(() => {
-    if (overviewAnalytics === undefined && shouldQuery) {
-      console.log('[AdminDashboard] Analytics query is loading...')
-    } else if (overviewAnalytics) {
-      console.log('[AdminDashboard] Analytics loaded successfully')
+    if (systemStats === undefined && shouldQuery) {
+      console.log('[AdminDashboard] System stats loading...')
+    } else if (systemStats) {
+      console.log('[AdminDashboard] System stats loaded successfully')
     }
-  }, [overviewAnalytics, shouldQuery])
+  }, [systemStats, shouldQuery])
 
   // Load university analytics only when Universities tab is active
   const universityAnalytics = useQuery(
@@ -114,43 +146,20 @@ function AdminDashboardPage() {
     clerkLoaded && canAccess && clerkUser?.id && activeAnalyticsTab === 'users' ? { clerkId: clerkUser.id, limit: 50 } : 'skip'
   )
 
-  // Memoize analytics data from overviewAnalytics
-  const systemStats = useMemo(() => overviewAnalytics?.systemStats || {
-    totalUsers: 0,
-    totalUniversities: 0,
-    activeUsers: 0,
-    systemHealth: 0,
-    monthlyGrowth: 0,
-    supportTickets: 0,
-    systemUptime: 0
-  }, [overviewAnalytics?.systemStats])
-
-  const userGrowthData = useMemo(() => overviewAnalytics?.userGrowth || [], [overviewAnalytics?.userGrowth])
-  const subscriptionData = useMemo(() => overviewAnalytics?.subscriptionData || [], [overviewAnalytics?.subscriptionData])
-  const activityData = useMemo(() => overviewAnalytics?.activityData || [], [overviewAnalytics?.activityData])
-  const supportMetrics = useMemo(() => overviewAnalytics?.supportMetrics || {
-    openTickets: 0,
-    resolvedToday: 0,
-    avgResponseTime: '0.0',
-    totalTickets: 0,
-    resolvedTickets: 0,
-    inProgressTickets: 0,
-  }, [overviewAnalytics?.supportMetrics])
-
-  // Use real recent users data instead of mock activity - memoized
+  // Transform recent users into activity format - memoized
   const recentActivity = useMemo(() =>
-    overviewAnalytics?.recentUsers ? overviewAnalytics.recentUsers.map((user: any) => ({
+    recentUsers ? recentUsers.map((user: any) => ({
       type: 'registration',
       user: user.name,
       university: user.university_id ? 'University User' : 'Individual User',
       time: formatTimeAgo(user.created_at)
     })) : []
-  , [overviewAnalytics?.recentUsers])
+  , [recentUsers])
 
   // University data - use conditional loading
   const universityData = useMemo(() =>
-    universityAnalytics?.universityData || overviewAnalytics?.universityData || [],
-    [universityAnalytics?.universityData, overviewAnalytics?.universityData]
+    universityAnalytics?.universityData || topUniversities || [],
+    [universityAnalytics?.universityData, topUniversities]
   )
   const mauTrends = useMemo(() => universityAnalytics?.mauTrends || [], [universityAnalytics?.mauTrends])
 
@@ -180,60 +189,34 @@ function AdminDashboardPage() {
     )
   }
 
-  // Only wait for overview analytics to load initially
-  // If undefined after shouldQuery is true, show loading
-  if (!overviewAnalytics && shouldQuery) {
+  // Only wait for critical system stats to load initially
+  // Show loading state only if systemStats is undefined (not just checking shouldQuery)
+  if (!systemStats && shouldQuery) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="flex items-center justify-center py-16 flex-col gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading analytics...</p>
+          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     )
   }
 
-  // If analytics query failed but user has access, show error state with retry
-  if (!overviewAnalytics && !shouldQuery) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Analytics Temporarily Unavailable
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              The analytics dashboard is currently experiencing issues. This may be due to:
-            </p>
-            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-              <li>Database synchronization in progress</li>
-              <li>Recent schema changes being deployed</li>
-              <li>Temporary connectivity issues</li>
-            </ul>
-            <div className="flex gap-2">
-              <Button onClick={() => window.location.reload()} variant="default">
-                Retry
-              </Button>
-              <Button onClick={() => router.push('/dashboard')} variant="outline">
-                Go to Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   return <AdminDashboardContent
-    systemStats={systemStats}
-    userGrowthData={userGrowthData}
-    subscriptionData={subscriptionData}
+    systemStats={systemStats || {
+      totalUsers: 0,
+      totalUniversities: 0,
+      activeUsers: 0,
+      systemHealth: 0,
+      monthlyGrowth: 0,
+      supportTickets: 0,
+      systemUptime: 0
+    }}
+    userGrowthData={userGrowthData || []}
+    subscriptionData={subscriptionData || []}
     universityData={universityData}
     mauTrends={mauTrends}
-    activityData={activityData}
+    activityData={activityData || []}
     recentActivity={recentActivity}
     activeView={activeView}
     setActiveView={setActiveView}
@@ -241,10 +224,20 @@ function AdminDashboardPage() {
     setActiveAnalyticsTab={setActiveAnalyticsTab}
     users={users}
     revenueData={revenueData}
-    supportMetrics={supportMetrics}
+    supportMetrics={supportMetrics || {
+      openTickets: 0,
+      resolvedToday: 0,
+      avgResponseTime: '0.0',
+      totalTickets: 0,
+      resolvedTickets: 0,
+      inProgressTickets: 0,
+    }}
     universityAnalyticsLoading={activeAnalyticsTab === 'universities' && !universityAnalytics}
     revenueDataLoading={(activeView === 'revenue' || activeAnalyticsTab === 'users') && !revenueData}
     usersLoading={activeAnalyticsTab === 'users' && !users}
+    userGrowthLoading={!userGrowthData}
+    activityDataLoading={!activityData}
+    subscriptionDataLoading={!subscriptionData}
   />
 }
 
@@ -285,7 +278,10 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
   supportMetrics,
   universityAnalyticsLoading,
   revenueDataLoading,
-  usersLoading
+  usersLoading,
+  userGrowthLoading,
+  activityDataLoading,
+  subscriptionDataLoading
 }: {
   systemStats: any
   userGrowthData: any[]
@@ -304,6 +300,9 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
   universityAnalyticsLoading: boolean
   revenueDataLoading: boolean
   usersLoading: boolean
+  userGrowthLoading: boolean
+  activityDataLoading: boolean
+  subscriptionDataLoading: boolean
 }) {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
@@ -398,26 +397,32 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 <CardDescription>Users and universities over time</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={userGrowthData}>
-                    <defs>
-                      <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorUniversities" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="users" stroke="#4F46E5" fillOpacity={1} fill="url(#colorUsers)" />
-                    <Area type="monotone" dataKey="universities" stroke="#10B981" fillOpacity={1} fill="url(#colorUniversities)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {userGrowthLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={userGrowthData}>
+                      <defs>
+                        <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorUniversities" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Area type="monotone" dataKey="users" stroke="#4F46E5" fillOpacity={1} fill="url(#colorUsers)" />
+                      <Area type="monotone" dataKey="universities" stroke="#10B981" fillOpacity={1} fill="url(#colorUniversities)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -427,16 +432,22 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 <CardDescription>Daily logins and new registrations</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={activityData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="logins" fill="#4F46E5" name="Logins" />
-                    <Bar dataKey="registrations" fill="#10B981" name="Registrations" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {activityDataLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={activityData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="day" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="logins" fill="#4F46E5" name="Logins" />
+                      <Bar dataKey="registrations" fill="#10B981" name="Registrations" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -448,25 +459,31 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 <CardDescription>User subscription breakdown</CardDescription>
               </CardHeader>
               <CardContent className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={subscriptionData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={60}
-                      label
-                    >
-                      {subscriptionData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                {subscriptionDataLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={subscriptionData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={60}
+                        label
+                      >
+                        {subscriptionData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
