@@ -135,14 +135,15 @@ function AdminDashboardPage() {
   const mauTrends = useMemo(() => universityAnalytics?.mauTrends || [], [universityAnalytics?.mauTrends])
 
   // Memoize expensive calculations to prevent re-computation on every render
+  // Use type assertion to handle both university analytics and top universities shapes
   const totalStudents = useMemo(() =>
-    universityData.reduce((sum, uni) => sum + (uni.students || 0), 0),
+    universityData.reduce((sum, uni) => sum + ((uni as any).students || 0), 0),
     [universityData]
   )
 
   const avgLicenseUtilization = useMemo(() =>
     universityData.length > 0
-      ? Math.round(universityData.reduce((sum, uni) => sum + (uni.licenseUtilization || 0), 0) / universityData.length)
+      ? Math.round(universityData.reduce((sum, uni) => sum + ((uni as any).licenseUtilization || 0), 0) / universityData.length)
       : 0,
     [universityData]
   )

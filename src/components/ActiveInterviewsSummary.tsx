@@ -100,8 +100,9 @@ export function ActiveInterviewsSummary() {
 
   const isLoading = Boolean(clerkId) && (applications === undefined || interviewStages === undefined)
 
-  const applicationDocs = applications ?? []
-  const stageDocs = interviewStages ?? []
+  // Memoize fallback arrays to prevent dependency changes on every render
+  const applicationDocs = useMemo(() => applications ?? [], [applications])
+  const stageDocs = useMemo(() => interviewStages ?? [], [interviewStages])
 
   const activeApplications = useMemo(
     () => applicationDocs.filter((app) => app.status !== 'offer' && app.status !== 'rejected'),

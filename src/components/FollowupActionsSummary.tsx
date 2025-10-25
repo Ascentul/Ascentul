@@ -51,7 +51,8 @@ export function FollowupActionsSummary() {
 
   const isLoading = followupActions === undefined
 
-  const actionsArray = followupActions ?? []
+  // Memoize fallback array to prevent dependency changes on every render
+  const actionsArray = useMemo(() => followupActions ?? [], [followupActions])
 
   const activeActions = useMemo(() => {
     const now = Date.now()

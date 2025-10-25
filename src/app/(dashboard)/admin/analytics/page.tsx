@@ -45,6 +45,16 @@ function AdminAnalyticsPage() {
     shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
   )
 
+  // Memoize derived calculations BEFORE any early returns (Rules of Hooks)
+  const totalUsers = useMemo(() => systemStats?.totalUsers ?? 0, [systemStats])
+  const activeUsers = useMemo(() => systemStats?.activeUsers ?? 0, [systemStats])
+  const totalUniversities = useMemo(() => systemStats?.totalUniversities ?? 0, [systemStats])
+  const newUsersThisMonth = useMemo(() => {
+    if (!userGrowth || userGrowth.length === 0) return 0
+    return userGrowth[userGrowth.length - 1]?.users ?? 0
+  }, [userGrowth])
+  const last6Months = useMemo(() => userGrowth?.slice(-6) ?? [], [userGrowth])
+
   // Combined loading state - show loading if critical data isn't ready
   const isLoading = !systemStats || !userGrowth || !subscriptionData
 
@@ -86,17 +96,6 @@ function AdminAnalyticsPage() {
       </div>
     )
   }
-
-  // Memoize derived calculations to prevent unnecessary re-renders
-  const totalUsers = useMemo(() => systemStats?.totalUsers ?? 0, [systemStats])
-  const activeUsers = useMemo(() => systemStats?.activeUsers ?? 0, [systemStats])
-  const totalUniversities = useMemo(() => systemStats?.totalUniversities ?? 0, [systemStats])
-  const newUsersThisMonth = useMemo(() => {
-    if (!userGrowth || userGrowth.length === 0) return 0
-    return userGrowth[userGrowth.length - 1]?.users ?? 0
-  }, [userGrowth])
-
-  const last6Months = useMemo(() => userGrowth?.slice(-6) ?? [], [userGrowth])
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
