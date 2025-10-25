@@ -1,6 +1,94 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 
+// ============================================================================
+// Helper Functions for Optimized Analytics
+// ============================================================================
+
+function calculateMonthlyGrowth(users: any[], currentMonth: number, currentYear: number): number {
+  const thisMonth = users.filter(u => {
+    const userDate = new Date(u.created_at);
+    return userDate.getMonth() === currentMonth && userDate.getFullYear() === currentYear;
+  }).length;
+
+  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+  const prevMonth = users.filter(u => {
+    const userDate = new Date(u.created_at);
+    return userDate.getMonth() === lastMonth && userDate.getFullYear() === lastMonthYear;
+  }).length;
+
+  if (prevMonth === 0) return 0;
+  return Math.round(((thisMonth - prevMonth) / prevMonth) * 100);
+}
+
+function calculateUserGrowth(users: any[], monthsBack: number): Array<{ month: string; users: number; universities?: number }> {
+  const monthBoundaries: Array<{ start: number; end: number; label: string }> = [];
+
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
+    const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0).getTime();
+    const label = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    monthBoundaries.push({ start: monthStart, end: monthEnd, label });
+  }
+
+  const monthCounts: Record<string, number> = {};
+  monthBoundaries.forEach(m => monthCounts[m.label] = 0);
+
+  for (const user of users) {
+    for (const boundary of monthBoundaries) {
+      if (user.created_at >= boundary.start && user.created_at <= boundary.end) {
+        monthCounts[boundary.label]++;
+        break;
+      }
+    }
+  }
+
+  return monthBoundaries.map(m => ({
+    month: m.label,
+    users: monthCounts[m.label],
+  }));
+}
+
+function calculateActivityData(users: any[], recentApplications: any[], daysBack: number): Array<{ day: string; logins: number; registrations: number }> {
+  const dayBoundaries: Array<{ start: number; end: number; label: string }> = [];
+
+  for (let i = daysBack - 1; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    const dayEnd = dayStart + (24 * 60 * 60 * 1000) - 1;
+    dayBoundaries.push({
+      start: dayStart,
+      end: dayEnd,
+      label: date.toLocaleDateString('en-US', { weekday: 'short' })
+    });
+  }
+
+  return dayBoundaries.map(day => {
+    const dayRegistrations = users.filter(user =>
+      user.created_at >= day.start && user.created_at <= day.end
+    ).length;
+
+    const dayApplicationsCount = recentApplications.filter(app =>
+      app.created_at >= day.start && app.created_at <= day.end
+    ).length;
+
+    return {
+      day: day.label,
+      logins: Math.max(dayApplicationsCount * 3, dayRegistrations * 5),
+      registrations: dayRegistrations,
+    };
+  });
+}
+
+// ============================================================================
+// Queries
+// ============================================================================
+
 // Lightweight analytics for Overview tab only - OPTIMIZED for bandwidth
 export const getOverviewAnalytics = query({
   args: {
@@ -1323,87 +1411,3 @@ export const getRevenueAnalytics = query({
     };
   },
 });
-
-// ============================================================================
-// Helper Functions for Optimized Analytics
-// ============================================================================
-
-function calculateMonthlyGrowth(users: any[], currentMonth: number, currentYear: number): number {
-  const thisMonth = users.filter(u => {
-    const userDate = new Date(u.created_at);
-    return userDate.getMonth() === currentMonth && userDate.getFullYear() === currentYear;
-  }).length;
-
-  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-
-  const prevMonth = users.filter(u => {
-    const userDate = new Date(u.created_at);
-    return userDate.getMonth() === lastMonth && userDate.getFullYear() === lastMonthYear;
-  }).length;
-
-  if (prevMonth === 0) return 0;
-  return Math.round(((thisMonth - prevMonth) / prevMonth) * 100);
-}
-
-function calculateUserGrowth(users: any[], monthsBack: number): Array<{ month: string; users: number; universities?: number }> {
-  const monthBoundaries: Array<{ start: number; end: number; label: string }> = [];
-
-  for (let i = monthsBack - 1; i >= 0; i--) {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
-    const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0).getTime();
-    const label = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    monthBoundaries.push({ start: monthStart, end: monthEnd, label });
-  }
-
-  const monthCounts: Record<string, number> = {};
-  monthBoundaries.forEach(m => monthCounts[m.label] = 0);
-
-  for (const user of users) {
-    for (const boundary of monthBoundaries) {
-      if (user.created_at >= boundary.start && user.created_at <= boundary.end) {
-        monthCounts[boundary.label]++;
-        break;
-      }
-    }
-  }
-
-  return monthBoundaries.map(m => ({
-    month: m.label,
-    users: monthCounts[m.label],
-  }));
-}
-
-function calculateActivityData(users: any[], recentApplications: any[], daysBack: number): Array<{ day: string; logins: number; registrations: number }> {
-  const dayBoundaries: Array<{ start: number; end: number; label: string }> = [];
-
-  for (let i = daysBack - 1; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-    const dayEnd = dayStart + (24 * 60 * 60 * 1000) - 1;
-    dayBoundaries.push({
-      start: dayStart,
-      end: dayEnd,
-      label: date.toLocaleDateString('en-US', { weekday: 'short' })
-    });
-  }
-
-  return dayBoundaries.map(day => {
-    const dayRegistrations = users.filter(user =>
-      user.created_at >= day.start && user.created_at <= day.end
-    ).length;
-
-    const dayApplicationsCount = recentApplications.filter(app =>
-      app.created_at >= day.start && app.created_at <= day.end
-    ).length;
-
-    return {
-      day: day.label,
-      logins: Math.max(dayApplicationsCount * 3, dayRegistrations * 5),
-      registrations: dayRegistrations,
-    };
-  });
-}
