@@ -55,32 +55,12 @@ function AdminDashboardPage() {
   const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])
   const canAccess = useMemo(() => clerkRole === 'super_admin' || clerkRole === 'admin', [clerkRole])
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log('[AdminDashboard] State:', {
-      clerkLoaded,
-      hasClerkUser: !!clerkUser,
-      clerkUserId: clerkUser?.id,
-      clerkRole,
-      hasConvexUser: !!convexUser,
-      convexRole: convexUser?.role,
-      canAccess,
-      willQueryAnalytics: clerkLoaded && canAccess && !!clerkUser?.id
-    })
-  }, [clerkLoaded, clerkUser, convexUser, clerkRole, canAccess])
-
   // OPTIMIZED: Use multiple smaller queries instead of one monolithic query
   // Only query if user has access based on CLERK role
-  const shouldQuery = React.useMemo(() => {
-    const result = !!(clerkLoaded && canAccess && clerkUser?.id)
-    console.log('[AdminDashboard] Should query analytics?', result, {
-      clerkLoaded,
-      clerkRole,
-      canAccess,
-      hasClerkId: !!clerkUser?.id
-    })
-    return result
-  }, [clerkLoaded, canAccess, clerkUser?.id, clerkRole])
+  const shouldQuery = React.useMemo(() =>
+    !!(clerkLoaded && canAccess && clerkUser?.id),
+    [clerkLoaded, canAccess, clerkUser?.id]
+  )
 
   // Load critical stats first (lightweight, fast)
   const systemStats = useQuery(
@@ -119,15 +99,6 @@ function AdminDashboardPage() {
     shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
   )
 
-  // Log query state for debugging
-  React.useEffect(() => {
-    if (systemStats === undefined && shouldQuery) {
-      console.log('[AdminDashboard] System stats loading...')
-    } else if (systemStats) {
-      console.log('[AdminDashboard] System stats loaded successfully')
-    }
-  }, [systemStats, shouldQuery])
-
   // Load university analytics only when Universities tab is active
   const universityAnalytics = useQuery(
     api.analytics.getUniversityAnalytics,
@@ -162,6 +133,19 @@ function AdminDashboardPage() {
     [universityAnalytics?.universityData, topUniversities]
   )
   const mauTrends = useMemo(() => universityAnalytics?.mauTrends || [], [universityAnalytics?.mauTrends])
+
+  // Memoize expensive calculations to prevent re-computation on every render
+  const totalStudents = useMemo(() =>
+    universityData.reduce((sum, uni) => sum + (uni.students || 0), 0),
+    [universityData]
+  )
+
+  const avgLicenseUtilization = useMemo(() =>
+    universityData.length > 0
+      ? Math.round(universityData.reduce((sum, uni) => sum + (uni.licenseUtilization || 0), 0) / universityData.length)
+      : 0,
+    [universityData]
+  )
 
   // Show loading state while Clerk is loading
   if (!clerkLoaded) {
@@ -238,6 +222,8 @@ function AdminDashboardPage() {
     userGrowthLoading={!userGrowthData}
     activityDataLoading={!activityData}
     subscriptionDataLoading={!subscriptionData}
+    totalStudents={totalStudents}
+    avgLicenseUtilization={avgLicenseUtilization}
   />
 }
 
@@ -281,7 +267,9 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
   usersLoading,
   userGrowthLoading,
   activityDataLoading,
-  subscriptionDataLoading
+  subscriptionDataLoading,
+  totalStudents,
+  avgLicenseUtilization
 }: {
   systemStats: any
   userGrowthData: any[]
@@ -303,6 +291,8 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
   userGrowthLoading: boolean
   activityDataLoading: boolean
   subscriptionDataLoading: boolean
+  totalStudents: number
+  avgLicenseUtilization: number
 }) {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
@@ -676,7 +666,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {universityData.reduce((sum, uni) => sum + (uni.students || 0), 0).toLocaleString()}
+                      {totalStudents.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Across all universities</p>
                   </CardContent>
@@ -688,9 +678,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {universityData.length > 0
-                        ? Math.round(universityData.reduce((sum, uni) => sum + (uni.licenseUtilization || 0), 0) / universityData.length)
-                        : 0}%
+                      {avgLicenseUtilization}%
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Average across all institutions</p>
                   </CardContent>
@@ -1087,11 +1075,11 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {universityData.reduce((sum, uni) => sum + (uni.students || 0), 0).toLocaleString()}
+                  {totalStudents.toLocaleString()}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {systemStats.totalUsers > 0
-                    ? Math.round((universityData.reduce((sum, uni) => sum + (uni.students || 0), 0) / systemStats.totalUsers) * 100)
+                    ? Math.round((totalStudents / systemStats.totalUsers) * 100)
                     : 0}% of total users
                 </p>
               </CardContent>

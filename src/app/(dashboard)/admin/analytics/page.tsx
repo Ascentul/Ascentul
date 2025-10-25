@@ -17,10 +17,36 @@ function AdminAnalyticsPage() {
   const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])
   const canAccess = useMemo(() => clerkRole === 'super_admin' || clerkRole === 'admin', [clerkRole])
 
-  const analytics = useQuery(
-    api.analytics.getAdminAnalytics,
-    clerkLoaded && canAccess && clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+  // OPTIMIZED: Use multiple lightweight queries instead of one monolithic query
+  const shouldQuery = clerkLoaded && canAccess && clerkUser?.id
+
+  const systemStats = useQuery(
+    api.analytics.getSystemStatsOptimized,
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
   )
+
+  const userGrowth = useQuery(
+    api.analytics.getUserGrowthOptimized,
+    shouldQuery ? { clerkId: clerkUser!.id, monthsBack: 12 } : 'skip'
+  )
+
+  const subscriptionData = useQuery(
+    api.analytics.getSubscriptionDistributionOptimized,
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
+  )
+
+  const activityData = useQuery(
+    api.analytics.getActivityDataOptimized,
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
+  )
+
+  const universityData = useQuery(
+    api.analytics.getTopUniversitiesOptimized,
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
+  )
+
+  // Combined loading state - show loading if critical data isn't ready
+  const isLoading = !systemStats || !userGrowth || !subscriptionData
 
   if (!canAccess) {
     return (
@@ -37,7 +63,7 @@ function AdminAnalyticsPage() {
     )
   }
 
-  if (!analytics) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
         <div className="flex items-center justify-between">
@@ -53,13 +79,24 @@ function AdminAnalyticsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-8 w-8 animate-spin" />
-              <span className="ml-2">Loading analytics...</span>
+              <span className="ml-2">Loading critical analytics...</span>
             </div>
           </CardContent>
         </Card>
       </div>
     )
   }
+
+  // Memoize derived calculations to prevent unnecessary re-renders
+  const totalUsers = useMemo(() => systemStats?.totalUsers ?? 0, [systemStats])
+  const activeUsers = useMemo(() => systemStats?.activeUsers ?? 0, [systemStats])
+  const totalUniversities = useMemo(() => systemStats?.totalUniversities ?? 0, [systemStats])
+  const newUsersThisMonth = useMemo(() => {
+    if (!userGrowth || userGrowth.length === 0) return 0
+    return userGrowth[userGrowth.length - 1]?.users ?? 0
+  }, [userGrowth])
+
+  const last6Months = useMemo(() => userGrowth?.slice(-6) ?? [], [userGrowth])
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
@@ -81,9 +118,9 @@ function AdminAnalyticsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.overview.totalUsers.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{totalUsers.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              {analytics.overview.newUsersThisMonth} new this month
+              {newUsersThisMonth} new this month
             </p>
           </CardContent>
         </Card>
@@ -93,10 +130,10 @@ function AdminAnalyticsPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.overview.activeUsers.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{activeUsers.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              {analytics.systemStats.totalUsers > 0
-                ? Math.round((analytics.overview.activeUsers / analytics.systemStats.totalUsers) * 100)
+              {totalUsers > 0
+                ? Math.round((activeUsers / totalUsers) * 100)
                 : 0}% of total
             </p>
           </CardContent>
@@ -107,7 +144,7 @@ function AdminAnalyticsPage() {
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.systemStats.totalUniversities.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{totalUniversities.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               Institutional partners
             </p>
@@ -119,9 +156,9 @@ function AdminAnalyticsPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.systemStats.systemHealth}%</div>
+            <div className="text-2xl font-bold">{systemStats?.systemHealth ?? 0}%</div>
             <p className="text-xs text-muted-foreground">
-              {analytics.systemStats.supportTickets} open tickets
+              {systemStats?.supportTickets ?? 0} open tickets
             </p>
           </CardContent>
         </Card>
@@ -131,21 +168,27 @@ function AdminAnalyticsPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>User Growth (Last 12 Months)</CardTitle>
+            <CardTitle>User Growth (Last 6 Months)</CardTitle>
             <CardDescription>New user registrations by month</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {analytics.userGrowth.slice(-6).map((data) => (
-                <div key={data.month} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{data.month}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 bg-primary rounded-full" style={{ width: `${Math.min(data.users * 10, 100)}px` }}></div>
-                    <span className="text-sm font-medium w-12 text-right">{data.users}</span>
+            {!userGrowth ? (
+              <div className="flex items-center justify-center h-32">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {last6Months.map((data) => (
+                  <div key={data.month} className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{data.month}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 bg-primary rounded-full" style={{ width: `${Math.min(data.users * 10, 100)}px` }}></div>
+                      <span className="text-sm font-medium w-12 text-right">{data.users}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -155,56 +198,37 @@ function AdminAnalyticsPage() {
             <CardDescription>Users by subscription plan</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {analytics.subscriptionData.map((sub) => (
-                <div key={sub.name} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{sub.name}</span>
-                    <span className="text-muted-foreground">{sub.value.toLocaleString()}</span>
+            {!subscriptionData ? (
+              <div className="flex items-center justify-center h-32">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {subscriptionData.map((sub) => (
+                  <div key={sub.name} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{sub.name}</span>
+                      <span className="text-muted-foreground">{sub.value.toLocaleString()}</span>
+                    </div>
+                    <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${totalUsers > 0 ? (sub.value / totalUsers) * 100 : 0}%`,
+                          backgroundColor: sub.color
+                        }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${analytics.systemStats.totalUsers > 0 ? (sub.value / analytics.systemStats.totalUsers) * 100 : 0}%`,
-                        backgroundColor: sub.color
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Feature Usage */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Feature Usage</CardTitle>
-          <CardDescription>Most popular platform features</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {analytics.featureUsage.map((feature) => {
-              const Icon = feature.feature.includes('Resume') ? FileText :
-                          feature.feature.includes('Application') ? Mail :
-                          feature.feature.includes('Cover') ? FileText :
-                          feature.feature.includes('Goal') ? Target :
-                          FolderKanban
-              return (
-                <div key={feature.feature} className="flex items-center gap-3 p-3 border rounded-lg">
-                  <Icon className="h-5 w-5 text-muted-foreground" />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{feature.feature}</div>
-                    <div className="text-xs text-muted-foreground">{feature.count} total ({feature.percentage}% of users)</div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Feature Usage - TODO: Add optimized query for feature usage */}
+      {/* Temporarily disabled until getFeatureUsageOptimized is implemented */}
 
       {/* Recent Activity */}
       <Card>
@@ -213,50 +237,62 @@ function AdminAnalyticsPage() {
           <CardDescription>Daily registrations and logins</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {analytics.activityData.map((data) => (
-              <div key={data.day} className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground w-12">{data.day}</span>
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="text-xs text-muted-foreground w-20">Registrations:</span>
-                    <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${Math.min(data.registrations * 20, 100)}px` }}></div>
-                    <span className="text-sm font-medium w-8">{data.registrations}</span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="text-xs text-muted-foreground w-20">Logins:</span>
-                    <div className="h-2 bg-green-500 rounded-full" style={{ width: `${Math.min(data.logins / 2, 100)}px` }}></div>
-                    <span className="text-sm font-medium w-8">{data.logins}</span>
+          {!activityData ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {activityData.map((data) => (
+                <div key={data.day} className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground w-12">{data.day}</span>
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-xs text-muted-foreground w-20">Registrations:</span>
+                      <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${Math.min((data.registrations ?? 0) * 20, 100)}px` }}></div>
+                      <span className="text-sm font-medium w-8">{data.registrations ?? 0}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-xs text-muted-foreground w-20">Logins:</span>
+                      <div className="h-2 bg-green-500 rounded-full" style={{ width: `${Math.min((data.logins ?? 0) / 2, 100)}px` }}></div>
+                      <span className="text-sm font-medium w-8">{data.logins ?? 0}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* University Data */}
-      {analytics.universityData.length > 0 && (
+      {universityData && universityData.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Top Universities</CardTitle>
             <CardDescription>Universities by user count</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {analytics.universityData.map((uni) => (
-                <div key={uni.name} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Building2 className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <div className="font-medium">{uni.name}</div>
-                      <div className="text-sm text-muted-foreground">{uni.status}</div>
+            {!universityData ? (
+              <div className="flex items-center justify-center h-32">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {universityData.map((uni) => (
+                  <div key={uni.name} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium">{uni.name}</div>
+                        <div className="text-sm text-muted-foreground">{uni.status}</div>
+                      </div>
                     </div>
+                    <div className="text-sm font-medium">{uni.users ?? 0} users</div>
                   </div>
-                  <div className="text-sm font-medium">{uni.users} users</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
