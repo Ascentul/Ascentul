@@ -1,12 +1,14 @@
 'use client'
 
 import React, { useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Loader2,
@@ -42,14 +44,15 @@ import {
 } from 'recharts'
 
 export default function AdminDashboardPage() {
+  const router = useRouter()
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
-  const { user } = useAuth()
+  const { user: convexUser } = useAuth()
   const [activeView, setActiveView] = React.useState<'system' | 'universities' | 'users' | 'revenue'>('system')
   const [activeAnalyticsTab, setActiveAnalyticsTab] = React.useState<'overview' | 'analytics' | 'universities' | 'users' | 'system'>('overview')
 
-  // Check permissions BEFORE making queries
-  const role = useMemo(() => user?.role, [user?.role])
-  const canAccess = useMemo(() => role === 'super_admin' || role === 'admin', [role])
+  // Check permissions using CLERK directly (source of truth for roles)
+  const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])
+  const canAccess = useMemo(() => clerkRole === 'super_admin' || clerkRole === 'admin', [clerkRole])
 
   // Debug logging
   React.useEffect(() => {
@@ -57,49 +60,59 @@ export default function AdminDashboardPage() {
       clerkLoaded,
       hasClerkUser: !!clerkUser,
       clerkUserId: clerkUser?.id,
-      hasConvexUser: !!user,
-      role,
+      clerkRole,
+      hasConvexUser: !!convexUser,
+      convexRole: convexUser?.role,
       canAccess,
-      willQueryAnalytics: clerkLoaded && user && canAccess && !!clerkUser?.id
+      willQueryAnalytics: clerkLoaded && canAccess && !!clerkUser?.id
     })
-  }, [clerkLoaded, clerkUser, user, role, canAccess])
+  }, [clerkLoaded, clerkUser, convexUser, clerkRole, canAccess])
 
   // OPTIMIZED: Load only Overview analytics by default (lightweight)
-  // Only query if user has access AND both clerkUser and Convex user are loaded
-  // This prevents race condition where Convex user might not exist yet
+  // Only query if user has access based on CLERK role
   const shouldQuery = React.useMemo(() => {
-    const result = !!(clerkLoaded && user && canAccess && clerkUser?.id)
+    const result = !!(clerkLoaded && canAccess && clerkUser?.id)
     console.log('[AdminDashboard] Should query analytics?', result, {
       clerkLoaded,
-      hasUser: !!user,
-      userRole: user?.role,
+      clerkRole,
       canAccess,
       hasClerkId: !!clerkUser?.id
     })
     return result
-  }, [clerkLoaded, user, canAccess, clerkUser?.id])
+  }, [clerkLoaded, canAccess, clerkUser?.id, clerkRole])
 
   const overviewAnalytics = useQuery(
     api.analytics.getOverviewAnalytics,
     shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
   )
 
+  // Log any errors from the analytics query
+  React.useEffect(() => {
+    if (overviewAnalytics === undefined && shouldQuery) {
+      console.log('[AdminDashboard] Analytics query is loading...')
+    } else if (overviewAnalytics === null) {
+      console.error('[AdminDashboard] Analytics query returned null')
+    } else if (overviewAnalytics) {
+      console.log('[AdminDashboard] Analytics loaded successfully:', overviewAnalytics)
+    }
+  }, [overviewAnalytics, shouldQuery])
+
   // Load university analytics only when Universities tab is active
   const universityAnalytics = useQuery(
     api.analytics.getUniversityAnalytics,
-    clerkLoaded && user && canAccess && clerkUser?.id && activeAnalyticsTab === 'universities' ? { clerkId: clerkUser.id } : 'skip'
+    clerkLoaded && canAccess && clerkUser?.id && activeAnalyticsTab === 'universities' ? { clerkId: clerkUser.id } : 'skip'
   )
 
   // Load revenue analytics only when Revenue view or Users tab is active
   const revenueData = useQuery(
     api.analytics.getRevenueAnalytics,
-    clerkLoaded && user && canAccess && clerkUser?.id && (activeView === 'revenue' || activeAnalyticsTab === 'users') ? { clerkId: clerkUser.id } : 'skip'
+    clerkLoaded && canAccess && clerkUser?.id && (activeView === 'revenue' || activeAnalyticsTab === 'users') ? { clerkId: clerkUser.id } : 'skip'
   )
 
   // Load minimal users only when Users tab is active
   const users = useQuery(
     api.users.getAllUsersMinimal,
-    clerkLoaded && user && canAccess && clerkUser?.id && activeAnalyticsTab === 'users' ? { clerkId: clerkUser.id, limit: 50 } : 'skip'
+    clerkLoaded && canAccess && clerkUser?.id && activeAnalyticsTab === 'users' ? { clerkId: clerkUser.id, limit: 50 } : 'skip'
   )
 
   // Memoize analytics data from overviewAnalytics
@@ -142,8 +155,8 @@ export default function AdminDashboardPage() {
   )
   const mauTrends = useMemo(() => universityAnalytics?.mauTrends || [], [universityAnalytics?.mauTrends])
 
-  // Show loading state while checking permissions
-  if (!user || !clerkLoaded) {
+  // Show loading state while Clerk is loading
+  if (!clerkLoaded) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="flex items-center justify-center py-16">
@@ -153,25 +166,64 @@ export default function AdminDashboardPage() {
     )
   }
 
-  // Show unauthorized message if user doesn't have access
+  // Show unauthorized message if user doesn't have access (based on Clerk role)
   if (!canAccess) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Unauthorized</h1>
-          <p className="text-gray-600">You do not have permission to access this page.</p>
+          <p className="text-gray-600">
+            You do not have permission to access this page.
+            {clerkRole && <span className="block mt-2 text-sm">Your role: {clerkRole}</span>}
+          </p>
         </div>
       </div>
     )
   }
 
   // Only wait for overview analytics to load initially
-  if (!overviewAnalytics) {
+  // If undefined after shouldQuery is true, show loading
+  if (!overviewAnalytics && shouldQuery) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex items-center justify-center py-16">
+        <div className="flex items-center justify-center py-16 flex-col gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading analytics...</p>
         </div>
+      </div>
+    )
+  }
+
+  // If analytics query failed but user has access, show error state with retry
+  if (!overviewAnalytics && !shouldQuery) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Analytics Temporarily Unavailable
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              The analytics dashboard is currently experiencing issues. This may be due to:
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+              <li>Database synchronization in progress</li>
+              <li>Recent schema changes being deployed</li>
+              <li>Temporary connectivity issues</li>
+            </ul>
+            <div className="flex gap-2">
+              <Button onClick={() => window.location.reload()} variant="default">
+                Retry
+              </Button>
+              <Button onClick={() => router.push('/dashboard')} variant="outline">
+                Go to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
