@@ -13,20 +13,22 @@ interface StatCardProps {
   label: string
   value: ReactNode
   fallbackOnOverflow?: ReactNode
+  valueClassName?: string
   change?: {
     type: 'increase' | 'decrease' | 'no-change'
     text: string
   }
 }
 
-export default function StatCard({ 
-  icon, 
-  iconBgColor, 
-  iconColor, 
-  label, 
-  value, 
+export default function StatCard({
+  icon,
+  iconBgColor,
+  iconColor,
+  label,
+  value,
   fallbackOnOverflow,
-  change 
+  valueClassName = 'text-2xl',
+  change
 }: StatCardProps) {
   const containerRef = useRef<HTMLParagraphElement>(null)
   const ghostRef = useRef<HTMLSpanElement>(null)
@@ -70,7 +72,7 @@ export default function StatCard({
             <h3 className="text-neutral-500 text-sm">{label}</h3>
             <p
               ref={containerRef}
-              className="relative text-2xl font-semibold leading-tight whitespace-nowrap overflow-hidden text-ellipsis"
+              className={cn("relative font-semibold leading-tight whitespace-nowrap overflow-hidden text-ellipsis", valueClassName)}
             >
               <span className={showFallback && fallbackOnOverflow ? 'hidden' : 'inline'}>{value}</span>
               {fallbackOnOverflow && (

@@ -269,6 +269,7 @@ export default function DashboardPage() {
                 iconColor="text-primary"
                 label="Next Interview"
                 value={stats.nextInterview}
+                valueClassName="text-lg"
                 fallbackOnOverflow={
                   stats.nextInterview === 'No Interviews' || stats.nextInterview === 'No upcoming interviews'
                     ? '-'
