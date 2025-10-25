@@ -14,7 +14,8 @@ export const getUserByClerkId = query({
   },
 });
 
-// Set Stripe customer ID by Clerk ID (helper for server routes)
+// DEPRECATED: Legacy Stripe integration - Use Clerk Billing instead
+// Kept for backwards compatibility only
 export const setStripeCustomer = mutation({
   args: { clerkId: v.string(), stripeCustomerId: v.string() },
   handler: async (ctx, args) => {
@@ -34,13 +35,11 @@ export const setStripeCustomer = mutation({
   },
 });
 
-// Update user subscription fields based on Stripe identifiers
+// Update user subscription fields - Clerk Billing provides clerkId directly
 export const updateSubscriptionByIdentifier = mutation({
   args: {
     clerkId: v.optional(v.string()),
     email: v.optional(v.string()),
-    stripeCustomerId: v.optional(v.string()),
-    stripeSubscriptionId: v.optional(v.string()),
     subscription_plan: v.union(
       v.literal("free"),
       v.literal("premium"),
@@ -52,13 +51,12 @@ export const updateSubscriptionByIdentifier = mutation({
       v.literal("cancelled"),
       v.literal("past_due"),
     ),
-    setStripeIds: v.optional(v.boolean()),
     onboarding_completed: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     let user = null as any;
 
-    // Prefer Clerk ID if provided
+    // Prefer Clerk ID (should always be provided by Clerk webhooks)
     if (args.clerkId) {
       user = await ctx.db
         .query("users")
@@ -66,7 +64,7 @@ export const updateSubscriptionByIdentifier = mutation({
         .unique();
     }
 
-    // Fallback to email (indexed)
+    // Fallback to email (indexed) - legacy support
     if (!user && args.email) {
       user = await ctx.db
         .query("users")
@@ -74,31 +72,11 @@ export const updateSubscriptionByIdentifier = mutation({
         .unique();
     }
 
-    // As a last resort, try scanning by Stripe IDs (no index)
-    if (!user && (args.stripeCustomerId || args.stripeSubscriptionId)) {
-      const all = await ctx.db.query("users").collect();
-      user = all.find(
-        (u: any) =>
-          (args.stripeCustomerId &&
-            u.stripe_customer_id === args.stripeCustomerId) ||
-          (args.stripeSubscriptionId &&
-            u.stripe_subscription_id === args.stripeSubscriptionId),
-      );
-    }
-
-    if (!user) throw new Error("User not found for Stripe update");
+    if (!user) throw new Error("User not found for subscription update");
 
     await ctx.db.patch(user._id, {
       subscription_plan: args.subscription_plan,
       subscription_status: args.subscription_status,
-      ...(args.setStripeIds
-        ? {
-            stripe_customer_id:
-              args.stripeCustomerId ?? user.stripe_customer_id,
-            stripe_subscription_id:
-              args.stripeSubscriptionId ?? user.stripe_subscription_id,
-          }
-        : {}),
       ...(args.onboarding_completed !== undefined
         ? { onboarding_completed: args.onboarding_completed }
         : {}),

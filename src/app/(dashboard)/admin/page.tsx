@@ -45,13 +45,31 @@ export default function AdminDashboardPage() {
   const { user: clerkUser } = useUser()
   const { user } = useAuth()
   const [activeView, setActiveView] = React.useState<'system' | 'universities' | 'users' | 'revenue'>('system')
+  const [activeAnalyticsTab, setActiveAnalyticsTab] = React.useState<'overview' | 'analytics' | 'universities' | 'users' | 'system'>('overview')
 
-  const users = useQuery(api.users.getAllUsersMinimal, clerkUser?.id ? { clerkId: clerkUser.id, limit: 50 } : 'skip')
-  const analytics = useQuery(api.analytics.getAdminAnalytics, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
-  const revenueData = useQuery(api.analytics.getRevenueAnalytics, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
+  // OPTIMIZED: Load only Overview analytics by default (lightweight)
+  const overviewAnalytics = useQuery(api.analytics.getOverviewAnalytics, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip')
 
-  // Memoize analytics data
-  const systemStats = useMemo(() => analytics?.systemStats || {
+  // Load university analytics only when Universities tab is active
+  const universityAnalytics = useQuery(
+    api.analytics.getUniversityAnalytics,
+    clerkUser?.id && activeAnalyticsTab === 'universities' ? { clerkId: clerkUser.id } : 'skip'
+  )
+
+  // Load revenue analytics only when Revenue view or Users tab is active
+  const revenueData = useQuery(
+    api.analytics.getRevenueAnalytics,
+    clerkUser?.id && (activeView === 'revenue' || activeAnalyticsTab === 'users') ? { clerkId: clerkUser.id } : 'skip'
+  )
+
+  // Load minimal users only when Users tab is active
+  const users = useQuery(
+    api.users.getAllUsersMinimal,
+    clerkUser?.id && activeAnalyticsTab === 'users' ? { clerkId: clerkUser.id, limit: 50 } : 'skip'
+  )
+
+  // Memoize analytics data from overviewAnalytics
+  const systemStats = useMemo(() => overviewAnalytics?.systemStats || {
     totalUsers: 0,
     totalUniversities: 0,
     activeUsers: 0,
@@ -59,31 +77,36 @@ export default function AdminDashboardPage() {
     monthlyGrowth: 0,
     supportTickets: 0,
     systemUptime: 0
-  }, [analytics?.systemStats])
+  }, [overviewAnalytics?.systemStats])
 
-  const userGrowthData = useMemo(() => analytics?.userGrowth || [], [analytics?.userGrowth])
-  const subscriptionData = useMemo(() => analytics?.subscriptionData || [], [analytics?.subscriptionData])
-  const universityData = useMemo(() => analytics?.universityData || [], [analytics?.universityData])
-  const mauTrends = useMemo(() => analytics?.mauTrends || [], [analytics?.mauTrends])
-  const activityData = useMemo(() => analytics?.activityData || [], [analytics?.activityData])
-  const supportMetrics = useMemo(() => analytics?.supportMetrics || {
+  const userGrowthData = useMemo(() => overviewAnalytics?.userGrowth || [], [overviewAnalytics?.userGrowth])
+  const subscriptionData = useMemo(() => overviewAnalytics?.subscriptionData || [], [overviewAnalytics?.subscriptionData])
+  const activityData = useMemo(() => overviewAnalytics?.activityData || [], [overviewAnalytics?.activityData])
+  const supportMetrics = useMemo(() => overviewAnalytics?.supportMetrics || {
     openTickets: 0,
     resolvedToday: 0,
     avgResponseTime: '0.0',
     totalTickets: 0,
     resolvedTickets: 0,
     inProgressTickets: 0,
-  }, [analytics?.supportMetrics])
+  }, [overviewAnalytics?.supportMetrics])
 
   // Use real recent users data instead of mock activity - memoized
   const recentActivity = useMemo(() =>
-    analytics?.recentUsers ? analytics.recentUsers.map((user: any) => ({
+    overviewAnalytics?.recentUsers ? overviewAnalytics.recentUsers.map((user: any) => ({
       type: 'registration',
       user: user.name,
       university: user.university_id ? 'University User' : 'Individual User',
       time: formatTimeAgo(user.created_at)
     })) : []
-  , [analytics?.recentUsers])
+  , [overviewAnalytics?.recentUsers])
+
+  // University data - use conditional loading
+  const universityData = useMemo(() =>
+    universityAnalytics?.universityData || overviewAnalytics?.universityData || [],
+    [universityAnalytics?.universityData, overviewAnalytics?.universityData]
+  )
+  const mauTrends = useMemo(() => universityAnalytics?.mauTrends || [], [universityAnalytics?.mauTrends])
 
   const role = useMemo(() => user?.role, [user?.role])
   const canAccess = useMemo(() => role === 'super_admin' || role === 'admin', [role])
@@ -99,7 +122,8 @@ export default function AdminDashboardPage() {
     )
   }
 
-  if (!analytics || !revenueData) {
+  // Only wait for overview analytics to load initially
+  if (!overviewAnalytics) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="flex items-center justify-center py-16">
@@ -119,9 +143,14 @@ export default function AdminDashboardPage() {
     recentActivity={recentActivity}
     activeView={activeView}
     setActiveView={setActiveView}
+    activeAnalyticsTab={activeAnalyticsTab}
+    setActiveAnalyticsTab={setActiveAnalyticsTab}
     users={users}
     revenueData={revenueData}
     supportMetrics={supportMetrics}
+    universityAnalyticsLoading={activeAnalyticsTab === 'universities' && !universityAnalytics}
+    revenueDataLoading={(activeView === 'revenue' || activeAnalyticsTab === 'users') && !revenueData}
+    usersLoading={activeAnalyticsTab === 'users' && !users}
   />
 }
 
@@ -155,9 +184,14 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
   recentActivity,
   activeView,
   setActiveView,
+  activeAnalyticsTab,
+  setActiveAnalyticsTab,
   users,
   revenueData,
-  supportMetrics
+  supportMetrics,
+  universityAnalyticsLoading,
+  revenueDataLoading,
+  usersLoading
 }: {
   systemStats: any
   userGrowthData: any[]
@@ -168,9 +202,14 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
   recentActivity: any[]
   activeView: 'system' | 'universities' | 'users' | 'revenue'
   setActiveView: (view: 'system' | 'universities' | 'users' | 'revenue') => void
+  activeAnalyticsTab: 'overview' | 'analytics' | 'universities' | 'users' | 'system'
+  setActiveAnalyticsTab: (tab: 'overview' | 'analytics' | 'universities' | 'users' | 'system') => void
   users: any
   revenueData: any
   supportMetrics: any
+  universityAnalyticsLoading: boolean
+  revenueDataLoading: boolean
+  usersLoading: boolean
 }) {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
@@ -189,7 +228,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="overview" className="space-y-6" onValueChange={(value) => setActiveAnalyticsTab(value as any)}>
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -502,6 +541,12 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
 
           {/* University Performance View */}
           {activeView === 'universities' && (
+            universityAnalyticsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-3 text-muted-foreground">Loading university analytics...</span>
+              </div>
+            ) : (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
@@ -631,10 +676,17 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 </CardContent>
               </Card>
             </div>
+            )
           )}
 
           {/* User Behavior View */}
           {activeView === 'users' && (
+            usersLoading || revenueDataLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-3 text-muted-foreground">Loading user analytics...</span>
+              </div>
+            ) : (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card>
@@ -715,10 +767,17 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 </CardContent>
               </Card>
             </div>
+            )
           )}
 
           {/* Revenue & Subscriptions View */}
           {activeView === 'revenue' && (
+            revenueDataLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-3 text-muted-foreground">Loading revenue analytics...</span>
+              </div>
+            ) : (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card>
@@ -844,6 +903,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 </CardContent>
               </Card>
             </div>
+            )
           )}
         </TabsContent>
 
