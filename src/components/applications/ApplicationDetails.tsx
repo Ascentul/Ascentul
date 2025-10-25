@@ -156,20 +156,26 @@ export function ApplicationDetails({
     location: "",
     notes: "",
   });
+  const [addingStage, setAddingStage] = useState(false);
   const addStage = async () => {
-    if (!clerkId || !stageForm.title.trim()) return;
-    const scheduled = stageForm.scheduled_at
-      ? new Date(stageForm.scheduled_at).getTime()
-      : undefined;
-    await createStage({
-      clerkId,
-      applicationId: local.id as any,
-      title: stageForm.title,
-      scheduled_at: scheduled,
-      location: stageForm.location || undefined,
-      notes: stageForm.notes || undefined,
-    } as any);
-    setStageForm({ title: "", scheduled_at: "", location: "", notes: "" });
+    if (!clerkId || !stageForm.title.trim() || addingStage) return;
+    setAddingStage(true);
+    try {
+      const scheduled = stageForm.scheduled_at
+        ? new Date(stageForm.scheduled_at).getTime()
+        : undefined;
+      await createStage({
+        clerkId,
+        applicationId: local.id as any,
+        title: stageForm.title,
+        scheduled_at: scheduled,
+        location: stageForm.location || undefined,
+        notes: stageForm.notes || undefined,
+      } as any);
+      setStageForm({ title: "", scheduled_at: "", location: "", notes: "" });
+    } finally {
+      setAddingStage(false);
+    }
   };
 
   const setStageOutcome = async (
@@ -277,18 +283,24 @@ export function ApplicationDetails({
     description: "",
     due_date: "",
   });
+  const [addingFollowup, setAddingFollowup] = useState(false);
   const addFollowup = async () => {
-    if (!clerkId || !followForm.description.trim()) return;
-    const due = followForm.due_date
-      ? new Date(followForm.due_date).getTime()
-      : undefined;
-    await createFollowup({
-      clerkId,
-      applicationId: local.id as any,
-      description: followForm.description,
-      due_date: due,
-    } as any);
-    setFollowForm({ description: "", due_date: "" });
+    if (!clerkId || !followForm.description.trim() || addingFollowup) return;
+    setAddingFollowup(true);
+    try {
+      const due = followForm.due_date
+        ? new Date(followForm.due_date).getTime()
+        : undefined;
+      await createFollowup({
+        clerkId,
+        applicationId: local.id as any,
+        description: followForm.description,
+        due_date: due,
+      } as any);
+      setFollowForm({ description: "", due_date: "" });
+    } finally {
+      setAddingFollowup(false);
+    }
   };
 
   const toggleFollowup = async (followupId: any, current: boolean) => {
@@ -511,9 +523,15 @@ export function ApplicationDetails({
               <Button
                 size="sm"
                 onClick={addStage}
-                disabled={!stageForm.title.trim()}
+                disabled={!stageForm.title.trim() || addingStage}
               >
-                + Add Interview
+                {addingStage ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding...
+                  </>
+                ) : (
+                  "+ Add Interview"
+                )}
               </Button>
             </div>
             <div className="rounded-md border p-3 bg-muted/30">
@@ -680,7 +698,15 @@ export function ApplicationDetails({
                     setFollowForm({ ...followForm, due_date: e.target.value })
                   }
                 />
-                <Button onClick={addFollowup}>Add Follow-up</Button>
+                <Button onClick={addFollowup} disabled={addingFollowup}>
+                  {addingFollowup ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding...
+                    </>
+                  ) : (
+                    "Add Follow-up"
+                  )}
+                </Button>
               </div>
             </div>
             <div className="space-y-2">
