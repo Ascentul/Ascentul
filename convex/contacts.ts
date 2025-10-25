@@ -12,11 +12,12 @@ export const getUserContacts = query({
 
     if (!user) throw new Error("User not found");
 
+    // OPTIMIZED: Add limit to prevent bandwidth issues
     const contacts = await ctx.db
       .query("networking_contacts")
       .withIndex("by_user", (q) => q.eq("user_id", user._id))
       .order("desc")
-      .collect();
+      .take(200); // Limit to 200 most recent contacts
 
     return contacts;
   },

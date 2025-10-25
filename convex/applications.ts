@@ -14,11 +14,12 @@ export const getUserApplications = query({
       throw new Error("User not found");
     }
 
+    // OPTIMIZED: Add limit to prevent bandwidth issues for power users
     const applications = await ctx.db
       .query("applications")
       .withIndex("by_user", (q) => q.eq("user_id", user._id))
       .order("desc")
-      .collect();
+      .take(500); // Limit to 500 most recent applications
 
     return applications;
   },
@@ -48,14 +49,15 @@ export const createApplication = mutation({
       throw new Error("User not found");
     }
 
-    // Check free plan limit
+    // Check free plan limit - OPTIMIZED to avoid loading all applications
     if (user.subscription_plan === "free") {
+      const FREE_PLAN_LIMIT = 1;
       const existingApplications = await ctx.db
         .query("applications")
         .withIndex("by_user", (q) => q.eq("user_id", user._id))
-        .collect();
+        .take(FREE_PLAN_LIMIT + 1); // Only load what we need to check
 
-      if (existingApplications.length >= 1) {
+      if (existingApplications.length >= FREE_PLAN_LIMIT) {
         throw new Error("Free plan limit reached. Upgrade to Premium for unlimited applications.");
       }
     }
@@ -162,11 +164,12 @@ export const getApplicationsByStatus = query({
       throw new Error("User not found");
     }
 
+    // OPTIMIZED: Add limit to prevent bandwidth issues
     const applications = await ctx.db
       .query("applications")
       .withIndex("by_status", (q) => q.eq("status", args.status))
       .filter((q) => q.eq(q.field("user_id"), user._id))
-      .collect();
+      .take(500); // Limit to 500 applications per status
 
     return applications;
   },

@@ -12,11 +12,12 @@ export const getUserGoals = query({
 
     if (!user) throw new Error("User not found");
 
+    // OPTIMIZED: Add limit to prevent bandwidth issues for power users
     const goals = await ctx.db
       .query("goals")
       .withIndex("by_user", (q) => q.eq("user_id", user._id))
       .order("desc")
-      .collect();
+      .take(200); // Limit to 200 most recent goals
 
     return goals;
   },
@@ -57,14 +58,15 @@ export const createGoal = mutation({
 
     if (!user) throw new Error("User not found");
 
-    // Check free plan limit
+    // Check free plan limit - OPTIMIZED to avoid loading all goals
     if (user.subscription_plan === "free") {
+      const FREE_PLAN_LIMIT = 1;
       const existingGoals = await ctx.db
         .query("goals")
         .withIndex("by_user", (q) => q.eq("user_id", user._id))
-        .collect();
+        .take(FREE_PLAN_LIMIT + 1); // Only load what we need to check
 
-      if (existingGoals.length >= 1) {
+      if (existingGoals.length >= FREE_PLAN_LIMIT) {
         throw new Error("Free plan limit reached. Upgrade to Premium for unlimited goals.");
       }
     }

@@ -14,11 +14,12 @@ export const getUserProjects = query({
       throw new Error("User not found");
     }
 
+    // OPTIMIZED: Add limit to prevent bandwidth issues
     const projects = await ctx.db
       .query("projects")
       .withIndex("by_user", (q) => q.eq("user_id", user._id))
       .order("desc")
-      .collect();
+      .take(100); // Limit to 100 most recent projects
 
     return projects;
   },

@@ -14,11 +14,12 @@ export const getUserCoverLetters = query({
       throw new Error("User not found");
     }
 
+    // OPTIMIZED: Add limit to prevent bandwidth issues
     const coverLetters = await ctx.db
       .query("cover_letters")
       .withIndex("by_user", (q) => q.eq("user_id", user._id))
       .order("desc")
-      .collect();
+      .take(50); // Limit to 50 most recent cover letters
 
     return coverLetters;
   },
