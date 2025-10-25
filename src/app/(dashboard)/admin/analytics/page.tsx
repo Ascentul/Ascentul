@@ -1,22 +1,25 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Loader2, ShieldCheck, Users, TrendingUp, Activity, Building2, FileText, Target, FolderKanban, Mail, MessageCircle } from 'lucide-react'
 
-export default function AdminAnalyticsPage() {
-  const { user: clerkUser } = useUser()
-  const { user } = useAuth()
-  const role = user?.role
-  const canAccess = role === 'super_admin' || role === 'admin'
+function AdminAnalyticsPage() {
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
+  const { user: convexUser } = useAuth()
+
+  // Check permissions using CLERK directly (source of truth for roles)
+  const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])
+  const canAccess = useMemo(() => clerkRole === 'super_admin' || clerkRole === 'admin', [clerkRole])
 
   const analytics = useQuery(
     api.analytics.getAdminAnalytics,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+    clerkLoaded && canAccess && clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
   )
 
   if (!canAccess) {
@@ -258,5 +261,14 @@ export default function AdminAnalyticsPage() {
         </Card>
       )}
     </div>
+  )
+}
+
+// Wrap the page with Error Boundary to catch Convex query errors
+export default function AdminAnalyticsPageWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <AdminAnalyticsPage />
+    </ErrorBoundary>
   )
 }
