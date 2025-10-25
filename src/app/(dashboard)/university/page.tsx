@@ -104,7 +104,7 @@ export default function UniversityDashboardPage() {
   const router = useRouter();
   const { user: clerkUser } = useUser();
   const { getToken } = useClerkAuth();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, subscription } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [analyticsView, setAnalyticsView] = useState<
     "engagement" | "features" | "risk"
@@ -234,7 +234,7 @@ export default function UniversityDashboardPage() {
   const canAccess =
     !!user &&
     (isAdmin ||
-      user.subscription_plan === "university" ||
+      subscription.isUniversity ||
       user.role === "university_admin");
 
   // Data fetching

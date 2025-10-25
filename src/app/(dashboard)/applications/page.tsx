@@ -44,7 +44,7 @@ interface Application {
 export default function ApplicationsPage() {
   const router = useRouter();
   const { user, isLoaded: clerkLoaded } = useUser();
-  const { user: authUser } = useAuth();
+  const { user: authUser, hasPremium } = useAuth();
   const [creating, setCreating] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -68,8 +68,8 @@ export default function ApplicationsPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [selected, setSelected] = useState<Application | null>(null);
 
-  // Check if user is on free plan
-  const isFreeUser = authUser?.subscription_plan === "free";
+  // Check if user is on free plan (using Clerk Billing)
+  const isFreeUser = !hasPremium;
 
   // Handle tab change to redirect to job-search page
   const handleTabChange = (tab: "applications" | "job-search") => {

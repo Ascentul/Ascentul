@@ -10,8 +10,8 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuToggle }: HeaderProps) {
-  const { user } = useAuth()
-  const isUniversityUser = user?.role === 'university_admin' || user?.subscription_plan === 'university'
+  const { user, subscription } = useAuth()
+  const isUniversityUser = user?.role === 'university_admin' || subscription.isUniversity
 
   return (
     <header className="bg-white shadow-sm z-10">

@@ -17,10 +17,10 @@ export default function CourseDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const { user: clerkUser } = useUser()
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, subscription } = useAuth()
   const { toast } = useToast()
 
-  const canAccess = !!user && (isAdmin || user.subscription_plan === 'university' || user.role === 'university_admin')
+  const canAccess = !!user && (isAdmin || subscription.isUniversity || user.role === 'university_admin')
 
   const course = useQuery(
     api.university_admin.getCourse,

@@ -18,11 +18,11 @@ import { useToast } from '@/hooks/use-toast'
 import { Mail, Upload, Plus, UserPlus, FileText, Download, AlertCircle } from 'lucide-react'
 
 export default function UniversityInviteStudentsPage() {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, subscription } = useAuth()
   const { user: clerkUser } = useUser()
   const { toast } = useToast()
 
-  const canAccess = !!user && (isAdmin || user.subscription_plan === 'university' || user.role === 'university_admin')
+  const canAccess = !!user && (isAdmin || subscription.isUniversity || user.role === 'university_admin')
 
   const departments = useQuery(api.university_admin.listDepartments, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip') as any[] | undefined
 

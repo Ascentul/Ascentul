@@ -17,17 +17,20 @@ export default defineSchema({
       v.literal("admin"),
       v.literal("super_admin"),
     ),
-    subscription_plan: v.union(
+    // DEPRECATED: Subscription management moved to Clerk Billing (user.publicMetadata)
+    // These fields are kept for historical data only - do not update manually
+    subscription_plan: v.optional(v.union(
       v.literal("free"),
       v.literal("premium"),
       v.literal("university"),
-    ),
-    subscription_status: v.union(
+    )),
+    // DEPRECATED: Subscription status managed by Clerk Billing
+    subscription_status: v.optional(v.union(
       v.literal("active"),
       v.literal("inactive"),
       v.literal("cancelled"),
       v.literal("past_due"),
-    ),
+    )),
     university_id: v.optional(v.id("universities")),
     department_id: v.optional(v.id("departments")),
     profile_image: v.optional(v.string()),

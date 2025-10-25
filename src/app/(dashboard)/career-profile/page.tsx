@@ -140,7 +140,7 @@ const hasAchievementContent = (entry: z.infer<typeof achievementEntrySchema>) =>
 
 export default function CareerProfilePage() {
   const { user: clerkUser } = useUser()
-  const { user: userProfile } = useAuth()
+  const { user: userProfile, subscription } = useAuth()
   const { toast } = useToast()
   const updateUser = useMutation(api.users.updateUser)
 
@@ -749,7 +749,7 @@ export default function CareerProfilePage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium">Subscription Plan</label>
-                  <p className="text-sm text-muted-foreground">{userProfile.subscription_plan}</p>
+                  <p className="text-sm text-muted-foreground">{subscription.planName}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Last Updated</label>

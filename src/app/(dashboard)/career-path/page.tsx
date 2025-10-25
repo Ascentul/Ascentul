@@ -236,8 +236,8 @@ function CertificationCard({
 
 export default function CareerPathPage() {
   const { toast } = useToast();
-  const { user: authUser } = useAuth();
-  const isFreeUser = authUser?.subscription_plan === "free";
+  const { user: authUser, hasPremium } = useAuth();
+  const isFreeUser = !hasPremium; // Use Clerk Billing subscription check
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [explorationMode, setExplorationMode] = useState<
     "target" | "profile" | "saved"

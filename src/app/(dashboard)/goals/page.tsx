@@ -32,7 +32,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 
 export default function Goals() {
-  const { user } = useAuth()
+  const { user, hasPremium } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [sortOption, setSortOption] = useState<string>('dueDate-asc')
@@ -44,7 +44,7 @@ export default function Goals() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const isFreeUser = user?.subscription_plan === 'free'
+  const isFreeUser = !hasPremium // Use Clerk Billing subscription check
 
   // Fetch goals
   const { data: goals = [], isLoading } = useQuery<any[]>({

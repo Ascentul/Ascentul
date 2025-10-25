@@ -21,7 +21,7 @@ import { Settings, Building, Users, Mail, Globe } from "lucide-react";
 
 export default function UniversitySettingsPage() {
   const { user: clerkUser } = useUser();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, subscription } = useAuth();
   const { toast } = useToast();
 
   const universitySettings = useQuery(
@@ -35,7 +35,7 @@ export default function UniversitySettingsPage() {
   const canAccess =
     !!user &&
     (isAdmin ||
-      user.subscription_plan === "university" ||
+      subscription.isUniversity ||
       user.role === "university_admin");
 
   const [settings, setSettings] = useState({

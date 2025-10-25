@@ -53,14 +53,14 @@ import {
 } from "lucide-react";
 
 export default function UniversityCoursesPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, subscription } = useAuth();
   const { user: clerkUser } = useUser();
   const { toast } = useToast();
 
   const canAccess =
     !!user &&
     (isAdmin ||
-      user.subscription_plan === "university" ||
+      subscription.isUniversity ||
       user.role === "university_admin");
 
   const courses = useQuery(

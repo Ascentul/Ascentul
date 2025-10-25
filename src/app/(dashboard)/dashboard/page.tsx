@@ -66,7 +66,7 @@ const activityTypeColors: Record<string, string> = {
 
 export default function DashboardPage() {
   const { user: clerkUser, isLoaded } = useUser()
-  const { user } = useAuth()
+  const { user, hasPremium } = useAuth()
   const router = useRouter()
 
   // Get real dashboard analytics from database - must be called before any returns
@@ -328,7 +328,7 @@ export default function DashboardPage() {
 
           {/* Row 2: Usage Progress (Free Users) or Onboarding Checklist */}
           <motion.div variants={cardAnimation} className="mb-6">
-            {user?.subscription_plan === 'free' ? (
+            {!hasPremium ? (
               <UsageProgressCard />
             ) : (
               <SimpleOnboardingChecklist />

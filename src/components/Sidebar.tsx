@@ -103,7 +103,7 @@ const Sidebar = React.memo(function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { user: clerkUser } = useUser();
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, signOut, isAdmin, subscription, hasPremium } = useAuth();
 
   // Fetch usage data for free plan progress
   const usageData = useQuery(
@@ -114,17 +114,17 @@ const Sidebar = React.memo(function Sidebar({
   const isUniversityUser = useMemo(
     () =>
       user?.role === "university_admin" ||
-      user?.subscription_plan === "university",
-    [user?.role, user?.subscription_plan],
+      subscription.isUniversity,
+    [user?.role, subscription.isUniversity],
   );
 
   // Check if user is on free plan and not a university admin or premium user
   const isFreeUser = useMemo(
     () =>
-      user?.subscription_plan === "free" &&
+      !hasPremium &&
       user?.role !== "university_admin" &&
       !isAdmin,
-    [user?.subscription_plan, user?.role, isAdmin],
+    [hasPremium, user?.role, isAdmin],
   );
 
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -699,7 +699,7 @@ const Sidebar = React.memo(function Sidebar({
                   </p>
                   {!isAdmin && (
                     <p className="text-xs text-gray-500 truncate">
-                      {user?.subscription_plan || "free"} plan
+                      {subscription.planName}
                     </p>
                   )}
                 </div>

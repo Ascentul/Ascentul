@@ -11,10 +11,10 @@ import { Badge } from '@/components/ui/badge'
 import { LineChart, BarChart, Users, Target, TrendingUp, Calendar } from 'lucide-react'
 
 export default function UniversityStudentProgressPage() {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, subscription } = useAuth()
   const { user: clerkUser } = useUser()
 
-  const canAccess = !!user && (isAdmin || user.subscription_plan === 'university' || user.role === 'university_admin')
+  const canAccess = !!user && (isAdmin || subscription.isUniversity || user.role === 'university_admin')
 
   const students = useQuery(api.university_admin.listStudents, clerkUser?.id ? { clerkId: clerkUser.id, limit: 1000 } : 'skip') as any[] | undefined
 

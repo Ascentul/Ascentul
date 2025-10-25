@@ -112,9 +112,9 @@ interface Interaction {
 
 export default function ContactsPage() {
   const { user: clerkUser } = useUser();
-  const { user: authUser } = useAuth();
+  const { user: authUser, hasPremium } = useAuth();
   const { toast } = useToast();
-  const isFreeUser = authUser?.subscription_plan === "free";
+  const isFreeUser = !hasPremium; // Use Clerk Billing subscription check
 
   const contactsData = useQuery(
     api.contacts.getUserContacts,

@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { checkPremiumAccess } from '@/lib/subscription-server'
 
 export const runtime = 'nodejs'
 
@@ -757,17 +758,15 @@ export async function POST(request: NextRequest) {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Check free plan limit before generating
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (convexUrl) {
-      try {
-        const convexClient = new ConvexHttpClient(convexUrl)
+    // Check free plan limit before generating (using Clerk Billing)
+    try {
+      const hasPremium = await checkPremiumAccess()
 
-        // Get user to check subscription plan
-        const user = await convexClient.query(api.users.getUserByClerkId, { clerkId: userId })
-
-        if (user && user.subscription_plan === 'free') {
-          // Count existing career paths
+      if (!hasPremium) {
+        // User is on free plan, check limit
+        const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+        if (convexUrl) {
+          const convexClient = new ConvexHttpClient(convexUrl)
           const existingPaths = await convexClient.query(api.career_paths.getUserCareerPaths, { clerkId: userId })
 
           if (existingPaths && existingPaths.length >= 1) {
@@ -777,9 +776,9 @@ export async function POST(request: NextRequest) {
             )
           }
         }
-      } catch (limitCheckError) {
-        console.warn('Career path limit check failed, proceeding with generation', limitCheckError)
       }
+    } catch (limitCheckError) {
+      console.warn('Career path limit check failed, proceeding with generation', limitCheckError)
     }
 
     const body = await request.json().catch(() => ({}))

@@ -5,6 +5,7 @@ import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { useToast } from '@/hooks/use-toast'
+import { useSubscription, type SubscriptionInfo } from '@/hooks/useSubscription'
 
 interface UserProfile {
   _id: string
@@ -13,8 +14,7 @@ interface UserProfile {
   name: string
   username?: string
   role: string
-  subscription_plan: string
-  subscription_status: string
+  // Subscription fields removed - now managed by Clerk Billing via useSubscription hook
   university_id?: string
   profile_image?: string
   cover_image?: string
@@ -79,6 +79,8 @@ interface AuthContextType {
   isSignedIn: boolean
   signOut: () => Promise<void>
   isAdmin: boolean
+  subscription: SubscriptionInfo // Subscription info from Clerk Billing
+  hasPremium: boolean // Helper for quick premium access check
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -89,7 +91,10 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
 
-  // Get user profile from Convex
+  // Get subscription info from Clerk Billing
+  const subscription = useSubscription()
+
+  // Get user profile from Convex (for profile data, not subscription)
   const userProfile = useQuery(
     api.users.getUserByClerkId,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
@@ -181,6 +186,12 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
     [userProfile?.role]
   )
 
+  // Helper for quick premium access check
+  const hasPremium = useMemo(
+    () => subscription.isPremium,
+    [subscription.isPremium]
+  )
+
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(
     () => ({
@@ -189,8 +200,10 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
       isSignedIn: !!clerkUser,
       signOut,
       isAdmin,
+      subscription, // Subscription info from Clerk Billing
+      hasPremium,   // Quick access helper
     }),
-    [userProfile, isLoading, clerkLoaded, clerkUser, signOut, isAdmin]
+    [userProfile, isLoading, clerkLoaded, clerkUser, signOut, isAdmin, subscription, hasPremium]
   )
 
   return (

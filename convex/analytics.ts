@@ -99,9 +99,10 @@ export const getAdminAnalytics = query({
       return acc;
     }, {} as Record<string, number>);
 
-    // User segmentation by plan
+    // User segmentation by plan (use 'free' as default for deprecated field)
     const planSegmentation = users.reduce((acc, user) => {
-      acc[user.subscription_plan] = (acc[user.subscription_plan] || 0) + 1;
+      const plan = user.subscription_plan || 'free'; // Handle optional/deprecated field
+      acc[plan] = (acc[plan] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 

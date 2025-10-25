@@ -51,129 +51,86 @@ export async function POST(request: NextRequest) {
     }
 
     switch (event.type) {
+      // NOTE: Subscription management now handled by Clerk Billing
+      // Clerk receives Stripe webhooks directly and updates user.publicMetadata
+      // This webhook is kept for analytics/logging purposes only
+
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        // For payment links, pull email and customer directly from session
         const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id
         const email = session.customer_details?.email || (session.customer as any)?.email || undefined
-        const name = session.customer_details?.name || 'Valued Customer'
-        const clerkIdFromRef = typeof session.client_reference_id === 'string' ? session.client_reference_id : undefined
-        // If this created a subscription, session.mode may be 'subscription'
         const subscriptionId = typeof session.subscription === 'string' ? session.subscription : undefined
-        const amount = session.amount_total || 0
 
-        if (convex && (email || customerId)) {
-          try {
-            console.log('[Stripe Webhook] Processing checkout.session.completed:', {
-              email,
-              customerId,
-              clerkId: clerkIdFromRef,
-              subscriptionId,
-            })
+        console.log('[Stripe Webhook] checkout.session.completed (handled by Clerk Billing):', {
+          email,
+          customerId,
+          subscriptionId,
+        })
 
-            await convex.mutation(api.users.updateSubscriptionByIdentifier, {
-              clerkId: clerkIdFromRef,
-              email,
-              stripeCustomerId: customerId,
-              stripeSubscriptionId: subscriptionId,
-              subscription_plan: 'premium',
-              subscription_status: 'active',
-              setStripeIds: true,
-              // Don't set onboarding_completed - let user complete education/dream job steps
-            })
+        // Clerk Billing now handles subscription activation in user.publicMetadata
+        // No need to update Convex subscription fields
 
-            console.log('[Stripe Webhook] Successfully updated user subscription to premium')
-
-            // Send payment confirmation email
-            if (email && amount > 0) {
-              try {
-                await convex.action(api.email.sendPaymentConfirmationEmail, {
-                  email,
-                  name,
-                  amount,
-                  plan: 'Premium Monthly',
-                })
-              } catch (emailError) {
-                console.error('Failed to send payment confirmation email:', emailError)
-                // Don't fail the webhook if email fails
-              }
-            }
-          } catch (updateError) {
-            console.error('[Stripe Webhook] Failed to update subscription:', updateError)
-            // Log but don't fail the webhook - user can contact support
-            // We still return success to Stripe to avoid retries
-          }
-        }
         break
       }
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
-        const status = mapStripeStatus(subscription.status)
         const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
-        const intervalFromPrice = subscription.items.data[0]?.price?.recurring?.interval || null
-        // Try to fetch customer to get email if needed
-        let email: string | undefined
-        try {
-          const cust = await stripe.customers.retrieve(customerId)
-          if (!('deleted' in cust)) email = (cust.email || undefined) as string | undefined
-        } catch {}
 
+        console.log(`[Stripe Webhook] ${event.type} (handled by Clerk Billing):`, {
+          customerId,
+          subscriptionId: subscription.id,
+          status: subscription.status,
+        })
+
+        // Clerk Billing now manages subscription lifecycle
+        // Recording to Convex for analytics purposes only
         if (convex) {
-          await convex.mutation(api.users.updateSubscriptionByIdentifier, {
-            email,
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscription.id,
-            subscription_plan: 'premium',
-            subscription_status: status,
-            setStripeIds: true,
-          })
-
-          // Record subscription event
-          await convex.mutation(api.stripe.recordSubscriptionEvent, {
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscription.id,
-            event_type: event.type === 'customer.subscription.created' ? 'created' : 'updated',
-            subscription_status: status === 'active' ? 'active' : status === 'cancelled' ? 'cancelled' : status === 'past_due' ? 'past_due' : 'inactive',
-            plan_name: 'premium',
-            amount: subscription.items.data[0]?.price?.unit_amount || undefined,
-            event_date: subscription.current_period_start * 1000,
-            metadata: {
-              interval: intervalFromPrice,
-              current_period_end: subscription.current_period_end,
-            },
-          })
+          try {
+            await convex.mutation(api.stripe.recordSubscriptionEvent, {
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscription.id,
+              event_type: event.type === 'customer.subscription.created' ? 'created' : 'updated',
+              subscription_status: subscription.status === 'active' ? 'active' : subscription.status === 'canceled' ? 'cancelled' : subscription.status === 'past_due' ? 'past_due' : 'inactive',
+              plan_name: 'premium',
+              amount: subscription.items.data[0]?.price?.unit_amount || undefined,
+              event_date: subscription.current_period_start * 1000,
+              metadata: {
+                interval: subscription.items.data[0]?.price?.recurring?.interval,
+                current_period_end: subscription.current_period_end,
+              },
+            })
+          } catch (error) {
+            console.error('[Stripe Webhook] Failed to record subscription event:', error)
+          }
         }
         break
       }
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
         const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
-        let email: string | undefined
-        try {
-          const cust = await stripe.customers.retrieve(customerId)
-          if (!('deleted' in cust)) email = (cust.email || undefined) as string | undefined
-        } catch {}
-        if (convex) {
-          await convex.mutation(api.users.updateSubscriptionByIdentifier, {
-            email,
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscription.id,
-            subscription_plan: 'free',
-            subscription_status: 'cancelled',
-            setStripeIds: true,
-          })
 
-          // Record subscription cancelled event
-          await convex.mutation(api.stripe.recordSubscriptionEvent, {
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscription.id,
-            event_type: 'cancelled',
-            subscription_status: 'cancelled',
-            plan_name: 'premium',
-            event_date: subscription.ended_at ? subscription.ended_at * 1000 : Date.now(),
-            metadata: {},
-          })
+        console.log('[Stripe Webhook] customer.subscription.deleted (handled by Clerk Billing):', {
+          customerId,
+          subscriptionId: subscription.id,
+        })
+
+        // Clerk Billing manages subscription cancellation
+        // Recording event for analytics only
+        if (convex) {
+          try {
+            await convex.mutation(api.stripe.recordSubscriptionEvent, {
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscription.id,
+              event_type: 'cancelled',
+              subscription_status: 'cancelled',
+              plan_name: 'premium',
+              event_date: subscription.ended_at ? subscription.ended_at * 1000 : Date.now(),
+              metadata: {},
+            })
+          } catch (error) {
+            console.error('[Stripe Webhook] Failed to record cancellation event:', error)
+          }
         }
         break
       }

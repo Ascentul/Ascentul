@@ -45,14 +45,14 @@ import {
 
 export default function UniversityAnalyticsPage() {
   const { user: clerkUser } = useUser();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, subscription } = useAuth();
   const [analyticsView, setAnalyticsView] = useState<"engagement" | "features" | "risk">("engagement");
   const [activeUsersTimeRange, setActiveUsersTimeRange] = useState<"daily" | "weekly" | "monthly">("weekly");
 
   const canAccess =
     !!user &&
     (isAdmin ||
-      user.subscription_plan === "university" ||
+      subscription.isUniversity ||
       user.role === "university_admin");
 
   const overview = useQuery(

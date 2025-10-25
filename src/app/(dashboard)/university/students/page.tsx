@@ -78,7 +78,7 @@ import { Progress } from "@/components/ui/progress";
 
 export default function UniversityStudentsPage() {
   const router = useRouter();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, subscription } = useAuth();
   const { user: clerkUser } = useUser();
   const { toast } = useToast();
 
@@ -88,7 +88,7 @@ export default function UniversityStudentsPage() {
   const canAccess =
     !!user &&
     (isAdmin ||
-      user.subscription_plan === "university" ||
+      subscription.isUniversity ||
       user.role === "university_admin");
 
   const students = useQuery(

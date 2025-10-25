@@ -35,14 +35,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Building2, Users, Plus, Edit, Trash2 } from "lucide-react";
 
 export default function UniversityDepartmentsPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, subscription } = useAuth();
   const { user: clerkUser } = useUser();
   const { toast } = useToast();
 
   const canAccess =
     !!user &&
     (isAdmin ||
-      user.subscription_plan === "university" ||
+      subscription.isUniversity ||
       user.role === "university_admin");
 
   const departments = useQuery(

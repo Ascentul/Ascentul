@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/ClerkAuthProvider";
 import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ interface Project {
 
 export default function ProjectsPage() {
   const { user: clerkUser } = useUser();
+  const { hasPremium } = useAuth();
   const { toast } = useToast();
 
   const projects = useQuery(
@@ -83,7 +85,7 @@ export default function ProjectsPage() {
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
   const [previewProject, setPreviewProject] = useState<Project | null>(null);
 
-  const isFreeUser = userData?.subscription_plan === "free";
+  const isFreeUser = !hasPremium; // Use Clerk Billing subscription check
 
   const [formData, setFormData] = useState({
     title: "",
