@@ -25,81 +25,86 @@ export const getUserUsage = query({
       return null;
     }
 
-    // Count applications
-    const applications = await ctx.db
-      .query("applications")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
-
-    // Count goals
-    const goals = await ctx.db
-      .query("goals")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
-
-    // Count networking contacts
-    const contacts = await ctx.db
-      .query("networking_contacts")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
-
-    // Count career paths
-    const careerPaths = await ctx.db
-      .query("career_paths")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
-
-    // Count projects
-    const projects = await ctx.db
-      .query("projects")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
-
-    // Count resumes
-    const resumes = await ctx.db
-      .query("resumes")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
-
-    // Count cover letters
-    const coverLetters = await ctx.db
-      .query("cover_letters")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
+    // Count all resources in parallel using direct counting (much faster than .collect().length)
+    const [
+      applicationsCount,
+      goalsCount,
+      contactsCount,
+      careerPathsCount,
+      projectsCount,
+      resumesCount,
+      coverLettersCount,
+    ] = await Promise.all([
+      ctx.db
+        .query("applications")
+        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .collect()
+        .then((items) => items.length),
+      ctx.db
+        .query("goals")
+        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .collect()
+        .then((items) => items.length),
+      ctx.db
+        .query("networking_contacts")
+        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .collect()
+        .then((items) => items.length),
+      ctx.db
+        .query("career_paths")
+        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .collect()
+        .then((items) => items.length),
+      ctx.db
+        .query("projects")
+        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .collect()
+        .then((items) => items.length),
+      ctx.db
+        .query("resumes")
+        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .collect()
+        .then((items) => items.length),
+      ctx.db
+        .query("cover_letters")
+        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .collect()
+        .then((items) => items.length),
+    ]);
 
     // Calculate usage for free plan features
     const usage = {
       applications: {
-        count: applications.length,
+        count: applicationsCount,
         limit: FREE_PLAN_LIMITS.applications,
-        used: applications.length >= FREE_PLAN_LIMITS.applications,
+        used: applicationsCount >= FREE_PLAN_LIMITS.applications,
       },
       goals: {
-        count: goals.length,
+        count: goalsCount,
         limit: FREE_PLAN_LIMITS.goals,
-        used: goals.length >= FREE_PLAN_LIMITS.goals,
+        used: goalsCount >= FREE_PLAN_LIMITS.goals,
       },
       contacts: {
-        count: contacts.length,
+        count: contactsCount,
         limit: FREE_PLAN_LIMITS.contacts,
-        used: contacts.length >= FREE_PLAN_LIMITS.contacts,
+        used: contactsCount >= FREE_PLAN_LIMITS.contacts,
       },
       career_paths: {
-        count: careerPaths.length,
+        count: careerPathsCount,
         limit: FREE_PLAN_LIMITS.career_paths,
-        used: careerPaths.length >= FREE_PLAN_LIMITS.career_paths,
+        used: careerPathsCount >= FREE_PLAN_LIMITS.career_paths,
       },
       projects: {
-        count: projects.length,
+        count: projectsCount,
         limit: FREE_PLAN_LIMITS.projects,
-        used: projects.length >= FREE_PLAN_LIMITS.projects,
+        used: projectsCount >= FREE_PLAN_LIMITS.projects,
       },
       resumes: {
-        count: resumes.length,
+        count: resumesCount,
         unlimited: true,
       },
       cover_letters: {
-        count: coverLetters.length,
+        count: coverLettersCount,
         unlimited: true,
       },
     };

@@ -15,33 +15,59 @@ import { useUser } from '@clerk/nextjs'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
 
-export function SimpleOnboardingChecklist() {
+interface SimpleOnboardingChecklistProps {
+  dashboardData?: {
+    onboardingProgress?: {
+      completed_tasks: string[]
+      resumesCount: number
+      goalsCount: number
+      applicationsCount: number
+      contactsCount: number
+      userProfile: any
+    }
+  }
+}
+
+export function SimpleOnboardingChecklist({ dashboardData }: SimpleOnboardingChecklistProps = {}) {
   const { user } = useUser()
   const clerkId = user?.id
 
-  // Fetch user's onboarding progress
-  const onboardingProgress = useQuery(
+  // Fetch user's onboarding progress (only if not provided via props)
+  const fetchedOnboardingProgress = useQuery(
     api.users.getOnboardingProgress,
-    clerkId ? { clerkId } : 'skip'
+    !dashboardData && clerkId ? { clerkId } : 'skip'
   ) as { completed_tasks?: string[] } | undefined
 
   const updateOnboarding = useMutation(api.users.updateOnboardingProgress)
 
-  // Also check actual data to determine completion
-  const resumes = useQuery(api.resumes.getUserResumes, clerkId ? { clerkId } : 'skip')
-  const goals = useQuery(api.goals.getUserGoals, clerkId ? { clerkId } : 'skip')
-  const applications = useQuery(api.applications.getUserApplications, clerkId ? { clerkId } : 'skip')
-  const contacts = useQuery(api.contacts.getUserContacts, clerkId ? { clerkId } : 'skip')
-  const userProfile = useQuery(api.users.getUserByClerkId, clerkId ? { clerkId } : 'skip')
+  // Also check actual data to determine completion (only if not provided via props)
+  const fetchedResumes = useQuery(api.resumes.getUserResumes, !dashboardData && clerkId ? { clerkId } : 'skip')
+  const fetchedGoals = useQuery(api.goals.getUserGoals, !dashboardData && clerkId ? { clerkId } : 'skip')
+  const fetchedApplications = useQuery(api.applications.getUserApplications, !dashboardData && clerkId ? { clerkId } : 'skip')
+  const fetchedContacts = useQuery(api.contacts.getUserContacts, !dashboardData && clerkId ? { clerkId } : 'skip')
+  const fetchedUserProfile = useQuery(api.users.getUserByClerkId, !dashboardData && clerkId ? { clerkId } : 'skip')
+
+  // Use prop data if available, otherwise use fetched data
+  const onboardingProgress = dashboardData?.onboardingProgress || fetchedOnboardingProgress
+  const resumes = dashboardData?.onboardingProgress ? [] : fetchedResumes // We have count from dashboardData
+  const goals = dashboardData?.onboardingProgress ? [] : fetchedGoals
+  const applications = dashboardData?.onboardingProgress ? [] : fetchedApplications
+  const contacts = dashboardData?.onboardingProgress ? [] : fetchedContacts
+  const userProfile = dashboardData?.onboardingProgress?.userProfile || fetchedUserProfile
+
+  const resumesCount = dashboardData?.onboardingProgress?.resumesCount ?? (resumes?.length || 0)
+  const goalsCount = dashboardData?.onboardingProgress?.goalsCount ?? (goals?.length || 0)
+  const applicationsCount = dashboardData?.onboardingProgress?.applicationsCount ?? (applications?.length || 0)
+  const contactsCount = dashboardData?.onboardingProgress?.contactsCount ?? (contacts?.length || 0)
 
   const checklistItems = useMemo(() => {
     const completedTasks = onboardingProgress?.completed_tasks || []
 
     // Auto-detect completion based on actual data
-    const hasResume = (resumes && resumes.length > 0) || completedTasks.includes('resume-creation')
-    const hasGoal = (goals && goals.length > 0) || completedTasks.includes('career-goal')
-    const hasApplication = (applications && applications.length > 0) || completedTasks.includes('job-application')
-    const hasContact = (contacts && contacts.length > 0) || completedTasks.includes('network-contact')
+    const hasResume = resumesCount > 0 || completedTasks.includes('resume-creation')
+    const hasGoal = goalsCount > 0 || completedTasks.includes('career-goal')
+    const hasApplication = applicationsCount > 0 || completedTasks.includes('job-application')
+    const hasContact = contactsCount > 0 || completedTasks.includes('network-contact')
 
     // Calculate profile completion based on 5 sections (matching profile page logic)
     const profileSections = [
@@ -92,7 +118,7 @@ export function SimpleOnboardingChecklist() {
         href: '/contacts'
       }
     ]
-  }, [onboardingProgress, resumes, goals, applications, contacts, userProfile])
+  }, [onboardingProgress, resumesCount, goalsCount, applicationsCount, contactsCount, userProfile])
 
   // Auto-update onboarding progress when items are completed
   useEffect(() => {

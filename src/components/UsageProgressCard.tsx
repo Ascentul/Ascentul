@@ -9,12 +9,27 @@ import { Button } from '@/components/ui/button'
 import { CheckCircle2, Circle, Sparkles, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
-export function UsageProgressCard() {
+interface UsageProgressCardProps {
+  dashboardData?: {
+    usageData?: {
+      usage: any
+      stepsCompleted: number
+      totalSteps: number
+      subscriptionPlan: string
+    }
+  }
+}
+
+export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}) {
   const { user } = useAuth()
-  const usageData = useQuery(
+
+  // Use prop data if available (from dashboard), otherwise fetch independently
+  const fetchedUsageData = useQuery(
     api.usage.getUserUsage,
-    user?.clerkId ? { clerkId: user.clerkId } : 'skip'
+    !dashboardData && user?.clerkId ? { clerkId: user.clerkId } : 'skip'
   )
+
+  const usageData = dashboardData?.usageData || fetchedUsageData
 
   if (!user || !usageData) {
     return (

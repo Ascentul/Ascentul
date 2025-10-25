@@ -105,10 +105,13 @@ const Sidebar = React.memo(function Sidebar({
   const { user: clerkUser } = useUser();
   const { user, signOut, isAdmin, subscription, hasPremium } = useAuth();
 
-  // Fetch usage data for free plan progress
-  const usageData = useQuery(
-    api.usage.getUserUsage,
-    user?.clerkId ? { clerkId: user.clerkId } : "skip"
+  // Check if user is on free plan and not a university admin or premium user
+  const isFreeUser = useMemo(
+    () =>
+      !hasPremium &&
+      user?.role !== "university_admin" &&
+      !isAdmin,
+    [hasPremium, user?.role, isAdmin],
   );
 
   const isUniversityUser = useMemo(
@@ -118,13 +121,10 @@ const Sidebar = React.memo(function Sidebar({
     [user?.role, subscription.isUniversity],
   );
 
-  // Check if user is on free plan and not a university admin or premium user
-  const isFreeUser = useMemo(
-    () =>
-      !hasPremium &&
-      user?.role !== "university_admin" &&
-      !isAdmin,
-    [hasPremium, user?.role, isAdmin],
+  // Fetch usage data ONLY for free users (optimization: skip query for premium/university users)
+  const usageData = useQuery(
+    api.usage.getUserUsage,
+    user?.clerkId && isFreeUser ? { clerkId: user.clerkId } : "skip"
   );
 
   const sidebarRef = useRef<HTMLDivElement>(null);

@@ -329,9 +329,9 @@ export default function DashboardPage() {
           {/* Row 2: Usage Progress (Free Users) or Onboarding Checklist */}
           <motion.div variants={cardAnimation} className="mb-6">
             {!hasPremium ? (
-              <UsageProgressCard />
+              <UsageProgressCard dashboardData={dashboardData} />
             ) : (
-              <SimpleOnboardingChecklist />
+              <SimpleOnboardingChecklist dashboardData={dashboardData} />
             )}
           </motion.div>
 

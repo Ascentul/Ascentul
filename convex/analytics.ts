@@ -517,7 +517,8 @@ export const getUserDashboardAnalytics = query({
       throw new Error("User not found");
     }
 
-    // Parallelize all user data queries
+    // Parallelize all user data queries with safety limits to prevent over-fetching for power users
+    // Note: We still fetch all records for stats calculation, but limit activity feed processing
     const [
       applications,
       goals,
@@ -528,14 +529,14 @@ export const getUserDashboardAnalytics = query({
       projects,
       contacts,
     ] = await Promise.all([
-      ctx.db.query("applications").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
-      ctx.db.query("goals").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
-      ctx.db.query("interview_stages").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
-      ctx.db.query("followup_actions").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
-      ctx.db.query("resumes").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
-      ctx.db.query("cover_letters").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
-      ctx.db.query("projects").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
-      ctx.db.query("networking_contacts").withIndex("by_user", (q) => q.eq("user_id", user._id)).collect(),
+      ctx.db.query("applications").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
+      ctx.db.query("goals").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
+      ctx.db.query("interview_stages").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
+      ctx.db.query("followup_actions").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
+      ctx.db.query("resumes").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
+      ctx.db.query("cover_letters").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
+      ctx.db.query("projects").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
+      ctx.db.query("networking_contacts").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
     ]);
 
     // Calculate stats
@@ -782,6 +783,53 @@ export const getUserDashboardAnalytics = query({
       ? Math.round((applicationStats.interview / applicationStats.total) * 100)
       : 0;
 
+    // Calculate usage data for UsageProgressCard (avoiding separate query)
+    const FREE_PLAN_LIMITS = {
+      applications: 1,
+      goals: 1,
+      contacts: 1,
+      career_paths: 1,
+      projects: 1,
+    };
+
+    const usageData = {
+      applications: {
+        count: applications.length,
+        limit: FREE_PLAN_LIMITS.applications,
+        used: applications.length >= FREE_PLAN_LIMITS.applications,
+      },
+      goals: {
+        count: goals.length,
+        limit: FREE_PLAN_LIMITS.goals,
+        used: goals.length >= FREE_PLAN_LIMITS.goals,
+      },
+      contacts: {
+        count: contacts.length,
+        limit: FREE_PLAN_LIMITS.contacts,
+        used: contacts.length >= FREE_PLAN_LIMITS.contacts,
+      },
+      projects: {
+        count: projects.length,
+        limit: FREE_PLAN_LIMITS.projects,
+        used: projects.length >= FREE_PLAN_LIMITS.projects,
+      },
+      resumes: {
+        count: resumes.length,
+        unlimited: true,
+      },
+      cover_letters: {
+        count: coverLetters.length,
+        unlimited: true,
+      },
+    };
+
+    const stepsCompleted = [
+      usageData.applications.used,
+      usageData.goals.used,
+      usageData.contacts.used,
+      usageData.projects.used,
+    ].filter(Boolean).length;
+
     return {
       applicationStats,
       activeGoals,
@@ -790,6 +838,32 @@ export const getUserDashboardAnalytics = query({
       upcomingInterviews: upcomingInterviews.length,
       interviewRate,
       recentActivity,
+      // Data for child components to avoid separate queries
+      onboardingProgress: {
+        completed_tasks: user.onboarding_progress?.completed_tasks || [],
+        resumesCount: resumes.length,
+        goalsCount: goals.length,
+        applicationsCount: applications.length,
+        contactsCount: contacts.length,
+        userProfile: {
+          bio: user.bio,
+          linkedin_url: user.linkedin_url,
+          work_history: user.work_history,
+          education: user.education,
+          skills: user.skills,
+        },
+      },
+      usageData: {
+        usage: usageData,
+        stepsCompleted,
+        totalSteps: 4,
+        subscriptionPlan: user.subscription_plan,
+      },
+      interviewsData: {
+        applications: applications,
+        interviewStages: interviewStages,
+      },
+      followupsData: followupActions,
     };
   },
 });

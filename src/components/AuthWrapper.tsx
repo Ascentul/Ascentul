@@ -1,10 +1,9 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { useUser, useAuth } from '@clerk/nextjs'
+import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
+import { useAuth } from '@/contexts/ClerkAuthProvider'
 
 interface AuthWrapperProps {
   children: React.ReactNode
@@ -12,15 +11,10 @@ interface AuthWrapperProps {
 
 export function AuthWrapper({ children }: AuthWrapperProps) {
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
-  const { isLoaded: authLoaded } = useAuth()
+  const { isLoaded: authLoaded } = useClerkAuth()
+  const { user: userProfile } = useAuth() // Use context instead of separate query
   const router = useRouter()
   const [redirectPath, setRedirectPath] = useState<string | null>(null)
-
-  // Get user profile from Convex
-  const userProfile = useQuery(
-    api.users.getUserByClerkId,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
-  )
 
   useEffect(() => {
     // Wait for all auth states to be loaded
