@@ -59,6 +59,12 @@ export const createStage = mutation({
 
     if (!user) throw new Error("User not found");
 
+    // Check existing stages BEFORE inserting to accurately count for status update
+    const existingStages = await ctx.db
+      .query("interview_stages")
+      .withIndex("by_application", (q) => q.eq("application_id", args.applicationId))
+      .collect();
+
     const id = await ctx.db.insert("interview_stages", {
       user_id: user._id,
       application_id: args.applicationId,
@@ -71,12 +77,9 @@ export const createStage = mutation({
       updated_at: Date.now(),
     });
 
-    // Set application status to 'interview' when adding first stage
-    const existing = await ctx.db
-      .query("interview_stages")
-      .withIndex("by_application", (q) => q.eq("application_id", args.applicationId))
-      .collect();
-    if (existing.length === 0) {
+    // Set application status to 'interview' when adding the FIRST stage
+    // existingStages.length === 0 means this is the first stage being added
+    if (existingStages.length === 0) {
       await ctx.db.patch(args.applicationId, { status: "interview", updated_at: Date.now() });
     }
 
