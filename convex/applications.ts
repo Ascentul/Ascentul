@@ -49,18 +49,24 @@ export const createApplication = mutation({
       throw new Error("User not found");
     }
 
-    // Check free plan limit - OPTIMIZED to avoid loading all applications
-    if (user.subscription_plan === "free") {
-      const FREE_PLAN_LIMIT = 1;
-      const existingApplications = await ctx.db
-        .query("applications")
-        .withIndex("by_user", (q) => q.eq("user_id", user._id))
-        .take(FREE_PLAN_LIMIT + 1); // Only load what we need to check
+    // TEMPORARILY DISABLED: Free plan limit check
+    // NOTE: Clerk Billing (publicMetadata) is the source of truth for subscriptions.
+    // The subscription_plan field in Convex is cached display data only (see CLAUDE.md).
+    // Backend mutations should NOT use subscription_plan for feature gating.
+    // Frontend enforces limits via useSubscription() hook + Clerk's has() method.
+    // TODO: Re-enable this check by integrating Clerk SDK or passing verified subscription status from frontend.
 
-      if (existingApplications.length >= FREE_PLAN_LIMIT) {
-        throw new Error("Free plan limit reached. Upgrade to Premium for unlimited applications.");
-      }
-    }
+    // if (user.subscription_plan === "free") {
+    //   const FREE_PLAN_LIMIT = 1;
+    //   const existingApplications = await ctx.db
+    //     .query("applications")
+    //     .withIndex("by_user", (q) => q.eq("user_id", user._id))
+    //     .take(FREE_PLAN_LIMIT + 1);
+    //
+    //   if (existingApplications.length >= FREE_PLAN_LIMIT) {
+    //     throw new Error("Free plan limit reached. Upgrade to Premium for unlimited applications.");
+    //   }
+    // }
 
     const applicationId = await ctx.db.insert("applications", {
       user_id: user._id,

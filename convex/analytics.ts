@@ -1006,6 +1006,7 @@ export const getUserDashboardAnalytics = query({
       coverLetters,
       projects,
       contacts,
+      careerPaths,
     ] = await Promise.all([
       ctx.db.query("applications").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
       ctx.db.query("goals").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
@@ -1015,6 +1016,7 @@ export const getUserDashboardAnalytics = query({
       ctx.db.query("cover_letters").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
       ctx.db.query("projects").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
       ctx.db.query("networking_contacts").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
+      ctx.db.query("career_paths").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
     ]);
 
     // Calculate stats
@@ -1286,6 +1288,11 @@ export const getUserDashboardAnalytics = query({
         limit: FREE_PLAN_LIMITS.contacts,
         used: contacts.length >= FREE_PLAN_LIMITS.contacts,
       },
+      career_paths: {
+        count: careerPaths.length,
+        limit: FREE_PLAN_LIMITS.career_paths,
+        used: careerPaths.length >= FREE_PLAN_LIMITS.career_paths,
+      },
       projects: {
         count: projects.length,
         limit: FREE_PLAN_LIMITS.projects,
@@ -1305,6 +1312,7 @@ export const getUserDashboardAnalytics = query({
       usageData.applications.used,
       usageData.goals.used,
       usageData.contacts.used,
+      usageData.career_paths.used,
       usageData.projects.used,
     ].filter(Boolean).length;
 
@@ -1334,7 +1342,7 @@ export const getUserDashboardAnalytics = query({
       usageData: {
         usage: usageData,
         stepsCompleted,
-        totalSteps: 4,
+        totalSteps: 5,
         subscriptionPlan: user.subscription_plan || "free",
       },
       interviewsData: {
