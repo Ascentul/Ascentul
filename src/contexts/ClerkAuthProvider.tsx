@@ -145,20 +145,40 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
       if (!clerkLoaded || !clerkUser || !userProfile) return
       const allowedRoles = ['user', 'admin', 'super_admin', 'university_admin', 'staff'] as const
       const metaRole = (clerkUser.publicMetadata as any)?.role as string | undefined
+
+      console.log('[ClerkAuthProvider] Role sync check:', {
+        clerkRole: metaRole,
+        convexRole: userProfile.role,
+        needsSync: metaRole && userProfile.role !== metaRole
+      })
+
       if (!metaRole || !(allowedRoles as readonly string[]).includes(metaRole)) return
       if (userProfile.role !== metaRole) {
+        console.log('[ClerkAuthProvider] Syncing role from Clerk to Convex:', metaRole)
         try {
           await updateUser({
             clerkId: clerkUser.id,
             updates: { role: metaRole as any },
           })
+          console.log('[ClerkAuthProvider] Role sync successful')
+          toast({
+            title: 'Role Updated',
+            description: `Your role has been updated to ${metaRole}. Refreshing...`,
+          })
+          // Force a page refresh to reload with new role
+          setTimeout(() => window.location.reload(), 1000)
         } catch (e) {
           console.error('Failed to sync role from Clerk to Convex:', e)
+          toast({
+            title: 'Role Sync Failed',
+            description: 'Failed to sync your role. Please try signing out and back in.',
+            variant: 'destructive',
+          })
         }
       }
     }
     void syncRole()
-  }, [clerkLoaded, clerkUser, userProfile, updateUser])
+  }, [clerkLoaded, clerkUser, userProfile, updateUser, toast])
 
   const signOut = useCallback(async () => {
     try {

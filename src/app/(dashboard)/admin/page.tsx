@@ -51,12 +51,37 @@ export default function AdminDashboardPage() {
   const role = useMemo(() => user?.role, [user?.role])
   const canAccess = useMemo(() => role === 'super_admin' || role === 'admin', [role])
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[AdminDashboard] State:', {
+      clerkLoaded,
+      hasClerkUser: !!clerkUser,
+      clerkUserId: clerkUser?.id,
+      hasConvexUser: !!user,
+      role,
+      canAccess,
+      willQueryAnalytics: clerkLoaded && user && canAccess && !!clerkUser?.id
+    })
+  }, [clerkLoaded, clerkUser, user, role, canAccess])
+
   // OPTIMIZED: Load only Overview analytics by default (lightweight)
   // Only query if user has access AND both clerkUser and Convex user are loaded
   // This prevents race condition where Convex user might not exist yet
+  const shouldQuery = React.useMemo(() => {
+    const result = !!(clerkLoaded && user && canAccess && clerkUser?.id)
+    console.log('[AdminDashboard] Should query analytics?', result, {
+      clerkLoaded,
+      hasUser: !!user,
+      userRole: user?.role,
+      canAccess,
+      hasClerkId: !!clerkUser?.id
+    })
+    return result
+  }, [clerkLoaded, user, canAccess, clerkUser?.id])
+
   const overviewAnalytics = useQuery(
     api.analytics.getOverviewAnalytics,
-    clerkLoaded && user && canAccess && clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
   )
 
   // Load university analytics only when Universities tab is active
