@@ -40,19 +40,20 @@ export const getOverview = query({
       };
     }
 
+    // OPTIMIZED: Add limits to prevent bandwidth issues
     const [students, departments, courses] = await Promise.all([
       ctx.db
         .query("users")
         .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
-        .collect(),
+        .take(2000), // Limit students to 2000 max
       ctx.db
         .query("departments")
         .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
-        .collect(),
+        .take(100), // Limit departments to 100 max
       ctx.db
         .query("courses")
         .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
-        .collect(),
+        .take(500), // Limit courses to 500 max
     ]);
 
     // Filter to count only actual students (exclude university_admin)
@@ -108,19 +109,20 @@ export const getUniversityAnalytics = query({
       };
     }
 
+    // OPTIMIZED: Add limits to prevent bandwidth issues
     const [allUsers, departments, courses] = await Promise.all([
       ctx.db
         .query("users")
         .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
-        .collect(),
+        .take(2000), // Limit to 2000 users max
       ctx.db
         .query("departments")
         .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
-        .collect(),
+        .take(100), // Limit to 100 departments max
       ctx.db
         .query("courses")
         .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
-        .collect(),
+        .take(500), // Limit to 500 courses max
     ]);
 
     // Filter to only actual students (exclude university_admin)
@@ -191,7 +193,7 @@ export const getUniversityAnalytics = query({
       ).getTime();
       const dayEnd = dayStart + 24 * 60 * 60 * 1000 - 1;
 
-      // Get applications created on this day by university students
+      // OPTIMIZED: Get applications created on this day with limit
       const dayApplications = await ctx.db
         .query("applications")
         .filter((q: any) =>
@@ -200,7 +202,7 @@ export const getUniversityAnalytics = query({
             q.lte(q.field("created_at"), dayEnd),
           ),
         )
-        .collect();
+        .take(500); // Limit to 500 applications per day
 
       // Filter to only include university students
       const universityApplications = dayApplications.filter((app) =>
@@ -216,14 +218,26 @@ export const getUniversityAnalytics = query({
 
     // Calculate monthly platform usage (last 6 months)
     const platformUsageData = [];
-    const [allApplications, allResumes, allCoverLetters, allGoals] = await Promise.all([
-      ctx.db.query("applications").collect(),
-      ctx.db.query("resumes").collect(),
-      ctx.db.query("cover_letters").collect(),
-      ctx.db.query("goals").collect(),
-    ]);
 
+    // OPTIMIZED: Filter by time window and limit results to prevent bandwidth issues
+    const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000); // 6 months
     const studentIds = students.map((s) => s._id);
+
+    // Load only recent data for university students with limits
+    const [allApplications, allResumes, allCoverLetters, allGoals] = await Promise.all([
+      ctx.db.query("applications")
+        .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+        .take(2000), // Limit to 2000 per category
+      ctx.db.query("resumes")
+        .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+        .take(1000),
+      ctx.db.query("cover_letters")
+        .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+        .take(1000),
+      ctx.db.query("goals")
+        .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+        .take(1000),
+    ]);
 
     for (let i = 5; i >= 0; i--) {
       const date = new Date();
@@ -377,17 +391,18 @@ export const listStudents = query({
 
     if (!user.university_id) return [];
 
+    // OPTIMIZED: Use take() directly on the query instead of collect() + slice()
+    const limit = Math.min(args.limit ?? 200, 500); // Max 500 students
     const allUsers = await ctx.db
       .query("users")
       .withIndex("by_university", (q) =>
         q.eq("university_id", user.university_id!),
       )
-      .collect();
+      .take(limit * 2); // Take 2x limit to account for filtering
 
     // Filter to only actual students (role === "user")
     const students = allUsers.filter((s: any) => s.role === "user");
 
-    const limit = args.limit ?? 200;
     return students.slice(0, limit);
   },
 });
@@ -398,12 +413,13 @@ export const listDepartments = query({
     const user = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(user);
     if (!user.university_id) return [];
+    // OPTIMIZED: Add limit to prevent bandwidth issues
     return await ctx.db
       .query("departments")
       .withIndex("by_university", (q: any) =>
         q.eq("university_id", user.university_id!),
       )
-      .collect();
+      .take(100); // Limit to 100 departments max
   },
 });
 
@@ -430,12 +446,13 @@ export const listCourses = query({
     const user = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(user);
     if (!user.university_id) return [];
+    // OPTIMIZED: Add limit to prevent bandwidth issues
     return await ctx.db
       .query("courses")
       .withIndex("by_university", (q: any) =>
         q.eq("university_id", user.university_id!),
       )
-      .collect();
+      .take(500); // Limit to 500 courses max
   },
 });
 
@@ -524,13 +541,13 @@ export const getStudentMetrics = query({
       };
     }
 
-    // Get all students for this university
+    // OPTIMIZED: Get students for this university with limit
     const allUsers = await ctx.db
       .query("users")
       .withIndex("by_university", (q: any) =>
         q.eq("university_id", user.university_id!),
       )
-      .collect();
+      .take(2000); // Limit to 2000 users max
 
     const students = allUsers.filter((s: any) => s.role === "user");
     const studentIds = students.map((s) => s._id);
@@ -546,14 +563,25 @@ export const getStudentMetrics = query({
       };
     }
 
-    // Get all applications, resumes, cover letters, goals, and projects for these students
+    // OPTIMIZED: Load only recent data with time filter and limits (last 6 months)
+    const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
     const [applications, resumes, coverLetters, goals, projects] =
       await Promise.all([
-        ctx.db.query("applications").collect(),
-        ctx.db.query("resumes").collect(),
-        ctx.db.query("cover_letters").collect(),
-        ctx.db.query("goals").collect(),
-        ctx.db.query("projects").collect(),
+        ctx.db.query("applications")
+          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+          .take(3000),
+        ctx.db.query("resumes")
+          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+          .take(1500),
+        ctx.db.query("cover_letters")
+          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+          .take(1500),
+        ctx.db.query("goals")
+          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+          .take(1500),
+        ctx.db.query("projects")
+          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+          .take(1500),
       ]);
 
     // Filter to only include items belonging to university students
@@ -623,27 +651,38 @@ export const getStudentProgress = query({
 
     if (!user.university_id) return [];
 
-    // Get all students for this university
+    // OPTIMIZED: Get students for this university with limit
     const allUsers = await ctx.db
       .query("users")
       .withIndex("by_university", (q: any) =>
         q.eq("university_id", user.university_id!),
       )
-      .collect();
+      .take(2000); // Limit to 2000 users max
 
     const students = allUsers.filter((s: any) => s.role === "user");
     const studentIds = students.map((s) => s._id);
 
     if (studentIds.length === 0) return [];
 
-    // Get all career-related items
+    // OPTIMIZED: Load only recent data with time filter and limits (last 6 months)
+    const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
     const [applications, resumes, coverLetters, goals, projects] =
       await Promise.all([
-        ctx.db.query("applications").collect(),
-        ctx.db.query("resumes").collect(),
-        ctx.db.query("cover_letters").collect(),
-        ctx.db.query("goals").collect(),
-        ctx.db.query("projects").collect(),
+        ctx.db.query("applications")
+          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+          .take(3000),
+        ctx.db.query("resumes")
+          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+          .take(1500),
+        ctx.db.query("cover_letters")
+          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+          .take(1500),
+        ctx.db.query("goals")
+          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+          .take(1500),
+        ctx.db.query("projects")
+          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+          .take(1500),
       ]);
 
     // Map student progress
