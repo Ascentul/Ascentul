@@ -19,7 +19,6 @@ import {
   Activity,
   TrendingUp,
   TrendingDown,
-  AlertTriangle,
   CheckCircle,
   Clock,
   Server,
