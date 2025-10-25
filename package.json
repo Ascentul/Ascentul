@@ -87,6 +87,7 @@
     "react-resizable-panels": "^2.1.4",
     "recharts": "^2.13.0",
     "stripe": "^17.7.0",
+    "svix": "^1.80.0",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",

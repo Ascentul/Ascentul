@@ -116,6 +116,7 @@ export const createUser = mutation({
     email: v.string(),
     name: v.string(),
     username: v.optional(v.string()),
+    profile_image: v.optional(v.string()),
     // Allow optionally setting initial role (e.g., from Clerk public metadata)
     role: v.optional(
       v.union(
@@ -126,6 +127,18 @@ export const createUser = mutation({
         v.literal("super_admin"),
       ),
     ),
+    // Cached subscription data synced from Clerk Billing via webhook
+    subscription_plan: v.optional(v.union(
+      v.literal("free"),
+      v.literal("premium"),
+      v.literal("university"),
+    )),
+    subscription_status: v.optional(v.union(
+      v.literal("active"),
+      v.literal("inactive"),
+      v.literal("cancelled"),
+      v.literal("past_due"),
+    )),
   },
   handler: async (ctx, args) => {
     const existingUser = await ctx.db
@@ -139,8 +152,12 @@ export const createUser = mutation({
         email: args.email,
         name: args.name,
         username: args.username,
+        profile_image: args.profile_image,
         // If an explicit role is provided (e.g., from Clerk metadata), sync it
         ...(args.role ? { role: args.role } : {}),
+        // Update cached subscription data if provided
+        ...(args.subscription_plan ? { subscription_plan: args.subscription_plan } : {}),
+        ...(args.subscription_status ? { subscription_status: args.subscription_status } : {}),
         updated_at: Date.now(),
       });
       return existingUser._id;
@@ -152,9 +169,10 @@ export const createUser = mutation({
       email: args.email,
       name: args.name,
       username: args.username || `user_${Date.now()}`,
+      profile_image: args.profile_image,
       role: args.role ?? "user",
-      subscription_plan: "free",
-      subscription_status: "active",
+      subscription_plan: args.subscription_plan ?? "free",
+      subscription_status: args.subscription_status ?? "active",
       onboarding_completed: false,
       created_at: Date.now(),
       updated_at: Date.now(),
@@ -177,6 +195,9 @@ export const createUser = mutation({
     return userId;
   },
 });
+
+// Alias for Clerk webhook - same as createUser
+export const createUserFromClerk = createUser;
 
 // Update user profile
 export const updateUser = mutation({

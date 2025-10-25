@@ -22,8 +22,8 @@ interface UserRow {
   name: string
   username?: string
   role: 'user' | 'student' | 'staff' | 'university_admin' | 'advisor' | 'admin' | 'super_admin'
-  subscription_plan: 'free' | 'premium' | 'university'
-  subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due'
+  subscription_plan: 'free' | 'premium' | 'university' // Cached from Clerk for display (read-only)
+  subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due' // Cached from Clerk for display (read-only)
   university_id?: string
   profile_image?: string
   created_at: number
@@ -145,8 +145,8 @@ export default function AdminUsersPage() {
           name: form.name,
           email: form.email,
           role: form.role as any,
-          subscription_plan: form.plan,
-          subscription_status: form.status,
+          subscription_plan: form.plan, // Updates cached field in Convex (actual source is Clerk)
+          subscription_status: form.status, // Updates cached field in Convex (actual source is Clerk)
         },
       })
       setEditing(null)
@@ -308,10 +308,6 @@ export default function AdminUsersPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => openEdit(u)}>Edit</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => updateUser({ clerkId: u.clerkId, updates: { subscription_status: u.subscription_status === 'active' ? 'inactive' : 'active' } })}>
-                          {u.subscription_status === 'active' ? 'Mark Inactive' : 'Mark Active'}
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -355,11 +351,10 @@ export default function AdminUsersPage() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Plan</label>
+                  <label className="text-sm font-medium">Plan (Display Only)</label>
                   <Select
                     value={form.plan}
                     onValueChange={(v: any) => setForm({ ...form, plan: v })}
-                    disabled={!!editing?.university_id}
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -368,14 +363,12 @@ export default function AdminUsersPage() {
                       <SelectItem value="university">University</SelectItem>
                     </SelectContent>
                   </Select>
-                  {editing?.university_id && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Plan locked to "university" for users belonging to a university
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Note: This updates the cached display value. Actual subscription is managed by Clerk Billing.
+                  </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Status</label>
+                  <label className="text-sm font-medium">Status (Display Only)</label>
                   <Select value={form.status} onValueChange={(v: any) => setForm({ ...form, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -385,6 +378,9 @@ export default function AdminUsersPage() {
                       <SelectItem value="past_due">Past Due</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Note: This updates the cached display value. Actual subscription is managed by Clerk Billing.
+                  </p>
                 </div>
               </div>
             </div>

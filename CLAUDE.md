@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Auth**: Clerk (JWT-based authentication)
 - **Database**: Convex (realtime, typed queries/mutations)
 - **UI**: Tailwind CSS + Radix UI components
-- **Payments**: Stripe (Payment Links + Webhooks)
+- **Payments**: Clerk Billing (integrated with Stripe)
 - **AI**: OpenAI API (resume analysis, career coaching)
 - **Email**: SendGrid + Mailgun
 
@@ -45,35 +45,54 @@ Copy `.env.example` to `.env.local` and configure:
 
 **Optional:**
 - `OPENAI_API_KEY` (AI features)
-- `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` (payments)
+- `CLERK_WEBHOOK_SECRET` (Clerk webhooks for subscription sync)
 - `SENDGRID_API_KEY`, `MAILGUN_SENDING_API_KEY` (email)
 
-⚠️ **Do not add Supabase variables** - project has migrated to Clerk + Convex.
+⚠️ **Do not add Supabase or Stripe Payment Link variables** - project uses Clerk Billing.
 
-## Stripe Payment Links Configuration
+## Clerk Billing Configuration
 
-The app uses Stripe Payment Links for premium subscriptions during onboarding. To configure:
+The app uses **Clerk Billing** for premium subscriptions (Stripe integration managed by Clerk).
 
-1. **Create Payment Links in Stripe Dashboard:**
-   - Go to Stripe Dashboard → Payment Links
-   - Create a Monthly payment link ($9.99/month)
-   - Create an Annual payment link ($99/year)
+### Setup in Clerk Dashboard
 
-2. **Configure Success URL:**
-   - For each payment link, set the success URL to: `https://yourdomain.com/onboarding`
-   - This ensures users are redirected back to complete onboarding after payment
+1. **Enable Billing:**
+   - Go to Clerk Dashboard → Billing Settings
+   - Click "Finish setup" and connect your Stripe account
 
-3. **Set Environment Variables:**
-   - `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY` = Monthly payment link URL
-   - `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ANNUAL` = Annual payment link URL
+2. **Create Plans:**
+   - Go to Plans → "Plans for Users"
+   - Create plan: `premium_monthly` (Name: Premium Monthly, Price: $9.99/month)
+   - Create plan: `premium_annual` (Name: Premium Annual, Price: $99/year)
 
-4. **How it works:**
-   - New users select a plan during onboarding → redirected to Stripe Payment Link
-   - After successful payment → Stripe webhook updates subscription status
-   - Webhook automatically sets `onboarding_completed: true` for premium users
-   - Success URL redirects user back to `/onboarding`
-   - OnboardingFlow detects active premium subscription and skips plan selection
-   - User completes remaining onboarding steps (education, dream job)
+3. **Configure Webhook:**
+   - Go to Webhooks → Add Endpoint
+   - URL: `https://yourdomain.com/api/clerk/webhook`
+   - Subscribe to events: `user.created`, `user.updated`, `user.deleted`
+   - Copy the signing secret and set `CLERK_WEBHOOK_SECRET` in environment
+
+### How It Works
+
+1. **Pricing Page**: `/pricing` shows Clerk's `<PricingTable />` component
+2. **Payment**: Clerk handles checkout, processes payment via Stripe
+3. **Webhook**: Clerk sends `user.updated` event with subscription data in `publicMetadata`
+4. **Sync**: Webhook handler syncs subscription to Convex (cached display data)
+5. **Feature Gating**: Uses Clerk `publicMetadata` as source of truth via `useSubscription()` hook
+6. **Admin Display**: Shows cached Convex fields for fast loading
+
+### Subscription Data Architecture
+
+```
+Clerk Billing (Source of Truth - user.publicMetadata)
+  ↓ user.updated webhook
+Convex (Cached Display: subscription_plan, subscription_status)
+  ↑ query for admin UIs
+Admin Pages (Display Only)
+
+Clerk publicMetadata
+  ↓ useSubscription() hook
+Feature Gating (Access Control)
+```
 
 ## Architecture
 
