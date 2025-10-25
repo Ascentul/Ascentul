@@ -827,9 +827,9 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Premium Users</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{revenueData.payingUsersCount.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">{(revenueData?.payingUsersCount ?? 0).toLocaleString()}</div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {systemStats.totalUsers > 0 ? Math.round((revenueData.payingUsersCount / systemStats.totalUsers) * 100) : 0}% conversion
+                      {systemStats.totalUsers > 0 ? Math.round(((revenueData?.payingUsersCount ?? 0) / systemStats.totalUsers) * 100) : 0}% conversion
                     </p>
                   </CardContent>
                 </Card>
@@ -862,7 +862,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                       <div>
                         <h4 className="font-medium">Subscription Status</h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {revenueData.payingUsersCount} active subscriptions
+                          {revenueData?.payingUsersCount ?? 0} active subscriptions
                         </p>
                       </div>
                     </div>
@@ -896,9 +896,9 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${revenueData.monthlyRevenue.toLocaleString()}</div>
-                    <p className={`text-xs mt-1 ${revenueData.monthlyGrowthPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {revenueData.monthlyGrowthPercent >= 0 ? '+' : ''}{revenueData.monthlyGrowthPercent}% from last month
+                    <div className="text-2xl font-bold">${(revenueData?.monthlyRevenue ?? 0).toLocaleString()}</div>
+                    <p className={`text-xs mt-1 ${(revenueData?.monthlyGrowthPercent ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {(revenueData?.monthlyGrowthPercent ?? 0) >= 0 ? '+' : ''}{revenueData?.monthlyGrowthPercent ?? 0}% from last month
                     </p>
                   </CardContent>
                 </Card>
@@ -908,8 +908,8 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Avg Revenue Per User</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${revenueData.arpu}</div>
-                    <p className="text-xs text-muted-foreground mt-1">{revenueData.payingUsersCount} paying users</p>
+                    <div className="text-2xl font-bold">${revenueData?.arpu ?? '0.00'}</div>
+                    <p className="text-xs text-muted-foreground mt-1">{revenueData?.payingUsersCount ?? 0} paying users</p>
                   </CardContent>
                 </Card>
 
@@ -918,7 +918,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Churn Rate</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{revenueData.churnRate}%</div>
+                    <div className="text-2xl font-bold">{revenueData?.churnRate ?? '0.0'}%</div>
                     <p className="text-xs text-muted-foreground mt-1">Last month</p>
                   </CardContent>
                 </Card>
@@ -928,7 +928,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                     <CardTitle className="text-sm font-medium">Lifetime Value</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${revenueData.estimatedLTV}</div>
+                    <div className="text-2xl font-bold">${revenueData?.estimatedLTV ?? 0}</div>
                     <p className="text-xs text-muted-foreground mt-1">Avg LTV per user</p>
                   </CardContent>
                 </Card>
@@ -942,7 +942,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                   </CardHeader>
                   <CardContent className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={revenueData.revenueGrowth}>
+                      <AreaChart data={revenueData?.revenueGrowth ?? []}>
                         <defs>
                           <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
@@ -1000,7 +1000,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 </CardHeader>
                 <CardContent className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={revenueData.subscriptionLifecycle}>
+                    <BarChart data={revenueData?.subscriptionLifecycle ?? []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
@@ -1074,9 +1074,9 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
                 <CardTitle className="text-sm font-medium">Premium Users</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{revenueData.payingUsersCount.toLocaleString()}</div>
+                <div className="text-2xl font-bold">{(revenueData?.payingUsersCount ?? 0).toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {systemStats.totalUsers > 0 ? Math.round((revenueData.payingUsersCount / systemStats.totalUsers) * 100) : 0}% conversion rate
+                  {systemStats.totalUsers > 0 ? Math.round(((revenueData?.payingUsersCount ?? 0) / systemStats.totalUsers) * 100) : 0}% conversion rate
                 </p>
               </CardContent>
             </Card>
