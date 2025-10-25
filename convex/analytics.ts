@@ -101,8 +101,12 @@ export const getOverviewAnalytics = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
+    if (!currentUser) {
+      throw new Error(`User not found with clerkId: ${args.clerkId}. The user may still be syncing from Clerk to Convex.`);
+    }
+
+    if (!["admin", "super_admin"].includes(currentUser.role)) {
+      throw new Error(`Unauthorized: User has role '${currentUser.role}' but needs 'admin' or 'super_admin'`);
     }
 
     // Fetch only essential data for Overview tab with strict limits

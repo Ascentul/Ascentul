@@ -52,28 +52,29 @@ export default function AdminDashboardPage() {
   const canAccess = useMemo(() => role === 'super_admin' || role === 'admin', [role])
 
   // OPTIMIZED: Load only Overview analytics by default (lightweight)
-  // Only query if user has access AND clerkUser is loaded
+  // Only query if user has access AND both clerkUser and Convex user are loaded
+  // This prevents race condition where Convex user might not exist yet
   const overviewAnalytics = useQuery(
     api.analytics.getOverviewAnalytics,
-    clerkLoaded && canAccess && clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+    clerkLoaded && user && canAccess && clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
   )
 
   // Load university analytics only when Universities tab is active
   const universityAnalytics = useQuery(
     api.analytics.getUniversityAnalytics,
-    clerkLoaded && canAccess && clerkUser?.id && activeAnalyticsTab === 'universities' ? { clerkId: clerkUser.id } : 'skip'
+    clerkLoaded && user && canAccess && clerkUser?.id && activeAnalyticsTab === 'universities' ? { clerkId: clerkUser.id } : 'skip'
   )
 
   // Load revenue analytics only when Revenue view or Users tab is active
   const revenueData = useQuery(
     api.analytics.getRevenueAnalytics,
-    clerkLoaded && canAccess && clerkUser?.id && (activeView === 'revenue' || activeAnalyticsTab === 'users') ? { clerkId: clerkUser.id } : 'skip'
+    clerkLoaded && user && canAccess && clerkUser?.id && (activeView === 'revenue' || activeAnalyticsTab === 'users') ? { clerkId: clerkUser.id } : 'skip'
   )
 
   // Load minimal users only when Users tab is active
   const users = useQuery(
     api.users.getAllUsersMinimal,
-    clerkLoaded && canAccess && clerkUser?.id && activeAnalyticsTab === 'users' ? { clerkId: clerkUser.id, limit: 50 } : 'skip'
+    clerkLoaded && user && canAccess && clerkUser?.id && activeAnalyticsTab === 'users' ? { clerkId: clerkUser.id, limit: 50 } : 'skip'
   )
 
   // Memoize analytics data from overviewAnalytics
