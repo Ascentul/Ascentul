@@ -1,7 +1,7 @@
 'use client'
 
-import { useUser, useAuth } from '@clerk/nextjs'
-import { useMemo, useEffect, useState } from 'react'
+import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs'
+import { useMemo } from 'react'
 
 export interface SubscriptionInfo {
   isPremium: boolean
@@ -32,6 +32,7 @@ export interface SubscriptionInfo {
  */
 export function useSubscription(): SubscriptionInfo {
   const { user, isLoaded } = useUser()
+  const { has } = useClerkAuth()
 
   return useMemo(() => {
     if (!isLoaded || !user) {
@@ -45,32 +46,17 @@ export function useSubscription(): SubscriptionInfo {
       }
     }
 
-    // Clerk Billing syncs subscription data to user metadata
-    // When a user subscribes via <PricingTable />, Clerk automatically
-    // updates their metadata with subscription details
     const metadata = user.publicMetadata as any
 
     // Check if user is part of a university (legacy/admin-assigned)
     const isUniversity = metadata?.role === 'student' || metadata?.university_id
 
-    // Clerk Billing sets subscription info after successful payment
-    // The exact field names may vary - common patterns include:
-    // - subscriptions array with active plans
-    // - billing.plan with current plan slug
-    // - activeSubscriptions with plan details
+    // Use Clerk's built-in has() method to check subscription plans
+    // This is the official way to check Clerk Billing subscriptions
+    // Note: "premium_monthly" plan includes both monthly AND annual billing options
+    const hasPremium = has?.({ plan: 'premium_monthly' }) ?? false
 
-    // Check for active subscription via common Clerk Billing patterns
-    const subscriptions = metadata?.subscriptions || []
-    const currentPlan = metadata?.billing?.plan || metadata?.plan
-
-    // Check if user has premium_monthly or premium_annual plan
-    const hasPremiumMonthly = currentPlan === 'premium_monthly' ||
-                             subscriptions.some((s: any) => s.plan === 'premium_monthly' && s.status === 'active')
-    const hasPremiumAnnual = currentPlan === 'premium_annual' ||
-                            subscriptions.some((s: any) => s.plan === 'premium_annual' && s.status === 'active')
-
-    const hasActivePremium = hasPremiumMonthly || hasPremiumAnnual
-    const isPremium = hasActivePremium || isUniversity
+    const isPremium = hasPremium || isUniversity
 
     // Determine specific plan type
     let planType: SubscriptionInfo['planType'] = 'free'
@@ -79,23 +65,32 @@ export function useSubscription(): SubscriptionInfo {
     if (isUniversity) {
       planType = 'university'
       planName = 'University'
-    } else if (hasPremiumMonthly) {
+    } else if (hasPremium) {
+      // We can't distinguish monthly vs annual from has() alone
+      // Both are under the same plan key "premium_monthly"
       planType = 'premium_monthly'
-      planName = 'Premium Monthly'
-    } else if (hasPremiumAnnual) {
-      planType = 'premium_annual'
-      planName = 'Premium Annual'
+      planName = 'Premium'
+    }
+
+    // DEBUG: Log subscription check results
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      console.log('[useSubscription] Plan check:', {
+        hasPremium,
+        isPremium,
+        planType,
+        metadata
+      })
     }
 
     return {
       isPremium,
-      isActive: isPremium, // If they have premium, subscription is active
+      isActive: isPremium,
       isUniversity,
       planType,
       planName,
       isLoading: false,
     }
-  }, [user, isLoaded])
+  }, [user, isLoaded, has])
 }
 
 /**

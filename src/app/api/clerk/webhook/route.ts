@@ -135,14 +135,14 @@ function determineSubscriptionPlan(metadata: any): 'free' | 'premium' | 'univers
   const subscriptions = metadata.subscriptions || []
   const currentPlan = metadata.billing?.plan || metadata.plan
 
-  // Check for premium plans
-  if (currentPlan === 'premium_monthly' || currentPlan === 'premium_annual') {
+  // Check for premium plan (includes both monthly and annual billing)
+  if (currentPlan === 'premium_monthly') {
     return 'premium'
   }
 
   // Check subscriptions array
   for (const sub of subscriptions) {
-    if (sub.plan === 'premium_monthly' || sub.plan === 'premium_annual') {
+    if (sub.plan === 'premium_monthly') {
       if (sub.status === 'active' || sub.status === 'trialing') {
         return 'premium'
       }
@@ -165,14 +165,14 @@ function determineSubscriptionStatus(metadata: any): 'active' | 'inactive' | 'ca
   }
 
   // Check for active premium subscription
-  if (currentPlan === 'premium_monthly' || currentPlan === 'premium_annual') {
+  if (currentPlan === 'premium_monthly') {
     const status = metadata.billing?.status || 'active'
     return mapClerkStatusToConvex(status)
   }
 
   // Check subscriptions array
   for (const sub of subscriptions) {
-    if (sub.plan === 'premium_monthly' || sub.plan === 'premium_annual') {
+    if (sub.plan === 'premium_monthly') {
       return mapClerkStatusToConvex(sub.status)
     }
   }

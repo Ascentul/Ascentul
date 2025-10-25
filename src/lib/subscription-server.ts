@@ -31,11 +31,9 @@ import { auth } from '@clerk/nextjs/server'
 export async function checkPremiumAccess(): Promise<boolean> {
   const { has } = await auth()
 
-  // Check if user has either premium plan
-  const hasPremiumMonthly = has({ plan: 'premium_monthly' })
-  const hasPremiumAnnual = has({ plan: 'premium_annual' })
-
-  return hasPremiumMonthly || hasPremiumAnnual
+  // Check if user has the premium plan
+  // Note: This plan includes both monthly and annual billing options
+  return has({ plan: 'premium_monthly' })
 }
 
 /**

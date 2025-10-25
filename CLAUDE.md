@@ -60,10 +60,13 @@ The app uses **Clerk Billing** for premium subscriptions (Stripe integration man
    - Go to Clerk Dashboard → Billing Settings
    - Click "Finish setup" and connect your Stripe account
 
-2. **Create Plans:**
+2. **Create Plan:**
    - Go to Plans → "Plans for Users"
-   - Create plan: `premium_monthly` (Name: Premium Monthly, Price: $9.99/month)
-   - Create plan: `premium_annual` (Name: Premium Annual, Price: $99/year)
+   - Create plan with key: `premium_monthly`
+   - Name: "Premium Monthly" (or any display name)
+   - Enable both monthly and annual billing options:
+     - Monthly: $30.00/month
+     - Annual: $240.00/year (billed as $20/month)
 
 3. **Configure Webhook:**
    - Go to Webhooks → Add Endpoint

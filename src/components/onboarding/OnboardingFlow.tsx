@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
+import { useUser } from "@clerk/nextjs";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
@@ -42,8 +43,28 @@ const defaultOnboardingData: OnboardingData = {
 
 export function OnboardingFlow() {
   const { user, subscription, hasPremium } = useAuth();
+  const { user: clerkUser } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+
+  // Force reload user session after returning from Clerk checkout
+  useEffect(() => {
+    const sessionRefreshed = searchParams?.get('session_refreshed');
+
+    if (!sessionRefreshed && clerkUser) {
+      // Reload the user to get fresh subscription data from Clerk
+      clerkUser.reload().then(() => {
+        console.log('[OnboardingFlow] User session refreshed after payment');
+        // Add URL param to prevent repeated reloads
+        const url = new URL(window.location.href);
+        url.searchParams.set('session_refreshed', 'true');
+        window.history.replaceState({}, '', url);
+      }).catch((err) => {
+        console.error('[OnboardingFlow] Error refreshing session:', err);
+      });
+    }
+  }, [clerkUser, searchParams]);
 
   // Convex mutations
   const updateUser = useMutation(api.users.updateUser);

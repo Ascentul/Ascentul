@@ -1,9 +1,10 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
+import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, TrendingUp, Users, Zap } from 'lucide-react'
@@ -11,7 +12,27 @@ import { PricingTable } from '@clerk/nextjs'
 
 export default function PricingPage() {
   const { isSignedIn, subscription, hasPremium } = useAuth()
+  const { user: clerkUser } = useUser()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Force reload user session after returning from Clerk checkout
+  useEffect(() => {
+    const sessionRefreshed = searchParams?.get('session_refreshed');
+
+    if (!sessionRefreshed && clerkUser) {
+      // Reload the user to get fresh subscription data from Clerk
+      clerkUser.reload().then(() => {
+        console.log('[PricingPage] User session refreshed after payment');
+        // Add URL param to prevent repeated reloads
+        const url = new URL(window.location.href);
+        url.searchParams.set('session_refreshed', 'true');
+        window.history.replaceState({}, '', url);
+      }).catch((err) => {
+        console.error('[PricingPage] Error refreshing session:', err);
+      });
+    }
+  }, [clerkUser, searchParams]);
 
   // If user already has premium, redirect to dashboard
   if (hasPremium && !subscription.isLoading) {
