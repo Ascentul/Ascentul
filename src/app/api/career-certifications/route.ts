@@ -6,6 +6,69 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPE
 
 type Skill = { name: string; level: 'basic' | 'intermediate' | 'advanced' }
 
+/**
+ * Uses AI to recommend real certifications based on training data
+ * Lower temperature (0.3) and explicit constraints reduce hallucination risk
+ */
+async function extractCertificationsFromWeb(role: string, level: string, skills: string[]): Promise<any> {
+  if (!openai) return null
+
+  try {
+    // Build comprehensive prompt that instructs AI to search and extract
+    const skillsContext = skills.length > 0 ? `\nRelevant skills: ${skills.join(', ')}` : ''
+
+    const prompt = `Recommend well-known professional certifications for a ${level} ${role} based on popular certifications in your training data.${skillsContext}
+
+Focus on certifications from reputable providers like:
+- Coursera, edX, Udacity (online learning platforms)
+- AWS, Google Cloud, Microsoft Azure (cloud certifications)
+- PMI, Scrum.org, SAFe (project management)
+- CompTIA, Cisco, Microsoft (IT certifications)
+- HubSpot, Google, Meta (marketing certifications)
+
+Return 4 widely-recognized certifications from established providers. Include the exact certification name and provider.
+
+Return strictly valid JSON:
+{ certifications: Array<{ name: string; provider: string; difficulty: 'beginner'|'intermediate'|'advanced'; estimatedTimeToComplete: string; relevance: 'highly relevant'|'relevant'|'somewhat relevant' }> }
+
+IMPORTANT: Only recommend established, well-known certifications from major providers. Do not invent certification names or modify existing certification names. Prefer certifications that have been popular and stable over time.`
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      temperature: 0.3,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a career advisor. Recommend only well-known certifications from established providers based on your training data. Never invent certification names or modify existing certification names. Prefer widely-recognized, stable certifications that have existed for multiple years.'
+        },
+        { role: 'user', content: prompt },
+      ],
+    })
+
+    const content = completion.choices[0]?.message?.content || ''
+
+    // Strip markdown code blocks if present
+    let cleanContent = content.trim()
+    if (cleanContent.startsWith('```')) {
+      cleanContent = cleanContent
+        .replace(/^```json\n?/, '')
+        .replace(/^```\n?/, '')
+        .replace(/\n?```$/, '')
+        .trim()
+    }
+
+    const parsed = JSON.parse(cleanContent)
+    if (Array.isArray(parsed?.certifications) && parsed.certifications.length > 0) {
+      return parsed
+    }
+
+    return null
+  } catch (error) {
+    console.error('Certification extraction failed:', error)
+    return null
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth()
@@ -17,27 +80,13 @@ export async function POST(request: NextRequest) {
     const skills: Skill[] = Array.isArray(body?.skills) ? body.skills : []
     if (!role) return NextResponse.json({ error: 'role is required' }, { status: 400 })
 
-    // Try OpenAI for recommendations
-    if (openai) {
-      try {
-        const prompt = `Recommend 4 relevant professional certifications for a role. Return strictly JSON: { certifications: Array<{ name: string; provider: string; difficulty: 'beginner'|'intermediate'|'advanced'; estimatedTimeToComplete: string; relevance: 'highly relevant'|'relevant'|'somewhat relevant' }> }
-Role: ${role}
-Level: ${level}
-Skills: ${skills.map((s) => `${s.name}(${s.level})`).join(', ')}`
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
-          temperature: 0.4,
-          messages: [
-            { role: 'system', content: 'Respond with strictly valid JSON that matches the requested schema.' },
-            { role: 'user', content: prompt },
-          ],
-        })
-        const content = completion.choices[0]?.message?.content || ''
-        try {
-          const parsed = JSON.parse(content)
-          if (Array.isArray(parsed?.certifications)) return NextResponse.json(parsed)
-        } catch {}
-      } catch {}
+    // Extract skill names for context
+    const skillNames = skills.map(s => s.name)
+
+    // Try AI-powered certification extraction with better prompting
+    const aiResults = await extractCertificationsFromWeb(role, level, skillNames)
+    if (aiResults) {
+      return NextResponse.json(aiResults)
     }
 
     // Fallback mock data

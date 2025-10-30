@@ -34,7 +34,6 @@ import type * as platform_settings from "../platform_settings.js";
 import type * as projects from "../projects.js";
 import type * as recommendations from "../recommendations.js";
 import type * as resumes from "../resumes.js";
-import type * as stripe from "../stripe.js";
 import type * as support_tickets from "../support_tickets.js";
 import type * as universities from "../universities.js";
 import type * as university_admin from "../university_admin.js";
@@ -71,7 +70,6 @@ declare const fullApi: ApiFromModules<{
   projects: typeof projects;
   recommendations: typeof recommendations;
   resumes: typeof resumes;
-  stripe: typeof stripe;
   support_tickets: typeof support_tickets;
   universities: typeof universities;
   university_admin: typeof university_admin;
