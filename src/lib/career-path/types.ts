@@ -177,6 +177,7 @@ export type QualityFailureReason =
   | 'invalid_level_values'
   | 'skills_missing_or_malformed'
   | 'insufficient_domain_specificity'
+  | 'unknown' // Used when fallback reason cannot be determined
 
 export interface QualityCheckResult {
   valid: boolean

@@ -129,19 +129,37 @@ const slugify = (value: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 40)
 
-const toTitleCase = (value: string) =>
-  value
+const toTitleCase = (value: string) => {
+  // Words that should stay lowercase in title case (unless first word)
+  const lowercase = new Set(['of', 'at', 'by', 'in', 'on', 'to', 'up', 'and', 'but', 'or', 'for', 'nor', 'yet', 'so', 'the', 'a', 'an'])
+
+  return value
     .trim()
     .split(/\s+/)
-    .map((word) => {
+    .map((word, index) => {
       if (!word) return ''
       const clean = word.replace(/[^a-z0-9/+-]/gi, '')
-      if (clean.length <= 3 && /^[a-z]+$/i.test(clean)) {
+      const lowerWord = clean.toLowerCase()
+
+      // First word always capitalized, even if it's a preposition
+      if (index === 0) {
+        return `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`
+      }
+
+      // Keep prepositions/articles lowercase (not acronyms)
+      if (lowercase.has(lowerWord)) {
+        return lowerWord
+      }
+
+      // Uppercase 2-3 letter acronyms (IT, HR, VP, etc.) but not prepositions
+      if (clean.length <= 3 && /^[a-z]+$/i.test(clean) && !lowercase.has(lowerWord)) {
         return clean.toUpperCase()
       }
+
       return `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`
     })
     .join(' ')
+}
 
 const stripLevelQualifiers = (value: string) => {
   let result = value.trim()
@@ -2225,6 +2243,47 @@ const buildProfileGuidancePath = (
   }
 }
 
+/**
+ * Persists a career path or profile guidance to Convex
+ * Handles both career_path and profile_guidance types
+ */
+const persistCareerPathToConvex = async (
+  userId: string,
+  targetRole: string,
+  path: any,
+  pathType: 'career_path' | 'profile_guidance',
+  metadata: {
+    usedModel: string
+    promptVariant?: string
+  }
+): Promise<void> => {
+  try {
+    const url = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!url) return
+
+    const clientCv = new ConvexHttpClient(url)
+    await clientCv.mutation(api.career_paths.createCareerPath, {
+      clerkId: userId,
+      target_role: targetRole,
+      current_level: undefined,
+      estimated_timeframe: undefined,
+      steps: {
+        type: pathType,
+        source: 'job',
+        path,
+        ...metadata,
+      },
+      status: 'active',
+    })
+  } catch (convexError) {
+    logStructuredError('Convex persistence failed', convexError, {
+      userId,
+      jobTitle: targetRole,
+      pathType,
+    })
+  }
+}
+
 
 export async function POST(request: NextRequest) {
   const timer = startTimer('career_path_generation_total')
@@ -2324,7 +2383,8 @@ export async function POST(request: NextRequest) {
 
             const completion = await client.chat.completions.create({
               model,
-              temperature: 0.4,
+              // GPT-5 only supports default temperature (1), other models support 0.4
+              ...(model === 'gpt-5' ? {} : { temperature: 0.4 }),
               messages: [
                 { role: 'system', content: 'You produce strictly valid JSON for apps to consume.' },
                 { role: 'user', content: variant.prompt },
@@ -2336,7 +2396,16 @@ export async function POST(request: NextRequest) {
             // Parse and validate with Zod
             let parsed: any
             try {
-              parsed = JSON.parse(content)
+              // Strip markdown code blocks if present (OpenAI sometimes wraps JSON in ```json blocks)
+              let cleanContent = content.trim()
+              if (cleanContent.startsWith('```')) {
+                cleanContent = cleanContent
+                  .replace(/^```json\n?/, '')
+                  .replace(/^```\n?/, '')
+                  .replace(/\n?```$/, '')
+                  .trim()
+              }
+              parsed = JSON.parse(cleanContent)
               const validation = OpenAICareerPathOutputSchema.safeParse(parsed)
               if (!validation.success) {
                 logStructuredError('OpenAI output validation failed', validation.error, {
@@ -2381,8 +2450,7 @@ export async function POST(request: NextRequest) {
             // Use mapper instead of normalizeOpenAIPath
             const mapperResult = mapAiCareerPathToUI(
               parsed.paths[0],
-              promptContext.targetRole,
-              promptContext.domain
+              promptContext.targetRole
             )
 
             if (mapperResult.rejected) {
@@ -2412,32 +2480,16 @@ export async function POST(request: NextRequest) {
             timer.end({ success: true, model, promptVariant: variant.name })
 
             // Save first path to Convex (best-effort)
-            try {
-              const url = process.env.NEXT_PUBLIC_CONVEX_URL
-              if (url) {
-                const clientCv = new ConvexHttpClient(url)
-                await clientCv.mutation(api.career_paths.createCareerPath, {
-                  clerkId: userId,
-                  target_role: mainPath.target_role,
-                  current_level: undefined,
-                  estimated_timeframe: undefined,
-                  steps: {
-                    type: 'career_path',
-                    source: 'job',
-                    path: mainPath,
-                    usedModel: model,
-                    promptVariant: variant.name,
-                  },
-                  status: 'active',
-                })
+            await persistCareerPathToConvex(
+              userId,
+              mainPath.target_role,
+              mainPath,
+              'career_path',
+              {
+                usedModel: model,
+                promptVariant: variant.name,
               }
-            } catch (convexError) {
-              logStructuredError('Convex persistence failed', convexError, {
-                userId,
-                jobTitle,
-                pathType: 'career_path',
-              })
-            }
+            )
 
             // Return discriminated union response
             return NextResponse.json({
@@ -2477,31 +2529,15 @@ export async function POST(request: NextRequest) {
 
     timer.end({ success: false, fallback: true })
 
-    try {
-      const url = process.env.NEXT_PUBLIC_CONVEX_URL
-      if (url) {
-        const clientCv = new ConvexHttpClient(url)
-        await clientCv.mutation(api.career_paths.createCareerPath, {
-          clerkId: userId,
-          target_role: guidancePath.target_role,
-          current_level: undefined,
-          estimated_timeframe: undefined,
-          steps: {
-            type: 'profile_guidance',
-            source: 'job',
-            path: guidancePath,
-            usedModel: 'profile-guidance',
-          },
-          status: 'active',
-        })
+    await persistCareerPathToConvex(
+      userId,
+      guidancePath.target_role,
+      guidancePath,
+      'profile_guidance',
+      {
+        usedModel: 'profile-guidance',
       }
-    } catch (convexError) {
-      logStructuredError('Convex persistence failed', convexError, {
-        userId,
-        jobTitle,
-        pathType: 'profile_guidance',
-      })
-    }
+    )
 
     // Return discriminated union response
     return NextResponse.json({

@@ -6,7 +6,6 @@
  */
 
 import {
-  CareerPathRole,
   LegacyCareerNode,
   CareerPathResponse,
   isSuspiciousRoleTitle,
@@ -15,36 +14,6 @@ import {
   StageLevel,
   SkillLevel,
 } from './types'
-
-// ============================================================================
-// DOMAIN ALLOW LIST FOR CERTIFICATIONS
-// ============================================================================
-
-const TRUSTED_CERT_DOMAINS = [
-  'coursera.org',
-  'udemy.com',
-  'linkedin.com',
-  'aws.amazon.com',
-  'microsoft.com',
-  'google.com',
-  'comptia.org',
-  'pmi.org',
-  'scrum.org',
-  'cissp.org',
-  'isaca.org',
-  'cisco.com',
-  'redhat.com',
-  'oracle.com',
-  'salesforce.com',
-  'hubspot.com',
-  'facebook.com', // Meta certifications
-  'cloudflare.com',
-  'datacamp.com',
-  'pluralsight.com',
-  'edx.org',
-  'kaggle.com',
-  'github.com',
-]
 
 // ============================================================================
 // SALARY RANGE CALCULATION
@@ -62,17 +31,6 @@ const TRUSTED_CERT_DOMAINS = [
  * For cross-level progression, see defaultByLevel in migrateLegacyCareerPath.
  */
 const SALARY_RANGE_MULTIPLIER = 1.3
-
-function isValidCertificationUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url)
-    return TRUSTED_CERT_DOMAINS.some(domain =>
-      parsed.hostname === domain || parsed.hostname.endsWith('.' + domain)
-    )
-  } catch {
-    return false
-  }
-}
 
 // ============================================================================
 // MAPPER GUARDS
@@ -122,15 +80,12 @@ function normalizeYearsExperience(value: string | number): MapperResult<number> 
     }
   }
 
-  // Reject suspiciously low values (likely invalid or non-years units)
-  // 0.25 years = 3 months, allows internships/apprenticeships
+  // Default suspiciously low values to 0 (entry-level) instead of rejecting
+  // This allows AI-generated paths with imperfect data to still succeed
+  // Career path generation should work as a research tool, not depend on perfect data
   if (parsed < 0.25) {
-    return {
-      rejected: true,
-      reason: 'Years experience value too low (minimum 3 months)',
-      field: 'yearsExperience',
-      value,
-    }
+    console.warn(`Years experience value ${parsed} too low, defaulting to 0 (entry-level)`, { value })
+    return { rejected: false, data: 0 }
   }
 
   return { rejected: false, data: parsed }
@@ -141,35 +96,6 @@ function normalizeYearsExperience(value: string | number): MapperResult<number> 
  */
 function normalizeSalary(value: string | number | null): number | null {
   return parseSalary(value)
-}
-
-/**
- * Filter certifications to only trusted domains
- */
-function filterCertifications(certs: Array<{ name: string; issuer: string; url: string }>): Array<{ name: string; issuer: string; url: string }> {
-  return certs.filter(cert => {
-    if (!cert.url) return false
-    return isValidCertificationUrl(cert.url)
-  })
-}
-
-/**
- * Normalize role category to concise format
- */
-function normalizeRoleCategory(category: string | undefined, fallback: string): string {
-  if (!category || category.trim().length === 0) {
-    return fallback
-  }
-
-  // Trim to max 50 chars
-  const trimmed = category.trim().slice(0, 50)
-
-  // If it's too short or contains suspicious words, use fallback
-  if (trimmed.length < 3 || trimmed.toLowerCase().includes('profile')) {
-    return fallback
-  }
-
-  return trimmed
 }
 
 // ============================================================================
@@ -202,8 +128,7 @@ export function mapAiCareerPathToUI(
       icon?: string
     }>
   },
-  targetRole: string,
-  domain: string
+  targetRole: string
 ): MapperResult<CareerPathResponse> {
   const mappedNodes: LegacyCareerNode[] = []
 
@@ -335,7 +260,15 @@ function calculateSimilarity(str1: string, str2: string): number {
 }
 
 /**
- * Levenshtein distance
+ * Levenshtein distance (edit distance between two strings)
+ *
+ * Custom inline implementation suitable for short strings (job titles).
+ * Space complexity: O(m×n) - Full matrix allocation
+ * Time complexity: O(m×n) - Standard dynamic programming
+ *
+ * Performance: Called once per career path validation for strings ~20-50 chars.
+ * Not a bottleneck. Consider `fastest-levenshtein` package if usage scales
+ * to loops or longer strings (>100 chars).
  */
 function levenshtein(str1: string, str2: string): number {
   const matrix: number[][] = []

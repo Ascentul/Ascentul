@@ -18,7 +18,11 @@
      - Filters certifications to trusted domains only
      - Validates final node matches target role
    - `migrateLegacyCareerPath()` for backward compatibility
-   - Levenshtein distance for fuzzy string matching
+   - **Levenshtein distance** for fuzzy string matching (custom inline implementation)
+     - Rationale: Simple O(mn) implementation suitable for short strings (job titles ~20-50 chars)
+     - Used once per request for final role validation (not performance-critical)
+     - Avoids external dependency for single low-frequency use case
+     - Consider `fastest-levenshtein` package if usage scales to loops or longer strings
 
 3. **✅ Created Telemetry System** - `src/lib/career-path/telemetry.ts`
    - Structured event logging

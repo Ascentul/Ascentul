@@ -103,7 +103,7 @@ export function logFallbackToGuidance(params: {
   emitTelemetryEvent({
     event: 'career_path_generation_fallback',
     timestamp: Date.now(),
-    failureReason: params.failureReason || 'insufficient_domain_specificity',
+    failureReason: params.failureReason || 'unknown',
     failureDetails: params.reason,
     userId: params.userId,
     jobTitle: params.jobTitle,
