@@ -11,9 +11,11 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Cpu,
   Database,
   DollarSign,
+  ExternalLink,
   GraduationCap,
   Layers,
   Lightbulb,
@@ -23,6 +25,7 @@ import {
   Plus,
   Sparkles,
   User,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,6 +47,12 @@ import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import {
+  CareerPathApiResponse,
+  isCareerPathResponse,
+  isProfileGuidanceResponse,
+  ProfileTask,
+} from "@/lib/career-path/types";
 
 // Removed framer-motion animations to fix build issues
 
@@ -165,6 +174,70 @@ type CertificationRecommendation = {
   relevance: "highly relevant" | "relevant" | "somewhat relevant";
 };
 
+// ProfileTaskCard component for guidance mode
+function ProfileTaskCard({
+  task,
+  onAction,
+}: {
+  task: ProfileTask;
+  onAction: (url?: string) => void;
+}) {
+  const iconMap: Record<string, JSX.Element> = {
+    book: <BookOpen className="h-5 w-5 text-primary" />,
+    layers: <Layers className="h-5 w-5 text-primary" />,
+    linechart: <LineChart className="h-5 w-5 text-primary" />,
+    briefcase: <BriefcaseBusiness className="h-5 w-5 text-primary" />,
+    lightbulb: <Lightbulb className="h-5 w-5 text-primary" />,
+    award: <Award className="h-5 w-5 text-primary" />,
+  };
+
+  const priorityColors = {
+    high: "bg-red-100 text-red-800 border-red-200",
+    medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    low: "bg-gray-100 text-gray-800 border-gray-200",
+  };
+
+  return (
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardContent className="p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            {iconMap[task.icon || "book"] || iconMap.book}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between mb-2 gap-3">
+              <h4 className="font-semibold text-lg">{task.title}</h4>
+              <Badge className={cn("border", priorityColors[task.priority])}>
+                {task.priority}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mb-1">
+              {task.category}
+            </p>
+            <p className="text-sm text-foreground mb-4">{task.description}</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span>~{task.estimated_duration_minutes} minutes</span>
+              </div>
+              {task.action_url && (
+                <Button
+                  size="sm"
+                  onClick={() => onAction(task.action_url)}
+                  className="gap-1"
+                >
+                  Take Action
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function CertificationCard({
   cert,
   onAdd,
@@ -276,6 +349,11 @@ export default function CareerPathPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Guidance mode state (when profile prep is needed)
+  const [showGuidanceBanner, setShowGuidanceBanner] = useState(false);
+  const [guidanceMessage, setGuidanceMessage] = useState("");
+  const [guidanceTasks, setGuidanceTasks] = useState<ProfileTask[]>([]);
 
   const selectedNode = useMemo(
     () => activePath?.nodes.find((n) => n.id === selectedNodeId) || null,
@@ -462,49 +540,94 @@ export default function CareerPathPage() {
     }
 
     // Check free user limit (1 career path max in database)
-    if (isFreeUser && savedPaths.length >= 1) {
+    // Skip limit check in development for testing
+    if (process.env.NODE_ENV !== 'development' && isFreeUser && savedPaths.length >= 1) {
       setShowUpgradeModal(true);
       return;
     }
 
     try {
       setIsSearching(true);
+
+      // Clear previous guidance state
+      setShowGuidanceBanner(false);
+      setGuidanceMessage("");
+      setGuidanceTasks([]);
+
       const res = await apiRequest(
         "POST",
         "/api/career-path/generate-from-job",
         { jobTitle: jobTitle.trim() },
       );
-      const data = await res.json();
-      if (Array.isArray(data?.paths) && data.paths.length > 0) {
-        const mainPath = data.paths[0];
+      const data: CareerPathApiResponse = await res.json();
+
+      // Handle profile guidance response
+      if (isProfileGuidanceResponse(data)) {
+        setShowGuidanceBanner(true);
+        setGuidanceMessage(data.message);
+        setGuidanceTasks(data.tasks);
+
+        // Clear any active career path
+        setActivePath(null);
+        setGeneratedPath(null);
+
+        // Clear stale path persistence to prevent rehydration on reload
+        try {
+          localStorage.removeItem(LS_KEYS.path);
+          localStorage.removeItem(LS_KEYS.source);
+          localStorage.removeItem(LS_KEYS.jobTitle);
+        } catch {}
+
+        toast({
+          title: "Profile Guidance",
+          description: "Complete the suggested profile improvements to generate a detailed career path.",
+          variant: "default",
+        });
+        return;
+      }
+
+      // Handle career path response
+      if (isCareerPathResponse(data)) {
         const processed: CareerPath = {
-          ...mainPath,
-          nodes: (mainPath.nodes || []).map((n: any) => ({
+          id: data.id,
+          name: data.name,
+          nodes: data.nodes.map((n) => ({
             ...n,
             icon: getIconComponent(n.icon),
           })),
         };
+
         setGeneratedPath(processed);
         setActivePath(processed);
+
+        // Clear guidance state on success
+        setShowGuidanceBanner(false);
+        setGuidanceMessage("");
+        setGuidanceTasks([]);
+
         // Refresh saved list from server (reset pagination)
         setSavedCursor(null);
         setNextCursor(null);
         try {
           await refetchSaved();
         } catch {}
+
         // Persist raw path JSON and job title for future sessions
         try {
-          localStorage.setItem(LS_KEYS.path, JSON.stringify(mainPath));
+          localStorage.setItem(LS_KEYS.path, JSON.stringify(data));
           localStorage.setItem(LS_KEYS.source, "job");
           localStorage.setItem(LS_KEYS.jobTitle, jobTitle.trim());
         } catch {}
+
         toast({
           title: "Career Path Generated",
           description: `Career path for "${jobTitle}" is ready.`,
         });
-      } else {
-        throw new Error("No paths returned");
+        return;
       }
+
+      // Fallback for unexpected response format
+      throw new Error("Unexpected response format from server");
     } catch (e: any) {
       toast({
         title: "Error",
@@ -518,7 +641,8 @@ export default function CareerPathPage() {
 
   const generateFromProfile = async () => {
     // Check free user limit (1 career path max in database)
-    if (isFreeUser && savedPaths.length >= 1) {
+    // Skip limit check in development for testing
+    if (process.env.NODE_ENV !== 'development' && isFreeUser && savedPaths.length >= 1) {
       setShowUpgradeModal(true);
       return;
     }
@@ -895,6 +1019,54 @@ export default function CareerPathPage() {
         </div>
       )}
 
+      {/* Guidance Banner */}
+      {showGuidanceBanner && explorationMode === "target" && (
+        <div className="mb-6 p-5 bg-amber-50 border-2 border-amber-200 rounded-lg shadow-sm">
+          <div className="flex items-start gap-3">
+            <Lightbulb className="h-6 w-6 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-900 text-lg mb-2">
+                Profile Improvements Needed
+              </h3>
+              <p className="text-sm text-amber-800 mb-4">{guidanceMessage}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowGuidanceBanner(false)}
+                className="gap-1 border-amber-300 hover:bg-amber-100"
+              >
+                <X className="h-3.5 w-3.5" />
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Guidance Tasks */}
+      {guidanceTasks.length > 0 && explorationMode === "target" && (
+        <div className="space-y-4 mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Recommended Profile Updates</h2>
+            <Badge variant="outline" className="text-sm">
+              {guidanceTasks.length} {guidanceTasks.length === 1 ? "task" : "tasks"}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Complete these profile improvements to unlock a detailed career path for "{jobTitle}"
+          </p>
+          {guidanceTasks.map((task) => (
+            <ProfileTaskCard
+              key={task.id}
+              task={task}
+              onAction={(url) => {
+                if (url) window.location.href = url;
+              }}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Path selector (when generated) */}
       {explorationMode === "target" && generatedPath && (
         <div className="flex flex-wrap gap-2 mb-4">
@@ -912,7 +1084,7 @@ export default function CareerPathPage() {
       )}
 
       {/* Empty state */}
-      {explorationMode === "target" && !generatedPath && (
+      {explorationMode === "target" && !generatedPath && !guidanceTasks.length && (
         <div className="text-center py-12 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-md border">
           <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
             <MapPin className="h-8 w-8 text-blue-500" />
