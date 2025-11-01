@@ -4,9 +4,6 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   Target,
-  Plus,
-  CheckCircle,
-  Clock,
   AlertCircle,
   ExternalLink,
 } from "lucide-react";
@@ -56,23 +53,12 @@ export function CareerGoalsSummary() {
       (goal) => Array.isArray(goal.checklist) && goal.checklist.length > 0,
     );
 
-  const totalGoals = goalsArray.length;
   const completedGoals = goalsArray.filter(
     (goal) => goal.status === "completed",
   ).length;
   const inProgressGoals = goalsArray.filter(
     (goal) => goal.status === "in_progress",
   ).length;
-
-  const getStatusIcon = (status: string, progress: number) => {
-    if (status === "completed") {
-      return <CheckCircle className="h-4 w-4 text-green-500" />;
-    } else if (progress > 0) {
-      return <Clock className="h-4 w-4 text-blue-500" />;
-    } else {
-      return <Target className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
 
   const getStatusColor = (status: string, progress: number) => {
     if (status === "completed") {
@@ -99,7 +85,7 @@ export function CareerGoalsSummary() {
       className="mb-6 h-full"
     >
       <Card
-        className={`${shouldStretch ? "h-full" : "min-h-[220px]"} flex flex-col`}
+        className="h-full flex flex-col"
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
@@ -118,7 +104,7 @@ export function CareerGoalsSummary() {
           </Link>
         </CardHeader>
 
-        <CardContent className={shouldStretch ? "flex-1" : ""}>
+        <CardContent className="flex-1">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
@@ -150,52 +136,39 @@ export function CareerGoalsSummary() {
               {activeGoals.map((goal) => (
                 <div
                   key={goal.id}
-                  className="flex items-center justify-between p-3 rounded-lg border"
+                  className="p-3 rounded-lg border min-h-[90px] flex flex-col"
                 >
-                  <div className="flex items-center space-x-3 flex-1">
-                    <div className="flex-shrink-0">
-                      {getStatusIcon(goal.status, goal.progress)}
+                  <div className="min-w-0 max-w-full overflow-hidden flex-1">
+                    <div className="flex items-start gap-2 mb-1">
+                      <h3 className="font-medium text-sm truncate flex-1 min-w-0">
+                        {goal.title}
+                      </h3>
+                      {goal.dueDate && isOverdue(goal.dueDate) && (
+                        <AlertCircle className="h-3 w-3 text-red-500 flex-shrink-0" />
+                      )}
                     </div>
+                  </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-sm truncate">
-                          {goal.title}
-                        </h3>
-                        {goal.dueDate && isOverdue(goal.dueDate) && (
-                          <AlertCircle className="h-3 w-3 text-red-500 flex-shrink-0" />
+                  <div className="mt-auto -mt-2 min-w-0">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">
+                        Progress
+                      </span>
+                      <span
+                        className={getStatusColor(
+                          goal.status,
+                          goal.progress,
                         )}
-                      </div>
-
-                      {goal.description && (
-                        <p className="text-xs text-muted-foreground mt-1 break-words">
-                          {goal.description}
-                        </p>
-                      )}
-
-                      <div className="mt-2">
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">
-                            Progress
-                          </span>
-                          <span
-                            className={getStatusColor(
-                              goal.status,
-                              goal.progress,
-                            )}
-                          >
-                            {goal.progress}%
-                          </span>
-                        </div>
-                        <Progress value={goal.progress} className="h-1.5" />
-                      </div>
-
-                      {goal.dueDate && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Due: {format(new Date(goal.dueDate), "MMM dd, yyyy")}
-                        </p>
-                      )}
+                      >
+                        {goal.progress}%
+                      </span>
                     </div>
+                    <Progress value={goal.progress} className="h-1.5 w-full" />
+                    {goal.dueDate && (
+                      <p className="text-xs text-muted-foreground mt-1 truncate">
+                        Due: {format(new Date(goal.dueDate), "MMM dd, yyyy")}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
