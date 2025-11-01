@@ -8,8 +8,7 @@ import {
   Clock,
   Building,
   MapPin,
-  ExternalLink,
-  Briefcase
+  ExternalLink
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -239,7 +238,7 @@ export function ActiveInterviewsSummary() {
       className="mb-6 h-full"
     >
       <Card
-        className={`${displayItems.length > 0 ? "h-full" : "min-h-[220px]"} flex flex-col`}
+        className="h-full flex flex-col"
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
@@ -286,22 +285,12 @@ export function ActiveInterviewsSummary() {
               {displayItems.map((item) => {
                 const badge = getBadgeConfig(item)
                 return (
-                  <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border">
-                    <div className="flex items-center space-x-3 flex-1">
-                      <div className="flex-shrink-0">
-                        <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
-                          {item.type === 'interview' ? (
-                            <Calendar className="h-4 w-4 text-primary" />
-                          ) : (
-                            <Briefcase className="h-4 w-4 text-primary" />
-                          )}
-                        </div>
-                      </div>
-
+                  <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border min-h-[90px]">
+                    <div className="flex items-center flex-1">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium text-sm">{item.position}</h3>
-                          <Badge variant="outline" className={`text-xs ${badge.className}`}>
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h3 className="font-medium text-sm truncate flex-1 min-w-0">{item.position}</h3>
+                          <Badge variant="outline" className={`text-xs flex-shrink-0 ${badge.className}`}>
                             {badge.label}
                           </Badge>
                         </div>

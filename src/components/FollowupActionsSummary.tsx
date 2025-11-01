@@ -4,8 +4,6 @@ import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
-  Mail,
-  Phone,
   Calendar,
   CheckCircle,
   ExternalLink,
@@ -91,21 +89,6 @@ export function FollowupActionsSummary() {
     return !!action.due_date && action.due_date < Date.now()
   }).length
 
-  const getTypeIcon = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'email':
-        return <Mail className="h-3 w-3" />
-      case 'call':
-        return <Phone className="h-3 w-3" />
-      case 'meeting':
-        return <Calendar className="h-3 w-3" />
-      case 'linkedin':
-        return <Mail className="h-3 w-3" />
-      default:
-        return <Calendar className="h-3 w-3" />
-    }
-  }
-
   const getStatusColor = (completed: boolean, dueDate?: number) => {
     if (completed) {
       return 'bg-green-100 text-green-800'
@@ -135,7 +118,7 @@ export function FollowupActionsSummary() {
       className="mb-6 h-full"
     >
       <Card
-        className={`${activeActions.length > 0 ? "h-full" : "min-h-[220px]"} flex flex-col`}
+        className="h-full flex flex-col"
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
@@ -152,7 +135,7 @@ export function FollowupActionsSummary() {
           </Link>
         </CardHeader>
 
-        <CardContent className={activeActions.length > 0 ? "flex-1" : ""}>
+        <CardContent className="flex-1">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -170,25 +153,20 @@ export function FollowupActionsSummary() {
           ) : (
             <div className="space-y-3">
               {activeActions.map((action) => (
-                <div key={action._id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div className="flex items-center space-x-3 flex-1">
-                    <div className="flex-shrink-0">
-                      <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
-                        {getTypeIcon(action.type || 'other')}
-                      </div>
+                <div key={action._id} className="p-3 rounded-lg border min-h-[90px] flex flex-col">
+                  <div className="min-w-0 max-w-full overflow-hidden flex-1">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <h3 className="font-medium text-sm truncate flex-1 min-w-0">
+                        {action.description || action.notes || 'Follow-up action'}
+                      </h3>
+                      <Badge variant="outline" className={`text-xs flex-shrink-0 ${getStatusColor(action.completed, action.due_date)}`}>
+                        {getStatusText(action.completed, action.due_date)}
+                      </Badge>
                     </div>
+                  </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-sm truncate">
-                          {action.description || action.notes || 'Follow-up action'}
-                        </h3>
-                        <Badge variant="outline" className={`text-xs flex-shrink-0 ${getStatusColor(action.completed, action.due_date)}`}>
-                          {getStatusText(action.completed, action.due_date)}
-                        </Badge>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex flex-col gap-1 text-xs text-muted-foreground mt-auto pt-1">
+                      <div className="flex items-center gap-3 flex-wrap">
                         {action.due_date && (
                           <div className="flex items-center gap-1 flex-shrink-0">
                             <Calendar className="h-3 w-3" />
@@ -200,25 +178,24 @@ export function FollowupActionsSummary() {
                           <Clock className="h-3 w-3" />
                           {action.type || 'follow_up'}
                         </div>
-
-                        {action.application && (
-                          <div className="flex flex-col gap-0.5">
-                            <span className="font-medium text-xs text-gray-600 break-words">
-                              {action.application.company}
-                            </span>
-                            <span className="text-[11px] text-muted-foreground break-words">
-                              {action.application.job_title}
-                            </span>
-                          </div>
-                        )}
-
-                        {action.contact && action.contact.name && (
-                          <div className="text-xs break-words">
-                            Contact: {action.contact.name}
-                          </div>
-                        )}
                       </div>
-                    </div>
+
+                      {action.application && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium text-xs text-gray-600 break-words">
+                            {action.application.company}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground break-words">
+                            {action.application.job_title}
+                          </span>
+                        </div>
+                      )}
+
+                      {action.contact && action.contact.name && (
+                        <div className="text-xs break-words">
+                          Contact: {action.contact.name}
+                        </div>
+                      )}
                   </div>
                 </div>
               ))}
