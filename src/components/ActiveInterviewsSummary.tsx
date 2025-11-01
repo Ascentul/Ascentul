@@ -286,7 +286,7 @@ export function ActiveInterviewsSummary() {
                 const badge = getBadgeConfig(item)
                 return (
                   <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border min-h-[90px]">
-                    <div className="flex items-center flex-1">
+                    <div className="flex items-center flex-1 min-w-0">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <h3 className="font-medium text-sm truncate flex-1 min-w-0">{item.position}</h3>
