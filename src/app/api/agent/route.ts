@@ -98,8 +98,22 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // 3. Rate limiting check (placeholder - will implement in Phase 6)
-    // TODO: Check Convex agent_rate_limits table
+    // 3. Rate limiting check
+    const isRateLimited = await convex.query(api.agent.checkRateLimit, {
+      userId: userId as any,
+      windowMs: 60000, // 1 minute window
+      maxRequests: 10, // 10 requests per minute
+    })
+
+    if (isRateLimited) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please wait before sending more messages.' }),
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
 
     // 4. Create streaming response
     const stream = new TransformStream()
