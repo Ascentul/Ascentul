@@ -5,8 +5,10 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { sendDelta, sendTool, sendError, sendDone, createSSEWriter } from '@/lib/agent/sse'
 import { TOOL_SCHEMAS, type ToolName } from '@/lib/agent/tools'
-import { ConvexHttpClient } from 'convex/browser'
+import { safeAuditPayload } from '@/lib/agent/audit-sanitizer'
+import { getConvexClient } from '@/lib/convex-server'
 import { api } from '../../../../convex/_generated/api'
+import { Id } from '../../../../convex/_generated/dataModel'
 
 // Runtime configuration for streaming
 export const runtime = 'nodejs'
@@ -17,11 +19,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-// Initialize Convex client for tool execution
-if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
-  throw new Error('NEXT_PUBLIC_CONVEX_URL environment variable is required')
-}
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL)
+// Initialize Convex client for tool execution (server-side singleton)
+const convex = getConvexClient()
+
+// Extract valid tool names from schemas (single source of truth)
+const VALID_TOOL_NAMES = TOOL_SCHEMAS.map(schema => schema.function.name) as ToolName[]
 
 // Load system prompt
 let SYSTEM_PROMPT: string
@@ -79,15 +81,29 @@ function serializeContext(context: unknown): string {
 export async function POST(req: NextRequest) {
   try {
     // 1. Authenticate user
-    const { userId } = await auth()
-    if (!userId) {
+    const { userId: clerkUserId } = await auth()
+    if (!clerkUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       })
     }
 
-    // 2. Parse request body
+    // 2. Get Convex user ID from Clerk ID
+    const convexUser = await convex.query(api.users.getUserByClerkId, {
+      clerkId: clerkUserId,
+    })
+
+    if (!convexUser) {
+      return new Response(JSON.stringify({ error: 'User not found in database' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    const userId = convexUser._id
+
+    // 3. Parse request body
     const body = await req.json()
     const { message, context, history = [] } = body
 
@@ -98,28 +114,37 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // 3. Rate limiting check
-    const isRateLimited = await convex.query(api.agent.checkRateLimit, {
-      userId: userId as any,
+    // 4. Atomic rate limiting - check AND consume in single transaction
+    const rateLimitResult = await convex.mutation(api.agent.checkAndConsumeRateLimit, {
+      clerkUserId,
       windowMs: 60000, // 1 minute window
       maxRequests: 10, // 10 requests per minute
     })
 
-    if (isRateLimited) {
+    if (!rateLimitResult.allowed) {
       return new Response(
-        JSON.stringify({ error: 'Rate limit exceeded. Please wait before sending more messages.' }),
+        JSON.stringify({
+          error: 'Rate limit exceeded. Please wait before sending more messages.',
+          current_count: rateLimitResult.current_count,
+          limit: rateLimitResult.limit,
+        }),
         {
           status: 429,
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Remaining': '0',
+            'Retry-After': '60',
+          },
         }
       )
     }
 
-    // 4. Create streaming response
+    // 5. Create streaming response
     const stream = new TransformStream()
     const writer = createSSEWriter(stream)
 
-    // 5. Start streaming response in background
+    // 6. Start streaming response in background
     const responsePromise = streamAgentResponse({
       userId,
       message,
@@ -140,7 +165,7 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // 6. Return SSE response
+    // 7. Return SSE response
     return new Response(stream.readable, {
       headers: {
         'Content-Type': 'text/event-stream',
@@ -166,24 +191,24 @@ export async function POST(req: NextRequest) {
  * Execute a tool by routing to the appropriate Convex function
  */
 async function executeTool(
-  userId: string,
+  userId: Id<'users'>,
   toolName: ToolName,
   input: Record<string, unknown>
 ): Promise<unknown> {
   switch (toolName) {
     case 'get_user_snapshot':
       return await convex.query(api.agent.getUserSnapshot, {
-        userId: userId as any,
+        userId,
       })
 
     case 'get_profile_gaps':
       return await convex.query(api.agent.getProfileGaps, {
-        userId: userId as any,
+        userId,
       })
 
     case 'upsert_profile_field':
       return await convex.mutation(api.agent.upsertProfileField, {
-        userId: userId as any,
+        userId,
         field: input.field as string,
         value: input.value,
         confidence: input.confidence as number | undefined,
@@ -191,7 +216,7 @@ async function executeTool(
 
     case 'search_jobs':
       return await convex.query(api.agent.searchJobs, {
-        userId: userId as any,
+        userId,
         query: input.query as string,
         location: input.location as string | undefined,
         limit: input.limit as number | undefined,
@@ -199,11 +224,69 @@ async function executeTool(
 
     case 'save_job':
       return await convex.mutation(api.agent.saveJob, {
-        userId: userId as any,
+        userId,
         company: input.company as string,
         jobTitle: input.jobTitle as string,
         url: input.url as string | undefined,
         notes: input.notes as string | undefined,
+      })
+
+    case 'create_goal':
+      return await convex.mutation(api.agent.createGoal, {
+        userId,
+        title: input.title as string,
+        description: input.description as string | undefined,
+        category: input.category as string | undefined,
+        target_date: input.target_date as number | undefined,
+      })
+
+    case 'update_goal':
+      return await convex.mutation(api.agent.updateGoal, {
+        userId,
+        goalId: input.goalId as Id<'goals'>,
+        title: input.title as string | undefined,
+        description: input.description as string | undefined,
+        status: input.status as 'not_started' | 'in_progress' | 'active' | 'completed' | 'paused' | 'cancelled' | undefined,
+        progress: input.progress as number | undefined,
+        category: input.category as string | undefined,
+        target_date: input.target_date as number | undefined,
+      })
+
+    case 'delete_goal':
+      return await convex.mutation(api.agent.deleteGoal, {
+        userId,
+        goalId: input.goalId as Id<'goals'>,
+      })
+
+    case 'create_application':
+      return await convex.mutation(api.agent.createApplication, {
+        userId,
+        company: input.company as string,
+        jobTitle: input.jobTitle as string,
+        status: input.status as 'saved' | 'applied' | 'interview' | 'offer' | 'rejected' | undefined,
+        source: input.source as string | undefined,
+        url: input.url as string | undefined,
+        notes: input.notes as string | undefined,
+        applied_at: input.applied_at as number | undefined,
+      })
+
+    case 'update_application':
+      return await convex.mutation(api.agent.updateApplication, {
+        userId,
+        applicationId: input.applicationId as Id<'applications'>,
+        company: input.company as string | undefined,
+        jobTitle: input.jobTitle as string | undefined,
+        status: input.status as 'saved' | 'applied' | 'interview' | 'offer' | 'rejected' | undefined,
+        source: input.source as string | undefined,
+        url: input.url as string | undefined,
+        notes: input.notes as string | undefined,
+        applied_at: input.applied_at as number | undefined,
+      })
+
+    case 'delete_application':
+      return await convex.mutation(api.agent.deleteApplication, {
+        userId,
+        applicationId: input.applicationId as Id<'applications'>,
       })
 
     default:
@@ -213,6 +296,7 @@ async function executeTool(
 
 /**
  * Stream agent response with OpenAI and tool execution
+ * Supports multi-turn agentic loop for complex tasks
  */
 async function streamAgentResponse({
   userId,
@@ -221,14 +305,14 @@ async function streamAgentResponse({
   history,
   writer,
 }: {
-  userId: string
+  userId: Id<'users'>
   message: string
   context?: Record<string, unknown>
   history: Array<{ role: string; content: string }>
   writer: { write: (data: string) => Promise<void>; close: () => Promise<void> }
 }) {
   try {
-    // Build messages array
+    // Build initial messages array
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       {
         role: 'system',
@@ -253,159 +337,222 @@ async function streamAgentResponse({
     // Use tool registry from tools/index.ts
     const tools = TOOL_SCHEMAS
 
-    // Set up timeout for OpenAI API call
+    // Set up timeout for entire agentic loop
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS)
 
-    // Call OpenAI with streaming
-    const completion = await openai.chat.completions.create(
-      {
-        model: 'gpt-4o-mini',
-        messages,
-        tools,
-        tool_choice: 'auto',
-        stream: true,
-        temperature: 0.7,
-        max_tokens: 1500,
-      },
-      {
-        signal: controller.signal,
-      }
-    )
-
-    let assistantMessage = ''
-    const toolCallsMap = new Map<
-      number,
-      {
-        id: string
-        name: string
-        arguments: string
-      }
-    >()
-
     try {
-      // Process stream
-      for await (const chunk of completion) {
-      const delta = chunk.choices[0]?.delta
+      // Multi-turn agentic loop (max 5 iterations to prevent infinite loops)
+      const MAX_TURNS = 5
+      let currentTurn = 0
+      let finalResponse = ''
 
-      // Handle content delta
-      if (delta?.content) {
-        assistantMessage += delta.content
-        await writer.write(sendDelta(delta.content))
-      }
+      while (currentTurn < MAX_TURNS) {
+        currentTurn++
 
-      // Handle tool calls
-      if (delta?.tool_calls) {
-        for (const toolCall of delta.tool_calls) {
-          if (!toolCallsMap.has(toolCall.index)) {
-            toolCallsMap.set(toolCall.index, {
-              id: toolCall.id || '',
-              name: toolCall.function?.name || '',
-              arguments: '',
-            })
+        // Call OpenAI with streaming
+        const completion = await openai.chat.completions.create(
+          {
+            model: 'gpt-4o-mini',
+            messages,
+            tools,
+            tool_choice: 'auto',
+            stream: true,
+            temperature: 0.7,
+            max_tokens: 1500,
+          },
+          {
+            signal: controller.signal,
           }
-          const entry = toolCallsMap.get(toolCall.index)
-          if (entry && toolCall.function?.arguments) {
-            entry.arguments += toolCall.function.arguments
+        )
+
+        let assistantMessage = ''
+        const toolCallsMap = new Map<
+          number,
+          {
+            id: string
+            name: string
+            arguments: string
+          }
+        >()
+
+        // Process stream
+        for await (const chunk of completion) {
+          const delta = chunk.choices[0]?.delta
+
+          // Handle content delta
+          if (delta?.content) {
+            assistantMessage += delta.content
+            await writer.write(sendDelta(delta.content))
+          }
+
+          // Handle tool calls
+          if (delta?.tool_calls) {
+            for (const toolCall of delta.tool_calls) {
+              if (!toolCallsMap.has(toolCall.index)) {
+                toolCallsMap.set(toolCall.index, {
+                  id: toolCall.id || '',
+                  name: toolCall.function?.name || '',
+                  arguments: '',
+                })
+              }
+              const entry = toolCallsMap.get(toolCall.index)
+              if (entry && toolCall.function?.arguments) {
+                entry.arguments += toolCall.function.arguments
+              }
+            }
+          }
+
+          // Check for finish reason
+          const finishReason = chunk.choices[0]?.finish_reason
+          if (finishReason === 'tool_calls') {
+            // Execute tool calls and add results to message history
+            const toolCalls = Array.from(toolCallsMap.values())
+            const toolResults: OpenAI.Chat.ChatCompletionToolMessageParam[] = []
+
+            // Add assistant message with tool calls to history
+            messages.push({
+              role: 'assistant',
+              content: assistantMessage || null,
+              tool_calls: toolCalls.map((tc) => ({
+                id: tc.id,
+                type: 'function' as const,
+                function: {
+                  name: tc.name,
+                  arguments: tc.arguments,
+                },
+              })),
+            })
+
+            for (const toolCall of toolCalls) {
+              // Parse tool arguments with error handling
+              let parsedInput: Record<string, unknown>
+              try {
+                parsedInput = JSON.parse(toolCall.arguments)
+              } catch (error) {
+                // Invalid JSON in tool arguments - send error and skip this tool
+                await writer.write(
+                  sendTool({
+                    name: toolCall.name,
+                    status: 'error',
+                    error: 'Invalid tool arguments - malformed JSON',
+                  })
+                )
+                toolResults.push({
+                  role: 'tool',
+                  tool_call_id: toolCall.id,
+                  content: JSON.stringify({ error: 'Invalid tool arguments' }),
+                })
+                continue
+              }
+
+              await writer.write(
+                sendTool({
+                  name: toolCall.name,
+                  status: 'pending',
+                  input: parsedInput,
+                })
+              )
+
+              // Validate tool name
+              if (!VALID_TOOL_NAMES.includes(toolCall.name as ToolName)) {
+                await writer.write(
+                  sendTool({
+                    name: toolCall.name,
+                    status: 'error',
+                    error: `Unknown tool: ${toolCall.name}`,
+                  })
+                )
+                toolResults.push({
+                  role: 'tool',
+                  tool_call_id: toolCall.id,
+                  content: JSON.stringify({ error: `Unknown tool: ${toolCall.name}` }),
+                })
+                continue
+              }
+
+              // Execute tool via Convex
+              try {
+                const startTime = Date.now()
+                const toolOutput = await executeTool(userId, toolCall.name as ToolName, parsedInput)
+                const latencyMs = Date.now() - startTime
+
+                // Log successful execution with client-side sanitization (defense in depth)
+                await convex.mutation(api.agent.logAudit, {
+                  userId,
+                  tool: toolCall.name,
+                  inputJson: safeAuditPayload(parsedInput),
+                  outputJson: safeAuditPayload(toolOutput),
+                  status: 'success',
+                  latencyMs,
+                })
+
+                await writer.write(
+                  sendTool({
+                    name: toolCall.name,
+                    status: 'success',
+                    input: parsedInput,
+                    output: toolOutput,
+                  })
+                )
+
+                // Add tool result to message history for next turn
+                toolResults.push({
+                  role: 'tool',
+                  tool_call_id: toolCall.id,
+                  content: JSON.stringify(toolOutput),
+                })
+              } catch (toolError) {
+                const errorMessage = toolError instanceof Error ? toolError.message : 'Tool execution failed'
+
+                // Log failed execution with client-side sanitization (defense in depth)
+                await convex.mutation(api.agent.logAudit, {
+                  userId,
+                  tool: toolCall.name,
+                  inputJson: safeAuditPayload(parsedInput),
+                  status: 'error',
+                  errorMessage,
+                  latencyMs: 0,
+                })
+
+                await writer.write(
+                  sendTool({
+                    name: toolCall.name,
+                    status: 'error',
+                    input: parsedInput,
+                    error: errorMessage,
+                  })
+                )
+
+                toolResults.push({
+                  role: 'tool',
+                  tool_call_id: toolCall.id,
+                  content: JSON.stringify({ error: errorMessage }),
+                })
+              }
+            }
+
+            // Add all tool results to message history
+            messages.push(...toolResults)
+
+            // Continue to next turn to let agent see tool results
+            break
+          } else if (finishReason === 'stop' || finishReason === 'length') {
+            // Agent provided final response without tool calls
+            finalResponse = assistantMessage
+            break
           }
         }
-      }
 
-      // Check for finish reason
-      if (chunk.choices[0]?.finish_reason === 'tool_calls') {
-        // Execute tool calls (Phase 4 implementation)
-        for (const toolCall of Array.from(toolCallsMap.values())) {
-          // Parse tool arguments with error handling
-          let parsedInput: Record<string, unknown>
-          try {
-            parsedInput = JSON.parse(toolCall.arguments)
-          } catch (error) {
-            // Invalid JSON in tool arguments - send error and skip this tool
-            await writer.write(
-              sendTool({
-                name: toolCall.name,
-                status: 'error',
-                error: 'Invalid tool arguments - malformed JSON',
-              })
-            )
-            continue
-          }
-
-          await writer.write(
-            sendTool({
-              name: toolCall.name,
-              status: 'pending',
-              input: parsedInput,
-            })
-          )
-
-          // Validate tool name
-          const validToolNames: ToolName[] = [
-            'get_user_snapshot',
-            'get_profile_gaps',
-            'upsert_profile_field',
-            'search_jobs',
-            'save_job',
-          ]
-          if (!validToolNames.includes(toolCall.name as ToolName)) {
-            await writer.write(
-              sendTool({
-                name: toolCall.name,
-                status: 'error',
-                error: `Unknown tool: ${toolCall.name}`,
-              })
-            )
-            continue
-          }
-
-          // Execute tool via Convex
-          try {
-            const startTime = Date.now()
-            const toolOutput = await executeTool(userId, toolCall.name as ToolName, parsedInput)
-            const latencyMs = Date.now() - startTime
-
-            // Log successful execution
-            await convex.mutation(api.agent.logAudit, {
-              userId: userId as any,
-              tool: toolCall.name,
-              inputJson: parsedInput,
-              outputJson: toolOutput,
-              status: 'success',
-              latencyMs,
-            })
-
-            await writer.write(
-              sendTool({
-                name: toolCall.name,
-                status: 'success',
-                input: parsedInput,
-                output: toolOutput,
-              })
-            )
-          } catch (toolError) {
-            const errorMessage = toolError instanceof Error ? toolError.message : 'Tool execution failed'
-
-            // Log failed execution
-            await convex.mutation(api.agent.logAudit, {
-              userId: userId as any,
-              tool: toolCall.name,
-              inputJson: parsedInput,
-              status: 'error',
-              errorMessage,
-              latencyMs: 0,
-            })
-
-            await writer.write(
-              sendTool({
-                name: toolCall.name,
-                status: 'error',
-                input: parsedInput,
-                error: errorMessage,
-              })
-            )
-          }
+        // If we got a final response (no more tool calls), exit the loop
+        if (finalResponse) {
+          break
         }
-      }
+
+        // Safety check: if no tool calls were made, exit to avoid infinite loop
+        if (toolCallsMap.size === 0) {
+          break
+        }
       }
 
       // Stream complete

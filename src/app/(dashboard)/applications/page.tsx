@@ -22,6 +22,7 @@ import { Loader2, Plus, Briefcase, Search } from "lucide-react";
 import { ApplicationCard } from "@/components/applications/ApplicationCard";
 import { ApplicationDetails } from "@/components/applications/ApplicationDetails";
 import { UpgradeModal } from "@/components/modals/UpgradeModal";
+import { LaunchChip } from "@/components/agent/LaunchChip";
 import { useUser } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useMutation, useQuery } from "convex/react";
@@ -205,12 +206,21 @@ export default function ApplicationsPage() {
             Manage your job applications from first save to final offer
           </p>
         </div>
-        <Button
-          onClick={handleNewApplicationClick}
-          className="bg-[#0C29AB] hover:bg-[#0C29AB]/90"
-        >
-          <Plus className="h-4 w-4 mr-2" /> New Application
-        </Button>
+        <div className="flex gap-3">
+          <LaunchChip
+            source="applications"
+            action="review_applications"
+            label="Ask Agent"
+            variant="outline"
+            size="md"
+          />
+          <Button
+            onClick={handleNewApplicationClick}
+            className="bg-[#0C29AB] hover:bg-[#0C29AB]/90"
+          >
+            <Plus className="h-4 w-4 mr-2" /> New Application
+          </Button>
+        </div>
       </div>
 
       {/* Toggle between All Applications and Find Jobs */}

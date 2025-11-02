@@ -568,4 +568,63 @@ export default defineSchema({
     .index("by_subscription", ["stripe_subscription_id"])
     .index("by_event_date", ["event_date"])
     .index("by_event_type", ["event_type"]),
+
+  // AI Agent request logs for rate limiting (lightweight, fast inserts)
+  agent_request_logs: defineTable({
+    clerk_user_id: v.string(), // Clerk user ID for rate limiting BEFORE user resolution (security)
+    user_id: v.optional(v.id("users")), // Convex user ID (null for non-existent users)
+    created_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_created_at", ["created_at"])
+    .index("by_user_created", ["user_id", "created_at"])
+    .index("by_clerk_created", ["clerk_user_id", "created_at"]), // Rate limit by Clerk ID
+
+  // AI Agent audit logs for tool executions (detailed, PII-redacted)
+  agent_audit_logs: defineTable({
+    user_id: v.id("users"),
+    tool: v.string(),
+    input_json: v.any(), // Tool input parameters (PII redacted)
+    output_json: v.optional(v.any()), // Tool output (PII redacted)
+    status: v.union(v.literal("success"), v.literal("error")),
+    error_message: v.optional(v.string()),
+    latency_ms: v.number(),
+    created_at: v.number(),
+  })
+    // Single-dimension indexes
+    .index("by_user", ["user_id"])
+    .index("by_tool", ["tool"])
+    .index("by_created_at", ["created_at"])
+    // Composite indexes for analytics queries
+    .index("by_user_tool", ["user_id", "tool"]) // "Show all create_goal tool uses by user"
+    .index("by_user_created", ["user_id", "created_at"]), // "Show user's audit logs from past week"
+
+  // AI Agent memories for storing learned information
+  agent_memories: defineTable({
+    user_id: v.id("users"),
+    key: v.string(), // Memory key (e.g., "preferred_job_type", "career_interests")
+    value_json: v.any(), // Flexible storage for any data type
+    confidence: v.number(), // 0-1 confidence score
+    expires_at: v.optional(v.number()), // Optional expiration timestamp
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_key", ["key"])
+    .index("by_user_key", ["user_id", "key"])
+    .index("by_expires_at", ["expires_at"]), // Cleanup queries for expired memories
+
+  // AI Agent profile fields for structured profile data
+  agent_profile_fields: defineTable({
+    user_id: v.id("users"),
+    field: v.string(), // Field name (e.g., "skills", "experience_level", "industry")
+    value_json: v.any(), // Field value (can be string, array, object)
+    confidence: v.number(), // 0-1 confidence score
+    source: v.string(), // Source of data (e.g., "agent", "user_input", "imported")
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_field", ["field"])
+    .index("by_user_field", ["user_id", "field"]),
 });

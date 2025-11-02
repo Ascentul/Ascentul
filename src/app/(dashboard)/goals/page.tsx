@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
@@ -45,6 +45,22 @@ export default function Goals() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const isFreeUser = !hasPremium // Use Clerk Billing subscription check
+
+  // Listen for agent goal creation, update, and delete events
+  useEffect(() => {
+    const handleAgentGoalMutation = (event: Event) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/goals'] })
+      // Force immediate refetch
+      queryClient.refetchQueries({ queryKey: ['/api/goals'] })
+    }
+
+    const events = ['agent:goal:created', 'agent:goal:updated', 'agent:goal:deleted']
+    events.forEach(event => window.addEventListener(event, handleAgentGoalMutation))
+
+    return () => {
+      events.forEach(event => window.removeEventListener(event, handleAgentGoalMutation))
+    }
+  }, [queryClient])
 
   // Fetch goals
   const { data: goals = [], isLoading } = useQuery<any[]>({

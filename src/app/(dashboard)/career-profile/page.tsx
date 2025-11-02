@@ -25,6 +25,7 @@ import { Separator } from '@/components/ui/separator'
 import {
   User, Briefcase, Calendar, Edit, CheckCircle2, Loader2, GraduationCap, Plus, Trash2, Linkedin, Award, FolderKanban
 } from 'lucide-react'
+import { LaunchChip } from '@/components/agent/LaunchChip'
 
 // Career profile form schema
 const educationEntrySchema = z.object({
@@ -366,11 +367,20 @@ export default function CareerProfilePage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Career Profile</h1>
-        <p className="text-muted-foreground">
-          Manage your professional profile and career information
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Career Profile</h1>
+          <p className="text-muted-foreground">
+            Manage your professional profile and career information
+          </p>
+        </div>
+        <LaunchChip
+          source="career-profile"
+          action="improve_profile"
+          label="Ask Agent"
+          variant="outline"
+          size="md"
+        />
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">

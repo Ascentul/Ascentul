@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useAgent } from '@/contexts/AgentContext'
 import { ChatStream } from './ChatStream'
+import { ApproveModal } from './ApproveModal'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export function AgentDock() {
-  const { state, openAgent, closeAgent, sendMessage, clearMessages } = useAgent()
+  const { state, openAgent, closeAgent, sendMessage, clearMessages, approveRequest, denyRequest } = useAgent()
   const [inputValue, setInputValue] = useState('')
 
   const handleSend = async () => {
@@ -47,14 +48,22 @@ export function AgentDock() {
             transition={{ type: 'spring', stiffness: 260, damping: 20 }}
             className="fixed bottom-6 right-6 z-50"
           >
-            <Button
-              onClick={() => openAgent()}
-              size="lg"
-              className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow bg-primary hover:bg-primary/90"
-              aria-label="Open AI Agent"
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             >
-              <Bot className="h-6 w-6" />
-            </Button>
+              <Button
+                onClick={() => openAgent()}
+                size="lg"
+                className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow bg-primary hover:bg-primary/90 relative"
+                aria-label="Open AI Agent"
+              >
+                <Bot className="h-6 w-6" />
+                {/* Pulse animation for attention */}
+                <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-20" />
+              </Button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -74,16 +83,32 @@ export function AgentDock() {
 
             {/* Panel */}
             <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              initial={{ x: '100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '100%', opacity: 0 }}
+              transition={{
+                type: 'spring',
+                stiffness: 300,
+                damping: 30,
+                opacity: { duration: 0.2 },
+              }}
               className="fixed top-0 right-0 h-full w-full md:w-[440px] bg-white shadow-2xl z-50 flex flex-col"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b bg-primary text-white">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+                className="flex items-center justify-between p-4 border-b bg-primary text-white"
+              >
                 <div className="flex items-center gap-3">
-                  <Bot className="h-6 w-6" />
+                  <motion.div
+                    initial={{ rotate: -180, scale: 0 }}
+                    animate={{ rotate: 0, scale: 1 }}
+                    transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+                  >
+                    <Bot className="h-6 w-6" />
+                  </motion.div>
                   <div>
                     <h2 className="font-semibold text-lg">AI Agent</h2>
                     <p className="text-xs opacity-90">Your Career Assistant</p>
@@ -111,7 +136,7 @@ export function AgentDock() {
                     <X className="h-5 w-5" />
                   </Button>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Context indicator */}
               {state.context && (
@@ -136,14 +161,20 @@ export function AgentDock() {
                     className="resize-none min-h-[60px] max-h-[120px]"
                     disabled={state.isStreaming}
                   />
-                  <Button
-                    onClick={handleSend}
-                    disabled={!inputValue.trim() || state.isStreaming}
-                    size="icon"
-                    className="h-[60px] w-[60px] flex-shrink-0"
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                   >
-                    <Send className="h-5 w-5" />
-                  </Button>
+                    <Button
+                      onClick={handleSend}
+                      disabled={!inputValue.trim() || state.isStreaming}
+                      size="icon"
+                      className="h-[60px] w-[60px] flex-shrink-0"
+                    >
+                      <Send className="h-5 w-5" />
+                    </Button>
+                  </motion.div>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
                   Press Enter to send, Shift+Enter for new line
@@ -153,6 +184,14 @@ export function AgentDock() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Approval modal */}
+      <ApproveModal
+        isOpen={!!state.pendingApproval}
+        request={state.pendingApproval}
+        onApprove={approveRequest}
+        onDeny={denyRequest}
+      />
     </>
   )
 }

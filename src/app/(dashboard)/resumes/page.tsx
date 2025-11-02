@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast'
 import { jsPDF } from 'jspdf'
 import { ResumePreviewModal } from '@/components/resume-preview-modal'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { LaunchChip } from '@/components/agent/LaunchChip'
 
 type ResumeDoc = {
   _id: string
@@ -916,9 +917,18 @@ export default function ResumesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB] mb-2">Resume Studio</h1>
-        <p className="text-muted-foreground">Create, manage, and optimize your resumes</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB] mb-2">Resume Studio</h1>
+          <p className="text-muted-foreground">Create, manage, and optimize your resumes</p>
+        </div>
+        <LaunchChip
+          source="resume-studio"
+          action="optimize_resume"
+          label="Ask Agent"
+          variant="outline"
+          size="md"
+        />
       </div>
 
       {/* Three Toggle System */}

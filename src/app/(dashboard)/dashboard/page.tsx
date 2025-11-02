@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { LaunchChip } from '@/components/agent/LaunchChip'
 import {
   Dialog,
   DialogContent,
@@ -178,7 +179,14 @@ export default function DashboardPage() {
               <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Dashboard</h1>
               <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
             </div>
-            <div className="mt-4 md:mt-0">
+            <div className="mt-4 md:mt-0 flex gap-3">
+              <LaunchChip
+                source="dashboard"
+                action="review_overview"
+                label="Ask Agent"
+                variant="outline"
+                size="md"
+              />
               <Dialog>
                 <DialogTrigger asChild>
                   <Button className="bg-primary hover:bg-primary/90 text-white">

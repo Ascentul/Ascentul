@@ -28,11 +28,25 @@ export interface AgentContext {
   metadata?: Record<string, unknown>
 }
 
+export interface ApprovalRequest {
+  id: string
+  toolName: string
+  description: string
+  recordCount: number
+  records: Array<{
+    id?: string
+    type: string
+    summary: string
+  }>
+  input: Record<string, unknown>
+}
+
 export interface AgentState {
   isOpen: boolean
   context: AgentContext | null
   messages: AgentMessage[]
   isStreaming: boolean
+  pendingApproval: ApprovalRequest | null
 }
 
 export interface SSEEvent {
@@ -47,4 +61,7 @@ export interface AgentContextType {
   setContext: (context: AgentContext) => void
   sendMessage: (content: string) => Promise<void>
   clearMessages: () => void
+  requestApproval: (request: ApprovalRequest) => Promise<boolean>
+  approveRequest: () => void
+  denyRequest: () => void
 }

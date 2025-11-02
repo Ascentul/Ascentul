@@ -105,11 +105,13 @@ const AgentContext = createContext<AgentContextType | undefined>(undefined)
 
 export function AgentProvider({ children }: { children: React.ReactNode }) {
   const isStreamingRef = useRef(false)
+  const approvalResolverRef = useRef<((approved: boolean) => void) | null>(null)
   const [state, setState] = useState<AgentState>({
     isOpen: false,
     context: null,
     messages: [],
     isStreaming: false,
+    pendingApproval: null,
   })
 
   const openAgent = useCallback((context?: AgentContextData) => {
@@ -138,6 +140,41 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({
       ...prev,
       messages: [],
+    }))
+  }, [])
+
+  const requestApproval = useCallback(
+    (request: AgentState['pendingApproval']) => {
+      return new Promise<boolean>((resolve) => {
+        approvalResolverRef.current = resolve
+        setState((prev) => ({
+          ...prev,
+          pendingApproval: request,
+        }))
+      })
+    },
+    []
+  )
+
+  const approveRequest = useCallback(() => {
+    if (approvalResolverRef.current) {
+      approvalResolverRef.current(true)
+      approvalResolverRef.current = null
+    }
+    setState((prev) => ({
+      ...prev,
+      pendingApproval: null,
+    }))
+  }, [])
+
+  const denyRequest = useCallback(() => {
+    if (approvalResolverRef.current) {
+      approvalResolverRef.current(false)
+      approvalResolverRef.current = null
+    }
+    setState((prev) => ({
+      ...prev,
+      pendingApproval: null,
     }))
   }, [])
 
@@ -242,6 +279,35 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
                 : msg
             ),
           }))
+
+          // Broadcast data mutation events for cache invalidation
+          if (toolData.status === 'success') {
+            if (toolData.name === 'create_goal') {
+              console.log('[AgentContext] Dispatching agent:goal:created event')
+              window.dispatchEvent(new CustomEvent('agent:goal:created'))
+            } else if (toolData.name === 'update_goal') {
+              console.log('[AgentContext] Dispatching agent:goal:updated event')
+              window.dispatchEvent(new CustomEvent('agent:goal:updated'))
+            } else if (toolData.name === 'delete_goal') {
+              console.log('[AgentContext] Dispatching agent:goal:deleted event')
+              window.dispatchEvent(new CustomEvent('agent:goal:deleted'))
+            } else if (toolData.name === 'create_application') {
+              console.log('[AgentContext] Dispatching agent:application:created event')
+              window.dispatchEvent(new CustomEvent('agent:application:created'))
+            } else if (toolData.name === 'update_application') {
+              console.log('[AgentContext] Dispatching agent:application:updated event')
+              window.dispatchEvent(new CustomEvent('agent:application:updated'))
+            } else if (toolData.name === 'delete_application') {
+              console.log('[AgentContext] Dispatching agent:application:deleted event')
+              window.dispatchEvent(new CustomEvent('agent:application:deleted'))
+            } else if (toolData.name === 'save_job') {
+              console.log('[AgentContext] Dispatching agent:job:saved event')
+              window.dispatchEvent(new CustomEvent('agent:job:saved'))
+            } else if (toolData.name === 'upsert_profile_field') {
+              console.log('[AgentContext] Dispatching agent:profile:updated event')
+              window.dispatchEvent(new CustomEvent('agent:profile:updated'))
+            }
+          }
         },
         onError: (error) => {
           assistantContent += `\n\n[Error: ${error}]`
@@ -288,8 +354,11 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       setContext,
       sendMessage,
       clearMessages,
+      requestApproval,
+      approveRequest,
+      denyRequest,
     }),
-    [state, openAgent, closeAgent, setContext, sendMessage, clearMessages]
+    [state, openAgent, closeAgent, setContext, sendMessage, clearMessages, requestApproval, approveRequest, denyRequest]
   )
 
   return <AgentContext.Provider value={value}>{children}</AgentContext.Provider>
@@ -298,7 +367,26 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
 export function useAgent() {
   const context = useContext(AgentContext)
   if (context === undefined) {
-    throw new Error('useAgent must be used within an AgentProvider')
+    // During development or SSR, context might not be available yet
+    // Return a safe default instead of throwing
+    console.warn('[useAgent] Called outside of AgentProvider context')
+    return {
+      state: {
+        isOpen: false,
+        context: null,
+        messages: [],
+        isStreaming: false,
+        pendingApproval: null,
+      },
+      openAgent: () => {},
+      closeAgent: () => {},
+      setContext: () => {},
+      sendMessage: async () => {},
+      clearMessages: () => {},
+      requestApproval: async () => false,
+      approveRequest: () => {},
+      denyRequest: () => {},
+    } as AgentContextType
   }
   return context
 }

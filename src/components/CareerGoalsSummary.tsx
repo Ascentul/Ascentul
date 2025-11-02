@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -10,7 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { format, isBefore } from "date-fns";
 
@@ -25,6 +26,8 @@ interface Goal {
 }
 
 export function CareerGoalsSummary() {
+  const queryClient = useQueryClient();
+
   const { data: goals = [], isLoading } = useQuery<Goal[]>({
     queryKey: ["/api/goals"],
     queryFn: async () => {
@@ -40,6 +43,23 @@ export function CareerGoalsSummary() {
       }
     },
   });
+
+  // Listen for agent goal mutation events
+  useEffect(() => {
+    const handleAgentGoalMutation = () => {
+      queryClient.refetchQueries({ queryKey: ["/api/goals"] });
+    };
+
+    window.addEventListener('agent:goal:created', handleAgentGoalMutation);
+    window.addEventListener('agent:goal:updated', handleAgentGoalMutation);
+    window.addEventListener('agent:goal:deleted', handleAgentGoalMutation);
+
+    return () => {
+      window.removeEventListener('agent:goal:created', handleAgentGoalMutation);
+      window.removeEventListener('agent:goal:updated', handleAgentGoalMutation);
+      window.removeEventListener('agent:goal:deleted', handleAgentGoalMutation);
+    };
+  }, [queryClient]);
 
   // Ensure goals is an array and filter to show only active goals (not completed)
   const goalsArray = Array.isArray(goals) ? goals : [];

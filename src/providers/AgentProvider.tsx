@@ -1,9 +1,10 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { AgentProvider as AgentContextProvider } from '@/contexts/AgentContext'
 import { AgentDock } from '@/components/agent/AgentDock'
+import { AgentErrorBoundary } from '@/components/agent/AgentErrorBoundary'
 
 /**
  * AgentProvider wrapper with feature flag and role-based gating
@@ -12,6 +13,24 @@ import { AgentDock } from '@/components/agent/AgentDock'
  * - Students and regular users (not admins/advisors)
  * - When NEXT_PUBLIC_AGENT_ENABLED=true
  */
+/**
+ * Inner component that uses the agent context
+ * Only renders after client-side mount to avoid hydration issues
+ */
+function AgentDockWrapper() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
+
+  return <AgentDock />
+}
+
 export function AgentProvider() {
   const { user, isLoaded } = useUser()
 
@@ -44,9 +63,12 @@ export function AgentProvider() {
   }
 
   // Render agent for eligible users
+  // The AgentDockWrapper handles client-side mounting to avoid hydration issues
   return (
-    <AgentContextProvider>
-      <AgentDock />
-    </AgentContextProvider>
+    <AgentErrorBoundary>
+      <AgentContextProvider>
+        <AgentDockWrapper />
+      </AgentContextProvider>
+    </AgentErrorBoundary>
   )
 }

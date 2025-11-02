@@ -3,13 +3,132 @@
 import React, { useEffect, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Avatar } from '@/components/ui/avatar'
-import { User, Bot } from 'lucide-react'
+import { User, Bot, AlertCircle, WifiOff, Clock } from 'lucide-react'
 import { ToolStepCard } from './ToolStepCard'
 import type { AgentMessage } from '@/lib/agent/types'
 
 interface ChatStreamProps {
   messages: AgentMessage[]
   isStreaming: boolean
+}
+
+/**
+ * Detect error type from message content
+ *
+ * Handles error markers like [Error: message] where message may contain brackets
+ * Example: [Error: Failed to parse [data]] → extracts "Failed to parse [data]"
+ *
+ * Strategy: Find "[Error:" prefix, then extract everything up to the LAST "]"
+ * This handles nested brackets correctly by using greedy matching.
+ */
+function detectErrorType(content: string): {
+  isError: boolean
+  type: 'timeout' | 'network' | 'rate_limit' | 'generic' | null
+  message: string
+} {
+  const lowerContent = content.toLowerCase()
+
+  if (lowerContent.includes('[error:')) {
+    // Match "[Error:" followed by everything (greedy) up to the last "]"
+    // The greedy .+ will consume all characters including brackets
+    const errorMatch = content.match(/\[Error:\s*(.+)\]/i)
+    const message = errorMatch ? errorMatch[1].trim() : content
+
+    if (lowerContent.includes('timeout') || lowerContent.includes('timed out')) {
+      return { isError: true, type: 'timeout', message }
+    }
+    if (lowerContent.includes('network') || lowerContent.includes('connection')) {
+      return { isError: true, type: 'network', message }
+    }
+    if (lowerContent.includes('rate limit')) {
+      return { isError: true, type: 'rate_limit', message }
+    }
+    return { isError: true, type: 'generic', message }
+  }
+
+  return { isError: false, type: null, message: content }
+}
+
+/**
+ * Error configuration for different error types
+ */
+const ERROR_CONFIG = {
+  timeout: {
+    icon: Clock,
+    color: 'orange',
+    bgColor: 'bg-orange-50',
+    borderColor: 'border-orange-200',
+    textColor: 'text-orange-900',
+    iconColor: 'text-orange-600',
+  },
+  network: {
+    icon: WifiOff,
+    color: 'red',
+    bgColor: 'bg-red-50',
+    borderColor: 'border-red-200',
+    textColor: 'text-red-900',
+    iconColor: 'text-red-600',
+  },
+  rate_limit: {
+    icon: Clock,
+    color: 'yellow',
+    bgColor: 'bg-yellow-50',
+    borderColor: 'border-yellow-200',
+    textColor: 'text-yellow-900',
+    iconColor: 'text-yellow-600',
+  },
+  generic: {
+    icon: AlertCircle,
+    color: 'red',
+    bgColor: 'bg-red-50',
+    borderColor: 'border-red-200',
+    textColor: 'text-red-900',
+    iconColor: 'text-red-600',
+  },
+} as const
+
+/**
+ * Error type to human-readable title mapping
+ */
+const ERROR_TITLES = {
+  timeout: 'Request Timeout',
+  network: 'Connection Error',
+  rate_limit: 'Rate Limit Exceeded',
+  generic: 'Error',
+} as const
+
+/**
+ * Assistant message card component
+ * Renders either an error message or normal assistant response
+ */
+function AssistantMessageCard({ content }: { content: string }) {
+  const errorInfo = detectErrorType(content)
+
+  if (errorInfo.isError) {
+    const config = ERROR_CONFIG[errorInfo.type || 'generic']
+    const ErrorIcon = config.icon
+    const title = ERROR_TITLES[errorInfo.type || 'generic']
+
+    return (
+      <Card className={`${config.bgColor} border ${config.borderColor} p-3 rounded-2xl`}>
+        <div className="flex items-start gap-2">
+          <ErrorIcon className={`h-5 w-5 flex-shrink-0 mt-0.5 ${config.iconColor}`} />
+          <div className="flex-1">
+            <p className={`text-sm font-medium ${config.textColor}`}>{title}</p>
+            <p className={`text-sm mt-1 ${config.textColor} opacity-90`}>
+              {errorInfo.message}
+            </p>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="bg-gray-50 p-3 rounded-2xl">
+      <p className="text-sm whitespace-pre-wrap text-gray-900">{content}</p>
+    </Card>
+  )
 }
 
 export function ChatStream({ messages, isStreaming }: ChatStreamProps) {
@@ -83,11 +202,7 @@ export function ChatStream({ messages, isStreaming }: ChatStreamProps) {
               </Card>
             ) : (
               <div className="space-y-2">
-                <Card className="bg-gray-50 p-3 rounded-2xl">
-                  <p className="text-sm whitespace-pre-wrap text-gray-900">
-                    {message.content}
-                  </p>
-                </Card>
+                <AssistantMessageCard content={message.content} />
 
                 {/* Render tool calls if present */}
                 {message.toolCalls && message.toolCalls.length > 0 && (
