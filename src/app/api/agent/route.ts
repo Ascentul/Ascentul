@@ -28,6 +28,7 @@ try {
 
 // Constants
 const MAX_CONTEXT_SIZE = 2000 // Max chars for context JSON
+const OPENAI_TIMEOUT_MS = 30000 // 30s timeout for OpenAI API calls
 
 /**
  * Safely stringify context with size limits and sanitization
@@ -238,16 +239,25 @@ async function streamAgentResponse({
       },
     ]
 
+    // Set up timeout for OpenAI API call
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS)
+
     // Call OpenAI with streaming
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages,
-      tools,
-      tool_choice: 'auto',
-      stream: true,
-      temperature: 0.7,
-      max_tokens: 1500,
-    })
+    const completion = await openai.chat.completions.create(
+      {
+        model: 'gpt-4o-mini',
+        messages,
+        tools,
+        tool_choice: 'auto',
+        stream: true,
+        temperature: 0.7,
+        max_tokens: 1500,
+      },
+      {
+        signal: controller.signal,
+      }
+    )
 
     let assistantMessage = ''
     const toolCallsMap = new Map<
@@ -259,8 +269,9 @@ async function streamAgentResponse({
       }
     >()
 
-    // Process stream
-    for await (const chunk of completion) {
+    try {
+      // Process stream
+      for await (const chunk of completion) {
       const delta = chunk.choices[0]?.delta
 
       // Handle content delta
@@ -324,11 +335,14 @@ async function streamAgentResponse({
           )
         }
       }
-    }
+      }
 
-    // Stream complete
-    await writer.write(sendDone())
-    await writer.close()
+      // Stream complete
+      await writer.write(sendDone())
+      await writer.close()
+    } finally {
+      clearTimeout(timeoutId)
+    }
   } catch (error) {
     console.error('[Agent] Stream error:', error)
     await writer.write(
