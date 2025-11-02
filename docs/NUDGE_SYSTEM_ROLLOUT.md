@@ -33,14 +33,16 @@ MAILGUN_SENDING_API_KEY=your_key_here
 # OR
 SENDGRID_API_KEY=your_key_here
 
-# Required for internal API calls
+# Required for internal API calls (CRITICAL - DO NOT SKIP)
 NEXT_PUBLIC_APP_URL=https://app.ascentful.io
-CONVEX_INTERNAL_KEY=generate_random_secure_key
+CONVEX_INTERNAL_KEY=generate_random_secure_key  # REQUIRED: Protects /api/nudges/send-email from abuse
 
 # Already configured
 NEXT_PUBLIC_CONVEX_URL=your_convex_url
 CLERK_SECRET_KEY=your_clerk_key
 ```
+
+**SECURITY WARNING**: `CONVEX_INTERNAL_KEY` is **required** for production deployment. Without it, the `/api/nudges/send-email` endpoint is publicly accessible and can be exploited for spam attacks, quota exhaustion, and privacy violations. Generate a secure random key (e.g., `openssl rand -base64 32`).
 
 ### 2. Database Verification
 Verify schema deployment to production:

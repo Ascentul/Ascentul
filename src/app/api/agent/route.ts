@@ -240,6 +240,7 @@ async function executeTool(
         description: input.description as string | undefined,
         category: input.category as string | undefined,
         target_date: input.target_date as number | undefined,
+        checklist: input.checklist as Array<{ id: string; text: string; completed: boolean }> | undefined,
       })
 
     case 'update_goal':
@@ -270,6 +271,7 @@ async function executeTool(
         url: input.url as string | undefined,
         notes: input.notes as string | undefined,
         applied_at: input.applied_at as number | undefined,
+        resume_id: input.resume_id as Id<'resumes'> | undefined,
       })
 
     case 'update_application':

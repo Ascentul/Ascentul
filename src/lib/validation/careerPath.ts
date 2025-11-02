@@ -8,12 +8,15 @@ import { z } from 'zod'
 
 /**
  * Career path search input schema
+ *
+ * Note: Uses camelCase for client-side validation.
+ * Backend mutations transform to snake_case for database storage.
  */
 export const CareerPathSearchInputSchema = z.object({
   targetRole: z.string().min(2).optional(),
   major: z.string().optional(),
   currentSkills: z.array(z.string()).optional(),
-  experience_years: z.number().min(0).max(50).optional(),
+  experienceYears: z.number().min(0).max(50).optional(),
   industry: z.string().optional(),
 })
 
@@ -21,13 +24,16 @@ export type CareerPathSearchInput = z.infer<typeof CareerPathSearchInputSchema>
 
 /**
  * Career path step schema
+ *
+ * Note: Uses camelCase for client-side validation.
+ * Backend mutations transform to snake_case for database storage.
  */
 export const CareerPathStepSchema = z.object({
   step: z.number().int().positive(),
   title: z.string().min(2),
   description: z.string().min(10),
-  duration_months: z.number().int().positive(),
-  required_skills: z.array(z.string()),
+  durationMonths: z.number().int().positive(),
+  requiredSkills: z.array(z.string()),
 })
 
 export type CareerPathStep = z.infer<typeof CareerPathStepSchema>

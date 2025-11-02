@@ -10,12 +10,16 @@ import { sendNudgeEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify internal request (optional security check)
+    // Verify internal request (required for security)
     const internalKey = request.headers.get('X-Convex-Internal-Key')
-    if (
-      process.env.CONVEX_INTERNAL_KEY &&
-      internalKey !== process.env.CONVEX_INTERNAL_KEY
-    ) {
+    if (!process.env.CONVEX_INTERNAL_KEY) {
+      console.error('[API] CONVEX_INTERNAL_KEY not configured')
+      return NextResponse.json(
+        { error: 'Service misconfigured' },
+        { status: 500 }
+      )
+    }
+    if (internalKey !== process.env.CONVEX_INTERNAL_KEY) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

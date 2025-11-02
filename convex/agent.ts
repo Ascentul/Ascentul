@@ -563,6 +563,11 @@ export const createGoal = mutation({
     description: v.optional(v.string()),
     category: v.optional(v.string()),
     target_date: v.optional(v.number()),
+    checklist: v.optional(v.array(v.object({
+      id: v.string(),
+      text: v.string(),
+      completed: v.boolean(),
+    }))),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId)
@@ -592,6 +597,7 @@ export const createGoal = mutation({
       description: args.description,
       category: args.category,
       target_date: args.target_date,
+      checklist: args.checklist,
       status: 'not_started',
       progress: 0,
       created_at: now,
@@ -754,6 +760,7 @@ export const createApplication = mutation({
     url: v.optional(v.string()),
     notes: v.optional(v.string()),
     applied_at: v.optional(v.number()),
+    resume_id: v.optional(v.id('resumes')),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId)
@@ -773,6 +780,7 @@ export const createApplication = mutation({
       url: args.url,
       notes: args.notes,
       applied_at: args.applied_at,
+      resume_id: args.resume_id,
       created_at: now,
       updated_at: now,
     })

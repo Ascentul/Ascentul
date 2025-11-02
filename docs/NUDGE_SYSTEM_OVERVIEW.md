@@ -15,7 +15,7 @@ The Proactive AI Agent Nudge System is a comprehensive career assistance feature
 
 ## System Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                     NUDGE SYSTEM FLOW                        │
 └─────────────────────────────────────────────────────────────┘

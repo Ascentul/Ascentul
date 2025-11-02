@@ -7,6 +7,11 @@
 import { z } from 'zod'
 
 /**
+ * Application status enum used across multiple schemas
+ */
+const APPLICATION_STATUS = ['saved', 'applied', 'interview', 'offer', 'rejected', 'inactive'] as const
+
+/**
  * Application upsert input schema
  */
 export const ApplicationUpsertInputSchema = z.object({
@@ -14,9 +19,7 @@ export const ApplicationUpsertInputSchema = z.object({
   company: z.string().min(2, 'Company name must be at least 2 characters'),
   title: z.string().min(2, 'Job title must be at least 2 characters'),
   sourceJobId: z.string().optional(), // e.g., "adzuna:123456"
-  status: z
-    .enum(['saved', 'applied', 'interview', 'offer', 'rejected', 'inactive'])
-    .default('saved'),
+  status: z.enum(APPLICATION_STATUS).default('saved'),
   location: z.string().optional(),
   salary: z.string().optional(),
   description: z.string().optional(),
@@ -31,7 +34,7 @@ export type ApplicationUpsertInput = z.infer<typeof ApplicationUpsertInputSchema
  */
 export const ApplicationUpdateStatusInputSchema = z.object({
   applicationId: z.string(),
-  status: z.enum(['saved', 'applied', 'interview', 'offer', 'rejected', 'inactive']),
+  status: z.enum(APPLICATION_STATUS),
   notes: z.string().optional(),
 })
 
@@ -94,9 +97,7 @@ export type AppFollowUpCompleteInput = z.infer<typeof AppFollowUpCompleteInputSc
  * Application filter input schema
  */
 export const ApplicationFilterInputSchema = z.object({
-  status: z
-    .enum(['saved', 'applied', 'interview', 'offer', 'rejected', 'inactive'])
-    .optional(),
+  status: z.enum(APPLICATION_STATUS).optional(),
   company: z.string().optional(),
   limit: z.number().min(1).max(100).default(50),
 })

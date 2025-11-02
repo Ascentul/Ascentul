@@ -12,6 +12,32 @@ import { mutation, query } from '../_generated/server'
 import { v } from 'convex/values'
 
 /**
+ * Default agent preferences
+ * Single source of truth for default values
+ */
+const DEFAULT_PREFERENCES = {
+  agent_enabled: true,
+  proactive_enabled: true,
+  notification_frequency: 'realtime' as const,
+  quiet_hours_start: 22, // 10 PM
+  quiet_hours_end: 8, // 8 AM
+  timezone: 'America/Los_Angeles',
+  channels: {
+    inApp: true,
+    email: false,
+    push: false,
+  },
+  playbook_toggles: {
+    jobSearch: true,
+    resumeHelp: true,
+    interviewPrep: true,
+    networking: true,
+    careerPath: true,
+    applicationTracking: true,
+  },
+}
+
+/**
  * Get user agent preferences
  *
  * Returns default preferences if none exist
@@ -30,25 +56,7 @@ export const getUserPreferences = query({
     if (!prefs) {
       return {
         user_id: args.userId,
-        agent_enabled: true,
-        proactive_enabled: true,
-        notification_frequency: 'realtime' as const,
-        quiet_hours_start: 22, // 10 PM
-        quiet_hours_end: 8, // 8 AM
-        timezone: 'America/Los_Angeles',
-        channels: {
-          inApp: true,
-          email: false,
-          push: false,
-        },
-        playbook_toggles: {
-          jobSearch: true,
-          resumeHelp: true,
-          interviewPrep: true,
-          networking: true,
-          careerPath: true,
-          applicationTracking: true,
-        },
+        ...DEFAULT_PREFERENCES,
       }
     }
 
@@ -114,25 +122,14 @@ export const upsertPreferences = mutation({
       // Create new preferences with defaults
       const preferencesId = await ctx.db.insert('agent_preferences', {
         user_id: userId,
-        agent_enabled: updates.agent_enabled ?? true,
-        proactive_enabled: updates.proactive_enabled ?? true,
-        notification_frequency: updates.notification_frequency ?? 'realtime',
-        quiet_hours_start: updates.quiet_hours_start ?? 22,
-        quiet_hours_end: updates.quiet_hours_end ?? 8,
-        timezone: updates.timezone ?? 'America/Los_Angeles',
-        channels: updates.channels ?? {
-          inApp: true,
-          email: false,
-          push: false,
-        },
-        playbook_toggles: updates.playbook_toggles ?? {
-          jobSearch: true,
-          resumeHelp: true,
-          interviewPrep: true,
-          networking: true,
-          careerPath: true,
-          applicationTracking: true,
-        },
+        agent_enabled: updates.agent_enabled ?? DEFAULT_PREFERENCES.agent_enabled,
+        proactive_enabled: updates.proactive_enabled ?? DEFAULT_PREFERENCES.proactive_enabled,
+        notification_frequency: updates.notification_frequency ?? DEFAULT_PREFERENCES.notification_frequency,
+        quiet_hours_start: updates.quiet_hours_start ?? DEFAULT_PREFERENCES.quiet_hours_start,
+        quiet_hours_end: updates.quiet_hours_end ?? DEFAULT_PREFERENCES.quiet_hours_end,
+        timezone: updates.timezone ?? DEFAULT_PREFERENCES.timezone,
+        channels: updates.channels ?? DEFAULT_PREFERENCES.channels,
+        playbook_toggles: updates.playbook_toggles ?? DEFAULT_PREFERENCES.playbook_toggles,
         created_at: now,
         updated_at: now,
       })

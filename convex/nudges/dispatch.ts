@@ -175,7 +175,16 @@ export const getNudge = mutation({
  *
  * NOTE: Email sending happens via API route since Convex actions can't import Node modules
  */
-async function sendEmailNudge(ctx: any, nudge: any): Promise<void> {
+async function sendEmailNudge(
+  ctx: { runQuery: any },
+  nudge: {
+    user_id: Id<'users'>
+    rule_type: string
+    reason: string
+    suggested_action?: string
+    action_url?: string
+  }
+): Promise<void> {
   // Get user
   const user = await ctx.runQuery(api.users.getUser, {
     userId: nudge.user_id,
@@ -195,12 +204,21 @@ async function sendEmailNudge(ctx: any, nudge: any): Promise<void> {
 
   // Call API route to send email (Convex can't import Node modules directly)
   try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+    if (!appUrl) {
+      throw new Error('NEXT_PUBLIC_APP_URL environment variable is required')
+    }
+
+    const internalKey = process.env.CONVEX_INTERNAL_KEY
+    if (!internalKey) {
+      throw new Error('CONVEX_INTERNAL_KEY environment variable is required')
+    }
+
     const response = await fetch(`${appUrl}/api/nudges/send-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Convex-Internal-Key': process.env.CONVEX_INTERNAL_KEY || '',
+        'X-Convex-Internal-Key': internalKey,
       },
       body: JSON.stringify({
         email: user.email,

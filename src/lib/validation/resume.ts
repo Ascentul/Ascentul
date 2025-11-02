@@ -7,11 +7,25 @@
 import { z } from 'zod'
 
 /**
+ * Resume block schema
+ *
+ * Represents a single section/block in a resume (e.g., experience, education, skills)
+ */
+export const ResumeBlockSchema = z.object({
+  id: z.string().optional(),
+  type: z.string(), // e.g., 'experience', 'education', 'skills', 'summary'
+  content: z.record(z.unknown()), // Flexible content object for different block types
+  order: z.number().optional(),
+})
+
+export type ResumeBlock = z.infer<typeof ResumeBlockSchema>
+
+/**
  * Resume create input schema
  */
 export const ResumeCreateInputSchema = z.object({
   title: z.string().min(2, 'Title must be at least 2 characters'),
-  blocks: z.array(z.any()).default([]),
+  blocks: z.array(ResumeBlockSchema).default([]),
   theme: z.string().optional(),
   template: z.string().optional(),
 })
@@ -77,7 +91,7 @@ export type ResumeAnalysisOutput = z.infer<typeof ResumeAnalysisOutputSchema>
 export const ResumeUpdateInputSchema = z.object({
   resumeId: z.string(),
   title: z.string().min(2).optional(),
-  blocks: z.array(z.any()).optional(),
+  blocks: z.array(ResumeBlockSchema).optional(),
   theme: z.string().optional(),
 })
 
@@ -99,7 +113,7 @@ export const ResumeBlockDiffSchema = z.object({
   action: z.enum(['add', 'update', 'remove']),
   blockId: z.string().optional(),
   blockType: z.string().optional(),
-  content: z.any().optional(),
+  content: z.record(z.unknown()).optional(), // Flexible content matching ResumeBlockSchema
   reason: z.string(),
 })
 

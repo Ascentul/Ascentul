@@ -31,11 +31,26 @@ async function testNudgeSystem(userId?: string) {
       process.exit(1)
     }
 
-    // 1. Check user preferences
+    // 1. Check user preferences (also verifies user exists)
     console.log('1. Checking user preferences...')
-    const prefs = await client.query(api.nudges.preferences.getUserPreferences, {
-      userId,
-    })
+    let prefs
+    try {
+      prefs = await client.query(api.nudges.preferences.getUserPreferences, {
+        userId,
+      })
+    } catch (error: any) {
+      // Check for user not found errors
+      const errorMsg = error?.message || String(error)
+      if (errorMsg.includes('not found') || errorMsg.includes('does not exist') || errorMsg.includes('invalid')) {
+        console.error(`❌ User not found: ${userId}`)
+        console.log()
+        console.log('   To find a valid userId, check your Convex dashboard or query the users table.')
+        console.log('   User IDs should be in the format: "j1234567890abcdef"')
+        process.exit(1)
+      }
+      // Re-throw other errors
+      throw error
+    }
     console.log(`   Agent Enabled: ${prefs.agent_enabled ? '✅' : '❌'}`)
     console.log(`   Proactive Enabled: ${prefs.proactive_enabled ? '✅' : '❌'}`)
     console.log(`   Quiet Hours: ${prefs.quiet_hours_start}:00 - ${prefs.quiet_hours_end}:00`)

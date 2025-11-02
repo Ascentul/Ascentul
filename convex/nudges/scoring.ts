@@ -4,7 +4,7 @@
  * Evaluates all rules for a user, checks cooldowns, and returns prioritized nudges
  */
 
-import { query } from '../_generated/server'
+import { query, QueryCtx } from '../_generated/server'
 import { v } from 'convex/values'
 import { Id } from '../_generated/dataModel'
 import { NUDGE_RULES, getApplicableRules, RuleEvaluation, NudgeRuleType } from './ruleEngine'
@@ -140,17 +140,34 @@ async function isRuleOnCooldown(
 
 /**
  * Get count of nudges created today for a user
+ *
+ * Uses user's timezone preference to calculate start of day,
+ * ensuring daily limits reset at midnight in the user's local time
  */
-async function getTodayNudgeCount(ctx: any, userId: Id<'users'>): Promise<number> {
-  const now = Date.now()
-  const startOfDay = new Date()
-  startOfDay.setHours(0, 0, 0, 0)
-  const startOfDayMs = startOfDay.getTime()
+async function getTodayNudgeCount(ctx: QueryCtx, userId: Id<'users'>): Promise<number> {
+  // Get user timezone preference
+  const prefs = await ctx.db
+    .query('agent_preferences')
+    .withIndex('by_user', (q: any) => q.eq('user_id', userId))
+    .unique()
+
+  const userTimezone = prefs?.timezone || 'UTC'
+
+  // Calculate start of day in user's timezone
+  // Use UTC time and adjust for timezone offset
+  const userDateStr = new Date().toLocaleString('en-US', { timeZone: userTimezone })
+  const userDate = new Date(userDateStr)
+
+  // Set to start of day (midnight) in user's timezone
+  userDate.setHours(0, 0, 0, 0)
+
+  // Convert back to UTC timestamp for comparison with database
+  const startOfDayMs = new Date(userDate.toLocaleString('en-US', { timeZone: 'UTC' })).getTime()
 
   const todayNudges = await ctx.db
     .query('agent_nudges')
-    .withIndex('by_user', (q) => q.eq('user_id', userId))
-    .filter((q) => q.gte(q.field('created_at'), startOfDayMs))
+    .withIndex('by_user_status', (q: any) => q.eq('user_id', userId))
+    .filter((q: any) => q.gte(q.field('created_at'), startOfDayMs))
     .collect()
 
   return todayNudges.length

@@ -812,6 +812,20 @@ The Ascentful Team`.replace('[NAME]', name).replace('[PLAN]', plan).replace('[AM
 }
 
 /**
+ * Escape HTML to prevent XSS attacks in email templates
+ */
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  }
+  return text.replace(/[&<>"']/g, (m) => map[m])
+}
+
+/**
  * Send proactive nudge email notification
  */
 export async function sendNudgeEmail(
@@ -826,6 +840,9 @@ export async function sendNudgeEmail(
   }
 ): Promise<EmailResult> {
   const firstName = name.split(' ')[0]
+  const escapedRuleName = escapeHtml(nudge.ruleName)
+  const escapedReason = escapeHtml(nudge.reason)
+  const escapedSuggestedAction = nudge.suggestedAction ? escapeHtml(nudge.suggestedAction) : undefined
 
   // Customize subject based on category
   const subjectPrefix = nudge.category === 'urgent' ? '⏰ Urgent: ' : '💡 Tip: '
@@ -855,21 +872,21 @@ Your Ascentful Career Agent`
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
       <div style="text-align: center; margin-bottom: 30px;">
         <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentful" style="max-width: 100%; height: auto; margin-bottom: 20px;">
-        <h1 style="color: #0C29AB; font-size: 24px; margin: 0;">${nudge.category === 'urgent' ? '⏰' : '💡'} ${nudge.ruleName}</h1>
+        <h1 style="color: #0C29AB; font-size: 24px; margin: 0;">${nudge.category === 'urgent' ? '⏰' : '💡'} ${escapedRuleName}</h1>
       </div>
 
       <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
 
       <div style="background-color: ${nudge.category === 'urgent' ? '#fef2f2' : '#f0f4ff'}; border-left: 4px solid ${nudge.category === 'urgent' ? '#dc2626' : '#0C29AB'}; padding: 20px; margin: 24px 0; border-radius: 4px;">
         <p style="margin: 0; font-size: 16px; font-weight: 600; color: #374151;">
-          ${nudge.reason}
+          ${escapedReason}
         </p>
       </div>
 
-      ${nudge.suggestedAction ? `
+      ${escapedSuggestedAction ? `
       <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
         <p style="margin: 0 0 8px 0; font-size: 14px; color: #6b7280; font-weight: 600;">Suggested Action:</p>
-        <p style="margin: 0; font-size: 15px; color: #374151;">${nudge.suggestedAction}</p>
+        <p style="margin: 0; font-size: 15px; color: #374151;">${escapedSuggestedAction}</p>
       </div>
       ` : ''}
 

@@ -136,7 +136,7 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'create_goal',
       description:
-        'Create a new career goal for the user. Use this when the user wants to set a goal, track a milestone, or plan a career objective.',
+        'Create a new career goal for the user. Use this when the user wants to set a goal, track a milestone, or plan a career objective. Supports optional checklist for breaking goals into sub-tasks.',
       parameters: {
         type: 'object',
         properties: {
@@ -155,6 +155,28 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
           target_date: {
             type: 'number',
             description: 'Target completion date as Unix timestamp in milliseconds. Convert dates carefully: "December 12, 2025" = Date.UTC(2025, 11, 12, 12, 0, 0) milliseconds. Use UTC noon to avoid timezone issues. (optional)',
+          },
+          checklist: {
+            type: 'array',
+            description: 'Optional checklist of sub-tasks for the goal',
+            items: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  description: 'Unique identifier for the checklist item (use nanoid or uuid)',
+                },
+                text: {
+                  type: 'string',
+                  description: 'The sub-task text',
+                },
+                completed: {
+                  type: 'boolean',
+                  description: 'Whether this sub-task is completed (default: false)',
+                },
+              },
+              required: ['id', 'text', 'completed'],
+            },
           },
         },
         required: ['title'],
@@ -229,7 +251,7 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'create_application',
       description:
-        'Create a new job application tracking record. Use this when the user wants to track a job they are applying to or have applied to.',
+        'Create a new job application tracking record. Use this when the user wants to track a job they are applying to or have applied to. Can optionally link a resume.',
       parameters: {
         type: 'object',
         properties: {
@@ -261,6 +283,10 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
           applied_at: {
             type: 'number',
             description: 'Date when application was submitted as Unix timestamp in milliseconds. Use Date.UTC() for conversion. (optional)',
+          },
+          resume_id: {
+            type: 'string',
+            description: 'ID of the resume used for this application (from get_user_snapshot) (optional)',
           },
         },
         required: ['company', 'jobTitle'],

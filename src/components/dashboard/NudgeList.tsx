@@ -78,7 +78,7 @@ export function NudgeList({ maxDisplay, showHeader = true, compact = false }: Nu
         </Card>
       ) : (
         <>
-          <div className={`space-y-${compact ? '2' : '4'}`}>
+          <div className={compact ? 'space-y-2' : 'space-y-4'}>
             {displayNudges.map((nudge) => (
               <NudgeCard
                 key={nudge._id}

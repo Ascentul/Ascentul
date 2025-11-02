@@ -8,22 +8,38 @@ import { z } from 'zod'
 
 /**
  * Job search input schema
+ *
+ * Note: Uses camelCase for client-side TypeScript conventions.
+ * query/location are user-facing input fields.
+ * what/where are Adzuna API fields (included for direct API compatibility).
+ * Backend transforms camelCase to snake_case for Adzuna API calls.
  */
 export const JobSearchInputSchema = z.object({
+  // User-facing search fields
   query: z.string().min(2, 'Search query must be at least 2 characters').optional(),
   location: z.string().optional(),
-  country: z.string().default('us'),
+
+  // Adzuna supports these countries (as of 2024)
+  // See: https://developer.adzuna.com/docs/search
+  country: z
+    .enum(['us', 'gb', 'ca', 'au', 'de', 'fr', 'nl', 'nz', 'pl', 'br', 'in', 'sg', 'za', 'at', 'ch', 'it'])
+    .default('us'),
+
   resultsPerPage: z.number().min(1).max(50).default(20),
   page: z.number().min(1).default(1),
+
+  // Adzuna API fields (for direct API compatibility)
   what: z.string().optional(),
   where: z.string().optional(),
-  salary_min: z.number().optional(),
-  salary_max: z.number().optional(),
-  full_time: z.boolean().optional(),
-  part_time: z.boolean().optional(),
+
+  // Filter options (camelCase for TypeScript, backend transforms to snake_case)
+  salaryMin: z.number().optional(),
+  salaryMax: z.number().optional(),
+  fullTime: z.boolean().optional(),
+  partTime: z.boolean().optional(),
   contract: z.boolean().optional(),
   permanent: z.boolean().optional(),
-  max_days_old: z.number().min(1).max(30).optional(),
+  maxDaysOld: z.number().min(1).max(30).optional(),
 })
 
 export type JobSearchInput = z.infer<typeof JobSearchInputSchema>

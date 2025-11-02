@@ -132,6 +132,16 @@ export default function AgentPreferencesPage() {
   const handleSavePreferences = async () => {
     if (!userId) return
 
+    // Validate quiet hours range
+    if (formData.quiet_hours_start === formData.quiet_hours_end) {
+      toast({
+        title: 'Invalid Quiet Hours',
+        description: 'Start and end time cannot be the same',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setIsSaving(true)
     try {
       await updatePreferences({

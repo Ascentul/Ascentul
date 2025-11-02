@@ -32,9 +32,13 @@ export const getGlobalMetrics = query({
       startTime = now - 30 * 24 * 60 * 60 * 1000
     }
 
-    // Get all nudges in time range
-    const allNudges = await ctx.db.query('agent_nudges').collect()
-    const nudges = allNudges.filter(n => n.created_at >= startTime)
+    // Get all nudges in time range using index for performance
+    const nudges = startTime > 0
+      ? await ctx.db
+          .query('agent_nudges')
+          .withIndex('by_created', (q) => q.gte('created_at', startTime))
+          .collect()
+      : await ctx.db.query('agent_nudges').collect()
 
     // Calculate metrics
     const totalNudges = nudges.length
@@ -108,8 +112,13 @@ export const getMetricsByRuleType = query({
       startTime = now - 30 * 24 * 60 * 60 * 1000
     }
 
-    const allNudges = await ctx.db.query('agent_nudges').collect()
-    const nudges = allNudges.filter(n => n.created_at >= startTime)
+    // Get all nudges in time range using index for performance
+    const nudges = startTime > 0
+      ? await ctx.db
+          .query('agent_nudges')
+          .withIndex('by_created', (q) => q.gte('created_at', startTime))
+          .collect()
+      : await ctx.db.query('agent_nudges').collect()
 
     // Group by rule type
     const ruleTypeMap: Record<string, {
@@ -184,8 +193,13 @@ export const getEngagementMetrics = query({
       startTime = now - 30 * 24 * 60 * 60 * 1000
     }
 
-    const allNudges = await ctx.db.query('agent_nudges').collect()
-    const nudges = allNudges.filter(n => n.created_at >= startTime)
+    // Get all nudges in time range using index for performance
+    const nudges = startTime > 0
+      ? await ctx.db
+          .query('agent_nudges')
+          .withIndex('by_created', (q) => q.gte('created_at', startTime))
+          .collect()
+      : await ctx.db.query('agent_nudges').collect()
 
     // Get unique users who received nudges
     const usersWithNudges = new Set(nudges.map(n => n.user_id))
@@ -269,8 +283,11 @@ export const getDailyVolumeTrend = query({
     const now = Date.now()
     const startTime = now - days * 24 * 60 * 60 * 1000
 
-    const allNudges = await ctx.db.query('agent_nudges').collect()
-    const nudges = allNudges.filter(n => n.created_at >= startTime)
+    // Get all nudges in time range using index for performance
+    const nudges = await ctx.db
+      .query('agent_nudges')
+      .withIndex('by_created', (q) => q.gte('created_at', startTime))
+      .collect()
 
     // Group by day
     const dailyMap: Record<string, {

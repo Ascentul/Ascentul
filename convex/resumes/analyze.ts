@@ -6,7 +6,7 @@
  */
 
 import { v } from 'convex/values'
-import { action } from '../_generated/server'
+import { action, mutation } from '../_generated/server'
 import { api } from '../_generated/api'
 
 /**
@@ -97,8 +97,6 @@ export const saveAnalysis = action({
 /**
  * Internal mutation to create analysis record
  */
-import { mutation } from '../_generated/server'
-
 export const createAnalysisRecord = mutation({
   args: {
     resumeId: v.id('resumes'),

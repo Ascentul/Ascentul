@@ -7,7 +7,7 @@
  * 3. Dispatch nudges to channels
  */
 
-import { internalAction, internalMutation } from '../_generated/server'
+import { internalAction, internalMutation, internalQuery } from '../_generated/server'
 import { api, internal } from '../_generated/api'
 import { v } from 'convex/values'
 
@@ -179,6 +179,7 @@ export const weeklySweep = internalAction({
       })
 
       let nudgesCreated = 0
+      let errors = 0
 
       for (const user of users) {
         try {
@@ -208,6 +209,7 @@ export const weeklySweep = internalAction({
           }
         } catch (error) {
           console.error(`[Nudge Sweep] Error processing user ${user._id}:`, error)
+          errors++
         }
       }
 
@@ -217,6 +219,7 @@ export const weeklySweep = internalAction({
         success: true,
         usersProcessed: users.length,
         nudgesCreated,
+        errors,
       }
     } catch (error) {
       console.error('[Nudge Sweep] Weekly sweep failed:', error)
@@ -234,7 +237,7 @@ export const weeklySweep = internalAction({
  * - Not in quiet hours (optional)
  * - University kill switch not active
  */
-export const getEligibleUsers = internalMutation({
+export const getEligibleUsers = internalQuery({
   args: {
     checkQuietHours: v.boolean(),
   },
