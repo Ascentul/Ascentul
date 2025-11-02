@@ -13,6 +13,38 @@ import type {
 // Maximum number of previous messages to include in API requests for context
 const MAX_HISTORY_MESSAGES = 10
 
+/**
+ * Update or append a tool call to the existing array
+ * Updates existing call if name matches, otherwise appends new call
+ */
+function updateOrAppendToolCall(
+  existingCalls: AgentMessage['toolCalls'] = [],
+  toolData: {
+    name: string
+    status?: 'pending' | 'running' | 'success' | 'error'
+    input?: Record<string, unknown>
+    output?: unknown
+    error?: string
+  }
+) {
+  const existingIndex = existingCalls.findIndex((tc) => tc.name === toolData.name)
+  const newToolCall = {
+    id: existingIndex >= 0 ? existingCalls[existingIndex].id : nanoid(),
+    name: toolData.name,
+    status: toolData.status || 'success',
+    input: toolData.input,
+    output: toolData.output,
+    error: toolData.error,
+  }
+
+  if (existingIndex >= 0) {
+    const updated = [...existingCalls]
+    updated[existingIndex] = newToolCall
+    return updated
+  }
+  return [...existingCalls, newToolCall]
+}
+
 const AgentContext = createContext<AgentContextType | undefined>(undefined)
 
 export function AgentProvider({ children }: { children: React.ReactNode }) {
@@ -173,25 +205,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
                   msg.id === assistantMessageId
                     ? {
                         ...msg,
-                        toolCalls: (() => {
-                          const existing = (msg.toolCalls || []).findIndex(
-                            (tc) => tc.name === toolData.name
-                          )
-                          const newToolCall = {
-                            id: existing >= 0 ? msg.toolCalls![existing].id : nanoid(),
-                            name: toolData.name,
-                            status: toolData.status || 'success',
-                            input: toolData.input,
-                            output: toolData.output,
-                            error: toolData.error,
-                          }
-                          if (existing >= 0) {
-                            const updated = [...(msg.toolCalls || [])]
-                            updated[existing] = newToolCall
-                            return updated
-                          }
-                          return [...(msg.toolCalls || []), newToolCall]
-                        })(),
+                        toolCalls: updateOrAppendToolCall(msg.toolCalls, toolData),
                       }
                     : msg
                 ),
