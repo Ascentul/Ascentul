@@ -18,7 +18,10 @@ const openai = new OpenAI({
 })
 
 // Initialize Convex client for tool execution
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
+  throw new Error('NEXT_PUBLIC_CONVEX_URL environment variable is required')
+}
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL)
 
 // Load system prompt
 let SYSTEM_PROMPT: string
@@ -287,8 +290,9 @@ async function streamAgentResponse({
               arguments: '',
             })
           }
-          if (toolCall.function?.arguments) {
-            toolCallsMap.get(toolCall.index)!.arguments += toolCall.function.arguments
+          const entry = toolCallsMap.get(toolCall.index)
+          if (entry && toolCall.function?.arguments) {
+            entry.arguments += toolCall.function.arguments
           }
         }
       }
