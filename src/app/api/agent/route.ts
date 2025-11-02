@@ -26,6 +26,28 @@ try {
   SYSTEM_PROMPT = 'You are a helpful AI assistant.' // Fallback prompt
 }
 
+// Constants
+const MAX_CONTEXT_SIZE = 2000 // Max chars for context JSON
+
+/**
+ * Safely stringify context with size limits and sanitization
+ */
+function serializeContext(context: unknown): string {
+  try {
+    const serialized = JSON.stringify(context)
+
+    if (serialized.length <= MAX_CONTEXT_SIZE) {
+      return serialized
+    }
+
+    // Truncate with indicator
+    return `${serialized.slice(0, MAX_CONTEXT_SIZE)}... [truncated: ${serialized.length} chars total]`
+  } catch (error) {
+    // JSON.stringify can fail on circular references or other issues
+    return '[Context serialization failed]'
+  }
+}
+
 /**
  * POST /api/agent - Streaming agent endpoint
  *
@@ -142,7 +164,7 @@ async function streamAgentResponse({
       {
         role: 'user',
         content: context
-          ? `Context: ${JSON.stringify(context)}\n\nUser: ${message}`
+          ? `Context: ${serializeContext(context)}\n\nUser: ${message}`
           : message,
       },
     ]
