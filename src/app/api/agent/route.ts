@@ -4,6 +4,9 @@ import OpenAI from 'openai'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { sendDelta, sendTool, sendError, sendDone, createSSEWriter } from '@/lib/agent/sse'
+import { TOOL_SCHEMAS, type ToolName } from '@/lib/agent/tools'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../../../convex/_generated/api'
 
 // Runtime configuration for streaming
 export const runtime = 'nodejs'
@@ -13,6 +16,9 @@ export const dynamic = 'force-dynamic'
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
+
+// Initialize Convex client for tool execution
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
 
 // Load system prompt
 let SYSTEM_PROMPT: string
@@ -32,6 +38,7 @@ const OPENAI_TIMEOUT_MS = 30000 // 30s timeout for OpenAI API calls
 
 /**
  * Safely stringify context with size limits and sanitization
+ * Returns valid JSON even when truncated or on error
  */
 function serializeContext(context: unknown): string {
   try {
@@ -41,11 +48,18 @@ function serializeContext(context: unknown): string {
       return serialized
     }
 
-    // Truncate with indicator
-    return `${serialized.slice(0, MAX_CONTEXT_SIZE)}... [truncated: ${serialized.length} chars total]`
+    // Return valid JSON object indicating truncation
+    return JSON.stringify({
+      _truncated: true,
+      _originalSize: serialized.length,
+      _message: `Context too large (${serialized.length} chars, limit ${MAX_CONTEXT_SIZE})`,
+    })
   } catch (error) {
     // JSON.stringify can fail on circular references or other issues
-    return '[Context serialization failed]'
+    return JSON.stringify({
+      _error: true,
+      _message: 'Context serialization failed',
+    })
   }
 }
 
@@ -132,6 +146,55 @@ export async function POST(req: NextRequest) {
 }
 
 /**
+ * Execute a tool by routing to the appropriate Convex function
+ */
+async function executeTool(
+  userId: string,
+  toolName: ToolName,
+  input: Record<string, unknown>
+): Promise<unknown> {
+  switch (toolName) {
+    case 'get_user_snapshot':
+      return await convex.query(api.agent.getUserSnapshot, {
+        userId: userId as any,
+      })
+
+    case 'get_profile_gaps':
+      return await convex.query(api.agent.getProfileGaps, {
+        userId: userId as any,
+      })
+
+    case 'upsert_profile_field':
+      return await convex.mutation(api.agent.upsertProfileField, {
+        userId: userId as any,
+        field: input.field as string,
+        value: input.value,
+        confidence: input.confidence as number | undefined,
+      })
+
+    case 'search_jobs':
+      return await convex.query(api.agent.searchJobs, {
+        userId: userId as any,
+        query: input.query as string,
+        location: input.location as string | undefined,
+        limit: input.limit as number | undefined,
+      })
+
+    case 'save_job':
+      return await convex.mutation(api.agent.saveJob, {
+        userId: userId as any,
+        company: input.company as string,
+        jobTitle: input.jobTitle as string,
+        url: input.url as string | undefined,
+        notes: input.notes as string | undefined,
+      })
+
+    default:
+      throw new Error(`Unknown tool: ${toolName}`)
+  }
+}
+
+/**
  * Stream agent response with OpenAI and tool execution
  */
 async function streamAgentResponse({
@@ -170,74 +233,8 @@ async function streamAgentResponse({
       },
     ]
 
-    // Tool registry (stub - will expand in Phase 4)
-    const tools: OpenAI.Chat.ChatCompletionTool[] = [
-      {
-        type: 'function',
-        function: {
-          name: 'get_user_snapshot',
-          description: 'Get current user profile, applications, goals, and recent activity',
-          parameters: {
-            type: 'object',
-            properties: {},
-            required: [],
-          },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'upsert_profile_field',
-          description: 'Update or insert a user profile field with confidence score',
-          parameters: {
-            type: 'object',
-            properties: {
-              field: {
-                type: 'string',
-                description: 'The profile field to update (e.g., "skills", "experience", "education")',
-              },
-              value: {
-                type: 'string',
-                description: 'The value to set for the field',
-              },
-              confidence: {
-                type: 'number',
-                description: 'Confidence score between 0 and 1',
-                minimum: 0,
-                maximum: 1,
-              },
-            },
-            required: ['field', 'value'],
-          },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'search_jobs',
-          description: 'Search for jobs based on user profile and preferences',
-          parameters: {
-            type: 'object',
-            properties: {
-              query: {
-                type: 'string',
-                description: 'Job search query or keywords',
-              },
-              location: {
-                type: 'string',
-                description: 'Job location or "remote"',
-              },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of results to return',
-                default: 10,
-              },
-            },
-            required: ['query'],
-          },
-        },
-      },
-    ]
+    // Use tool registry from tools/index.ts
+    const tools = TOOL_SCHEMAS
 
     // Set up timeout for OpenAI API call
     const controller = new AbortController()
@@ -324,15 +321,52 @@ async function streamAgentResponse({
             })
           )
 
-          // TODO: Execute actual tool in Phase 4
-          await writer.write(
-            sendTool({
-              name: toolCall.name,
+          // Execute tool via Convex
+          try {
+            const startTime = Date.now()
+            const toolOutput = await executeTool(userId, toolCall.name as ToolName, parsedInput)
+            const latencyMs = Date.now() - startTime
+
+            // Log successful execution
+            await convex.mutation(api.agent.logAudit, {
+              userId: userId as any,
+              tool: toolCall.name,
+              inputJson: parsedInput,
+              outputJson: toolOutput,
               status: 'success',
-              input: parsedInput,
-              output: { message: 'Tool execution not yet implemented' },
+              latencyMs,
             })
-          )
+
+            await writer.write(
+              sendTool({
+                name: toolCall.name,
+                status: 'success',
+                input: parsedInput,
+                output: toolOutput,
+              })
+            )
+          } catch (toolError) {
+            const errorMessage = toolError instanceof Error ? toolError.message : 'Tool execution failed'
+
+            // Log failed execution
+            await convex.mutation(api.agent.logAudit, {
+              userId: userId as any,
+              tool: toolCall.name,
+              inputJson: parsedInput,
+              status: 'error',
+              errorMessage,
+              latencyMs: 0,
+            })
+
+            await writer.write(
+              sendTool({
+                name: toolCall.name,
+                status: 'error',
+                input: parsedInput,
+                error: errorMessage,
+              })
+            )
+          }
         }
       }
       }
