@@ -85,9 +85,17 @@ export function TodaysRecommendations() {
   }, [localRecommendations])
 
   // Show only first incomplete recommendation by default, or all if showAll is true
-  const displayedRecommendations = showAll
-    ? sortedRecommendations
-    : sortedRecommendations.slice(0, 1)
+  // Include completed items temporarily so animation can play
+  const displayedRecommendations = useMemo(() => {
+    if (showAll) return sortedRecommendations
+
+    // Find first incomplete recommendation and any recently completed ones
+    const incomplete = sortedRecommendations.filter(r => !r.completed)
+    const completed = sortedRecommendations.filter(r => r.completed)
+
+    // Show first incomplete + any completed (they'll auto-remove after animation)
+    return [...completed, ...incomplete.slice(0, 1)]
+  }, [sortedRecommendations, showAll])
 
   useEffect(() => {
     if (showAll && sortedRecommendations.length <= 1) {
@@ -175,35 +183,32 @@ export function TodaysRecommendations() {
   }
 
   const markCompleted = (recommendationId: Recommendation['id']) => {
-    let didUpdate = false
+    // Check if already completed to avoid duplicate clicks
+    const alreadyCompleted = localRecommendations.find(
+      rec => rec.id === recommendationId
+    )?.completed
+
+    if (alreadyCompleted) return
 
     setLocalRecommendations(prev => {
-      let hasChanged = false
-      const next = prev.map(rec => {
-        if (rec.id !== recommendationId || rec.completed) return rec
-        hasChanged = true
+      return prev.map(rec => {
+        if (rec.id !== recommendationId) return rec
         return {
           ...rec,
           completed: true,
           completedAt: new Date().toISOString()
         }
       })
-      if (hasChanged) {
-        didUpdate = true
-        return next
-      }
-      return prev
     })
 
-    if (!didUpdate) return
-
+    // Schedule removal after green animation is visible
     const existingTimeout = removalTimeouts.current.get(recommendationId)
     if (existingTimeout) clearTimeout(existingTimeout)
 
     const timeout = setTimeout(() => {
       setLocalRecommendations(prev => prev.filter(rec => rec.id !== recommendationId))
       removalTimeouts.current.delete(recommendationId)
-    }, 400)
+    }, 600)
 
     removalTimeouts.current.set(recommendationId, timeout)
   }
@@ -295,10 +300,10 @@ export function TodaysRecommendations() {
                         role="button"
                         tabIndex={0}
                         aria-pressed={recommendation.completed}
-                        className={`flex items-start p-3 rounded-lg border cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all duration-300 ${
+                        className={`flex items-start p-3 rounded-lg border-2 cursor-pointer focus:outline-none transition-all duration-300 ${
                           recommendation.completed
-                            ? 'bg-green-50/70 text-muted-foreground border-green-100'
-                            : 'bg-background border-border hover:border-primary/30'
+                            ? 'bg-green-50 text-muted-foreground border-green-300'
+                            : 'bg-background border-border hover:border-primary/30 focus:ring-2 focus:ring-primary/40'
                         }`}
                       >
                         <div
