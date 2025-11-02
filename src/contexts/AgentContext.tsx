@@ -214,13 +214,17 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Agent message error:', error)
+      const isTimeout = error instanceof Error && error.name === 'AbortError'
+      const errorMessage = isTimeout
+        ? 'Request timed out after 60 seconds. Please try again.'
+        : 'Sorry, I encountered an error. Please try again.'
       setState((prev) => ({
         ...prev,
         messages: prev.messages.map((msg) =>
           msg.id === assistantMessageId
             ? {
                 ...msg,
-                content: 'Sorry, I encountered an error. Please try again.',
+                content: errorMessage,
               }
             : msg
         ),
