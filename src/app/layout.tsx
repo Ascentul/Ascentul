@@ -7,6 +7,7 @@ import { ClerkAuthProvider } from '@/contexts/ClerkAuthProvider'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { AuthWrapper } from '@/components/AuthWrapper'
 import { Toaster } from '@/components/ui/toaster'
+import { AgentProvider } from '@/providers/AgentProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -47,6 +48,7 @@ export default function RootLayout({
                     <AuthWrapper>
                       {children}
                     </AuthWrapper>
+                    <AgentProvider />
                     <Toaster />
                   </QueryProvider>
                 </ClerkAuthProvider>
@@ -59,6 +61,7 @@ export default function RootLayout({
                   <AuthWrapper>
                     {children}
                   </AuthWrapper>
+                  <AgentProvider />
                   <Toaster />
                 </QueryProvider>
               </ClerkAuthProvider>
