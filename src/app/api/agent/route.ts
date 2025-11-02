@@ -325,6 +325,25 @@ async function streamAgentResponse({
             })
           )
 
+          // Validate tool name
+          const validToolNames: ToolName[] = [
+            'get_user_snapshot',
+            'get_profile_gaps',
+            'upsert_profile_field',
+            'search_jobs',
+            'save_job',
+          ]
+          if (!validToolNames.includes(toolCall.name as ToolName)) {
+            await writer.write(
+              sendTool({
+                name: toolCall.name,
+                status: 'error',
+                error: `Unknown tool: ${toolCall.name}`,
+              })
+            )
+            continue
+          }
+
           // Execute tool via Convex
           try {
             const startTime = Date.now()
