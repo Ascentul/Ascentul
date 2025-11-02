@@ -36,6 +36,10 @@ export async function resolveUserByClerkId(
   ctx: AnyCtx,
   clerkUserId: string
 ): Promise<Doc<'users'>> {
+  if (!clerkUserId || !clerkUserId.trim()) {
+    throw new Error('User not found')
+  }
+
   const user = await ctx.db
     .query('users')
     .withIndex('by_clerk_id', (q) => q.eq('clerkId', clerkUserId))

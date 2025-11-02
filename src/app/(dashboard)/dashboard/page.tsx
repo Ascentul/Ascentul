@@ -12,6 +12,7 @@ import { ActiveInterviewsSummary } from '@/components/ActiveInterviewsSummary'
 import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
 import { TodaysRecommendations } from '@/components/TodaysRecommendations'
 import { UsageProgressCard } from '@/components/UsageProgressCard'
+import { NudgeList } from '@/components/dashboard/NudgeList'
 import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
 import { Button } from '@/components/ui/button'
@@ -347,6 +348,11 @@ export default function DashboardPage() {
           {/* Row 3: Recommendations */}
           <motion.div variants={cardAnimation} className="mb-6">
             <TodaysRecommendations />
+          </motion.div>
+
+          {/* Row 3.5: AI Agent Nudges */}
+          <motion.div variants={cardAnimation} className="mb-6">
+            <NudgeList maxDisplay={3} showHeader={true} />
           </motion.div>
 
           {/* Row 4: Active Interviews, Follow-up Actions, Goals */}

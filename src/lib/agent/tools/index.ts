@@ -332,6 +332,182 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_career_path',
+      description:
+        'Generate a personalized career path roadmap based on target role, current skills, and experience. Returns step-by-step progression with required skills, certifications, and timeline.',
+      parameters: {
+        type: 'object',
+        properties: {
+          targetRole: {
+            type: 'string',
+            description: 'Desired job title or career goal (e.g., "Senior Software Engineer", "Product Manager")',
+          },
+          currentRole: {
+            type: 'string',
+            description: 'Current job title or position (optional)',
+          },
+          yearsOfExperience: {
+            type: 'number',
+            description: 'Years of relevant work experience (optional)',
+          },
+        },
+        required: ['targetRole'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_cover_letter',
+      description:
+        'Generate a tailored cover letter for a specific job application using AI. Requires job description and optionally a resume.',
+      parameters: {
+        type: 'object',
+        properties: {
+          jobDescription: {
+            type: 'string',
+            description: 'Full job description text to tailor the cover letter to',
+          },
+          company: {
+            type: 'string',
+            description: 'Company name',
+          },
+          jobTitle: {
+            type: 'string',
+            description: 'Job title/position',
+          },
+          resumeId: {
+            type: 'string',
+            description: 'Optional resume ID to pull experience from (from get_user_snapshot)',
+          },
+        },
+        required: ['jobDescription', 'company', 'jobTitle'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'analyze_cover_letter',
+      description:
+        'Analyze an existing cover letter for quality, tone, and relevance. Provides actionable feedback and suggestions for improvement.',
+      parameters: {
+        type: 'object',
+        properties: {
+          coverLetterId: {
+            type: 'string',
+            description: 'ID of the cover letter to analyze (from get_user_snapshot)',
+          },
+          jobDescription: {
+            type: 'string',
+            description: 'Optional job description to analyze fit against',
+          },
+        },
+        required: ['coverLetterId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_contact',
+      description:
+        'Add a new professional contact to the networking CRM. Use this when the user wants to track recruiters, hiring managers, mentors, or other professional connections.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            description: 'Contact full name',
+          },
+          email: {
+            type: 'string',
+            description: 'Contact email address (optional)',
+          },
+          company: {
+            type: 'string',
+            description: 'Company where contact works (optional)',
+          },
+          role: {
+            type: 'string',
+            description: 'Contact job title or role (optional)',
+          },
+          linkedinUrl: {
+            type: 'string',
+            description: 'LinkedIn profile URL (optional)',
+          },
+          notes: {
+            type: 'string',
+            description: 'Notes about the contact, how you met, etc. (optional)',
+          },
+        },
+        required: ['name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_contact',
+      description:
+        'Update an existing contact\'s information in the CRM. You must first use get_user_snapshot to find the contact ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          contactId: {
+            type: 'string',
+            description: 'ID of the contact to update (from get_user_snapshot)',
+          },
+          name: {
+            type: 'string',
+            description: 'Updated name (optional)',
+          },
+          email: {
+            type: 'string',
+            description: 'Updated email (optional)',
+          },
+          company: {
+            type: 'string',
+            description: 'Updated company (optional)',
+          },
+          role: {
+            type: 'string',
+            description: 'Updated role (optional)',
+          },
+          linkedinUrl: {
+            type: 'string',
+            description: 'Updated LinkedIn URL (optional)',
+          },
+          notes: {
+            type: 'string',
+            description: 'Updated notes (optional)',
+          },
+        },
+        required: ['contactId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_contact',
+      description:
+        'Delete a contact from the CRM permanently. You must first use get_user_snapshot to find the contact ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          contactId: {
+            type: 'string',
+            description: 'ID of the contact to delete (from get_user_snapshot)',
+          },
+        },
+        required: ['contactId'],
+      },
+    },
+  },
 ]
 
 /**
@@ -349,6 +525,12 @@ export type ToolName =
   | 'create_application'
   | 'update_application'
   | 'delete_application'
+  | 'generate_career_path'
+  | 'generate_cover_letter'
+  | 'analyze_cover_letter'
+  | 'create_contact'
+  | 'update_contact'
+  | 'delete_contact'
 
 /**
  * Tool execution result type

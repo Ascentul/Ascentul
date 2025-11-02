@@ -19,7 +19,7 @@
 import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { Id } from './_generated/dataModel'
-import { redactAuditPayload } from './lib/pii-redaction'
+import { redactAuditPayload } from './lib/pii_redaction'
 
 /**
  * Atomic rate limiter with anti-enumeration protection
@@ -44,6 +44,17 @@ export const checkAndConsumeRateLimit = mutation({
     maxRequests: v.number(), // Max requests in window (e.g., 10)
   },
   handler: async (ctx, args) => {
+    // Input validation
+    if (!args.clerkUserId?.trim()) {
+      throw new Error('Invalid clerkUserId: must be a non-empty string')
+    }
+    if (args.windowMs <= 0) {
+      throw new Error('Invalid windowMs: must be a positive number')
+    }
+    if (args.maxRequests <= 0) {
+      throw new Error('Invalid maxRequests: must be a positive number')
+    }
+
     const now = Date.now()
     const windowStart = now - args.windowMs
 
@@ -110,6 +121,14 @@ export const checkRateLimit = query({
     maxRequests: v.number(),
   },
   handler: async (ctx, args) => {
+    // Input validation
+    if (args.windowMs <= 0) {
+      throw new Error('Invalid windowMs: must be a positive number')
+    }
+    if (args.maxRequests <= 0) {
+      throw new Error('Invalid maxRequests: must be a positive number')
+    }
+
     const now = Date.now()
     const windowStart = now - args.windowMs
 

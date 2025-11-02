@@ -144,7 +144,7 @@ export const deleteCoverLetter = mutation({
   },
 });
 
-// Generate cover letter content (AI-powered)
+// Generate cover letter content (AI-powered) and save to database
 export const generateCoverLetterContent = mutation({
   args: {
     clerkId: v.string(),
@@ -163,21 +163,53 @@ export const generateCoverLetterContent = mutation({
       throw new Error("User not found");
     }
 
-    // Mock AI-generated content for now
-    // In production, this would integrate with OpenAI or another AI service
-    const mockContent = `Dear Hiring Manager,
+    // Create a basic cover letter with user's career data
+    // The user can then edit it or regenerate it with AI at /cover-letters
+    const intro = `Dear Hiring Manager,
 
-I am writing to express my strong interest in the ${args.job_title} position at ${args.company_name}. With my background and experience, I am confident that I would be a valuable addition to your team.
+I am writing to express my strong interest in the ${args.job_title} position at ${args.company_name}.`;
 
-${args.user_experience ? `My experience includes: ${args.user_experience}` : 'I bring relevant experience and skills that align well with this role.'}
+    const experienceSection = user.current_position || user.current_company
+      ? `\n\nCurrently, I work as ${user.current_position || 'a professional'}${user.current_company ? ` at ${user.current_company}` : ''}. `
+      : '\n\n';
 
-${args.job_description ? 'Based on the job description, I believe my skills in problem-solving, communication, and technical expertise make me an ideal candidate.' : 'I am excited about the opportunity to contribute to your organization.'}
+    const skillsSection = user.skills && user.skills.length > 0
+      ? `My key skills include ${user.skills.slice(0, 5).join(', ')}, which align well with the requirements for this role.\n`
+      : '';
 
-I would welcome the opportunity to discuss how my background and enthusiasm can contribute to ${args.company_name}'s continued success. Thank you for considering my application.
+    const jdSection = args.job_description
+      ? `\nBased on the job description provided, I believe my background in ${user.industry || 'this field'} makes me a strong candidate for this opportunity.\n`
+      : '';
+
+    const closing = `\nI would welcome the opportunity to discuss how my background and enthusiasm can contribute to ${args.company_name}'s continued success. Thank you for considering my application.
 
 Sincerely,
 ${user.name}`;
 
-    return { content: mockContent };
+    const content = intro + experienceSection + skillsSection + jdSection + closing;
+
+    // Save the cover letter to the database
+    const now = Date.now();
+    const coverLetterId = await ctx.db.insert("cover_letters", {
+      user_id: user._id,
+      name: `Cover Letter - ${args.company_name}`,
+      job_title: args.job_title,
+      company_name: args.company_name,
+      template: "standard",
+      content,
+      closing: "Sincerely,",
+      source: "ai_generated",
+      created_at: now,
+      updated_at: now,
+    });
+
+    return {
+      success: true,
+      coverLetterId,
+      content,
+      message: `I've created a draft cover letter for the ${args.job_title} position at ${args.company_name}. Go to the Cover Letters page to generate the full AI-powered version with your complete career profile, or edit this draft directly.`,
+      url: `/cover-letters`,
+      action: 'Visit Cover Letters page to generate AI version'
+    };
   },
 });

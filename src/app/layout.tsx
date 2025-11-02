@@ -45,11 +45,12 @@ export default function RootLayout({
               <ConvexClientProvider>
                 <ClerkAuthProvider>
                   <QueryProvider>
-                    <AuthWrapper>
-                      {children}
-                    </AuthWrapper>
-                    <AgentProvider />
-                    <Toaster />
+                    <AgentProvider>
+                      <AuthWrapper>
+                        {children}
+                      </AuthWrapper>
+                      <Toaster />
+                    </AgentProvider>
                   </QueryProvider>
                 </ClerkAuthProvider>
               </ConvexClientProvider>
@@ -58,11 +59,12 @@ export default function RootLayout({
             <ConvexClientProvider>
               <ClerkAuthProvider>
                 <QueryProvider>
-                  <AuthWrapper>
-                    {children}
-                  </AuthWrapper>
-                  <AgentProvider />
-                  <Toaster />
+                  <AgentProvider>
+                    <AuthWrapper>
+                      {children}
+                    </AuthWrapper>
+                    <Toaster />
+                  </AgentProvider>
                 </QueryProvider>
               </ClerkAuthProvider>
             </ConvexClientProvider>

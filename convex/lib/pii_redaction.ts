@@ -158,7 +158,7 @@ function truncatePayload(jsonString: string, maxSize: number): string {
     _truncated: true,
     _original_size: jsonString.length,
     _max_size: maxSize,
-    _preview: jsonString.substring(0, Math.min(500, maxSize - 200)),
+    _preview: jsonString.substring(0, Math.min(500, Math.max(0, maxSize - 200))),
   }
 
   return JSON.stringify(metadata)
@@ -169,7 +169,7 @@ function truncatePayload(jsonString: string, maxSize: number): string {
  *
  * @param payload - The payload to redact (can be any JSON-serializable value)
  * @param maxSize - Maximum allowed size in characters (default: MAX_PAYLOAD_SIZE)
- * @returns Redacted payload, or null if serialization fails
+ * @returns Redacted payload, or error metadata object if serialization fails
  */
 export function redactAuditPayload(
   payload: unknown,

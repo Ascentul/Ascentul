@@ -147,6 +147,7 @@ export async function POST(req: NextRequest) {
     // 6. Start streaming response in background
     const responsePromise = streamAgentResponse({
       userId,
+      clerkUserId,
       message,
       context,
       history,
@@ -192,6 +193,7 @@ export async function POST(req: NextRequest) {
  */
 async function executeTool(
   userId: Id<'users'>,
+  clerkId: string,
   toolName: ToolName,
   input: Record<string, unknown>
 ): Promise<unknown> {
@@ -289,6 +291,71 @@ async function executeTool(
         applicationId: input.applicationId as Id<'applications'>,
       })
 
+    case 'generate_career_path':
+      // Career path generation calls the existing Convex function
+      return await convex.mutation(api.career_paths.createCareerPath, {
+        clerkId,
+        target_role: input.targetRole as string,
+        current_level: input.currentRole as string | undefined,
+        estimated_timeframe: undefined, // Will be calculated by the function
+        status: 'planning',
+      })
+
+    case 'generate_cover_letter':
+      // Generate cover letter using existing function
+      return await convex.mutation(api.cover_letters.generateCoverLetterContent, {
+        clerkId,
+        job_description: input.jobDescription as string | undefined,
+        company_name: input.company as string,
+        job_title: input.jobTitle as string,
+        user_experience: undefined, // Will pull from user profile
+      })
+
+    case 'analyze_cover_letter':
+      // Cover letter analysis - feature not yet implemented in existing codebase
+      return {
+        success: true,
+        message: 'Cover letter analysis is not yet available. This feature is coming soon.',
+        coverLetterId: input.coverLetterId,
+      }
+
+    case 'create_contact':
+      // Create contact in networking_contacts table
+      return await convex.mutation(api.contacts.createContact, {
+        clerkId,
+        name: input.name as string,
+        email: input.email as string | undefined,
+        company: input.company as string | undefined,
+        position: input.role as string | undefined, // Note: contacts uses 'position' not 'role'
+        linkedin_url: input.linkedinUrl as string | undefined,
+        notes: input.notes as string | undefined,
+        phone: undefined,
+        relationship: undefined,
+        last_contact: undefined,
+      })
+
+    case 'update_contact':
+      // Update contact
+      return await convex.mutation(api.contacts.updateContact, {
+        clerkId,
+        contactId: input.contactId as Id<'networking_contacts'>,
+        updates: {
+          name: input.name as string | undefined,
+          email: input.email as string | undefined,
+          company: input.company as string | undefined,
+          position: input.role as string | undefined,
+          linkedin_url: input.linkedinUrl as string | undefined,
+          notes: input.notes as string | undefined,
+        },
+      })
+
+    case 'delete_contact':
+      // Delete contact
+      return await convex.mutation(api.contacts.deleteContact, {
+        clerkId,
+        contactId: input.contactId as Id<'networking_contacts'>,
+      })
+
     default:
       throw new Error(`Unknown tool: ${toolName}`)
   }
@@ -300,12 +367,14 @@ async function executeTool(
  */
 async function streamAgentResponse({
   userId,
+  clerkUserId,
   message,
   context,
   history,
   writer,
 }: {
   userId: Id<'users'>
+  clerkUserId: string
   message: string
   context?: Record<string, unknown>
   history: Array<{ role: string; content: string }>
@@ -474,7 +543,7 @@ async function streamAgentResponse({
               // Execute tool via Convex
               try {
                 const startTime = Date.now()
-                const toolOutput = await executeTool(userId, toolCall.name as ToolName, parsedInput)
+                const toolOutput = await executeTool(userId, clerkUserId, toolCall.name as ToolName, parsedInput)
                 const latencyMs = Date.now() - startTime
 
                 // Log successful execution with client-side sanitization (defense in depth)

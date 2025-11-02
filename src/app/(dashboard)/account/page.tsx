@@ -38,7 +38,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ShieldCheck, Loader2, Key, LogOut, Camera, User } from "lucide-react";
+import { ShieldCheck, Loader2, Key, LogOut, Camera, User, Bell } from "lucide-react";
+import Link from "next/link";
 
 // Password change form schema
 const passwordChangeSchema = z
@@ -258,6 +259,35 @@ export default function AccountPage() {
                   )}
                 </Button>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* AI Agent Preferences */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              AI Agent Preferences
+            </CardTitle>
+            <CardDescription>
+              Configure your AI career agent and proactive nudges
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <h3 className="font-medium">Agent Settings</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Customize proactive suggestions, quiet hours, and notification preferences
+                </p>
+              </div>
+              <Button variant="outline" asChild>
+                <Link href="/account/agent-preferences">
+                  <Bell className="h-4 w-4 mr-2" />
+                  Manage Agent
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>

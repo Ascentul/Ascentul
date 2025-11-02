@@ -39,6 +39,13 @@ interface ApproveModalProps {
 export function ApproveModal({ isOpen, request, onApprove, onDeny }: ApproveModalProps) {
   if (!request) return null
 
+  // Auto-approve zero-record operations (likely a bug in calling code)
+  if (request.recordCount === 0) {
+    console.warn('[ApproveModal] recordCount is 0, auto-approving')
+    onApprove()
+    return null
+  }
+
   const isBulkOperation = request.recordCount > 1
   const warningLevel = request.recordCount > 5 ? 'high' : 'medium'
 
@@ -91,7 +98,7 @@ export function ApproveModal({ isOpen, request, onApprove, onDeny }: ApproveModa
               <div className="max-h-[200px] space-y-2 overflow-y-auto rounded-md border border-gray-200 bg-white p-3">
                 {request.records.map((record, idx) => (
                   <div
-                    key={idx}
+                    key={record.id || `${record.type}-${record.summary}-${idx}`}
                     className="flex items-start gap-2 border-b border-gray-100 pb-2 last:border-0 last:pb-0"
                   >
                     <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-600">

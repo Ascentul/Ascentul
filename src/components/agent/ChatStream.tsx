@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Avatar } from '@/components/ui/avatar'
-import { User, Bot, AlertCircle, WifiOff, Clock } from 'lucide-react'
+import { User, Bot, AlertCircle, WifiOff, Clock, AlertTriangle } from 'lucide-react'
 import { ToolStepCard } from './ToolStepCard'
 import type { AgentMessage } from '@/lib/agent/types'
 
@@ -70,7 +70,7 @@ const ERROR_CONFIG = {
     iconColor: 'text-red-600',
   },
   rate_limit: {
-    icon: Clock,
+    icon: AlertTriangle,
     color: 'yellow',
     bgColor: 'bg-yellow-50',
     borderColor: 'border-yellow-200',

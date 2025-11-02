@@ -271,6 +271,12 @@ const Sidebar = React.memo(function Sidebar({
         href: "/admin/analytics",
       },
       {
+        id: "admin-nudges",
+        title: "Nudge System",
+        icon: <Bell className="h-5 w-5" />,
+        href: "/admin/nudges",
+      },
+      {
         id: "admin-support",
         title: "Support Tickets",
         icon: <HelpCircle className="h-5 w-5" />,

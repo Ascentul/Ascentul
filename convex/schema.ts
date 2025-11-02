@@ -151,6 +151,7 @@ export default defineSchema({
     ),
     admin_email: v.optional(v.string()),
     created_by_id: v.optional(v.id("users")),
+    agent_disabled: v.optional(v.boolean()), // Organization-level kill switch for AI agent
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -627,4 +628,146 @@ export default defineSchema({
     .index("by_user", ["user_id"])
     .index("by_field", ["field"])
     .index("by_user_field", ["user_id", "field"]),
+
+  // AI Agent user preferences for customization and control
+  agent_preferences: defineTable({
+    user_id: v.id("users"),
+    agent_enabled: v.boolean(), // Master kill switch
+    proactive_enabled: v.boolean(), // Enable proactive nudges
+    notification_frequency: v.union(
+      v.literal("realtime"),
+      v.literal("daily"),
+      v.literal("weekly")
+    ),
+    quiet_hours_start: v.number(), // Hour 0-23
+    quiet_hours_end: v.number(), // Hour 0-23
+    timezone: v.string(), // IANA timezone (e.g., "America/Los_Angeles")
+    channels: v.object({
+      inApp: v.boolean(),
+      email: v.boolean(),
+      push: v.boolean(),
+    }),
+    playbook_toggles: v.object({
+      jobSearch: v.boolean(),
+      resumeHelp: v.boolean(),
+      interviewPrep: v.boolean(),
+      networking: v.boolean(),
+      careerPath: v.boolean(),
+      applicationTracking: v.boolean(),
+    }),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_user", ["user_id"]),
+
+  // AI Agent cooldowns to prevent nudge fatigue
+  agent_cooldowns: defineTable({
+    user_id: v.id("users"),
+    rule_id: v.string(), // Rule identifier (e.g., "interviewSoon", "appRescue")
+    last_triggered_at: v.number(),
+    cooldown_until: v.number(),
+    created_at: v.number(),
+  })
+    .index("by_user_rule", ["user_id", "rule_id"])
+    .index("by_cooldown_until", ["cooldown_until"]), // For cleanup
+
+  // AI Agent proactive nudges queue
+  agent_nudges: defineTable({
+    user_id: v.id("users"),
+    rule_id: v.string(),
+    priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+    title: v.string(),
+    message: v.string(),
+    actions: v.array(
+      v.object({
+        label: v.string(),
+        actionId: v.string(),
+        payload: v.any(),
+      })
+    ),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("sent"),
+      v.literal("accepted"),
+      v.literal("snoozed"),
+      v.literal("ignored")
+    ),
+    created_at: v.number(),
+    sent_at: v.optional(v.number()),
+    responded_at: v.optional(v.number()),
+    snoozed_until: v.optional(v.number()),
+  })
+    .index("by_user_status", ["user_id", "status"])
+    .index("by_created", ["created_at"])
+    .index("by_snoozed_until", ["snoozed_until"]), // For dispatching after snooze
+
+  // Feature flags for gradual rollout and experimentation
+  feature_flags: defineTable({
+    flag_key: v.string(), // Unique identifier (e.g., "agent.proactive.enabled")
+    enabled: v.boolean(), // Global enable/disable
+    allowed_plans: v.array(v.string()), // Plans that can use this feature
+    rollout_percentage: v.number(), // 0-100 for gradual rollout
+    whitelisted_user_ids: v.array(v.id("users")), // Users who always get access
+    description: v.string(),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_flag_key", ["flag_key"]),
+
+  // Resume analyses for AI-powered feedback
+  resume_analyses: defineTable({
+    resume_id: v.id("resumes"),
+    user_id: v.id("users"),
+    jd_text: v.optional(v.string()), // Job description to compare against
+    score: v.number(), // 0-100 overall score
+    strengths: v.array(v.string()),
+    gaps: v.array(v.string()),
+    suggestions: v.array(v.string()),
+    analyzed_at: v.number(),
+  })
+    .index("by_resume", ["resume_id"])
+    .index("by_user", ["user_id"]),
+
+  // Cover letter analyses
+  cover_letter_analyses: defineTable({
+    cover_letter_id: v.id("cover_letters"),
+    user_id: v.id("users"),
+    jd_text: v.optional(v.string()),
+    score: v.number(),
+    strengths: v.array(v.string()),
+    suggestions: v.array(v.string()),
+    tone_analysis: v.optional(v.string()), // professional, friendly, concise
+    analyzed_at: v.number(),
+  })
+    .index("by_cover_letter", ["cover_letter_id"])
+    .index("by_user", ["user_id"]),
+
+  // Contact CRM for networking
+  contacts: defineTable({
+    user_id: v.id("users"),
+    name: v.string(),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    company: v.optional(v.string()),
+    role: v.optional(v.string()),
+    linkedin_url: v.optional(v.string()),
+    tags: v.array(v.string()),
+    notes: v.optional(v.string()), // Quick notes field
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_user_name", ["user_id", "name"])
+    .searchIndex("search_name", {
+      searchField: "name",
+      filterFields: ["user_id"],
+    }),
+
+  // Contact notes for detailed interactions
+  contact_notes: defineTable({
+    contact_id: v.id("contacts"),
+    user_id: v.id("users"),
+    text: v.string(),
+    created_at: v.number(),
+  })
+    .index("by_contact", ["contact_id"])
+    .index("by_created", ["created_at"]),
 });

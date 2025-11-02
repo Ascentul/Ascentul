@@ -810,3 +810,108 @@ The Ascentful Team`.replace('[NAME]', name).replace('[PLAN]', plan).replace('[AM
     html,
   })
 }
+
+/**
+ * Send proactive nudge email notification
+ */
+export async function sendNudgeEmail(
+  email: string,
+  name: string,
+  nudge: {
+    ruleName: string
+    reason: string
+    suggestedAction?: string
+    actionUrl?: string
+    category: 'urgent' | 'helpful' | 'maintenance' | 'engagement'
+  }
+): Promise<EmailResult> {
+  const firstName = name.split(' ')[0]
+
+  // Customize subject based on category
+  const subjectPrefix = nudge.category === 'urgent' ? '⏰ Urgent: ' : '💡 Tip: '
+  const subject = `${subjectPrefix}${nudge.reason}`
+
+  const actionLink = nudge.actionUrl
+    ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}${nudge.actionUrl}`
+    : `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/dashboard`
+
+  const text = `Hi ${firstName},
+
+${nudge.reason}
+
+${nudge.suggestedAction ? `Suggestion: ${nudge.suggestedAction}` : ''}
+
+Take action now:
+${actionLink}
+
+---
+You're receiving this because you have proactive career suggestions enabled.
+Manage your preferences: ${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/account/agent-preferences
+
+Best,
+Your Ascentful Career Agent`
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentful" style="max-width: 100%; height: auto; margin-bottom: 20px;">
+        <h1 style="color: #0C29AB; font-size: 24px; margin: 0;">${nudge.category === 'urgent' ? '⏰' : '💡'} ${nudge.ruleName}</h1>
+      </div>
+
+      <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
+
+      <div style="background-color: ${nudge.category === 'urgent' ? '#fef2f2' : '#f0f4ff'}; border-left: 4px solid ${nudge.category === 'urgent' ? '#dc2626' : '#0C29AB'}; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0; font-size: 16px; font-weight: 600; color: #374151;">
+          ${nudge.reason}
+        </p>
+      </div>
+
+      ${nudge.suggestedAction ? `
+      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
+        <p style="margin: 0 0 8px 0; font-size: 14px; color: #6b7280; font-weight: 600;">Suggested Action:</p>
+        <p style="margin: 0; font-size: 15px; color: #374151;">${nudge.suggestedAction}</p>
+      </div>
+      ` : ''}
+
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="${actionLink}"
+           style="background-color: #0C29AB;
+                  color: white;
+                  padding: 14px 32px;
+                  text-decoration: none;
+                  border-radius: 6px;
+                  font-weight: 600;
+                  font-size: 16px;
+                  display: inline-block;
+                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+          Take Action Now →
+        </a>
+      </div>
+
+      <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;">
+        <p style="margin: 0;">You're receiving this because you have proactive career suggestions enabled.</p>
+        <p style="margin: 8px 0 0 0;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/account/agent-preferences" style="color: #0C29AB; text-decoration: none;">
+            Manage your preferences
+          </a>
+        </p>
+      </div>
+
+      <div style="margin-top: 30px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
+        <p>© ${new Date().getFullYear()} Ascentful, Inc. All rights reserved.</p>
+        <p style="margin-top: 10px;">
+          <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentful.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
+        </p>
+      </div>
+    </div>
+  `
+
+  return sendEmail({
+    to: email,
+    subject,
+    text,
+    html,
+  })
+}

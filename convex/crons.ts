@@ -27,4 +27,37 @@ crons.hourly(
   internal.maintenance.cleanupOldRequestLogs
 )
 
+/**
+ * Hourly nudge sweep - Urgent and time-sensitive nudges
+ * Evaluates high-priority rules like upcoming interviews
+ * Runs every hour at :30 to catch time-sensitive events
+ */
+crons.hourly(
+  'nudge-hourly-sweep',
+  { minuteUTC: 30 },
+  internal.nudges.sweepJobs.hourlySweep
+)
+
+/**
+ * Daily nudge sweep - All nudge rules
+ * Comprehensive evaluation of all nudge rules for all eligible users
+ * Runs daily at 9 AM UTC (early morning for most timezones)
+ */
+crons.daily(
+  'nudge-daily-sweep',
+  { hourUTC: 9, minuteUTC: 0 },
+  internal.nudges.sweepJobs.dailySweep
+)
+
+/**
+ * Weekly nudge sweep - Weekly progress reviews
+ * Sends weekly summary and goal check-in nudges
+ * Runs every Monday at 9 AM UTC
+ */
+crons.weekly(
+  'nudge-weekly-sweep',
+  { dayOfWeek: 'monday', hourUTC: 9, minuteUTC: 0 },
+  internal.nudges.sweepJobs.weeklySweep
+)
+
 export default crons

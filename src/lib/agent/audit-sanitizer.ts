@@ -18,6 +18,41 @@ const URL_PATTERN = /(https?:\/\/[^\s]+)/g
 const PHONE_PATTERN = /\b(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g
 
 /**
+ * Sensitive field names for client-side redaction (defense-in-depth)
+ *
+ * Uses underscore-delimited boundary matching to avoid false positives
+ * while catching variants like user_password, password_hash, access_token, etc.
+ */
+const SENSITIVE_FIELD_NAMES = [
+  'password',
+  'passwd',
+  'pwd',
+  'api_key',
+  'apikey',
+  'access_token',
+  'refresh_token',
+  'bearer_token',
+  'auth_token',
+  'session_token',
+  'csrf_token',
+  'secret',
+  'client_secret',
+  'private_key',
+  'stripe_customer_id',
+  'stripe_subscription_id',
+  'credit_card',
+  'card_number',
+  'cvv',
+  'card_cvv',
+  'ssn',
+  'social_security',
+  'phone',
+  'phone_number',
+  'mobile',
+  'mobile_number',
+]
+
+/**
  * Sanitize a string value by redacting common PII patterns
  */
 function sanitizeString(value: string): string {
@@ -51,7 +86,24 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
   if (typeof value === 'object') {
     const sanitized: Record<string, unknown> = {}
     for (const [key, val] of Object.entries(value)) {
-      sanitized[key] = sanitizeValue(val, depth + 1)
+      // Check if field name is sensitive using precise matching
+      // This prevents false positives like "secretary", "tokenize", etc.
+      const keyLower = key.toLowerCase()
+      const isSensitiveField = SENSITIVE_FIELD_NAMES.some((sensitiveKey) => {
+        const lowerSensitive = sensitiveKey.toLowerCase()
+        return (
+          keyLower === lowerSensitive || // Exact match: "password"
+          keyLower.endsWith(`_${lowerSensitive}`) || // Suffix: "user_password"
+          keyLower.startsWith(`${lowerSensitive}_`) || // Prefix: "password_hash"
+          keyLower.includes(`_${lowerSensitive}_`) // Middle: "temp_password_reset"
+        )
+      })
+
+      if (isSensitiveField) {
+        sanitized[key] = '[REDACTED]'
+      } else {
+        sanitized[key] = sanitizeValue(val, depth + 1)
+      }
     }
     return sanitized
   }
@@ -84,7 +136,7 @@ export function safeAuditPayload(payload: unknown, maxSize = MAX_AUDIT_PAYLOAD_S
       _truncated: true,
       _original_size: serialized.length,
       _max_size: maxSize,
-      _preview: serialized.substring(0, Math.min(500, maxSize - 200)),
+      _preview: serialized.substring(0, Math.min(500, Math.max(0, maxSize - 200))),
     }
   } catch (error) {
     // Fallback if sanitization fails (e.g., circular references)

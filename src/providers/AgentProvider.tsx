@@ -9,34 +9,30 @@ import { AgentErrorBoundary } from '@/components/agent/AgentErrorBoundary'
 /**
  * AgentProvider wrapper with feature flag and role-based gating
  *
- * Only renders AgentDock for:
+ * Provides agent context to entire app, but only renders AgentDock for:
  * - Students and regular users (not admins/advisors)
  * - When NEXT_PUBLIC_AGENT_ENABLED=true
  */
+
 /**
- * Inner component that uses the agent context
+ * Inner component that conditionally renders AgentDock based on feature flags and user role
  * Only renders after client-side mount to avoid hydration issues
  */
-function AgentDockWrapper() {
+function ConditionalAgentDock() {
   const [mounted, setMounted] = useState(false)
+  const { user, isLoaded } = useUser()
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  // Don't render until mounted (avoid hydration issues)
   if (!mounted) {
     return null
   }
 
-  return <AgentDock />
-}
-
-export function AgentProvider() {
-  const { user, isLoaded } = useUser()
-
   // Check feature flag
   const agentEnabled = process.env.NEXT_PUBLIC_AGENT_ENABLED === 'true'
-
   if (!agentEnabled) {
     return null
   }
@@ -62,12 +58,20 @@ export function AgentProvider() {
     return null
   }
 
-  // Render agent for eligible users
-  // The AgentDockWrapper handles client-side mounting to avoid hydration issues
+  // Render agent dock for eligible users
+  return <AgentDock />
+}
+
+/**
+ * Main AgentProvider that wraps children with agent context
+ * This ensures useAgent hook works throughout the app, even if AgentDock is not visible
+ */
+export function AgentProvider({ children }: { children?: React.ReactNode }) {
   return (
     <AgentErrorBoundary>
       <AgentContextProvider>
-        <AgentDockWrapper />
+        {children}
+        <ConditionalAgentDock />
       </AgentContextProvider>
     </AgentErrorBoundary>
   )
