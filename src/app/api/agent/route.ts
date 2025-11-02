@@ -250,11 +250,14 @@ async function streamAgentResponse({
     })
 
     let assistantMessage = ''
-    const toolCalls: Array<{
-      id: string
-      name: string
-      arguments: string
-    }> = []
+    const toolCallsMap = new Map<
+      number,
+      {
+        id: string
+        name: string
+        arguments: string
+      }
+    >()
 
     // Process stream
     for await (const chunk of completion) {
@@ -269,15 +272,15 @@ async function streamAgentResponse({
       // Handle tool calls
       if (delta?.tool_calls) {
         for (const toolCall of delta.tool_calls) {
-          if (!toolCalls[toolCall.index]) {
-            toolCalls[toolCall.index] = {
+          if (!toolCallsMap.has(toolCall.index)) {
+            toolCallsMap.set(toolCall.index, {
               id: toolCall.id || '',
               name: toolCall.function?.name || '',
               arguments: '',
-            }
+            })
           }
           if (toolCall.function?.arguments) {
-            toolCalls[toolCall.index].arguments += toolCall.function.arguments
+            toolCallsMap.get(toolCall.index)!.arguments += toolCall.function.arguments
           }
         }
       }
@@ -285,7 +288,7 @@ async function streamAgentResponse({
       // Check for finish reason
       if (chunk.choices[0]?.finish_reason === 'tool_calls') {
         // Execute tool calls (Phase 4 implementation)
-        for (const toolCall of toolCalls) {
+        for (const toolCall of Array.from(toolCallsMap.values())) {
           // Parse tool arguments with error handling
           let parsedInput: Record<string, unknown>
           try {
