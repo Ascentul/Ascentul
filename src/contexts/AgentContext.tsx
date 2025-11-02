@@ -57,7 +57,10 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     if (!content.trim()) return
 
     // Concurrency guard using ref
-    if (isStreamingRef.current) return
+    if (isStreamingRef.current) {
+      console.warn('[Agent] Message send already in progress')
+      return
+    }
     isStreamingRef.current = true
 
     // Capture context and history at the time of the call
@@ -100,13 +103,17 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       messages: [...prev.messages, assistantMessage],
     }))
 
+    const abortController = new AbortController()
+    const timeoutId = setTimeout(() => abortController.abort(), 60000) // 60s timeout
+
     try {
-      // Call streaming API endpoint (to be implemented in Phase 3)
+      // Call streaming API endpoint
       const response = await fetch('/api/agent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: abortController.signal,
         body: JSON.stringify({
           message: content,
           context: capturedContext,
@@ -166,17 +173,25 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
                   msg.id === assistantMessageId
                     ? {
                         ...msg,
-                        toolCalls: [
-                          ...(msg.toolCalls || []),
-                          {
-                            id: nanoid(),
+                        toolCalls: (() => {
+                          const existing = (msg.toolCalls || []).findIndex(
+                            (tc) => tc.name === toolData.name
+                          )
+                          const newToolCall = {
+                            id: existing >= 0 ? msg.toolCalls![existing].id : nanoid(),
                             name: toolData.name,
                             status: toolData.status || 'success',
                             input: toolData.input,
                             output: toolData.output,
                             error: toolData.error,
-                          },
-                        ],
+                          }
+                          if (existing >= 0) {
+                            const updated = [...(msg.toolCalls || [])]
+                            updated[existing] = newToolCall
+                            return updated
+                          }
+                          return [...(msg.toolCalls || []), newToolCall]
+                        })(),
                       }
                     : msg
                 ),
@@ -211,6 +226,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
         ),
       }))
     } finally {
+      clearTimeout(timeoutId)
       isStreamingRef.current = false
       setState((prev) => ({
         ...prev,
