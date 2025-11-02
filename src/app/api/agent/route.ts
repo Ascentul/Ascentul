@@ -331,9 +331,9 @@ async function executeTool(
         position: input.role as string | undefined, // Note: contacts uses 'position' not 'role'
         linkedin_url: input.linkedinUrl as string | undefined,
         notes: input.notes as string | undefined,
-        phone: undefined,
-        relationship: undefined,
-        last_contact: undefined,
+        phone: input.phone as string | undefined,
+        relationship: input.relationship as string | undefined,
+        last_contact: undefined, // Not in tool schema yet
       })
 
     case 'update_contact':
@@ -348,6 +348,8 @@ async function executeTool(
           position: input.role as string | undefined,
           linkedin_url: input.linkedinUrl as string | undefined,
           notes: input.notes as string | undefined,
+          phone: input.phone as string | undefined,
+          relationship: input.relationship as string | undefined,
         },
       })
 

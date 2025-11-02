@@ -127,7 +127,10 @@ export const createAnalysisRecord = mutation({
  * Analyze resume content using AI
  *
  * TODO: Implement real AI-powered analysis using OpenAI
- * Current status: Not yet implemented
+ * Current status: Returns placeholder data with helpful message
+ *
+ * This function provides graceful degradation instead of throwing errors
+ * to prevent breaking the entire action chain when called.
  */
 async function analyzeResumeContent(params: {
   resume: any
@@ -139,7 +142,33 @@ async function analyzeResumeContent(params: {
   gaps: string[]
   suggestions: any[]
 }> {
-  throw new Error(
-    'Resume analysis feature is not yet implemented. Please check back soon or contact support for more information.'
-  )
+  // Graceful degradation: Return placeholder data instead of throwing
+  // This allows the action to complete without breaking the chain
+  return {
+    score: 0,
+    strengths: [
+      'Resume analysis feature is currently under development.',
+      'Your resume has been saved successfully and can be used for applications.',
+    ],
+    gaps: [
+      'AI-powered analysis is not yet available.',
+      'Please check back soon for automated resume scoring and feedback.',
+    ],
+    suggestions: [
+      {
+        type: 'info',
+        title: 'Feature Coming Soon',
+        description:
+          'AI-powered resume analysis will provide detailed feedback on your resume quality, ATS compatibility, and suggestions for improvement.',
+        priority: 'low',
+      },
+      {
+        type: 'info',
+        title: 'Current Status',
+        description:
+          'While automated analysis is being developed, you can still use your resume for job applications and manual review.',
+        priority: 'low',
+      },
+    ],
+  }
 }

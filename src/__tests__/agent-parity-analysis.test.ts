@@ -237,22 +237,22 @@ describe('Agent Function Parity Analysis', () => {
       expect(knownMappings[1].convexParam).toBe('current_level')
     })
 
-    it('should verify yearsOfExperience is not passed to Convex', () => {
+    it('should verify yearsOfExperience has been removed (cleanup)', () => {
       const params = careerPathSchema?.function.parameters as any
       const properties = params.properties
 
-      // Tool schema includes yearsOfExperience
-      expect(properties.yearsOfExperience).toBeDefined()
+      // FIXED: yearsOfExperience has been removed from tool schema (unused parameter cleanup)
+      expect(properties.yearsOfExperience).toBeUndefined()
 
-      // But it's not passed to Convex (documented in route.ts line 300)
-      const knownBehavior = {
+      const resolvedGap = {
         tool: 'generate_career_path',
         unusedParam: 'yearsOfExperience',
-        reason: 'Tool schema includes it, but Convex function derives it from user profile',
-        impact: 'No impact - parameter is ignored',
+        status: 'removed',
+        date: '2025-11-02',
+        reason: 'Parameter was accepted but never used by Convex function',
       }
 
-      expect(knownBehavior.unusedParam).toBe('yearsOfExperience')
+      expect(resolvedGap.status).toBe('removed')
     })
   })
 
@@ -292,23 +292,22 @@ describe('Agent Function Parity Analysis', () => {
       expect(knownGap.status).toBe('not_implemented')
     })
 
-    it('should verify resumeId parameter exists but is optional', () => {
+    it('should verify resumeId has been removed (cleanup)', () => {
       const params = generateSchema?.function.parameters as any
       const properties = params.properties
-      const required = params.required || []
 
-      expect(properties.resumeId).toBeDefined()
-      expect(required).not.toContain('resumeId') // Optional
+      // FIXED: resumeId has been removed from tool schema (unused parameter cleanup)
+      expect(properties.resumeId).toBeUndefined()
 
-      // Agent accepts resumeId but doesn't currently use it (route.ts line 385)
-      const knownBehavior = {
+      const resolvedGap = {
         tool: 'generate_cover_letter',
         optionalParam: 'resumeId',
-        reason: 'Schema includes it for future use, but not yet implemented',
-        impact: 'Parameter is accepted but ignored',
+        status: 'removed',
+        date: '2025-11-02',
+        reason: 'Parameter was reserved for future use but never implemented. Function pulls from user profile.',
       }
 
-      expect(knownBehavior.optionalParam).toBe('resumeId')
+      expect(resolvedGap.status).toBe('removed')
     })
   })
 
@@ -415,10 +414,14 @@ describe('Agent Function Parity Analysis', () => {
         resolvedParameters: [
           { tool: 'create_goal', parameter: 'checklist', fixed: '2025-11-02' },
           { tool: 'create_application', parameter: 'resume_id', fixed: '2025-11-02' },
+          { tool: 'create_contact', parameter: 'phone', fixed: '2025-11-02' },
+          { tool: 'create_contact', parameter: 'relationship', fixed: '2025-11-02' },
+        ],
+        resolvedCleanup: [
+          { tool: 'generate_career_path', param: 'yearsOfExperience', removed: '2025-11-02' },
+          { tool: 'generate_cover_letter', param: 'resumeId', removed: '2025-11-02' },
         ],
         missingParameters: [
-          { tool: 'create_contact', missing: 'phone', priority: 'low' },
-          { tool: 'create_contact', missing: 'relationship', priority: 'low' },
           { tool: 'create_contact', missing: 'last_contact', priority: 'low' },
         ],
         namingInconsistencies: [
@@ -431,26 +434,21 @@ describe('Agent Function Parity Analysis', () => {
         unimplementedFeatures: [
           { tool: 'analyze_cover_letter', status: 'not_implemented' },
         ],
-        unusedParameters: [
-          { tool: 'generate_career_path', param: 'yearsOfExperience' },
-          { tool: 'generate_cover_letter', param: 'resumeId' },
-        ],
       }
 
-      expect(parityGaps.resolvedParameters).toHaveLength(2)
-      expect(parityGaps.missingParameters).toHaveLength(3) // Down from 5
+      expect(parityGaps.resolvedParameters).toHaveLength(4) // Up from 2
+      expect(parityGaps.resolvedCleanup).toHaveLength(2)
+      expect(parityGaps.missingParameters).toHaveLength(1) // Down from 3
       expect(parityGaps.namingInconsistencies).toHaveLength(5)
       expect(parityGaps.unimplementedFeatures).toHaveLength(1)
-      expect(parityGaps.unusedParameters).toHaveLength(2)
 
-      // Total remaining gaps: 11 (down from 13)
+      // Total remaining gaps: 7 (down from 11)
       const totalGaps =
         parityGaps.missingParameters.length +
         parityGaps.namingInconsistencies.length +
-        parityGaps.unimplementedFeatures.length +
-        parityGaps.unusedParameters.length
+        parityGaps.unimplementedFeatures.length
 
-      expect(totalGaps).toBe(11)
+      expect(totalGaps).toBe(7)
     })
 
     it('should provide refactoring recommendations', () => {

@@ -662,12 +662,11 @@ export default defineSchema({
   // AI Agent cooldowns to prevent nudge fatigue
   agent_cooldowns: defineTable({
     user_id: v.id("users"),
-    rule_id: v.string(), // Rule identifier (e.g., "interviewSoon", "appRescue")
-    last_triggered_at: v.number(),
+    rule_type: v.string(), // Rule identifier (e.g., "interviewSoon", "appRescue")
     cooldown_until: v.number(),
     created_at: v.number(),
   })
-    .index("by_user_rule", ["user_id", "rule_id"])
+    .index("by_user_rule", ["user_id", "rule_type"])
     .index("by_cooldown_until", ["cooldown_until"]), // For cleanup
 
   // AI Agent proactive nudges queue

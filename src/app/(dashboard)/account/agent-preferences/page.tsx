@@ -21,6 +21,16 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { toast } from '@/hooks/use-toast'
 import { Loader2, Bell, BellOff, Moon, Mail, Smartphone, MessageSquare } from 'lucide-react'
 
@@ -72,6 +82,7 @@ export default function AgentPreferencesPage() {
   })
 
   const [isSaving, setIsSaving] = useState(false)
+  const [showResetDialog, setShowResetDialog] = useState(false)
 
   // Update form when preferences load
   useEffect(() => {
@@ -166,10 +177,10 @@ export default function AgentPreferencesPage() {
 
   const handleResetPreferences = async () => {
     if (!userId) return
-    if (!confirm('Are you sure you want to reset all preferences to defaults?')) return
 
     try {
       await resetPreferences({ userId })
+      setShowResetDialog(false)
       toast({
         title: 'Preferences Reset',
         description: 'All preferences have been reset to defaults',
@@ -183,10 +194,20 @@ export default function AgentPreferencesPage() {
     }
   }
 
-  if (!userId) {
+  // Show loading spinner while query is pending
+  if (clerkId && convexUser === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  // Show error if user not found after query completes
+  if (!userId) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-muted-foreground">Unable to load user preferences</p>
       </div>
     )
   }
@@ -403,7 +424,7 @@ export default function AgentPreferencesPage() {
                   networking: 'Networking Suggestions',
                   careerPath: 'Career Path Planning',
                   applicationTracking: 'Application Follow-ups',
-                }).map(([key, label]) => (
+                }).map(([key, label], index, array) => (
                   <div key={key}>
                     <div className="flex items-center justify-between">
                       <Label>{label}</Label>
@@ -420,8 +441,7 @@ export default function AgentPreferencesPage() {
                         }
                       />
                     </div>
-                    {Object.keys(formData.playbook_toggles).indexOf(key) <
-                      Object.keys(formData.playbook_toggles).length - 1 && (
+                    {index < array.length - 1 && (
                       <Separator className="mt-4" />
                     )}
                   </div>
@@ -438,10 +458,28 @@ export default function AgentPreferencesPage() {
           {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save Preferences
         </Button>
-        <Button variant="outline" onClick={handleResetPreferences}>
+        <Button variant="outline" onClick={() => setShowResetDialog(true)}>
           Reset to Defaults
         </Button>
       </div>
+
+      {/* Reset Confirmation Dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset to Defaults?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset all your agent preferences to their default values. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetPreferences} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Reset Preferences
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -19,10 +19,11 @@ export const JobSearchInputSchema = z.object({
   query: z.string().min(2, 'Search query must be at least 2 characters').optional(),
   location: z.string().optional(),
 
-  // Adzuna supports these countries (as of 2024)
+  // Adzuna supports these countries (as of 2025)
   // See: https://developer.adzuna.com/docs/search
+  // Supported: AU, AT, BR, CA, FR, DE, IN, IT, NL, NZ, PL, RU, SG, ZA, UK, US
   country: z
-    .enum(['us', 'gb', 'ca', 'au', 'de', 'fr', 'nl', 'nz', 'pl', 'br', 'in', 'sg', 'za', 'at', 'ch', 'it'])
+    .enum(['us', 'uk', 'ca', 'au', 'de', 'fr', 'nl', 'nz', 'pl', 'br', 'in', 'sg', 'za', 'at', 'ru', 'it'])
     .default('us'),
 
   resultsPerPage: z.number().min(1).max(50).default(20),

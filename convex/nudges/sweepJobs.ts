@@ -5,6 +5,23 @@
  * 1. Query eligible users for nudge evaluation
  * 2. Evaluate rules and create nudges
  * 3. Dispatch nudges to channels
+ *
+ * SCALABILITY NOTES (in order of priority):
+ *
+ * 1. CRITICAL: Loading all users into memory (see getEligibleUsers)
+ *    - Current: .collect() loads entire users table
+ *    - Acceptable for: <1000 total users
+ *    - Optimize when: >2000 users OR query time >500ms
+ *    - Solution: Query agent_preferences table with indexes instead
+ *
+ * 2. IMPORTANT: Serial user processing in sweep loops
+ *    - Current: One user at a time in for loops
+ *    - Acceptable for: <500 active users (~100 seconds)
+ *    - Optimize when: >1000 active users OR execution time >2 minutes
+ *    - Solution: Batch users (50-100 per batch) + Promise.all()
+ *
+ * Convex action timeout: 10 minutes (plenty of headroom for Phase 1)
+ * Monitor via: Admin dashboard metrics + Convex logs
  */
 
 import { internalAction, internalMutation, internalQuery } from '../_generated/server'
@@ -45,7 +62,7 @@ export const hourlySweep = internalAction({
           if (result.nudges && result.nudges.length > 0) {
             for (const nudgeEval of result.nudges) {
               // Only create urgent nudges in hourly sweep
-              const rule = await getRuleMetadata(nudgeEval.ruleType)
+              const rule = getRuleMetadata(nudgeEval.ruleType)
               if (rule.category === 'urgent' || rule.category === 'engagement') {
                 await ctx.runMutation(api.nudges.dispatch.createNudge, {
                   userId: user._id,
@@ -213,7 +230,7 @@ export const weeklySweep = internalAction({
         }
       }
 
-      console.log(`[Nudge Sweep] Weekly sweep complete: ${nudgesCreated} nudges created`)
+      console.log(`[Nudge Sweep] Weekly sweep complete: ${nudgesCreated} nudges created, ${errors} errors`)
 
       return {
         success: true,
@@ -236,13 +253,30 @@ export const weeklySweep = internalAction({
  * - Proactive nudges enabled
  * - Not in quiet hours (optional)
  * - University kill switch not active
+ *
+ * PERFORMANCE WARNING:
+ * Current implementation loads ALL users into memory (.collect() on line 258).
+ * This is acceptable for <1000 total users, but will cause performance issues at scale:
+ * - Memory usage: ~1KB per user = 1MB for 1000 users (acceptable)
+ * - Query time: ~50-100ms for 1000 users (acceptable)
+ *
+ * OPTIMIZATION NEEDED WHEN:
+ * - Total user count exceeds 2000 users
+ * - Query time exceeds 500ms
+ * - Memory pressure warnings in Convex logs
+ *
+ * FUTURE OPTIMIZATION:
+ * - Use index-based filtering (requires agent_preferences index)
+ * - Query agent_preferences with .filter() instead of loading all users
+ * - Implement cursor-based pagination for very large datasets
+ * - Consider materialized view of eligible users (updated on preference changes)
  */
 export const getEligibleUsers = internalQuery({
   args: {
     checkQuietHours: v.boolean(),
   },
   handler: async (ctx, args) => {
-    // Get all users
+    // PERF: Loading all users into memory - acceptable for <1000 users
     const allUsers = await ctx.db.query('users').collect()
 
     const eligibleUsers = []

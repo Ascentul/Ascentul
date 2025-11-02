@@ -21,7 +21,7 @@ import { useQueryClient } from '@tanstack/react-query'
  */
 export function useAgentGoalSync() {
   const queryClient = useQueryClient()
-  const timeoutRef = useRef<NodeJS.Timeout>()
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     const handleAgentGoalMutation = () => {

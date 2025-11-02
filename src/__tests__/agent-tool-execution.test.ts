@@ -166,9 +166,8 @@ async function simulateToolExecution(
         clerkId: mockClerkId,
         target_role: input.targetRole as string,
         current_level: input.currentRole as string | undefined,
-        // Career paths default to 'active' status (see convex/career_paths.ts:137)
-        status: 'active',
-        // Optional fields (estimated_timeframe, steps) omitted - handled by mutation defaults
+        estimated_timeframe: undefined,
+        status: 'planning', // Route.ts passes 'planning' (line 303)
       })
 
     case 'generate_cover_letter':
@@ -460,7 +459,7 @@ describe('Agent Tool Execution', () => {
       )
     })
 
-    it('generate_career_path sets estimated_timeframe to undefined', async () => {
+    it('generate_career_path passes estimated_timeframe', async () => {
       mockConvexMutation.mockResolvedValue({
         _id: 'path_123' as Id<'career_paths'>,
         target_role: 'CTO',
@@ -470,9 +469,9 @@ describe('Agent Tool Execution', () => {
         targetRole: 'CTO',
       })
 
-      // Verify estimated_timeframe is explicitly undefined (will be calculated by function)
+      // Verify estimated_timeframe is passed (route.ts line 302)
       const call = mockConvexMutation.mock.calls[0]
-      expect(call[1]).toHaveProperty('estimated_timeframe', undefined)
+      expect(call[1]).toHaveProperty('estimated_timeframe')
     })
   })
 
@@ -501,7 +500,7 @@ describe('Agent Tool Execution', () => {
       )
     })
 
-    it('generate_cover_letter sets user_experience to undefined', async () => {
+    it('generate_cover_letter does not pass user_experience', async () => {
       mockConvexMutation.mockResolvedValue({
         success: true,
         coverLetterId: 'cover_123' as Id<'cover_letters'>,
@@ -512,9 +511,9 @@ describe('Agent Tool Execution', () => {
         jobTitle: 'Designer',
       })
 
-      // Verify user_experience is undefined (function will pull from user profile)
+      // Verify user_experience is NOT passed (function pulls from user profile internally)
       const call = mockConvexMutation.mock.calls[0]
-      expect(call[1]).toHaveProperty('user_experience', undefined)
+      expect(call[1]).not.toHaveProperty('user_experience')
     })
   })
 

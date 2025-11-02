@@ -9,11 +9,28 @@
 export const MAX_PAYLOAD_SIZE = 10000 // 10KB character limit
 
 // Regex patterns for PII detection
-const EMAIL_PATTERN = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g
-const PHONE_PATTERN = /\b(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g
-const URL_PATTERN = /(https?:\/\/[^\s]+)/g
+// Note: Patterns are designed to avoid ReDoS (Regular Expression Denial of Service)
+// by using non-backtracking patterns and limiting quantifier nesting
+
+// Email: Uses character classes without nested quantifiers to prevent catastrophic backtracking
+const EMAIL_PATTERN = /\b[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,255}\.[A-Za-z]{2,}\b/g
+
+// Phone: Uses non-capturing groups and limited quantifiers to prevent backtracking
+const PHONE_PATTERN = /\b(?:\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g
+
+// URL: Tightened pattern to avoid catastrophic backtracking on long inputs
+const URL_PATTERN = /https?:\/\/[^\s]{1,2048}/g
+
+// SSN: Simple pattern with no nested quantifiers
 const SSN_PATTERN = /\b\d{3}-\d{2}-\d{4}\b/g
-const CREDIT_CARD_PATTERN = /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g
+
+// Credit Card: More specific pattern to reduce false positives on order IDs, tracking numbers, etc.
+// Uses non-capturing group and limits total length
+// Note: This is still broad and may match non-card 16-digit numbers. Consider:
+// 1. Only applying in payment-related contexts
+// 2. Adding Luhn algorithm validation for higher confidence
+// 3. Checking for known card BIN ranges (first 6 digits)
+const CREDIT_CARD_PATTERN = /\b(?:\d{4}[\s-]?){3}\d{4}\b/g
 
 /**
  * Sensitive field names for PII redaction
@@ -91,9 +108,13 @@ function redactString(value: string): string {
 
 /**
  * Recursively redacts PII from objects, arrays, and primitive values
+ *
+ * @param value - The value to redact
+ * @param depth - Current recursion depth (prevents stack overflow)
+ * @param seen - WeakSet tracking visited objects (prevents infinite loops on circular references)
  */
-function redactValue(value: unknown, depth = 0): unknown {
-  // Prevent infinite recursion
+function redactValue(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+  // Prevent infinite recursion (depth limit protects against pathological deep structures)
   if (depth > 10) {
     return '[MAX_DEPTH_EXCEEDED]'
   }
@@ -103,6 +124,11 @@ function redactValue(value: unknown, depth = 0): unknown {
     return value
   }
 
+  // Detect circular references (must check before processing objects/arrays)
+  if (typeof value === 'object' && seen.has(value as object)) {
+    return '[CIRCULAR_REFERENCE]'
+  }
+
   // Handle strings
   if (typeof value === 'string') {
     return redactString(value)
@@ -110,11 +136,13 @@ function redactValue(value: unknown, depth = 0): unknown {
 
   // Handle arrays
   if (Array.isArray(value)) {
-    return value.map((item) => redactValue(item, depth + 1))
+    seen.add(value)
+    return value.map((item) => redactValue(item, depth + 1, seen))
   }
 
   // Handle objects
   if (typeof value === 'object') {
+    seen.add(value)
     const redacted: Record<string, unknown> = {}
 
     for (const [key, val] of Object.entries(value)) {
@@ -134,7 +162,7 @@ function redactValue(value: unknown, depth = 0): unknown {
       if (isSensitiveField) {
         redacted[key] = '[REDACTED]'
       } else {
-        redacted[key] = redactValue(val, depth + 1)
+        redacted[key] = redactValue(val, depth + 1, seen)
       }
     }
 
@@ -153,15 +181,32 @@ function truncatePayload(jsonString: string, maxSize: number): string {
     return jsonString
   }
 
+  // Calculate preview size, ensuring enough room for metadata overhead
+  const metadataOverhead = 150 // Approximate size of metadata structure
+  const availablePreviewSize = Math.max(0, maxSize - metadataOverhead)
+  const previewSize = Math.min(500, availablePreviewSize)
+
   // Create truncation metadata
   const metadata = {
     _truncated: true,
     _original_size: jsonString.length,
     _max_size: maxSize,
-    _preview: jsonString.substring(0, Math.min(500, Math.max(0, maxSize - 200))),
+    _preview: jsonString.substring(0, previewSize),
   }
 
-  return JSON.stringify(metadata)
+  const result = JSON.stringify(metadata)
+  
+  // If metadata itself exceeds maxSize, return minimal metadata
+  if (result.length > maxSize) {
+    return JSON.stringify({
+      _truncated: true,
+      _original_size: jsonString.length,
+      _max_size: maxSize,
+      _preview: '',
+    })
+  }
+  
+  return result
 }
 
 /**
@@ -177,21 +222,56 @@ export function redactAuditPayload(
 ): unknown {
   try {
     // Step 1: Redact PII from the payload
-    const redacted = redactValue(payload)
+    let redacted: unknown
+    try {
+      redacted = redactValue(payload)
+    } catch (error) {
+      return {
+        _error: true,
+        _message: 'Failed to redact PII from payload',
+        _error_details: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
 
     // Step 2: Serialize to JSON
-    const jsonString = JSON.stringify(redacted)
+    let jsonString: string
+    try {
+      jsonString = JSON.stringify(redacted)
+    } catch (error) {
+      return {
+        _error: true,
+        _message: 'Failed to serialize redacted payload',
+        _error_details: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
 
     // Step 3: Check size and truncate if needed
-    const final = truncatePayload(jsonString, maxSize)
+    let final: string
+    try {
+      final = truncatePayload(jsonString, maxSize)
+    } catch (error) {
+      return {
+        _error: true,
+        _message: 'Failed to truncate payload',
+        _error_details: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
 
     // Step 4: Parse back to object (to maintain type consistency)
-    return JSON.parse(final)
+    try {
+      return JSON.parse(final)
+    } catch (error) {
+      return {
+        _error: true,
+        _message: 'Failed to parse truncated payload',
+        _error_details: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
   } catch (error) {
-    // If anything fails, return error metadata instead of crashing
+    // Catch any unexpected errors not caught by inner handlers
     return {
       _error: true,
-      _message: 'Failed to redact/serialize payload',
+      _message: 'Failed to process payload',
       _error_details: error instanceof Error ? error.message : 'Unknown error',
     }
   }

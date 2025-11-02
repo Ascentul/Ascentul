@@ -73,7 +73,7 @@ The Proactive AI Agent Nudge System is now fully integrated into the application
 
 ## Navigation Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                     USER NAVIGATION                          │
 └─────────────────────────────────────────────────────────────┘
@@ -108,7 +108,7 @@ Admin Sidebar
 
 ## UI Components Hierarchy
 
-```
+```text
 User Dashboard:
 ┌─ NudgeList (maxDisplay=3, showHeader=true)
    └─ NudgeCard (for each nudge)

@@ -330,19 +330,22 @@ export const createGoal = mutation({
 
 ### Proposed Refactoring Plan
 
-**Phase 1: ID Standardization (1 week)**
+#### Phase 1: ID Standardization (1 week)
+
 1. Choose standard: Either `Id<'users'>` or `clerkId`
 2. Update all Convex functions to use chosen standard
 3. Update route.ts to remove ID conversion logic
 4. Update all tool schemas to document ID requirements
 
-**Phase 2: Naming Convention (1-2 weeks)**
+#### Phase 2: Naming Convention (1-2 weeks)
+
 1. Standardize on snake_case for all Convex parameters
 2. Keep camelCase in tool schemas (OpenAI convention)
 3. Document mapping layer in route.ts
 4. Add TypeScript types to enforce consistency
 
-**Phase 3: Dual Implementation Removal (2-3 weeks)**
+#### Phase 3: Dual Implementation Removal (2-3 weeks)
+
 1. Refactor `convex/agent.ts` to become thin wrapper
 2. All business logic moves to feature modules
 3. Agent functions call feature functions with parameter mapping
@@ -368,7 +371,8 @@ export const createGoal = mutation({
 })
 ```
 
-**Phase 4: Feature Completion (1-2 weeks)**
+#### Phase 4: Feature Completion (1-2 weeks)
+
 1. Add missing parameters (checklist, resume_id, contact fields)
 2. Implement cover letter analysis feature
 3. Remove unused parameters

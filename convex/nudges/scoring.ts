@@ -62,7 +62,7 @@ export const evaluateNudgesForUser = query({
     // Check daily nudge limit
     const todayCount = await getTodayNudgeCount(ctx, args.userId)
     const userPlan = (user.subscription_plan || 'free') as 'free' | 'premium' | 'university'
-    const maxNudges = MAX_NUDGES_PER_DAY[userPlan]
+    const maxNudges = MAX_NUDGES_PER_DAY[userPlan].total
 
     if (todayCount >= maxNudges) {
       return {
@@ -116,7 +116,7 @@ export const evaluateNudgesForUser = query({
  * Check if a rule is on cooldown for a user
  */
 async function isRuleOnCooldown(
-  ctx: any,
+  ctx: QueryCtx,
   userId: Id<'users'>,
   ruleType: NudgeRuleType
 ): Promise<boolean> {
@@ -125,7 +125,7 @@ async function isRuleOnCooldown(
   // Find most recent cooldown for this rule
   const cooldown = await ctx.db
     .query('agent_cooldowns')
-    .withIndex('by_user_and_rule', (q) =>
+    .withIndex('by_user_rule', (q) =>
       q.eq('user_id', userId).eq('rule_type', ruleType)
     )
     .order('desc')
@@ -148,26 +148,70 @@ async function getTodayNudgeCount(ctx: QueryCtx, userId: Id<'users'>): Promise<n
   // Get user timezone preference
   const prefs = await ctx.db
     .query('agent_preferences')
-    .withIndex('by_user', (q: any) => q.eq('user_id', userId))
+    .withIndex('by_user', (q) => q.eq('user_id', userId))
     .unique()
 
   const userTimezone = prefs?.timezone || 'UTC'
 
-  // Calculate start of day in user's timezone
-  // Use UTC time and adjust for timezone offset
-  const userDateStr = new Date().toLocaleString('en-US', { timeZone: userTimezone })
-  const userDate = new Date(userDateStr)
+  // Calculate start of day (midnight) in user's timezone
+  // Proper timezone conversion: find UTC timestamp for midnight in user's timezone
+  const now = new Date()
 
-  // Set to start of day (midnight) in user's timezone
-  userDate.setHours(0, 0, 0, 0)
+  // Get current date/time components in user's timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: userTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
 
-  // Convert back to UTC timestamp for comparison with database
-  const startOfDayMs = new Date(userDate.toLocaleString('en-US', { timeZone: 'UTC' })).getTime()
+  const parts = formatter.formatToParts(now)
+  const year = parseInt(parts.find(p => p.type === 'year')!.value)
+  const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1 // JS months are 0-indexed
+  const day = parseInt(parts.find(p => p.type === 'day')!.value)
+
+  // Calculate UTC offset for the user's timezone
+  // We compare the same moment in time formatted in both timezones
+  const utcFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+
+  // Parse formatted strings to get timestamps (in server's local timezone, but consistently)
+  const parseFormattedDate = (formatted: Intl.DateTimeFormatPart[]) => {
+    const y = parseInt(formatted.find(p => p.type === 'year')!.value)
+    const m = parseInt(formatted.find(p => p.type === 'month')!.value) - 1
+    const d = parseInt(formatted.find(p => p.type === 'day')!.value)
+    const h = parseInt(formatted.find(p => p.type === 'hour')!.value)
+    const min = parseInt(formatted.find(p => p.type === 'minute')!.value)
+    const s = parseInt(formatted.find(p => p.type === 'second')!.value)
+    return new Date(y, m, d, h, min, s).getTime()
+  }
+
+  const userParts = formatter.formatToParts(now)
+  const utcParts = utcFormatter.formatToParts(now)
+  const userParsed = parseFormattedDate(userParts)
+  const utcParsed = parseFormattedDate(utcParts)
+  const offset = utcParsed - userParsed
+
+  // Create midnight in user's timezone (in local server time), then adjust to UTC
+  const midnightLocal = new Date(year, month, day, 0, 0, 0, 0).getTime()
+  const startOfDayMs = midnightLocal + offset
 
   const todayNudges = await ctx.db
     .query('agent_nudges')
-    .withIndex('by_user_status', (q: any) => q.eq('user_id', userId))
-    .filter((q: any) => q.gte(q.field('created_at'), startOfDayMs))
+    .withIndex('by_user_status', (q) => q.eq('user_id', userId))
+    .filter((q) => q.gte(q.field('created_at'), startOfDayMs))
     .collect()
 
   return todayNudges.length
@@ -176,7 +220,10 @@ async function getTodayNudgeCount(ctx: QueryCtx, userId: Id<'users'>): Promise<n
 /**
  * Check if current time is within user's quiet hours
  */
-function isInQuietHours(prefs: any): boolean {
+function isInQuietHours(prefs: {
+  quiet_hours_start: number
+  quiet_hours_end: number
+}): boolean {
   const now = new Date()
   const currentHour = now.getHours()
 
@@ -229,13 +276,13 @@ export const evaluateSingleRule = query({
  * Get cooldown expiry time for a rule
  */
 async function getCooldownExpiry(
-  ctx: any,
+  ctx: QueryCtx,
   userId: Id<'users'>,
   ruleType: NudgeRuleType
 ): Promise<number | null> {
   const cooldown = await ctx.db
     .query('agent_cooldowns')
-    .withIndex('by_user_and_rule', (q) =>
+    .withIndex('by_user_rule', (q) =>
       q.eq('user_id', userId).eq('rule_type', ruleType)
     )
     .order('desc')
@@ -252,20 +299,22 @@ export const getNudgeStats = query({
     userId: v.id('users'),
   },
   handler: async (ctx, args) => {
-    const now = Date.now()
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
     const startOfDayMs = startOfDay.getTime()
 
     const startOfWeek = new Date()
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
+    // Use Monday as week start (getDay() === 1) for international consistency
+    const dayOfWeek = startOfWeek.getDay()
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    startOfWeek.setDate(startOfWeek.getDate() - daysToSubtract)
     startOfWeek.setHours(0, 0, 0, 0)
     const startOfWeekMs = startOfWeek.getTime()
 
     // Get all nudges
     const allNudges = await ctx.db
       .query('agent_nudges')
-      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
+      .withIndex('by_user_status', (q) => q.eq('user_id', args.userId))
       .collect()
 
     // Today's nudges
@@ -274,8 +323,8 @@ export const getNudgeStats = query({
     // This week's nudges
     const weekNudges = allNudges.filter(n => n.created_at >= startOfWeekMs)
 
-    // Pending nudges
-    const pendingNudges = allNudges.filter(n => n.status === 'pending')
+    // Queued nudges
+    const queuedNudges = allNudges.filter(n => n.status === 'queued')
 
     // Accepted nudges
     const acceptedNudges = allNudges.filter(n => n.status === 'accepted')
@@ -283,13 +332,13 @@ export const getNudgeStats = query({
     // Snoozed nudges
     const snoozedNudges = allNudges.filter(n => n.status === 'snoozed')
 
-    // Dismissed nudges
-    const dismissedNudges = allNudges.filter(n => n.status === 'dismissed')
+    // Ignored nudges
+    const ignoredNudges = allNudges.filter(n => n.status === 'ignored')
 
     // Get user plan for limits
     const user = await ctx.db.get(args.userId)
     const userPlan = (user?.subscription_plan || 'free') as 'free' | 'premium' | 'university'
-    const maxNudges = MAX_NUDGES_PER_DAY[userPlan]
+    const maxNudges = MAX_NUDGES_PER_DAY[userPlan].total
 
     return {
       today: {
@@ -300,14 +349,14 @@ export const getNudgeStats = query({
       week: {
         count: weekNudges.length,
         accepted: weekNudges.filter(n => n.status === 'accepted').length,
-        dismissed: weekNudges.filter(n => n.status === 'dismissed').length,
+        ignored: weekNudges.filter(n => n.status === 'ignored').length,
       },
       all: {
         total: allNudges.length,
-        pending: pendingNudges.length,
+        queued: queuedNudges.length,
         accepted: acceptedNudges.length,
         snoozed: snoozedNudges.length,
-        dismissed: dismissedNudges.length,
+        ignored: ignoredNudges.length,
       },
       acceptanceRate: allNudges.length > 0
         ? Math.round((acceptedNudges.length / allNudges.length) * 100)

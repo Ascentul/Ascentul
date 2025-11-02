@@ -478,7 +478,29 @@ npx ts-node scripts/test-nudge-system.ts <userId>
 ### Cron Jobs
 - Hourly sweep processes only urgent rules (lightweight)
 - Daily sweep can be heavy with many users (monitor execution time)
-- Consider batching users in chunks if needed
+
+**Performance Bottleneck #1: Loading All Users into Memory**
+- `getEligibleUsers()` loads entire users table with `.collect()`
+- **Current capacity**: Acceptable for <1000 total users (~1MB memory, ~100ms query)
+- **Critical threshold**: Performance degrades beyond 2000 users
+- **Optimization needed when**:
+  - Total user count exceeds 2000
+  - Query time exceeds 500ms
+  - Memory pressure warnings appear in Convex logs
+- **Optimization approach**:
+  - Query `agent_preferences` table instead (smaller, filtered dataset)
+  - Use index-based filtering to push logic to database layer
+  - Implement cursor-based pagination for very large datasets
+
+**Performance Bottleneck #2: Serial User Processing**
+- Each eligible user is processed one-by-one in a for loop
+- **Current capacity**: Acceptable for <500 active users (~100 seconds)
+- **Convex action timeout**: 10 minutes (plenty of headroom)
+- **Scaling threshold**: Optimize when >1000 active users or execution >2 minutes
+- **Optimization approach**:
+  - Batch users into groups of 50-100
+  - Process batches with Promise.all() for parallelization
+  - Monitor execution time via admin dashboard or Convex logs
 
 ### Email Delivery
 - Rate limit email sending to avoid spam flags
@@ -503,6 +525,18 @@ npx ts-node scripts/test-nudge-system.ts <userId>
 - [ ] Nudge effectiveness prediction
 - [ ] Smart snooze (suggest best time to revisit)
 - [ ] Batch nudges (combine multiple into digest)
+- [ ] **Performance Optimization #1**: Query optimization for eligible users (PRIORITY)
+  - **Trigger**: Total user count >2000 OR query time >500ms
+  - Query `agent_preferences` table instead of loading all users
+  - Use database indexes to filter at query layer
+  - Implement cursor-based pagination if needed
+  - **Impact**: Reduces memory usage by 70-90%, improves query speed
+- [ ] **Performance Optimization #2**: Parallel processing for sweep jobs
+  - **Trigger**: Active user count >1000 OR execution time >2 minutes
+  - Batch users into groups of 50-100
+  - Process batches with Promise.all() for parallelization
+  - Add execution time monitoring to admin dashboard
+  - **Impact**: 5-10x faster processing for large user bases
 
 ### Long Term
 - [ ] Multi-language support

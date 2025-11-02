@@ -28,7 +28,13 @@ export const createNudge = mutation({
     actionUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Validate rule type
+    if (!(args.ruleType in NUDGE_RULES)) {
+      throw new Error(`Invalid rule type: ${args.ruleType}`)
+    }
+
     const now = Date.now()
+    const rule = NUDGE_RULES[args.ruleType as NudgeRuleType]
 
     // Create nudge record
     const nudgeId = await ctx.db.insert('agent_nudges', {
@@ -46,15 +52,12 @@ export const createNudge = mutation({
     })
 
     // Set cooldown for this rule
-    const rule = NUDGE_RULES[args.ruleType as NudgeRuleType]
-    if (rule) {
-      await ctx.db.insert('agent_cooldowns', {
-        user_id: args.userId,
-        rule_type: args.ruleType,
-        cooldown_until: now + rule.cooldownMs,
-        created_at: now,
-      })
-    }
+    await ctx.db.insert('agent_cooldowns', {
+      user_id: args.userId,
+      rule_type: args.ruleType,
+      cooldown_until: now + rule.cooldownMs,
+      created_at: now,
+    })
 
     return {
       nudgeId,
@@ -425,8 +428,26 @@ export const getPendingNudges = mutation({
       )
       .collect()
 
+    // Reset snoozed nudges back to pending status
+    // This ensures downstream logic handles them correctly
+    for (const nudge of snoozed) {
+      await ctx.db.patch(nudge._id, {
+        status: 'pending',
+        snoozed_until: undefined,
+        updated_at: now,
+      })
+    }
+
+    // Update the snoozed nudges in-memory to reflect the status change
+    const resetNudges = snoozed.map(nudge => ({
+      ...nudge,
+      status: 'pending' as const,
+      snoozed_until: undefined,
+      updated_at: now,
+    }))
+
     // Combine and sort by score
-    const allNudges = [...pending, ...snoozed]
+    const allNudges = [...pending, ...resetNudges]
     allNudges.sort((a, b) => b.score - a.score)
 
     return allNudges

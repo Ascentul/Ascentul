@@ -34,7 +34,7 @@ export const ProjectCreateInputSchema = z
       }
       return true
     },
-    { message: 'End date must be after start date' }
+    { message: 'End date must be on or after start date' }
   )
 
 export type ProjectCreateInput = z.infer<typeof ProjectCreateInputSchema>
@@ -60,7 +60,7 @@ export const ProjectUpdateInputSchema = z
       }
       return true
     },
-    { message: 'End date must be after start date' }
+    { message: 'End date must be on or after start date' }
   )
 
 export type ProjectUpdateInput = z.infer<typeof ProjectUpdateInputSchema>

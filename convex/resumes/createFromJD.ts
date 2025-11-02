@@ -84,7 +84,10 @@ export const createFromJD = action({
  * Analyze job description to extract requirements
  *
  * TODO: Implement real AI-powered job description analysis using OpenAI
- * Current status: Not yet implemented
+ * Current status: Returns placeholder data to allow action to complete
+ *
+ * This function provides graceful degradation instead of throwing errors
+ * to prevent breaking the entire action chain when called.
  */
 async function analyzeJobDescription(jdText: string): Promise<{
   requiredSkills: string[]
@@ -93,16 +96,28 @@ async function analyzeJobDescription(jdText: string): Promise<{
   responsibilities: string[]
   qualifications: string[]
 }> {
-  throw new Error(
-    'Job description analysis feature is not yet implemented. Please check back soon or contact support for more information.'
-  )
+  // Graceful degradation: Return minimal placeholder data
+  // This allows the action to complete without breaking the chain
+  return {
+    requiredSkills: [],
+    preferredSkills: [],
+    keywords: [],
+    responsibilities: [
+      'AI-powered job description analysis is currently under development.',
+      'Manual resume creation is still available.',
+    ],
+    qualifications: [],
+  }
 }
 
 /**
  * Generate resume content from JD analysis
  *
  * TODO: Implement real AI-powered resume generation using OpenAI
- * Current status: Not yet implemented
+ * Current status: Returns placeholder resume template to allow action to complete
+ *
+ * This function provides graceful degradation instead of throwing errors
+ * to prevent breaking the entire action chain when called.
  */
 async function generateResumeFromJD(params: {
   jdAnalysis: any
@@ -114,7 +129,47 @@ async function generateResumeFromJD(params: {
   blocks: any[]
   diff: any[]
 }> {
-  throw new Error(
-    'AI-powered resume generation from job description is not yet implemented. Please check back soon or contact support for more information.'
-  )
+  // Graceful degradation: Return basic resume template
+  // This allows the action to complete and creates a usable (though not AI-optimized) resume
+  const blocks = [
+    {
+      type: 'header',
+      content: {
+        name: params.userProfile.user?.name || 'Your Name',
+        email: params.userProfile.user?.email || '',
+        title: params.targetRole || 'Professional',
+      },
+    },
+    {
+      type: 'section',
+      title: 'Professional Summary',
+      content: [
+        {
+          type: 'text',
+          text: 'AI-powered resume generation from job descriptions is currently under development. This is a placeholder resume that you can customize manually. Please add your professional summary, experience, skills, and education.',
+        },
+      ],
+    },
+    {
+      type: 'section',
+      title: 'Note',
+      content: [
+        {
+          type: 'text',
+          text: `This resume was created for: ${params.company || params.targetRole || 'your application'}. AI-optimized content tailored to the job description will be available soon.`,
+        },
+      ],
+    },
+  ]
+
+  return {
+    blocks,
+    diff: [
+      {
+        type: 'info',
+        message:
+          'AI-powered resume generation is not yet available. A basic template has been created for manual customization.',
+      },
+    ],
+  }
 }

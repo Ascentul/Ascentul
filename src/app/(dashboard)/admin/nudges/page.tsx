@@ -55,7 +55,7 @@ export default function AdminNudgesPage() {
             Monitor proactive nudge performance and user engagement
           </p>
         </div>
-        <Select value={timeRange} onValueChange={(v) => setTimeRange(v as any)}>
+        <Select value={timeRange} onValueChange={(v) => setTimeRange(v as 'day' | 'week' | 'month' | 'all')}>
           <SelectTrigger className="w-[180px]">
             <SelectValue />
           </SelectTrigger>

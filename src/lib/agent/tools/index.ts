@@ -375,10 +375,6 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
             type: 'string',
             description: 'Current job title or position (optional)',
           },
-          yearsOfExperience: {
-            type: 'number',
-            description: 'Years of relevant work experience (optional)',
-          },
         },
         required: ['targetRole'],
       },
@@ -389,7 +385,7 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'generate_cover_letter',
       description:
-        'Generate a tailored cover letter for a specific job application using AI. Requires job description and optionally a resume.',
+        'Generate a tailored cover letter for a specific job application using AI. Pulls user experience from profile automatically.',
       parameters: {
         type: 'object',
         properties: {
@@ -404,10 +400,6 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
           jobTitle: {
             type: 'string',
             description: 'Job title/position',
-          },
-          resumeId: {
-            type: 'string',
-            description: 'Optional resume ID to pull experience from (from get_user_snapshot)',
           },
         },
         required: ['jobDescription', 'company', 'jobTitle'],
@@ -441,7 +433,7 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'create_contact',
       description:
-        'Add a new professional contact to the networking CRM. Use this when the user wants to track recruiters, hiring managers, mentors, or other professional connections.',
+        'Add a new professional contact to the networking CRM. Use this when the user wants to track recruiters, hiring managers, mentors, or other professional connections. Supports full contact details including phone and relationship tracking.',
       parameters: {
         type: 'object',
         properties: {
@@ -464,6 +456,14 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
           linkedinUrl: {
             type: 'string',
             description: 'LinkedIn profile URL (optional)',
+          },
+          phone: {
+            type: 'string',
+            description: 'Contact phone number (optional)',
+          },
+          relationship: {
+            type: 'string',
+            description: 'Relationship to contact, e.g., "Recruiter", "Hiring Manager", "Mentor", "Former Colleague" (optional)',
           },
           notes: {
             type: 'string',
@@ -506,6 +506,14 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
           linkedinUrl: {
             type: 'string',
             description: 'Updated LinkedIn URL (optional)',
+          },
+          phone: {
+            type: 'string',
+            description: 'Updated phone number (optional)',
+          },
+          relationship: {
+            type: 'string',
+            description: 'Updated relationship type (optional)',
           },
           notes: {
             type: 'string',

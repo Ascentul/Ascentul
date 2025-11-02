@@ -98,7 +98,8 @@ export function useNudges() {
   return {
     nudges: pendingNudges || [],
     stats,
-    isLoading: pendingNudges === undefined || stats === undefined,
+    isLoading: pendingNudges === undefined, // Stats are less critical
+    isStatsLoading: stats === undefined,
     actions: {
       accept: handleAccept,
       snooze: handleSnooze,

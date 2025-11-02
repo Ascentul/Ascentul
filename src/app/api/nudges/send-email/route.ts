@@ -35,6 +35,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate nudge structure
+    if (
+      !nudge.ruleName ||
+      !nudge.reason ||
+      !nudge.category ||
+      !['urgent', 'helpful', 'maintenance', 'engagement'].includes(nudge.category)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Invalid nudge object: must include ruleName, reason, and valid category (urgent|helpful|maintenance|engagement)',
+        },
+        { status: 400 }
+      )
+    }
+
     // Send email
     const result = await sendNudgeEmail(email, name, nudge)
 

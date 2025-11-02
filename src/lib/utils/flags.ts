@@ -82,13 +82,13 @@ export const isJobMatchingEnabled = (flags?: FeatureFlags): boolean => {
  */
 export const isFeatureEnabled = (flags: FeatureFlags | undefined, path: string): boolean => {
   const parts = path.split('.')
-  let current: any = flags
+  let current: Record<string, unknown> | undefined = flags as Record<string, unknown> | undefined
 
   for (const part of parts) {
     if (!current || typeof current !== 'object') {
       return false
     }
-    current = current[part]
+    current = current[part] as Record<string, unknown> | undefined
   }
 
   return !!current

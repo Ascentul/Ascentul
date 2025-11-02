@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react'
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { nanoid } from 'nanoid'
 import type {
   AgentContextType,
@@ -118,6 +118,15 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     isStreaming: false,
     pendingApproval: null,
   })
+
+  // Cleanup timeout on unmount to prevent memory leaks and setState on unmounted component
+  useEffect(() => {
+    return () => {
+      if (approvalTimeoutRef.current) {
+        clearTimeout(approvalTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const openAgent = useCallback((context?: AgentContextData) => {
     setState((prev) => ({

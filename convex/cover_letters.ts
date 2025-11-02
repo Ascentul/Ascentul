@@ -1,6 +1,55 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+/**
+ * Helper function: Build cover letter intro section
+ */
+function buildIntroSection(jobTitle: string, companyName: string): string {
+  return `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${jobTitle} position at ${companyName}.`;
+}
+
+/**
+ * Helper function: Build experience section
+ */
+function buildExperienceSection(currentPosition?: string, currentCompany?: string): string {
+  if (!currentPosition && !currentCompany) {
+    return '\n\n';
+  }
+  return `\n\nCurrently, I work as ${currentPosition || 'a professional'}${currentCompany ? ` at ${currentCompany}` : ''}. `;
+}
+
+/**
+ * Helper function: Build skills section
+ */
+function buildSkillsSection(skills?: string[]): string {
+  if (!skills || skills.length === 0) {
+    return '';
+  }
+  return `My key skills include ${skills.slice(0, 5).join(', ')}, which align well with the requirements for this role.\n`;
+}
+
+/**
+ * Helper function: Build job description match section
+ */
+function buildJobDescriptionSection(jobDescription?: string, industry?: string): string {
+  if (!jobDescription) {
+    return '';
+  }
+  return `\nBased on the job description provided, I believe my background in ${industry || 'this field'} makes me a strong candidate for this opportunity.\n`;
+}
+
+/**
+ * Helper function: Build closing section
+ */
+function buildClosingSection(companyName: string, userName: string): string {
+  return `\nI would welcome the opportunity to discuss how my background and enthusiasm can contribute to ${companyName}'s continued success. Thank you for considering my application.
+
+Sincerely,
+${userName}`;
+}
+
 // Get cover letters for a user
 export const getUserCoverLetters = query({
   args: { clerkId: v.string() },
@@ -165,28 +214,13 @@ export const generateCoverLetterContent = mutation({
 
     // Create a basic cover letter with user's career data
     // The user can then edit it or regenerate it with AI at /cover-letters
-    const intro = `Dear Hiring Manager,
-
-I am writing to express my strong interest in the ${args.job_title} position at ${args.company_name}.`;
-
-    const experienceSection = user.current_position || user.current_company
-      ? `\n\nCurrently, I work as ${user.current_position || 'a professional'}${user.current_company ? ` at ${user.current_company}` : ''}. `
-      : '\n\n';
-
-    const skillsSection = user.skills && user.skills.length > 0
-      ? `My key skills include ${user.skills.slice(0, 5).join(', ')}, which align well with the requirements for this role.\n`
-      : '';
-
-    const jdSection = args.job_description
-      ? `\nBased on the job description provided, I believe my background in ${user.industry || 'this field'} makes me a strong candidate for this opportunity.\n`
-      : '';
-
-    const closing = `\nI would welcome the opportunity to discuss how my background and enthusiasm can contribute to ${args.company_name}'s continued success. Thank you for considering my application.
-
-Sincerely,
-${user.name}`;
-
-    const content = intro + experienceSection + skillsSection + jdSection + closing;
+    const content = [
+      buildIntroSection(args.job_title, args.company_name),
+      buildExperienceSection(user.current_position, user.current_company),
+      buildSkillsSection(user.skills),
+      buildJobDescriptionSection(args.job_description, user.industry),
+      buildClosingSection(args.company_name, user.name),
+    ].join('');
 
     // Save the cover letter to the database
     const now = Date.now();
@@ -195,10 +229,10 @@ ${user.name}`;
       name: `Cover Letter - ${args.company_name}`,
       job_title: args.job_title,
       company_name: args.company_name,
-      template: "standard",
+      template: 'standard',
       content,
-      closing: "Sincerely,",
-      source: "ai_generated",
+      closing: 'Sincerely,',
+      source: 'ai_generated',
       created_at: now,
       updated_at: now,
     });
@@ -207,9 +241,7 @@ ${user.name}`;
       success: true,
       coverLetterId,
       content,
-      message: `I've created a draft cover letter for the ${args.job_title} position at ${args.company_name}. Go to the Cover Letters page to generate the full AI-powered version with your complete career profile, or edit this draft directly.`,
-      url: `/cover-letters`,
-      action: 'Visit Cover Letters page to generate AI version'
+      message: `I've created a draft cover letter for the ${args.job_title} position at ${args.company_name}. You can now generate the full AI-powered version with your complete career profile, or edit this draft directly.`
     };
   },
 });

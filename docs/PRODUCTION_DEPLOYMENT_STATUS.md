@@ -29,7 +29,7 @@ Go to Convex Dashboard: https://youthful-lobster-617.convex.cloud/deployment/dat
 Navigate to the `feature_flags` table and create these two records:
 
 **Record 1: Agent System Flag**
-```
+```json
 flag_key: "agent"
 enabled: true
 description: "Enable AI agent system"
@@ -41,7 +41,7 @@ updated_at: [current timestamp in ms]
 ```
 
 **Record 2: Proactive Nudges Flag**
-```
+```json
 flag_key: "proactive_nudges"
 enabled: true
 description: "Enable proactive career nudges"

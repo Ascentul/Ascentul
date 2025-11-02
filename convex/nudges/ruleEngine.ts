@@ -82,21 +82,39 @@ export const NUDGE_RULES: Record<NudgeRuleType, NudgeRule> = {
         .filter((q) => q.eq(q.field('status'), 'interview'))
         .collect()
 
-      // Check interview stages for upcoming dates
-      const upcomingInterviews = []
-      for (const app of applications) {
-        const stages = await ctx.db
-          .query('interview_stages')
-          .withIndex('by_application', (q) => q.eq('application_id', app._id))
-          .filter((q) => q.eq(q.field('status'), 'scheduled'))
-          .collect()
-
-        for (const stage of stages) {
-          if (stage.scheduled_date && stage.scheduled_date >= now && stage.scheduled_date <= next48Hours) {
-            upcomingInterviews.push({ app, stage })
-          }
+      // Early return if no applications
+      if (applications.length === 0) {
+        return {
+          ruleType: 'interviewSoon',
+          shouldTrigger: false,
+          score: 0,
+          reason: 'No applications in interview stage',
+          metadata: {},
         }
       }
+
+      // Fetch all scheduled interview stages for this user's applications at once
+      // This avoids N+1 queries by getting all stages in a single query
+      const applicationIds = applications.map(app => app._id)
+      const allStages = await ctx.db
+        .query('interview_stages')
+        .filter((q) => q.eq(q.field('outcome'), 'scheduled'))
+        .collect()
+
+      // Filter stages to only those belonging to this user's applications
+      // and within the time window
+      const relevantStages = allStages.filter(stage =>
+        applicationIds.includes(stage.application_id) &&
+        stage.scheduled_at &&
+        stage.scheduled_at >= now &&
+        stage.scheduled_at <= next48Hours
+      )
+
+      // Build upcomingInterviews by matching stages with applications
+      const upcomingInterviews = relevantStages.map(stage => {
+        const app = applications.find(a => a._id === stage.application_id)!
+        return { app, stage }
+      })
 
       if (upcomingInterviews.length === 0) {
         return {
@@ -110,11 +128,11 @@ export const NUDGE_RULES: Record<NudgeRuleType, NudgeRule> = {
 
       // Get earliest interview
       const earliest = upcomingInterviews.sort((a, b) =>
-        (a.stage.scheduled_date || 0) - (b.stage.scheduled_date || 0)
+        (a.stage.scheduled_at || 0) - (b.stage.scheduled_at || 0)
       )[0]
 
-      const hoursUntil = Math.round(((earliest.stage.scheduled_date || 0) - now) / (1000 * 60 * 60))
-      const isWithin24Hours = (earliest.stage.scheduled_date || 0) <= next24Hours
+      const hoursUntil = Math.round(((earliest.stage.scheduled_at || 0) - now) / (1000 * 60 * 60))
+      const isWithin24Hours = (earliest.stage.scheduled_at || 0) <= next24Hours
 
       return {
         ruleType: 'interviewSoon',
@@ -124,8 +142,8 @@ export const NUDGE_RULES: Record<NudgeRuleType, NudgeRule> = {
         metadata: {
           company: earliest.app.company,
           jobTitle: earliest.app.job_title,
-          stageType: earliest.stage.stage_type,
-          scheduledDate: earliest.stage.scheduled_date,
+          stageTitle: earliest.stage.title,
+          scheduledAt: earliest.stage.scheduled_at,
           hoursUntil,
         },
         suggestedAction: `Review your prep materials for ${earliest.app.company}`,
@@ -162,18 +180,32 @@ export const NUDGE_RULES: Record<NudgeRuleType, NudgeRule> = {
         )
         .collect()
 
-      // Filter out apps that already have follow-ups
-      const appsNeedingFollowUp = []
-      for (const app of staleApps) {
-        const followUps = await ctx.db
-          .query('application_follow_ups')
-          .withIndex('by_application', (q) => q.eq('application_id', app._id))
-          .collect()
-
-        if (followUps.length === 0) {
-          appsNeedingFollowUp.push(app)
+      // Early return if no stale apps
+      if (staleApps.length === 0) {
+        return {
+          ruleType: 'appRescue',
+          shouldTrigger: false,
+          score: 0,
+          reason: 'No stale applications',
+          metadata: {},
         }
       }
+
+      // Fetch all follow-ups at once to avoid N+1 queries
+      const staleAppIds = staleApps.map(app => app._id)
+      const allFollowUps = await ctx.db
+        .query('followup_actions')
+        .collect()
+
+      // Create a set of application IDs that have follow-ups
+      const appsWithFollowUps = new Set(
+        allFollowUps
+          .filter(fu => fu.application_id && staleAppIds.includes(fu.application_id))
+          .map(fu => fu.application_id!)
+      )
+
+      // Filter out apps that already have follow-ups
+      const appsNeedingFollowUp = staleApps.filter(app => !appsWithFollowUps.has(app._id))
 
       if (appsNeedingFollowUp.length === 0) {
         return {
@@ -396,20 +428,29 @@ export const NUDGE_RULES: Record<NudgeRuleType, NudgeRule> = {
         }
       }
 
-      // Find contacts that need follow-up
-      const contactsNeedingFollowUp = []
-      for (const contact of contacts) {
-        const interactions = await ctx.db
-          .query('contact_interactions')
-          .withIndex('by_contact', (q) => q.eq('contact_id', contact._id))
-          .order('desc')
-          .take(1)
+      // Fetch all contact interactions at once to avoid N+1 queries
+      const contactIds = contacts.map(c => c._id)
+      const allInteractions = await ctx.db
+        .query('contact_interactions')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect()
 
-        const lastInteraction = interactions[0]
-        if (!lastInteraction || lastInteraction.interaction_date < sixtyDaysAgo) {
-          contactsNeedingFollowUp.push(contact)
+      // Group interactions by contact_id and find the most recent for each
+      const latestInteractionByContact = new Map<string, number>()
+      for (const interaction of allInteractions) {
+        if (!contactIds.includes(interaction.contact_id)) continue
+
+        const current = latestInteractionByContact.get(interaction.contact_id)
+        if (!current || interaction.interaction_date > current) {
+          latestInteractionByContact.set(interaction.contact_id, interaction.interaction_date)
         }
       }
+
+      // Find contacts that need follow-up
+      const contactsNeedingFollowUp = contacts.filter(contact => {
+        const lastInteractionDate = latestInteractionByContact.get(contact._id)
+        return !lastInteractionDate || lastInteractionDate < sixtyDaysAgo
+      })
 
       return {
         ruleType: 'networkingIdle',

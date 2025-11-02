@@ -12,6 +12,13 @@ import { query } from '../_generated/server'
 import { v } from 'convex/values'
 
 /**
+ * Helper: Format date to YYYY-MM-DD string
+ */
+function formatDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+/**
  * Get global nudge metrics (for admin dashboard)
  */
 export const getGlobalMetrics = query({
@@ -299,7 +306,7 @@ export const getDailyVolumeTrend = query({
 
     for (const nudge of nudges) {
       const date = new Date(nudge.created_at)
-      const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      const dateKey = formatDateKey(date)
 
       if (!dailyMap[dateKey]) {
         dailyMap[dateKey] = { total: 0, accepted: 0, snoozed: 0, dismissed: 0 }
@@ -315,7 +322,7 @@ export const getDailyVolumeTrend = query({
     const trend = []
     for (let i = 0; i < days; i++) {
       const date = new Date(now - i * 24 * 60 * 60 * 1000)
-      const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      const dateKey = formatDateKey(date)
 
       trend.unshift({
         date: dateKey,

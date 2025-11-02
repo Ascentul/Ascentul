@@ -167,21 +167,8 @@ export const toggleAgent = mutation({
     } else {
       await ctx.db.insert('agent_preferences', {
         user_id: args.userId,
+        ...DEFAULT_PREFERENCES,
         agent_enabled: args.enabled,
-        proactive_enabled: true,
-        notification_frequency: 'realtime',
-        quiet_hours_start: 22,
-        quiet_hours_end: 8,
-        timezone: 'America/Los_Angeles',
-        channels: { inApp: true, email: false, push: false },
-        playbook_toggles: {
-          jobSearch: true,
-          resumeHelp: true,
-          interviewPrep: true,
-          networking: true,
-          careerPath: true,
-          applicationTracking: true,
-        },
         created_at: now,
         updated_at: now,
       })
@@ -219,21 +206,8 @@ export const toggleProactiveNudges = mutation({
     } else {
       await ctx.db.insert('agent_preferences', {
         user_id: args.userId,
-        agent_enabled: true,
+        ...DEFAULT_PREFERENCES,
         proactive_enabled: args.enabled,
-        notification_frequency: 'realtime',
-        quiet_hours_start: 22,
-        quiet_hours_end: 8,
-        timezone: 'America/Los_Angeles',
-        channels: { inApp: true, email: false, push: false },
-        playbook_toggles: {
-          jobSearch: true,
-          resumeHelp: true,
-          interviewPrep: true,
-          networking: true,
-          careerPath: true,
-          applicationTracking: true,
-        },
         created_at: now,
         updated_at: now,
       })
@@ -265,6 +239,19 @@ export const updateQuietHours = mutation({
     if (args.endHour < 0 || args.endHour > 23) {
       throw new Error('End hour must be between 0 and 23')
     }
+    if (args.startHour === args.endHour) {
+      throw new Error('Start and end hours cannot be the same')
+    }
+
+    // Validate timezone if provided
+    if (args.timezone) {
+      try {
+        // Validate timezone by attempting to use it
+        new Intl.DateTimeFormat('en-US', { timeZone: args.timezone })
+      } catch (error) {
+        throw new Error(`Invalid timezone: ${args.timezone}`)
+      }
+    }
 
     const now = Date.now()
 
@@ -285,21 +272,10 @@ export const updateQuietHours = mutation({
     } else {
       await ctx.db.insert('agent_preferences', {
         user_id: args.userId,
-        agent_enabled: true,
-        proactive_enabled: true,
-        notification_frequency: 'realtime',
+        ...DEFAULT_PREFERENCES,
         quiet_hours_start: args.startHour,
         quiet_hours_end: args.endHour,
-        timezone: args.timezone ?? 'America/Los_Angeles',
-        channels: { inApp: true, email: false, push: false },
-        playbook_toggles: {
-          jobSearch: true,
-          resumeHelp: true,
-          interviewPrep: true,
-          networking: true,
-          careerPath: true,
-          applicationTracking: true,
-        },
+        timezone: args.timezone ?? DEFAULT_PREFERENCES.timezone,
         created_at: now,
         updated_at: now,
       })
@@ -344,21 +320,8 @@ export const updateChannels = mutation({
     } else {
       await ctx.db.insert('agent_preferences', {
         user_id: args.userId,
-        agent_enabled: true,
-        proactive_enabled: true,
-        notification_frequency: 'realtime',
-        quiet_hours_start: 22,
-        quiet_hours_end: 8,
-        timezone: 'America/Los_Angeles',
+        ...DEFAULT_PREFERENCES,
         channels,
-        playbook_toggles: {
-          jobSearch: true,
-          resumeHelp: true,
-          interviewPrep: true,
-          networking: true,
-          careerPath: true,
-          applicationTracking: true,
-        },
         created_at: now,
         updated_at: now,
       })
@@ -407,20 +370,14 @@ export const updatePlaybookToggles = mutation({
     } else {
       await ctx.db.insert('agent_preferences', {
         user_id: userId,
-        agent_enabled: true,
-        proactive_enabled: true,
-        notification_frequency: 'realtime',
-        quiet_hours_start: 22,
-        quiet_hours_end: 8,
-        timezone: 'America/Los_Angeles',
-        channels: { inApp: true, email: false, push: false },
+        ...DEFAULT_PREFERENCES,
         playbook_toggles: {
-          jobSearch: toggles.jobSearch ?? true,
-          resumeHelp: toggles.resumeHelp ?? true,
-          interviewPrep: toggles.interviewPrep ?? true,
-          networking: toggles.networking ?? true,
-          careerPath: toggles.careerPath ?? true,
-          applicationTracking: toggles.applicationTracking ?? true,
+          jobSearch: toggles.jobSearch ?? DEFAULT_PREFERENCES.playbook_toggles.jobSearch,
+          resumeHelp: toggles.resumeHelp ?? DEFAULT_PREFERENCES.playbook_toggles.resumeHelp,
+          interviewPrep: toggles.interviewPrep ?? DEFAULT_PREFERENCES.playbook_toggles.interviewPrep,
+          networking: toggles.networking ?? DEFAULT_PREFERENCES.playbook_toggles.networking,
+          careerPath: toggles.careerPath ?? DEFAULT_PREFERENCES.playbook_toggles.careerPath,
+          applicationTracking: toggles.applicationTracking ?? DEFAULT_PREFERENCES.playbook_toggles.applicationTracking,
         },
         created_at: now,
         updated_at: now,
@@ -449,32 +406,17 @@ export const resetPreferences = mutation({
       .withIndex('by_user', (q) => q.eq('user_id', args.userId))
       .unique()
 
-    const defaults = {
-      agent_enabled: true,
-      proactive_enabled: true,
-      notification_frequency: 'realtime' as const,
-      quiet_hours_start: 22,
-      quiet_hours_end: 8,
-      timezone: 'America/Los_Angeles',
-      channels: { inApp: true, email: false, push: false },
-      playbook_toggles: {
-        jobSearch: true,
-        resumeHelp: true,
-        interviewPrep: true,
-        networking: true,
-        careerPath: true,
-        applicationTracking: true,
-      },
-      updated_at: now,
-    }
-
     if (existing) {
-      await ctx.db.patch(existing._id, defaults)
+      await ctx.db.patch(existing._id, {
+        ...DEFAULT_PREFERENCES,
+        updated_at: now,
+      })
     } else {
       await ctx.db.insert('agent_preferences', {
         user_id: args.userId,
-        ...defaults,
+        ...DEFAULT_PREFERENCES,
         created_at: now,
+        updated_at: now,
       })
     }
 

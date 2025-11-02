@@ -32,7 +32,7 @@ interface NudgeCardProps {
     reason: string
     suggested_action?: string
     action_url?: string
-    metadata: any
+    metadata: Record<string, unknown>
     created_at: number
   }
   onAccept: (nudgeId: string) => void
@@ -81,6 +81,10 @@ export function NudgeCard({ nudge, onAccept, onSnooze, onDismiss }: NudgeCardPro
   const getRelativeTime = (timestamp: number) => {
     const now = Date.now()
     const diff = now - timestamp
+
+    // Handle future timestamps (shouldn't happen, but defensive)
+    if (diff < 0) return 'Just now'
+
     const minutes = Math.floor(diff / (1000 * 60))
     const hours = Math.floor(diff / (1000 * 60 * 60))
 
@@ -91,9 +95,9 @@ export function NudgeCard({ nudge, onAccept, onSnooze, onDismiss }: NudgeCardPro
   }
 
   return (
-    <Card className="relative overflow-hidden border-l-4" style={{
-      borderLeftColor: color === 'destructive' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'
-    }}>
+    <Card className={`relative overflow-hidden border-l-4 ${
+      color === 'destructive' ? 'border-l-destructive' : 'border-l-primary'
+    }`}>
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 flex-1">

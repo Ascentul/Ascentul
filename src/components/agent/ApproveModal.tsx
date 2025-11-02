@@ -39,10 +39,10 @@ interface ApproveModalProps {
 export function ApproveModal({ isOpen, request, onApprove, onDeny }: ApproveModalProps) {
   if (!request) return null
 
-  // Auto-approve zero-record operations (likely a bug in calling code)
+  // Zero-record operations indicate a bug in calling code
   if (request.recordCount === 0) {
-    console.warn('[ApproveModal] recordCount is 0, auto-approving')
-    onApprove()
+    console.error('[ApproveModal] recordCount is 0, denying invalid request')
+    onDeny()
     return null
   }
 
