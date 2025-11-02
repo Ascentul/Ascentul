@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **UI**: Tailwind CSS + Radix UI components
 - **Payments**: Clerk Billing (integrated with Stripe)
 - **AI**: OpenAI API (resume analysis, career coaching)
-- **Email**: SendGrid + Mailgun
+- **Email**: Mailgun
 
 ## Development Commands
 
@@ -46,7 +46,7 @@ Copy `.env.example` to `.env.local` and configure:
 **Optional:**
 - `OPENAI_API_KEY` (AI features)
 - `CLERK_WEBHOOK_SECRET` (Clerk webhooks for subscription sync)
-- `SENDGRID_API_KEY`, `MAILGUN_SENDING_API_KEY` (email)
+- `MAILGUN_SENDING_API_KEY` (email via Mailgun only)
 
 ⚠️ **Do not add Supabase or Stripe Payment Link variables** - project uses Clerk Billing.
 
