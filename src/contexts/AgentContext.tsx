@@ -45,6 +45,62 @@ function updateOrAppendToolCall(
   return [...existingCalls, newToolCall]
 }
 
+/**
+ * Process SSE stream from agent API
+ * Handles delta, tool, and error events with callbacks
+ */
+async function processSSEStream(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  callbacks: {
+    onDelta: (content: string) => void
+    onTool: (toolData: {
+      name: string
+      status?: 'pending' | 'running' | 'success' | 'error'
+      input?: Record<string, unknown>
+      output?: unknown
+      error?: string
+    }) => void
+    onError: (error: string) => void
+  }
+) {
+  const decoder = new TextDecoder()
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    const chunk = decoder.decode(value, { stream: true })
+    const lines = chunk.split('\n')
+
+    for (const line of lines) {
+      if (!line.trim() || !line.startsWith('data: ')) continue
+
+      const data = line.substring(6)
+      if (data === '[DONE]') continue
+
+      try {
+        const event: SSEEvent = JSON.parse(data)
+
+        if (event.type === 'delta') {
+          callbacks.onDelta((event.data as string) || '')
+        } else if (event.type === 'tool') {
+          callbacks.onTool(event.data as {
+            name: string
+            status?: 'pending' | 'running' | 'success' | 'error'
+            input?: Record<string, unknown>
+            output?: unknown
+            error?: string
+          })
+        } else if (event.type === 'error') {
+          callbacks.onError(event.data as string)
+        }
+      } catch (e) {
+        console.error('Failed to parse SSE event:', e)
+      }
+    }
+  }
+}
+
 const AgentContext = createContext<AgentContextType | undefined>(undefined)
 
 export function AgentProvider({ children }: { children: React.ReactNode }) {
@@ -159,73 +215,44 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
 
       // Process SSE stream
       const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
 
       if (!reader) {
         throw new Error('No response body')
       }
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
-
-        for (const line of lines) {
-          if (!line.trim() || !line.startsWith('data: ')) continue
-
-          const data = line.substring(6)
-          if (data === '[DONE]') continue
-
-          try {
-            const event: SSEEvent = JSON.parse(data)
-
-            if (event.type === 'delta') {
-              assistantContent += (event.data as string) || ''
-              setState((prev) => ({
-                ...prev,
-                messages: prev.messages.map((msg) =>
-                  msg.id === assistantMessageId
-                    ? { ...msg, content: assistantContent }
-                    : msg
-                ),
-              }))
-            } else if (event.type === 'tool') {
-              const toolData = event.data as {
-                name: string
-                status?: 'pending' | 'running' | 'success' | 'error'
-                input?: Record<string, unknown>
-                output?: unknown
-                error?: string
-              }
-              setState((prev) => ({
-                ...prev,
-                messages: prev.messages.map((msg) =>
-                  msg.id === assistantMessageId
-                    ? {
-                        ...msg,
-                        toolCalls: updateOrAppendToolCall(msg.toolCalls, toolData),
-                      }
-                    : msg
-                ),
-              }))
-            } else if (event.type === 'error') {
-              assistantContent += `\n\n[Error: ${event.data}]`
-              setState((prev) => ({
-                ...prev,
-                messages: prev.messages.map((msg) =>
-                  msg.id === assistantMessageId
-                    ? { ...msg, content: assistantContent }
-                    : msg
-                ),
-              }))
-            }
-          } catch (e) {
-            console.error('Failed to parse SSE event:', e)
-          }
-        }
-      }
+      await processSSEStream(reader, {
+        onDelta: (content) => {
+          assistantContent += content
+          setState((prev) => ({
+            ...prev,
+            messages: prev.messages.map((msg) =>
+              msg.id === assistantMessageId ? { ...msg, content: assistantContent } : msg
+            ),
+          }))
+        },
+        onTool: (toolData) => {
+          setState((prev) => ({
+            ...prev,
+            messages: prev.messages.map((msg) =>
+              msg.id === assistantMessageId
+                ? {
+                    ...msg,
+                    toolCalls: updateOrAppendToolCall(msg.toolCalls, toolData),
+                  }
+                : msg
+            ),
+          }))
+        },
+        onError: (error) => {
+          assistantContent += `\n\n[Error: ${error}]`
+          setState((prev) => ({
+            ...prev,
+            messages: prev.messages.map((msg) =>
+              msg.id === assistantMessageId ? { ...msg, content: assistantContent } : msg
+            ),
+          }))
+        },
+      })
     } catch (error) {
       console.error('Agent message error:', error)
       const isTimeout = error instanceof Error && error.name === 'AbortError'
