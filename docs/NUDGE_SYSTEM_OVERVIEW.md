@@ -479,7 +479,8 @@ npx ts-node scripts/test-nudge-system.ts <userId>
 - Hourly sweep processes only urgent rules (lightweight)
 - Daily sweep can be heavy with many users (monitor execution time)
 
-**Performance Bottleneck #1: Loading All Users into Memory**
+### Performance Bottleneck #1: Loading All Users into Memory
+
 - `getEligibleUsers()` loads entire users table with `.collect()`
 - **Current capacity**: Acceptable for <1000 total users (~1MB memory, ~100ms query)
 - **Critical threshold**: Performance degrades beyond 2000 users
@@ -490,9 +491,9 @@ npx ts-node scripts/test-nudge-system.ts <userId>
 - **Optimization approach**:
   - Query `agent_preferences` table instead (smaller, filtered dataset)
   - Use index-based filtering to push logic to database layer
-  - Implement cursor-based pagination for very large datasets
+  - Implement cursor-based pagination for large datasets
+### Performance Bottleneck #2: Serial User Processing
 
-**Performance Bottleneck #2: Serial User Processing**
 - Each eligible user is processed one-by-one in a for loop
 - **Current capacity**: Acceptable for <500 active users (~100 seconds)
 - **Convex action timeout**: 10 minutes (plenty of headroom)
@@ -500,6 +501,7 @@ npx ts-node scripts/test-nudge-system.ts <userId>
 - **Optimization approach**:
   - Batch users into groups of 50-100
   - Process batches with Promise.all() for parallelization
+  - Monitor execution time via admin dashboard or Convex logs
   - Monitor execution time via admin dashboard or Convex logs
 
 ### Email Delivery

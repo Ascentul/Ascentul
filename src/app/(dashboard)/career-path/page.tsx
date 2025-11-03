@@ -106,6 +106,11 @@ const GrowthIndicators: Record<
     text: "High Growth",
     color: "text-green-500",
   },
+  stable: {
+    icon: <Sparkles className="h-4 w-4" />,
+    text: "Stable Growth",
+    color: "text-gray-500",
+  },
 };
 
 const iconSize = "h-6 w-6 text-primary";
@@ -157,7 +162,14 @@ function hydratePath(raw: any): CareerPath | null {
       level: n.level,
       salaryRange: String(n.salaryRange || ""),
       yearsExperience: String(n.yearsExperience || ""),
-      skills: Array.isArray(n.skills) ? n.skills : [],
+      skills: Array.isArray(n.skills)
+        ? n.skills.map((skill: any) =>
+            // Handle both string skills (from agent) and object skills (from manual generation)
+            typeof skill === 'string'
+              ? { name: skill, level: 'intermediate' as const }
+              : skill
+          )
+        : [],
       description: String(n.description || ""),
       growthPotential: n.growthPotential,
       icon: getIconComponent(n.icon),
@@ -312,6 +324,10 @@ export default function CareerPathPage() {
   const { user: authUser, hasPremium } = useAuth();
   const isFreeUser = !hasPremium; // Use Clerk Billing subscription check
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Track if we're loading an agent-generated path to prevent conflicts
+  const hasAgentPath = useRef(false);
+
   const [explorationMode, setExplorationMode] = useState<
     "target" | "profile" | "saved"
   >(() => {
@@ -329,6 +345,92 @@ export default function CareerPathPage() {
       localStorage.setItem("careerExplorationMode", explorationMode);
     } catch {}
   }, [explorationMode]);
+
+  // Handle incoming career path from agent chat
+  useEffect(() => {
+    try {
+      const agentDataStr = localStorage.getItem('agent_career_path');
+      if (!agentDataStr) return;
+
+      console.log('[CareerPath] Processing agent career path from localStorage');
+      hasAgentPath.current = true; // Mark that we have an agent path
+
+      const agentData = JSON.parse(agentDataStr);
+      const { careerPath, selectedNodeIndex } = agentData;
+
+      // Validate the data
+      if (!careerPath?.nodes || !Array.isArray(careerPath.nodes)) {
+        console.log('[CareerPath] Invalid career path data');
+        hasAgentPath.current = false;
+        return;
+      }
+
+      // Ensure nodes have IDs before hydrating
+      const pathWithIds = {
+        ...careerPath,
+        id: careerPath.id || 'agent-path',
+        nodes: careerPath.nodes.map((node: any, idx: number) => ({
+          ...node,
+          id: node.id || `agent-node-${idx}`,
+        })),
+      };
+
+      // Hydrate the career path (convert icon strings to JSX)
+      const hydratedPath = hydratePath(pathWithIds);
+      if (!hydratedPath) {
+        console.log('[CareerPath] Failed to hydrate path');
+        hasAgentPath.current = false;
+        return;
+      }
+
+      console.log('[CareerPath] Setting active path and selected node:', {
+        pathName: hydratedPath.name,
+        nodeCount: hydratedPath.nodes.length,
+        selectedNodeIndex,
+      });
+
+      // Set the active path
+      setActivePath(hydratedPath);
+      setGeneratedPath(hydratedPath);
+
+      // Select the specific node that was clicked
+      // Use setTimeout to ensure state updates are processed
+      if (typeof selectedNodeIndex === 'number' && hydratedPath.nodes[selectedNodeIndex]) {
+        const selectedNode = hydratedPath.nodes[selectedNodeIndex];
+        console.log('[CareerPath] Selecting node:', selectedNode.id, selectedNode.title);
+
+        setTimeout(async () => {
+          setSelectedNodeId(selectedNode.id);
+          setDrawerOpen(true);
+          console.log('[CareerPath] Drawer should be open now');
+
+          // Fetch certifications for this node
+          try {
+            setIsLoadingCerts(true);
+            const res = await apiRequest("POST", "/api/career-certifications", {
+              role: selectedNode.title,
+              level: selectedNode.level,
+              skills: selectedNode.skills,
+            });
+            const data = await res.json();
+            if (Array.isArray(data?.certifications)) {
+              setRoleCerts((prev) => ({ ...prev, [selectedNode.id]: data.certifications }));
+            }
+          } catch (e) {
+            console.error('[CareerPath] Failed to load certifications:', e);
+          } finally {
+            setIsLoadingCerts(false);
+          }
+        }, 100);
+      }
+
+      // Clean up localStorage after processing
+      localStorage.removeItem('agent_career_path');
+    } catch (error) {
+      console.error('Failed to process agent career path:', error);
+      hasAgentPath.current = false;
+    }
+  }, []); // Run once on mount
 
   // Profile data (for profile-based generation)
   const { data: careerProfileData } = useQuery<any>({
@@ -380,10 +482,19 @@ export default function CareerPathPage() {
   const [editingValue, setEditingValue] = useState<string>("");
 
   // Restore previously generated path and job title on initial load
+  // NOTE: This runs AFTER the agent career path useEffect, and only sets the path if
+  // the agent didn't already set one (to avoid overriding agent-generated paths)
   useEffect(() => {
     try {
+      // Skip if we loaded an agent path
+      if (hasAgentPath.current) {
+        console.log('[CareerPath] Skipping path restoration - agent path loaded');
+        return;
+      }
+
       const raw = localStorage.getItem(LS_KEYS.path);
       if (raw) {
+        console.log('[CareerPath] Restoring previous path from localStorage');
         const parsed = JSON.parse(raw);
         const hydrated = hydratePath(parsed);
         if (hydrated) {
@@ -1143,15 +1254,17 @@ export default function CareerPathPage() {
                         Experience: {node.yearsExperience}
                       </div>
                     </div>
-                    <div
-                      className={cn(
-                        "flex items-center gap-1 text-xs mt-3",
-                        GrowthIndicators[node.growthPotential].color,
-                      )}
-                    >
-                      {GrowthIndicators[node.growthPotential].icon}
-                      {GrowthIndicators[node.growthPotential].text}
-                    </div>
+                    {node.growthPotential && GrowthIndicators[node.growthPotential] && (
+                      <div
+                        className={cn(
+                          "flex items-center gap-1 text-xs mt-3",
+                          GrowthIndicators[node.growthPotential].color,
+                        )}
+                      >
+                        {GrowthIndicators[node.growthPotential].icon}
+                        {GrowthIndicators[node.growthPotential].text}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
                 {idx < activePath.nodes.length - 1 && (
@@ -1223,15 +1336,17 @@ export default function CareerPathPage() {
                             Experience: {node.yearsExperience}
                           </div>
                         </div>
-                        <div
-                          className={cn(
-                            "flex items-center gap-1 text-xs mt-3",
-                            GrowthIndicators[node.growthPotential].color,
-                          )}
-                        >
-                          {GrowthIndicators[node.growthPotential].icon}
-                          {GrowthIndicators[node.growthPotential].text}
-                        </div>
+                        {node.growthPotential && GrowthIndicators[node.growthPotential] && (
+                          <div
+                            className={cn(
+                              "flex items-center gap-1 text-xs mt-3",
+                              GrowthIndicators[node.growthPotential].color,
+                            )}
+                          >
+                            {GrowthIndicators[node.growthPotential].icon}
+                            {GrowthIndicators[node.growthPotential].text}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                     {idx < activePath.nodes.length - 1 && (

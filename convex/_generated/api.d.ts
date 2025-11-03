@@ -16,6 +16,7 @@ import type {
 import type * as achievements from "../achievements.js";
 import type * as admin_users from "../admin_users.js";
 import type * as agent from "../agent.js";
+import type * as agent_preferences from "../agent_preferences.js";
 import type * as ai_coach from "../ai_coach.js";
 import type * as analytics from "../analytics.js";
 import type * as applications from "../applications.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   achievements: typeof achievements;
   admin_users: typeof admin_users;
   agent: typeof agent;
+  agent_preferences: typeof agent_preferences;
   ai_coach: typeof ai_coach;
   analytics: typeof analytics;
   applications: typeof applications;

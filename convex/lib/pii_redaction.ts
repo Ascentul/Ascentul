@@ -290,6 +290,7 @@ export function capPayloadSize(payload: unknown, maxSize: number = MAX_PAYLOAD_S
     return {
       _error: true,
       _message: 'Failed to serialize payload',
+      _error_details: error instanceof Error ? error.message : 'Unknown error',
     }
   }
 }

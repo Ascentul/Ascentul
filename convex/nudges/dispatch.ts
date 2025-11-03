@@ -5,7 +5,7 @@
  * (in-app, email, push) based on user preferences
  */
 
-import { mutation, action } from '../_generated/server'
+import { mutation, query, action } from '../_generated/server'
 import { v } from 'convex/values'
 import { api } from '../_generated/api'
 import { Id } from '../_generated/dataModel'
@@ -280,15 +280,25 @@ async function sendPushNudge(ctx: any, nudge: any): Promise<void> {
 export const acceptNudge = mutation({
   args: {
     nudgeId: v.id('agent_nudges'),
-    userId: v.id('users'),
+    clerkId: v.string(),
   },
   handler: async (ctx, args) => {
+    // Look up the user by Clerk ID
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
+      .unique()
+
+    if (!user) {
+      throw new Error('User not found')
+    }
+
     const nudge = await ctx.db.get(args.nudgeId)
     if (!nudge) {
       throw new Error('Nudge not found')
     }
 
-    if (nudge.user_id !== args.userId) {
+    if (nudge.user_id !== user._id) {
       throw new Error('Unauthorized')
     }
 
@@ -302,7 +312,7 @@ export const acceptNudge = mutation({
 
     // Log acceptance for metrics
     await ctx.db.insert('agent_audit_logs', {
-      user_id: args.userId,
+      user_id: user._id,
       action: 'nudge_accepted',
       tool_name: null,
       input: { nudgeId: args.nudgeId, ruleType: nudge.rule_type },
@@ -323,16 +333,26 @@ export const acceptNudge = mutation({
 export const snoozeNudge = mutation({
   args: {
     nudgeId: v.id('agent_nudges'),
-    userId: v.id('users'),
+    clerkId: v.string(),
     snoozeUntil: v.number(),
   },
   handler: async (ctx, args) => {
+    // Look up the user by Clerk ID
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
+      .unique()
+
+    if (!user) {
+      throw new Error('User not found')
+    }
+
     const nudge = await ctx.db.get(args.nudgeId)
     if (!nudge) {
       throw new Error('Nudge not found')
     }
 
-    if (nudge.user_id !== args.userId) {
+    if (nudge.user_id !== user._id) {
       throw new Error('Unauthorized')
     }
 
@@ -346,7 +366,7 @@ export const snoozeNudge = mutation({
 
     // Log snooze for metrics
     await ctx.db.insert('agent_audit_logs', {
-      user_id: args.userId,
+      user_id: user._id,
       action: 'nudge_snoozed',
       tool_name: null,
       input: { nudgeId: args.nudgeId, snoozeUntil: args.snoozeUntil },
@@ -364,15 +384,25 @@ export const snoozeNudge = mutation({
 export const dismissNudge = mutation({
   args: {
     nudgeId: v.id('agent_nudges'),
-    userId: v.id('users'),
+    clerkId: v.string(),
   },
   handler: async (ctx, args) => {
+    // Look up the user by Clerk ID
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
+      .unique()
+
+    if (!user) {
+      throw new Error('User not found')
+    }
+
     const nudge = await ctx.db.get(args.nudgeId)
     if (!nudge) {
       throw new Error('Nudge not found')
     }
 
-    if (nudge.user_id !== args.userId) {
+    if (nudge.user_id !== user._id) {
       throw new Error('Unauthorized')
     }
 
@@ -386,7 +416,7 @@ export const dismissNudge = mutation({
 
     // Log dismissal for metrics
     await ctx.db.insert('agent_audit_logs', {
-      user_id: args.userId,
+      user_id: user._id,
       action: 'nudge_dismissed',
       tool_name: null,
       input: { nudgeId: args.nudgeId, ruleType: nudge.rule_type },
@@ -401,55 +431,27 @@ export const dismissNudge = mutation({
 /**
  * Get pending nudges for a user (for in-app display)
  */
-export const getPendingNudges = mutation({
+export const getPendingNudges = query({
   args: {
-    userId: v.id('users'),
+    clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    const now = Date.now()
+    // First, look up the Convex user by Clerk ID
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
+      .unique()
 
-    // Get pending nudges
-    const pending = await ctx.db
-      .query('agent_nudges')
-      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
-      .filter((q) => q.eq(q.field('status'), 'pending'))
-      .order('desc') // Most recent first
-      .collect()
-
-    // Get snoozed nudges that are ready to re-appear
-    const snoozed = await ctx.db
-      .query('agent_nudges')
-      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
-      .filter((q) =>
-        q.and(
-          q.eq(q.field('status'), 'snoozed'),
-          q.lt(q.field('snoozed_until'), now)
-        )
-      )
-      .collect()
-
-    // Reset snoozed nudges back to pending status
-    // This ensures downstream logic handles them correctly
-    for (const nudge of snoozed) {
-      await ctx.db.patch(nudge._id, {
-        status: 'pending',
-        snoozed_until: undefined,
-        updated_at: now,
-      })
+    if (!user) {
+      return []
     }
 
-    // Update the snoozed nudges in-memory to reflect the status change
-    const resetNudges = snoozed.map(nudge => ({
-      ...nudge,
-      status: 'pending' as const,
-      snoozed_until: undefined,
-      updated_at: now,
-    }))
-
-    // Combine and sort by score
-    const allNudges = [...pending, ...resetNudges]
-    allNudges.sort((a, b) => b.score - a.score)
-
-    return allNudges
+    // Then query nudges for that user
+    return await ctx.db
+      .query('agent_nudges')
+      .withIndex('by_user_status', (q) =>
+        q.eq('user_id', user._id).eq('status', 'pending')
+      )
+      .collect()
   },
 })

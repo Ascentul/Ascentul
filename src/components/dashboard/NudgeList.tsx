@@ -21,7 +21,7 @@ interface NudgeListProps {
 }
 
 export function NudgeList({ maxDisplay, showHeader = true, compact = false }: NudgeListProps) {
-  const { nudges, stats, isLoading, actions } = useNudges()
+  const { nudges, isLoading, actions } = useNudges()
 
   if (isLoading) {
     return (
@@ -45,8 +45,7 @@ export function NudgeList({ maxDisplay, showHeader = true, compact = false }: Nu
               Career Suggestions
             </h2>
             <p className="text-muted-foreground text-sm mt-1">
-              {stats?.today.count || 0} suggestions today
-              {stats?.today.limit && ` (${stats.today.remaining} remaining)`}
+              {nudges.length} pending suggestion{nudges.length !== 1 ? 's' : ''}
             </p>
           </div>
           <Button variant="outline" size="sm" asChild>
@@ -105,11 +104,6 @@ export function NudgeList({ maxDisplay, showHeader = true, compact = false }: Nu
         </>
       )}
 
-      {stats && nudges.length > 0 && (
-        <div className="text-xs text-muted-foreground text-center">
-          {stats.acceptanceRate}% acceptance rate this week
-        </div>
-      )}
     </div>
   )
 }

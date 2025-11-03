@@ -12,10 +12,20 @@ export function encodeSSE(event: SSEEvent): string {
 }
 
 /**
+ * Remove all asterisks from text to prevent markdown formatting
+ * This is a hard constraint: NEVER allow * or ** in agent output
+ */
+function stripAsterisks(text: string): string {
+  return text.replace(/\*/g, '')
+}
+
+/**
  * Send a delta (streaming text chunk) event
+ * IMPORTANT: All text is stripped of asterisks before sending
  */
 export function sendDelta(text: string): string {
-  return encodeSSE({ type: 'delta', data: text })
+  const cleanedText = stripAsterisks(text)
+  return encodeSSE({ type: 'delta', data: cleanedText })
 }
 
 /**

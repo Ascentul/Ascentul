@@ -285,6 +285,8 @@ async function executeTool(
         url: input.url as string | undefined,
         notes: input.notes as string | undefined,
         applied_at: input.applied_at as number | undefined,
+        resume_id: input.resume_id as Id<'resumes'> | undefined,
+        cover_letter_id: input.cover_letter_id as Id<'cover_letters'> | undefined,
       })
 
     case 'delete_application':
@@ -293,25 +295,390 @@ async function executeTool(
         applicationId: input.applicationId as Id<'applications'>,
       })
 
-    case 'generate_career_path':
-      // Career path generation calls the existing Convex function
-      return await convex.mutation(api.career_paths.createCareerPath, {
+    case 'create_interview_stage': {
+      const applicationId = input.applicationId as Id<'applications'>
+      const title = input.title as string
+      const scheduled_at = input.scheduled_at as number | undefined
+      const location = input.location as string | undefined
+      const notes = input.notes as string | undefined
+
+      try {
+        const stageId = await convex.mutation(api.interviews.createStage, {
+          clerkId,
+          applicationId,
+          title,
+          scheduled_at,
+          location,
+          notes,
+        })
+
+        return {
+          success: true,
+          message: `Interview stage "${title}" created successfully${scheduled_at ? ' and scheduled' : ''}.`,
+          stageId,
+        }
+      } catch (error: any) {
+        console.error('[Agent] Create interview stage error:', error)
+        return {
+          success: false,
+          error: `Failed to create interview stage: ${error.message || 'Unknown error'}`,
+        }
+      }
+    }
+
+    case 'update_interview_stage': {
+      const stageId = input.stageId as Id<'interview_stages'>
+      const updates: any = {}
+
+      if (input.title !== undefined) updates.title = input.title as string
+      if (input.scheduled_at !== undefined) updates.scheduled_at = input.scheduled_at as number
+      if (input.location !== undefined) updates.location = input.location as string
+      if (input.notes !== undefined) updates.notes = input.notes as string
+      if (input.outcome !== undefined) updates.outcome = input.outcome as 'pending' | 'scheduled' | 'passed' | 'failed'
+
+      try {
+        await convex.mutation(api.interviews.updateStage, {
+          clerkId,
+          stageId,
+          updates,
+        })
+
+        return {
+          success: true,
+          message: `Interview stage updated successfully${updates.outcome ? ` to ${updates.outcome}` : ''}.`,
+          stageId,
+        }
+      } catch (error: any) {
+        console.error('[Agent] Update interview stage error:', error)
+        return {
+          success: false,
+          error: `Failed to update interview stage: ${error.message || 'Unknown error'}`,
+        }
+      }
+    }
+
+    case 'create_followup': {
+      const applicationId = input.applicationId as Id<'applications'>
+      const description = input.description as string
+      const due_date = input.due_date as number | undefined
+      const notes = input.notes as string | undefined
+      const type = input.type as string | undefined
+
+      try {
+        const followupId = await convex.mutation(api.followups.createFollowup, {
+          clerkId,
+          applicationId,
+          description,
+          due_date,
+          notes,
+          type,
+        })
+
+        return {
+          success: true,
+          message: `Follow-up task created: "${description}"${due_date ? ' with due date' : ''}.`,
+          followupId,
+        }
+      } catch (error: any) {
+        console.error('[Agent] Create followup error:', error)
+        return {
+          success: false,
+          error: `Failed to create follow-up: ${error.message || 'Unknown error'}`,
+        }
+      }
+    }
+
+    case 'update_followup': {
+      const followupId = input.followupId as Id<'followup_actions'>
+      const updates: any = {}
+
+      if (input.description !== undefined) updates.description = input.description as string
+      if (input.due_date !== undefined) updates.due_date = input.due_date as number
+      if (input.notes !== undefined) updates.notes = input.notes as string
+      if (input.type !== undefined) updates.type = input.type as string
+      if (input.completed !== undefined) updates.completed = input.completed as boolean
+
+      try {
+        await convex.mutation(api.followups.updateFollowup, {
+          clerkId,
+          followupId,
+          updates,
+        })
+
+        return {
+          success: true,
+          message: `Follow-up task updated${updates.completed ? ' and marked as completed' : ''}.`,
+          followupId,
+        }
+      } catch (error: any) {
+        console.error('[Agent] Update followup error:', error)
+        return {
+          success: false,
+          error: `Failed to update follow-up: ${error.message || 'Unknown error'}`,
+        }
+      }
+    }
+
+    case 'generate_career_path': {
+      // Career path generation - generate detailed path using OpenAI directly
+      const targetRole = input.targetRole as string
+      const currentRole = input.currentRole as string | undefined
+
+      try {
+        // Fetch user profile for AI generation
+        const profile = await convex.query(api.users.getUserByClerkId, { clerkId })
+
+        if (!profile) {
+          throw new Error('User profile not found')
+        }
+
+        // Build profile context for OpenAI prompt
+        const profileContext: string[] = []
+        if (currentRole || profile.current_position) {
+          profileContext.push(`Current role: ${currentRole || profile.current_position}`)
+        }
+        if (profile.skills) profileContext.push(`Skills: ${profile.skills}`)
+        if (profile.industry) profileContext.push(`Industry: ${profile.industry}`)
+        if (profile.experience_level) profileContext.push(`Experience level: ${profile.experience_level}`)
+        if (profile.bio) profileContext.push(`Background: ${profile.bio}`)
+
+        // Generate career path using OpenAI
+        const prompt = `Create a detailed career progression path for someone aiming to become a ${targetRole}.
+
+${profileContext.length > 0 ? `Candidate Profile:\n${profileContext.join('\n')}\n` : ''}
+Generate a career path with 4-6 progressive stages from entry-level to the target role. For each stage, provide:
+
+1. **title**: The job title for this stage
+2. **level**: One of: entry, mid, senior, lead, executive
+3. **yearsExperience**: Years of experience typically required (e.g., "0-2", "3-5", "5-8")
+4. **salaryRange**: Realistic salary range (e.g., "$60K-$80K", "$100K-$130K")
+5. **skills**: Array of 5-7 key technical and soft skills required
+6. **description**: 2-3 sentence description of responsibilities and growth
+7. **growthPotential**: One of: high, medium, stable
+
+Return ONLY valid JSON in this exact format:
+{
+  "name": "${targetRole}",
+  "description": "Brief description of this career path",
+  "nodes": [
+    {
+      "title": "Job Title",
+      "level": "entry|mid|senior|lead|executive",
+      "yearsExperience": "0-2",
+      "salaryRange": "$60K-$80K",
+      "skills": ["Skill 1", "Skill 2", "Skill 3"],
+      "description": "Role description and responsibilities",
+      "growthPotential": "high|medium|stable",
+      "icon": "briefcase"
+    }
+  ]
+}`
+
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          temperature: 0.7,
+          max_tokens: 2000,
+          messages: [
+            { role: 'system', content: 'You are a career development expert. Respond only with valid JSON.' },
+            { role: 'user', content: prompt }
+          ]
+        })
+
+        const content = completion.choices[0]?.message?.content || ''
+        let careerPath: any
+
+        try {
+          careerPath = JSON.parse(content)
+        } catch (parseError) {
+          console.error('[Agent] Failed to parse OpenAI response:', content)
+          throw new Error('Failed to generate career path structure')
+        }
+
+        // Validate the response has required structure
+        if (!careerPath.nodes || !Array.isArray(careerPath.nodes) || careerPath.nodes.length === 0) {
+          throw new Error('Invalid career path structure from AI')
+        }
+
+        // Save to database with full career path data
+        const steps = {
+          source: 'agent_chat',
+          path: careerPath,
+          generatedAt: Date.now(),
+        }
+
+        const savedPath = await convex.mutation(api.career_paths.createCareerPath, {
+          clerkId,
+          target_role: targetRole,
+          current_level: currentRole,
+          estimated_timeframe: undefined,
+          steps,
+          status: 'active',
+        })
+
+        return {
+          success: true,
+          type: 'career_path',
+          message: `Created a detailed career path to ${targetRole} with ${careerPath.nodes.length} career stages.`,
+          pathId: savedPath._id,
+          careerPath: {
+            name: careerPath.name,
+            description: careerPath.description,
+            nodes: careerPath.nodes,
+          },
+          stages: careerPath.nodes.length,
+          preview: careerPath.nodes.map((n: any) => `${n.title} (${n.level})`).join(' → ')
+        }
+      } catch (error) {
+        console.error('[Agent] Career path generation error:', error)
+
+        // Fallback to basic creation if OpenAI call fails
+        const steps = {
+          path: {
+            name: targetRole,
+            description: `Career path to become a ${targetRole}`,
+          },
+          milestones: [],
+          skills: [],
+          timeline: currentRole ? '2-3 years' : '3-5 years',
+        }
+
+        const fallbackPath = await convex.mutation(api.career_paths.createCareerPath, {
+          clerkId,
+          target_role: targetRole,
+          current_level: currentRole,
+          estimated_timeframe: steps.timeline,
+          steps,
+          status: 'planning',
+        })
+
+        return {
+          success: true,
+          message: `Created basic career path outline to ${targetRole}. You can view and expand it in the Career Path Explorer at /career-path.`,
+          pathId: fallbackPath._id,
+          fallback: true,
+        }
+      }
+    }
+
+    case 'generate_cover_letter': {
+      // Generate cover letter using AI with full user profile
+      const jobDescription = input.jobDescription as string
+      const companyName = input.company as string
+      const jobTitle = input.jobTitle as string
+
+      // Fetch comprehensive user profile
+      const profile = await convex.query(api.users.getUserByClerkId, { clerkId })
+      const projects = await convex.query(api.projects.getUserProjects, { clerkId }) || []
+
+      // Build detailed profile summary for AI
+      const profileSummary: string[] = []
+      if (profile) {
+        if (profile.current_position) profileSummary.push(`Current position: ${profile.current_position}`)
+        if (profile.current_company) profileSummary.push(`Current company: ${profile.current_company}`)
+        if (profile.industry) profileSummary.push(`Industry: ${profile.industry}`)
+        if (profile.experience_level) profileSummary.push(`Experience level: ${profile.experience_level}`)
+        if (profile.skills) profileSummary.push(`Skills: ${profile.skills}`)
+        if (profile.bio) profileSummary.push(`Bio: ${profile.bio}`)
+        if (profile.career_goals) profileSummary.push(`Career goals: ${profile.career_goals}`)
+
+        // Work history
+        if (profile.work_history && Array.isArray(profile.work_history) && profile.work_history.length > 0) {
+          profileSummary.push('\n--- Work History ---')
+          profile.work_history.forEach((job: any, idx: number) => {
+            profileSummary.push(`${idx + 1}. ${job.role || 'Role'} at ${job.company || 'Company'} (${job.start_date || 'N/A'} - ${job.is_current ? 'Present' : (job.end_date || 'N/A')})`)
+            if (job.summary) profileSummary.push(`   ${job.summary}`)
+          })
+        }
+
+        // Education history
+        if (profile.education_history && Array.isArray(profile.education_history) && profile.education_history.length > 0) {
+          profileSummary.push('\n--- Education ---')
+          profile.education_history.forEach((edu: any, idx: number) => {
+            profileSummary.push(`${idx + 1}. ${edu.degree || 'Degree'} in ${edu.field_of_study || 'Field'} - ${edu.school || 'School'}`)
+          })
+        }
+      }
+
+      // Add projects
+      if (projects.length > 0) {
+        profileSummary.push('\n--- Projects ---')
+        projects.slice(0, 5).forEach((project: any, idx: number) => {
+          profileSummary.push(`${idx + 1}. ${project.title}${project.description ? ': ' + project.description : ''}`)
+        })
+      }
+
+      const userProfileSummary = profileSummary.length ? profileSummary.join('\n') : 'No profile data available.'
+
+      // Generate with OpenAI
+      let content = ''
+      try {
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are a professional career coach and expert cover letter writer. Generate compelling, personalized cover letters that highlight relevant skills and experience."
+            },
+            {
+              role: "user",
+              content: `Create a cover letter for:
+
+Company: ${companyName}
+Role: ${jobTitle}
+Job Description: ${jobDescription}
+
+Candidate Profile:
+${userProfileSummary}
+
+Instructions:
+- Create a professional cover letter body (no greeting or signature lines)
+- Use specific examples from the candidate's profile
+- Highlight relevant experience, skills, and accomplishments
+- Show enthusiasm for the role and company
+- Keep it concise but compelling (300-400 words)
+- Start directly with the opening paragraph`
+            }
+          ],
+          max_tokens: 1500,
+          temperature: 0.7,
+        })
+        content = completion.choices[0]?.message?.content || ''
+      } catch (error) {
+        // Fallback to basic template
+        content = `Dear Hiring Manager,\n\nI am writing to express my strong interest in the ${jobTitle} position at ${companyName}.\n\n`
+        if (profile?.current_position) {
+          content += `Currently, I work as ${profile.current_position}${profile.current_company ? ` at ${profile.current_company}` : ''}. `
+        }
+        if (profile?.skills) {
+          content += `My key skills include ${profile.skills}. `
+        }
+        content += `\n\nI would welcome the opportunity to discuss how my background can contribute to ${companyName}'s success.\n\nSincerely,\n${profile?.name || 'Applicant'}`
+      }
+
+      // Save to database
+      const saved = await convex.mutation(api.cover_letters.createCoverLetter, {
         clerkId,
-        target_role: input.targetRole as string,
-        current_level: input.currentRole as string | undefined,
-        estimated_timeframe: undefined, // Will be calculated by the function
-        status: 'planning',
+        name: `Cover Letter - ${companyName} ${jobTitle}`,
+        job_title: jobTitle,
+        company_name: companyName,
+        template: 'standard',
+        content,
+        closing: 'Sincerely,',
+        source: 'ai_generated',
       })
 
-    case 'generate_cover_letter':
-      // Generate cover letter using existing function
-      return await convex.mutation(api.cover_letters.generateCoverLetterContent, {
-        clerkId,
-        job_description: input.jobDescription as string | undefined,
-        company_name: input.company as string,
-        job_title: input.jobTitle as string,
-        user_experience: undefined, // Will pull from user profile
-      })
+      // Create preview
+      const preview = content.slice(0, 450)
+      const truncated = content.length > 450
+
+      return {
+        success: true,
+        coverLetterId: saved._id,
+        content,
+        preview: `${preview}${truncated ? '...' : ''}`,
+        message: 'Cover letter generated with AI'
+      } as any // Type assertion needed for dynamic response
+    }
 
     case 'analyze_cover_letter':
       // Cover letter analysis - feature not yet implemented in existing codebase
@@ -350,6 +717,7 @@ async function executeTool(
           notes: input.notes as string | undefined,
           phone: input.phone as string | undefined,
           relationship: input.relationship as string | undefined,
+          last_contact: input.last_contact as number | undefined,
         },
       })
 
@@ -358,6 +726,46 @@ async function executeTool(
       return await convex.mutation(api.contacts.deleteContact, {
         clerkId,
         contactId: input.contactId as Id<'networking_contacts'>,
+      })
+
+    case 'log_contact_interaction':
+      // Log interaction with contact (creates interaction record + updates last_contact)
+      return await convex.mutation(api.contact_interactions.logInteraction, {
+        clerkId,
+        contactId: input.contactId as Id<'networking_contacts'>,
+        notes: input.notes as string | undefined,
+      })
+
+    case 'create_contact_followup':
+      // Create a follow-up task for a contact
+      return await convex.mutation(api.contact_interactions.createContactFollowup, {
+        clerkId,
+        contactId: input.contactId as Id<'networking_contacts'>,
+        type: input.type as string,
+        description: input.description as string,
+        due_date: input.due_date as number,
+        notes: input.notes as string | undefined,
+      })
+
+    case 'update_contact_followup':
+      // Update a follow-up task for a contact
+      return await convex.mutation(api.contact_interactions.updateContactFollowup, {
+        clerkId,
+        followupId: input.followupId as Id<'followup_actions'>,
+        updates: {
+          type: input.type as string | undefined,
+          description: input.description as string | undefined,
+          due_date: input.due_date as number | undefined,
+          completed: input.completed as boolean | undefined,
+          notes: input.notes as string | undefined,
+        },
+      })
+
+    case 'delete_contact_followup':
+      // Delete a follow-up task for a contact
+      return await convex.mutation(api.contact_interactions.deleteContactFollowup, {
+        clerkId,
+        followupId: input.followupId as Id<'followup_actions'>,
       })
 
     default:

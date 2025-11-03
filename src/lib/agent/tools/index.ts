@@ -298,7 +298,7 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'update_application',
       description:
-        'Update an existing job application. Use this when the user wants to change the status, add notes, or update details of an application. You must first use get_user_snapshot to find the application ID.',
+        'Update an existing job application. Use this when the user wants to change the status, add notes, attach a resume or cover letter, or update details of an application. You must first use get_user_snapshot to find the application ID and available resume/cover letter IDs.',
       parameters: {
         type: 'object',
         properties: {
@@ -335,6 +335,14 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
             type: 'number',
             description: 'Updated application submission date as Unix timestamp in milliseconds (optional)',
           },
+          resume_id: {
+            type: 'string',
+            description: 'ID of the resume to attach to this application (from get_user_snapshot resumes list) (optional)',
+          },
+          cover_letter_id: {
+            type: 'string',
+            description: 'ID of the cover letter to attach to this application (from get_user_snapshot cover_letters list) (optional)',
+          },
         },
         required: ['applicationId'],
       },
@@ -363,7 +371,7 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'generate_career_path',
       description:
-        'Generate a personalized career path roadmap based on target role, current skills, and experience. Returns step-by-step progression with required skills, certifications, and timeline.',
+        'Generate a personalized career path roadmap based on target role. IMPORTANT: Always use get_user_snapshot FIRST to retrieve the user\'s profile data (current position, skills, experience level, industry) - do NOT ask the user for this information. The career path will be automatically tailored using their existing profile.',
       parameters: {
         type: 'object',
         properties: {
@@ -373,7 +381,7 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
           },
           currentRole: {
             type: 'string',
-            description: 'Current job title or position (optional)',
+            description: 'DEPRECATED: Do not use. The user\'s current role will be pulled from get_user_snapshot automatically.',
           },
         },
         required: ['targetRole'],
@@ -479,7 +487,7 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'update_contact',
       description:
-        'Update an existing contact\'s information in the CRM. You must first use get_user_snapshot to find the contact ID.',
+        'Update an existing contact\'s information in the CRM (name, email, company, position, phone, notes, etc.). Do NOT use this for logging interactions - use log_contact_interaction instead. You must first use get_user_snapshot to find the contact ID.',
       parameters: {
         type: 'object',
         properties: {
@@ -519,6 +527,10 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
             type: 'string',
             description: 'Updated notes (optional)',
           },
+          last_contact: {
+            type: 'number',
+            description: 'Timestamp in milliseconds of last interaction with this contact. Use Date.now() to log current interaction. (optional)',
+          },
         },
         required: ['contactId'],
       },
@@ -542,6 +554,263 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'log_contact_interaction',
+      description:
+        'Log an interaction with a contact. This creates an interaction record that appears in the Interactions tab of the contact detail view. Use this when the user says "log interaction", "I met with", "I spoke with", or similar. You must first use get_user_snapshot to find the contact ID by name.',
+      parameters: {
+        type: 'object',
+        properties: {
+          contactId: {
+            type: 'string',
+            description: 'ID of the contact to log interaction for (from get_user_snapshot networking_contacts array)',
+          },
+          notes: {
+            type: 'string',
+            description: 'Notes about the interaction (optional)',
+          },
+        },
+        required: ['contactId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_contact_followup',
+      description:
+        'Create a follow-up task or reminder for a contact. Use this when the user wants to schedule a follow-up action with a contact (e.g., "remind me to follow up with John next week", "schedule a coffee chat with Sarah"). You must first use get_user_snapshot to find the contact ID by name.',
+      parameters: {
+        type: 'object',
+        properties: {
+          contactId: {
+            type: 'string',
+            description: 'ID of the contact to create follow-up for (from get_user_snapshot networking_contacts array)',
+          },
+          type: {
+            type: 'string',
+            description: 'Type of follow-up (e.g., "follow_up", "coffee_chat", "email", "call", "meeting")',
+          },
+          description: {
+            type: 'string',
+            description: 'Description of the follow-up task',
+          },
+          due_date: {
+            type: 'number',
+            description: 'Due date as Unix timestamp in milliseconds. Use Date.UTC() to convert dates.',
+          },
+          notes: {
+            type: 'string',
+            description: 'Additional notes about the follow-up (optional)',
+          },
+        },
+        required: ['contactId', 'type', 'description', 'due_date'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_contact_followup',
+      description:
+        'Update an existing follow-up task for a contact. Use this to mark a follow-up as completed, reschedule it, or change its details. You must first use get_user_snapshot to find the follow-up ID from the contact\'s followups array.',
+      parameters: {
+        type: 'object',
+        properties: {
+          followupId: {
+            type: 'string',
+            description: 'ID of the follow-up to update (from get_user_snapshot networking_contacts[].followups[].id)',
+          },
+          type: {
+            type: 'string',
+            description: 'Type of follow-up (optional)',
+          },
+          description: {
+            type: 'string',
+            description: 'Description of the follow-up task (optional)',
+          },
+          due_date: {
+            type: 'number',
+            description: 'Due date as Unix timestamp in milliseconds (optional)',
+          },
+          completed: {
+            type: 'boolean',
+            description: 'Whether the follow-up is completed (optional)',
+          },
+          notes: {
+            type: 'string',
+            description: 'Additional notes (optional)',
+          },
+        },
+        required: ['followupId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_contact_followup',
+      description:
+        'Delete a follow-up task for a contact. You must first use get_user_snapshot to find the follow-up ID from the contact\'s followups array.',
+      parameters: {
+        type: 'object',
+        properties: {
+          followupId: {
+            type: 'string',
+            description: 'ID of the follow-up to delete (from get_user_snapshot networking_contacts[].followups[].id)',
+          },
+        },
+        required: ['followupId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_interview_stage',
+      description:
+        'CRITICAL: Add an interview stage/event to a job application. Use this EXCLUSIVELY when the user explicitly says "interview", "phone screen", "technical interview", "on-site interview", "panel interview", or "final round". NEVER use this for: follow-up emails, reminders, checking status, sending thank you notes, or any other non-interview tasks. If the user says "follow up", "follow-up", "reminder", "check on", or "reach out" - DO NOT use this tool. Use create_followup instead. You must first use get_user_snapshot to find the application ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          applicationId: {
+            type: 'string',
+            description: 'The ID of the application to add the interview stage to (from get_user_snapshot)',
+          },
+          title: {
+            type: 'string',
+            description: 'Interview stage title (e.g., "Phone Screen", "Technical Interview", "On-Site Interview", "Final Round")',
+          },
+          scheduled_at: {
+            type: 'number',
+            description: 'Scheduled date and time as Unix timestamp in milliseconds. Use Date.UTC() to convert dates. (optional)',
+          },
+          location: {
+            type: 'string',
+            description: 'Interview location or platform (e.g., "Phone", "Zoom", "Google Meet", "Company Office") (optional)',
+          },
+          notes: {
+            type: 'string',
+            description: 'Additional notes about the interview (optional)',
+          },
+        },
+        required: ['applicationId', 'title'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_interview_stage',
+      description:
+        'Update an existing interview stage for a job application. Use this when the user wants to change the status, reschedule, or modify details of an existing interview. You must first use get_user_snapshot to find the stage ID from the application\'s interview_stages array.',
+      parameters: {
+        type: 'object',
+        properties: {
+          stageId: {
+            type: 'string',
+            description: 'The ID of the interview stage to update (from get_user_snapshot in application.interview_stages)',
+          },
+          title: {
+            type: 'string',
+            description: 'Updated interview stage title (optional)',
+          },
+          scheduled_at: {
+            type: 'number',
+            description: 'Updated scheduled date and time as Unix timestamp in milliseconds. Use Date.UTC() to convert dates. (optional)',
+          },
+          location: {
+            type: 'string',
+            description: 'Updated interview location or platform (optional)',
+          },
+          notes: {
+            type: 'string',
+            description: 'Updated notes about the interview (optional)',
+          },
+          outcome: {
+            type: 'string',
+            enum: ['pending', 'scheduled', 'passed', 'failed'],
+            description: 'Interview outcome status: "pending" (not yet scheduled), "scheduled" (confirmed), "passed" (successful), "failed" (unsuccessful) (optional)',
+          },
+        },
+        required: ['stageId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_followup',
+      description:
+        'Create a follow-up task or reminder for a job application. Use this for general reminders, tasks, and follow-ups that are NOT interviews (e.g., "follow up email", "check application status", "send thank you note", "reach out to recruiter", "update resume for this role"). This is for action items and reminders, NOT for scheduled interviews. For interviews, use create_interview_stage instead. You must first use get_user_snapshot to find the application ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          applicationId: {
+            type: 'string',
+            description: 'The ID of the application to create a follow-up for (from get_user_snapshot)',
+          },
+          description: {
+            type: 'string',
+            description: 'Brief description of the follow-up task (e.g., "Send follow-up email", "Check application status", "Send thank you note")',
+          },
+          due_date: {
+            type: 'number',
+            description: 'Due date for the follow-up as Unix timestamp in milliseconds. Use Date.UTC() to convert dates. (optional)',
+          },
+          notes: {
+            type: 'string',
+            description: 'Additional notes or details about the follow-up task (optional)',
+          },
+          type: {
+            type: 'string',
+            description: 'Type of follow-up (e.g., "follow_up", "reminder", "thank_you") - defaults to "follow_up" (optional)',
+          },
+        },
+        required: ['applicationId', 'description'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_followup',
+      description:
+        'Update or complete an existing follow-up task for a job application. Use this when the user wants to mark a follow-up as complete, change its description, update due date, or modify notes. You must first use get_user_snapshot to find the follow-up ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          followupId: {
+            type: 'string',
+            description: 'The ID of the follow-up task to update (from get_user_snapshot)',
+          },
+          description: {
+            type: 'string',
+            description: 'Updated description of the follow-up task (optional)',
+          },
+          due_date: {
+            type: 'number',
+            description: 'Updated due date as Unix timestamp in milliseconds (optional)',
+          },
+          notes: {
+            type: 'string',
+            description: 'Updated notes (optional)',
+          },
+          type: {
+            type: 'string',
+            description: 'Updated type (e.g., "follow_up", "reminder", "thank_you") (optional)',
+          },
+          completed: {
+            type: 'boolean',
+            description: 'Mark follow-up as completed (true) or incomplete (false) (optional)',
+          },
+        },
+        required: ['followupId'],
+      },
+    },
+  },
 ]
 
 /**
@@ -559,12 +828,20 @@ export type ToolName =
   | 'create_application'
   | 'update_application'
   | 'delete_application'
+  | 'create_interview_stage'
+  | 'update_interview_stage'
+  | 'create_followup'
+  | 'update_followup'
   | 'generate_career_path'
   | 'generate_cover_letter'
   | 'analyze_cover_letter'
   | 'create_contact'
   | 'update_contact'
   | 'delete_contact'
+  | 'log_contact_interaction'
+  | 'create_contact_followup'
+  | 'update_contact_followup'
+  | 'delete_contact_followup'
 
 /**
  * Tool execution result type

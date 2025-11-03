@@ -2,8 +2,7 @@
 
 import React, { useEffect, useRef } from 'react'
 import { Card } from '@/components/ui/card'
-import { Avatar } from '@/components/ui/avatar'
-import { User, Bot, AlertCircle, WifiOff, Clock, AlertTriangle } from 'lucide-react'
+import { Bot, AlertCircle, WifiOff, Clock, AlertTriangle } from 'lucide-react'
 import { ToolStepCard } from './ToolStepCard'
 import type { AgentMessage } from '@/lib/agent/types'
 
@@ -176,26 +175,13 @@ export function ChatStream({ messages, isStreaming }: ChatStreamProps) {
       {messages.map((message) => (
         <div
           key={message.id}
-          className={`flex gap-3 ${
+          className={`flex ${
             message.role === 'user' ? 'justify-end' : 'justify-start'
           }`}
           role="article"
           aria-label={`${message.role === 'user' ? 'Your' : 'Assistant'} message`}
         >
-          {message.role === 'assistant' && (
-            <Avatar
-              className="h-8 w-8 bg-primary flex items-center justify-center flex-shrink-0"
-              aria-label="AI Assistant"
-            >
-              <Bot className="h-5 w-5 text-white" />
-            </Avatar>
-          )}
-
-          <div
-            className={`flex-1 max-w-[85%] ${
-              message.role === 'user' ? 'flex justify-end' : ''
-            }`}
-          >
+          <div className={`max-w-[90%] ${message.role === 'user' ? 'flex justify-end' : ''}`}>
             {message.role === 'user' ? (
               <Card className="bg-primary text-white p-3 rounded-2xl">
                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -215,36 +201,8 @@ export function ChatStream({ messages, isStreaming }: ChatStreamProps) {
               </div>
             )}
           </div>
-
-          {message.role === 'user' && (
-            <Avatar
-              className="h-8 w-8 bg-gray-300 flex items-center justify-center flex-shrink-0"
-              aria-label="You"
-            >
-              <User className="h-5 w-5 text-gray-700" />
-            </Avatar>
-          )}
         </div>
       ))}
-
-      {/* Typing indicator */}
-      {isStreaming && (
-        <div className="flex gap-3 justify-start" role="status" aria-label="Assistant is typing">
-          <Avatar
-            className="h-8 w-8 bg-primary flex items-center justify-center flex-shrink-0"
-            aria-label="AI Assistant"
-          >
-            <Bot className="h-5 w-5 text-white" />
-          </Avatar>
-          <Card className="bg-gray-50 p-3 rounded-2xl">
-            <div className="flex gap-1" aria-hidden="true">
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
-            </div>
-          </Card>
-        </div>
-      )}
 
       <div ref={messagesEndRef} />
     </div>

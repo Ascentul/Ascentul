@@ -154,11 +154,12 @@ async function getTodayNudgeCount(ctx: QueryCtx, userId: Id<'users'>): Promise<n
   const userTimezone = prefs?.timezone || 'UTC'
 
   // Calculate start of day (midnight) in user's timezone
-  // Proper timezone conversion: find UTC timestamp for midnight in user's timezone
+  // Strategy: Get current time components in user's timezone, calculate the offset
+  // from UTC, then apply that offset to midnight to get the UTC timestamp
   const now = new Date()
 
-  // Get current date/time components in user's timezone
-  const formatter = new Intl.DateTimeFormat('en-US', {
+  // Get all datetime parts for "now" in the user's timezone
+  const partsFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone: userTimezone,
     year: 'numeric',
     month: '2-digit',
@@ -166,47 +167,26 @@ async function getTodayNudgeCount(ctx: QueryCtx, userId: Id<'users'>): Promise<n
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: false
+    hour12: false,
   })
 
-  const parts = formatter.formatToParts(now)
+  // Create a reference point: what time is it "now" in the user's timezone?
+  const parts = partsFormatter.formatToParts(now)
   const year = parseInt(parts.find(p => p.type === 'year')!.value)
-  const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1 // JS months are 0-indexed
+  const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1
   const day = parseInt(parts.find(p => p.type === 'day')!.value)
+  const hour = parseInt(parts.find(p => p.type === 'hour')!.value)
+  const minute = parseInt(parts.find(p => p.type === 'minute')!.value)
+  const second = parseInt(parts.find(p => p.type === 'second')!.value)
 
-  // Calculate UTC offset for the user's timezone
-  // We compare the same moment in time formatted in both timezones
-  const utcFormatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'UTC',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  })
+  // Calculate offset: difference between UTC "now" and user timezone "now"
+  const nowUtc = now.getTime()
+  const nowInUserTz = Date.UTC(year, month, day, hour, minute, second)
+  const offset = nowUtc - nowInUserTz
 
-  // Parse formatted strings to get timestamps (in server's local timezone, but consistently)
-  const parseFormattedDate = (formatted: Intl.DateTimeFormatPart[]) => {
-    const y = parseInt(formatted.find(p => p.type === 'year')!.value)
-    const m = parseInt(formatted.find(p => p.type === 'month')!.value) - 1
-    const d = parseInt(formatted.find(p => p.type === 'day')!.value)
-    const h = parseInt(formatted.find(p => p.type === 'hour')!.value)
-    const min = parseInt(formatted.find(p => p.type === 'minute')!.value)
-    const s = parseInt(formatted.find(p => p.type === 'second')!.value)
-    return new Date(y, m, d, h, min, s).getTime()
-  }
-
-  const userParts = formatter.formatToParts(now)
-  const utcParts = utcFormatter.formatToParts(now)
-  const userParsed = parseFormattedDate(userParts)
-  const utcParsed = parseFormattedDate(utcParts)
-  const offset = utcParsed - userParsed
-
-  // Create midnight in user's timezone (in local server time), then adjust to UTC
-  const midnightLocal = new Date(year, month, day, 0, 0, 0, 0).getTime()
-  const startOfDayMs = midnightLocal + offset
+  // Apply offset to midnight in user's timezone to get UTC timestamp
+  const midnightInUserTz = Date.UTC(year, month, day, 0, 0, 0)
+  const startOfDayMs = midnightInUserTz + offset
 
   const todayNudges = await ctx.db
     .query('agent_nudges')

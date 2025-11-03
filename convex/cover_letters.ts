@@ -13,21 +13,51 @@ I am writing to express my strong interest in the ${jobTitle} position at ${comp
 /**
  * Helper function: Build experience section
  */
-function buildExperienceSection(currentPosition?: string, currentCompany?: string): string {
-  if (!currentPosition && !currentCompany) {
+function buildExperienceSection(workHistory?: Array<{
+  role?: string;
+  company?: string;
+  is_current?: boolean;
+  summary?: string;
+}>): string {
+  if (!workHistory || workHistory.length === 0) {
     return '\n\n';
   }
-  return `\n\nCurrently, I work as ${currentPosition || 'a professional'}${currentCompany ? ` at ${currentCompany}` : ''}. `;
+
+  // Find current position
+  const currentRole = workHistory.find(w => w.is_current);
+
+  if (currentRole && currentRole.role && currentRole.company) {
+    const summary = currentRole.summary ? ` ${currentRole.summary}` : '';
+    return `\n\nCurrently, I work as ${currentRole.role} at ${currentRole.company}.${summary} `;
+  }
+
+  // Fallback to most recent role
+  const recentRole = workHistory[0];
+  if (recentRole && recentRole.role && recentRole.company) {
+    const summary = recentRole.summary ? ` ${recentRole.summary}` : '';
+    return `\n\nMost recently, I worked as ${recentRole.role} at ${recentRole.company}.${summary} `;
+  }
+
+  return '\n\n';
 }
 
 /**
  * Helper function: Build skills section
  */
-function buildSkillsSection(skills?: string[]): string {
-  if (!skills || skills.length === 0) {
+function buildSkillsSection(skills?: string): string {
+  if (!skills || skills.trim().length === 0) {
     return '';
   }
-  return `My key skills include ${skills.slice(0, 5).join(', ')}, which align well with the requirements for this role.\n`;
+
+  // Parse comma-separated skills and take first 5
+  const skillsArray = skills.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+  if (skillsArray.length === 0) {
+    return '';
+  }
+
+  const topSkills = skillsArray.slice(0, 5);
+  return `My key skills include ${topSkills.join(', ')}, which align well with the requirements for this role.\n`;
 }
 
 /**
@@ -212,11 +242,11 @@ export const generateCoverLetterContent = mutation({
       throw new Error("User not found");
     }
 
-    // Create a basic cover letter with user's career data
-    // The user can then edit it or regenerate it with AI at /cover-letters
+    // Create a cover letter with user's complete career data
+    // Now uses work_history for accurate experience representation
     const content = [
       buildIntroSection(args.job_title, args.company_name),
-      buildExperienceSection(user.current_position, user.current_company),
+      buildExperienceSection(user.work_history),
       buildSkillsSection(user.skills),
       buildJobDescriptionSection(args.job_description, user.industry),
       buildClosingSection(args.company_name, user.name),
@@ -241,7 +271,7 @@ export const generateCoverLetterContent = mutation({
       success: true,
       coverLetterId,
       content,
-      message: `I've created a draft cover letter for the ${args.job_title} position at ${args.company_name}. You can now generate the full AI-powered version with your complete career profile, or edit this draft directly.`
+      message: `Cover letter created successfully. IMPORTANT: Display a preview using the 'content' field.`
     };
   },
 });

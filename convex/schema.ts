@@ -672,29 +672,31 @@ export default defineSchema({
   // AI Agent proactive nudges queue
   agent_nudges: defineTable({
     user_id: v.id("users"),
-    rule_id: v.string(),
-    priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-    title: v.string(),
-    message: v.string(),
-    actions: v.array(
-      v.object({
-        label: v.string(),
-        actionId: v.string(),
-        payload: v.any(),
-      })
-    ),
+    // Core nudge fields (rule-based system)
+    rule_type: v.string(), // Rule identifier (e.g., "interviewSoon", "appRescue")
+    score: v.number(), // Urgency/priority score
+    reason: v.string(), // Why this nudge was triggered
+    metadata: v.any(), // Additional context data
+    suggested_action: v.optional(v.string()), // Action text
+    action_url: v.optional(v.string()), // Deep link or URL
+    channel: v.string(), // Delivery channel (e.g., "inApp", "email")
+    // Status tracking
     status: v.union(
-      v.literal("queued"),
-      v.literal("sent"),
+      v.literal("pending"),
       v.literal("accepted"),
       v.literal("snoozed"),
-      v.literal("ignored")
+      v.literal("dismissed")
     ),
+    // Timestamps
     created_at: v.number(),
+    updated_at: v.number(),
     sent_at: v.optional(v.number()),
+    accepted_at: v.optional(v.number()),
     responded_at: v.optional(v.number()),
+    dismissed_at: v.optional(v.number()),
     snoozed_until: v.optional(v.number()),
   })
+    .index("by_user", ["user_id"])
     .index("by_user_status", ["user_id", "status"])
     .index("by_created", ["created_at"])
     .index("by_snoozed_until", ["snoozed_until"]), // For dispatching after snooze

@@ -47,18 +47,15 @@ export default function AgentPreferencesPage() {
 
   // Query preferences
   const preferences = useQuery(
-    api.nudges.preferences.getUserPreferences,
+    api.agent_preferences.getUserPreferences,
     userId ? { userId } : 'skip'
   )
 
   // Mutations
-  const updatePreferences = useMutation(api.nudges.preferences.upsertPreferences)
-  const toggleAgent = useMutation(api.nudges.preferences.toggleAgent)
-  const toggleProactive = useMutation(api.nudges.preferences.toggleProactiveNudges)
-  const updateQuietHours = useMutation(api.nudges.preferences.updateQuietHours)
-  const updateChannels = useMutation(api.nudges.preferences.updateChannels)
-  const updatePlaybookToggles = useMutation(api.nudges.preferences.updatePlaybookToggles)
-  const resetPreferences = useMutation(api.nudges.preferences.resetPreferences)
+  const upsertPrefs = useMutation(api.agent_preferences.upsertPreferences)
+  const toggleAgentMutation = useMutation(api.agent_preferences.toggleAgent)
+  const toggleProactiveMutation = useMutation(api.agent_preferences.toggleProactiveNudges)
+  const resetPreferencesMutation = useMutation(api.agent_preferences.resetPreferences)
 
   // Local state for form
   const [formData, setFormData] = useState({
@@ -102,7 +99,7 @@ export default function AgentPreferencesPage() {
     if (!userId) return
 
     try {
-      await toggleAgent({ userId, enabled })
+      await toggleAgentMutation({ userId, enabled })
       setFormData((prev) => ({ ...prev, agent_enabled: enabled }))
       toast({
         title: enabled ? 'Agent Enabled' : 'Agent Disabled',
@@ -111,6 +108,7 @@ export default function AgentPreferencesPage() {
           : 'Your AI career agent has been disabled',
       })
     } catch (error) {
+      console.error('Failed to toggle agent:', error)
       toast({
         title: 'Error',
         description: 'Failed to update agent settings',
@@ -123,7 +121,7 @@ export default function AgentPreferencesPage() {
     if (!userId) return
 
     try {
-      await toggleProactive({ userId, enabled })
+      await toggleProactiveMutation({ userId, enabled })
       setFormData((prev) => ({ ...prev, proactive_enabled: enabled }))
       toast({
         title: enabled ? 'Proactive Nudges Enabled' : 'Proactive Nudges Disabled',
@@ -132,6 +130,7 @@ export default function AgentPreferencesPage() {
           : 'You will only receive responses to direct questions',
       })
     } catch (error) {
+      console.error('Failed to toggle proactive:', error)
       toast({
         title: 'Error',
         description: 'Failed to update nudge settings',
@@ -155,9 +154,14 @@ export default function AgentPreferencesPage() {
 
     setIsSaving(true)
     try {
-      await updatePreferences({
+      await upsertPrefs({
         userId,
-        ...formData,
+        agent_enabled: formData.agent_enabled,
+        proactive_enabled: formData.proactive_enabled,
+        quiet_hours_start: formData.quiet_hours_start,
+        quiet_hours_end: formData.quiet_hours_end,
+        channels: formData.channels,
+        playbook_toggles: formData.playbook_toggles,
       })
 
       toast({
@@ -165,6 +169,7 @@ export default function AgentPreferencesPage() {
         description: 'Your agent preferences have been updated successfully',
       })
     } catch (error) {
+      console.error('Failed to save preferences:', error)
       toast({
         title: 'Error',
         description: 'Failed to save preferences',
@@ -179,13 +184,14 @@ export default function AgentPreferencesPage() {
     if (!userId) return
 
     try {
-      await resetPreferences({ userId })
+      await resetPreferencesMutation({ userId })
       setShowResetDialog(false)
       toast({
         title: 'Preferences Reset',
         description: 'All preferences have been reset to defaults',
       })
     } catch (error) {
+      console.error('Failed to reset preferences:', error)
       toast({
         title: 'Error',
         description: 'Failed to reset preferences',
@@ -208,6 +214,15 @@ export default function AgentPreferencesPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="text-muted-foreground">Unable to load user preferences</p>
+      </div>
+    )
+  }
+
+  // Show loading spinner while preferences are loading
+  if (preferences === undefined) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }

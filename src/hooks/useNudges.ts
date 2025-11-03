@@ -13,18 +13,12 @@ import { toast } from '@/hooks/use-toast'
 export function useNudges() {
   const { user } = useUser()
   const router = useRouter()
-  const userId = user?.publicMetadata?.convexUserId as string | undefined
+  const clerkId = user?.id
 
   // Query pending nudges
   const pendingNudges = useQuery(
     api.nudges.dispatch.getPendingNudges,
-    userId ? { userId } : 'skip'
-  )
-
-  // Query nudge stats
-  const stats = useQuery(
-    api.nudges.scoring.getNudgeStats,
-    userId ? { userId } : 'skip'
+    clerkId ? { clerkId } : 'skip'
   )
 
   // Mutations
@@ -33,10 +27,10 @@ export function useNudges() {
   const dismissNudge = useMutation(api.nudges.dispatch.dismissNudge)
 
   const handleAccept = async (nudgeId: string) => {
-    if (!userId) return
+    if (!clerkId) return
 
     try {
-      const result = await acceptNudge({ nudgeId, userId })
+      const result = await acceptNudge({ nudgeId, clerkId })
 
       toast({
         title: 'Great!',
@@ -57,11 +51,11 @@ export function useNudges() {
   }
 
   const handleSnooze = async (nudgeId: string, hours: number = 4) => {
-    if (!userId) return
+    if (!clerkId) return
 
     try {
       const snoozeUntil = Date.now() + hours * 60 * 60 * 1000
-      await snoozeNudge({ nudgeId, userId, snoozeUntil })
+      await snoozeNudge({ nudgeId, clerkId, snoozeUntil })
 
       toast({
         title: 'Snoozed',
@@ -77,10 +71,10 @@ export function useNudges() {
   }
 
   const handleDismiss = async (nudgeId: string) => {
-    if (!userId) return
+    if (!clerkId) return
 
     try {
-      await dismissNudge({ nudgeId, userId })
+      await dismissNudge({ nudgeId, clerkId })
 
       toast({
         title: 'Dismissed',
@@ -96,10 +90,8 @@ export function useNudges() {
   }
 
   return {
-    nudges: pendingNudges || [],
-    stats,
-    isLoading: pendingNudges === undefined, // Stats are less critical
-    isStatsLoading: stats === undefined,
+    nudges: pendingNudges ?? [],
+    isLoading: pendingNudges === undefined,
     actions: {
       accept: handleAccept,
       snooze: handleSnooze,

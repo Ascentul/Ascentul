@@ -196,6 +196,45 @@ export const getUserSnapshot = query({
       .order('desc')
       .take(10)
 
+    // Get interview stages and follow-ups for each application
+    const applicationsWithStages = await Promise.all(
+      applications.map(async (app) => {
+        const stages = await ctx.db
+          .query('interview_stages')
+          .withIndex('by_application', (q) => q.eq('application_id', app._id))
+          .order('desc')
+          .collect()
+
+        const followups = await ctx.db
+          .query('followup_actions')
+          .withIndex('by_application', (q) => q.eq('application_id', app._id))
+          .order('desc')
+          .collect()
+
+        return {
+          ...app,
+          interview_stages: stages.map((stage) => ({
+            id: stage._id as string,
+            title: stage.title,
+            scheduled_at: stage.scheduled_at,
+            location: stage.location,
+            notes: stage.notes,
+            outcome: stage.outcome,
+            created_at: stage.created_at,
+          })),
+          followup_tasks: followups.map((followup) => ({
+            id: followup._id as string,
+            description: followup.description,
+            due_date: followup.due_date,
+            notes: followup.notes,
+            type: followup.type,
+            completed: followup.completed,
+            created_at: followup.created_at,
+          })),
+        }
+      })
+    )
+
     // Get recent goals (all non-cancelled, non-completed)
     const goals = await ctx.db
       .query('goals')
@@ -216,12 +255,49 @@ export const getUserSnapshot = query({
       .order('desc')
       .take(3)
 
+    // Get cover letters
+    const coverLetters = await ctx.db
+      .query('cover_letters')
+      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
+      .order('desc')
+      .take(5)
+
     // Get recent projects
     const projects = await ctx.db
       .query('projects')
       .withIndex('by_user', (q) => q.eq('user_id', args.userId))
       .order('desc')
       .take(5)
+
+    // Get networking contacts
+    const contacts = await ctx.db
+      .query('networking_contacts')
+      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
+      .order('desc')
+      .take(20)
+
+    // Get all follow-ups for contacts
+    const contactFollowups = await ctx.db
+      .query('followup_actions')
+      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
+      .collect()
+
+    // Filter to only contact-related follow-ups and group by contact
+    const followupsByContact = contactFollowups
+      .filter((f) => f.contact_id)
+      .reduce((acc, followup) => {
+        const contactId = followup.contact_id as string
+        if (!acc[contactId]) acc[contactId] = []
+        acc[contactId].push({
+          id: followup._id as string,
+          type: followup.type,
+          description: followup.description,
+          due_date: followup.due_date,
+          completed: followup.completed,
+          notes: followup.notes,
+        })
+        return acc
+      }, {} as Record<string, any[]>)
 
     return {
       profile: {
@@ -239,13 +315,15 @@ export const getUserSnapshot = query({
         education_history: user.education_history,
         work_history: user.work_history,
       },
-      applications: applications.map((app) => ({
+      applications: applicationsWithStages.map((app) => ({
         id: app._id as string, // Ensure string for OpenAI consumption
         company: app.company,
         job_title: app.job_title,
         status: app.status,
         url: app.url,
         applied_at: app.applied_at,
+        interview_stages: app.interview_stages,
+        followup_tasks: app.followup_tasks,
       })),
       goals: goals.map((goal) => ({
         id: goal._id as string, // Ensure string for OpenAI consumption
@@ -260,11 +338,31 @@ export const getUserSnapshot = query({
         source: resume.source,
         updated_at: resume.updated_at,
       })),
+      cover_letters: coverLetters.map((letter) => ({
+        id: letter._id as string, // Ensure string for OpenAI consumption
+        name: letter.name,
+        company_name: letter.company_name,
+        job_title: letter.job_title,
+        updated_at: letter.updated_at,
+      })),
       projects: projects.map((project) => ({
         id: project._id as string, // Ensure string for OpenAI consumption
         title: project.title,
         role: project.role,
         technologies: project.technologies,
+      })),
+      networking_contacts: contacts.map((contact) => ({
+        id: contact._id as string, // Ensure string for OpenAI consumption
+        name: contact.name,
+        company: contact.company,
+        position: contact.position,
+        email: contact.email,
+        phone: contact.phone,
+        linkedin_url: contact.linkedin_url,
+        relationship: contact.relationship,
+        last_contact: contact.last_contact,
+        notes: contact.notes,
+        followups: followupsByContact[contact._id as string] || [],
       })),
     }
   },
@@ -770,6 +868,14 @@ export const createApplication = mutation({
 
     const now = Date.now()
 
+    // Verify resume ownership if provided
+    if (args.resume_id !== undefined) {
+      const resume = await ctx.db.get(args.resume_id);
+      if (!resume || resume.user_id !== args.userId) {
+        throw new Error('Resume not found or unauthorized');
+      }
+    }
+
     // Create application entry
     const applicationId = await ctx.db.insert('applications', {
       user_id: args.userId,
@@ -816,6 +922,8 @@ export const updateApplication = mutation({
     url: v.optional(v.string()),
     notes: v.optional(v.string()),
     applied_at: v.optional(v.number()),
+    resume_id: v.optional(v.id('resumes')),
+    cover_letter_id: v.optional(v.id('cover_letters')),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId)
@@ -832,6 +940,22 @@ export const updateApplication = mutation({
       throw new Error('Unauthorized: Application does not belong to this user')
     }
 
+    // Verify resume ownership if provided
+    if (args.resume_id !== undefined) {
+      const resume = await ctx.db.get(args.resume_id);
+      if (!resume || resume.user_id !== args.userId) {
+        throw new Error('Resume not found or unauthorized');
+      }
+    }
+
+    // Verify cover letter ownership if provided
+    if (args.cover_letter_id !== undefined) {
+      const coverLetter = await ctx.db.get(args.cover_letter_id);
+      if (!coverLetter || coverLetter.user_id !== args.userId) {
+        throw new Error('Cover letter not found or unauthorized');
+      }
+    }
+
     // Build update object with only provided fields
     const updates: any = {
       updated_at: Date.now(),
@@ -843,6 +967,8 @@ export const updateApplication = mutation({
     if (args.url !== undefined) updates.url = args.url
     if (args.notes !== undefined) updates.notes = args.notes
     if (args.applied_at !== undefined) updates.applied_at = args.applied_at
+    if (args.resume_id !== undefined) updates.resume_id = args.resume_id
+    if (args.cover_letter_id !== undefined) updates.cover_letter_id = args.cover_letter_id
 
     // Update the application
     await ctx.db.patch(args.applicationId, updates)
