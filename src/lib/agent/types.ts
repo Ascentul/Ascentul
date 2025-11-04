@@ -21,6 +21,42 @@ export interface ToolCall {
   error?: string
 }
 
+/**
+ * Career level types used across the application
+ */
+export type CareerLevel = 'entry' | 'mid' | 'senior' | 'lead' | 'executive'
+
+/**
+ * Growth potential indicators for career stages
+ */
+export type GrowthPotential = 'high' | 'medium' | 'low' | 'stable'
+
+/**
+ * Career path node representing a single stage in career progression
+ */
+export interface CareerPathNode {
+  id?: string
+  title: string
+  level: CareerLevel
+  salaryRange: string
+  yearsExperience: string
+  description: string
+  skills?: string[]
+  growthPotential?: GrowthPotential
+}
+
+/**
+ * Career path output from generate_career_path tool
+ */
+export interface CareerPathOutput {
+  type: 'career_path'
+  careerPath?: {
+    name: string
+    description?: string
+    nodes: CareerPathNode[]
+  }
+}
+
 export interface AgentContext {
   source?: string // e.g., 'dashboard', 'applications', 'resume-studio'
   recordId?: string // e.g., application ID, goal ID

@@ -196,44 +196,69 @@ export const getUserSnapshot = query({
       .order('desc')
       .take(10)
 
-    // Get interview stages and follow-ups for each application
-    const applicationsWithStages = await Promise.all(
-      applications.map(async (app) => {
-        const stages = await ctx.db
-          .query('interview_stages')
-          .withIndex('by_application', (q) => q.eq('application_id', app._id))
-          .order('desc')
-          .collect()
+    // Batch fetch interview stages and follow-ups for all applications (avoid N+1 queries)
+    const allStages = await ctx.db
+      .query('interview_stages')
+      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
+      .collect()
 
-        const followups = await ctx.db
-          .query('followup_actions')
-          .withIndex('by_application', (q) => q.eq('application_id', app._id))
-          .order('desc')
-          .collect()
+    const allAppFollowups = await ctx.db
+      .query('followup_actions')
+      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
+      .collect()
 
-        return {
-          ...app,
-          interview_stages: stages.map((stage) => ({
-            id: stage._id as string,
-            title: stage.title,
-            scheduled_at: stage.scheduled_at,
-            location: stage.location,
-            notes: stage.notes,
-            outcome: stage.outcome,
-            created_at: stage.created_at,
-          })),
-          followup_tasks: followups.map((followup) => ({
-            id: followup._id as string,
-            description: followup.description,
-            due_date: followup.due_date,
-            notes: followup.notes,
-            type: followup.type,
-            completed: followup.completed,
-            created_at: followup.created_at,
-          })),
+    // Group stages and followups by application_id
+    const stagesByApp = allStages.reduce(
+      (acc, stage) => {
+        if (stage.application_id) {
+          const appId = stage.application_id as string
+          if (!acc[appId]) acc[appId] = []
+          acc[appId].push(stage)
         }
-      })
+        return acc
+      },
+      {} as Record<string, typeof allStages>
     )
+
+    const followupsByApp = allAppFollowups
+      .filter((f) => f.application_id)
+      .reduce(
+        (acc, followup) => {
+          const appId = followup.application_id as string
+          if (!acc[appId]) acc[appId] = []
+          acc[appId].push(followup)
+          return acc
+        },
+        {} as Record<string, typeof allAppFollowups>
+      )
+
+    // Map applications with their related data
+    const applicationsWithStages = applications.map((app) => {
+      const stages = stagesByApp[app._id as string] || []
+      const followups = followupsByApp[app._id as string] || []
+
+      return {
+        ...app,
+        interview_stages: stages.map((stage) => ({
+          id: stage._id as string,
+          title: stage.title,
+          scheduled_at: stage.scheduled_at,
+          location: stage.location,
+          notes: stage.notes,
+          outcome: stage.outcome,
+          created_at: stage.created_at,
+        })),
+        followup_tasks: followups.map((followup) => ({
+          id: followup._id as string,
+          description: followup.description,
+          due_date: followup.due_date,
+          notes: followup.notes,
+          type: followup.type,
+          completed: followup.completed,
+          created_at: followup.created_at,
+        })),
+      }
+    })
 
     // Get recent goals (all non-cancelled, non-completed)
     const goals = await ctx.db
@@ -468,6 +493,323 @@ export const getProfileGaps = query({
  * Tool 3: upsert_profile_field
  * Updates or inserts a user profile field with confidence tracking
  */
+function generateHistoryEntryId(prefix: string): string {
+  return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`
+}
+
+function sanitizeHistoryEntry(entry: any, prefix: string) {
+  if (!entry || typeof entry !== "object") {
+    throw new Error(
+      `Invalid ${prefix === "edu" ? "education" : "work"} history entry`,
+    )
+  }
+
+  const sanitized: Record<string, any> = { ...entry }
+
+  let originalId: string | undefined
+  if (entry.id != null) {
+    if (typeof entry.id === "string") {
+      const trimmed = entry.id.trim()
+      if (trimmed.length > 0) {
+        originalId = trimmed
+      }
+    } else if (typeof entry.id === "number") {
+      originalId = String(entry.id)
+    }
+  }
+
+  sanitized.id = originalId && originalId.length > 0
+    ? originalId
+    : generateHistoryEntryId(prefix)
+
+  if (originalId && originalId.length > 0) {
+    sanitized.__sourceId = originalId
+  }
+
+  if (sanitized.start_date != null) {
+    sanitized.start_date = String(sanitized.start_date)
+  }
+  if (sanitized.end_date != null) {
+    sanitized.end_date = String(sanitized.end_date)
+  }
+
+  return sanitized
+}
+
+function stripHistoryMeta(entry: any) {
+  if (!entry || typeof entry !== "object") return entry
+  const cleaned = { ...entry }
+  delete cleaned.__sourceId
+  return cleaned
+}
+
+function normalizeHistoryValue(
+  value: unknown,
+  current: any[] | undefined,
+  prefix: string,
+): any[] {
+  if (value == null) {
+    return []
+  }
+
+  if (Array.isArray(value)) {
+    const sanitizedArray = value.map((entry) => sanitizeHistoryEntry(entry, prefix))
+
+    const base = Array.isArray(current)
+      ? current.map((entry) => sanitizeHistoryEntry(entry, prefix))
+      : []
+
+    const byId = new Map<string, Record<string, any>>()
+    for (const entry of base) {
+      byId.set(entry.id, entry)
+    }
+
+    for (const entry of sanitizedArray) {
+      const existingEntry = byId.get(entry.id)
+      if (existingEntry) {
+        const merged = { ...existingEntry }
+        for (const [key, value] of Object.entries(entry)) {
+          if (value !== undefined) {
+            merged[key] = value
+          }
+        }
+        byId.set(entry.id, merged)
+      } else {
+        byId.set(entry.id, entry)
+      }
+    }
+
+    return Array.from(byId.values()).map(stripHistoryMeta)
+  }
+
+  if (typeof value === "object") {
+    const sanitized = sanitizeHistoryEntry(value, prefix)
+    const existing = Array.isArray(current)
+      ? current.map((entry) => sanitizeHistoryEntry(entry, prefix))
+      : []
+
+    let matchIndex = existing.findIndex((item) => item?.id === sanitized.id)
+
+    if (matchIndex < 0 && sanitized.__sourceId) {
+      matchIndex = existing.findIndex(
+        (item) => item?.id === sanitized.__sourceId,
+      )
+    }
+
+    if (matchIndex < 0) {
+      const normalizedCompany = typeof sanitized.company === "string"
+        ? sanitized.company.toLowerCase().trim()
+        : null
+      if (normalizedCompany) {
+        matchIndex = existing.findIndex((item) => {
+          if (typeof item?.company !== "string") return false
+          const existingCompany = item.company.toLowerCase().trim()
+          return (
+            existingCompany === normalizedCompany ||
+            existingCompany.includes(normalizedCompany) ||
+            normalizedCompany.includes(existingCompany)
+          )
+        })
+      }
+    }
+
+    if (matchIndex < 0) {
+      const normalizedRole = typeof sanitized.role === "string"
+        ? sanitized.role.toLowerCase().trim()
+        : null
+      if (normalizedRole) {
+        matchIndex = existing.findIndex((item) => {
+          if (typeof item?.role !== "string") return false
+          const existingRole = item.role.toLowerCase().trim()
+          return (
+            existingRole === normalizedRole ||
+            existingRole.includes(normalizedRole) ||
+            normalizedRole.includes(existingRole)
+          )
+        })
+      }
+    }
+
+    if (matchIndex >= 0) {
+      const merged = { ...existing[matchIndex] }
+      for (const [key, value] of Object.entries(sanitized)) {
+        if (value !== undefined) {
+          merged[key] = value
+        }
+      }
+      merged.id = existing[matchIndex].id
+      existing[matchIndex] = merged
+    } else {
+      existing.push(sanitized)
+    }
+
+    return existing.map(stripHistoryMeta)
+  }
+
+  throw new Error(
+    `Invalid value for ${prefix === "edu" ? "education_history" : "work_history"}: expected object or array`,
+  )
+}
+
+function normalizeProfileField(
+  user: any,
+  field: string,
+  rawValue: unknown,
+): { normalizedValue?: unknown; updates: Record<string, any> } {
+  const updates: Record<string, any> = {}
+
+  const simpleStringFields = new Set([
+    "bio",
+    "current_position",
+    "current_company",
+    "location",
+    "industry",
+    "experience_level",
+    "linkedin_url",
+    "phone_number",
+    "city",
+    "major",
+    "university_name",
+    "career_goals",
+  ])
+
+  const numericStringFields = new Set(["graduation_year"])
+
+  if (simpleStringFields.has(field)) {
+    if (rawValue == null) {
+      updates[field] = null
+      return { normalizedValue: null, updates }
+    }
+    if (typeof rawValue !== "string") {
+      throw new Error(`Invalid value for ${field}: expected string`)
+    }
+    const trimmed = rawValue.trim()
+    updates[field] = trimmed
+    return { normalizedValue: trimmed, updates }
+  }
+
+  if (numericStringFields.has(field)) {
+    if (rawValue == null) {
+      updates[field] = null
+      return { normalizedValue: null, updates }
+    }
+    if (typeof rawValue !== "string" && typeof rawValue !== "number") {
+      throw new Error(`Invalid value for ${field}: expected string or number`)
+    }
+    const strValue = String(rawValue).trim()
+    updates[field] = strValue
+    return { normalizedValue: strValue, updates }
+  }
+
+  if (field === "skills") {
+    if (rawValue == null) {
+      updates.skills = ""
+      return { normalizedValue: "", updates }
+    }
+    if (Array.isArray(rawValue)) {
+      const sanitized = rawValue
+        .map((skill) =>
+          typeof skill === "string" ? skill.trim() : String(skill ?? ""),
+        )
+        .filter((skill) => skill.length > 0)
+      const joined = sanitized.join(", ")
+      updates.skills = joined
+      return { normalizedValue: joined, updates }
+    }
+    if (typeof rawValue === "string") {
+      const joined = rawValue
+        .split(",")
+        .map((skill) => skill.trim())
+        .filter((skill) => skill.length > 0)
+        .join(", ")
+      updates.skills = joined
+      return { normalizedValue: joined, updates }
+    }
+    throw new Error(
+      "Invalid value for skills: expected string or array of strings",
+    )
+  }
+
+  if (field === "education_history") {
+    const normalized = normalizeHistoryValue(
+      rawValue,
+      user.education_history,
+      "edu",
+    )
+    updates.education_history = normalized
+    return { normalizedValue: normalized, updates }
+  }
+
+  if (field === "work_history") {
+    const normalized = normalizeHistoryValue(
+      rawValue,
+      user.work_history,
+      "work",
+    )
+    updates.work_history = normalized
+
+    let currentPositionFromWork: string | undefined
+    let currentCompanyFromWork: string | undefined
+
+    const findEntry = (predicate: (entry: any) => boolean) =>
+      normalized.find((entry) => predicate(entry))
+
+    const matchingCompany = typeof rawValue === "object" && rawValue !== null && typeof (rawValue as any).company === "string"
+      ? (rawValue as any).company.toLowerCase().trim()
+      : null
+
+    if (matchingCompany) {
+      const normalizedMatch = findEntry((entry) =>
+        typeof entry?.company === "string" &&
+        entry.company.toLowerCase().trim().includes(matchingCompany)
+      )
+      if (normalizedMatch && typeof normalizedMatch?.role === "string") {
+        currentPositionFromWork = normalizedMatch.role
+        if (typeof normalizedMatch.company === "string") {
+          currentCompanyFromWork = normalizedMatch.company
+        }
+      }
+    }
+
+    if (!currentPositionFromWork) {
+      const currentEntry = findEntry((entry) => entry?.is_current === true)
+      if (currentEntry && typeof currentEntry?.role === "string") {
+        currentPositionFromWork = currentEntry.role
+        if (typeof currentEntry.company === "string") {
+          currentCompanyFromWork = currentEntry.company
+        }
+      }
+    }
+
+    if (!currentPositionFromWork && normalized.length > 0) {
+      const firstEntry = normalized[0]
+      if (typeof firstEntry?.role === "string") {
+        currentPositionFromWork = firstEntry.role
+        if (typeof firstEntry.company === "string") {
+          currentCompanyFromWork = firstEntry.company
+        }
+      }
+    }
+
+    const workPosition = currentPositionFromWork?.trim()
+    const workCompany = currentCompanyFromWork?.trim()
+    const currentPosition = typeof user.current_position === "string" ? user.current_position.trim() : ""
+    const currentCompany = typeof user.current_company === "string" ? user.current_company.trim() : ""
+
+    if (workPosition && workPosition !== currentPosition) {
+      updates.current_position = workPosition
+    }
+
+    if (workCompany && workCompany !== currentCompany) {
+      updates.current_company = workCompany
+    }
+
+    return { normalizedValue: normalized, updates }
+  }
+
+  return { updates }
+}
+
 export const upsertProfileField = mutation({
   args: {
     userId: v.id('users'),
@@ -484,6 +826,14 @@ export const upsertProfileField = mutation({
     const confidence = args.confidence ?? 0.9
     const now = Date.now()
 
+    const { normalizedValue, updates } = normalizeProfileField(
+      user,
+      args.field,
+      args.value,
+    )
+    const valueToPersist =
+      normalizedValue !== undefined ? normalizedValue : args.value
+
     // Check if field already exists in agent_profile_fields
     const existing = await ctx.db
       .query('agent_profile_fields')
@@ -495,7 +845,7 @@ export const upsertProfileField = mutation({
     if (existing) {
       // Update existing field
       await ctx.db.patch(existing._id, {
-        value_json: args.value,
+        value_json: valueToPersist,
         confidence,
         updated_at: now,
       })
@@ -504,7 +854,7 @@ export const upsertProfileField = mutation({
       await ctx.db.insert('agent_profile_fields', {
         user_id: args.userId,
         field: args.field,
-        value_json: args.value,
+        value_json: valueToPersist,
         confidence,
         source: 'agent',
         created_at: now,
@@ -512,40 +862,15 @@ export const upsertProfileField = mutation({
       })
     }
 
-    // Also update the main users table for common fields
-    const updates: Partial<typeof user> = {}
-
-    // Map agent fields to user table fields
-    if (args.field === 'skills' && typeof args.value === 'string') {
-      updates.skills = args.value
-    } else if (args.field === 'current_position' && typeof args.value === 'string') {
-      updates.current_position = args.value
-    } else if (args.field === 'current_company' && typeof args.value === 'string') {
-      updates.current_company = args.value
-    } else if (args.field === 'location' && typeof args.value === 'string') {
-      updates.location = args.value
-    } else if (args.field === 'bio' && typeof args.value === 'string') {
-      updates.bio = args.value
-    } else if (args.field === 'industry' && typeof args.value === 'string') {
-      updates.industry = args.value
-    } else if (args.field === 'experience_level' && typeof args.value === 'string') {
-      updates.experience_level = args.value
-    } else if (args.field === 'linkedin_url' && typeof args.value === 'string') {
-      updates.linkedin_url = args.value
-    }
-
     // Apply updates to users table if any
     if (Object.keys(updates).length > 0) {
-      await ctx.db.patch(args.userId, {
-        ...updates,
-        updated_at: now,
-      })
+      await ctx.db.patch(args.userId, { ...updates, updated_at: now })
     }
 
     return {
       success: true,
       field: args.field,
-      value: args.value,
+      value: valueToPersist,
       updated_in_profile: Object.keys(updates).length > 0,
     }
   },
@@ -684,6 +1009,29 @@ export const createGoal = mutation({
     // Validate target_date if provided
     if (args.target_date !== undefined && args.target_date < Date.now()) {
       throw new Error('Goal target date cannot be in the past')
+    }
+
+    // Validate checklist if provided
+    if (args.checklist) {
+      if (args.checklist.length > 50) {
+        throw new Error('Checklist cannot exceed 50 items')
+      }
+      const ids = new Set<string>()
+      for (const item of args.checklist) {
+        if (!item.id || item.id.trim().length === 0) {
+          throw new Error('Checklist item must have a valid id')
+        }
+        if (ids.has(item.id)) {
+          throw new Error('Checklist item IDs must be unique')
+        }
+        ids.add(item.id)
+        if (!item.text || item.text.trim().length === 0) {
+          throw new Error('Checklist item text cannot be empty')
+        }
+        if (item.text.length > 500) {
+          throw new Error('Checklist item text must be 500 characters or less')
+        }
+      }
     }
 
     const now = Date.now()

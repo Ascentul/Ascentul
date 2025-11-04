@@ -4,8 +4,9 @@
  * Standalone preferences management without dependencies on nudge system
  */
 
-import { mutation, query } from './_generated/server'
+import { mutation, query, MutationCtx } from './_generated/server'
 import { v } from 'convex/values'
+import { Id } from './_generated/dataModel'
 
 const DEFAULT_PREFERENCES = {
   agent_enabled: true,
@@ -83,14 +84,49 @@ export const upsertPreferences = mutation({
     const { userId, ...updates } = args
     const now = Date.now()
 
+    // Validate quiet hours type first, then range (0-23)
+    if (updates.quiet_hours_start !== undefined && !Number.isInteger(updates.quiet_hours_start)) {
+      throw new Error('quiet_hours_start must be an integer')
+    }
+    if (updates.quiet_hours_start !== undefined && (updates.quiet_hours_start < 0 || updates.quiet_hours_start > 23)) {
+      throw new Error('quiet_hours_start must be between 0 and 23')
+    }
+    if (updates.quiet_hours_end !== undefined && !Number.isInteger(updates.quiet_hours_end)) {
+      throw new Error('quiet_hours_end must be an integer')
+    }
+    if (updates.quiet_hours_end !== undefined && (updates.quiet_hours_end < 0 || updates.quiet_hours_end > 23)) {
+      throw new Error('quiet_hours_end must be between 0 and 23')
+    }
+
     const existing = await ctx.db
       .query('agent_preferences')
       .withIndex('by_user', (q) => q.eq('user_id', userId))
       .unique()
 
+    // Validate quiet hours are different (check final state, not just updates)
+    if (updates.quiet_hours_start !== undefined || updates.quiet_hours_end !== undefined) {
+      const finalStart = updates.quiet_hours_start ?? (existing?.quiet_hours_start ?? DEFAULT_PREFERENCES.quiet_hours_start)
+      const finalEnd = updates.quiet_hours_end ?? (existing?.quiet_hours_end ?? DEFAULT_PREFERENCES.quiet_hours_end)
+
+      if (finalStart === finalEnd) {
+        throw new Error('quiet_hours_start and quiet_hours_end cannot be the same')
+      }
+    }
+
     if (existing) {
+      // Merge nested objects instead of replacing them
+      const updatedChannels = updates.channels
+        ? { ...existing.channels, ...updates.channels }
+        : existing.channels
+
+      const updatedPlaybookToggles = updates.playbook_toggles
+        ? { ...existing.playbook_toggles, ...updates.playbook_toggles }
+        : existing.playbook_toggles
+
       await ctx.db.patch(existing._id, {
         ...updates,
+        channels: updatedChannels,
+        playbook_toggles: updatedPlaybookToggles,
         updated_at: now,
       })
 
@@ -121,39 +157,50 @@ export const upsertPreferences = mutation({
   },
 })
 
+/**
+ * Helper function to toggle a boolean preference field
+ * Reduces duplication across toggle mutations
+ */
+async function togglePreferenceField(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  field: 'agent_enabled' | 'proactive_enabled',
+  enabled: boolean
+) {
+  const now = Date.now()
+
+  const existing = await ctx.db
+    .query('agent_preferences')
+    .withIndex('by_user', (q) => q.eq('user_id', userId))
+    .unique()
+
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      [field]: enabled,
+      updated_at: now,
+    })
+  } else {
+    await ctx.db.insert('agent_preferences', {
+      user_id: userId,
+      ...DEFAULT_PREFERENCES,
+      [field]: enabled,
+      created_at: now,
+      updated_at: now,
+    })
+  }
+
+  return {
+    success: true,
+    enabled,
+  }
+}
+
 export const toggleAgent = mutation({
   args: {
     userId: v.id('users'),
     enabled: v.boolean(),
   },
-  handler: async (ctx, args) => {
-    const now = Date.now()
-
-    const existing = await ctx.db
-      .query('agent_preferences')
-      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
-      .unique()
-
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        agent_enabled: args.enabled,
-        updated_at: now,
-      })
-    } else {
-      await ctx.db.insert('agent_preferences', {
-        user_id: args.userId,
-        ...DEFAULT_PREFERENCES,
-        agent_enabled: args.enabled,
-        created_at: now,
-        updated_at: now,
-      })
-    }
-
-    return {
-      success: true,
-      enabled: args.enabled,
-    }
-  },
+  handler: (ctx, args) => togglePreferenceField(ctx, args.userId, 'agent_enabled', args.enabled),
 })
 
 export const toggleProactiveNudges = mutation({
@@ -161,34 +208,7 @@ export const toggleProactiveNudges = mutation({
     userId: v.id('users'),
     enabled: v.boolean(),
   },
-  handler: async (ctx, args) => {
-    const now = Date.now()
-
-    const existing = await ctx.db
-      .query('agent_preferences')
-      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
-      .unique()
-
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        proactive_enabled: args.enabled,
-        updated_at: now,
-      })
-    } else {
-      await ctx.db.insert('agent_preferences', {
-        user_id: args.userId,
-        ...DEFAULT_PREFERENCES,
-        proactive_enabled: args.enabled,
-        created_at: now,
-        updated_at: now,
-      })
-    }
-
-    return {
-      success: true,
-      enabled: args.enabled,
-    }
-  },
+  handler: (ctx, args) => togglePreferenceField(ctx, args.userId, 'proactive_enabled', args.enabled),
 })
 
 export const resetPreferences = mutation({

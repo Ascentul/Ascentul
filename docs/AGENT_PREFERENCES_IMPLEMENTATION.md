@@ -7,12 +7,12 @@ The agent preferences system is now fully functional and production-ready.
 ## What Was Fixed
 
 ### 1. **Created Clean Preferences Module**
-- Created `/Applications/Ascentul/convex/agent_preferences.ts` as a standalone module
+- Created `convex/agent_preferences.ts` as a standalone module
 - No dependencies on the broken nudge system
 - All CRUD operations for agent preferences
 
 ### 2. **Updated UI Component**
-- Updated `/Applications/Ascentul/src/app/(dashboard)/account/agent-preferences/page.tsx`
+- Updated `src/app/(dashboard)/account/agent-preferences/page.tsx`
 - Changed imports from `api.nudges.preferences.*` to `api.agent_preferences.*`
 - All toggle and save handlers are working
 
@@ -61,7 +61,7 @@ The agent preferences system is now fully functional and production-ready.
 
 ## API Functions
 
-All functions in `/Applications/Ascentul/convex/agent_preferences.ts`:
+All functions in `convex/agent_preferences.ts`:
 
 1. **getUserPreferences** (query)
    - Returns user preferences or defaults if none exist
@@ -137,6 +137,6 @@ None - System is fully functional.
 
 ## Related Files
 
-- `/Applications/Ascentul/convex/agent_preferences.ts` - Convex functions
-- `/Applications/Ascentul/src/app/(dashboard)/account/agent-preferences/page.tsx` - UI component
-- `/Applications/Ascentul/convex/schema.ts` - Database schema (agent_preferences table)
+- `convex/agent_preferences.ts` - Convex functions
+- `src/app/(dashboard)/account/agent-preferences/page.tsx` - UI component
+- `convex/schema.ts` - Database schema (agent_preferences table)

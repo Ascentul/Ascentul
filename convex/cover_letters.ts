@@ -43,14 +43,33 @@ function buildExperienceSection(workHistory?: Array<{
 
 /**
  * Helper function: Build skills section
+ *
+ * Parses comma-separated skill names and generates a formatted skills section.
+ *
+ * @param skills - Comma-separated skill names (e.g., "React, TypeScript, Node.js")
+ * @returns Formatted skills section or empty string
+ *
+ * Note: This follows the application-wide convention of using commas as skill delimiters.
+ * Skill names containing commas (e.g., "Communication, written & verbal") will be
+ * incorrectly split. Users should avoid commas within individual skill names.
  */
 function buildSkillsSection(skills?: string): string {
   if (!skills || skills.trim().length === 0) {
     return '';
   }
 
-  // Parse comma-separated skills and take first 5
-  const skillsArray = skills.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  // Parse comma-separated skills with robust validation
+  const skillsArray = skills
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => {
+      // Filter out empty strings, whitespace-only, and excessively long skill names
+      return s.length > 0 && s.length <= 100 && !/^\s+$/.test(s);
+    })
+    // Deduplicate skills (case-insensitive)
+    .filter((skill, index, self) =>
+      index === self.findIndex(s => s.toLowerCase() === skill.toLowerCase())
+    );
 
   if (skillsArray.length === 0) {
     return '';

@@ -39,14 +39,14 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'upsert_profile_field',
       description:
-        'Update or insert a user profile field (skills, position, company, location, bio, etc.) with optional confidence score',
+        'Update or insert a user profile field (skills, bio, education, work history, etc.) with optional confidence score',
       parameters: {
         type: 'object',
         properties: {
           field: {
             type: 'string',
             description:
-              'Profile field name: skills, current_position, current_company, location, bio, industry, experience_level, or linkedin_url',
+              'Profile field to update. Strings: bio, skills, current_position, current_company, location, industry, experience_level, linkedin_url, phone_number, city, major, university_name, graduation_year, career_goals. Complex arrays: education_history, work_history.',
             enum: [
               'skills',
               'current_position',
@@ -56,6 +56,14 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
               'industry',
               'experience_level',
               'linkedin_url',
+              'phone_number',
+              'city',
+              'major',
+              'university_name',
+              'graduation_year',
+              'career_goals',
+              'education_history',
+              'work_history',
             ],
           },
           value: {
@@ -487,7 +495,7 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'update_contact',
       description:
-        'Update an existing contact\'s information in the CRM (name, email, company, position, phone, notes, etc.). Do NOT use this for logging interactions - use log_contact_interaction instead. You must first use get_user_snapshot to find the contact ID.',
+        'Update an existing contact\'s information in the CRM (name, email, company, position, phone, relationship, etc.). Use this ONLY for updating static contact details. For logging new interactions or updating interaction timestamps, ALWAYS use log_contact_interaction instead. You must first use get_user_snapshot to find the contact ID.',
       parameters: {
         type: 'object',
         properties: {
@@ -525,11 +533,7 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
           },
           notes: {
             type: 'string',
-            description: 'Updated notes (optional)',
-          },
-          last_contact: {
-            type: 'number',
-            description: 'Timestamp in milliseconds of last interaction with this contact. Use Date.now() to log current interaction. (optional)',
+            description: 'Updated general notes about the contact (optional). For interaction-specific notes, use log_contact_interaction instead.',
           },
         },
         required: ['contactId'],
@@ -811,6 +815,144 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'create_project',
+      description:
+        'Create a new project or portfolio item for the user. Use this when the user wants to add a project they worked on (personal, professional, or open source).',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Project title (e.g., "E-commerce Website", "Mobile App for Food Delivery")',
+          },
+          description: {
+            type: 'string',
+            description: 'Detailed description of the project and what was built (optional)',
+          },
+          role: {
+            type: 'string',
+            description: 'Your role in the project (e.g., "Lead Developer", "Frontend Engineer") (optional)',
+          },
+          company: {
+            type: 'string',
+            description: 'Company or organization where project was done (optional)',
+          },
+          type: {
+            type: 'string',
+            description: 'Project type (e.g., "personal", "professional", "open-source", "academic")',
+            enum: ['personal', 'professional', 'open-source', 'academic', 'freelance'],
+          },
+          technologies: {
+            type: 'array',
+            description: 'Technologies, languages, or frameworks used (e.g., ["React", "Node.js", "MongoDB"])',
+            items: {
+              type: 'string',
+            },
+          },
+          url: {
+            type: 'string',
+            description: 'Live project URL or demo link (optional)',
+          },
+          github_url: {
+            type: 'string',
+            description: 'GitHub repository URL (optional)',
+          },
+          start_date: {
+            type: 'number',
+            description: 'Project start date as Unix timestamp in milliseconds (optional)',
+          },
+          end_date: {
+            type: 'number',
+            description: 'Project end date as Unix timestamp in milliseconds. Omit if ongoing. (optional)',
+          },
+        },
+        required: ['title', 'type', 'technologies'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_project',
+      description:
+        'Update an existing project\'s details. Use this when the user wants to modify a project. You must first use get_user_snapshot to find the project ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          projectId: {
+            type: 'string',
+            description: 'The ID of the project to update (from get_user_snapshot)',
+          },
+          title: {
+            type: 'string',
+            description: 'Updated project title (optional)',
+          },
+          description: {
+            type: 'string',
+            description: 'Updated project description (optional)',
+          },
+          role: {
+            type: 'string',
+            description: 'Updated role (optional)',
+          },
+          company: {
+            type: 'string',
+            description: 'Updated company (optional)',
+          },
+          type: {
+            type: 'string',
+            description: 'Updated project type (optional)',
+            enum: ['personal', 'professional', 'open-source', 'academic', 'freelance'],
+          },
+          technologies: {
+            type: 'array',
+            description: 'Updated technologies list (optional)',
+            items: {
+              type: 'string',
+            },
+          },
+          url: {
+            type: 'string',
+            description: 'Updated project URL (optional)',
+          },
+          github_url: {
+            type: 'string',
+            description: 'Updated GitHub URL (optional)',
+          },
+          start_date: {
+            type: 'number',
+            description: 'Updated start date as Unix timestamp (optional)',
+          },
+          end_date: {
+            type: 'number',
+            description: 'Updated end date as Unix timestamp (optional)',
+          },
+        },
+        required: ['projectId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_project',
+      description:
+        'Delete a project from the user\'s portfolio. Use this when the user wants to remove a project. You must first use get_user_snapshot to find the project ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          projectId: {
+            type: 'string',
+            description: 'The ID of the project to delete (from get_user_snapshot)',
+          },
+        },
+        required: ['projectId'],
+      },
+    },
+  },
 ]
 
 /**
@@ -842,6 +984,9 @@ export type ToolName =
   | 'create_contact_followup'
   | 'update_contact_followup'
   | 'delete_contact_followup'
+  | 'create_project'
+  | 'update_project'
+  | 'delete_project'
 
 /**
  * Tool execution result type

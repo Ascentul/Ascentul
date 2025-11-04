@@ -164,7 +164,7 @@ export const updateNudgeChannel = mutation({
 /**
  * Get a single nudge by ID
  */
-export const getNudge = mutation({
+export const getNudge = query({
   args: {
     nudgeId: v.id('agent_nudges'),
   },
@@ -303,6 +303,7 @@ export const acceptNudge = mutation({
     }
 
     const now = Date.now()
+    const startTime = now
 
     await ctx.db.patch(args.nudgeId, {
       status: 'accepted',
@@ -313,10 +314,10 @@ export const acceptNudge = mutation({
     // Log acceptance for metrics
     await ctx.db.insert('agent_audit_logs', {
       user_id: user._id,
-      action: 'nudge_accepted',
-      tool_name: null,
-      input: { nudgeId: args.nudgeId, ruleType: nudge.rule_type },
-      success: true,
+      tool: 'nudge_accepted',
+      input_json: { nudgeId: args.nudgeId, ruleType: nudge.rule_type },
+      status: 'success',
+      latency_ms: Date.now() - startTime,
       created_at: now,
     })
 
@@ -367,10 +368,10 @@ export const snoozeNudge = mutation({
     // Log snooze for metrics
     await ctx.db.insert('agent_audit_logs', {
       user_id: user._id,
-      action: 'nudge_snoozed',
-      tool_name: null,
-      input: { nudgeId: args.nudgeId, snoozeUntil: args.snoozeUntil },
-      success: true,
+      tool: 'nudge_snoozed',
+      input_json: { nudgeId: args.nudgeId, snoozeUntil: args.snoozeUntil },
+      status: 'success',
+      latency_ms: 0,
       created_at: now,
     })
 
@@ -417,10 +418,10 @@ export const dismissNudge = mutation({
     // Log dismissal for metrics
     await ctx.db.insert('agent_audit_logs', {
       user_id: user._id,
-      action: 'nudge_dismissed',
-      tool_name: null,
-      input: { nudgeId: args.nudgeId, ruleType: nudge.rule_type },
-      success: true,
+      tool: 'nudge_dismissed',
+      input_json: { nudgeId: args.nudgeId, ruleType: nudge.rule_type },
+      status: 'success',
+      latency_ms: 0,
       created_at: now,
     })
 

@@ -101,7 +101,7 @@ const ERROR_TITLES = {
  * Renders either an error message or normal assistant response
  */
 function AssistantMessageCard({ content }: { content: string }) {
-  const errorInfo = detectErrorType(content)
+  const errorInfo = React.useMemo(() => detectErrorType(content), [content])
 
   if (errorInfo.isError) {
     const config = ERROR_CONFIG[errorInfo.type || 'generic']

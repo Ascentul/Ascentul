@@ -1,12 +1,11 @@
 'use client'
 
 import React from 'react'
-import { Loader2, XCircle, Briefcase, TrendingUp, DollarSign, Clock, ExternalLink } from 'lucide-react'
-import type { ToolCall } from '@/lib/agent/types'
+import { Loader2, XCircle, Briefcase, TrendingUp, DollarSign, Clock } from 'lucide-react'
+import type { ToolCall, CareerPathOutput, CareerPathNode, CareerLevel, GrowthPotential } from '@/lib/agent/types'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface ToolStepCardProps {
   toolCall: ToolCall
@@ -40,7 +39,7 @@ const TOOL_NAMES: Record<string, string> = {
 }
 
 // Level badge colors matching the career path page
-const LEVEL_COLORS: Record<string, string> = {
+const LEVEL_COLORS: Record<CareerLevel, string> = {
   entry: 'bg-blue-100 text-blue-800 border-blue-200',
   mid: 'bg-green-100 text-green-800 border-green-200',
   senior: 'bg-purple-100 text-purple-800 border-purple-200',
@@ -49,7 +48,7 @@ const LEVEL_COLORS: Record<string, string> = {
 }
 
 // Growth potential colors
-const GROWTH_COLORS: Record<string, string> = {
+const GROWTH_COLORS: Record<GrowthPotential, string> = {
   low: 'text-amber-600',
   medium: 'text-blue-600',
   high: 'text-green-600',
@@ -57,6 +56,8 @@ const GROWTH_COLORS: Record<string, string> = {
 }
 
 export function ToolStepCard({ toolCall }: ToolStepCardProps) {
+  const router = useRouter()
+
   // Only show errors, hide successful operations
   if (toolCall.status === 'error' && toolCall.error) {
     return (
@@ -80,48 +81,47 @@ export function ToolStepCard({ toolCall }: ToolStepCardProps) {
 
   // Special rendering for career path results
   if (toolCall.status === 'success' && toolCall.output && typeof toolCall.output === 'object') {
-    const output = toolCall.output as any
+    const output = toolCall.output as CareerPathOutput
 
     // Check if this is a career path output
-    if (output.type === 'career_path' && output.careerPath?.nodes) {
+    if (output.type === 'career_path' && output.careerPath?.nodes && output.careerPath.nodes.length > 0) {
+
+      // Get the pathId from the output
+      const pathId = (output as any).pathId
+
       return (
         <div className="space-y-3 mt-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium text-gray-700">
-                {output.careerPath.name}
-              </div>
-              {output.careerPath.description && (
-                <div className="text-xs text-gray-600 mt-1">
-                  {output.careerPath.description}
-                </div>
-              )}
-            </div>
-            <Link href="/career-path">
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs">
-                View Full Path
-                <ExternalLink className="h-3 w-3" />
-              </Button>
-            </Link>
-          </div>
           <div className="grid gap-3">
-            {output.careerPath.nodes.map((node: any, index: number) => {
-              // Store the career path and selected node in localStorage for the career path page to pick up
+            {output.careerPath.nodes.map((node: CareerPathNode, index: number) => {
+              // Store the career path data and navigate to the career path page
               const handleNodeClick = () => {
-                console.log('[ToolStepCard] Storing career path for node:', index, node.title);
-                // Store the full career path data and which node was clicked
                 const dataToStore = {
-                  careerPath: output.careerPath,
+                  pathId,
                   selectedNodeIndex: index,
                   timestamp: Date.now(),
-                };
-                console.log('[ToolStepCard] Data to store:', dataToStore);
-                localStorage.setItem('agent_career_path', JSON.stringify(dataToStore));
+                }
+                localStorage.setItem('agent_career_path_selection', JSON.stringify(dataToStore))
+
+                // Dispatch event for any listeners
+                try {
+                  window.dispatchEvent(
+                    new CustomEvent('agent:career-path-selection', { detail: dataToStore })
+                  )
+                } catch (error) {
+                  // Silently fail if event dispatch fails
+                }
+
+                // Navigate to career path page
+                const url = `/career-path${pathId ? `?pathId=${pathId}` : ''}`
+                router.push(url)
               }
 
               return (
-                <Link key={index} href="/career-path" onClick={handleNodeClick} className="block">
-                  <Card className="p-4 hover:shadow-lg hover:border-primary transition-all cursor-pointer group">
+                <Card
+                  key={node.id || index}
+                  onClick={handleNodeClick}
+                  className="p-4 hover:shadow-lg hover:border-primary transition-all cursor-pointer group"
+                >
                     <div className="space-y-3">
                       {/* Header with title and level */}
                       <div className="flex items-start justify-between gap-3">
@@ -179,13 +179,12 @@ export function ToolStepCard({ toolCall }: ToolStepCardProps) {
                         </div>
                       )}
                     </div>
-                  </Card>
-                </Link>
+                </Card>
               )
             })}
           </div>
           <div className="text-xs text-gray-500 text-center pt-2">
-            Click any stage to explore the full interactive career path
+            Click any stage to view full details on the Career Path page
           </div>
         </div>
       )

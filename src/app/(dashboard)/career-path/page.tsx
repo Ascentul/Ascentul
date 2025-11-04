@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { logError, logInfo } from "@/lib/logger";
 // Removed framer-motion import to fix build issues
 import {
   ArrowRight,
@@ -53,6 +54,7 @@ import {
   isProfileGuidanceResponse,
   ProfileTask,
 } from "@/lib/career-path/types";
+import type { GrowthPotential } from "@/lib/agent/types";
 
 // Removed framer-motion animations to fix build issues
 
@@ -113,6 +115,26 @@ const GrowthIndicators: Record<
   },
 };
 
+/**
+ * Growth indicator badge component
+ * Displays growth potential with icon and text, with defensive guards
+ */
+const GrowthIndicatorBadge = ({ growthPotential }: { growthPotential?: GrowthPotential }) => {
+  if (!growthPotential || !GrowthIndicators[growthPotential]) return null;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-1 text-xs mt-3",
+        GrowthIndicators[growthPotential].color,
+      )}
+    >
+      {GrowthIndicators[growthPotential].icon}
+      {GrowthIndicators[growthPotential].text}
+    </div>
+  );
+};
+
 const iconSize = "h-6 w-6 text-primary";
 function getIconComponent(name?: string): JSX.Element {
   switch ((name || "").toLowerCase()) {
@@ -163,12 +185,14 @@ function hydratePath(raw: any): CareerPath | null {
       salaryRange: String(n.salaryRange || ""),
       yearsExperience: String(n.yearsExperience || ""),
       skills: Array.isArray(n.skills)
-        ? n.skills.map((skill: any) =>
-            // Handle both string skills (from agent) and object skills (from manual generation)
-            typeof skill === 'string'
-              ? { name: skill, level: 'intermediate' as const }
-              : skill
-          )
+        ? n.skills
+            .filter((skill: any) => skill != null && (typeof skill === 'string' || typeof skill === 'object'))
+            .map((skill: any) =>
+              // Handle both string skills (from agent) and object skills (from manual generation)
+              typeof skill === 'string'
+                ? { name: skill, level: 'intermediate' as const }
+                : { name: skill.name || 'Unknown', level: skill.level || 'intermediate' }
+            )
         : [],
       description: String(n.description || ""),
       growthPotential: n.growthPotential,
@@ -327,6 +351,7 @@ export default function CareerPathPage() {
 
   // Track if we're loading an agent-generated path to prevent conflicts
   const hasAgentPath = useRef(false);
+  const lastProcessedSelectionRef = useRef<number | null>(null);
 
   const [explorationMode, setExplorationMode] = useState<
     "target" | "profile" | "saved"
@@ -346,100 +371,6 @@ export default function CareerPathPage() {
     } catch {}
   }, [explorationMode]);
 
-  // Handle incoming career path from agent chat
-  useEffect(() => {
-    try {
-      const agentDataStr = localStorage.getItem('agent_career_path');
-      if (!agentDataStr) return;
-
-      console.log('[CareerPath] Processing agent career path from localStorage');
-      hasAgentPath.current = true; // Mark that we have an agent path
-
-      const agentData = JSON.parse(agentDataStr);
-      const { careerPath, selectedNodeIndex } = agentData;
-
-      // Validate the data
-      if (!careerPath?.nodes || !Array.isArray(careerPath.nodes)) {
-        console.log('[CareerPath] Invalid career path data');
-        hasAgentPath.current = false;
-        return;
-      }
-
-      // Ensure nodes have IDs before hydrating
-      const pathWithIds = {
-        ...careerPath,
-        id: careerPath.id || 'agent-path',
-        nodes: careerPath.nodes.map((node: any, idx: number) => ({
-          ...node,
-          id: node.id || `agent-node-${idx}`,
-        })),
-      };
-
-      // Hydrate the career path (convert icon strings to JSX)
-      const hydratedPath = hydratePath(pathWithIds);
-      if (!hydratedPath) {
-        console.log('[CareerPath] Failed to hydrate path');
-        hasAgentPath.current = false;
-        return;
-      }
-
-      console.log('[CareerPath] Setting active path and selected node:', {
-        pathName: hydratedPath.name,
-        nodeCount: hydratedPath.nodes.length,
-        selectedNodeIndex,
-      });
-
-      // Set the active path
-      setActivePath(hydratedPath);
-      setGeneratedPath(hydratedPath);
-
-      // Select the specific node that was clicked
-      // Use setTimeout to ensure state updates are processed
-      if (typeof selectedNodeIndex === 'number' && hydratedPath.nodes[selectedNodeIndex]) {
-        const selectedNode = hydratedPath.nodes[selectedNodeIndex];
-        console.log('[CareerPath] Selecting node:', selectedNode.id, selectedNode.title);
-
-        setTimeout(async () => {
-          setSelectedNodeId(selectedNode.id);
-          setDrawerOpen(true);
-          console.log('[CareerPath] Drawer should be open now');
-
-          // Fetch certifications for this node
-          try {
-            setIsLoadingCerts(true);
-            const res = await apiRequest("POST", "/api/career-certifications", {
-              role: selectedNode.title,
-              level: selectedNode.level,
-              skills: selectedNode.skills,
-            });
-            const data = await res.json();
-            if (Array.isArray(data?.certifications)) {
-              setRoleCerts((prev) => ({ ...prev, [selectedNode.id]: data.certifications }));
-            }
-          } catch (e) {
-            console.error('[CareerPath] Failed to load certifications:', e);
-          } finally {
-            setIsLoadingCerts(false);
-          }
-        }, 100);
-      }
-
-      // Clean up localStorage after processing
-      localStorage.removeItem('agent_career_path');
-    } catch (error) {
-      console.error('Failed to process agent career path:', error);
-      hasAgentPath.current = false;
-    }
-  }, []); // Run once on mount
-
-  // Profile data (for profile-based generation)
-  const { data: careerProfileData } = useQuery<any>({
-    queryKey: ["/api/career-data/profile"],
-    enabled: explorationMode === "profile",
-    queryFn: async () =>
-      (await apiRequest("GET", "/api/career-data/profile")).json(),
-  });
-
   // Job title generator
   const [jobTitle, setJobTitle] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -451,6 +382,14 @@ export default function CareerPathPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [selectionTrigger, setSelectionTrigger] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => setSelectionTrigger((count) => count + 1);
+    window.addEventListener("agent:career-path-selection", handler);
+    return () => window.removeEventListener("agent:career-path-selection", handler);
+  }, []);
 
   // Guidance mode state (when profile prep is needed)
   const [showGuidanceBanner, setShowGuidanceBanner] = useState(false);
@@ -467,6 +406,128 @@ export default function CareerPathPage() {
   const [roleCerts, setRoleCerts] = useState<
     Record<string, CertificationRecommendation[]>
   >({});
+
+  const fetchCertificationsForNode = useCallback(
+    async (node: CareerNode) => {
+      try {
+        setIsLoadingCerts(true);
+        const response = await apiRequest("POST", "/api/career-certifications", {
+          role: node.title,
+          level: node.level,
+          skills: node.skills,
+        });
+        const data = await response.json();
+        if (Array.isArray(data?.certifications)) {
+          setRoleCerts((prev) => ({ ...prev, [node.id]: data.certifications }));
+        }
+      } catch (error) {
+        logError("Failed to load certifications", error, {
+          role: node.title,
+          level: node.level,
+        });
+        toast({
+          title: "Failed to load certifications",
+          description: "Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingCerts(false);
+      }
+    },
+    [], // setState functions are stable and don't need to be dependencies
+  );
+
+  const prepareHydratedPath = useCallback(
+    (
+      rawPath: any,
+      {
+        fallbackId,
+        nodePrefix,
+        overrideId,
+      }: { fallbackId: string; nodePrefix: string; overrideId?: string },
+    ): CareerPath | null => {
+      if (!rawPath || !Array.isArray(rawPath.nodes) || rawPath.nodes.length === 0) {
+        return null;
+      }
+
+      const pathWithIds = {
+        ...rawPath,
+        id: overrideId ?? rawPath.id ?? fallbackId,
+        nodes: rawPath.nodes.map((node: any, idx: number) => ({
+          ...node,
+          id: node.id || `${nodePrefix}-${idx}`,
+        })),
+      };
+
+      return hydratePath(pathWithIds);
+    },
+    [],
+  );
+
+  const applyHydratedPathSelection = useCallback(
+    (path: CareerPath, selectedNodeIndex?: number) => {
+      setActivePath(path);
+      setGeneratedPath(path);
+
+      if (
+        typeof selectedNodeIndex === "number" &&
+        path.nodes[selectedNodeIndex]
+      ) {
+        const selectedNode = path.nodes[selectedNodeIndex];
+        setSelectedNodeId(selectedNode.id);
+        setDrawerOpen(true);
+        void fetchCertificationsForNode(selectedNode);
+      }
+    },
+    [fetchCertificationsForNode], // setState functions are stable and don't need to be dependencies
+  );
+
+  // Handle incoming career path from agent chat
+  useEffect(() => {
+    try {
+      const agentDataStr = localStorage.getItem("agent_career_path");
+      if (!agentDataStr) return;
+
+      const agentData = JSON.parse(agentDataStr);
+      const { careerPath, selectedNodeIndex } = agentData;
+
+      if (
+        !careerPath?.nodes ||
+        !Array.isArray(careerPath.nodes) ||
+        !careerPath.nodes.every((node: any) => node?.title && node?.level)
+      ) {
+        hasAgentPath.current = false;
+        return;
+      }
+
+      const hydrated = prepareHydratedPath(careerPath, {
+        fallbackId: "agent-path",
+        nodePrefix: "agent-node",
+      });
+
+      if (!hydrated) {
+        hasAgentPath.current = false;
+        return;
+      }
+
+      hasAgentPath.current = true;
+      applyHydratedPathSelection(hydrated, selectedNodeIndex);
+      logInfo("Hydrated agent-generated career path");
+
+      localStorage.removeItem("agent_career_path");
+    } catch (error) {
+      logError("Failed to process agent career path", error);
+      hasAgentPath.current = false;
+    }
+  }, [applyHydratedPathSelection, prepareHydratedPath]); // Stable deps ensure this runs once on mount
+
+  // Profile data (for profile-based generation)
+  const { data: careerProfileData } = useQuery<any>({
+    queryKey: ["/api/career-data/profile"],
+    enabled: explorationMode === "profile",
+    queryFn: async () =>
+      (await apiRequest("GET", "/api/career-data/profile")).json(),
+  });
 
   // Saved Paths management (rename/delete dialogs)
   const [renameOpen, setRenameOpen] = useState(false);
@@ -488,13 +549,13 @@ export default function CareerPathPage() {
     try {
       // Skip if we loaded an agent path
       if (hasAgentPath.current) {
-        console.log('[CareerPath] Skipping path restoration - agent path loaded');
+        logInfo('Skipping path restoration - agent path loaded');
         return;
       }
 
       const raw = localStorage.getItem(LS_KEYS.path);
       if (raw) {
-        console.log('[CareerPath] Restoring previous path from localStorage');
+        logInfo('Restoring previous path from localStorage');
         const parsed = JSON.parse(raw);
         const hydrated = hydratePath(parsed);
         if (hydrated) {
@@ -537,6 +598,78 @@ export default function CareerPathPage() {
     else setSavedList(arr);
     setNextCursor(savedPage.nextCursor ?? null);
   }, [savedPage, savedCursor]);
+
+  // Handle agent career path selection (pathId from URL or localStorage)
+  useEffect(() => {
+    try {
+      const selectionStr = localStorage.getItem("agent_career_path_selection");
+      if (!selectionStr) return;
+
+      if (!savedList || savedList.length === 0) {
+        return;
+      }
+
+      const { pathId, selectedNodeIndex, timestamp } = JSON.parse(selectionStr);
+
+      if (
+        typeof timestamp === "number" &&
+        lastProcessedSelectionRef.current &&
+        timestamp <= lastProcessedSelectionRef.current
+      ) {
+        return;
+      }
+      const savedPath = savedList.find(
+        (item: any) =>
+          item._id === pathId || item.id === pathId || item.docId === pathId,
+      );
+
+      if (!savedPath) {
+        return;
+      }
+
+      const rawPath =
+        savedPath?.steps?.path ??
+        (savedPath?.nodes
+          ? {
+              id: savedPath.id ?? savedPath.docId ?? pathId ?? 'saved-path',
+              name: savedPath.name ?? 'Career Path',
+              nodes: savedPath.nodes,
+            }
+          : null);
+
+      if (!rawPath) {
+        logError("Agent career path selection missing steps.path", {
+          pathId,
+        });
+        localStorage.removeItem("agent_career_path_selection");
+        return;
+      }
+
+      const fallbackId = String(savedPath?._id ?? savedPath?.id ?? savedPath?.docId ?? pathId ?? "saved-path");
+      const hydrated = prepareHydratedPath(rawPath, {
+        fallbackId,
+        nodePrefix: "saved-node",
+        overrideId: fallbackId,
+      });
+
+      if (!hydrated) {
+        logError("Failed to hydrate agent career path selection", { pathId });
+        localStorage.removeItem("agent_career_path_selection");
+        return;
+      }
+
+      hasAgentPath.current = true;
+      applyHydratedPathSelection(hydrated, selectedNodeIndex);
+      logInfo("Hydrated agent career path selection");
+
+      lastProcessedSelectionRef.current =
+        typeof timestamp === "number" ? timestamp : Date.now();
+
+      localStorage.removeItem("agent_career_path_selection");
+    } catch (error) {
+      logError("Failed to process agent career path selection", error);
+    }
+  }, [applyHydratedPathSelection, prepareHydratedPath, savedList, selectionTrigger]);
 
   const savedPaths: CareerPath[] = useMemo(() => {
     try {
@@ -604,37 +737,15 @@ export default function CareerPathPage() {
     setDeleteOpen(true);
   };
 
-  const fetchCertifications = async (nodeId: string) => {
-    const node = activePath?.nodes.find((n) => n.id === nodeId);
-    if (!node) return;
-    try {
-      setIsLoadingCerts(true);
-      const res = await apiRequest("POST", "/api/career-certifications", {
-        role: node.title,
-        level: node.level,
-        skills: node.skills,
-      });
-      const data = await res.json();
-      if (Array.isArray(data?.certifications)) {
-        setRoleCerts((prev) => ({ ...prev, [nodeId]: data.certifications }));
-      }
-    } catch (e) {
-      toast({
-        title: "Failed to load certifications",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingCerts(false);
-    }
-  };
-
   const handleNodeClick = (nodeId: string) => {
     const alreadySelected = selectedNodeId === nodeId;
     setSelectedNodeId(nodeId);
     if (!alreadySelected) {
       setDrawerOpen(true);
-      fetchCertifications(nodeId);
+      const node = activePath?.nodes.find((n) => n.id === nodeId);
+      if (node) {
+        void fetchCertificationsForNode(node);
+      }
     } else {
       setDrawerOpen(!drawerOpen);
     }
@@ -1254,17 +1365,7 @@ export default function CareerPathPage() {
                         Experience: {node.yearsExperience}
                       </div>
                     </div>
-                    {node.growthPotential && GrowthIndicators[node.growthPotential] && (
-                      <div
-                        className={cn(
-                          "flex items-center gap-1 text-xs mt-3",
-                          GrowthIndicators[node.growthPotential].color,
-                        )}
-                      >
-                        {GrowthIndicators[node.growthPotential].icon}
-                        {GrowthIndicators[node.growthPotential].text}
-                      </div>
-                    )}
+                    <GrowthIndicatorBadge growthPotential={node.growthPotential} />
                   </CardContent>
                 </Card>
                 {idx < activePath.nodes.length - 1 && (
@@ -1336,17 +1437,7 @@ export default function CareerPathPage() {
                             Experience: {node.yearsExperience}
                           </div>
                         </div>
-                        {node.growthPotential && GrowthIndicators[node.growthPotential] && (
-                          <div
-                            className={cn(
-                              "flex items-center gap-1 text-xs mt-3",
-                              GrowthIndicators[node.growthPotential].color,
-                            )}
-                          >
-                            {GrowthIndicators[node.growthPotential].icon}
-                            {GrowthIndicators[node.growthPotential].text}
-                          </div>
-                        )}
+                        <GrowthIndicatorBadge growthPotential={node.growthPotential} />
                       </CardContent>
                     </Card>
                     {idx < activePath.nodes.length - 1 && (

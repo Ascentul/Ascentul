@@ -40,6 +40,17 @@ try {
 // Constants
 const MAX_CONTEXT_SIZE = 2000 // Max chars for context JSON
 const OPENAI_TIMEOUT_MS = 30000 // 30s timeout for OpenAI API calls
+const CONVEX_ID_REGEX = /^[a-z0-9]{24}$/
+const looksLikeConvexId = (value: unknown): value is string =>
+  typeof value === 'string' && CONVEX_ID_REGEX.test(value)
+
+const idGuard = (value: unknown, entity: string, hint?: string) =>
+  looksLikeConvexId(value)
+    ? null
+    : {
+        success: false,
+        error: `Invalid ${entity} ID provided. Use get_user_snapshot to retrieve valid IDs before calling this tool.${hint ? ` ${hint}` : ''}`,
+      }
 
 /**
  * Safely stringify context with size limits and sanitization
@@ -243,7 +254,9 @@ async function executeTool(
         checklist: input.checklist as Array<{ id: string; text: string; completed: boolean }> | undefined,
       })
 
-    case 'update_goal':
+    case 'update_goal': {
+      const guard = idGuard(input.goalId, 'goal')
+      if (guard) return guard
       return await convex.mutation(api.agent.updateGoal, {
         userId,
         goalId: input.goalId as Id<'goals'>,
@@ -254,12 +267,16 @@ async function executeTool(
         category: input.category as string | undefined,
         target_date: input.target_date as number | undefined,
       })
+    }
 
-    case 'delete_goal':
+    case 'delete_goal': {
+      const guard = idGuard(input.goalId, 'goal')
+      if (guard) return guard
       return await convex.mutation(api.agent.deleteGoal, {
         userId,
         goalId: input.goalId as Id<'goals'>,
       })
+    }
 
     case 'create_application':
       return await convex.mutation(api.agent.createApplication, {
@@ -274,7 +291,13 @@ async function executeTool(
         resume_id: input.resume_id as Id<'resumes'> | undefined,
       })
 
-    case 'update_application':
+    case 'update_application': {
+      const guard = idGuard(
+        input.applicationId,
+        'application',
+        'If you are trying to update a role in the career profile, use upsert_profile_field with the work_history field instead of application tools.'
+      )
+      if (guard) return guard
       return await convex.mutation(api.agent.updateApplication, {
         userId,
         applicationId: input.applicationId as Id<'applications'>,
@@ -288,12 +311,20 @@ async function executeTool(
         resume_id: input.resume_id as Id<'resumes'> | undefined,
         cover_letter_id: input.cover_letter_id as Id<'cover_letters'> | undefined,
       })
+    }
 
-    case 'delete_application':
+    case 'delete_application': {
+      const guard = idGuard(
+        input.applicationId,
+        'application',
+        'For changing job titles in your profile, update work_history via upsert_profile_field.'
+      )
+      if (guard) return guard
       return await convex.mutation(api.agent.deleteApplication, {
         userId,
         applicationId: input.applicationId as Id<'applications'>,
       })
+    }
 
     case 'create_interview_stage': {
       const applicationId = input.applicationId as Id<'applications'>
@@ -327,6 +358,8 @@ async function executeTool(
     }
 
     case 'update_interview_stage': {
+      const guard = idGuard(input.stageId, 'interview stage')
+      if (guard) return guard
       const stageId = input.stageId as Id<'interview_stages'>
       const updates: any = {}
 
@@ -358,6 +391,8 @@ async function executeTool(
     }
 
     case 'create_followup': {
+      const guard = idGuard(input.applicationId, 'application')
+      if (guard) return guard
       const applicationId = input.applicationId as Id<'applications'>
       const description = input.description as string
       const due_date = input.due_date as number | undefined
@@ -389,6 +424,8 @@ async function executeTool(
     }
 
     case 'update_followup': {
+      const guard = idGuard(input.followupId, 'follow-up')
+      if (guard) return guard
       const followupId = input.followupId as Id<'followup_actions'>
       const updates: any = {}
 
@@ -476,7 +513,7 @@ Return ONLY valid JSON in this exact format:
 
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
-          temperature: 0.7,
+          temperature: 0.4, // Lower temperature for more consistent JSON generation
           max_tokens: 2000,
           messages: [
             { role: 'system', content: 'You are a career development expert. Respond only with valid JSON.' },
@@ -497,6 +534,21 @@ Return ONLY valid JSON in this exact format:
         // Validate the response has required structure
         if (!careerPath.nodes || !Array.isArray(careerPath.nodes) || careerPath.nodes.length === 0) {
           throw new Error('Invalid career path structure from AI')
+        }
+
+        // Validate each node has required fields
+        const hasValidNodes = careerPath.nodes.every((node: any) =>
+          node.title &&
+          node.level &&
+          node.yearsExperience &&
+          node.salaryRange &&
+          node.skills &&
+          Array.isArray(node.skills) &&
+          node.description
+        )
+
+        if (!hasValidNodes) {
+          throw new Error('Career path nodes missing required fields')
         }
 
         // Save to database with full career path data
@@ -566,6 +618,17 @@ Return ONLY valid JSON in this exact format:
       const companyName = input.company as string
       const jobTitle = input.jobTitle as string
 
+      // Validate input lengths to prevent excessive token usage and costs
+      if (jobDescription && jobDescription.length > 5000) {
+        throw new Error('Job description too long (max 5000 characters)')
+      }
+      if (companyName && companyName.length > 200) {
+        throw new Error('Company name too long (max 200 characters)')
+      }
+      if (jobTitle && jobTitle.length > 200) {
+        throw new Error('Job title too long (max 200 characters)')
+      }
+
       // Fetch comprehensive user profile
       const profile = await convex.query(api.users.getUserByClerkId, { clerkId })
       const projects = await convex.query(api.projects.getUserProjects, { clerkId }) || []
@@ -613,7 +676,7 @@ Return ONLY valid JSON in this exact format:
       let content = ''
       try {
         const completion = await openai.chat.completions.create({
-          model: "gpt-4o",
+          model: "gpt-4o-mini", // Cost-effective model with quality prompting
           messages: [
             {
               role: "system",
@@ -639,7 +702,7 @@ Instructions:
 - Start directly with the opening paragraph`
             }
           ],
-          max_tokens: 1500,
+          max_tokens: 2000, // Increased for more detailed letters with profile context
           temperature: 0.7,
         })
         content = completion.choices[0]?.message?.content || ''
@@ -677,7 +740,7 @@ Instructions:
         content,
         preview: `${preview}${truncated ? '...' : ''}`,
         message: 'Cover letter generated with AI'
-      } as any // Type assertion needed for dynamic response
+      }
     }
 
     case 'analyze_cover_letter':
@@ -704,7 +767,11 @@ Instructions:
       })
 
     case 'update_contact':
-      // Update contact
+      // Update contact details (use log_contact_interaction for interaction tracking)
+      {
+        const guard = idGuard(input.contactId, 'contact')
+        if (guard) return guard
+      }
       return await convex.mutation(api.contacts.updateContact, {
         clerkId,
         contactId: input.contactId as Id<'networking_contacts'>,
@@ -717,12 +784,15 @@ Instructions:
           notes: input.notes as string | undefined,
           phone: input.phone as string | undefined,
           relationship: input.relationship as string | undefined,
-          last_contact: input.last_contact as number | undefined,
         },
       })
 
     case 'delete_contact':
       // Delete contact
+      {
+        const guard = idGuard(input.contactId, 'contact')
+        if (guard) return guard
+      }
       return await convex.mutation(api.contacts.deleteContact, {
         clerkId,
         contactId: input.contactId as Id<'networking_contacts'>,
@@ -730,6 +800,10 @@ Instructions:
 
     case 'log_contact_interaction':
       // Log interaction with contact (creates interaction record + updates last_contact)
+      {
+        const guard = idGuard(input.contactId, 'contact')
+        if (guard) return guard
+      }
       return await convex.mutation(api.contact_interactions.logInteraction, {
         clerkId,
         contactId: input.contactId as Id<'networking_contacts'>,
@@ -738,6 +812,10 @@ Instructions:
 
     case 'create_contact_followup':
       // Create a follow-up task for a contact
+      {
+        const guard = idGuard(input.contactId, 'contact')
+        if (guard) return guard
+      }
       return await convex.mutation(api.contact_interactions.createContactFollowup, {
         clerkId,
         contactId: input.contactId as Id<'networking_contacts'>,
@@ -749,6 +827,10 @@ Instructions:
 
     case 'update_contact_followup':
       // Update a follow-up task for a contact
+      {
+        const guard = idGuard(input.followupId, 'follow-up')
+        if (guard) return guard
+      }
       return await convex.mutation(api.contact_interactions.updateContactFollowup, {
         clerkId,
         followupId: input.followupId as Id<'followup_actions'>,
@@ -763,9 +845,63 @@ Instructions:
 
     case 'delete_contact_followup':
       // Delete a follow-up task for a contact
+      {
+        const guard = idGuard(input.followupId, 'follow-up')
+        if (guard) return guard
+      }
       return await convex.mutation(api.contact_interactions.deleteContactFollowup, {
         clerkId,
         followupId: input.followupId as Id<'followup_actions'>,
+      })
+
+    case 'create_project':
+      // Create a new project
+      return await convex.mutation(api.projects.createProject, {
+        clerkId,
+        title: input.title as string,
+        description: input.description as string | undefined,
+        role: input.role as string | undefined,
+        company: input.company as string | undefined,
+        type: input.type as string,
+        technologies: input.technologies as string[],
+        url: input.url as string | undefined,
+        github_url: input.github_url as string | undefined,
+        start_date: input.start_date as number | undefined,
+        end_date: input.end_date as number | undefined,
+      })
+
+    case 'update_project':
+      // Update an existing project
+      {
+        const guard = idGuard(input.projectId, 'project')
+        if (guard) return guard
+      }
+      return await convex.mutation(api.projects.updateProject, {
+        clerkId,
+        projectId: input.projectId as Id<'projects'>,
+        updates: {
+          title: input.title as string | undefined,
+          description: input.description as string | undefined,
+          role: input.role as string | undefined,
+          company: input.company as string | undefined,
+          type: input.type as string | undefined,
+          technologies: input.technologies as string[] | undefined,
+          url: input.url as string | undefined,
+          github_url: input.github_url as string | undefined,
+          start_date: input.start_date as number | undefined,
+          end_date: input.end_date as number | undefined,
+        },
+      })
+
+    case 'delete_project':
+      // Delete a project
+      {
+        const guard = idGuard(input.projectId, 'project')
+        if (guard) return guard
+      }
+      return await convex.mutation(api.projects.deleteProject, {
+        clerkId,
+        projectId: input.projectId as Id<'projects'>,
       })
 
     default:
@@ -827,6 +963,8 @@ async function streamAgentResponse({
       const MAX_TURNS = 5
       let currentTurn = 0
       let finalResponse = ''
+
+      let lastErrorMessage: string | null = null
 
       while (currentTurn < MAX_TURNS) {
         currentTurn++
@@ -957,6 +1095,19 @@ async function streamAgentResponse({
                 const startTime = Date.now()
                 const toolOutput = await executeTool(userId, clerkUserId, toolCall.name as ToolName, parsedInput)
                 const latencyMs = Date.now() - startTime
+                const isErrorOutput =
+                  toolOutput &&
+                  typeof toolOutput === 'object' &&
+                  'success' in (toolOutput as Record<string, unknown>) &&
+                  (toolOutput as Record<string, unknown>).success === false
+                const toolStatus = isErrorOutput ? 'error' : 'success'
+
+                if (isErrorOutput) {
+                  const outputObj = toolOutput as Record<string, unknown>
+                  if (typeof outputObj.error === 'string') {
+                    lastErrorMessage = outputObj.error
+                  }
+                }
 
                 // Log successful execution with client-side sanitization (defense in depth)
                 await convex.mutation(api.agent.logAudit, {
@@ -964,14 +1115,14 @@ async function streamAgentResponse({
                   tool: toolCall.name,
                   inputJson: safeAuditPayload(parsedInput),
                   outputJson: safeAuditPayload(toolOutput),
-                  status: 'success',
+                  status: toolStatus,
                   latencyMs,
                 })
 
                 await writer.write(
                   sendTool({
                     name: toolCall.name,
-                    status: 'success',
+                    status: toolStatus,
                     input: parsedInput,
                     output: toolOutput,
                   })
@@ -985,6 +1136,7 @@ async function streamAgentResponse({
                 })
               } catch (toolError) {
                 const errorMessage = toolError instanceof Error ? toolError.message : 'Tool execution failed'
+                lastErrorMessage = errorMessage
 
                 // Log failed execution with client-side sanitization (defense in depth)
                 await convex.mutation(api.agent.logAudit, {
@@ -1034,6 +1186,14 @@ async function streamAgentResponse({
         if (toolCallsMap.size === 0) {
           break
         }
+      }
+
+      // If OpenAI didn't produce a final assistant message, provide a fallback so the user isn't left hanging
+      if (!finalResponse) {
+        const fallback = lastErrorMessage
+          ? `I ran into an issue completing that request: ${lastErrorMessage}`
+          : 'I ran into an issue completing that request. Please provide more details or try again with a different instruction.'
+        await writer.write(sendDelta(fallback))
       }
 
       // Stream complete

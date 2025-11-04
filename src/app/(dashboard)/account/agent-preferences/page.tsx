@@ -21,6 +21,7 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { logError } from '@/lib/logger'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -108,7 +109,7 @@ export default function AgentPreferencesPage() {
           : 'Your AI career agent has been disabled',
       })
     } catch (error) {
-      console.error('Failed to toggle agent:', error)
+      logError('Failed to toggle agent', error, { userId, enabled })
       toast({
         title: 'Error',
         description: 'Failed to update agent settings',
@@ -130,7 +131,7 @@ export default function AgentPreferencesPage() {
           : 'You will only receive responses to direct questions',
       })
     } catch (error) {
-      console.error('Failed to toggle proactive:', error)
+      logError('Failed to toggle proactive nudges', error, { userId, enabled })
       toast({
         title: 'Error',
         description: 'Failed to update nudge settings',
@@ -169,7 +170,7 @@ export default function AgentPreferencesPage() {
         description: 'Your agent preferences have been updated successfully',
       })
     } catch (error) {
-      console.error('Failed to save preferences:', error)
+      logError('Failed to save preferences', error, { userId })
       toast({
         title: 'Error',
         description: 'Failed to save preferences',
@@ -191,7 +192,7 @@ export default function AgentPreferencesPage() {
         description: 'All preferences have been reset to defaults',
       })
     } catch (error) {
-      console.error('Failed to reset preferences:', error)
+      logError('Failed to reset preferences', error, { userId })
       toast({
         title: 'Error',
         description: 'Failed to reset preferences',
