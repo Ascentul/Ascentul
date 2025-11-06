@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as achievements from "../achievements.js";
+import type * as activity from "../activity.js";
 import type * as admin_users from "../admin_users.js";
 import type * as ai_coach from "../ai_coach.js";
 import type * as analytics from "../analytics.js";
@@ -50,6 +51,7 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   achievements: typeof achievements;
+  activity: typeof activity;
   admin_users: typeof admin_users;
   ai_coach: typeof ai_coach;
   analytics: typeof analytics;

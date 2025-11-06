@@ -116,6 +116,8 @@ export default defineSchema({
     password_reset_expires_at: v.optional(v.number()),
     // University admin notes (visible only to university admins, not to students)
     university_admin_notes: v.optional(v.string()),
+    // User preferences
+    hide_progress_card: v.optional(v.boolean()),
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -568,4 +570,17 @@ export default defineSchema({
     .index("by_subscription", ["stripe_subscription_id"])
     .index("by_event_date", ["event_date"])
     .index("by_event_type", ["event_type"]),
+
+  // User daily activity tracking for streak heatmap
+  user_daily_activity: defineTable({
+    user_id: v.id("users"),
+    clerk_id: v.string(), // For faster lookups by Clerk auth
+    date: v.string(), // YYYY-MM-DD in user timezone
+    did_login: v.boolean(),
+    did_action: v.boolean(),
+    action_count: v.number(), // Total actions that day
+    created_at: v.number(), // ms
+    updated_at: v.number(), // ms
+  })
+    .index("by_clerk_date", ["clerk_id", "date"]),
 });

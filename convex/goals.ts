@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 
 // Get goals for a Clerk user
 export const getUserGoals = query({
@@ -90,6 +91,9 @@ export const createGoal = mutation({
       created_at: now,
       updated_at: now,
     });
+
+    // Track activity for streak (fire-and-forget)
+    await ctx.scheduler.runAfter(0, api.activity.markActionForToday, {});
 
     return id;
   },

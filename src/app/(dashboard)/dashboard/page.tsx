@@ -12,6 +12,7 @@ import { ActiveInterviewsSummary } from '@/components/ActiveInterviewsSummary'
 import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
 import { TodaysRecommendations } from '@/components/TodaysRecommendations'
 import { UsageProgressCard } from '@/components/UsageProgressCard'
+import { HeatmapCard } from '@/components/streak/HeatmapCard'
 import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
 import { Button } from '@/components/ui/button'
@@ -343,7 +344,7 @@ export default function DashboardPage() {
 
           {/* Row 4: Active Interviews, Follow-up Actions, Goals */}
           <motion.div
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6"
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
             variants={staggeredContainer}
           >
             <motion.div variants={cardAnimation}>
@@ -359,7 +360,12 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
-          {/* Row 5: Recent Activity */}
+          {/* Row 5: Activity Streak Heatmap */}
+          <motion.div variants={cardAnimation} className="mb-8">
+            <HeatmapCard />
+          </motion.div>
+
+          {/* Row 6: Recent Activity */}
           <motion.div variants={cardAnimation}>
             <Card>
               <CardContent className="p-6">
@@ -367,7 +373,7 @@ export default function DashboardPage() {
                   <h3 className="text-2xl font-semibold leading-none tracking-tight">Recent Activity</h3>
                   <p className="text-sm text-muted-foreground">Your latest career development actions</p>
                 </div>
-                <div className="space-y-4">
+                <div className="h-[280px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                   {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 ? (
                     dashboardData.recentActivity.map((activity) => {
                       const colorClass = activityTypeColors[activity.type] ?? 'bg-yellow-500'

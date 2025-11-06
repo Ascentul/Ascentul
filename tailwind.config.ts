@@ -62,6 +62,9 @@ const config = {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))"
+        },
+        brand: {
+          blue: "#5371ff"
         }
       },
       fontFamily: {
