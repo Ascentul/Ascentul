@@ -748,6 +748,12 @@ function normalizeProfileField(
     )
     updates.work_history = normalized
 
+    // Derive current_position and current_company from work history:
+    // Strategy:
+    //   1. First, try to match by company name (from rawValue input)
+    //   2. Fallback to entry marked with is_current === true
+    //   3. Fallback to first entry in normalized array
+    // If derived values differ from user's current fields, apply updates automatically
     let currentPositionFromWork: string | undefined
     let currentCompanyFromWork: string | undefined
 

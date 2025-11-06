@@ -6,6 +6,7 @@ import type { ToolCall, CareerPathOutput, CareerPathNode, CareerLevel, GrowthPot
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useRouter } from 'next/navigation'
+import { logError } from '@/lib/logger'
 
 interface ToolStepCardProps {
   toolCall: ToolCall
@@ -87,8 +88,7 @@ export function ToolStepCard({ toolCall }: ToolStepCardProps) {
     if (output.type === 'career_path' && output.careerPath?.nodes && output.careerPath.nodes.length > 0) {
 
       // Get the pathId from the output
-      const pathId = (output as any).pathId
-
+      const pathId = typeof (output as any).pathId === 'string' ? (output as any).pathId : undefined
       return (
         <div className="space-y-3 mt-2">
           <div className="grid gap-3">
@@ -108,11 +108,11 @@ export function ToolStepCard({ toolCall }: ToolStepCardProps) {
                     new CustomEvent('agent:career-path-selection', { detail: dataToStore })
                   )
                 } catch (error) {
-                  // Silently fail if event dispatch fails
+                  logError('Failed to dispatch career path selection event', error)
                 }
 
                 // Navigate to career path page
-                const url = `/career-path${pathId ? `?pathId=${pathId}` : ''}`
+                const url = `/career-path${pathId ? `?pathId=${encodeURIComponent(pathId)}` : ''}`
                 router.push(url)
               }
 

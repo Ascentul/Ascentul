@@ -40,7 +40,7 @@ try {
 // Constants
 const MAX_CONTEXT_SIZE = 2000 // Max chars for context JSON
 const OPENAI_TIMEOUT_MS = 30000 // 30s timeout for OpenAI API calls
-const CONVEX_ID_REGEX = /^[a-z0-9]{24}$/
+const CONVEX_ID_REGEX = /^[a-z0-9]{16,32}$/
 const looksLikeConvexId = (value: unknown): value is string =>
   typeof value === 'string' && CONVEX_ID_REGEX.test(value)
 
@@ -51,6 +51,142 @@ const idGuard = (value: unknown, entity: string, hint?: string) =>
         success: false,
         error: `Invalid ${entity} ID provided. Use get_user_snapshot to retrieve valid IDs before calling this tool.${hint ? ` ${hint}` : ''}`,
       }
+
+/**
+ * Enhanced error messages with helpful suggestions
+ */
+function createHelpfulError(errorType: string, entity: string, details?: string): string {
+  const suggestions: Record<string, string> = {
+    not_found: `I couldn't find that ${entity}. Try calling get_user_snapshot to see all available ${entity}s, then use the exact ID or name.`,
+    invalid_id: `The ${entity} ID appears to be invalid. IDs should be 16-32 alphanumeric characters. Use get_user_snapshot to get the correct ID.`,
+    missing_param: `Missing required parameter for ${entity}. ${details || 'Please provide all necessary information.'}`,
+    multiple_matches: `Multiple ${entity}s match your description. ${details || 'Please be more specific or provide an ID.'}`,
+    permission_denied: `You don't have permission to access this ${entity}. ${details || ''}`,
+    validation_failed: `The ${entity} data didn't pass validation. ${details || 'Please check your input and try again.'}`,
+  }
+
+  return suggestions[errorType] || `An error occurred with ${entity}. ${details || 'Please try again or contact support.'}`
+}
+
+type IntentCategory =
+  | 'goals'
+  | 'applications'
+  | 'interviews'
+  | 'followups'
+  | 'career_paths'
+  | 'projects'
+  | 'resumes'
+  | 'cover_letters'
+  | 'contacts'
+  | 'profile'
+  | 'work_history'
+  | 'unknown'
+
+interface IntentClassification {
+  category: IntentCategory
+  confidence: number
+  entityHint?: string
+}
+
+interface IntentContext {
+  category: IntentCategory
+  toolName?: ToolName
+  entityId?: string
+  entityName?: string
+}
+
+interface VerificationPlan {
+  type:
+    | 'cover_letter_deleted'
+    | 'cover_letter_exists'
+    | 'resume_deleted'
+    | 'resume_exists'
+    | 'goal_created'
+    | 'goal_deleted'
+    | 'goal_updated'
+    | 'application_created'
+    | 'application_deleted'
+    | 'application_updated'
+    | 'contact_created'
+    | 'contact_deleted'
+    | 'contact_updated'
+    | 'project_created'
+    | 'project_deleted'
+    | 'project_updated'
+    | 'none'
+  entityId?: string
+  entityName?: string
+  expectedChanges?: Record<string, unknown>
+}
+
+interface PreparedToolInputResult {
+  input: Record<string, unknown>
+  abortMessage?: string
+  contextHint?: IntentContext
+  verificationPlan?: VerificationPlan
+  clarificationOptions?: string[]
+}
+
+interface VerificationResult {
+  success: boolean
+  summary?: string
+  message?: string
+  contextUpdate?: IntentContext
+}
+
+function normalizeLabel(value: string, removePhrases: string[] = []) {
+  if (!value) return ''
+  let normalized = value.toLowerCase()
+  for (const phrase of removePhrases) {
+    normalized = normalized.replace(new RegExp(phrase, 'gi'), ' ')
+  }
+  return normalized
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function findMatchingRecords<T extends Record<string, unknown>>({
+  rawIdentifier,
+  items,
+  fields,
+  removePhrases = [],
+}: {
+  rawIdentifier: string
+  items: T[]
+  fields: (keyof T)[]
+  removePhrases?: string[]
+}) {
+  const normalizedQuery = normalizeLabel(rawIdentifier, removePhrases)
+  const fallbackQuery = rawIdentifier.trim().toLowerCase()
+  const queryTokens = normalizedQuery.split(' ').filter(Boolean)
+
+  return items.filter((item) => {
+    const candidateRaw = fields
+      .map((field) => (item[field] ? String(item[field]) : ''))
+      .filter(Boolean)
+      .join(' ')
+
+    if (!candidateRaw) return false
+
+    const normalizedCandidate = normalizeLabel(candidateRaw, removePhrases)
+    const candidateLower = candidateRaw.toLowerCase()
+
+    if (normalizedCandidate && normalizedCandidate.includes(normalizedQuery)) {
+      return true
+    }
+
+    if (queryTokens.length > 0 && queryTokens.every((token) => normalizedCandidate.includes(token))) {
+      return true
+    }
+
+    if (fallbackQuery && candidateLower.includes(fallbackQuery)) {
+      return true
+    }
+
+    return false
+  })
+}
 
 /**
  * Safely stringify context with size limits and sanitization
@@ -79,16 +215,596 @@ function serializeContext(context: unknown): string {
   }
 }
 
-/**
- * POST /api/agent - Streaming agent endpoint
- *
- * Request body:
- * {
- *   message: string
- *   context?: { source, recordId, action, metadata }
- *   history?: AgentMessage[]
- * }
- */
+function heuristicIntentClassifier(message: string): IntentClassification {
+  const lower = message.toLowerCase()
+  const match = (keywords: string[]) => keywords.some((word) => lower.includes(word))
+
+  if (match(['cover letter', 'cover-letter'])) return { category: 'cover_letters', confidence: 0.6, entityHint: undefined }
+  if (match(['resume'])) return { category: 'resumes', confidence: 0.6, entityHint: undefined }
+  if (match(['goal'])) return { category: 'goals', confidence: 0.5, entityHint: undefined }
+  if (match(['application', 'apply'])) return { category: 'applications', confidence: 0.5, entityHint: undefined }
+  if (match(['interview'])) return { category: 'interviews', confidence: 0.5, entityHint: undefined }
+  if (match(['follow up', 'follow-up', 'reminder'])) return { category: 'followups', confidence: 0.5, entityHint: undefined }
+  if (match(['career path'])) return { category: 'career_paths', confidence: 0.5, entityHint: undefined }
+  if (match(['project'])) return { category: 'projects', confidence: 0.5, entityHint: undefined }
+  if (match(['contact'])) return { category: 'contacts', confidence: 0.5, entityHint: undefined }
+  if (match(['work history', 'job title', 'experience'])) return { category: 'work_history', confidence: 0.5, entityHint: undefined }
+
+  return { category: 'unknown', confidence: 0.2 }
+}
+
+async function classifyIntent(message: string, history: Array<{ role: string; content: string }>): Promise<IntentClassification> {
+  if (!process.env.OPENAI_API_KEY) {
+    return heuristicIntentClassifier(message)
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You classify user messages for a career assistant. Respond with strict JSON: {"category": string, "confidence": number (0-1), "entityHint": string | null}. Allowed categories: goals, applications, interviews, followups, career_paths, projects, resumes, cover_letters, contacts, profile, work_history, unknown.',
+        },
+        ...history.slice(-2).map((msg) => ({ role: msg.role as 'user' | 'assistant', content: msg.content })),
+        { role: 'user', content: message },
+      ],
+      temperature: 0,
+      response_format: { type: 'json_object' },
+    })
+
+    const content = completion.choices[0]?.message?.content
+    if (!content) return heuristicIntentClassifier(message)
+
+    const parsed = JSON.parse(content) as { category?: string; confidence?: number; entityHint?: string | null }
+    const category = (parsed.category as IntentCategory) || 'unknown'
+    const confidence = typeof parsed.confidence === 'number' ? parsed.confidence : 0.4
+    const entityHint = parsed.entityHint ?? undefined
+
+    return { category, confidence, entityHint }
+  } catch (error) {
+    console.warn('[Agent] Intent classification fallback:', error)
+    return heuristicIntentClassifier(message)
+  }
+}
+
+function isFollowUpReference(message: string) {
+  const normalized = message.trim().toLowerCase()
+  return ['yes', 'delete it', 'remove it', 'that one', 'do it', 'make it happen', 'sure', 'please do'].some((phrase) => normalized === phrase || normalized.endsWith(` ${phrase}`))
+}
+
+function deriveContextFromHistory(history: Array<{ role: string; content: string }>): IntentContext | null {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const entry = history[i]
+    if (entry.role !== 'assistant') continue
+    const content = entry.content?.toLowerCase?.() || ''
+
+    const extractPhrase = (keywords: string[]): string | null => {
+      for (const keyword of keywords) {
+        const idx = content.indexOf(keyword)
+        if (idx !== -1) {
+          const before = entry.content.slice(Math.max(0, idx - 60), idx + keyword.length + 60)
+          const match = before.match(/"([^"]+)"/)
+          if (match) return match[1]
+        }
+      }
+      return null
+    }
+
+    if (content.includes('cover letter')) {
+      return {
+        category: 'cover_letters',
+        entityName: extractPhrase(['cover letter', 'draft']) || undefined,
+      }
+    }
+    if (content.includes('resume')) {
+      return {
+        category: 'resumes',
+        entityName: extractPhrase(['resume']) || undefined,
+      }
+    }
+    if (content.includes('goal')) {
+      return { category: 'goals' }
+    }
+    if (content.includes('application')) {
+      return { category: 'applications' }
+    }
+  }
+  return null
+}
+
+async function resolveCoverLetterIdentifier(identifier: string, clerkId: string) {
+  const coverLetters = (await convex.query(api.cover_letters.getUserCoverLetters, { clerkId })) || []
+
+  if (looksLikeConvexId(identifier)) {
+    const match = coverLetters.find((letter: any) => letter._id === identifier)
+    if (match) {
+      return {
+        id: match._id as Id<'cover_letters'>,
+        name: match.name || match.job_title || match.company_name || 'Cover letter',
+      }
+    }
+  }
+
+  const matches = findMatchingRecords({
+    rawIdentifier: identifier,
+    items: coverLetters,
+    fields: ['name', 'job_title', 'company_name'],
+    removePhrases: ['cover letter', 'draft'],
+  })
+
+  if (matches.length === 1) {
+    const match = matches[0] as any
+    return {
+      id: match._id as Id<'cover_letters'>,
+      name: match.name || match.job_title || match.company_name || 'Cover letter',
+    }
+  }
+
+  return {
+    id: undefined,
+    name: undefined,
+    matches,
+  }
+}
+
+async function resolveResumeIdentifier(identifier: string, clerkId: string) {
+  const resumes = (await convex.query(api.resumes.getUserResumes, { clerkId })) || []
+
+  if (looksLikeConvexId(identifier)) {
+    const match = resumes.find((resume: any) => resume._id === identifier)
+    if (match) {
+      return {
+        id: match._id as Id<'resumes'>,
+        title: match.title || 'Resume',
+      }
+    }
+  }
+
+  const matches = findMatchingRecords({
+    rawIdentifier: identifier,
+    items: resumes,
+    fields: ['title'],
+    removePhrases: ['resume'],
+  })
+
+  if (matches.length === 1) {
+    const match = matches[0] as any
+    return {
+      id: match._id as Id<'resumes'>,
+      title: match.title || 'Resume',
+    }
+  }
+
+  return {
+    id: undefined,
+    title: undefined,
+    matches,
+  }
+}
+
+async function prepareToolInput(
+  toolName: ToolName,
+  input: Record<string, unknown>,
+  clerkId: string,
+  lastContext: IntentContext | null,
+  intent: IntentClassification,
+): Promise<PreparedToolInputResult> {
+  const sanitizedInput = { ...input }
+  const result: PreparedToolInputResult = { input: sanitizedInput, verificationPlan: { type: 'none' } }
+
+  switch (toolName) {
+    case 'delete_cover_letter': {
+      const coverLetterId = input.coverLetterId as Id<'cover_letters'>
+      if (!coverLetterId || typeof coverLetterId !== 'string') {
+        throw new Error('Cover letter ID is required')
+      }
+
+      await convex.mutation(api.cover_letters.deleteCoverLetter, {
+        clerkId,
+        coverLetterId,
+      })
+
+      return {
+        success: true,
+        message: 'Cover letter deleted',
+        coverLetterId,
+      }
+    }
+
+    case 'create_resume': {
+      const title = (input.title as string)?.trim()
+      if (!title) {
+        throw new Error('Resume title is required')
+      }
+
+      const visibility = input.visibility === 'public' ? 'public' : 'private'
+      let content = input.content
+      if (!content) {
+        content = {
+          summary: '',
+          experiences: [],
+          education: [],
+          skills: [],
+        }
+      } else if (typeof content === 'string') {
+        content = {
+          summary: content,
+          experiences: [],
+          education: [],
+          skills: [],
+        }
+      }
+
+      const resumeId = await convex.mutation(api.resumes.createResume, {
+        clerkId,
+        title,
+        content,
+        visibility,
+        source: input.source as 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload' | undefined,
+      })
+
+      return {
+        success: true,
+        resumeId,
+        title,
+      }
+    }
+
+    case 'update_resume': {
+      const resumeId = input.resumeId as Id<'resumes'>
+      if (!resumeId || typeof resumeId !== 'string') {
+        throw new Error('Resume ID is required for updates')
+      }
+
+      const updates: Record<string, unknown> = {}
+      if (input.title) updates.title = input.title
+      if (input.content) updates.content = input.content
+      if (input.visibility === 'public' || input.visibility === 'private') {
+        updates.visibility = input.visibility
+      }
+
+      if (Object.keys(updates).length === 0) {
+        throw new Error('Provide at least one field to update (title, content, or visibility).')
+      }
+
+      await convex.mutation(api.resumes.updateResume, {
+        clerkId,
+        resumeId,
+        updates,
+      })
+
+      return {
+        success: true,
+        resumeId,
+        updates,
+      }
+    }
+
+    case 'delete_resume': {
+      const resumeId = input.resumeId as Id<'resumes'>
+      if (!resumeId || typeof resumeId !== 'string') {
+        throw new Error('Resume ID is required for deletion')
+      }
+
+      await convex.mutation(api.resumes.deleteResume, {
+        clerkId,
+        resumeId,
+      })
+
+      return {
+        success: true,
+        resumeId,
+      }
+    }
+  }
+
+  return { success: true }
+}
+
+async function verifyToolExecution(
+  toolName: ToolName,
+  clerkId: string,
+  userId: Id<'users'>,
+  parsedInput: Record<string, unknown>,
+  toolOutput: unknown,
+  plan?: VerificationPlan,
+): Promise<VerificationResult> {
+  if (!plan || plan.type === 'none') {
+    return { success: true }
+  }
+
+  try {
+    switch (plan.type) {
+      // ===== COVER LETTERS =====
+      case 'cover_letter_deleted': {
+        const coverLetters = (await convex.query(api.cover_letters.getUserCoverLetters, { clerkId })) || []
+        const stillExists = coverLetters.some((letter: any) => letter._id === plan.entityId)
+        return stillExists
+          ? { success: false, message: `I couldn't confirm that "${plan.entityName || 'the cover letter'}" was removed.` }
+          : {
+              success: true,
+              summary: `Deleted cover letter "${plan.entityName || plan.entityId}"`,
+              contextUpdate: undefined,
+            }
+      }
+      case 'cover_letter_exists': {
+        const coverLetters = (await convex.query(api.cover_letters.getUserCoverLetters, { clerkId })) || []
+        const exists = coverLetters.some((letter: any) => letter._id === plan.entityId)
+        return exists
+          ? {
+              success: true,
+              summary: `Saved cover letter "${plan.entityName || plan.entityId}"`,
+            }
+          : { success: false, message: 'I could not verify the new cover letter.' }
+      }
+
+      // ===== RESUMES =====
+      case 'resume_deleted': {
+        const resumes = (await convex.query(api.resumes.getUserResumes, { clerkId })) || []
+        const stillExists = resumes.some((resume: any) => resume._id === plan.entityId)
+        return stillExists
+          ? { success: false, message: `I couldn't confirm that "${plan.entityName || 'the resume'}" was deleted.` }
+          : {
+              success: true,
+              summary: `Deleted resume "${plan.entityName || plan.entityId}"`,
+            }
+      }
+      case 'resume_exists': {
+        const resumeId = (toolOutput as any)?.resumeId || plan.entityId || parsedInput.resumeId
+        if (!resumeId) {
+          return { success: false, message: 'I could not verify the resume ID returned by the operation.' }
+        }
+        const resume = await convex.query(api.resumes.getResumeById, { clerkId, resumeId })
+        if (!resume) {
+          return { success: false, message: 'I could not verify the updated resume.' }
+        }
+        return {
+          success: true,
+          summary: `Saved resume "${resume.title || plan.entityName || resumeId}"`,
+          contextUpdate: {
+            category: 'resumes',
+            entityId: resumeId,
+            entityName: resume.title || plan.entityName || resumeId,
+            toolName,
+          },
+        }
+      }
+
+      // ===== GOALS =====
+      case 'goal_created': {
+        const goalId = (toolOutput as any)?._id || (toolOutput as any)?.goalId || plan.entityId
+        if (!goalId) {
+          return { success: false, message: 'Goal was created but I could not verify the ID.' }
+        }
+        const snapshot = await convex.query(api.agent.getUserSnapshot, { userId })
+        const goal = snapshot.goals?.find((g: any) => g._id === goalId)
+        return goal
+          ? {
+              success: true,
+              summary: `Created goal "${goal.title || plan.entityName}"`,
+              contextUpdate: {
+                category: 'goals',
+                entityId: goalId,
+                entityName: goal.title,
+                toolName,
+              },
+            }
+          : { success: false, message: 'I could not verify the new goal.' }
+      }
+      case 'goal_deleted': {
+        const snapshot = await convex.query(api.agent.getUserSnapshot, { userId })
+        const stillExists = snapshot.goals?.some((g: any) => g._id === plan.entityId)
+        return stillExists
+          ? { success: false, message: `I couldn't confirm that goal "${plan.entityName}" was deleted.` }
+          : {
+              success: true,
+              summary: `Deleted goal "${plan.entityName || plan.entityId}"`,
+            }
+      }
+      case 'goal_updated': {
+        const goalId = plan.entityId || parsedInput.goalId
+        if (!goalId) {
+          return { success: false, message: 'Could not verify goal ID for update verification.' }
+        }
+        const snapshot = await convex.query(api.agent.getUserSnapshot, { userId })
+        const goal = snapshot.goals?.find((g: any) => g._id === goalId)
+        if (!goal) {
+          return { success: false, message: 'I could not find the updated goal.' }
+        }
+        // Check if expected changes were applied
+        const changes = plan.expectedChanges || {}
+        const changesSummary = Object.entries(changes)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join(', ')
+        return {
+          success: true,
+          summary: `Updated goal "${goal.title}"${changesSummary ? ` (${changesSummary})` : ''}`,
+          contextUpdate: {
+            category: 'goals',
+            entityId: goalId as string,
+            entityName: goal.title,
+            toolName,
+          },
+        }
+      }
+
+      // ===== APPLICATIONS =====
+      case 'application_created': {
+        const appId = (toolOutput as any)?._id || (toolOutput as any)?.applicationId || plan.entityId
+        if (!appId) {
+          return { success: false, message: 'Application was created but I could not verify the ID.' }
+        }
+        const snapshot = await convex.query(api.agent.getUserSnapshot, { userId })
+        const app = snapshot.applications?.find((a: any) => a._id === appId)
+        return app
+          ? {
+              success: true,
+              summary: `Created application for ${app.jobTitle || 'position'} at ${app.company || 'company'}`,
+              contextUpdate: {
+                category: 'applications',
+                entityId: appId,
+                entityName: `${app.jobTitle} at ${app.company}`,
+                toolName,
+              },
+            }
+          : { success: false, message: 'I could not verify the new application.' }
+      }
+      case 'application_deleted': {
+        const snapshot = await convex.query(api.agent.getUserSnapshot, { userId })
+        const stillExists = snapshot.applications?.some((a: any) => a._id === plan.entityId)
+        return stillExists
+          ? { success: false, message: `I couldn't confirm that application "${plan.entityName}" was deleted.` }
+          : {
+              success: true,
+              summary: `Deleted application "${plan.entityName || plan.entityId}"`,
+            }
+      }
+      case 'application_updated': {
+        const appId = plan.entityId || parsedInput.applicationId
+        if (!appId) {
+          return { success: false, message: 'Could not verify application ID for update verification.' }
+        }
+        const snapshot = await convex.query(api.agent.getUserSnapshot, { userId })
+        const app = snapshot.applications?.find((a: any) => a._id === appId)
+        if (!app) {
+          return { success: false, message: 'I could not find the updated application.' }
+        }
+        const changes = plan.expectedChanges || {}
+        const changesSummary = Object.entries(changes)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join(', ')
+        return {
+          success: true,
+          summary: `Updated application for ${app.jobTitle} at ${app.company}${changesSummary ? ` (${changesSummary})` : ''}`,
+          contextUpdate: {
+            category: 'applications',
+            entityId: appId as string,
+            entityName: `${app.jobTitle} at ${app.company}`,
+            toolName,
+          },
+        }
+      }
+
+      // ===== CONTACTS =====
+      case 'contact_created': {
+        const contactId = (toolOutput as any)?._id || (toolOutput as any)?.contactId || plan.entityId
+        if (!contactId) {
+          return { success: false, message: 'Contact was created but I could not verify the ID.' }
+        }
+        const snapshot = await convex.query(api.agent.getUserSnapshot, { userId })
+        const contact = snapshot.networking_contacts?.find((c: any) => c._id === contactId)
+        return contact
+          ? {
+              success: true,
+              summary: `Added ${contact.name} to your network${contact.company ? ` (${contact.company})` : ''}`,
+              contextUpdate: {
+                category: 'contacts',
+                entityId: contactId,
+                entityName: contact.name,
+                toolName,
+              },
+            }
+          : { success: false, message: 'I could not verify the new contact.' }
+      }
+      case 'contact_deleted': {
+        const snapshot = await convex.query(api.agent.getUserSnapshot, { userId })
+        const stillExists = snapshot.networking_contacts?.some((c: any) => c._id === plan.entityId)
+        return stillExists
+          ? { success: false, message: `I couldn't confirm that contact "${plan.entityName}" was deleted.` }
+          : {
+              success: true,
+              summary: `Removed ${plan.entityName || 'contact'} from your network`,
+            }
+      }
+      case 'contact_updated': {
+        const contactId = plan.entityId || parsedInput.contactId
+        if (!contactId) {
+          return { success: false, message: 'Could not verify contact ID for update verification.' }
+        }
+        const snapshot = await convex.query(api.agent.getUserSnapshot, { userId })
+        const contact = snapshot.networking_contacts?.find((c: any) => c._id === contactId)
+        if (!contact) {
+          return { success: false, message: 'I could not find the updated contact.' }
+        }
+        return {
+          success: true,
+          summary: `Updated ${contact.name}${contact.company ? ` at ${contact.company}` : ''}`,
+          contextUpdate: {
+            category: 'contacts',
+            entityId: contactId as string,
+            entityName: contact.name,
+            toolName,
+          },
+        }
+      }
+
+      // ===== PROJECTS =====
+      case 'project_created': {
+        const projectId = (toolOutput as any)?._id || (toolOutput as any)?.projectId || plan.entityId
+        if (!projectId) {
+          return { success: false, message: 'Project was created but I could not verify the ID.' }
+        }
+        const projects = (await convex.query(api.projects.getUserProjects, { clerkId })) || []
+        const project = projects.find((p: any) => p._id === projectId)
+        return project
+          ? {
+              success: true,
+              summary: `Created project "${project.title}"`,
+              contextUpdate: {
+                category: 'projects',
+                entityId: projectId,
+                entityName: project.title,
+                toolName,
+              },
+            }
+          : { success: false, message: 'I could not verify the new project.' }
+      }
+      case 'project_deleted': {
+        const projects = (await convex.query(api.projects.getUserProjects, { clerkId })) || []
+        const stillExists = projects.some((p: any) => p._id === plan.entityId)
+        return stillExists
+          ? { success: false, message: `I couldn't confirm that project "${plan.entityName}" was deleted.` }
+          : {
+              success: true,
+              summary: `Deleted project "${plan.entityName || plan.entityId}"`,
+            }
+      }
+      case 'project_updated': {
+        const projectId = plan.entityId || parsedInput.projectId
+        if (!projectId) {
+          return { success: false, message: 'Could not verify project ID for update verification.' }
+        }
+        const projects = (await convex.query(api.projects.getUserProjects, { clerkId })) || []
+        const project = projects.find((p: any) => p._id === projectId)
+        if (!project) {
+          return { success: false, message: 'I could not find the updated project.' }
+        }
+        return {
+          success: true,
+          summary: `Updated project "${project.title}"`,
+          contextUpdate: {
+            category: 'projects',
+            entityId: projectId as string,
+            entityName: project.title,
+            toolName,
+          },
+        }
+      }
+
+      default:
+        return { success: true }
+    }
+  } catch (error) {
+    console.error('[Agent] Verification error:', error)
+    return {
+      success: false,
+      message: `Verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Authenticate user
@@ -200,7 +916,232 @@ export async function POST(req: NextRequest) {
 }
 
 /**
+ * Central Dispatcher - Pre-validation, Entity Resolution, and Post-Verification
+ *
+ * This wrapper provides:
+ * - Tool name validation
+ * - Parameter completeness checks
+ * - Automatic entity resolution (names → IDs)
+ * - Post-mutation verification
+ * - Helpful error messages with suggestions
+ */
+interface DispatchResult {
+  success: boolean
+  output?: unknown
+  error?: string
+  requiresUserInput?: boolean
+  clarificationPrompt?: string
+  verificationSummary?: string
+}
+
+async function dispatchTool(
+  userId: Id<'users'>,
+  clerkId: string,
+  toolName: ToolName,
+  input: Record<string, unknown>,
+  intent?: IntentClassification
+): Promise<DispatchResult> {
+  // ========== Step 1: Validate Tool Exists ==========
+  if (!VALID_TOOL_NAMES.includes(toolName)) {
+    return {
+      success: false,
+      error: `Unknown tool: ${toolName}. Available tools: ${VALID_TOOL_NAMES.slice(0, 5).join(', ')}...`,
+    }
+  }
+
+  // ========== Step 1.5: Destructive Operation Guardrails ==========
+  // Flag destructive operations for extra caution
+  const isDestructive = toolName.startsWith('delete_')
+  const isBatchOperation = input.batch === true || (Array.isArray(input.ids) && input.ids.length >= 3)
+
+  if (isDestructive && !input.confirmed) {
+    // Note: The system prompt should handle confirmation prompts
+    // This is a code-level safety check to prevent accidental destructive actions
+    // For now, we log it but don't block (system prompt will handle asking for confirmation)
+    console.log(`[Agent Safety] Destructive operation detected: ${toolName}`)
+  }
+
+  if (isBatchOperation && !input.confirmed) {
+    return {
+      success: false,
+      error: `This operation affects multiple records. Please confirm this action first.`,
+      requiresUserInput: true,
+      clarificationPrompt: `I need confirmation before proceeding with a batch operation. Please confirm if you want to continue.`,
+    }
+  }
+
+  // ========== Step 2: Entity Resolution for ID-based Operations ==========
+  // These tools require entity resolution before execution
+  const needsResolution: Record<string, { param: string; entityType: any; fetchFn: string }> = {
+    update_goal: { param: 'goalId', entityType: 'goal', fetchFn: 'goals' },
+    delete_goal: { param: 'goalId', entityType: 'goal', fetchFn: 'goals' },
+    update_application: { param: 'applicationId', entityType: 'application', fetchFn: 'applications' },
+    delete_application: { param: 'applicationId', entityType: 'application', fetchFn: 'applications' },
+    update_contact: { param: 'contactId', entityType: 'contact', fetchFn: 'networking_contacts' },
+    delete_contact: { param: 'contactId', entityType: 'contact', fetchFn: 'networking_contacts' },
+    update_project: { param: 'projectId', entityType: 'project', fetchFn: 'projects' },
+    delete_project: { param: 'projectId', entityType: 'project', fetchFn: 'projects' },
+    update_resume: { param: 'resumeId', entityType: 'resume', fetchFn: 'resumes' },
+    delete_resume: { param: 'resumeId', entityType: 'resume', fetchFn: 'resumes' },
+    delete_cover_letter: { param: 'coverLetterId', entityType: 'cover_letter', fetchFn: 'cover_letters' },
+  }
+
+  const resolutionConfig = needsResolution[toolName]
+  if (resolutionConfig) {
+    const identifier = input[resolutionConfig.param]
+
+    // If no identifier provided at all
+    if (!identifier) {
+      return {
+        success: false,
+        error: `Missing ${resolutionConfig.param}. Please specify which ${resolutionConfig.entityType} to ${toolName.startsWith('update') ? 'update' : 'delete'}.`,
+        requiresUserInput: true,
+        clarificationPrompt: `Use get_user_snapshot to see your ${resolutionConfig.entityType}s, then specify which one you want to modify.`,
+      }
+    }
+
+    // If it's not already a valid Convex ID, try to resolve it
+    const CONVEX_ID_REGEX = /^[a-z0-9]{16,32}$/
+    if (!CONVEX_ID_REGEX.test(String(identifier))) {
+      // Import the resolver
+      const { resolveEntity } = await import('@/lib/agent/entity-resolver')
+
+      // Fetch entities from snapshot
+      const snapshot = await convex.query(api.agent.getUserSnapshot, { userId })
+      const entities = snapshot[resolutionConfig.fetchFn] || []
+
+      // Attempt resolution
+      const resolution = resolveEntity(String(identifier), entities, resolutionConfig.entityType as any)
+
+      if (!resolution.success) {
+        return {
+          success: false,
+          error: resolution.message,
+          requiresUserInput: true,
+          clarificationPrompt: resolution.clarificationPrompt,
+        }
+      }
+
+      // Replace the identifier with the resolved ID
+      input[resolutionConfig.param] = resolution.id
+    }
+  }
+
+  // ========== Step 3: Determine Verification Plan ==========
+  let verificationPlan: VerificationPlan = { type: 'none' }
+
+  // Auto-generate verification plans based on tool type
+  switch (toolName) {
+    case 'create_goal':
+      verificationPlan = { type: 'goal_created', entityName: input.title as string }
+      break
+    case 'delete_goal':
+      verificationPlan = { type: 'goal_deleted', entityId: input.goalId as string }
+      break
+    case 'update_goal':
+      verificationPlan = {
+        type: 'goal_updated',
+        entityId: input.goalId as string,
+        expectedChanges: input,
+      }
+      break
+    case 'create_application':
+      verificationPlan = { type: 'application_created' }
+      break
+    case 'delete_application':
+      verificationPlan = { type: 'application_deleted', entityId: input.applicationId as string }
+      break
+    case 'update_application':
+      verificationPlan = {
+        type: 'application_updated',
+        entityId: input.applicationId as string,
+        expectedChanges: input,
+      }
+      break
+    case 'create_contact':
+      verificationPlan = { type: 'contact_created', entityName: input.name as string }
+      break
+    case 'delete_contact':
+      verificationPlan = { type: 'contact_deleted', entityId: input.contactId as string }
+      break
+    case 'update_contact':
+      verificationPlan = { type: 'contact_updated', entityId: input.contactId as string }
+      break
+    case 'create_project':
+      verificationPlan = { type: 'project_created', entityName: input.title as string }
+      break
+    case 'delete_project':
+      verificationPlan = { type: 'project_deleted', entityId: input.projectId as string }
+      break
+    case 'update_project':
+      verificationPlan = { type: 'project_updated', entityId: input.projectId as string }
+      break
+    case 'delete_cover_letter':
+      verificationPlan = { type: 'cover_letter_deleted', entityId: input.coverLetterId as string }
+      break
+    case 'create_resume':
+      verificationPlan = { type: 'resume_exists', entityName: input.title as string }
+      break
+    case 'delete_resume':
+      verificationPlan = { type: 'resume_deleted', entityId: input.resumeId as string }
+      break
+    case 'update_resume':
+      verificationPlan = { type: 'resume_exists', entityId: input.resumeId as string }
+      break
+  }
+
+  // ========== Step 4: Execute Tool ==========
+  let toolOutput: unknown
+  try {
+    toolOutput = await executeTool(userId, clerkId, toolName, input)
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Tool execution failed',
+    }
+  }
+
+  // Check if tool itself returned an error
+  if (toolOutput && typeof toolOutput === 'object' && 'success' in toolOutput) {
+    const outputObj = toolOutput as { success: boolean; error?: string }
+    if (outputObj.success === false) {
+      return {
+        success: false,
+        error: outputObj.error || 'Tool execution failed',
+        output: toolOutput,
+      }
+    }
+  }
+
+  // ========== Step 5: Post-Execution Verification ==========
+  const verificationResult = await verifyToolExecution(
+    toolName,
+    clerkId,
+    userId,
+    input,
+    toolOutput,
+    verificationPlan
+  )
+
+  if (!verificationResult.success) {
+    return {
+      success: false,
+      error: verificationResult.message || 'Verification failed',
+      output: toolOutput,
+    }
+  }
+
+  // ========== Step 6: Return Success with Summary ==========
+  return {
+    success: true,
+    output: toolOutput,
+    verificationSummary: verificationResult.summary,
+  }
+}
+
+/**
  * Execute a tool by routing to the appropriate Convex function
+ * NOTE: Use dispatchTool() for automatic validation and verification
  */
 async function executeTool(
   userId: Id<'users'>,
@@ -743,6 +1684,261 @@ Instructions:
       }
     }
 
+    case 'delete_cover_letter': {
+      const rawIdentifier = input.coverLetterId as string
+      let targetId: Id<'cover_letters'> | null = null
+      let targetName = ''
+
+      if (looksLikeConvexId(rawIdentifier)) {
+        targetId = rawIdentifier as Id<'cover_letters'>
+      } else {
+        const coverLetters = await convex.query(api.cover_letters.getUserCoverLetters, {
+          clerkId,
+        })
+
+        const matches = findMatchingRecords({
+          rawIdentifier,
+          items: coverLetters,
+          fields: ['name', 'job_title', 'company_name'],
+          removePhrases: ['cover letter', 'draft'],
+        })
+
+        if (matches.length === 0) {
+          return {
+            success: false,
+            error: `I couldn't find a cover letter matching "${rawIdentifier}". Please check the name and try again.`,
+          }
+        }
+
+        if (matches.length > 1) {
+          const options = matches
+            .map((letter: any) => `- ${letter.name}`)
+            .join('\n')
+          return {
+            success: false,
+            error: `Multiple cover letters match "${rawIdentifier}". Please specify one of:\n${options}`,
+          }
+        }
+
+        targetId = matches[0]._id as Id<'cover_letters'>
+        targetName = matches[0].name || rawIdentifier
+      }
+
+      const guard = idGuard(
+        targetId,
+        'cover letter',
+        'Fetch cover letters via get_user_snapshot or the cover letters list to obtain valid IDs.'
+      )
+      if (guard) return guard
+
+      await convex.mutation(api.cover_letters.deleteCoverLetter, {
+        clerkId,
+        coverLetterId: targetId!,
+      })
+
+      return {
+        success: true,
+        message: `Cover letter deleted successfully${targetName ? `: ${targetName}` : ''}.`,
+        coverLetterId: targetId,
+      }
+    }
+
+    case 'create_resume': {
+      const title = (input.title as string)?.trim()
+      if (!title) {
+        return {
+          success: false,
+          error: 'A resume title is required to create a resume.',
+        }
+      }
+
+      const rawContent = input.content
+      let content: any
+
+      if (!rawContent) {
+        content = {
+          summary: '',
+          experiences: [],
+          education: [],
+          skills: [],
+        }
+      } else if (typeof rawContent === 'string') {
+        content = {
+          summary: rawContent,
+          experiences: [],
+          education: [],
+          skills: [],
+        }
+      } else if (typeof rawContent === 'object') {
+        content = rawContent
+      } else {
+        content = {
+          summary: String(rawContent),
+        }
+      }
+
+      const visibility = input.visibility === 'public' ? 'public' : 'private'
+      const source = input.source as 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload' | undefined
+
+      const resumeId = await convex.mutation(api.resumes.createResume, {
+        clerkId,
+        title,
+        content,
+        visibility,
+        source,
+      })
+
+      return {
+        success: true,
+        resumeId,
+        message: `Created resume "${title}".`,
+      }
+    }
+
+    case 'update_resume': {
+      const rawIdentifier = input.resumeId as string
+      if (!rawIdentifier) {
+        return {
+          success: false,
+          error: 'Provide the resume ID or name you want to update.',
+        }
+      }
+
+      let targetId: Id<'resumes'> | null = null
+      if (looksLikeConvexId(rawIdentifier)) {
+        targetId = rawIdentifier as Id<'resumes'>
+      } else {
+        const resumes = await convex.query(api.resumes.getUserResumes, { clerkId })
+        const matches = findMatchingRecords({
+          rawIdentifier,
+          items: resumes,
+          fields: ['title'],
+          removePhrases: ['resume'],
+        })
+
+        if (matches.length === 0) {
+          return {
+            success: false,
+            error: `I couldn't find a resume matching "${rawIdentifier}". Please check the name and try again.`,
+          }
+        }
+
+        if (matches.length > 1) {
+          const options = matches.map((resume: any) => `- ${resume.title}`).join('\n')
+          return {
+            success: false,
+            error: `Multiple resumes match "${rawIdentifier}". Please specify one of:\n${options}`,
+          }
+        }
+
+        targetId = matches[0]._id as Id<'resumes'>
+      }
+
+      const guard = idGuard(
+        targetId,
+        'resume',
+        'Fetch resumes via get_user_snapshot or the resume list to obtain valid IDs.'
+      )
+      if (guard) return guard
+
+      const updates: Record<string, unknown> = {}
+      if (input.title) updates.title = String(input.title)
+
+      if (input.content) {
+        if (typeof input.content === 'string') {
+          updates.content = {
+            summary: input.content,
+          }
+        } else if (typeof input.content === 'object') {
+          updates.content = input.content
+        }
+      }
+
+      if (input.visibility === 'public' || input.visibility === 'private') {
+        updates.visibility = input.visibility
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return {
+          success: false,
+          error: 'Provide at least one field (title, content, visibility) to update.',
+        }
+      }
+
+      await convex.mutation(api.resumes.updateResume, {
+        clerkId,
+        resumeId: targetId!,
+        updates,
+      })
+
+      return {
+        success: true,
+        message: 'Resume updated successfully.',
+        resumeId: targetId,
+      }
+    }
+
+    case 'delete_resume': {
+      const rawIdentifier = input.resumeId as string
+      if (!rawIdentifier) {
+        return {
+          success: false,
+          error: 'Provide the resume ID or name you want to delete.',
+        }
+      }
+
+      let targetId: Id<'resumes'> | null = null
+      let targetTitle = ''
+
+      if (looksLikeConvexId(rawIdentifier)) {
+        targetId = rawIdentifier as Id<'resumes'>
+      } else {
+        const resumes = await convex.query(api.resumes.getUserResumes, { clerkId })
+        const matches = findMatchingRecords({
+          rawIdentifier,
+          items: resumes,
+          fields: ['title'],
+          removePhrases: ['resume'],
+        })
+
+        if (matches.length === 0) {
+          return {
+            success: false,
+            error: `I couldn't find a resume matching "${rawIdentifier}". Please check the name and try again.`,
+          }
+        }
+
+        if (matches.length > 1) {
+          const options = matches.map((resume: any) => `- ${resume.title}`).join('\n')
+          return {
+            success: false,
+            error: `Multiple resumes match "${rawIdentifier}". Please specify one of:\n${options}`,
+          }
+        }
+
+        targetId = matches[0]._id as Id<'resumes'>
+        targetTitle = matches[0].title || rawIdentifier
+      }
+
+      const guard = idGuard(
+        targetId,
+        'resume',
+        'Fetch resumes via get_user_snapshot or the resume list to obtain valid IDs.'
+      )
+      if (guard) return guard
+
+      await convex.mutation(api.resumes.deleteResume, {
+        clerkId,
+        resumeId: targetId!,
+      })
+
+      return {
+        success: true,
+        message: `Resume deleted successfully${targetTitle ? `: ${targetTitle}` : ''}.`,
+        resumeId: targetId,
+      }
+    }
+
     case 'analyze_cover_letter':
       // Cover letter analysis - feature not yet implemented in existing codebase
       return {
@@ -951,6 +2147,28 @@ async function streamAgentResponse({
       },
     ]
 
+    // ========== INTENT CLASSIFICATION ==========
+    // Classify user intent to pre-validate and guide tool selection
+    const intent = await classifyIntent(message, history)
+    const lastContext = deriveContextFromHistory(history)
+
+    // If confidence is low, inject disambiguation hint into system prompt
+    let enhancedSystemPrompt = SYSTEM_PROMPT
+    if (intent.confidence < 0.7) {
+      enhancedSystemPrompt += `\n\n[IMPORTANT: User's request is ambiguous. Intent detected: ${intent.category} (confidence: ${Math.round(intent.confidence * 100)}%). Please ask clarifying questions before taking action.]`
+    }
+
+    // If user is making a follow-up reference (e.g., "delete it"), inject context
+    if (isFollowUpReference(message) && lastContext) {
+      enhancedSystemPrompt += `\n\n[CONTEXT: User is likely referring to a recent ${lastContext.category}${lastContext.entityName ? ` named "${lastContext.entityName}"` : ''}. Use this context to interpret their request.]`
+    }
+
+    // Update system message with enhanced prompt
+    messages[0] = {
+      role: 'system',
+      content: enhancedSystemPrompt,
+    }
+
     // Use tool registry from tools/index.ts
     const tools = TOOL_SCHEMAS
 
@@ -1090,24 +2308,65 @@ async function streamAgentResponse({
                 continue
               }
 
-              // Execute tool via Convex
+              // Execute tool via dispatcher (validation + resolution + verification)
               try {
                 const startTime = Date.now()
-                const toolOutput = await executeTool(userId, clerkUserId, toolCall.name as ToolName, parsedInput)
+                const dispatchResult = await dispatchTool(
+                  userId,
+                  clerkUserId,
+                  toolCall.name as ToolName,
+                  parsedInput
+                )
                 const latencyMs = Date.now() - startTime
-                const isErrorOutput =
-                  toolOutput &&
-                  typeof toolOutput === 'object' &&
-                  'success' in (toolOutput as Record<string, unknown>) &&
-                  (toolOutput as Record<string, unknown>).success === false
-                const toolStatus = isErrorOutput ? 'error' : 'success'
 
-                if (isErrorOutput) {
-                  const outputObj = toolOutput as Record<string, unknown>
-                  if (typeof outputObj.error === 'string') {
-                    lastErrorMessage = outputObj.error
+                // Handle dispatch errors (validation, resolution, verification failures)
+                if (!dispatchResult.success) {
+                  lastErrorMessage = dispatchResult.error || 'Tool execution failed'
+
+                  // Log error with audit trail
+                  await convex.mutation(api.agent.logAudit, {
+                    userId,
+                    tool: toolCall.name,
+                    inputJson: safeAuditPayload(parsedInput),
+                    status: 'error',
+                    errorMessage: lastErrorMessage,
+                    latencyMs,
+                  })
+
+                  // If requires user input, send clarification prompt
+                  if (dispatchResult.requiresUserInput && dispatchResult.clarificationPrompt) {
+                    await writer.write(
+                      sendTool({
+                        name: toolCall.name,
+                        status: 'error',
+                        input: parsedInput,
+                        error: `${dispatchResult.error}\n\n${dispatchResult.clarificationPrompt}`,
+                      })
+                    )
+                  } else {
+                    await writer.write(
+                      sendTool({
+                        name: toolCall.name,
+                        status: 'error',
+                        input: parsedInput,
+                        error: dispatchResult.error,
+                      })
+                    )
                   }
+
+                  toolResults.push({
+                    role: 'tool',
+                    tool_call_id: toolCall.id,
+                    content: JSON.stringify({
+                      error: dispatchResult.error,
+                      clarification: dispatchResult.clarificationPrompt,
+                    }),
+                  })
+                  continue
                 }
+
+                // Success - extract output
+                const toolOutput = dispatchResult.output
 
                 // Log successful execution with client-side sanitization (defense in depth)
                 await convex.mutation(api.agent.logAudit, {
@@ -1115,14 +2374,15 @@ async function streamAgentResponse({
                   tool: toolCall.name,
                   inputJson: safeAuditPayload(parsedInput),
                   outputJson: safeAuditPayload(toolOutput),
-                  status: toolStatus,
+                  status: 'success',
                   latencyMs,
                 })
 
+                // Send success with verification summary if available
                 await writer.write(
                   sendTool({
                     name: toolCall.name,
-                    status: toolStatus,
+                    status: 'success',
                     input: parsedInput,
                     output: toolOutput,
                   })

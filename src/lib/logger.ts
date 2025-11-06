@@ -13,6 +13,23 @@ interface LogContext {
 }
 
 /**
+ * Safely stringify objects with circular references
+ * Prevents JSON.stringify from throwing on cyclic dependencies
+ */
+function safeStringify(obj: any): string {
+  const seen = new WeakSet()
+  return JSON.stringify(obj, (_key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return '[Circular]'
+      }
+      seen.add(value)
+    }
+    return value
+  })
+}
+
+/**
  * Log an error with optional context
  */
 export function logError(
@@ -36,12 +53,12 @@ export function logError(
     console.error('[Error]', message, errorInfo)
   } else {
     // Production: output structured JSON for log aggregators
-    console.error(JSON.stringify(errorInfo))
+    console.error(safeStringify(errorInfo))
   }
 
-  // TODO: Send to external logging service
-  // Example: Sentry.captureException(error, { extra: context })
-  // Example: LogRocket.captureException(error, { extra: context })
+  // TODO: Integrate external error tracking service (e.g., Sentry, LogRocket)
+  // Implementation: Add env var check and service initialization
+  // See: docs/logging-integration.md (to be created)
 }
 
 /**
@@ -62,11 +79,12 @@ export function logWarning(
     console.warn('[Warning]', message, warningInfo)
   } else {
     // Production: output structured JSON for log aggregators
-    console.warn(JSON.stringify(warningInfo))
+    console.warn(safeStringify(warningInfo))
   }
 
-  // TODO: Send to external logging service
-  // Example: Sentry.captureMessage(message, 'warning', { extra: context })
+  // TODO: Integrate external error tracking service (e.g., Sentry, LogRocket)
+  // Implementation: Add env var check and service initialization
+  // See: docs/logging-integration.md (to be created)
 }
 
 /**
@@ -87,11 +105,12 @@ export function logInfo(
     console.info('[Info]', message, infoData)
   } else {
     // Production: output structured JSON for log aggregators
-    console.info(JSON.stringify(infoData))
+    console.info(safeStringify(infoData))
   }
 
-  // TODO: Send to external logging service
-  // Example: Sentry.captureMessage(message, 'info', { extra: context })
+  // TODO: Integrate external error tracking service (e.g., Sentry, LogRocket)
+  // Implementation: Add env var check and service initialization
+  // See: docs/logging-integration.md (to be created)
 }
 
 /**

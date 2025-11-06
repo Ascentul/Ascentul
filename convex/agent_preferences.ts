@@ -109,7 +109,7 @@ export const upsertPreferences = mutation({
       const finalEnd = updates.quiet_hours_end ?? (existing?.quiet_hours_end ?? DEFAULT_PREFERENCES.quiet_hours_end)
 
       if (finalStart === finalEnd) {
-        throw new Error('quiet_hours_start and quiet_hours_end cannot be the same')
+        throw new Error('quiet_hours_start and quiet_hours_end must be different to define a valid quiet hours window')
       }
     }
 

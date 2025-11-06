@@ -425,6 +425,103 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'delete_cover_letter',
+      description:
+        'Delete a saved cover letter by ID. Use this when the user wants to remove a draft or generated cover letter.',
+      parameters: {
+        type: 'object',
+        properties: {
+          coverLetterId: {
+            type: 'string',
+            description: 'ID of the cover letter to delete (from get_user_snapshot or cover letter list)',
+          },
+        },
+        required: ['coverLetterId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_resume',
+      description:
+        'Create a new resume draft for the user. Provide a title and optional content/metadata.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Resume title (e.g., "Product Manager Resume")',
+          },
+          content: {
+            description: 'Resume content structure. Provide either a JSON object with sections or a raw summary string.',
+          },
+          visibility: {
+            type: 'string',
+            enum: ['private', 'public'],
+            description: 'Resume visibility (defaults to private).',
+          },
+          source: {
+            type: 'string',
+            enum: ['manual', 'ai_generated', 'ai_optimized', 'pdf_upload'],
+            description: 'Source of the resume data (optional).',
+          },
+        },
+        required: ['title'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_resume',
+      description:
+        'Update an existing resume by ID or name. You can change the title, content, or visibility.',
+      parameters: {
+        type: 'object',
+        properties: {
+          resumeId: {
+            type: 'string',
+            description: 'ID or name of the resume to update (from get_user_snapshot or resume list).',
+          },
+          title: {
+            type: 'string',
+            description: 'Updated resume title (optional).',
+          },
+          content: {
+            description: 'Updated resume content (object or raw string).',
+          },
+          visibility: {
+            type: 'string',
+            enum: ['private', 'public'],
+            description: 'Updated visibility (optional).',
+          },
+        },
+        required: ['resumeId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_resume',
+      description:
+        'Delete a saved resume by ID or name.',
+      parameters: {
+        type: 'object',
+        properties: {
+          resumeId: {
+            type: 'string',
+            description: 'ID or name of the resume to delete (from get_user_snapshot or resume list).',
+          },
+        },
+        required: ['resumeId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'analyze_cover_letter',
       description:
         'Analyze an existing cover letter for quality, tone, and relevance. Provides actionable feedback and suggestions for improvement.',
@@ -869,7 +966,7 @@ export const TOOL_SCHEMAS: OpenAI.Chat.ChatCompletionTool[] = [
             description: 'Project end date as Unix timestamp in milliseconds. Omit if ongoing. (optional)',
           },
         },
-        required: ['title', 'type', 'technologies'],
+        required: ['title', 'description', 'type', 'technologies'],
       },
     },
   },
@@ -976,6 +1073,10 @@ export type ToolName =
   | 'update_followup'
   | 'generate_career_path'
   | 'generate_cover_letter'
+  | 'delete_cover_letter'
+  | 'create_resume'
+  | 'update_resume'
+  | 'delete_resume'
   | 'analyze_cover_letter'
   | 'create_contact'
   | 'update_contact'
