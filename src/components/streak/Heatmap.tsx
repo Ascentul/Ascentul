@@ -77,8 +77,8 @@ export function Heatmap({ data, startOnMonday = true }: Props) {
     [hoveredCell]
   )
 
-  // Compute today's date once for consistent use throughout the component
-  const todayIso = useMemo(() => new Date().toISOString().split('T')[0], [])
+  // Compute today's date on each render to handle midnight transitions
+  const todayIso = new Date().toISOString().split('T')[0]
 
   const { weeks, monthLabels, stats, flattenedDays } = useMemo(() => {
     if (data.length === 0) {
@@ -280,14 +280,32 @@ export function Heatmap({ data, startOnMonday = true }: Props) {
     [flattenedDays]
   )
 
-  // Empty state
+  // Empty state - compute skeleton grid matching actual year grid
   if (data.length === 0) {
+    const currentYear = new Date().getUTCFullYear()
+    const firstDayOfWeek = startOnMonday ? 1 : 0
+    const startOfYear = new Date(Date.UTC(currentYear, 0, 1))
+    const endOfYear = new Date(Date.UTC(currentYear, 11, 31))
+
+    // Align to week boundaries
+    const startOfGrid = new Date(startOfYear)
+    while ((startOfGrid.getUTCDay() + 7 - firstDayOfWeek) % 7 !== 0) {
+      startOfGrid.setUTCDate(startOfGrid.getUTCDate() - 1)
+    }
+    const endOfGrid = new Date(endOfYear)
+    while ((endOfGrid.getUTCDay() + 7 - firstDayOfWeek) % 7 !== 6) {
+      endOfGrid.setUTCDate(endOfGrid.getUTCDate() + 1)
+    }
+
+    const totalDays = Math.floor((endOfGrid.getTime() - startOfGrid.getTime()) / MS_PER_DAY) + 1
+    const numWeeks = Math.ceil(totalDays / 7)
+
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-[auto_1fr] gap-2">
           <div className={`${CELL_WIDTH_CLASS} ${CELL_HEIGHT_CLASS}`} />
           <div className={`flex ${CELL_GAP_CLASS}`}>
-            {Array.from({ length: 52 }).map((_, i) => (
+            {Array.from({ length: numWeeks }).map((_, i) => (
               <div key={i} className={`flex flex-col ${CELL_GAP_CLASS}`}>
                 {Array.from({ length: 7 }).map((_, j) => (
                   <div key={j} className={`${CELL_CLASS} rounded-md bg-neutral-100 border border-neutral-200`} />

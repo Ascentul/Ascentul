@@ -68,6 +68,11 @@ export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}
     return null
   }
 
+  // Optimistic UI: Hide immediately when dismissing
+  if (isHiding) {
+    return null
+  }
+
   // Handle dismiss action
   const handleDismiss = async () => {
     if (!user?.clerkId) {
