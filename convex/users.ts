@@ -649,3 +649,28 @@ export const updateOnboardingProgress = mutation({
     return user._id;
   },
 });
+
+// Toggle hide/show progress card preference
+export const toggleHideProgressCard = mutation({
+  args: {
+    clerkId: v.string(),
+    hide: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    await ctx.db.patch(user._id, {
+      hide_progress_card: args.hide,
+      updated_at: Date.now(),
+    });
+
+    return user._id;
+  },
+});

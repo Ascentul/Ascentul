@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 
 // Get applications for a user
 export const getUserApplications = query({
@@ -82,6 +83,9 @@ export const createApplication = mutation({
       created_at: Date.now(),
       updated_at: Date.now(),
     });
+
+    // Track activity for streak (fire-and-forget)
+    await ctx.scheduler.runAfter(0, api.activity.markActionForToday, {});
 
     return applicationId;
   },

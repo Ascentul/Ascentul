@@ -1,13 +1,15 @@
 'use client'
 
 import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Circle, Sparkles, Loader2 } from 'lucide-react'
+import { CheckCircle2, Circle, Sparkles, Loader2, X } from 'lucide-react'
 import Link from 'next/link'
+import { useState } from 'react'
+import { useToast } from '@/hooks/use-toast'
 
 interface UsageProgressCardProps {
   dashboardData?: {
@@ -22,6 +24,9 @@ interface UsageProgressCardProps {
 
 export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}) {
   const { user } = useAuth()
+  const { toast } = useToast()
+  const [isHiding, setIsHiding] = useState(false)
+  const toggleHideProgressCard = useMutation(api.users.toggleHideProgressCard)
 
   // Use prop data if available (from dashboard), otherwise fetch independently
   const fetchedUsageData = useQuery(
@@ -29,9 +34,15 @@ export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}
     !dashboardData && user?.clerkId ? { clerkId: user.clerkId } : 'skip'
   )
 
+  // Fetch user data to check hide preference
+  const userData = useQuery(
+    api.users.getUserByClerkId,
+    user?.clerkId ? { clerkId: user.clerkId } : 'skip'
+  )
+
   const usageData = dashboardData?.usageData || fetchedUsageData
 
-  if (!user || !usageData) {
+  if (!user || !usageData || !userData) {
     return (
       <Card>
         <CardHeader>
@@ -52,14 +63,54 @@ export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}
     return null
   }
 
+  // Check if user has hidden the progress card
+  if (userData.hide_progress_card) {
+    return null
+  }
+
+  // Handle dismiss action
+  const handleDismiss = async () => {
+    if (!user?.clerkId) {
+      return
+    }
+
+    setIsHiding(true)
+    try {
+      await toggleHideProgressCard({
+        clerkId: user.clerkId,
+        hide: true,
+      })
+    } catch (error) {
+      console.error('Failed to hide progress card:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to hide progress card. Please try again.',
+        variant: 'destructive',
+      })
+      setIsHiding(false)
+    }
+  }
+
   return (
     <Card className="border-primary/20">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Free Plan Progress</CardTitle>
-          <span className="text-sm font-medium text-muted-foreground">
-            {stepsCompleted} of {totalSteps} steps completed
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-muted-foreground">
+              {stepsCompleted} of {totalSteps} steps completed
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDismiss}
+              disabled={isHiding}
+              className="h-8 w-8 p-0"
+              title="Hide this checklist"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

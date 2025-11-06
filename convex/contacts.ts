@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 
 // List contacts for the current user by Clerk ID
 export const getUserContacts = query({
@@ -78,6 +79,9 @@ export const createContact = mutation({
       created_at: now,
       updated_at: now,
     });
+
+    // Track activity for streak (fire-and-forget)
+    await ctx.scheduler.runAfter(0, api.activity.markActionForToday, {});
 
     const doc = await ctx.db.get(id);
     return doc;
