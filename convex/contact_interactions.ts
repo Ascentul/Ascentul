@@ -1,21 +1,21 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { v } from 'convex/values';
+import { mutation, query } from './_generated/server';
 
 // Get all follow-ups for a specific contact
 export const getContactFollowups = query({
-  args: { clerkId: v.string(), contactId: v.id("networking_contacts") },
+  args: { clerkId: v.string(), contactId: v.id('networking_contacts') },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const followups = await ctx.db
-      .query("followup_actions")
-      .withIndex("by_contact", (q) => q.eq("contact_id", args.contactId))
-      .order("desc")
+      .query('follow_ups')
+      .withIndex('by_contact', (q) => q.eq('contact_id', args.contactId))
+      .order('desc')
       .collect();
 
     return followups.filter((f) => f.user_id === user._id);
@@ -27,20 +27,20 @@ export const getNeedFollowup = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const allFollowups = await ctx.db
-      .query("followup_actions")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .query('follow_ups')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
       .collect();
 
-    // Filter for contact-related follow-ups that are not completed
+    // Filter for contact-related follow-ups that are open
     const contactFollowups = allFollowups.filter(
-      (f) => f.contact_id && !f.completed
+      (f) => f.contact_id && f.status === 'open',
     );
 
     return contactFollowups;
@@ -51,7 +51,7 @@ export const getNeedFollowup = query({
 export const createContactFollowup = mutation({
   args: {
     clerkId: v.string(),
-    contactId: v.id("networking_contacts"),
+    contactId: v.id('networking_contacts'),
     type: v.string(),
     description: v.string(),
     due_date: v.number(),
@@ -59,27 +59,54 @@ export const createContactFollowup = mutation({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     // Verify contact ownership
     const contact = await ctx.db.get(args.contactId);
     if (!contact || contact.user_id !== user._id) {
-      throw new Error("Contact not found or unauthorized");
+      throw new Error('Contact not found or unauthorized');
     }
 
     const now = Date.now();
-    const id = await ctx.db.insert("followup_actions", {
-      user_id: user._id,
-      contact_id: args.contactId,
-      type: args.type,
+    const title =
+      args.description?.substring(0, 100) || `${args.type} follow-up`;
+
+    const id = await ctx.db.insert('follow_ups', {
+      // Core fields
+      title,
       description: args.description,
-      due_date: args.due_date,
-      completed: false,
+      type: args.type,
       notes: args.notes,
+
+      // Ownership - student-created
+      user_id: user._id,
+      owner_id: user._id,
+      created_by_id: user._id,
+      created_by_type: 'student',
+
+      // Multi-tenancy
+      university_id: user.university_id,
+
+      // Relationships
+      related_type: 'contact',
+      related_id: args.contactId,
+      application_id: undefined,
+      contact_id: args.contactId,
+
+      // Task management
+      due_at: args.due_date,
+      priority: undefined,
+      status: 'open',
+
+      // Completion tracking
+      completed_at: undefined,
+      completed_by: undefined,
+
+      // Timestamps
       created_at: now,
       updated_at: now,
     });
@@ -92,32 +119,50 @@ export const createContactFollowup = mutation({
 export const updateContactFollowup = mutation({
   args: {
     clerkId: v.string(),
-    followupId: v.id("followup_actions"),
+    followupId: v.id('follow_ups'),
     updates: v.object({
+      title: v.optional(v.string()),
       type: v.optional(v.string()),
       description: v.optional(v.string()),
-      due_date: v.optional(v.number()),
-      completed: v.optional(v.boolean()),
+      due_at: v.optional(v.number()),
+      status: v.optional(v.union(v.literal('open'), v.literal('done'))),
       notes: v.optional(v.string()),
+      priority: v.optional(
+        v.union(v.literal('low'), v.literal('medium'), v.literal('high')),
+      ),
     }),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const followup = await ctx.db.get(args.followupId);
     if (!followup || followup.user_id !== user._id) {
-      throw new Error("Follow-up not found or unauthorized");
+      throw new Error('Follow-up not found or unauthorized');
     }
 
-    await ctx.db.patch(args.followupId, {
+    const now = Date.now();
+    const patchData: any = {
       ...args.updates,
-      updated_at: Date.now(),
-    });
+      updated_at: now,
+    };
+
+    // If status changed to done, set completion fields
+    if (args.updates.status === 'done' && followup.status !== 'done') {
+      patchData.completed_at = now;
+      patchData.completed_by = user._id;
+    }
+    // If status changed back to open, clear completion fields
+    if (args.updates.status === 'open' && followup.status === 'done') {
+      patchData.completed_at = undefined;
+      patchData.completed_by = undefined;
+    }
+
+    await ctx.db.patch(args.followupId, patchData);
 
     return args.followupId;
   },
@@ -127,19 +172,19 @@ export const updateContactFollowup = mutation({
 export const deleteContactFollowup = mutation({
   args: {
     clerkId: v.string(),
-    followupId: v.id("followup_actions"),
+    followupId: v.id('follow_ups'),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const followup = await ctx.db.get(args.followupId);
     if (!followup || followup.user_id !== user._id) {
-      throw new Error("Follow-up not found or unauthorized");
+      throw new Error('Follow-up not found or unauthorized');
     }
 
     await ctx.db.delete(args.followupId);

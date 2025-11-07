@@ -1011,7 +1011,7 @@ export const getUserDashboardAnalytics = query({
       ctx.db.query("applications").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
       ctx.db.query("goals").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
       ctx.db.query("interview_stages").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
-      ctx.db.query("followup_actions").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
+      ctx.db.query('follow_ups').withIndex('by_user', (q) => q.eq('user_id', user._id)).take(200),
       ctx.db.query("resumes").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
       ctx.db.query("cover_letters").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
       ctx.db.query("projects").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
@@ -1034,7 +1034,7 @@ export const getUserDashboardAnalytics = query({
 
     // Count all incomplete follow-up actions (not just overdue ones)
     const pendingTasks = followupActions.filter(followup =>
-      !followup.completed
+      followup.status === 'open'
     ).length;
 
     // Find next upcoming interview
@@ -1126,12 +1126,12 @@ export const getUserDashboardAnalytics = query({
         timestamp: followup.created_at ?? followup.updated_at ?? 0,
       });
 
-      if (followup.completed && followup.updated_at) {
+      if (followup.status === 'done' && followup.completed_at) {
         addActivity({
           id: `followup-completed-${followup._id}`,
-          type: "followup_completed",
+          type: 'followup_completed',
           description: `Completed follow-up: ${label}`,
-          timestamp: followup.updated_at,
+          timestamp: followup.completed_at,
         });
       }
     }

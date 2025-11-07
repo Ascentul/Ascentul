@@ -323,22 +323,93 @@ const Sidebar = React.memo(function Sidebar({
     [],
   );
 
+  // Advisor sections - for career advisors
+  const advisorSections: SidebarSection[] = useMemo(
+    () => [
+      {
+        id: "advisor-dashboard",
+        title: "Dashboard",
+        icon: <LayoutDashboard className="h-5 w-5" />,
+        href: "/advisor",
+      },
+      {
+        id: "advisor-students",
+        title: "Students",
+        icon: <UserIcon className="h-5 w-5" />,
+        href: "/advisor/students",
+      },
+      {
+        id: "advisor-advising",
+        title: "Advising",
+        icon: <Calendar className="h-5 w-5" />,
+        items: [
+          {
+            href: "/advisor/advising/today",
+            icon: <Clock className="h-4 w-4" />,
+            label: "Today",
+          },
+          {
+            href: "/advisor/advising/calendar",
+            icon: <Calendar className="h-4 w-4" />,
+            label: "Calendar",
+          },
+          {
+            href: "/advisor/advising/sessions",
+            icon: <Mic className="h-4 w-4" />,
+            label: "Sessions",
+          },
+          {
+            href: "/advisor/advising/reviews",
+            icon: <FileEdit className="h-4 w-4" />,
+            label: "Reviews",
+          },
+        ],
+      },
+      {
+        id: "advisor-applications",
+        title: "Applications",
+        icon: <ClipboardList className="h-5 w-5" />,
+        href: "/advisor/applications",
+      },
+      {
+        id: "advisor-analytics",
+        title: "Analytics",
+        icon: <LineChart className="h-5 w-5" />,
+        href: "/advisor/analytics",
+      },
+      {
+        id: "advisor-support",
+        title: "Support",
+        icon: <HelpCircle className="h-5 w-5" />,
+        href: "/advisor/support",
+      },
+    ],
+    [],
+  );
+
   // Combine sections based on user role - memoized
   const isUniAdmin = useMemo(
     () => user?.role === "university_admin",
     [user?.role],
   );
 
+  const isAdvisor = useMemo(
+    () => user?.role === "advisor",
+    [user?.role],
+  );
+
   // Determine which sections to show based on user role - memoized
   const allSections: SidebarSection[] = useMemo(() => {
-    if (isUniAdmin) {
+    if (isAdvisor) {
+      return advisorSections;
+    } else if (isUniAdmin) {
       return universitySections;
     } else if (isAdmin) {
       return adminSections;
     } else {
       return sidebarSections;
     }
-  }, [isUniAdmin, isAdmin, universitySections, adminSections, sidebarSections]);
+  }, [isAdvisor, isUniAdmin, isAdmin, advisorSections, universitySections, adminSections, sidebarSections]);
 
   // Memoize isActive function
   const isActive = useCallback(

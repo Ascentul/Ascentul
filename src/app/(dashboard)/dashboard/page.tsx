@@ -78,6 +78,10 @@ export default function DashboardPage() {
 
   // Redirect admin users immediately to prevent flash of dashboard content
   useEffect(() => {
+    if (user?.role === 'advisor') {
+      router.replace('/advisor')
+      return
+    }
     if (user?.role === 'university_admin') {
       router.replace('/university')
       return
@@ -104,6 +108,17 @@ export default function DashboardPage() {
   }
 
   // Prevent rendering for admin users while redirect is happening
+  if (user?.role === 'advisor') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirecting to advisor dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (user?.role === 'university_admin' || user?.role === 'super_admin' || user?.role === 'admin') {
     return (
       <div className="flex items-center justify-center min-h-screen">

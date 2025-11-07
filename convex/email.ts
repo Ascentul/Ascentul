@@ -383,3 +383,55 @@ export const sendPaymentConfirmationEmail = action({
     }
   },
 })
+
+/**
+ * Send review completion notification to student
+ */
+export const sendReviewCompletionEmail = action({
+  args: {
+    email: v.string(),
+    studentName: v.string(),
+    reviewType: v.string(),
+    reviewUrl: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { sendReviewCompletionEmail: sendEmail } = await import("../src/lib/email")
+
+    try {
+      const result = await sendEmail(
+        args.email,
+        args.studentName,
+        args.reviewType,
+        args.reviewUrl
+      )
+
+      return {
+        success: true,
+        messageId: result.id,
+        message: "Review completion email sent successfully",
+      }
+    } catch (error) {
+      console.error("Failed to send review completion email:", error)
+
+      // Email is non-critical, don't fail the review completion process
+      const errorMessage = (error as Error).message
+      if (errorMessage.includes('No email service configured') ||
+          errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
+          errorMessage.includes('SENDGRID_API_KEY')) {
+        console.warn("Email service not configured - review completed but notification email not sent")
+        return {
+          success: false,
+          messageId: null,
+          message: "Review completed, but notification email could not be sent (email service not configured)",
+        }
+      }
+
+      // Return failure but don't throw - email is non-critical
+      return {
+        success: false,
+        messageId: null,
+        message: "Email service error: " + errorMessage,
+      }
+    }
+  },
+})

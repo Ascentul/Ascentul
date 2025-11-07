@@ -334,30 +334,148 @@ export default defineSchema({
     user_id: v.id("users"),
     company: v.string(),
     job_title: v.string(),
+    // Extended status/stage for advisor workflow
     status: v.union(
-      v.literal("saved"),
-      v.literal("applied"),
-      v.literal("interview"),
-      v.literal("offer"),
-      v.literal("rejected"),
+      v.literal("saved"), // Legacy status
+      v.literal("applied"), // Legacy status
+      v.literal("interview"), // Legacy status
+      v.literal("offer"), // Legacy status
+      v.literal("rejected"), // Legacy status
     ),
+    // New stage field for advisor workflow (coexists with status for backwards compatibility)
+    stage: v.optional(
+      v.union(
+        v.literal("Prospect"), // Active - researching/considering
+        v.literal("Applied"), // Active - application submitted
+        v.literal("Interview"), // Active - in interview process
+        v.literal("Offer"), // Not Active - offer received
+        v.literal("Accepted"), // Final - offer accepted (NOT ACTIVE)
+        v.literal("Rejected"), // Not Active - application rejected
+        v.literal("Withdrawn"), // Not Active - candidate withdrew
+        v.literal("Archived"), // Not Active - archived
+      ),
+    ),
+    stage_set_at: v.optional(v.number()), // When stage was last changed
+    location: v.optional(v.string()),
     source: v.optional(v.string()),
     url: v.optional(v.string()),
     notes: v.optional(v.string()),
     applied_at: v.optional(v.number()),
     resume_id: v.optional(v.id("resumes")),
     cover_letter_id: v.optional(v.id("cover_letters")),
+    // Advisor workflow fields
+    assigned_advisor_id: v.optional(v.id("users")), // Primary advisor for this application
+    next_step: v.optional(v.string()), // Next action to take
+    due_date: v.optional(v.number()), // Deadline for next step
+    sla_status: v.optional(
+      v.union(
+        v.literal("ok"), // Within SLA
+        v.literal("warning"), // Approaching SLA breach
+        v.literal("breach"), // Past SLA
+      ),
+    ),
+    // Interview details
+    interviews: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          date: v.number(), // timestamp
+          interviewer: v.optional(v.string()),
+          interview_type: v.optional(v.string()), // phone, technical, behavioral, etc.
+          notes: v.optional(v.string()),
+        }),
+      ),
+    ),
+    // Offer details
+    offer: v.optional(
+      v.object({
+        received_date: v.optional(v.number()),
+        deadline: v.optional(v.number()), // Decision deadline
+        compensation_summary: v.optional(v.string()),
+        decision: v.optional(
+          v.union(
+            v.literal("pending"),
+            v.literal("accept"),
+            v.literal("decline"),
+          ),
+        ),
+        start_date: v.optional(v.number()), // If accepted
+      }),
+    ),
+    // IMPORTANT: Mutations must validate reason_code is provided when stage is "Rejected" or "Withdrawn"
+    reason_code: v.optional(v.string()), // e.g., "not_a_fit", "compensation", "location"
+    // Evidence uploads (for Offer/Accepted stages)
+    evidence_urls: v.optional(v.array(v.string())), // Uploaded offer letters, etc.
     created_at: v.number(),
     updated_at: v.number(),
   })
     .index("by_user", ["user_id"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_stage", ["stage"])
+    .index("by_advisor", ["assigned_advisor_id"]),
 
-  // Followup actions table
+  // Unified follow-ups table (replaces followup_actions and advisor_follow_ups)
+  follow_ups: defineTable({
+    // Core task fields
+    title: v.string(),
+    description: v.optional(v.string()),
+    type: v.optional(v.string()), // For backwards compatibility: 'follow_up', 'reminder', etc.
+    notes: v.optional(v.string()), // Additional notes
+
+    // Ownership & creation tracking
+    user_id: v.id('users'), // Primary user (student) this task relates to
+    owner_id: v.id('users'), // Who is responsible for completing it (can be student or advisor)
+    created_by_id: v.id('users'), // Who created this task
+    created_by_type: v.union(v.literal('student'), v.literal('advisor'), v.literal('system')),
+
+    // Multi-tenancy support
+    university_id: v.optional(v.id('universities')), // Null for non-university users, required for advisor-created tasks
+
+    // Flexible relationship tracking
+    related_type: v.optional(
+      v.union(
+        v.literal('application'),
+        v.literal('contact'),
+        v.literal('session'),
+        v.literal('review'),
+        v.literal('general'),
+      ),
+    ),
+    related_id: v.optional(v.string()), // Generic ID field
+
+    // Backwards compatibility - specific entity links
+    application_id: v.optional(v.id('applications')),
+    contact_id: v.optional(v.id('networking_contacts')),
+
+    // Task management
+    due_at: v.optional(v.number()), // Due date timestamp
+    priority: v.optional(v.union(v.literal('low'), v.literal('medium'), v.literal('high'))),
+    status: v.union(v.literal('open'), v.literal('done')),
+
+    // Completion audit trail
+    completed_at: v.optional(v.number()),
+    completed_by: v.optional(v.id('users')),
+
+    // Timestamps
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index('by_user', ['user_id'])
+    .index('by_owner_status', ['owner_id', 'status'])
+    .index('by_university', ['university_id'])
+    .index('by_application', ['application_id'])
+    .index('by_contact', ['contact_id'])
+    .index('by_due_at', ['due_at'])
+    .index('by_created_by', ['created_by_id'])
+    .index('by_user_university', ['user_id', 'university_id'])
+    .index('by_related_entity', ['related_type', 'related_id']),
+
+  // DEPRECATED: Legacy followup_actions table - use follow_ups instead
+  // TODO: Remove after migration to follow_ups is complete
   followup_actions: defineTable({
-    user_id: v.id("users"),
-    application_id: v.optional(v.id("applications")),
-    contact_id: v.optional(v.id("networking_contacts")),
+    user_id: v.id('users'),
+    application_id: v.optional(v.id('applications')),
+    contact_id: v.optional(v.id('networking_contacts')),
     type: v.string(), // default: 'follow_up'
     description: v.optional(v.string()),
     due_date: v.optional(v.number()),
@@ -366,10 +484,10 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_application", ["application_id"])
-    .index("by_contact", ["contact_id"])
-    .index("by_due_date", ["due_date"]),
+    .index('by_user', ['user_id'])
+    .index('by_application', ['application_id'])
+    .index('by_contact', ['contact_id'])
+    .index('by_due_date', ['due_date']),
 
   // Achievements table
   achievements: defineTable({
@@ -583,4 +701,212 @@ export default defineSchema({
     updated_at: v.number(), // ms
   })
     .index("by_clerk_date", ["clerk_id", "date"]),
+
+  // ========================================
+  // ADVISOR FEATURE TABLES
+  // ========================================
+
+  // Student-Advisor relationship table (many-to-many with ownership)
+  student_advisors: defineTable({
+    student_id: v.id("users"), // Must be a user with role="student"
+    advisor_id: v.id("users"), // Must be a user with role="advisor"
+    university_id: v.id("universities"), // Denormalized for tenant isolation
+    is_owner: v.boolean(), // Primary advisor flag (exactly one per student)
+    shared_type: v.optional(
+      v.union(
+        v.literal("reviewer"), // Can review documents
+        v.literal("temp"), // Temporary assignment
+      ),
+    ),
+    assigned_at: v.number(), // timestamp
+    assigned_by: v.id("users"), // Admin who made the assignment
+    notes: v.optional(v.string()), // Assignment context
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_university", ["university_id"])
+    .index("by_advisor", ["advisor_id", "university_id"])
+    .index("by_student", ["student_id", "university_id"])
+    .index("by_advisor_owner", ["advisor_id", "is_owner"])
+    .index("by_student_owner", ["student_id", "is_owner"]),
+
+  // Advisor session/appointment tracking
+  advisor_sessions: defineTable({
+    student_id: v.id("users"),
+    advisor_id: v.id("users"),
+    university_id: v.id("universities"), // Denormalized for tenant isolation
+    title: v.string(),
+    scheduled_at: v.optional(v.number()), // timestamp
+    start_at: v.number(), // timestamp
+    end_at: v.optional(v.number()), // timestamp
+    duration_minutes: v.optional(v.number()),
+    session_type: v.optional(
+      v.union(
+        v.literal("career_planning"),
+        v.literal("resume_review"),
+        v.literal("mock_interview"),
+        v.literal("application_strategy"),
+        v.literal("general_advising"),
+        v.literal("other"),
+      ),
+    ),
+    template_id: v.optional(v.string()), // Reference to note templates
+    outcomes: v.optional(v.array(v.string())), // Checklist of session outcomes
+    notes: v.optional(v.string()), // Rich text session notes
+    visibility: v.union(
+      v.literal("shared"), // Visible to student
+      v.literal("advisor_only"), // Private advisor notes
+    ),
+    tasks: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          title: v.string(),
+          due_at: v.optional(v.number()),
+          owner: v.union(v.literal("student"), v.literal("advisor")),
+          status: v.union(v.literal("open"), v.literal("done")),
+        }),
+      ),
+    ),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          name: v.string(),
+          url: v.string(),
+          type: v.string(), // MIME type
+          size: v.number(), // bytes
+        }),
+      ),
+    ),
+    version: v.optional(v.number()), // For optimistic concurrency control
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_university", ["university_id"])
+    .index("by_advisor", ["advisor_id", "university_id"])
+    .index("by_student", ["student_id", "university_id"])
+    .index("by_advisor_student", ["advisor_id", "student_id", "university_id"])
+    .index("by_scheduled_at", ["scheduled_at"])
+    .index("by_advisor_scheduled", ["advisor_id", "scheduled_at"]),
+
+  // Resume/Cover Letter review queue for advisors
+  advisor_reviews: defineTable({
+    student_id: v.id("users"),
+    university_id: v.id("universities"), // Denormalized for tenant isolation
+    asset_type: v.union(
+      v.literal("resume"),
+      v.literal("cover_letter"),
+    ),
+    // IMPORTANT: Mutations must ensure exactly one of these is set based on asset_type
+    resume_id: v.optional(v.id("resumes")),
+    cover_letter_id: v.optional(v.id("cover_letters")),
+    related_application_id: v.optional(v.id("applications")),
+    related_session_id: v.optional(v.id("advisor_sessions")),
+    related_review_id: v.optional(v.string()), // advisor_reviews ID
+    status: v.union(
+      v.literal("waiting"), // Pending advisor review
+      v.literal("in_review"), // Advisor actively reviewing
+      v.literal("needs_edits"), // Feedback provided, student needs to revise
+      v.literal("approved"), // Advisor approved
+    ),
+    rubric: v.optional(
+      v.object({
+        content_quality: v.optional(v.number()), // 1-5
+        formatting: v.optional(v.number()), // 1-5
+        relevance: v.optional(v.number()), // 1-5
+        grammar: v.optional(v.number()), // 1-5
+        overall: v.optional(v.number()), // 1-5
+      }),
+    ),
+    comments: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          author_id: v.id("users"), // User ID of commenter
+          body: v.string(), // Comment text (sanitized HTML)
+          visibility: v.union(
+            v.literal("shared"), // Visible to student
+            v.literal("advisor_only"), // Private comment
+          ),
+          created_at: v.number(),
+          updated_at: v.number(),
+        }),
+      ),
+    ),
+    version_id: v.optional(v.string()), // Track which version was reviewed
+    reviewed_by: v.optional(v.id("users")), // Advisor who reviewed
+    reviewed_at: v.optional(v.number()), // timestamp
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_university", ["university_id"])
+    .index("by_student", ["student_id", "university_id"])
+    .index("by_status", ["status", "university_id"])
+    .index("by_resume", ["resume_id"])
+    .index("by_cover_letter", ["cover_letter_id"]),
+
+  // DEPRECATED: Legacy advisor_follow_ups table - use follow_ups instead
+  // TODO: Remove after migration to follow_ups is complete
+  advisor_follow_ups: defineTable({
+    student_id: v.id('users'),
+    advisor_id: v.id('users'),
+    university_id: v.id('universities'), // Denormalized for tenant isolation
+    related_type: v.optional(
+      v.union(
+        v.literal('application'),
+        v.literal('session'),
+        v.literal('review'),
+        v.literal('general'),
+      ),
+    ),
+    related_id: v.optional(v.string()), // ID of related entity
+    title: v.string(),
+    description: v.optional(v.string()),
+    due_at: v.optional(v.number()), // timestamp
+    priority: v.optional(
+      v.union(
+        v.literal('low'),
+        v.literal('medium'),
+        v.literal('high'),
+      ),
+    ),
+    owner_id: v.id('users'), // Who is responsible (student or advisor)
+    status: v.union(
+      v.literal('open'),
+      v.literal('done'),
+    ),
+    completed_at: v.optional(v.number()),
+    completed_by: v.optional(v.id('users')),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index('by_university', ['university_id'])
+    .index('by_advisor', ['advisor_id', 'university_id'])
+    .index('by_student', ['student_id', 'university_id'])
+    .index('by_owner_status', ['owner_id', 'status'])
+    .index('by_due_at', ['due_at'])
+    .index('by_advisor_student', ['advisor_id', 'student_id']),
+
+  // Audit log for FERPA compliance and security
+  audit_logs: defineTable({
+    actor_id: v.id("users"), // Who performed the action
+    university_id: v.optional(v.id("universities")), // Tenant context
+    action: v.string(), // e.g., "application.stage_changed", "review.status_changed"
+    entity_type: v.string(), // e.g., "application", "review", "session"
+    entity_id: v.string(), // ID of affected entity
+    student_id: v.optional(v.id("users")), // Student affected (for PII tracking)
+    previous_value: v.optional(v.any()), // State before change
+    new_value: v.optional(v.any()), // State after change
+    reason: v.optional(v.string()), // Why the change was made (required for sensitive actions)
+    ip_address: v.optional(v.string()), // For security tracking
+    user_agent: v.optional(v.string()), // Browser/client info
+    created_at: v.number(),
+  })
+    .index("by_actor", ["actor_id"])
+    .index("by_university", ["university_id"])
+    .index("by_student", ["student_id"])
+    .index("by_entity", ["entity_type", "entity_id"])
+    .index("by_action", ["action"])
+    .index("by_created_at", ["created_at"]),
 });

@@ -1,0 +1,192 @@
+/**
+ * Advisor Calendar Queries
+ *
+ * Provides session data for calendar views:
+ * - Day view (single day's sessions)
+ * - Week view (7 days)
+ * - Month view (28-31 days)
+ */
+
+import { query } from "./_generated/server";
+import { v } from "convex/values";
+import {
+  getCurrentUser,
+  requireAdvisorRole,
+  requireTenant,
+} from "./advisor_auth";
+
+/**
+ * Get sessions for a date range (used by all calendar views)
+ */
+export const getSessionsInRange = query({
+  args: {
+    clerkId: v.string(),
+    startDate: v.number(), // Unix timestamp
+    endDate: v.number(), // Unix timestamp
+  },
+  handler: async (ctx, args) => {
+    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    requireAdvisorRole(sessionCtx);
+    const universityId = requireTenant(sessionCtx);
+
+    // Get sessions in the date range
+    const sessions = await ctx.db
+      .query("advisor_sessions")
+      .withIndex("by_advisor", (q) =>
+        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      )
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("start_at"), args.startDate),
+          q.lte(q.field("start_at"), args.endDate),
+        ),
+      )
+      .collect();
+
+    // Enrich with student data
+    const enrichedSessions = await Promise.all(
+      sessions.map(async (session) => {
+        const student = await ctx.db.get(session.student_id);
+        return {
+          _id: session._id,
+          student_id: session.student_id,
+          student_name: student?.name || "Unknown",
+          student_email: student?.email || "",
+          title: session.title,
+          session_type: session.session_type,
+          start_at: session.start_at,
+          end_at: session.end_at,
+          duration_minutes: session.duration_minutes,
+          notes: session.notes,
+          visibility: session.visibility,
+        };
+      }),
+    );
+
+    return enrichedSessions.sort((a, b) => a.start_at - b.start_at);
+  },
+});
+
+/**
+ * Get follow-ups for a date range (for calendar overlay)
+ */
+export const getFollowUpsInRange = query({
+  args: {
+    clerkId: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    requireAdvisorRole(sessionCtx);
+    const universityId = requireTenant(sessionCtx);
+
+    const followUps = await ctx.db
+      .query("advisor_follow_ups")
+      .withIndex("by_advisor", (q) =>
+        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      )
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("due_at"), args.startDate),
+          q.lte(q.field("due_at"), args.endDate),
+          q.eq(q.field("status"), "open"),
+        ),
+      )
+      .collect();
+
+    // Enrich with student names
+    const enrichedFollowUps = await Promise.all(
+      followUps.map(async (followUp) => {
+        const student = await ctx.db.get(followUp.student_id);
+        return {
+          _id: followUp._id,
+          student_id: followUp.student_id,
+          student_name: student?.name || "Unknown",
+          title: followUp.title,
+          description: followUp.description,
+          due_at: followUp.due_at,
+          priority: followUp.priority,
+          status: followUp.status,
+        };
+      }),
+    );
+
+    return enrichedFollowUps.sort((a, b) => {
+      if (!a.due_at) return 1;
+      if (!b.due_at) return -1;
+      return a.due_at - b.due_at;
+    });
+  },
+});
+
+/**
+ * Get calendar statistics for a date range
+ */
+export const getCalendarStats = query({
+  args: {
+    clerkId: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    requireAdvisorRole(sessionCtx);
+    const universityId = requireTenant(sessionCtx);
+
+    const sessions = await ctx.db
+      .query("advisor_sessions")
+      .withIndex("by_advisor", (q) =>
+        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      )
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("start_at"), args.startDate),
+          q.lte(q.field("start_at"), args.endDate),
+        ),
+      )
+      .collect();
+
+    const followUps = await ctx.db
+      .query("advisor_follow_ups")
+      .withIndex("by_advisor", (q) =>
+        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      )
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("due_at"), args.startDate),
+          q.lte(q.field("due_at"), args.endDate),
+          q.eq(q.field("status"), "open"),
+        ),
+      )
+      .collect();
+
+    const now = Date.now();
+    const completedSessions = sessions.filter(
+      (s) => s.end_at && s.end_at < now,
+    ).length;
+    const upcomingSessions = sessions.filter((s) => s.start_at > now).length;
+    const overdueFollowUps = followUps.filter(
+      (f) => f.due_at && f.due_at < now,
+    ).length;
+
+    // Calculate total session hours
+    const totalHours = sessions.reduce(
+      (sum, s) => sum + (s.duration_minutes || 0) / 60,
+      0,
+    );
+
+    // Get unique students
+    const uniqueStudents = new Set(sessions.map((s) => s.student_id.toString()));
+
+    return {
+      totalSessions: sessions.length,
+      completedSessions,
+      upcomingSessions,
+      totalFollowUps: followUps.length,
+      overdueFollowUps,
+      totalHours: Math.round(totalHours * 10) / 10,
+      uniqueStudents: uniqueStudents.size,
+    };
+  },
+});

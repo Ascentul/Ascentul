@@ -6,6 +6,7 @@ const isProtectedRoute = createRouteMatcher([
   "/onboarding(.*)",
   "/admin(.*)",
   "/university(.*)",
+  "/advisor(.*)", // Advisor routes
   "/account(.*)",
   "/goals(.*)",
   "/api/goals(.*)",
@@ -38,6 +39,7 @@ export const config = {
     "/onboarding/:path*",
     "/admin/:path*",
     "/university/:path*",
+    "/advisor/:path*", // Advisor routes
     "/account/:path*",
     "/goals/:path*",
     "/api/goals/:path*",
