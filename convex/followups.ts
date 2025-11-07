@@ -81,7 +81,7 @@ export const createFollowup = mutation({
 
     const now = Date.now();
     const title =
-      args.description?.substring(0, 100) ||
+      args.description.substring(0, 100) ||
       `${args.type || 'Follow-up'} task`;
 
     const id = await ctx.db.insert('follow_ups', {
@@ -97,23 +97,17 @@ export const createFollowup = mutation({
       created_by_id: user._id,
       created_by_type: 'student',
 
-      // Multi-tenancy
+      // Multi-tenancy (optional for non-university users)
       university_id: user.university_id,
 
-      // Relationships
+      // Relationships (dual-field pattern: populate both generic and typed fields)
       related_type: 'application',
-      related_id: args.applicationId,
-      application_id: args.applicationId,
-      contact_id: undefined,
+      related_id: args.applicationId, // String version for composite index queries
+      application_id: args.applicationId, // Typed field for referential integrity
 
       // Task management
       due_at: args.due_date,
-      priority: undefined,
       status: 'open',
-
-      // Completion tracking
-      completed_at: undefined,
-      completed_by: undefined,
 
       // Timestamps
       created_at: now,
@@ -153,7 +147,15 @@ export const updateFollowup = mutation({
       throw new Error('Followup not found or unauthorized');
 
     const now = Date.now();
-    const patchData: any = {
+
+    // Build patch data with explicit typing for completion fields
+    type PatchData = Partial<typeof item> & {
+      updated_at: number;
+      completed_at?: number | undefined;
+      completed_by?: typeof user._id | undefined;
+    };
+
+    const patchData: PatchData = {
       ...args.updates,
       updated_at: now,
     };

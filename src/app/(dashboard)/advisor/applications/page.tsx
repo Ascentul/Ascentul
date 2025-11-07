@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { AdvisorGate } from "@/components/advisor/AdvisorGate";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ApplicationKanban } from "@/components/advisor/applications/ApplicationKanban";
 import { ApplicationTable } from "@/components/advisor/applications/ApplicationTable";
 import { useUser } from "@clerk/nextjs";
@@ -42,7 +44,21 @@ export default function AdvisorApplicationsPage() {
 
   return (
     <AdvisorGate requiredFlag="advisor.applications">
-      <div className="container mx-auto p-6 space-y-6">
+      <ErrorBoundary
+        fallback={
+          <div className="container mx-auto p-6">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error Loading Applications</AlertTitle>
+              <AlertDescription>
+                There was an error loading application data. Please try refreshing the page.
+                If the problem persists, contact support.
+              </AlertDescription>
+            </Alert>
+          </div>
+        }
+      >
+        <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Applications</h1>
@@ -159,6 +175,11 @@ export default function AdvisorApplicationsPage() {
               <ApplicationKanban
                 applicationsByStage={applicationsByStage || {}}
                 isLoading={applicationsByStage === undefined}
+                clerkId={clerkId}
+                onRefresh={() => {
+                  // Convex will automatically refetch when data changes
+                  // No manual refresh needed
+                }}
               />
             ) : (
               <ApplicationTable
@@ -168,7 +189,8 @@ export default function AdvisorApplicationsPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </ErrorBoundary>
     </AdvisorGate>
   );
 }

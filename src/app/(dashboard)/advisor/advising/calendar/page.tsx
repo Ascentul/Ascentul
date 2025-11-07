@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { AdvisorGate } from "@/components/advisor/AdvisorGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CalendarView } from "@/components/advisor/calendar/CalendarView";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
@@ -15,6 +16,9 @@ import {
   TrendingUp,
   Clock,
   Users,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -22,14 +26,16 @@ import {
   endOfWeek,
   startOfMonth,
   endOfMonth,
+  addMonths,
+  subMonths,
+  format,
 } from "date-fns";
 
 export default function AdvisorCalendarPage() {
   const { user } = useUser();
   const clerkId = user?.id;
 
-  // For now, fetch data for the current month
-  const [currentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   const { startDate, endDate } = useMemo(() => {
     // Fetch data for the current month plus adjacent weeks for smooth navigation
@@ -59,6 +65,22 @@ export default function AdvisorCalendarPage() {
     clerkId ? { clerkId, startDate, endDate } : "skip"
   );
 
+  const handlePreviousMonth = () => {
+    setCurrentDate((prev) => subMonths(prev, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate((prev) => addMonths(prev, 1));
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  // Detect query errors (Convex returns null on error)
+  const hasError = sessions === null || followUps === null || stats === null;
+  const isLoading = sessions === undefined || followUps === undefined || stats === undefined;
+
   return (
     <AdvisorGate requiredFlag="advisor.advising">
       <div className="container mx-auto p-6 space-y-6">
@@ -76,12 +98,24 @@ export default function AdvisorCalendarPage() {
                 Schedule Session
               </Button>
             </Link>
+            {/* TODO: Implement calendar export functionality (export to .ics format) */}
             <Button variant="outline" disabled>
               <Download className="h-4 w-4 mr-2" />
               Export Calendar
             </Button>
           </div>
         </div>
+
+        {/* Error Alert */}
+        {hasError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error Loading Calendar</AlertTitle>
+            <AlertDescription>
+              Failed to load calendar data. Please try refreshing the page.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -106,7 +140,7 @@ export default function AdvisorCalendarPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats?.totalHours ?? "-"}
+                {stats?.totalHours !== undefined ? `${stats.totalHours}h` : "-"}
               </div>
             </CardContent>
           </Card>
@@ -143,16 +177,45 @@ export default function AdvisorCalendarPage() {
         {/* Calendar */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5" />
-              Advising Calendar
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5" />
+                Advising Calendar
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviousMonth}
+                  aria-label="Previous month"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToday}
+                  className="min-w-[100px]"
+                  aria-label="Go to today"
+                >
+                  {format(currentDate, 'MMM yyyy')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextMonth}
+                  aria-label="Next month"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <CalendarView
               sessions={sessions || []}
               followUps={followUps || []}
-              isLoading={sessions === undefined || followUps === undefined}
+              isLoading={isLoading}
             />
           </CardContent>
         </Card>

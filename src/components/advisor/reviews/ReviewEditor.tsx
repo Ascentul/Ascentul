@@ -23,6 +23,11 @@ import {
 import { format } from "date-fns";
 import type { Id } from "convex/_generated/dataModel";
 
+interface AssetContent {
+  file_url?: string;
+  content?: string;
+}
+
 interface Review {
   _id: Id<"advisor_reviews">;
   student_id: Id<"users">;
@@ -31,7 +36,7 @@ interface Review {
   asset_id: string;
   asset_type: string;
   asset_name: string;
-  asset_content: any;
+  asset_content?: AssetContent;
   status: string;
   priority: string;
   requested_at: number;
@@ -83,7 +88,7 @@ export function ReviewEditor({
 
   // Autosave function
   const saveChanges = useCallback(async () => {
-    if (!hasUnsavedChanges || isSaving || review.status !== "in_progress") return;
+    if (!hasUnsavedChanges || isSaving || review.status !== "in_progress") return false;
 
     setIsSaving(true);
     setSaveError(null);
@@ -103,6 +108,8 @@ export function ReviewEditor({
       if (onSaveSuccess) {
         onSaveSuccess();
       }
+
+      return true;
     } catch (error: any) {
       setSaveError(error.message);
       toast({
@@ -110,6 +117,7 @@ export function ReviewEditor({
         description: error.message,
         variant: "destructive",
       });
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -126,6 +134,12 @@ export function ReviewEditor({
     onSaveSuccess,
   ]);
 
+  // Keep saveChangesRef up to date
+  const saveChangesRef = useRef(saveChanges);
+  useEffect(() => {
+    saveChangesRef.current = saveChanges;
+  }, [saveChanges]);
+
   // Autosave on change (debounced)
   useEffect(() => {
     if (hasUnsavedChanges && review.status === "in_progress") {
@@ -134,7 +148,7 @@ export function ReviewEditor({
       }
 
       autosaveTimerRef.current = setTimeout(() => {
-        saveChanges();
+        saveChangesRef.current();
       }, 2000);
     }
 
@@ -143,15 +157,17 @@ export function ReviewEditor({
         clearTimeout(autosaveTimerRef.current);
       }
     };
-  }, [hasUnsavedChanges, review.status, saveChanges]);
+  }, [hasUnsavedChanges, review.status]);
 
   // Manual save
   const handleManualSave = async () => {
-    await saveChanges();
-    toast({
-      title: "Saved",
-      description: "Review feedback saved",
-    });
+    const saved = await saveChanges();
+    if (saved) {
+      toast({
+        title: "Saved",
+        description: "Review feedback saved",
+      });
+    }
   };
 
   // Claim review

@@ -78,7 +78,8 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
   // Sort applications
   const sortedApplications = [...filteredApplications].sort((a, b) => {
     if (sortBy === "date") {
-      return (b.applied_date || b.created_at) - (a.applied_date || a.created_at);
+      // Use ?? instead of || to avoid treating 0 (epoch) as falsy
+      return (b.applied_date ?? b.created_at) - (a.applied_date ?? a.created_at);
     } else if (sortBy === "student") {
       return a.student_name.localeCompare(b.student_name);
     } else {
@@ -130,7 +131,7 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
           </SelectContent>
         </Select>
 
-        <Select value={sortBy} onValueChange={(val) => setSortBy(val as any)}>
+        <Select value={sortBy} onValueChange={(val) => setSortBy(val as "date" | "student" | "company")}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>

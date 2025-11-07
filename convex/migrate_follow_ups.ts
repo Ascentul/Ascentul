@@ -5,8 +5,15 @@
  * 1. Migrates all data from followup_actions to follow_ups
  * 2. Migrates all data from advisor_follow_ups to follow_ups
  * 3. Maintains all relationships and data integrity
+ * 4. Includes idempotency check to prevent duplicate migrations
+ * 5. Batches user lookups to avoid N+1 query performance issues
  *
- * Run with: npx convex run migrate_follow_ups:migrateFollowUps
+ * Usage:
+ * - Dry run (preview): npx convex run migrate_follow_ups:migrateFollowUps '{"dryRun": true}'
+ * - Actual migration: npx convex run migrate_follow_ups:migrateFollowUps
+ * - Force re-run: npx convex run migrate_follow_ups:migrateFollowUps '{"force": true}' (⚠️ May create duplicates!)
+ * - Verify (default 100 samples): npx convex run migrate_follow_ups:verifyMigration
+ * - Verify (custom sample): npx convex run migrate_follow_ups:verifyMigration '{"sampleSize": 500}'
  */
 
 import { mutation } from './_generated/server';
@@ -15,26 +22,59 @@ import { v } from 'convex/values';
 export const migrateFollowUps = mutation({
   args: {
     dryRun: v.optional(v.boolean()), // Set to true to preview changes without committing
+    force: v.optional(v.boolean()), // Set to true to bypass idempotency check (dangerous!)
   },
   handler: async (ctx, args) => {
     const dryRun = args.dryRun ?? false;
+    const force = args.force ?? false;
+
+    // Idempotency check: Prevent duplicate migrations
+    if (!dryRun && !force) {
+      const existingFollowUps = await ctx.db.query('follow_ups').first();
+      if (existingFollowUps) {
+        throw new Error(
+          'Migration may have already been run - follow_ups table is not empty. ' +
+          'Please verify the table state before proceeding. ' +
+          'To run anyway, use: npx convex run migrate_follow_ups:migrateFollowUps \'{"force": true}\' ' +
+          '(WARNING: This may create duplicate records!)'
+        );
+      }
+    }
+
     const results = {
       followup_actions_migrated: 0,
       advisor_follow_ups_migrated: 0,
       errors: [] as string[],
     };
 
-    console.log(`Starting migration (dry run: ${dryRun})...`);
+    console.log(`Starting migration (dry run: ${dryRun}, force: ${force})...`);
 
-    // PART 1: Migrate followup_actions
+    // PART 1: Migrate followup_actions (using pagination to avoid memory issues)
     console.log('\n[1/2] Migrating followup_actions...');
-    const followupActions = await ctx.db.query('followup_actions').collect();
-    console.log(`Found ${followupActions.length} followup_actions records`);
+    let followupActionsCursor: string | null = null;
+    let hasMoreFollowupActions = true;
+    const BATCH_SIZE = 100;
 
-    for (const action of followupActions) {
+    while (hasMoreFollowupActions) {
+      const page = await ctx.db
+        .query('followup_actions')
+        .paginate({ cursor: followupActionsCursor, numItems: BATCH_SIZE });
+
+      console.log(`Processing batch of ${page.page.length} followup_actions...`);
+
+      // Batch user lookups to avoid N+1 queries
+      const userIds = [...new Set(page.page.map(a => a.user_id))];
+      const users = await Promise.all(userIds.map(id => ctx.db.get(id)));
+      const userMap = new Map(
+        users
+          .filter((u): u is NonNullable<typeof u> => u !== null)
+          .map(u => [u._id, u] as const)
+      );
+
+      for (const action of page.page) {
       try {
-        // Get user to extract university_id if available
-        const user = await ctx.db.get(action.user_id);
+        // Get user from batched lookup
+        const user = userMap.get(action.user_id);
         if (!user) {
           results.errors.push(
             `followup_actions ${action._id}: User ${action.user_id} not found`,
@@ -91,7 +131,7 @@ export const migrateFollowUps = mutation({
             status: status as 'open' | 'done',
 
             // Completion tracking
-            completed_at: action.completed ? action.updated_at : undefined,
+            completed_at: undefined, // Original table didn't track completion time
             completed_by: action.completed ? action.user_id : undefined,
 
             // Timestamps
@@ -108,13 +148,36 @@ export const migrateFollowUps = mutation({
       }
     }
 
-    // PART 2: Migrate advisor_follow_ups
-    console.log('\n[2/2] Migrating advisor_follow_ups...');
-    const advisorFollowUps = await ctx.db.query('advisor_follow_ups').collect();
-    console.log(`Found ${advisorFollowUps.length} advisor_follow_ups records`);
+      followupActionsCursor = page.continueCursor;
+      hasMoreFollowupActions = !page.isDone;
+    }
 
-    for (const followUp of advisorFollowUps) {
+    console.log(`Total followup_actions migrated: ${results.followup_actions_migrated}`);
+
+    // PART 2: Migrate advisor_follow_ups (using pagination to avoid memory issues)
+    console.log('\n[2/2] Migrating advisor_follow_ups...');
+    let advisorFollowUpsCursor: string | null = null;
+    let hasMoreAdvisorFollowUps = true;
+
+    while (hasMoreAdvisorFollowUps) {
+      const page = await ctx.db
+        .query('advisor_follow_ups')
+        .paginate({ cursor: advisorFollowUpsCursor, numItems: BATCH_SIZE });
+
+      console.log(`Processing batch of ${page.page.length} advisor_follow_ups...`);
+
+      for (const followUp of page.page) {
       try {
+        // Map related entities to specific fields if possible
+        let application_id: string | undefined;
+        let contact_id: string | undefined;
+
+        if (followUp.related_type === 'application' && followUp.related_id) {
+          application_id = followUp.related_id as any; // Cast to ID type
+        } else if (followUp.related_type === 'contact' && followUp.related_id) {
+          contact_id = followUp.related_id as any; // Cast to ID type
+        }
+
         if (!dryRun) {
           await ctx.db.insert('follow_ups', {
             // Core fields
@@ -135,8 +198,8 @@ export const migrateFollowUps = mutation({
             // Relationships
             related_type: followUp.related_type,
             related_id: followUp.related_id,
-            application_id: undefined,
-            contact_id: undefined,
+            application_id,
+            contact_id,
 
             // Task management
             due_at: followUp.due_at,
@@ -161,6 +224,12 @@ export const migrateFollowUps = mutation({
       }
     }
 
+      advisorFollowUpsCursor = page.continueCursor;
+      hasMoreAdvisorFollowUps = !page.isDone;
+    }
+
+    console.log(`Total advisor_follow_ups migrated: ${results.advisor_follow_ups_migrated}`);
+
     console.log('\n=== Migration Summary ===');
     console.log(`Dry run: ${dryRun}`);
     console.log(`followup_actions migrated: ${results.followup_actions_migrated}`);
@@ -180,11 +249,23 @@ export const migrateFollowUps = mutation({
 });
 
 /**
- * Verification query - compare counts before and after migration
+ * Verification query - comprehensive data integrity checks
+ *
+ * Validates:
+ * - Record counts match expected totals
+ * - Sample validation of required fields
+ * - Relationship integrity (user_id, university_id references exist)
+ * - Dual-field pattern correctness (related_id matches typed IDs)
+ * - Status and enum values are valid
  */
 export const verifyMigration = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    sampleSize: v.optional(v.number()), // Number of records to validate (default: 100)
+  },
+  handler: async (ctx, args) => {
+    const sampleSize = args.sampleSize ?? 100;
+
+    // Count checks
     const followupActionsCount = (
       await ctx.db.query('followup_actions').collect()
     ).length;
@@ -195,16 +276,134 @@ export const verifyMigration = mutation({
 
     const expected = followupActionsCount + advisorFollowUpsCount;
     const actual = followUpsCount;
-    const match = expected === actual;
+    const countMatch = expected === actual;
+
+    // Sample validation
+    const sampleFollowUps = await ctx.db.query('follow_ups').take(sampleSize);
+    const validationErrors: string[] = [];
+    const warnings: string[] = [];
+
+    // Batch fetch all referenced users for relationship validation
+    const userIds = [...new Set(sampleFollowUps.map(f => f.user_id))];
+    const users = await Promise.all(userIds.map(id => ctx.db.get(id)));
+    const userMap = new Map(
+      users
+        .filter((u): u is NonNullable<typeof u> => u !== null)
+        .map(u => [u._id, u] as const)
+    );
+
+    for (const followUp of sampleFollowUps) {
+      const id = followUp._id;
+
+      // Required field validation
+      if (!followUp.title || followUp.title.trim().length === 0) {
+        validationErrors.push(`${id}: Missing or empty title`);
+      }
+      if (!followUp.user_id) {
+        validationErrors.push(`${id}: Missing user_id`);
+      }
+      if (!followUp.owner_id) {
+        validationErrors.push(`${id}: Missing owner_id`);
+      }
+      if (!followUp.created_by_id) {
+        validationErrors.push(`${id}: Missing created_by_id`);
+      }
+      if (!followUp.created_by_type) {
+        validationErrors.push(`${id}: Missing created_by_type`);
+      }
+
+      // Enum validation
+      if (!['student', 'advisor', 'system'].includes(followUp.created_by_type)) {
+        validationErrors.push(`${id}: Invalid created_by_type: ${followUp.created_by_type}`);
+      }
+      if (!['open', 'done'].includes(followUp.status)) {
+        validationErrors.push(`${id}: Invalid status: ${followUp.status}`);
+      }
+      if (followUp.priority && !['low', 'medium', 'high'].includes(followUp.priority)) {
+        validationErrors.push(`${id}: Invalid priority: ${followUp.priority}`);
+      }
+      if (followUp.related_type && !['application', 'contact', 'session', 'review', 'general'].includes(followUp.related_type)) {
+        validationErrors.push(`${id}: Invalid related_type: ${followUp.related_type}`);
+      }
+
+      // Relationship integrity
+      if (followUp.user_id && !userMap.has(followUp.user_id)) {
+        validationErrors.push(`${id}: user_id ${followUp.user_id} does not exist`);
+      }
+
+      // University ID validation (advisor-created tasks should have university_id)
+      if (followUp.created_by_type === 'advisor' && !followUp.university_id) {
+        warnings.push(`${id}: Advisor-created task missing university_id`);
+      }
+
+      // Dual-field pattern validation
+      if (followUp.related_type === 'application') {
+        if (!followUp.application_id) {
+          validationErrors.push(`${id}: related_type is 'application' but application_id is missing`);
+        }
+        if (followUp.related_id !== followUp.application_id) {
+          validationErrors.push(`${id}: related_id (${followUp.related_id}) doesn't match application_id (${followUp.application_id})`);
+        }
+      }
+      if (followUp.related_type === 'contact') {
+        if (!followUp.contact_id) {
+          validationErrors.push(`${id}: related_type is 'contact' but contact_id is missing`);
+        }
+        if (followUp.related_id !== followUp.contact_id) {
+          validationErrors.push(`${id}: related_id (${followUp.related_id}) doesn't match contact_id (${followUp.contact_id})`);
+        }
+      }
+
+      // Completion field consistency
+      if (followUp.status === 'done') {
+        if (!followUp.completed_by) {
+          warnings.push(`${id}: Status is 'done' but completed_by is missing`);
+        }
+        // Note: completed_at may be missing for records migrated from old table
+      }
+      if (followUp.status === 'open') {
+        if (followUp.completed_at) {
+          validationErrors.push(`${id}: Status is 'open' but completed_at is set`);
+        }
+        if (followUp.completed_by) {
+          validationErrors.push(`${id}: Status is 'open' but completed_by is set`);
+        }
+      }
+
+      // Timestamp validation
+      if (!followUp.created_at || followUp.created_at <= 0) {
+        validationErrors.push(`${id}: Invalid created_at timestamp`);
+      }
+      if (!followUp.updated_at || followUp.updated_at <= 0) {
+        validationErrors.push(`${id}: Invalid updated_at timestamp`);
+      }
+    }
+
+    const allValid = countMatch && validationErrors.length === 0;
 
     return {
+      // Count verification
       followup_actions_count: followupActionsCount,
       advisor_follow_ups_count: advisorFollowUpsCount,
       follow_ups_count: followUpsCount,
       expected_total: expected,
       actual_total: actual,
-      match,
-      status: match ? '✅ Migration verified' : '⚠️ Count mismatch',
+      count_match: countMatch,
+
+      // Sample validation
+      sample_size: sampleFollowUps.length,
+      validation_errors: validationErrors,
+      validation_error_count: validationErrors.length,
+      warnings,
+      warning_count: warnings.length,
+
+      // Overall status
+      status: allValid
+        ? '✅ Migration verified - all checks passed'
+        : validationErrors.length > 0
+          ? '❌ Validation failed - see validation_errors'
+          : '⚠️ Count mismatch',
+      all_valid: allValid,
     };
   },
 });

@@ -1,11 +1,15 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Building2, User, Calendar, ArrowRight, ExternalLink } from "lucide-react";
-import { format } from "date-fns";
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Building2, User, Calendar, ArrowRight, ExternalLink, RefreshCw } from "lucide-react";
+import { format } from 'date-fns';
 import Link from "next/link";
+import { StageTransitionModal } from "./StageTransitionModal";
+import type { Id } from "convex/_generated/dataModel";
+import { cn } from '@/lib/utils';
 
 interface Application {
   _id: string;
@@ -28,6 +32,8 @@ interface Application {
 interface ApplicationKanbanProps {
   applicationsByStage: Record<string, Application[]>;
   isLoading?: boolean;
+  clerkId?: string;
+  onRefresh?: () => void;
 }
 
 const STAGE_COLORS: Record<string, string> = {
@@ -54,7 +60,28 @@ const STAGE_ORDER = [
 export function ApplicationKanban({
   applicationsByStage,
   isLoading,
+  clerkId,
+  onRefresh,
 }: ApplicationKanbanProps) {
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleStageChange = (app: Application) => {
+    setSelectedApplication(app);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedApplication(null);
+  };
+
+  const handleSuccess = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -85,7 +112,7 @@ export function ApplicationKanban({
 
   return (
     <div className="overflow-x-auto">
-      <div className="flex gap-4 pb-4" style={{ minWidth: "max-content" }}>
+      <div className="flex gap-4 pb-4 min-w-max">
         {STAGE_ORDER.map((stage) => {
           const applications = applicationsByStage[stage] || [];
           const isActive = ["Prospect", "Applied", "Interview"].includes(stage);
@@ -94,8 +121,7 @@ export function ApplicationKanban({
           return (
             <div
               key={stage}
-              className="flex-shrink-0 w-80"
-              style={{ minWidth: "320px" }}
+              className="flex-shrink-0 w-80 min-w-[320px]"
             >
               <Card className={STAGE_COLORS[stage]}>
                 <CardHeader className="pb-3">
@@ -121,9 +147,10 @@ export function ApplicationKanban({
                       return (
                         <Card
                           key={app._id}
-                          className={`${
-                            isOverdue ? "border-orange-400 bg-orange-50" : ""
-                          } hover:shadow-md transition-shadow`}
+                          className={cn(
+                            "hover:shadow-md transition-shadow",
+                            isOverdue && "border-orange-400 bg-orange-50"
+                          )}
                         >
                           <CardContent className="p-4 space-y-3">
                             {/* Company & Position */}
@@ -160,11 +187,12 @@ export function ApplicationKanban({
                             {/* Next Step */}
                             {app.next_step && isActive && (
                               <div
-                                className={`text-xs p-2 rounded ${
+                                className={cn(
+                                  "text-xs p-2 rounded",
                                   isOverdue
                                     ? "bg-orange-100 text-orange-800"
                                     : "bg-blue-50 text-blue-700"
-                                }`}
+                                )}
                               >
                                 <div className="flex items-center gap-1 mb-1">
                                   <ArrowRight className="h-3 w-3" />
@@ -181,25 +209,38 @@ export function ApplicationKanban({
                             )}
 
                             {/* Actions */}
-                            <div className="flex gap-2 pt-2 border-t">
-                              <Link
-                                href={`/advisor/students/${app.user_id}`}
-                                className="flex-1"
-                              >
-                                <Button variant="outline" size="sm" className="w-full">
-                                  View Student
-                                </Button>
-                              </Link>
-                              {app.application_url && (
-                                <a
-                                  href={app.application_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                            <div className="flex flex-col gap-2 pt-2 border-t">
+                              <div className="flex gap-2">
+                                <Link
+                                  href={`/advisor/students/${app.user_id}`}
+                                  className="flex-1"
                                 >
-                                  <Button variant="ghost" size="sm">
-                                    <ExternalLink className="h-4 w-4" />
+                                  <Button variant="outline" size="sm" className="w-full">
+                                    View Student
                                   </Button>
-                                </a>
+                                </Link>
+                                {app.application_url && (
+                                  <a
+                                    href={app.application_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Button variant="ghost" size="sm">
+                                      <ExternalLink className="h-4 w-4" />
+                                    </Button>
+                                  </a>
+                                )}
+                              </div>
+                              {clerkId && (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => handleStageChange(app)}
+                                >
+                                  <RefreshCw className="h-3 w-3 mr-1" />
+                                  Change Stage
+                                </Button>
                               )}
                             </div>
                           </CardContent>
@@ -213,6 +254,23 @@ export function ApplicationKanban({
           );
         })}
       </div>
+
+      {/* Stage Transition Modal */}
+      {selectedApplication && clerkId && (
+        <StageTransitionModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          application={{
+            _id: selectedApplication._id as Id<'applications'>,
+            company_name: selectedApplication.company_name,
+            position_title: selectedApplication.position_title,
+            student_name: selectedApplication.student_name,
+            stage: selectedApplication.stage,
+          }}
+          clerkId={clerkId}
+          onSuccess={handleSuccess}
+        />
+      )}
     </div>
   );
 }

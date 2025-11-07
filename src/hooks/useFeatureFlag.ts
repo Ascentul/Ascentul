@@ -12,7 +12,7 @@ import { api } from "../../convex/_generated/api";
  * Check if a single feature flag is enabled
  *
  * @param flag - Feature flag key (e.g., "advisor.dashboard")
- * @returns boolean - true if enabled, false if disabled or loading
+ * @returns boolean | undefined - true if enabled, false if disabled, undefined if loading
  *
  * @example
  * const isEnabled = useFeatureFlag("advisor.dashboard");
@@ -22,14 +22,14 @@ import { api } from "../../convex/_generated/api";
  */
 export function useFeatureFlag(flag: string): boolean | undefined {
   const enabled = useQuery(api.feature_flags.getFeatureFlag, { flag });
-  return enabled ?? undefined;
+  return enabled;
 }
 
 /**
  * Check multiple feature flags at once
  *
  * @param flags - Array of feature flag keys
- * @returns Object mapping flag keys to boolean values
+ * @returns Object mapping flag keys to boolean values (guaranteed to include all requested flags)
  *
  * @example
  * const flags = useFeatureFlags(["advisor.dashboard", "advisor.students"]);
@@ -39,7 +39,10 @@ export function useFeatureFlag(flag: string): boolean | undefined {
  */
 export function useFeatureFlags(flags: string[]): Record<string, boolean> {
   const result = useQuery(api.feature_flags.getFeatureFlags, { flags });
-  return result || flags.reduce((acc, flag) => ({ ...acc, [flag]: false }), {});
+  // Create defaults map with all flags set to false (optimized with Object.fromEntries)
+  const defaults = Object.fromEntries(flags.map(flag => [flag, false]));
+  // Merge result with defaults to ensure all flags are present
+  return result ? { ...defaults, ...result } : defaults;
 }
 
 /**
@@ -63,13 +66,14 @@ export function useAdvisorFeatureFlags() {
     "advisor.support",
   ]);
 
+  // No need for ?? false since useFeatureFlags guarantees all flags are present
   return {
-    dashboard: flags["advisor.dashboard"] ?? false,
-    students: flags["advisor.students"] ?? false,
-    advising: flags["advisor.advising"] ?? false,
-    reviews: flags["advisor.reviews"] ?? false,
-    applications: flags["advisor.applications"] ?? false,
-    analytics: flags["advisor.analytics"] ?? false,
-    support: flags["advisor.support"] ?? false,
+    dashboard: flags["advisor.dashboard"],
+    students: flags["advisor.students"],
+    advising: flags["advisor.advising"],
+    reviews: flags["advisor.reviews"],
+    applications: flags["advisor.applications"],
+    analytics: flags["advisor.analytics"],
+    support: flags["advisor.support"],
   };
 }

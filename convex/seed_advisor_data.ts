@@ -11,7 +11,6 @@
  */
 
 import { internalMutation } from "./_generated/server";
-import { v } from "convex/values";
 
 export const setupAdvisorTestData = internalMutation({
   args: {},
@@ -80,7 +79,7 @@ export const setupAdvisorTestData = internalMutation({
       .filter((q) => q.eq(q.field("email"), "test.student2@ascentful.io"))
       .first();
 
-    const students = [student1, student2].filter((s) => s !== null);
+    const students = [student1, student2].filter((s): s is NonNullable<typeof s> => s != null);
 
     if (students.length === 0) {
       console.log("⚠️  No student users found. Please sign in with test.student1@ascentful.io and test.student2@ascentful.io first.");
@@ -89,24 +88,20 @@ export const setupAdvisorTestData = internalMutation({
 
     // Update students' university_id and ensure role is student
     for (const student of students) {
-      if (student) {
-        await ctx.db.patch(student._id, {
-          university_id: university._id,
-          role: "student",
-          subscription_plan: "university",
-          subscription_status: "active",
-          major: student === student1 ? "Computer Science" : "Business Administration",
-          graduation_year: "2025",
-          updated_at: now,
-        });
-        console.log(`✓ Updated student: ${student.email}`);
-      }
+      await ctx.db.patch(student._id, {
+        university_id: university._id,
+        role: "student",
+        subscription_plan: "university",
+        subscription_status: "active",
+        major: student === student1 ? "Computer Science" : "Business Administration",
+        graduation_year: "2025",
+        updated_at: now,
+      });
+      console.log(`✓ Updated student: ${student.email}`);
     }
 
     // 4. Create student-advisor relationships
     for (const student of students) {
-      if (!student) continue;
-
       // Check if relationship already exists
       const existing = await ctx.db
         .query("student_advisors")
@@ -183,9 +178,10 @@ export const setupAdvisorTestData = internalMutation({
 
     console.log("\n✅ Advisor test data setup complete!");
     console.log("\nTest credentials:");
-    console.log("  Advisor: test.advisor@ascentful.io / V3ry$Strong!Pa55-2025#");
-    console.log("  Student 1: test.student1@ascentful.io / V3ry$Strong!Pa55-2025#");
-    console.log("  Student 2: test.student2@ascentful.io / V3ry$Strong!Pa55-2025#");
+    console.log("  Advisor: test.advisor@ascentful.io");
+    console.log("  Student 1: test.student1@ascentful.io");
+    console.log("  Student 2: test.student2@ascentful.io");
+    console.log("  (Passwords managed via secure configuration)");
     console.log("\nUniversity:", university.name);
     console.log("Students assigned:", students.length);
 
@@ -193,7 +189,7 @@ export const setupAdvisorTestData = internalMutation({
       success: true,
       universityId: university._id,
       advisorId: advisorUser._id,
-      studentIds: students.map((s) => s!._id),
+      studentIds: students.map((s) => s._id),
     };
   },
 });

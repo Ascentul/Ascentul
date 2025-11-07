@@ -2,6 +2,9 @@
 
 import { AdvisorGate } from "@/components/advisor/AdvisorGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ActivityChart } from "@/components/advisor/analytics/ActivityChart";
+import { UpcomingItems } from "@/components/advisor/analytics/UpcomingItems";
+import { ReviewQueueSnapshot } from "@/components/advisor/analytics/ReviewQueueSnapshot";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
@@ -137,7 +140,7 @@ export default function AdvisorDashboardPage() {
                 {stats?.atRiskStudents ?? "-"}
               </div>
               <p className="text-xs text-muted-foreground">
-                {'>'} 5 apps, no offers
+                &gt; 5 apps, no offers
               </p>
             </CardContent>
           </Card>
@@ -162,104 +165,22 @@ export default function AdvisorDashboardPage() {
 
         {/* Charts and Tables */}
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Activity Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Session Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {activityChart && activityChart.length > 0 ? (
-                <div className="space-y-2">
-                  {activityChart.map((week) => (
-                    <div key={week.date} className="flex items-center gap-2">
-                      <div className="text-sm text-muted-foreground w-24">
-                        {format(new Date(week.date), "MMM d")}
-                      </div>
-                      <div className="flex-1 bg-secondary h-6 rounded-md overflow-hidden">
-                        <div
-                          className="bg-primary h-full transition-all"
-                          style={{ width: `${(week.count / 10) * 100}%` }}
-                        />
-                      </div>
-                      <div className="text-sm font-medium w-8 text-right">
-                        {week.count}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="h-[250px] flex items-center justify-center text-sm text-muted-foreground">
-                  No session data for the last 4 weeks
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ActivityChart
+            data={activityChart || []}
+            isLoading={activityChart === undefined}
+          />
 
-          {/* Upcoming Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Upcoming (Next 7 Days)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {upcomingItems && upcomingItems.length > 0 ? (
-                <div className="space-y-3 max-h-[250px] overflow-y-auto">
-                  {upcomingItems.slice(0, 5).map((item) => (
-                    <div key={item._id} className="flex items-start gap-3 text-sm">
-                      {item.type === "session" ? (
-                        <Calendar className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                      ) : (
-                        <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{item.title}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {item.student_name} • {format(new Date(item.date), "MMM d, h:mm a")}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="h-[250px] flex items-center justify-center text-sm text-muted-foreground">
-                  No upcoming sessions or follow-ups
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <UpcomingItems
+            items={upcomingItems || []}
+            isLoading={upcomingItems === undefined}
+          />
         </div>
 
         {/* Review Queue Snapshot */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Review Queue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {reviewQueue && reviewQueue.length > 0 ? (
-              <div className="space-y-3">
-                {reviewQueue.map((review) => (
-                  <div key={review._id} className="flex items-center gap-3 p-3 border rounded-md">
-                    <FileEdit className="h-5 w-5 text-purple-500 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium">
-                        {review.asset_type === "resume" ? "Resume" : "Cover Letter"} Review
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {review.student_name} • Submitted {format(new Date(review.submitted_at), "MMM d, yyyy")}
-                      </div>
-                    </div>
-                    <div className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                      {review.status}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-[150px] flex items-center justify-center text-sm text-muted-foreground">
-                No pending reviews
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ReviewQueueSnapshot
+          reviews={reviewQueue || []}
+          isLoading={reviewQueue === undefined}
+        />
       </div>
     </AdvisorGate>
   );

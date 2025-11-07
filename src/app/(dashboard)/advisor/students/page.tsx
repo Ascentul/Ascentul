@@ -1,14 +1,16 @@
-"use client";
+'use client';
 
-import { useState, useMemo } from "react";
-import { AdvisorGate } from "@/components/advisor/AdvisorGate";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StudentsTable } from "@/components/advisor/StudentsTable";
-import { StudentFilters } from "@/components/advisor/StudentFilters";
-import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
-import { Users } from "lucide-react";
+import { useState, useMemo } from 'react';
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StudentsTable } from '@/components/advisor/StudentsTable';
+import { StudentFilters } from '@/components/advisor/StudentFilters';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useUser } from '@clerk/nextjs';
+import { useQuery } from 'convex/react';
+import { api } from 'convex/_generated/api';
+import { Users, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function AdvisorStudentsPage() {
   const { user } = useUser();
@@ -17,13 +19,13 @@ export default function AdvisorStudentsPage() {
   // Fetch caseload data
   const caseloadData = useQuery(
     api.advisor_students.getMyCaseload,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : 'skip'
   );
 
   // Filter state
-  const [selectedMajor, setSelectedMajor] = useState("all");
-  const [selectedGradYear, setSelectedGradYear] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedMajor, setSelectedMajor] = useState('all');
+  const [selectedGradYear, setSelectedGradYear] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
 
   // Extract unique majors and grad years from data
   const { majors, gradYears } = useMemo(() => {
@@ -49,25 +51,25 @@ export default function AdvisorStudentsPage() {
 
     return caseloadData.filter((student) => {
       // Major filter
-      if (selectedMajor !== "all" && student.major !== selectedMajor) {
+      if (selectedMajor !== 'all' && student.major !== selectedMajor) {
         return false;
       }
 
       // Grad year filter
-      if (selectedGradYear !== "all" && student.graduation_year !== selectedGradYear) {
+      if (selectedGradYear !== 'all' && student.graduation_year !== selectedGradYear) {
         return false;
       }
 
       // Status filter
-      if (selectedStatus !== "all") {
+      if (selectedStatus !== 'all') {
         const isAtRisk = student.metadata?.isAtRisk || false;
         const hasApps = (student.metadata?.activeApplicationsCount || 0) > 0;
         const hasOffer = student.metadata?.hasOffer || false;
 
-        if (selectedStatus === "at-risk" && !isAtRisk) return false;
-        if (selectedStatus === "has-offer" && !hasOffer) return false;
-        if (selectedStatus === "active" && !hasApps) return false;
-        if (selectedStatus === "inactive" && hasApps) return false;
+        if (selectedStatus === 'at-risk' && !isAtRisk) return false;
+        if (selectedStatus === 'has-offer' && !hasOffer) return false;
+        if (selectedStatus === 'active' && !hasApps) return false;
+        if (selectedStatus === 'inactive' && hasApps) return false;
       }
 
       return true;
@@ -75,29 +77,43 @@ export default function AdvisorStudentsPage() {
   }, [caseloadData, selectedMajor, selectedGradYear, selectedStatus]);
 
   const hasActiveFilters =
-    selectedMajor !== "all" ||
-    selectedGradYear !== "all" ||
-    selectedStatus !== "all";
+    selectedMajor !== 'all' ||
+    selectedGradYear !== 'all' ||
+    selectedStatus !== 'all';
 
   const handleClearFilters = () => {
-    setSelectedMajor("all");
-    setSelectedGradYear("all");
-    setSelectedStatus("all");
+    setSelectedMajor('all');
+    setSelectedGradYear('all');
+    setSelectedStatus('all');
   };
 
-  return (
-    <AdvisorGate requiredFlag="advisor.students">
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">My Students</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage your student caseload
-            </p>
-          </div>
-        </div>
+  // Handle query error state (null indicates error)
+  const hasError = caseloadData === null;
 
-        <Card>
+  return (
+    <ErrorBoundary>
+      <AdvisorGate requiredFlag='advisor.students'>
+        <div className='container mx-auto p-6 space-y-6'>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">My Students</h1>
+              <p className="text-muted-foreground mt-1">
+                Manage your student caseload
+              </p>
+            </div>
+          </div>
+
+          {hasError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error Loading Data</AlertTitle>
+              <AlertDescription>
+                Failed to load student caseload data. Please try refreshing the page.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -128,5 +144,6 @@ export default function AdvisorStudentsPage() {
         </Card>
       </div>
     </AdvisorGate>
+    </ErrorBoundary>
   );
 }

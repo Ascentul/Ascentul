@@ -8,6 +8,9 @@
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
+// Role constant for type safety (matches schema definition)
+const ADVISOR_ROLE = "advisor" as const;
+
 export const setAdvisorRole = internalMutation({
   args: {
     email: v.string(),
@@ -24,16 +27,15 @@ export const setAdvisorRole = internalMutation({
     }
 
     await ctx.db.patch(user._id, {
-      role: "advisor",
+      role: ADVISOR_ROLE,
       updated_at: Date.now(),
     });
 
-    console.log(`✓ Set role to 'advisor' for ${args.email}`);
+    console.log(`✓ Set role to '${ADVISOR_ROLE}' for ${args.email}`);
     return {
       success: true,
-      message: `Successfully set role to 'advisor' for ${args.email}`,
+      message: `Successfully set role to '${ADVISOR_ROLE}' for ${args.email}`,
       userId: user._id,
-      currentRole: "advisor"
     };
   },
 });

@@ -32,7 +32,7 @@ export const getDashboardStats = query({
 
     // Get owned student IDs
     const studentIds = await getOwnedStudentIds(ctx, sessionCtx);
-    const studentIdSet = new Set(studentIds.map((id) => id));
+    const studentIdSet = new Set(studentIds);
 
     // Load all advisor-assigned applications once for aggregation
     const advisorApplications = await ctx.db
@@ -79,15 +79,18 @@ export const getDashboardStats = query({
       .collect();
 
     // Count pending reviews (status = "waiting") scoped to caseload students
-    const pendingReviews = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_status", (q) =>
-        q.eq("status", "waiting").eq("university_id", universityId),
-      )
-      .collect()
-      .then((reviews) =>
-        reviews.filter((review) => studentIdSet.has(review.student_id)),
-      );
+    // Query by student IDs to avoid fetching all university reviews
+    const pendingReviewsPromises = studentIds.map((studentId) =>
+      ctx.db
+        .query("advisor_reviews")
+        .withIndex("by_student", (q) =>
+          q.eq("student_id", studentId).eq("university_id", universityId),
+        )
+        .filter((q) => q.eq(q.field("status"), "waiting"))
+        .collect(),
+    );
+    const pendingReviewsArrays = await Promise.all(pendingReviewsPromises);
+    const pendingReviews = pendingReviewsArrays.flat();
 
     const atRiskCount = Array.from(perStudentAppStats.values()).reduce(
       (total, stats) =>
@@ -145,8 +148,9 @@ export const getUpcomingItems = query({
       .collect();
 
     // Get upcoming follow-ups
+    // TODO: Migrate to follow_ups table (see convex/migrate_follow_ups.ts)
     const followUps = await ctx.db
-      .query("advisor_follow_ups")
+      .query("advisor_follow_ups") // DEPRECATED: Use follow_ups table instead
       .withIndex("by_advisor", (q) =>
         q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
       )
@@ -200,7 +204,7 @@ export const getUpcomingItems = query({
 });
 
 /**
- * Get activity data for last 4 weeks (for chart)
+ * @param timezoneOffset - Client's timezone offset in minutes from UTC, matching JavaScript's getTimezoneOffset() (e.g., 480 for PST, 0 for UTC)
  * Returns sessions count per week
  *
  * @param timezoneOffset - Client's timezone offset in minutes (e.g., -480 for PST, 0 for UTC)
@@ -280,30 +284,39 @@ export const getReviewQueueSnapshot = query({
 
     const limit = args.limit ?? 10; // Default to 10 for dashboard preview
 
-    // Get all waiting reviews for university, then filter by caseload
-    const allReviews = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_status", (q) =>
-        q.eq("status", "waiting").eq("university_id", universityId),
-      )
-      .order("desc")
-      .collect();
+    // Query by student IDs to avoid fetching all university reviews
+    const reviewsPromises = studentIds.map((studentId) =>
+      ctx.db
+        .query("advisor_reviews")
+        .withIndex("by_student", (q) =>
+          q.eq("student_id", studentId).eq("university_id", universityId),
+        )
+        .filter((q) => q.eq(q.field("status"), "waiting"))
+        .collect(),
+    );
+    const reviewsArrays = await Promise.all(reviewsPromises);
+    const allReviews = reviewsArrays.flat();
 
-    // Filter to only reviews for advisor's students
+    // Sort by creation time (newest first) and limit
     const caseloadReviews = allReviews
-      .filter((review) => studentIdSet.has(review.student_id))
+      .sort((a, b) => b.created_at - a.created_at)
       .slice(0, limit);
 
     // Enrich with student names
     const enrichedReviews = await Promise.all(
       caseloadReviews.map(async (review) => {
         const student = await ctx.db.get(review.student_id);
+        // Determine the asset_id based on asset_type
+        const asset_id = review.asset_type === "resume"
+          ? review.resume_id
+          : review.cover_letter_id;
+
         return {
           _id: review._id,
           student_id: review.student_id,
           student_name: student?.name || "Unknown",
           asset_type: review.asset_type,
-          asset_id: review.asset_id,
+          asset_id,
           status: review.status,
           submitted_at: review.created_at,
         };

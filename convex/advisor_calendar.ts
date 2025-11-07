@@ -7,13 +7,13 @@
  * - Month view (28-31 days)
  */
 
-import { query } from "./_generated/server";
-import { v } from "convex/values";
+import { query } from './_generated/server';
+import { v } from 'convex/values';
 import {
   getCurrentUser,
   requireAdvisorRole,
   requireTenant,
-} from "./advisor_auth";
+} from './advisor_auth';
 
 /**
  * Get sessions for a date range (used by all calendar views)
@@ -31,37 +31,46 @@ export const getSessionsInRange = query({
 
     // Get sessions in the date range
     const sessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
         q.and(
-          q.gte(q.field("start_at"), args.startDate),
-          q.lte(q.field("start_at"), args.endDate),
+          q.gte(q.field('start_at'), args.startDate),
+          q.lte(q.field('start_at'), args.endDate),
         ),
       )
       .collect();
 
     // Enrich with student data
-    const enrichedSessions = await Promise.all(
-      sessions.map(async (session) => {
-        const student = await ctx.db.get(session.student_id);
-        return {
-          _id: session._id,
-          student_id: session.student_id,
-          student_name: student?.name || "Unknown",
-          student_email: student?.email || "",
-          title: session.title,
-          session_type: session.session_type,
-          start_at: session.start_at,
-          end_at: session.end_at,
-          duration_minutes: session.duration_minutes,
-          notes: session.notes,
-          visibility: session.visibility,
-        };
-      }),
+    // Optimize by fetching each unique student only once (reduces N database reads to 1 per unique student)
+    const uniqueStudentIds = Array.from(new Set(sessions.map((s) => s.student_id)));
+    const studentsMap = new Map(
+      await Promise.all(
+        uniqueStudentIds.map(async (id) => {
+          const student = await ctx.db.get(id);
+          return [id, student] as const;
+        })
+      )
     );
+
+    const enrichedSessions = sessions.map((session) => {
+      const student = studentsMap.get(session.student_id);
+      return {
+        _id: session._id,
+        student_id: session.student_id,
+        student_name: student?.name || 'Unknown',
+        student_email: student?.email || '',
+        title: session.title,
+        session_type: session.session_type,
+        start_at: session.start_at,
+        end_at: session.end_at,
+        duration_minutes: session.duration_minutes,
+        notes: session.notes,
+        visibility: session.visibility,
+      };
+    });
 
     return enrichedSessions.sort((a, b) => a.start_at - b.start_at);
   },
@@ -81,42 +90,49 @@ export const getFollowUpsInRange = query({
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
+    // TODO: Migrate to follow_ups table (see convex/migrate_follow_ups.ts)
     const followUps = await ctx.db
-      .query("advisor_follow_ups")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      .query('advisor_follow_ups') // DEPRECATED: Use follow_ups table instead
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
         q.and(
-          q.gte(q.field("due_at"), args.startDate),
-          q.lte(q.field("due_at"), args.endDate),
-          q.eq(q.field("status"), "open"),
+          q.gte(q.field('due_at'), args.startDate),
+          q.lte(q.field('due_at'), args.endDate),
+          q.eq(q.field('status'), 'open'),
         ),
       )
       .collect();
 
     // Enrich with student names
-    const enrichedFollowUps = await Promise.all(
-      followUps.map(async (followUp) => {
-        const student = await ctx.db.get(followUp.student_id);
-        return {
-          _id: followUp._id,
-          student_id: followUp.student_id,
-          student_name: student?.name || "Unknown",
-          title: followUp.title,
-          description: followUp.description,
-          due_at: followUp.due_at,
-          priority: followUp.priority,
-          status: followUp.status,
-        };
-      }),
+    // Optimize by fetching each unique student only once (reduces N database reads to 1 per unique student)
+    const uniqueStudentIds = Array.from(new Set(followUps.map((f) => f.student_id)));
+    const studentsMap = new Map(
+      await Promise.all(
+        uniqueStudentIds.map(async (id) => {
+          const student = await ctx.db.get(id);
+          return [id, student] as const;
+        })
+      )
     );
 
-    return enrichedFollowUps.sort((a, b) => {
-      if (!a.due_at) return 1;
-      if (!b.due_at) return -1;
-      return a.due_at - b.due_at;
+    const enrichedFollowUps = followUps.map((followUp) => {
+      const student = studentsMap.get(followUp.student_id);
+      return {
+        _id: followUp._id,
+        student_id: followUp.student_id,
+        student_name: student?.name || 'Unknown',
+        title: followUp.title,
+        description: followUp.description,
+        due_at: followUp.due_at,
+        priority: followUp.priority,
+        status: followUp.status,
+      };
     });
+
+    // Sort by due_at (filter should exclude null values, but defensive check)
+    return enrichedFollowUps.sort((a, b) => (a.due_at ?? 0) - (b.due_at ?? 0));
   },
 });
 
@@ -135,28 +151,29 @@ export const getCalendarStats = query({
     const universityId = requireTenant(sessionCtx);
 
     const sessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
         q.and(
-          q.gte(q.field("start_at"), args.startDate),
-          q.lte(q.field("start_at"), args.endDate),
+          q.gte(q.field('start_at'), args.startDate),
+          q.lte(q.field('start_at'), args.endDate),
         ),
       )
       .collect();
 
+    // TODO: Migrate to follow_ups table (see convex/migrate_follow_ups.ts)
     const followUps = await ctx.db
-      .query("advisor_follow_ups")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      .query('advisor_follow_ups') // DEPRECATED: Use follow_ups table instead
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
         q.and(
-          q.gte(q.field("due_at"), args.startDate),
-          q.lte(q.field("due_at"), args.endDate),
-          q.eq(q.field("status"), "open"),
+          q.gte(q.field('due_at'), args.startDate),
+          q.lte(q.field('due_at'), args.endDate),
+          q.eq(q.field('status'), 'open'),
         ),
       )
       .collect();
@@ -177,7 +194,7 @@ export const getCalendarStats = query({
     );
 
     // Get unique students
-    const uniqueStudents = new Set(sessions.map((s) => s.student_id.toString()));
+    const uniqueStudents = new Set(sessions.map((s) => s.student_id));
 
     return {
       totalSessions: sessions.length,

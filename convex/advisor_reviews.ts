@@ -10,7 +10,6 @@
 
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
 import {
   getCurrentUser,
   requireTenant,
@@ -49,14 +48,31 @@ export const getReviewQueue = query({
     }
 
     // Get all reviews for owned students
+    let reviews = await ctx.db
+      .query("advisor_reviews")
+      .withIndex("by_university", (q) => q.eq("university_id", universityId))
+      .collect();
+
+    // Filter to owned students only
+    const filtered = reviews.filter((r) => studentIds.includes(r.student_id));
+
+    // Apply status filter if provided
+    const statusFiltered = args.status
+      ? filtered.filter((r) => r.status === args.status)
+      : filtered;
+
     // Enrich with student info
-    const uniqueStudentIds = [...new Set(filtered.map(r => r.student_id))];
+    const uniqueStudentIds = [...new Set(statusFiltered.map(r => r.student_id))];
     const students = await Promise.all(
       uniqueStudentIds.map(id => ctx.db.get(id))
     );
-    const studentMap = new Map(students.map(s => s ? [s._id, s] : null).filter(Boolean));
+    const studentMap = new Map(
+      students
+        .filter((s): s is NonNullable<typeof s> => s !== null)
+        .map(s => [s._id, s] as const)
+    );
 
-    const enriched = filtered.map((review) => {
+    const enriched = statusFiltered.map((review) => {
       const student = studentMap.get(review.student_id);
       return {
         ...review,
@@ -244,6 +260,23 @@ export const updateReviewStatus = mutation({
     const previousStatus = review.status;
     const now = Date.now();
 
+    // Validate state transition to enforce workflow
+    const validTransitions: Record<string, string[]> = {
+      waiting: ["in_review"],
+      in_review: ["needs_edits", "approved", "waiting"],
+      needs_edits: ["in_review", "waiting"],
+      approved: ["needs_edits"], // allow re-review if needed
+    };
+
+    if (
+      previousStatus &&
+      !validTransitions[previousStatus]?.includes(args.status)
+    ) {
+      throw new Error(
+        `Invalid transition from ${previousStatus} to ${args.status}`
+      );
+    }
+
     await ctx.db.patch(args.reviewId, {
       status: args.status,
       reviewed_by:
@@ -362,7 +395,7 @@ export const addComment = mutation({
     const sanitizedBody = args.body.trim().replace(/\0/g, "");
 
     const now = Date.now();
-    const commentId = `comment_${now}_${Math.random().toString(36).substring(7)}`;
+    const commentId = crypto.randomUUID();
 
     const newComment = {
       id: commentId,
@@ -381,18 +414,16 @@ export const addComment = mutation({
       updated_at: now,
     });
 
-    // Audit log for advisor-only comments
-    if (args.visibility === "advisor_only") {
-      await createAuditLog(ctx, {
-        actorId: sessionCtx.userId,
-        universityId: review.university_id,
-        action: "review.comment_added",
-        entityType: "advisor_review",
-        entityId: args.reviewId,
-        studentId: review.student_id,
-        newValue: { visibility: args.visibility, comment_id: commentId },
-      });
-    }
+    // Audit log for all comments (FERPA compliance)
+    await createAuditLog(ctx, {
+      actorId: sessionCtx.userId,
+      universityId: review.university_id,
+      action: "review.comment_added",
+      entityType: "advisor_review",
+      entityId: args.reviewId,
+      studentId: review.student_id,
+      newValue: { visibility: args.visibility, comment_id: commentId },
+    });
 
     return commentId;
   },
@@ -422,6 +453,17 @@ export const updateComment = mutation({
 
     await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
 
+    // Server-side validation and sanitization
+    if (!args.body || args.body.trim().length === 0) {
+      throw new Error("Comment body cannot be empty");
+    }
+    if (args.body.length > 10000) {
+      throw new Error("Comment body too long (max 10000 characters)");
+    }
+
+    // Sanitize: trim whitespace and remove any null bytes
+    const sanitizedBody = args.body.trim().replace(/\0/g, "");
+
     const comments = review.comments || [];
     const commentIndex = comments.findIndex((c) => c.id === args.commentId);
 
@@ -437,18 +479,34 @@ export const updateComment = mutation({
     }
 
     const previousVisibility = comment.visibility;
+    const previousBody = comment.body;
+    const now = Date.now();
 
     comments[commentIndex] = {
       ...comment,
-      body: args.body,
+      body: sanitizedBody,
       visibility: args.visibility || comment.visibility,
-      updated_at: Date.now(),
+      updated_at: now,
     };
 
     await ctx.db.patch(args.reviewId, {
       comments,
-      updated_at: Date.now(),
+      updated_at: now,
     });
+
+    // Audit log for body changes (FERPA compliance)
+    if (sanitizedBody !== previousBody) {
+      await createAuditLog(ctx, {
+        actorId: sessionCtx.userId,
+        universityId: review.university_id,
+        action: "review.comment_edited",
+        entityType: "advisor_review",
+        entityId: args.reviewId,
+        studentId: review.student_id,
+        previousValue: { body: previousBody },
+        newValue: { body: sanitizedBody },
+      });
+    }
 
     // Audit log for visibility changes
     if (args.visibility && args.visibility !== previousVisibility) {
@@ -541,6 +599,9 @@ export const approveReview = mutation({
     clerkId: v.string(),
     reviewId: v.id("advisor_reviews"),
     comment: v.optional(v.string()),
+    commentVisibility: v.optional(
+      v.union(v.literal("shared"), v.literal("advisor_only"))
+    ),
     rubric: v.optional(
       v.object({
         content_quality: v.optional(v.number()),
@@ -562,19 +623,32 @@ export const approveReview = mutation({
 
     await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
 
+    // Validate and sanitize approval comment if provided
+    let sanitizedComment: string | undefined;
+    if (args.comment) {
+      if (args.comment.trim().length === 0) {
+        throw new Error("Comment body cannot be empty");
+      }
+      if (args.comment.length > 10000) {
+        throw new Error("Comment body too long (max 10000 characters)");
+      }
+      // Sanitize: trim whitespace and remove any null bytes
+      sanitizedComment = args.comment.trim().replace(/\0/g, "");
+    }
+
     const now = Date.now();
 
     // Add approval comment if provided
     let updatedComments = review.comments || [];
-    if (args.comment) {
-      const commentId = `comment_${now}_${Math.random().toString(36).substring(7)}`;
+    if (sanitizedComment) {
+      const commentId = crypto.randomUUID();
       updatedComments = [
         ...updatedComments,
         {
           id: commentId,
           author_id: sessionCtx.userId,
-          body: args.comment,
-          visibility: "shared" as const,
+          body: sanitizedComment,
+          visibility: args.commentVisibility || "shared",
           created_at: now,
           updated_at: now,
         },
@@ -591,7 +665,7 @@ export const approveReview = mutation({
       updated_at: now,
     });
 
-    // Audit log
+    // Audit log for approval
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: review.university_id,
@@ -601,6 +675,23 @@ export const approveReview = mutation({
       studentId: review.student_id,
       newValue: { status: "approved", approved_at: now },
     });
+
+    // Audit log for approval comment if provided (FERPA compliance)
+    if (sanitizedComment) {
+      await createAuditLog(ctx, {
+        actorId: sessionCtx.userId,
+        universityId: review.university_id,
+        action: "review.comment_added",
+        entityType: "advisor_review",
+        entityId: args.reviewId,
+        studentId: review.student_id,
+        newValue: {
+          visibility: args.commentVisibility || "shared",
+          comment_id: updatedComments[updatedComments.length - 1].id,
+          context: "approval"
+        },
+      });
+    }
 
     return { success: true };
   },

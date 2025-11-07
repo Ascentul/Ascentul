@@ -10,27 +10,7 @@
  * Run: node scripts/seed-advisor-user.js
  */
 
-const fs = require('fs')
-const path = require('path')
-
-// Load .env.local
-try {
-  const envPath = path.resolve(process.cwd(), '.env.local')
-  if (fs.existsSync(envPath)) {
-    const content = fs.readFileSync(envPath, 'utf8')
-    for (const line of content.split(/\r?\n/)) {
-      if (!line || /^\s*#/.test(line)) continue
-      const idx = line.indexOf('=')
-      if (idx === -1) continue
-      const key = line.slice(0, idx).trim()
-      let val = line.slice(idx + 1).trim()
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith('\'') && val.endsWith('\''))) {
-        val = val.slice(1, -1)
-      }
-      if (!(key in process.env)) process.env[key] = val
-    }
-  }
-} catch {}
+require('dotenv').config({ path: '.env.local' })
 
 const CLERK_BASE_URL = 'https://api.clerk.com/v1'
 
@@ -94,7 +74,7 @@ async function createOrUpdateClerkUser({ email, password, firstName, lastName, r
       public_metadata: {
         role,
         university_id: universityId,
-      }
+      },
     },
   })
   console.log(`✓ Set role=${role}, university_id=${universityId} for ${email}`)
@@ -129,7 +109,7 @@ async function main() {
     firstName: 'Test',
     lastName: 'Advisor',
     role: 'advisor',
-    universityId: 'temp', // Will update after creating university in Convex
+    universityId: 'temp',
   })
 
   const student1 = await createOrUpdateClerkUser({
@@ -166,12 +146,12 @@ async function main() {
   console.log('   - Create student_advisors records linking students to advisor')
 }
 
-// Node 18+ fetch
+// Polyfill fetch for Node < 18
 if (typeof fetch === 'undefined') {
   global.fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args))
 }
 
 main().catch(err => {
-  console.error('❌ Error:', err.message)
+  console.error('❌ Error:', err)
   process.exit(1)
 })

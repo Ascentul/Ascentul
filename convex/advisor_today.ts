@@ -17,10 +17,16 @@ import {
 
 /**
  * Get today's schedule and tasks
+ *
+ * @param timezoneOffset - Client's timezone offset in minutes from UTC
+ *                         (e.g., 480 for PST/PDT, 0 for UTC, -60 for CET)
+ *                         Obtained via `new Date().getTimezoneOffset()` on client
+ *                         Note: Positive values = behind UTC; negative values = ahead of UTC
  */
 export const getTodayOverview = query({
   args: {
     clerkId: v.string(),
+    timezoneOffset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -28,13 +34,21 @@ export const getTodayOverview = query({
     const universityId = requireTenant(sessionCtx);
 
     const now = Date.now();
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
 
-    const startTimestamp = startOfDay.getTime();
-    const endTimestamp = endOfDay.getTime();
+    // Calculate "today" in the user's timezone
+    // timezoneOffset is in minutes and is negative for timezones ahead of UTC
+    const tzOffsetMs = (args.timezoneOffset ?? 0) * 60 * 1000;
+    const userNow = new Date(now - tzOffsetMs);
+
+    // Get start and end of day in user's timezone
+    const startOfDay = new Date(userNow);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(userNow);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    // Convert back to UTC timestamps for database queries
+    const startTimestamp = startOfDay.getTime() + tzOffsetMs;
+    const endTimestamp = endOfDay.getTime() + tzOffsetMs;
 
     // Get today's sessions
     const sessions = await ctx.db
@@ -51,8 +65,9 @@ export const getTodayOverview = query({
       .collect();
 
     // Get follow-ups due today
+    // TODO: Migrate to follow_ups table (see convex/migrate_follow_ups.ts)
     const followUps = await ctx.db
-      .query("advisor_follow_ups")
+      .query("advisor_follow_ups") // DEPRECATED: Use follow_ups table instead
       .withIndex("by_advisor", (q) =>
         q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
       )
@@ -69,43 +84,53 @@ export const getTodayOverview = query({
       (f) => f.due_at && f.due_at <= endTimestamp,
     );
 
-    // Enrich sessions with student data
-    const enrichedSessions = await Promise.all(
-      sessions.map(async (session) => {
-        const student = await ctx.db.get(session.student_id);
-        return {
-          _id: session._id,
-          student_id: session.student_id,
-          student_name: student?.name || "Unknown",
-          student_email: student?.email || "",
-          title: session.title,
-          session_type: session.session_type,
-          start_at: session.start_at,
-          end_at: session.end_at,
-          duration_minutes: session.duration_minutes,
-          notes: session.notes,
-          visibility: session.visibility,
-        };
-      }),
+    // Batch fetch all unique students to avoid N+1 queries
+    const studentIds = new Set([
+      ...sessions.map((s) => s.student_id),
+      ...todayFollowUps.map((f) => f.student_id),
+    ]);
+
+    const students = await Promise.all(
+      Array.from(studentIds).map((id) => ctx.db.get(id))
     );
 
-    // Enrich follow-ups with student data
-    const enrichedFollowUps = await Promise.all(
-      todayFollowUps.map(async (followUp) => {
-        const student = await ctx.db.get(followUp.student_id);
-        return {
-          _id: followUp._id,
-          student_id: followUp.student_id,
-          student_name: student?.name || "Unknown",
-          title: followUp.title,
-          description: followUp.description,
-          due_at: followUp.due_at,
-          priority: followUp.priority,
-          status: followUp.status,
-          related_type: followUp.related_type,
-        };
-      }),
+    const studentMap = new Map(
+      students.map((student) => [student?._id, student])
     );
+
+    // Enrich sessions with student data from map
+    const enrichedSessions = sessions.map((session) => {
+      const student = studentMap.get(session.student_id);
+      return {
+        _id: session._id,
+        student_id: session.student_id,
+        student_name: student?.name || "Unknown",
+        student_email: student?.email || "",
+        title: session.title,
+        session_type: session.session_type,
+        start_at: session.start_at,
+        end_at: session.end_at,
+        duration_minutes: session.duration_minutes,
+        notes: session.notes,
+        visibility: session.visibility,
+      };
+    });
+
+    // Enrich follow-ups with student data from map
+    const enrichedFollowUps = todayFollowUps.map((followUp) => {
+      const student = studentMap.get(followUp.student_id);
+      return {
+        _id: followUp._id,
+        student_id: followUp.student_id,
+        student_name: student?.name || "Unknown",
+        title: followUp.title,
+        description: followUp.description,
+        due_at: followUp.due_at,
+        priority: followUp.priority,
+        status: followUp.status,
+        related_type: followUp.related_type,
+      };
+    });
 
     // Calculate stats
     const completedSessions = sessions.filter(
@@ -118,11 +143,8 @@ export const getTodayOverview = query({
 
     return {
       sessions: enrichedSessions.sort((a, b) => a.start_at - b.start_at),
-      followUps: enrichedFollowUps.sort((a, b) => {
-        if (!a.due_at) return 1;
-        if (!b.due_at) return -1;
-        return a.due_at - b.due_at;
-      }),
+      // Sort by due_at (no null check needed - filter ensures due_at exists)
+      followUps: enrichedFollowUps.sort((a, b) => a.due_at! - b.due_at!),
       stats: {
         totalSessions: sessions.length,
         completedSessions,

@@ -32,22 +32,59 @@ interface StudentsTableProps {
   isLoading?: boolean;
 }
 
+// Virtual scrolling configuration constants
+const ROW_HEIGHT = 80;
+const VIEWPORT_HEIGHT = 520;
+const OVERSCAN = 6;
+
+/**
+ * Helper function to generate student status badge
+ * Priority: At Risk > Has Offer > Active > Inactive
+ */
+function getStatusBadge(student: Student) {
+  const activeApps = student.metadata?.activeApplicationsCount || 0;
+  const isAtRisk = student.metadata?.isAtRisk || false;
+  const hasOffer = student.metadata?.hasOffer || false;
+
+  if (isAtRisk) {
+    return (
+      <Badge variant="destructive" className="gap-1">
+        <AlertCircle className="h-3 w-3" />
+        At Risk
+      </Badge>
+    );
+  }
+
+  if (hasOffer) {
+    return (
+      <Badge variant="default" className="bg-emerald-600">
+        Offer
+      </Badge>
+    );
+  }
+
+  if (activeApps > 0) {
+    return <Badge variant="secondary">Active</Badge>;
+  }
+
+  return <Badge variant="outline">Inactive</Badge>;
+}
+
 export function StudentsTable({ students, isLoading }: StudentsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [scrollTop, setScrollTop] = useState(0);
-  const ROW_HEIGHT = 80;
-  const VIEWPORT_HEIGHT = 520;
-  const OVERSCAN = 6;
 
-  // Filter students by search term
-  const filteredStudents = students.filter((student) => {
-    const search = searchTerm.toLowerCase();
-    return (
-      student.name.toLowerCase().includes(search) ||
-      student.email.toLowerCase().includes(search) ||
-      student.major?.toLowerCase().includes(search)
-    );
-  });
+  // Filter students by search term (memoized for performance)
+  const filteredStudents = useMemo(() => {
+    return students.filter((student) => {
+      const search = searchTerm.toLowerCase();
+      return (
+        student.name.toLowerCase().includes(search) ||
+        student.email.toLowerCase().includes(search) ||
+        student.major?.toLowerCase().includes(search)
+      );
+    });
+  }, [students, searchTerm]);
 
   if (isLoading) {
     return (
@@ -144,106 +181,126 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
                   </th>
                 </tr>
               </thead>
-              <tbody className="relative" style={{ height: totalHeight || ROW_HEIGHT }}>
-                <tr>
-                  <td colSpan={7} className="p-0 relative" style={{ height: totalHeight || ROW_HEIGHT }}>
-                    <div
-                      className="absolute inset-x-0"
-                      style={{ transform: `translateY(${translateY}px)` }}
-                    >
-                      <table className="w-full border-collapse">
-                        <tbody>
-                          {visibleStudents.map((student) => {
+              <tbody
+                className="relative"
+                style={{ height: totalHeight || ROW_HEIGHT }}
+                aria-rowcount={filteredStudents.length}
+              >
+                {/* Spacer row for offset before visible rows */}
+                {translateY > 0 && (
+                  <tr
+                    style={{ height: translateY, visibility: 'hidden' }}
+                    aria-hidden="true"
+                  >
+                    <td colSpan={7}></td>
+                  </tr>
+                )}
+
+                {visibleStudents.map((student, index) => {
                             const activeApps =
                               student.metadata?.activeApplicationsCount || 0;
                             const isAtRisk = student.metadata?.isAtRisk || false;
                             const hasOffer = student.metadata?.hasOffer || false;
-                            const statusBadge = isAtRisk
-                              ? (
+
+                            // Helper function for clearer status badge logic
+                            const getStatusBadge = () => {
+                              if (isAtRisk) {
+                                return (
                                   <Badge variant="destructive" className="gap-1">
                                     <AlertCircle className="h-3 w-3" />
                                     At Risk
                                   </Badge>
-                                )
-                              : hasOffer
-                                ? (
-                                    <Badge variant="default" className="bg-emerald-600">
-                                      Offer
-                                    </Badge>
-                                  )
-                                : activeApps > 0
-                                  ? (
-                                      <Badge variant="secondary">Active</Badge>
-                                    )
-                                  : (
-                                      <Badge variant="outline">Inactive</Badge>
-                                    );
-
-                            return (
-                              <tr
-                                key={student._id}
-                                className="border-b hover:bg-muted/30 transition-colors"
-                                style={{ height: ROW_HEIGHT }}
-                              >
-                                <td className="px-4 py-3 align-middle">
-                                  <div>
-                                    <div className="font-medium">{student.name}</div>
-                                    <div className="text-xs text-muted-foreground break-words">
-                                      {student.email}
-                                    </div>
-                                  </div>
-                                  {/* Mobile-only: show additional data */}
-                                  <div className="sm:hidden mt-2 space-y-1 text-xs">
-                                    <div className="flex items-center gap-2">
-                                      <GraduationCap className="h-3 w-3 text-muted-foreground" />
-                                      <span className="text-muted-foreground">{student.major || "Not set"}</span>
-                                      <span className="text-muted-foreground">• Class of {student.graduation_year || "N/A"}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-muted-foreground">Apps:</span>
-                                      <Badge variant={activeApps > 0 ? "default" : "secondary"} className="text-xs">
-                                        {activeApps}
-                                      </Badge>
-                                      <span className="text-muted-foreground">Follow-ups: {student.metadata?.openFollowUpsCount || 0}</span>
-                                      {statusBadge}
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-3 align-middle text-sm hidden sm:table-cell">
-                                  <div className="flex items-center gap-2">
-                                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                                    {student.major || "Not set"}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-3 align-middle text-center text-sm text-muted-foreground hidden sm:table-cell">
-                                  {student.graduation_year || "-"}
-                                </td>
-                                <td className="px-4 py-3 align-middle text-center hidden sm:table-cell">
-                                  <Badge variant={activeApps > 0 ? "default" : "secondary"}>
-                                    {activeApps}
+                                );
+                              }
+                              if (hasOffer) {
+                                return (
+                                  <Badge variant="default" className="bg-emerald-600">
+                                    Offer
                                   </Badge>
-                                </td>
-                                <td className="px-4 py-3 align-middle text-center text-sm hidden sm:table-cell">
-                                  {student.metadata?.openFollowUpsCount || 0}
-                                </td>
-                                <td className="px-4 py-3 align-middle hidden sm:table-cell">
-                                  {statusBadge}
-                                </td>
-                                <td className="px-4 py-3 align-middle text-right">
-                                  <Link href={`/advisor/students/${student._id}`}>
-                                    <Button variant="ghost" size="sm">
-                                      View Profile
-                                    </Button>
-                                  </Link>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </td>
-                </tr>
+                                );
+                              }
+                              if (activeApps > 0) {
+                                return <Badge variant="secondary">Active</Badge>;
+                              }
+                              return <Badge variant="outline">Inactive</Badge>;
+                            };
+
+                            const statusBadge = getStatusBadge();
+
+                  return (
+                    <tr
+                      key={student._id}
+                      className="border-b hover:bg-muted/30 transition-colors"
+                      style={{ height: ROW_HEIGHT }}
+                      aria-rowindex={startIndex + index + 1}
+                    >
+                      <td className="px-4 py-3 align-middle">
+                        <div>
+                          <div className="font-medium">{student.name}</div>
+                          <div className="text-xs text-muted-foreground break-words">
+                            {student.email}
+                          </div>
+                        </div>
+                        {/* Mobile-only: show additional data */}
+                        <div className="sm:hidden mt-2 space-y-1 text-xs">
+                          <div className="flex items-center gap-2">
+                            <GraduationCap className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-muted-foreground">{student.major || "Not set"}</span>
+                            <span className="text-muted-foreground">• Class of {student.graduation_year || "N/A"}</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-muted-foreground">Apps:</span>
+                            <Badge variant={activeApps > 0 ? "default" : "secondary"} className="text-xs">
+                              {activeApps}
+                            </Badge>
+                            <span className="text-muted-foreground">Follow-ups: {student.metadata?.openFollowUpsCount || 0}</span>
+                            {statusBadge}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-middle text-sm hidden sm:table-cell">
+                        <div className="flex items-center gap-2">
+                          <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                          {student.major || "Not set"}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-middle text-center text-sm text-muted-foreground hidden sm:table-cell">
+                        {student.graduation_year || "-"}
+                      </td>
+                      <td className="px-4 py-3 align-middle text-center hidden sm:table-cell">
+                        <Badge variant={activeApps > 0 ? "default" : "secondary"}>
+                          {activeApps}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 align-middle text-center text-sm hidden sm:table-cell">
+                        {student.metadata?.openFollowUpsCount || 0}
+                      </td>
+                      <td className="px-4 py-3 align-middle hidden sm:table-cell">
+                        {statusBadge}
+                      </td>
+                      <td className="px-4 py-3 align-middle text-right">
+                        <Link href={`/advisor/students/${student._id}`}>
+                          <Button variant="ghost" size="sm">
+                            View Profile
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {/* Spacer row for offset after visible rows */}
+                {(translateY + visibleStudents.length * ROW_HEIGHT) < totalHeight && (
+                  <tr
+                    style={{
+                      height: totalHeight - translateY - (visibleStudents.length * ROW_HEIGHT),
+                      visibility: 'hidden'
+                    }}
+                    aria-hidden="true"
+                  >
+                    <td colSpan={7}></td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

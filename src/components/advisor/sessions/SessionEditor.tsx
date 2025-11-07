@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
-import { Save, Loader2, Check, AlertCircle } from "lucide-react";
-import { format } from "date-fns";
-import type { Id } from "convex/_generated/dataModel";
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation } from 'convex/react';
+import { api } from 'convex/_generated/api';
+import { Save, Loader2, Check, AlertCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import type { Id } from 'convex/_generated/dataModel';
 
 interface Session {
-  _id: Id<"advisor_sessions">;
-  student_id: Id<"users">;
+  _id: Id<'advisor_sessions'>;
+  student_id: Id<'users'>;
   title: string;
   session_type: string;
   start_at: number;
@@ -49,16 +49,16 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   const [title, setTitle] = useState(session.title);
   const [sessionType, setSessionType] = useState(session.session_type);
   const [startAt, setStartAt] = useState(
-    format(new Date(session.start_at), "yyyy-MM-dd'T'HH:mm")
+    format(new Date(session.start_at), 'yyyy-MM-dd\'T\'HH:mm')
   );
   const [durationMinutes, setDurationMinutes] = useState(
     session.duration_minutes.toString()
   );
-  const [location, setLocation] = useState(session.location || "");
-  const [meetingUrl, setMeetingUrl] = useState(session.meeting_url || "");
-  const [notes, setNotes] = useState(session.notes || "");
+  const [location, setLocation] = useState(session.location || '');
+  const [meetingUrl, setMeetingUrl] = useState(session.meeting_url || '');
+  const [notes, setNotes] = useState(session.notes || '');
   const [visibility, setVisibility] = useState(session.visibility);
-  const [status, setStatus] = useState(session.status || "scheduled");
+  const [status, setStatus] = useState(session.status || 'scheduled');
 
   // Autosave state
   const [isSaving, setIsSaving] = useState(false);
@@ -74,13 +74,13 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
     const changed =
       title !== session.title ||
       sessionType !== session.session_type ||
-      startAt !== format(new Date(session.start_at), "yyyy-MM-dd'T'HH:mm") ||
+      startAt !== format(new Date(session.start_at), 'yyyy-MM-dd\'T\'HH:mm') ||
       durationMinutes !== session.duration_minutes.toString() ||
-      location !== (session.location || "") ||
-      meetingUrl !== (session.meeting_url || "") ||
-      notes !== (session.notes || "") ||
+      location !== (session.location || '') ||
+      meetingUrl !== (session.meeting_url || '') ||
+      notes !== (session.notes || '') ||
       visibility !== session.visibility ||
-      status !== (session.status || "scheduled");
+      status !== (session.status || 'scheduled');
 
     setHasUnsavedChanges(changed);
   }, [
@@ -98,20 +98,34 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
 
   // Autosave function
   const saveChanges = useCallback(async () => {
-    if (!hasUnsavedChanges || isSaving) return;
+    if (!hasUnsavedChanges || isSaving) return false;
 
     setIsSaving(true);
     setSaveError(null);
 
     try {
+      // Validate inputs before saving
+      if (!title.trim()) {
+        throw new Error('Title is required');
+      }
+
+      const parsedDuration = parseInt(durationMinutes, 10);
+      if (isNaN(parsedDuration) || parsedDuration < 1) {
+        throw new Error('Duration must be a valid positive number');
+      }
+
       const startTimestamp = new Date(startAt).getTime();
+      if (isNaN(startTimestamp)) {
+        throw new Error('Invalid date/time format');
+      }
+
       const result = await updateSession({
         clerkId,
         session_id: session._id,
-        title,
+        title: title.trim(),
         session_type: sessionType,
         start_at: startTimestamp,
-        duration_minutes: parseInt(durationMinutes, 10),
+        duration_minutes: parsedDuration,
         location: location || undefined,
         meeting_url: meetingUrl || undefined,
         notes: notes || undefined,
@@ -127,13 +141,16 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
       if (onSaveSuccess) {
         onSaveSuccess();
       }
+
+      return true;
     } catch (error: any) {
       setSaveError(error.message);
       toast({
-        title: "Save failed",
+        title: 'Save failed',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -180,33 +197,35 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
 
   // Manual save button
   const handleManualSave = async () => {
-    await saveChanges();
-    toast({
-      title: "Saved",
-      description: "Session updated successfully",
-    });
+    const success = await saveChanges();
+    if (success) {
+      toast({
+        title: 'Saved',
+        description: 'Session updated successfully',
+      });
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* Save indicator */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center gap-2'>
           {isSaving ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-              <span className="text-sm text-muted-foreground">Saving...</span>
+              <Loader2 className='h-4 w-4 animate-spin text-blue-500' />
+              <span className='text-sm text-muted-foreground'>Saving...</span>
             </>
           ) : hasUnsavedChanges ? (
             <>
-              <AlertCircle className="h-4 w-4 text-orange-500" />
-              <span className="text-sm text-muted-foreground">Unsaved changes</span>
+              <AlertCircle className='h-4 w-4 text-orange-500' />
+              <span className='text-sm text-muted-foreground'>Unsaved changes</span>
             </>
           ) : lastSaved ? (
             <>
-              <Check className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-muted-foreground">
-                Saved {format(lastSaved, "h:mm a")}
+              <Check className='h-4 w-4 text-green-500' />
+              <span className='text-sm text-muted-foreground'>
+                Saved {format(lastSaved, 'h:mm a')}
               </span>
             </>
           ) : null}
@@ -215,149 +234,152 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
         <Button
           onClick={handleManualSave}
           disabled={!hasUnsavedChanges || isSaving}
-          size="sm"
+          size='sm'
         >
-          <Save className="h-4 w-4 mr-2" />
+          <Save className='h-4 w-4 mr-2' />
           Save Now
         </Button>
       </div>
 
       {saveError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <p className="text-sm text-red-800">{saveError}</p>
+        <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
+          <p className='text-sm text-red-800'>{saveError}</p>
         </div>
       )}
 
       {/* Form fields */}
-      <div className="grid gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="title">Session Title *</Label>
+      <div className='grid gap-4'>
+        <div className='space-y-2'>
+          <Label htmlFor='title'>Session Title *</Label>
           <Input
-            id="title"
+            id='title'
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g., Career Planning Discussion"
+            placeholder='e.g., Career Planning Discussion'
+            required
           />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="session_type">Session Type *</Label>
+        <div className='grid gap-4 md:grid-cols-2'>
+          <div className='space-y-2'>
+            <Label htmlFor='session_type'>Session Type *</Label>
             <Select value={sessionType} onValueChange={setSessionType}>
-              <SelectTrigger id="session_type">
+              <SelectTrigger id='session_type'>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1-on-1">1-on-1 Meeting</SelectItem>
-                <SelectItem value="group">Group Session</SelectItem>
-                <SelectItem value="workshop">Workshop</SelectItem>
-                <SelectItem value="virtual">Virtual Meeting</SelectItem>
-                <SelectItem value="phone">Phone Call</SelectItem>
+                <SelectItem value='1-on-1'>1-on-1 Meeting</SelectItem>
+                <SelectItem value='group'>Group Session</SelectItem>
+                <SelectItem value='workshop'>Workshop</SelectItem>
+                <SelectItem value='virtual'>Virtual Meeting</SelectItem>
+                <SelectItem value='phone'>Phone Call</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+          <div className='space-y-2'>
+            <Label htmlFor='status'>Status</Label>
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger id="status">
+              <SelectTrigger id='status'>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="no-show">No-Show</SelectItem>
+                <SelectItem value='scheduled'>Scheduled</SelectItem>
+                <SelectItem value='completed'>Completed</SelectItem>
+                <SelectItem value='cancelled'>Cancelled</SelectItem>
+                <SelectItem value='no-show'>No-Show</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="start_at">Start Date & Time *</Label>
+        <div className='grid gap-4 md:grid-cols-2'>
+          <div className='space-y-2'>
+            <Label htmlFor='start_at'>Start Date & Time *</Label>
             <Input
-              id="start_at"
-              type="datetime-local"
+              id='start_at'
+              type='datetime-local'
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
+              required
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="duration">Duration (minutes) *</Label>
+          <div className='space-y-2'>
+            <Label htmlFor='duration'>Duration (minutes) *</Label>
             <Input
-              id="duration"
-              type="number"
-              min="15"
-              step="15"
+              id='duration'
+              type='number'
+              min='15'
+              step='15'
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(e.target.value)}
+              required
             />
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
+        <div className='grid gap-4 md:grid-cols-2'>
+          <div className='space-y-2'>
+            <Label htmlFor='location'>Location</Label>
             <Input
-              id="location"
+              id='location'
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="e.g., Room 305, Student Center"
+              placeholder='e.g., Room 305, Student Center'
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="meeting_url">Meeting URL</Label>
+          <div className='space-y-2'>
+            <Label htmlFor='meeting_url'>Meeting URL</Label>
             <Input
-              id="meeting_url"
-              type="url"
+              id='meeting_url'
+              type='url'
               value={meetingUrl}
               onChange={(e) => setMeetingUrl(e.target.value)}
-              placeholder="https://zoom.us/..."
+              placeholder='https://zoom.us/...'
             />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="visibility">Visibility</Label>
+        <div className='space-y-2'>
+          <Label htmlFor='visibility'>Visibility</Label>
           <Select value={visibility} onValueChange={setVisibility}>
-            <SelectTrigger id="visibility">
+            <SelectTrigger id='visibility'>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="private">
+              <SelectItem value='private'>
                 Private (Only you can see)
               </SelectItem>
-              <SelectItem value="shared">
+              <SelectItem value='shared'>
                 Shared (Visible to student)
               </SelectItem>
-              <SelectItem value="team">
+              <SelectItem value='team'>
                 Team (Visible to all advisors)
               </SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="notes">Session Notes</Label>
+        <div className='space-y-2'>
+          <Label htmlFor='notes'>Session Notes</Label>
           <Textarea
-            id="notes"
+            id='notes'
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes about the session..."
+            placeholder='Add notes about the session...'
             rows={6}
           />
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-4 border-t">
-        <div className="text-xs text-muted-foreground">
+      <div className='flex items-center justify-between pt-4 border-t'>
+        <div className='text-xs text-muted-foreground'>
           Version: {currentVersion} • Autosave enabled
         </div>
-        <Badge variant="secondary">
-          {hasUnsavedChanges ? "Editing" : "Up to date"}
+        <Badge variant='secondary'>
+          {hasUnsavedChanges ? 'Editing' : 'Up to date'}
         </Badge>
       </div>
     </div>

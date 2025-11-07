@@ -167,7 +167,7 @@ export const createUser = mutation({
         updated_at: Date.now(),
       });
 
-      console.log(`[createUser] Activated pending university student: ${args.email}`);
+      console.log(`[createUser] Activated pending university student: ${pendingUser._id}`);
       return pendingUser._id;
     }
 

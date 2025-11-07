@@ -134,13 +134,17 @@ export const initializeAdvisorFlags = internalMutation({
       { key: "advisor.support", value: false },
     ];
 
-    for (const flag of defaultFlags) {
-      const existing = await ctx.db
-        .query("platform_settings")
-        .withIndex("by_setting_key", (q) => q.eq("setting_key", flag.key))
-        .unique();
+    // Batch fetch all existing settings to avoid N+1 queries
+    const existingSettings = await ctx.db
+      .query("platform_settings")
+      .collect();
 
-      if (!existing) {
+    const existingMap = new Map(
+      existingSettings.map((s) => [s.setting_key, s.setting_value])
+    );
+
+    for (const flag of defaultFlags) {
+      if (!existingMap.has(flag.key)) {
         await ctx.db.insert("platform_settings", {
           setting_key: flag.key,
           setting_value: flag.value,
@@ -149,7 +153,8 @@ export const initializeAdvisorFlags = internalMutation({
         });
         console.log(`✓ Initialized flag: ${flag.key} = ${flag.value}`);
       } else {
-        console.log(`✓ Flag already exists: ${flag.key} = ${existing.setting_value}`);
+        const existingValue = existingMap.get(flag.key);
+        console.log(`✓ Flag already exists: ${flag.key} = ${existingValue}`);
       }
     }
 

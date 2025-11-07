@@ -13,6 +13,7 @@ import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
 import { TodaysRecommendations } from '@/components/TodaysRecommendations'
 import { UsageProgressCard } from '@/components/UsageProgressCard'
 import { HeatmapCard } from '@/components/streak/HeatmapCard'
+import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
 import { Button } from '@/components/ui/button'
@@ -93,14 +94,7 @@ export default function DashboardPage() {
   }, [user, router])
 
   if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   if (!clerkUser || !user) {
@@ -109,25 +103,11 @@ export default function DashboardPage() {
 
   // Prevent rendering for admin users while redirect is happening
   if (user?.role === 'advisor') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Redirecting to advisor dashboard...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner message="Redirecting to advisor dashboard..." />
   }
 
   if (user?.role === 'university_admin' || user?.role === 'super_admin' || user?.role === 'admin') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Redirecting to admin portal...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner message="Redirecting to admin portal..." />
   }
 
   // Use real data or fallback to default values

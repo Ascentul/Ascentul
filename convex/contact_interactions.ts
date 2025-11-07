@@ -54,7 +54,7 @@ export const createContactFollowup = mutation({
     contactId: v.id('networking_contacts'),
     type: v.string(),
     description: v.string(),
-    due_date: v.number(),
+    due_at: v.number(),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -88,23 +88,17 @@ export const createContactFollowup = mutation({
       created_by_id: user._id,
       created_by_type: 'student',
 
-      // Multi-tenancy
+      // Multi-tenancy (optional for non-university users)
       university_id: user.university_id,
 
-      // Relationships
+      // Relationships (dual-field pattern: populate both generic and typed fields)
       related_type: 'contact',
-      related_id: args.contactId,
-      application_id: undefined,
-      contact_id: args.contactId,
+      related_id: args.contactId, // String version for composite index queries
+      contact_id: args.contactId, // Typed field for referential integrity
 
       // Task management
-      due_at: args.due_date,
-      priority: undefined,
+      due_at: args.due_at,
       status: 'open',
-
-      // Completion tracking
-      completed_at: undefined,
-      completed_by: undefined,
 
       // Timestamps
       created_at: now,
@@ -146,7 +140,15 @@ export const updateContactFollowup = mutation({
     }
 
     const now = Date.now();
-    const patchData: any = {
+
+    // Build patch data with explicit typing for completion fields
+    type PatchData = Partial<typeof followup> & {
+      updated_at: number;
+      completed_at?: number | undefined;
+      completed_by?: typeof user._id | undefined;
+    };
+
+    const patchData: PatchData = {
       ...args.updates,
       updated_at: now,
     };

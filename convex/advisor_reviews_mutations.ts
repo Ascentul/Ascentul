@@ -42,6 +42,12 @@ export const claimReview = mutation({
       throw new Error('Review is not available to claim');
     }
 
+    // Verify review hasn't been claimed by checking status is still waiting
+    const existing = await ctx.db.get(args.review_id);
+    if (!existing || existing.status !== 'waiting') {
+      throw new Error('Review was already claimed');
+    }
+
     await ctx.db.patch(args.review_id, {
       status: 'in_review',
       reviewed_by: sessionCtx.userId,
@@ -83,9 +89,24 @@ export const updateReviewFeedback = mutation({
       throw new Error('Unauthorized: Not your review');
     }
 
-    const updates: any = {
+    // Build updates object with explicit typing
+    type UpdateFields = {
+      updated_at: number;
+      feedback?: string;
+      suggestions?: string[];
+    };
+
+    const updates: UpdateFields = {
       updated_at: Date.now(),
     };
+
+    if (args.feedback !== undefined) {
+      updates.feedback = args.feedback;
+    }
+
+    if (args.suggestions !== undefined) {
+      updates.suggestions = args.suggestions;
+    }
 
     await ctx.db.patch(args.review_id, updates);
 

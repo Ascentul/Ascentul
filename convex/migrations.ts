@@ -2,8 +2,7 @@
  * Database migrations for schema changes
  */
 
-import { mutation, internalMutation } from "./_generated/server"
-import { v } from "convex/values"
+import { internalMutation } from "./_generated/server"
 
 /**
  * Migrate users with role "admin" to "super_admin"
@@ -25,7 +24,7 @@ export const migrateAdminToSuperAdmin = internalMutation({
           updated_at: Date.now(),
         })
         migratedCount++
-        console.log(`Migrated user ${user.email} from admin to super_admin`)
+        console.log(`Migrated user ${user._id} from admin to super_admin`)
       }
     }
 

@@ -270,8 +270,8 @@ export async function createAuditLog(
     entityType: string;
     entityId: string;
     studentId?: Id<"users">;
-    previousValue?: any;
-    newValue?: any;
+    previousValue?: unknown;
+    newValue?: unknown;
     reason?: string;
     ipAddress?: string;
     userAgent?: string;

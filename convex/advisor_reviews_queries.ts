@@ -7,13 +7,68 @@
  * - Filter reviews by status/type
  */
 
-import { query } from "./_generated/server";
-import { v } from "convex/values";
+import { query, QueryCtx } from './_generated/server';
+import { v } from 'convex/values';
+import { Id } from './_generated/dataModel';
 import {
   getCurrentUser,
   requireAdvisorRole,
   requireTenant,
-} from "./advisor_auth";
+} from './advisor_auth';
+
+/**
+ * Helper: Get asset name and optionally its content
+ */
+async function getAssetDetails(
+  ctx: QueryCtx,
+  assetType: "resume" | "cover_letter",
+  resumeId: Id<"resumes"> | undefined,
+  coverLetterId: Id<"cover_letters"> | undefined,
+  includeContent: boolean = false
+): Promise<{
+  name: string;
+  id: Id<"resumes"> | Id<"cover_letters"> | null;
+  content: any;
+}> {
+  if (assetType === "resume" && resumeId) {
+    const resume = await ctx.db.get(resumeId);
+    if (resume) {
+      return {
+        name: resume.title || "Untitled Resume",
+        id: resumeId,
+        content: includeContent
+          ? {
+              title: resume.title,
+              content: resume.content,
+              created_at: resume.created_at,
+              updated_at: resume.updated_at,
+            }
+          : null,
+      };
+    }
+  } else if (assetType === "cover_letter" && coverLetterId) {
+    const coverLetter = await ctx.db.get(coverLetterId);
+    if (coverLetter) {
+      return {
+        name: coverLetter.company_name
+          ? `Cover Letter for ${coverLetter.company_name}`
+          : "Untitled Cover Letter",
+        id: coverLetterId,
+        content: includeContent
+          ? {
+              company_name: coverLetter.company_name,
+              job_title: coverLetter.job_title,
+              content: coverLetter.content,
+              created_at: coverLetter.created_at,
+              updated_at: coverLetter.updated_at,
+            }
+          : null,
+      };
+    }
+  }
+
+  return { name: "Unknown", id: null, content: null };
+}
 
 /**
  * Get all reviews for advisor (with optional filters)
@@ -21,28 +76,61 @@ import {
 export const getReviews = query({
   args: {
     clerkId: v.string(),
-    status: v.optional(v.string()),
-    asset_type: v.optional(v.string()),
+    status: v.optional(
+      v.union(
+        v.literal("waiting"),
+        v.literal("in_review"),
+        v.literal("needs_edits"),
+        v.literal("approved")
+      )
+    ),
+    asset_type: v.optional(
+      v.union(v.literal("resume"), v.literal("cover_letter"))
+    ),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
-    // Get all reviews for this university
-    let reviews = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_university", (q) => q.eq("university_id", universityId))
-      .collect();
+    // Use database-level filtering for better performance
+    let reviews;
 
-    // Filter by status if provided
-    if (args.status) {
-      reviews = reviews.filter((r) => r.status === args.status);
-    }
-
-    // Filter by asset type if provided
-    if (args.asset_type) {
+    if (args.status && args.asset_type) {
+      // Both filters: use status index, then filter asset_type in-memory
+      // (no compound index for both fields)
+      const statusFilter = args.status;
+      reviews = await ctx.db
+        .query("advisor_reviews")
+        .withIndex("by_status", (q) =>
+          q.eq("status", statusFilter).eq("university_id", universityId)
+        )
+        .collect();
       reviews = reviews.filter((r) => r.asset_type === args.asset_type);
+    } else if (args.status) {
+      // Status filter only: use by_status index
+      const statusFilter = args.status;
+      reviews = await ctx.db
+        .query("advisor_reviews")
+        .withIndex("by_status", (q) =>
+          q.eq("status", statusFilter).eq("university_id", universityId)
+        )
+        .collect();
+    } else if (args.asset_type) {
+      // Asset type filter only: use by_asset_type index
+      const assetTypeFilter = args.asset_type;
+      reviews = await ctx.db
+        .query("advisor_reviews")
+        .withIndex("by_asset_type", (q) =>
+          q.eq("asset_type", assetTypeFilter).eq("university_id", universityId)
+        )
+        .collect();
+    } else {
+      // No filters: use by_university index
+      reviews = await ctx.db
+        .query("advisor_reviews")
+        .withIndex("by_university", (q) => q.eq("university_id", universityId))
+        .collect();
     }
 
     // Enrich with student data
@@ -53,51 +141,35 @@ export const getReviews = query({
           console.warn(`Student ${review.student_id} not found for review ${review._id}`);
         }
 
-        // Get the asset (resume or cover letter)
-        let assetName = 'Unknown';
-        let assetId = null;
-        if (review.asset_type === 'resume' && review.resume_id) {
-          const resume = await ctx.db.get(review.resume_id);
-          assetName = resume?.title || 'Untitled Resume';
-          assetId = review.resume_id;
-        } else if (review.asset_type === 'cover_letter' && review.cover_letter_id) {
-          const coverLetter = await ctx.db.get(review.cover_letter_id);
-          assetName = coverLetter?.company_name
-            ? `Cover Letter for ${coverLetter.company_name}`
-            : 'Untitled Cover Letter';
-          assetId = review.cover_letter_id;
-        }
+        // Get the asset details using helper
+        const assetDetails = await getAssetDetails(
+          ctx,
+          review.asset_type,
+          review.resume_id,
+          review.cover_letter_id,
+          false // Don't include full content in list view
+        );
 
         return {
           _id: review._id,
           student_id: review.student_id,
           student_name: student?.name || 'Unknown',
           student_email: student?.email || '',
-          asset_id: assetId,
+          asset_id: assetDetails.id,
           asset_type: review.asset_type,
-          asset_name: assetName,
+          asset_name: assetDetails.name,
           status: review.status,
-          priority: review.priority || 'medium',
           requested_at: review.created_at,
-          reviewer_id: review.reviewer_id,
+          reviewed_by: review.reviewed_by,
           reviewed_at: review.reviewed_at,
-          feedback: review.feedback,
-          version: review.version,
+          rubric: review.rubric,
+          comments: review.comments,
+          version_id: review.version_id,
         };
       }),
     );
 
-    return enrichedReviews.sort((a, b) => {
-      // Sort by priority (urgent first), then by requested date
-      const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-      const priorityDiff =
-        (priorityOrder[a.priority as keyof typeof priorityOrder] ?? 2) -
-        (priorityOrder[b.priority as keyof typeof priorityOrder] ?? 2);
-
-      if (priorityDiff !== 0) return priorityDiff;
-
-      return a.requested_at - b.requested_at;
-    });
+    return enrichedReviews.sort((a, b) => a.requested_at - b.requested_at);
   },
 });
 
@@ -127,59 +199,31 @@ export const getReviewById = query({
     // Enrich with student data
     const student = await ctx.db.get(review.student_id);
 
-    // Get the asset content
-    let assetContent = null;
-    let assetName = "Unknown";
-    let assetId = null;
-
-    if (review.asset_type === "resume" && review.resume_id) {
-      const resume = await ctx.db.get(review.resume_id);
-      if (resume) {
-        assetName = resume.title || "Untitled Resume";
-        assetId = review.resume_id;
-        assetContent = {
-          title: resume.title,
-          file_url: resume.file_url,
-          content: resume.content,
-          created_at: resume.created_at,
-          updated_at: resume.updated_at,
-        };
-      }
-    } else if (review.asset_type === "cover_letter" && review.cover_letter_id) {
-      const coverLetter = await ctx.db.get(review.cover_letter_id);
-      if (coverLetter) {
-        assetName = coverLetter.company_name
-          ? `Cover Letter for ${coverLetter.company_name}`
-          : "Untitled Cover Letter";
-        assetId = review.cover_letter_id;
-        assetContent = {
-          company_name: coverLetter.company_name,
-          position: coverLetter.position,
-          content: coverLetter.content,
-          file_url: coverLetter.file_url,
-          created_at: coverLetter.created_at,
-          updated_at: coverLetter.updated_at,
-        };
-      }
-    }
+    // Get the asset details with full content
+    const assetDetails = await getAssetDetails(
+      ctx,
+      review.asset_type,
+      review.resume_id,
+      review.cover_letter_id,
+      true // Include full content for detail view
+    );
 
     return {
       _id: review._id,
       student_id: review.student_id,
       student_name: student?.name || "Unknown",
       student_email: student?.email || "",
-      asset_id: assetId,
+      asset_id: assetDetails.id,
       asset_type: review.asset_type,
-      asset_name: assetName,
-      asset_content: assetContent,
+      asset_name: assetDetails.name,
+      asset_content: assetDetails.content,
       status: review.status,
-      priority: review.priority || "medium",
       requested_at: review.created_at,
-      reviewer_id: review.reviewer_id,
+      reviewed_by: review.reviewed_by,
       reviewed_at: review.reviewed_at,
-      feedback: review.feedback,
-      suggestions: review.suggestions,
-      version: review.version,
+      rubric: review.rubric,
+      comments: review.comments,
+      version_id: review.version_id,
     };
   },
 });
@@ -201,27 +245,23 @@ export const getReviewQueueStats = query({
       .withIndex("by_university", (q) => q.eq("university_id", universityId))
       .collect();
 
-    const waiting = allReviews.filter((r) => r.status === "waiting").length;
-    const inProgress = allReviews.filter((r) => r.status === "in_progress").length;
-    const completed = allReviews.filter((r) => r.status === "completed").length;
-
-    const resumes = allReviews.filter((r) => r.asset_type === "resume").length;
-    const coverLetters = allReviews.filter(
-      (r) => r.asset_type === "cover_letter",
-    ).length;
-
-    const urgent = allReviews.filter(
-      (r) => r.priority === "urgent" && r.status === "waiting",
-    ).length;
+    // Single-pass statistics calculation for better performance
+    const stats = allReviews.reduce(
+      (acc, r) => {
+        if (r.status === "waiting") acc.waiting++;
+        if (r.status === "in_review") acc.inReview++;
+        if (r.status === "needs_edits") acc.needsEdits++;
+        if (r.status === "approved") acc.approved++;
+        if (r.asset_type === "resume") acc.resumes++;
+        if (r.asset_type === "cover_letter") acc.coverLetters++;
+        return acc;
+      },
+      { waiting: 0, inReview: 0, needsEdits: 0, approved: 0, resumes: 0, coverLetters: 0 }
+    );
 
     return {
-      waiting,
-      inProgress,
-      completed,
+      ...stats,
       total: allReviews.length,
-      resumes,
-      coverLetters,
-      urgent,
     };
   },
 });

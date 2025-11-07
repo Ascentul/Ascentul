@@ -57,36 +57,39 @@ export const getMyCaseload = query({
       (s): s is NonNullable<typeof s> => s !== null,
     );
 
+    // Calculate time thresholds once at the top for reuse
+    const now = Date.now();
+    const sixtyDaysAgo = now - 60 * 24 * 60 * 60 * 1000;
+
     if (args.filters) {
-      if (args.filters.major) {
+      const filters = args.filters;
+
+      if (filters.major) {
         filteredStudents = filteredStudents.filter(
-          (s) => s!.major === args.filters!.major,
+          (s) => s.major === filters.major,
         );
       }
 
-      if (args.filters.graduationYear) {
+      if (filters.graduationYear) {
         filteredStudents = filteredStudents.filter(
-          (s) => s!.graduation_year === args.filters!.graduationYear,
+          (s) => s.graduation_year === filters.graduationYear,
         );
       }
 
-      if (args.filters.departmentId) {
+      if (filters.departmentId) {
         filteredStudents = filteredStudents.filter(
-          (s) => s!.department_id === args.filters!.departmentId,
+          (s) => s.department_id === filters.departmentId,
         );
       }
 
       // At-risk filter: students with no activity in 60+ days
-      if (args.filters.atRisk) {
-        const sixtyDaysAgo = Date.now() - 60 * 24 * 60 * 60 * 1000;
+      if (filters.atRisk) {
         filteredStudents = filteredStudents.filter(
-          (s) => s!.updated_at < sixtyDaysAgo,
+          (s) => s.updated_at < sixtyDaysAgo,
         );
       }
     }
 
-    const now = Date.now();
-    const sixtyDaysAgo = now - 60 * 24 * 60 * 60 * 1000;
     const studentIdSet = new Set<Id<"users">>(filteredStudents.map((s) => s._id));
 
     // Aggregate follow-ups once (from unified follow_ups table)
@@ -325,6 +328,11 @@ export const addAdvisorNote = mutation({
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
 
+    // Validate note is not empty
+    if (!args.note.trim()) {
+      throw new Error("Note cannot be empty");
+    }
+
     // Check ownership
     await assertCanAccessStudent(ctx, sessionCtx, args.studentId);
     const universityId = requireTenant(sessionCtx);
@@ -335,7 +343,9 @@ export const addAdvisorNote = mutation({
 
     const currentNotes = student.university_admin_notes || "";
     const timestamp = new Date().toISOString();
-    const userName = sessionCtx.email.split("@")[0];
+    const userName = sessionCtx.email.includes("@")
+      ? sessionCtx.email.split("@")[0]
+      : sessionCtx.email;
 
     const newNote = `[${timestamp}] ${userName}: ${args.note}`;
     const updatedNotes = currentNotes

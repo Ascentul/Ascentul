@@ -37,6 +37,7 @@ export function AdvisorGate({
   const isFeatureEnabled = featureEnabled === true;
 
   const userRole = user?.publicMetadata?.role as string | undefined;
+  const allowedRoles = ["advisor", "university_admin", "super_admin"];
 
   useEffect(() => {
     if (!isLoaded || isFeatureLoading) return;
@@ -48,13 +49,10 @@ export function AdvisorGate({
     }
 
     // Check role authorization
-    const allowedRoles = ["advisor", "university_admin", "super_admin"];
     if (!userRole || !allowedRoles.includes(userRole)) {
       // Redirect based on role
-      if (userRole === "admin" || userRole === "super_admin") {
+      if (userRole === "admin") {
         router.push("/admin");
-      } else if (userRole === "university_admin") {
-        router.push("/university");
       } else {
         router.push("/dashboard");
       }

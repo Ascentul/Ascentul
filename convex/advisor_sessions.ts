@@ -287,6 +287,9 @@ export const updateSession = mutation({
     // Verify access to student
     await assertCanAccessStudent(ctx, sessionCtx, session.student_id);
 
+    // Note: Intentionally allows any advisor with student access to update sessions,
+    // enabling collaborative advising. Only completeSession enforces strict ownership.
+
     // Version conflict check
     if (
       args.expectedVersion !== undefined &&
@@ -417,6 +420,10 @@ export const addSessionTask = mutation({
 
     await assertCanAccessStudent(ctx, sessionCtx, session.student_id);
 
+    // Note: Unlike completeSession, this intentionally allows any advisor with
+    // student access to add tasks, enabling collaborative advising workflows.
+    // If strict ownership is needed, add: if (session.advisor_id !== sessionCtx.userId)
+
     const currentTasks = session.tasks || [];
     const updatedTasks = [...currentTasks, args.task];
 
@@ -449,6 +456,8 @@ export const completeSession = mutation({
       throw new Error("Session not found");
     }
 
+    // Strict ownership check: Only the original advisor can complete their own session.
+    // This differs from updateSession/addSessionTask which allow collaborative editing.
     if (session.advisor_id !== sessionCtx.userId) {
       throw new Error("Unauthorized: Only the session creator can complete it");
     }

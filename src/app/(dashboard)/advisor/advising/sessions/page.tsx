@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { AdvisorGate } from "@/components/advisor/AdvisorGate";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mic } from "lucide-react";
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Mic } from 'lucide-react';
 
 export default function AdvisorSessionsPage() {
   return (

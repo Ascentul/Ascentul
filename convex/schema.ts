@@ -404,8 +404,8 @@ export default defineSchema({
     ),
     // IMPORTANT: Mutations must validate reason_code is provided when stage is "Rejected" or "Withdrawn"
     reason_code: v.optional(v.string()), // e.g., "not_a_fit", "compensation", "location"
-    // Evidence uploads (for Offer/Accepted stages)
-    evidence_urls: v.optional(v.array(v.string())), // Uploaded offer letters, etc.
+    // Evidence uploads (for Offer/Accepted stages) - Use Convex storage for proper access control
+    evidence_storage_ids: v.optional(v.array(v.id("_storage"))), // Uploaded offer letters, etc.
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -432,6 +432,28 @@ export default defineSchema({
     university_id: v.optional(v.id('universities')), // Null for non-university users, required for advisor-created tasks
 
     // Flexible relationship tracking
+    // DUAL-FIELD PATTERN: This table uses both generic and typed relationship fields.
+    //
+    // Generic fields (used for all entity types):
+    // - related_type: Indicates which entity type this follow-up relates to
+    // - related_id: String version of the entity ID (enables composite index queries)
+    //
+    // Typed fields (used for known entity types with referential integrity):
+    // - application_id: Strongly-typed ID for applications (Convex validates referential integrity)
+    // - contact_id: Strongly-typed ID for networking_contacts (Convex validates referential integrity)
+    //
+    // USAGE PATTERN (populate BOTH when applicable):
+    // 1. For applications: Set related_type='application', related_id=<id>, application_id=<id>
+    // 2. For contacts: Set related_type='contact', related_id=<id>, contact_id=<id>
+    // 3. For sessions/reviews/general: Set related_type + related_id only (no typed field exists)
+    //
+    // QUERY USAGE:
+    // - Use typed indexes (by_application, by_contact) when querying a single entity type
+    // - Use composite index (by_related_entity) when querying across multiple entity types
+    //
+    // WHY BOTH? The typed fields provide referential integrity and type safety, while the
+    // generic pattern enables flexible cross-entity queries and supports entity types
+    // without dedicated typed fields (session, review, general).
     related_type: v.optional(
       v.union(
         v.literal('application'),
@@ -441,9 +463,9 @@ export default defineSchema({
         v.literal('general'),
       ),
     ),
-    related_id: v.optional(v.string()), // Generic ID field
+    related_id: v.optional(v.string()), // String representation of entity ID for composite index
 
-    // Backwards compatibility - specific entity links
+    // Typed entity links (provide referential integrity for known entity types)
     application_id: v.optional(v.id('applications')),
     contact_id: v.optional(v.id('networking_contacts')),
 
@@ -470,8 +492,20 @@ export default defineSchema({
     .index('by_user_university', ['user_id', 'university_id'])
     .index('by_related_entity', ['related_type', 'related_id']),
 
-  // DEPRECATED: Legacy followup_actions table - use follow_ups instead
-  // TODO: Remove after migration to follow_ups is complete
+  // =============================================================================
+  // DEPRECATED: Legacy followup_actions table
+  // =============================================================================
+  // STATUS: Deprecated - Consolidated into follow_ups table
+  // MIGRATION SCRIPT: convex/migrate_follow_ups.ts (migrateFollowUps mutation)
+  // USAGE: Run 'npx convex run migrate_follow_ups:migrateFollowUps' to migrate data
+  // VERIFICATION: Run 'npx convex run migrate_follow_ups:verifyMigration' after migration
+  //
+  // NEW CODE: Must use follow_ups table - DO NOT insert/query this table
+  // REMOVAL TIMELINE: After successful production migration and verification (TBD)
+  //
+  // NOTE: This table was replaced to consolidate student-created and advisor-created
+  // follow-ups into a single unified table with better ownership tracking.
+  // =============================================================================
   followup_actions: defineTable({
     user_id: v.id('users'),
     application_id: v.optional(v.id('applications')),
@@ -763,6 +797,9 @@ export default defineSchema({
           id: v.string(),
           title: v.string(),
           due_at: v.optional(v.number()),
+          // Role-based ownership: tasks are implicitly owned by the session's student_id or advisor_id
+          // To query "all tasks for user X", filter by role + session student_id/advisor_id
+          // Alternative: use owner_id: v.id("users") for direct user assignment
           owner: v.union(v.literal("student"), v.literal("advisor")),
           status: v.union(v.literal("open"), v.literal("done")),
         }),
@@ -819,6 +856,11 @@ export default defineSchema({
         overall: v.optional(v.number()), // 1-5
       }),
     ),
+    // Autosave fields for work-in-progress feedback (before finalization)
+    feedback: v.optional(v.string()), // Draft feedback text (autosaved)
+    suggestions: v.optional(v.array(v.string())), // Draft suggestion list (autosaved)
+
+    // Structured comments for finalized feedback
     comments: v.optional(
       v.array(
         v.object({
@@ -843,11 +885,30 @@ export default defineSchema({
     .index("by_university", ["university_id"])
     .index("by_student", ["student_id", "university_id"])
     .index("by_status", ["status", "university_id"])
+    .index("by_asset_type", ["asset_type", "university_id"])
     .index("by_resume", ["resume_id"])
     .index("by_cover_letter", ["cover_letter_id"]),
 
-  // DEPRECATED: Legacy advisor_follow_ups table - use follow_ups instead
-  // TODO: Remove after migration to follow_ups is complete
+  // =============================================================================
+  // DEPRECATED: Legacy advisor_follow_ups table
+  // =============================================================================
+  // STATUS: Deprecated - Consolidated into follow_ups table
+  // MIGRATION SCRIPT: convex/migrate_follow_ups.ts (migrateFollowUps mutation)
+  // USAGE: Run 'npx convex run migrate_follow_ups:migrateFollowUps' to migrate data
+  // VERIFICATION: Run 'npx convex run migrate_follow_ups:verifyMigration' after migration
+  //
+  // ⚠️ WARNING: Active queries still reference this table:
+  // - convex/advisor_dashboard.ts:152
+  // - convex/advisor_calendar.ts:94, 166
+  // - convex/advisor_today.ts:69
+  // These queries MUST be updated to use follow_ups before this table can be removed.
+  //
+  // NEW CODE: Must use follow_ups table - DO NOT insert/query this table
+  // REMOVAL TIMELINE: After updating all queries and successful production migration (TBD)
+  //
+  // NOTE: This table was replaced to consolidate student-created and advisor-created
+  // follow-ups into a single unified table with better ownership tracking and multi-tenancy.
+  // =============================================================================
   advisor_follow_ups: defineTable({
     student_id: v.id('users'),
     advisor_id: v.id('users'),
@@ -889,6 +950,22 @@ export default defineSchema({
     .index('by_advisor_student', ['advisor_id', 'student_id']),
 
   // Audit log for FERPA compliance and security
+  //
+  // RETENTION POLICY (FERPA Compliance):
+  // - Logs must be retained for a minimum of 3 years from the date of the last action
+  // - Recommended retention: 7 years for comprehensive compliance coverage
+  // - Implement automated archival/deletion using scheduled Convex functions
+  // - Before deletion, ensure export to long-term storage if required by policy
+  //
+  // PII HANDLING:
+  // - previous_value/new_value may contain student PII (names, grades, etc.)
+  // - On student data deletion requests (FERPA/GDPR), audit logs should be:
+  //   1. Retained for compliance period (do not delete immediately)
+  //   2. PII in previous_value/new_value should be redacted/anonymized
+  //   3. Keep student_id as reference but mark as "[REDACTED]" in value fields
+  // - Consider implementing a redaction mutation for right-to-be-forgotten requests
+  //
+  // TODO: Implement scheduled function for automated log retention management
   audit_logs: defineTable({
     actor_id: v.id("users"), // Who performed the action
     university_id: v.optional(v.id("universities")), // Tenant context
@@ -896,8 +973,8 @@ export default defineSchema({
     entity_type: v.string(), // e.g., "application", "review", "session"
     entity_id: v.string(), // ID of affected entity
     student_id: v.optional(v.id("users")), // Student affected (for PII tracking)
-    previous_value: v.optional(v.any()), // State before change
-    new_value: v.optional(v.any()), // State after change
+    previous_value: v.optional(v.any()), // State before change (may contain PII - see retention policy)
+    new_value: v.optional(v.any()), // State after change (may contain PII - see retention policy)
     reason: v.optional(v.string()), // Why the change was made (required for sensitive actions)
     ip_address: v.optional(v.string()), // For security tracking
     user_agent: v.optional(v.string()), // Browser/client info

@@ -1,12 +1,13 @@
 "use client";
 
-import { AdvisorGate } from "@/components/advisor/AdvisorGate";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useUser } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useUser } from '@clerk/nextjs';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from 'convex/_generated/api';
 import {
   Calendar,
   Clock,
@@ -16,12 +17,34 @@ import {
   User,
   Video,
   MessageSquare,
-} from "lucide-react";
-import { format } from "date-fns";
-import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
-import type { Id } from "convex/_generated/dataModel";
+  AlertTriangle,
+} from 'lucide-react';
+import { format } from 'date-fns';
+import Link from 'next/link';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import type { Id } from 'convex/_generated/dataModel';
+
+/**
+ * Session type icon mapping
+ */
+const SESSION_TYPE_ICONS = {
+  '1-on-1': User,
+  'group': User,
+  'workshop': User,
+  'virtual': Video,
+  'phone': MessageSquare,
+} as const;
+
+/**
+ * Priority level color classes for follow-ups
+ */
+const PRIORITY_COLORS = {
+  urgent: 'text-red-600 bg-red-50 border-red-200',
+  high: 'text-orange-600 bg-orange-50 border-orange-200',
+  medium: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+  low: 'text-blue-600 bg-blue-50 border-blue-200',
+} as const;
 
 /**
  * Format overdue time in a user-friendly way
@@ -39,6 +62,9 @@ function formatOverdueTime(dueAt: number, now: number): string {
   if (hours > 0) {
     return `${hours} hour${hours > 1 ? 's' : ''}`;
   }
+  if (minutes === 0) {
+    return 'less than a minute';
+  }
   return `${minutes} minute${minutes > 1 ? 's' : ''}`;
 }
 
@@ -47,14 +73,20 @@ export default function AdvisorTodayPage() {
   const clerkId = user?.id;
   const [completingId, setCompletingId] = useState<Id<"advisor_follow_ups"> | null>(null);
 
+  // Get user's timezone offset for accurate "today" calculation
+  const timezoneOffset = new Date().getTimezoneOffset();
+
   const todayData = useQuery(
     api.advisor_today.getTodayOverview,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId, timezoneOffset } : 'skip'
   );
 
   const completeFollowUp = useMutation(api.advisor_follow_ups.completeFollowUp);
 
   const now = Date.now();
+
+  // Detect query error (Convex returns null on error)
+  const hasError = todayData === null;
 
   const handleCompleteFollowUp = async (followUpId: Id<"advisor_follow_ups">) => {
     if (!clerkId) return;
@@ -77,7 +109,7 @@ export default function AdvisorTodayPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Today</h1>
             <p className="text-muted-foreground mt-1">
-              {format(new Date(), "EEEE, MMMM d, yyyy")}
+              {format(new Date(), 'EEEE, MMMM d, yyyy')}
             </p>
           </div>
           <div className="flex gap-2">
@@ -95,6 +127,17 @@ export default function AdvisorTodayPage() {
             </Link>
           </div>
         </div>
+
+        {/* Error Alert */}
+        {hasError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error Loading Data</AlertTitle>
+            <AlertDescription>
+              Failed to load today's overview. Please try refreshing the page.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Quick Stats */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -188,15 +231,7 @@ export default function AdvisorTodayPage() {
                       session.end_at &&
                       session.end_at >= now;
 
-                    const sessionIcon = {
-                      "1-on-1": User,
-                      "group": User,
-                      "workshop": User,
-                      "virtual": Video,
-                      "phone": MessageSquare,
-                    }[session.session_type || "1-on-1"] || User;
-
-                    const SessionIcon = sessionIcon;
+                    const SessionIcon = SESSION_TYPE_ICONS[session.session_type || '1-on-1'] || User;
 
                     return (
                       <div
@@ -313,12 +348,6 @@ export default function AdvisorTodayPage() {
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
                   {todayData.followUps.map((followUp) => {
                     const isOverdue = followUp.due_at && followUp.due_at < now;
-                    const priorityColors = {
-                      urgent: "text-red-600 bg-red-50 border-red-200",
-                      high: "text-orange-600 bg-orange-50 border-orange-200",
-                      medium: "text-yellow-600 bg-yellow-50 border-yellow-200",
-                      low: "text-blue-600 bg-blue-50 border-blue-200",
-                    };
 
                     return (
                       <div
@@ -326,7 +355,7 @@ export default function AdvisorTodayPage() {
                         className={`p-4 border rounded-lg ${
                           isOverdue
                             ? "border-red-300 bg-red-50"
-                            : priorityColors[followUp.priority]
+                            : PRIORITY_COLORS[followUp.priority]
                         }`}
                       >
                         <div className="flex items-start gap-3">
