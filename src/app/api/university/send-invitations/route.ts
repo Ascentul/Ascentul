@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
 import { sendUniversityInvitationEmail } from '@/lib/email';
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+import { getErrorMessage } from '@/lib/errors';
+import { convexServer } from '@/lib/convex-server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,15 +19,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No emails provided' }, { status: 400 });
     }
 
+    // Validate individual email formats
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalidEmails = emails.filter((email: unknown) =>
+      typeof email !== 'string' || !emailRegex.test(email)
+    );
+    if (invalidEmails.length > 0) {
+      return NextResponse.json({ error: 'Invalid email format detected' }, { status: 400 });
+    }
+
     // Get the university admin's info to fetch university name
-    const adminUser = await convex.query(api.users.getUserByClerkId, { clerkId: userId });
+    const adminUser = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId });
 
     if (!adminUser || !adminUser.university_id) {
       return NextResponse.json({ error: 'University admin not found' }, { status: 404 });
     }
 
     // Get the university details
-    const university = await convex.query(api.universities.getUniversity, {
+    const university = await convexServer.query(api.universities.getUniversity, {
       universityId: adminUser.university_id
     });
 
@@ -46,9 +54,10 @@ export async function POST(req: NextRequest) {
 
           await sendUniversityInvitationEmail(email, university.name, inviteLink);
           return { email, success: true };
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(`Error sending invitation to ${email}:`, error);
-          return { email, success: false, error: error.message };
+          const message = getErrorMessage(error);
+          return { email, success: false, error: message };
         }
       })
     );
@@ -61,12 +70,17 @@ export async function POST(req: NextRequest) {
       total: emails.length,
       successful,
       failed,
-      results: results.map(r => r.status === 'fulfilled' ? r.value : { email: 'unknown', success: false, error: 'Unknown error' }),
+      results: results.map((r, i) =>
+        r.status === 'fulfilled'
+          ? r.value
+          : { email: emails[i], success: false, error: r.reason?.message || 'Unknown error' }
+      ),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Send invitations error:', error);
+    const message = getErrorMessage(error, 'Internal server error');
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: message },
       { status: 500 }
     );
   }

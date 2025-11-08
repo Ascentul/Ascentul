@@ -1,61 +1,34 @@
 /**
  * Application Stage Logic for Advisor Features
  *
- * Defines which stages are "active" (requiring advisor attention)
- * vs final states that don't need ongoing tracking
+ * Helper functions for working with application stages.
+ * Constants are imported from convex/advisor_constants.ts (single source of truth).
  */
 
-export type ApplicationStage =
-  | 'Prospect'
-  | 'Applied'
-  | 'Interview'
-  | 'Offer'
-  | 'Accepted'
-  | 'Rejected'
-  | 'Withdrawn'
-  | 'Archived';
+// Re-export constants from Convex (single source of truth)
+import type {
+  ApplicationStage as AppStage,
+} from 'convex/advisor_constants';
 
-/**
- * All application stages in workflow order
- */
-export const ALL_STAGES: readonly ApplicationStage[] = [
-  'Prospect',
-  'Applied',
-  'Interview',
-  'Offer',
-  'Accepted',
-  'Rejected',
-  'Withdrawn',
-  'Archived',
-] as const;
+import {
+  ALL_STAGES,
+  ACTIVE_STAGES,
+  FINAL_STAGES,
+  TERMINAL_STAGES,
+  STAGE_TRANSITIONS,
+} from 'convex/advisor_constants';
 
-/**
- * Active stages require ongoing advisor attention
- * - Prospect: Researching/considering application
- * - Applied: Submitted, waiting for response
- * - Interview: Active interview process
- */
-export const ACTIVE_STAGES: ApplicationStage[] = [
-  'Prospect',
-  'Applied',
-  'Interview',
-];
+// Re-export type
+export type ApplicationStage = AppStage;
 
-/**
- * Final stages represent completed outcomes
- * - Offer: Received offer (decision pending)
- * - Accepted: Accepted offer (final positive outcome)
- * - Rejected: Application rejected (final negative outcome)
- * - Withdrawn: Student withdrew (final neutral outcome)
- * - Archived: Manually archived (final inactive outcome)
- */
-export const FINAL_STAGES: ApplicationStage[] = [
-  'Offer',
-  'Accepted',
-  'Rejected',
-  'Withdrawn',
-  'Archived',
-];
+// Re-export constants
+export {
+  ALL_STAGES,
+  ACTIVE_STAGES,
+  FINAL_STAGES,
+  TERMINAL_STAGES,
+  STAGE_TRANSITIONS,
+};
 
 /**
  * Check if a stage is "active" (requires advisor tracking)
@@ -69,6 +42,7 @@ export const FINAL_STAGES: ApplicationStage[] = [
  */
 export function isActiveStage(stage: string | undefined | null): boolean {
   if (!stage) return false;
+  // Safe cast: includes() returns false for invalid strings at runtime
   return ACTIVE_STAGES.includes(stage as ApplicationStage);
 }
 
@@ -77,13 +51,24 @@ export function isActiveStage(stage: string | undefined | null): boolean {
  */
 export function isFinalStage(stage: string | undefined | null): boolean {
   if (!stage) return false;
+  // Safe cast: includes() returns false for invalid strings at runtime
   return FINAL_STAGES.includes(stage as ApplicationStage);
+}
+
+/**
+ * Check if a stage is terminal (requires notes when transitioning to it)
+ * Terminal stages represent final negative or neutral outcomes where context is important
+ */
+export function isTerminalStage(stage: string | undefined | null): boolean {
+  if (!stage) return false;
+  // Safe cast: includes() returns false for invalid strings at runtime
+  return TERMINAL_STAGES.includes(stage as ApplicationStage);
 }
 
 /**
  * Get user-friendly label for stage
  */
-export function getStageLab(stage: ApplicationStage): string {
+export function getStageLabel(stage: ApplicationStage): string {
   const labels: Record<ApplicationStage, string> = {
     Prospect: 'Researching',
     Applied: 'Application Submitted',
@@ -123,23 +108,6 @@ export function getStageColor(stage: ApplicationStage): string {
  * - Interview -> Offer, Rejected, Withdrawn, Archived
  * - Offer -> Accepted, Rejected, Withdrawn, Archived
  * - Final states -> Archived only
- */
-/**
- * Valid stage transitions
- */
-const STAGE_TRANSITIONS: Record<ApplicationStage, ApplicationStage[]> = {
-  Prospect: ['Applied', 'Withdrawn', 'Archived'],
-  Applied: ['Interview', 'Rejected', 'Withdrawn', 'Archived'],
-  Interview: ['Offer', 'Rejected', 'Withdrawn', 'Archived'],
-  Offer: ['Accepted', 'Rejected', 'Withdrawn', 'Archived'],
-  Accepted: ['Archived'],
-  Rejected: ['Archived'],
-  Withdrawn: ['Archived'],
-  Archived: [],
-};
-
-/**
- * Validate stage transition (enforces workflow rules)
  */
 export function isValidTransition(
   fromStage: ApplicationStage,

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
+import { convexServer } from '@/lib/convex-server';
 
 export const runtime = 'nodejs'
 
@@ -10,11 +11,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-
-    const client = new ConvexHttpClient(url)
-    await client.mutation(api.career_paths.deleteCareerPath, { clerkId: userId, id: params.id as any })
+    await convexServer.mutation(api.career_paths.deleteCareerPath, { clerkId: userId, id: params.id as Id<'career_paths'> })
 
     return NextResponse.json({ ok: true })
   } catch (error: any) {

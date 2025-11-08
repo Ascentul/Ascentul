@@ -1,21 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
-
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
+import { convexServer } from '@/lib/convex-server';
 
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const client = getClient()
-    const conversations = await client.query(api.ai_coach.getConversations, { clerkId: userId })
+    const conversations = await convexServer.query(api.ai_coach.getConversations, { clerkId: userId })
 
     return NextResponse.json(conversations)
   } catch (error) {
@@ -36,8 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
-    const client = getClient()
-    const newConversation = await client.mutation(api.ai_coach.createConversation, {
+    const newConversation = await convexServer.mutation(api.ai_coach.createConversation, {
       clerkId: userId,
       title
     })

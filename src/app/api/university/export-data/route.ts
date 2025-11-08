@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server';
 
 export const dynamic = 'force-dynamic'
 
@@ -25,18 +25,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ClerkId mismatch' }, { status: 403 })
     }
 
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) {
-      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    }
+    
 
-    // Initialize convex client
-    const convex = new ConvexHttpClient(url)
 
     // Get the current user to verify admin access
     let user
     try {
-      user = await convex.query(api.users.getUserByClerkId, { clerkId })
+      user = await convexServer.query(api.users.getUserByClerkId, { clerkId })
     } catch (error) {
       console.error('Error fetching user:', error)
       return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 })
@@ -58,8 +53,8 @@ export async function POST(request: NextRequest) {
     let students, departments
     try {
       [students, departments] = await Promise.all([
-        convex.query(api.university_admin.listStudents, { clerkId, limit: 1000 }),
-        convex.query(api.university_admin.listDepartments, { clerkId })
+        convexServer.query(api.university_admin.listStudents, { clerkId, limit: 1000 }),
+        convexServer.query(api.university_admin.listDepartments, { clerkId })
       ])
     } catch (error) {
       console.error('Error fetching data:', error)

@@ -1,4 +1,4 @@
-interface LoadingSpinnerProps {
+export interface LoadingSpinnerProps {
   message?: string;
 }
 

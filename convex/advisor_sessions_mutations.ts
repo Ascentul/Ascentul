@@ -80,9 +80,9 @@ export const createSession = mutation({
       start_at: args.start_at,
       end_at,
       duration_minutes: args.duration_minutes,
-      location: args.location || null,
-      meeting_url: args.meeting_url || null,
-      notes: args.notes || null,
+      location: args.location,
+      meeting_url: args.meeting_url,
+      notes: args.notes,
       visibility: args.visibility || "advisor_only",
       status: "scheduled",
       version: 1,
@@ -153,7 +153,7 @@ export const updateSession = mutation({
       visibility?: "shared" | "advisor_only";
       status?: "scheduled" | "completed" | "cancelled" | "no_show";
     } = {
-      version: session.version + 1,
+      version: (session.version ?? 0) + 1,
       updated_at: Date.now(),
     };
 
@@ -179,19 +179,36 @@ export const updateSession = mutation({
     }
 
     if (args.location !== undefined) {
-      updates.location = args.location || undefined;
+      updates.location = args.location;
     }
     if (args.meeting_url !== undefined) {
-      updates.meeting_url = args.meeting_url || undefined;
+      updates.meeting_url = args.meeting_url;
     }
     if (args.notes !== undefined) {
-      updates.notes = args.notes || undefined;
+      updates.notes = args.notes;
     }
     if (args.visibility !== undefined) {
-      updates.visibility = args.visibility || undefined;
+      updates.visibility = args.visibility;
     }
     if (args.status !== undefined) {
-      updates.status = args.status || undefined;
+      updates.status = args.status;
+
+      // Validate status consistency with timing fields
+      if (args.status === "completed") {
+        // Ensure end_at is set for completed sessions
+        const endAt = updates.end_at ?? session.end_at;
+        if (!endAt) {
+          throw new Error("Cannot mark session as completed: end_at must be set");
+        }
+      }
+
+      if (args.status === "scheduled") {
+        // Ensure start_at is set for scheduled sessions
+        const startAt = updates.start_at ?? session.start_at;
+        if (!startAt) {
+          throw new Error("Cannot mark session as scheduled: start_at must be set");
+        }
+      }
     }
 
     await ctx.db.patch(args.session_id, updates);
@@ -268,7 +285,7 @@ export const cancelSession = mutation({
       notes: args.reason
         ? `${session.notes || ""}\n\nCancellation reason: ${args.reason}`
         : session.notes,
-      version: session.version + 1,
+      version: (session.version ?? 0) + 1,
       updated_at: Date.now(),
     });
 

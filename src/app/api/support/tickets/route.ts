@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import sgMail from '@sendgrid/mail'
+import { convexServer } from '@/lib/convex-server';
 
 // Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
@@ -15,10 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     const { userId } = getAuth(request)
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    const client = new ConvexHttpClient(url)
-    const tickets = await client.query(api.support_tickets.listTickets, { clerkId: userId })
+    const tickets = await convexServer.query(api.support_tickets.listTickets, { clerkId: userId })
     return NextResponse.json({ tickets })
   } catch (error) {
     console.error('Error fetching support tickets:', error)
@@ -30,10 +27,6 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = getAuth(request)
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    const client = new ConvexHttpClient(url)
-
     const body = await request.json()
     const { subject, description, issueType, source } = body
 
@@ -42,9 +35,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user info to send email
-    const user = await client.query(api.users.getUserByClerkId, { clerkId: userId })
+  const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
 
-    const ticket = await client.mutation(api.support_tickets.createTicket, {
+  const ticket = await convexServer.mutation(api.support_tickets.createTicket, {
       clerkId: userId,
       subject: String(subject),
       description: String(description),

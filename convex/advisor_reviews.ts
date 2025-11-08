@@ -47,22 +47,30 @@ export const getReviewQueue = query({
       return [];
     }
 
-    // Get all reviews for owned students
-    let reviews = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_university", (q) => q.eq("university_id", universityId))
-      .collect();
+    // Fetch reviews using appropriate index
+    let reviews;
+    if (args.status) {
+      // Use by_status index when status filter is provided
+      const status = args.status;
+      reviews = await ctx.db
+        .query("advisor_reviews")
+        .withIndex("by_status", (q) =>
+          q.eq("status", status).eq("university_id", universityId)
+        )
+        .collect();
+    } else {
+      // Use by_university index when no status filter
+      reviews = await ctx.db
+        .query("advisor_reviews")
+        .withIndex("by_university", (q) => q.eq("university_id", universityId))
+        .collect();
+    }
 
     // Filter to owned students only
-    const filtered = reviews.filter((r) => studentIds.includes(r.student_id));
-
-    // Apply status filter if provided
-    const statusFiltered = args.status
-      ? filtered.filter((r) => r.status === args.status)
-      : filtered;
+    const ownedReviews = reviews.filter((r) => studentIds.includes(r.student_id));
 
     // Enrich with student info
-    const uniqueStudentIds = [...new Set(statusFiltered.map(r => r.student_id))];
+    const uniqueStudentIds = [...new Set(ownedReviews.map(r => r.student_id))];
     const students = await Promise.all(
       uniqueStudentIds.map(id => ctx.db.get(id))
     );
@@ -72,7 +80,7 @@ export const getReviewQueue = query({
         .map(s => [s._id, s] as const)
     );
 
-    const enriched = statusFiltered.map((review) => {
+    const enriched = ownedReviews.map((review) => {
       const student = studentMap.get(review.student_id);
       return {
         ...review,
@@ -640,8 +648,10 @@ export const approveReview = mutation({
 
     // Add approval comment if provided
     let updatedComments = review.comments || [];
+    let approvalCommentId: string | undefined;
     if (sanitizedComment) {
       const commentId = crypto.randomUUID();
+      approvalCommentId = commentId;
       updatedComments = [
         ...updatedComments,
         {
@@ -677,7 +687,7 @@ export const approveReview = mutation({
     });
 
     // Audit log for approval comment if provided (FERPA compliance)
-    if (sanitizedComment) {
+    if (sanitizedComment && approvalCommentId) {
       await createAuditLog(ctx, {
         actorId: sessionCtx.userId,
         universityId: review.university_id,
@@ -687,7 +697,7 @@ export const approveReview = mutation({
         studentId: review.student_id,
         newValue: {
           visibility: args.commentVisibility || "shared",
-          comment_id: updatedComments[updatedComments.length - 1].id,
+          comment_id: approvalCommentId,
           context: "approval"
         },
       });

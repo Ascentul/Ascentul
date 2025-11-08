@@ -18,6 +18,7 @@
 
 import { mutation } from './_generated/server';
 import { v } from 'convex/values';
+import { Id } from './_generated/dataModel';
 
 export const migrateFollowUps = mutation({
   args: {
@@ -58,6 +59,7 @@ export const migrateFollowUps = mutation({
     while (hasMoreFollowupActions) {
       const page = await ctx.db
         .query('followup_actions')
+        .order('asc')
         .paginate({ cursor: followupActionsCursor, numItems: BATCH_SIZE });
 
       console.log(`Processing batch of ${page.page.length} followup_actions...`);
@@ -162,21 +164,74 @@ export const migrateFollowUps = mutation({
     while (hasMoreAdvisorFollowUps) {
       const page = await ctx.db
         .query('advisor_follow_ups')
+        .order('asc')
         .paginate({ cursor: advisorFollowUpsCursor, numItems: BATCH_SIZE });
 
       console.log(`Processing batch of ${page.page.length} advisor_follow_ups...`);
 
+      // Batch user lookups to avoid N+1 queries (validate student_id, owner_id, advisor_id)
+      const allUserIds = new Set<Id<'users'>>();
+      page.page.forEach(f => {
+        allUserIds.add(f.student_id);
+        allUserIds.add(f.owner_id);
+        allUserIds.add(f.advisor_id);
+      });
+      const users = await Promise.all([...allUserIds].map(id => ctx.db.get(id)));
+      const userMap = new Map(
+        users
+          .filter((u): u is NonNullable<typeof u> => u !== null)
+          .map(u => [u._id, u] as const)
+      );
+
+      // Batch application lookups to validate foreign keys
+      const applicationIds = page.page
+        .filter(f => f.related_type === 'application' && f.related_id)
+        .map(f => f.related_id as Id<'applications'>);
+      const applications = await Promise.all(applicationIds.map(id => ctx.db.get(id)));
+      const applicationMap = new Map(
+        applications
+          .filter((a): a is NonNullable<typeof a> => a !== null)
+          .map(a => [a._id, a] as const)
+      );
+
       for (const followUp of page.page) {
       try {
-        // Map related entities to specific fields if possible
-        let application_id: string | undefined;
-        let contact_id: string | undefined;
+        // Validate users from batched lookup
+        if (!userMap.has(followUp.student_id)) {
+          results.errors.push(
+            `advisor_follow_ups ${followUp._id}: Student ${followUp.student_id} not found`,
+          );
+          continue;
+        }
+        if (!userMap.has(followUp.owner_id)) {
+          results.errors.push(
+            `advisor_follow_ups ${followUp._id}: Owner ${followUp.owner_id} not found`,
+          );
+          continue;
+        }
+        if (!userMap.has(followUp.advisor_id)) {
+          results.errors.push(
+            `advisor_follow_ups ${followUp._id}: Advisor ${followUp.advisor_id} not found`,
+          );
+          continue;
+        }
+
+        // Map related entities to specific fields with validation
+        let application_id: Id<'applications'> | undefined;
 
         if (followUp.related_type === 'application' && followUp.related_id) {
-          application_id = followUp.related_id as any; // Cast to ID type
-        } else if (followUp.related_type === 'contact' && followUp.related_id) {
-          contact_id = followUp.related_id as any; // Cast to ID type
+          const appId = followUp.related_id as Id<'applications'>;
+          if (applicationMap.has(appId)) {
+            application_id = appId;
+          } else {
+            results.errors.push(
+              `advisor_follow_ups ${followUp._id}: Application ${followUp.related_id} not found`,
+            );
+            continue;
+          }
         }
+        // Note: advisor_follow_ups.related_type doesn't include 'contact' type
+        // Only 'application', 'session', 'review', 'general'
 
         if (!dryRun) {
           await ctx.db.insert('follow_ups', {
@@ -199,7 +254,7 @@ export const migrateFollowUps = mutation({
             related_type: followUp.related_type,
             related_id: followUp.related_id,
             application_id,
-            contact_id,
+            // Note: contact_id is not used since advisor_follow_ups.related_type doesn't include 'contact'
 
             // Task management
             due_at: followUp.due_at,

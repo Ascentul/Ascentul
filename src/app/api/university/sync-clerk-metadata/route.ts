@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+import { getErrorMessage } from '@/lib/errors';
+import { convexServer } from '@/lib/convex-server';
 
 /**
  * Sync university assignment to Clerk publicMetadata
@@ -31,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the requester is a university admin
-    const adminUser = await convex.query(api.users.getUserByClerkId, {
+    const adminUser = await convexServer.query(api.users.getUserByClerkId, {
       clerkId: userId,
     });
 
@@ -82,10 +81,11 @@ export async function POST(req: NextRequest) {
       message: 'Clerk metadata updated successfully',
       userFound: true,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Sync Clerk metadata error:', error);
+    const message = getErrorMessage(error, 'Internal server error');
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: message },
       { status: 500 }
     );
   }

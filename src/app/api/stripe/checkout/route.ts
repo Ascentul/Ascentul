@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "convex/_generated/api";
-import Stripe from "stripe";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { api } from 'convex/_generated/api';
+import Stripe from 'stripe';
+import { convexServer } from '@/lib/convex-server';
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
-
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!url) throw new Error("Convex URL not configured");
-  return new ConvexHttpClient(url);
-}
 
 // Plan configuration for dynamic price_data
 const PLAN_CONFIG: Record<
@@ -79,10 +73,8 @@ export async function POST(request: NextRequest) {
     const stripe = new Stripe(stripeSecret, {
       apiVersion: "2025-02-24.acacia",
     });
-    const client = getClient();
-
     // Fetch current user record to get/create customer
-    const user = await client.query(api.users.getUserByClerkId, {
+    const user = await convexServer.query(api.users.getUserByClerkId, {
       clerkId: userId,
     });
 
@@ -104,7 +96,7 @@ export async function POST(request: NextRequest) {
       customerId = customer.id;
 
       // Update user with stripe customer ID
-      await client.mutation(api.users.updateUser, {
+      await convexServer.mutation(api.users.updateUser, {
         clerkId: userId,
         updates: { stripe_customer_id: customerId },
       });

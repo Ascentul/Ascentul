@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Building2, User, Calendar, ArrowRight, ExternalLink, RefreshCw } from "lucide-react";
+import { Building2, User, Calendar, ArrowRight, ExternalLink, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
-import Link from "next/link";
-import { StageTransitionModal } from "./StageTransitionModal";
-import type { Id } from "convex/_generated/dataModel";
+import Link from 'next/link';
+import { StageTransitionModal } from './StageTransitionModal';
+import type { Id } from 'convex/_generated/dataModel';
 import { cn } from '@/lib/utils';
 
 interface Application {
@@ -33,7 +33,7 @@ interface ApplicationKanbanProps {
   applicationsByStage: Record<string, Application[]>;
   isLoading?: boolean;
   clerkId?: string;
-  onRefresh?: () => void;
+  onRefresh?: (applicationId?: string, newStage?: string) => void;
 }
 
 const STAGE_COLORS: Record<string, string> = {
@@ -76,9 +76,9 @@ export function ApplicationKanban({
     setSelectedApplication(null);
   };
 
-  const handleSuccess = () => {
+  const handleSuccess = (applicationId: string, newStage: string) => {
     if (onRefresh) {
-      onRefresh();
+      onRefresh(applicationId, newStage);
     }
   };
 

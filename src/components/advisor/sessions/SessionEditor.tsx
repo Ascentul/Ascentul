@@ -16,9 +16,12 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from 'convex/react';
 import { api } from 'convex/_generated/api';
+import { getErrorMessage } from '@/lib/errors';
 import { Save, Loader2, Check, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Id } from 'convex/_generated/dataModel';
+
+const DATETIME_LOCAL_FORMAT = 'yyyy-MM-dd\'T\'HH:mm';
 
 interface Session {
   _id: Id<'advisor_sessions'>;
@@ -49,7 +52,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   const [title, setTitle] = useState(session.title);
   const [sessionType, setSessionType] = useState(session.session_type);
   const [startAt, setStartAt] = useState(
-    format(new Date(session.start_at), 'yyyy-MM-dd\'T\'HH:mm')
+    format(new Date(session.start_at), DATETIME_LOCAL_FORMAT)
   );
   const [durationMinutes, setDurationMinutes] = useState(
     session.duration_minutes.toString()
@@ -74,7 +77,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
     const changed =
       title !== session.title ||
       sessionType !== session.session_type ||
-      startAt !== format(new Date(session.start_at), 'yyyy-MM-dd\'T\'HH:mm') ||
+      startAt !== format(new Date(session.start_at), DATETIME_LOCAL_FORMAT) ||
       durationMinutes !== session.duration_minutes.toString() ||
       location !== (session.location || '') ||
       meetingUrl !== (session.meeting_url || '') ||
@@ -126,9 +129,9 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
         session_type: sessionType,
         start_at: startTimestamp,
         duration_minutes: parsedDuration,
-        location: location || undefined,
-        meeting_url: meetingUrl || undefined,
-        notes: notes || undefined,
+        location: location.trim() || undefined,
+        meeting_url: meetingUrl.trim() || undefined,
+        notes: notes.trim() || undefined,
         visibility,
         status,
         version: currentVersion,
@@ -143,11 +146,12 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
       }
 
       return true;
-    } catch (error: any) {
-      setSaveError(error.message);
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      setSaveError(message);
       toast({
         title: 'Save failed',
-        description: error.message,
+        description: message,
         variant: 'destructive',
       });
       return false;

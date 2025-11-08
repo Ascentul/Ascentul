@@ -25,8 +25,10 @@ import { useMutation } from 'convex/react';
 import { api } from 'convex/_generated/api';
 import type { Id } from 'convex/_generated/dataModel';
 import { toast } from 'sonner';
-import { getNextStages, getStageLab, getStageColor } from '@/lib/advisor/stages';
+import { getNextStages, getStageLabel, getStageColor } from '@/lib/advisor/stages';
 import type { ApplicationStage } from '@/lib/advisor/stages';
+
+const TERMINAL_STAGES: ApplicationStage[] = ['Rejected', 'Withdrawn', 'Archived'];
 
 interface StageTransitionModalProps {
   isOpen: boolean;
@@ -39,7 +41,7 @@ interface StageTransitionModalProps {
     stage: string;
   };
   clerkId: string;
-  onSuccess?: () => void;
+  onSuccess?: (applicationId: string, newStage: string) => void;
 }
 
 export function StageTransitionModal({
@@ -59,8 +61,7 @@ export function StageTransitionModal({
   const nextStages = getNextStages(currentStage);
 
   // Determine if reason is required for the selected stage
-  const terminalStages: ApplicationStage[] = ['Rejected', 'Withdrawn', 'Archived'];
-  const reasonRequired = selectedStage && terminalStages.includes(selectedStage as ApplicationStage);
+  const reasonRequired = selectedStage && TERMINAL_STAGES.includes(selectedStage as ApplicationStage);
 
   const handleSubmit = async () => {
     if (!selectedStage) {
@@ -89,7 +90,7 @@ export function StageTransitionModal({
       setReason('');
 
       if (onSuccess) {
-        onSuccess();
+        onSuccess(application._id, selectedStage);
       }
 
       onClose();
@@ -135,7 +136,7 @@ export function StageTransitionModal({
             <Label>Current Stage</Label>
             <div>
               <Badge variant='secondary' className={getStageColor(currentStage)}>
-                {getStageLab(currentStage)}
+                {getStageLabel(currentStage)}
               </Badge>
             </div>
           </div>
@@ -157,7 +158,7 @@ export function StageTransitionModal({
                     <SelectItem key={stage} value={stage}>
                       <div className='flex items-center gap-2'>
                         <ArrowRight className='h-3 w-3 text-muted-foreground' />
-                        {getStageLab(stage)}
+                        {getStageLabel(stage)}
                       </div>
                     </SelectItem>
                   ))}

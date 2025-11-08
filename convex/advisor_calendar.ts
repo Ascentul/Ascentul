@@ -46,13 +46,19 @@ export const getSessionsInRange = query({
     // Enrich with student data
     // Optimize by fetching each unique student only once (reduces N database reads to 1 per unique student)
     const uniqueStudentIds = Array.from(new Set(sessions.map((s) => s.student_id)));
-    const studentsMap = new Map(
-      await Promise.all(
-        uniqueStudentIds.map(async (id) => {
-          const student = await ctx.db.get(id);
-          return [id, student] as const;
-        })
-      )
+
+    // Use allSettled to handle individual fetch failures gracefully (e.g., deleted students)
+    const studentFetchResults = await Promise.allSettled(
+      uniqueStudentIds.map(async (id) => {
+        const student = await ctx.db.get(id);
+        return [id, student] as const;
+      })
+    );
+
+    const studentsMap = new Map<string, any>(
+      studentFetchResults
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) => (result as PromiseFulfilledResult<any>).value)
     );
 
     const enrichedSessions = sessions.map((session) => {
@@ -108,13 +114,19 @@ export const getFollowUpsInRange = query({
     // Enrich with student names
     // Optimize by fetching each unique student only once (reduces N database reads to 1 per unique student)
     const uniqueStudentIds = Array.from(new Set(followUps.map((f) => f.student_id)));
-    const studentsMap = new Map(
-      await Promise.all(
-        uniqueStudentIds.map(async (id) => {
-          const student = await ctx.db.get(id);
-          return [id, student] as const;
-        })
-      )
+
+    // Use allSettled to handle individual fetch failures gracefully (e.g., deleted students)
+    const studentFetchResults = await Promise.allSettled(
+      uniqueStudentIds.map(async (id) => {
+        const student = await ctx.db.get(id);
+        return [id, student] as const;
+      })
+    );
+
+    const studentsMap = new Map<string, any>(
+      studentFetchResults
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) => (result as PromiseFulfilledResult<any>).value)
     );
 
     const enrichedFollowUps = followUps.map((followUp) => {

@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+import type { Doc, Id } from './_generated/dataModel';
 
 // Get all follow-ups for a specific contact
 export const getContactFollowups = query({
@@ -142,10 +143,10 @@ export const updateContactFollowup = mutation({
     const now = Date.now();
 
     // Build patch data with explicit typing for completion fields
-    type PatchData = Partial<typeof followup> & {
+    type PatchData = Partial<Doc<'follow_ups'>> & {
       updated_at: number;
-      completed_at?: number | undefined;
-      completed_by?: typeof user._id | undefined;
+      completed_at?: number;
+      completed_by?: Id<'users'>;
     };
 
     const patchData: PatchData = {

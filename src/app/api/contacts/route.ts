@@ -1,17 +1,15 @@
 import { NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server';
 
 // GET /api/contacts - list current user's contacts
 export async function GET(request: Request) {
   const { userId } = getAuth(request as any)
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-  const client = new ConvexHttpClient(url)
+
   try {
-    const contacts = await client.query(api.contacts.getUserContacts, { clerkId: userId })
+    const contacts = await convexServer.query(api.contacts.getUserContacts, { clerkId: userId })
     return NextResponse.json({ contacts })
   } catch (e: any) {
     console.error('GET /api/contacts error', e)
@@ -23,14 +21,17 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const { userId } = getAuth(request as any)
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-  const client = new ConvexHttpClient(url)
 
-  const body = await request.json().catch(() => ({} as any))
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
   const name: string = body.full_name ?? body.name ?? 'Unnamed'
   try {
-    const contact = await client.mutation(api.contacts.createContact, {
+    const contact = await convexServer.mutation(api.contacts.createContact, {
       clerkId: userId,
       name,
       company: body.company ?? undefined,

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import { checkPremiumAccess } from '@/lib/subscription-server'
+import { convexServer } from '@/lib/convex-server';
 
 export const runtime = 'nodejs'
 
@@ -764,17 +764,13 @@ export async function POST(request: NextRequest) {
 
       if (!hasPremium) {
         // User is on free plan, check limit
-        const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-        if (convexUrl) {
-          const convexClient = new ConvexHttpClient(convexUrl)
-          const existingPaths = await convexClient.query(api.career_paths.getUserCareerPaths, { clerkId: userId })
+        const existingPaths = await convexServer.query(api.career_paths.getUserCareerPaths, { clerkId: userId })
 
-          if (existingPaths && existingPaths.length >= 1) {
-            return NextResponse.json(
-              { error: 'Free plan limit reached. Upgrade to Premium for unlimited career paths.' },
-              { status: 403 }
-            )
-          }
+        if (existingPaths && existingPaths.length >= 1) {
+          return NextResponse.json(
+            { error: 'Free plan limit reached. Upgrade to Premium for unlimited career paths.' },
+            { status: 403 }
+          )
         }
       }
     } catch (limitCheckError) {
@@ -843,24 +839,20 @@ export async function POST(request: NextRequest) {
             })
 
             try {
-              const url = process.env.NEXT_PUBLIC_CONVEX_URL
-              if (url) {
-                const clientCv = new ConvexHttpClient(url)
-                const mainPath = sanitizedPaths[0]
-                await clientCv.mutation(api.career_paths.createCareerPath, {
-                  clerkId: userId,
-                  target_role: String(mainPath?.name || targetRole),
-                  current_level: undefined,
-                  estimated_timeframe: undefined,
-                  steps: {
-                    source: 'profile',
-                    path: mainPath,
-                    usedModel: model,
-                    promptVariant: variant,
-                  },
-                  status: 'active',
-                })
-              }
+              const mainPath = sanitizedPaths[0]
+              await convexServer.mutation(api.career_paths.createCareerPath, {
+                clerkId: userId,
+                target_role: String(mainPath?.name || targetRole),
+                current_level: undefined,
+                estimated_timeframe: undefined,
+                steps: {
+                  source: 'profile',
+                  path: mainPath,
+                  usedModel: model,
+                  promptVariant: variant,
+                },
+                status: 'active',
+              })
             } catch (convexError) {
               console.warn('CareerPath profile persistence failed', convexError)
             }
@@ -887,18 +879,14 @@ export async function POST(request: NextRequest) {
 
     const guidancePath = buildGuidancePath(profileData, fallbackDomain, targetRole)
     try {
-      const url = process.env.NEXT_PUBLIC_CONVEX_URL
-      if (url) {
-        const clientCv = new ConvexHttpClient(url)
-        await clientCv.mutation(api.career_paths.createCareerPath, {
-          clerkId: userId,
-          target_role: String(guidancePath?.name || targetRole),
-          current_level: undefined,
-          estimated_timeframe: undefined,
-          steps: { source: 'profile', path: guidancePath, usedModel: 'profile-guidance' },
-          status: 'active',
-        })
-      }
+      await convexServer.mutation(api.career_paths.createCareerPath, {
+        clerkId: userId,
+        target_role: String(guidancePath?.name || targetRole),
+        current_level: undefined,
+        estimated_timeframe: undefined,
+        steps: { source: 'profile', path: guidancePath, usedModel: 'profile-guidance' },
+        status: 'active',
+      })
     } catch (persistenceError) {
       console.warn('CareerPath guidance persistence failed', persistenceError)
     }

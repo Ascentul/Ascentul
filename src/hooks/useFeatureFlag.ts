@@ -5,8 +5,8 @@
  * Uses Convex's built-in caching and reactivity
  */
 
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 /**
  * Check if a single feature flag is enabled
@@ -29,29 +29,37 @@ export function useFeatureFlag(flag: string): boolean | undefined {
  * Check multiple feature flags at once
  *
  * @param flags - Array of feature flag keys
- * @returns Object mapping flag keys to boolean values (guaranteed to include all requested flags)
+ * @returns Object mapping flag keys to boolean values, or undefined if loading
  *
  * @example
  * const flags = useFeatureFlags(["advisor.dashboard", "advisor.students"]);
- * if (flags["advisor.dashboard"]) {
+ * if (flags?.["advisor.dashboard"]) {
  *   // Show dashboard
  * }
  */
-export function useFeatureFlags(flags: string[]): Record<string, boolean> {
+export function useFeatureFlags(flags: string[]): Record<string, boolean> | undefined {
   const result = useQuery(api.feature_flags.getFeatureFlags, { flags });
-  // Create defaults map with all flags set to false (optimized with Object.fromEntries)
+  if (!result) return undefined;
+  // Create defaults map to ensure all requested flags are present
   const defaults = Object.fromEntries(flags.map(flag => [flag, false]));
-  // Merge result with defaults to ensure all flags are present
-  return result ? { ...defaults, ...result } : defaults;
+  if (process.env.NODE_ENV === 'development') {
+    const missingFlags = flags.filter(flag => !(flag in result));
+    if (missingFlags.length > 0) {
+      console.warn('Feature flags not found in API response:', missingFlags);
+    }
+  }
+  return { ...defaults, ...result };
 }
 
 /**
  * Advisor feature flags bundle
  * Optimized hook for all advisor-related flags
  *
+ * @returns Object with advisor feature flags, or undefined if loading
+ *
  * @example
  * const advisorFlags = useAdvisorFeatureFlags();
- * if (advisorFlags.dashboard) {
+ * if (advisorFlags?.dashboard) {
  *   // Show advisor dashboard
  * }
  */
@@ -66,7 +74,8 @@ export function useAdvisorFeatureFlags() {
     "advisor.support",
   ]);
 
-  // No need for ?? false since useFeatureFlags guarantees all flags are present
+  if (!flags) return undefined;
+
   return {
     dashboard: flags["advisor.dashboard"],
     students: flags["advisor.students"],

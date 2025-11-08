@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server';
 
 export const runtime = 'nodejs'
 
@@ -14,11 +14,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const name = String(body?.name || '').trim()
     if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 })
 
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-
-    const client = new ConvexHttpClient(url)
-    await client.mutation(api.career_paths.updateCareerPathName, { clerkId: userId, id: params.id as any, name })
+    await convexServer.mutation(api.career_paths.updateCareerPathName, { 
+      clerkId: userId, 
+      id: params.id, 
+      name 
+    })
 
     return NextResponse.json({ ok: true })
   } catch (error: any) {

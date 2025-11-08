@@ -1,25 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import OpenAI from 'openai'
+import { convexServer } from '@/lib/convex-server';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { userId } = getAuth(request)
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const client = getClient()
-
     const body = await request.json()
     const { jobDescription, companyName, position } = body as {
       jobDescription?: string
@@ -39,21 +31,21 @@ export async function POST(request: NextRequest) {
     let applications: any[] = []
 
     try {
-      profile = await client.query(api.users.getUserByClerkId, { clerkId: userId })
+      profile = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
     } catch (error) {
       console.error('Failed to load career profile for letter generation', error)
     }
 
     // Fetch user's projects to demonstrate accomplishments
     try {
-      projects = await client.query(api.projects.getUserProjects, { clerkId: userId }) || []
+      projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }) || []
     } catch (error) {
       console.error('Failed to load projects for letter generation', error)
     }
 
     // Fetch recent applications to understand career trajectory
     try {
-      applications = await client.query(api.applications.getUserApplications, { clerkId: userId }) || []
+      applications = await convexServer.query(api.applications.getUserApplications, { clerkId: userId }) || []
       // Get the 5 most recent applications
       applications = applications.slice(0, 5)
     } catch (error) {
@@ -245,7 +237,7 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
     let coverLetter: any = null
     let saveWarning: string | undefined
     try {
-      coverLetter = await client.mutation(api.cover_letters.createCoverLetter, {
+      coverLetter = await convexServer.mutation(api.cover_letters.createCoverLetter, {
         clerkId: userId,
         name: `Cover Letter - ${companyName} ${position}`,
         job_title: String(position),

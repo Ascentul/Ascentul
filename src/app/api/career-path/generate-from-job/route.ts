@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import { checkPremiumAccess } from '@/lib/subscription-server'
+import { convexServer } from '@/lib/convex-server';
 import {
   GenerateCareerPathInputSchema,
   OpenAICareerPathOutputSchema,
@@ -1732,11 +1732,10 @@ const selectTemplate = (jobTitle: string): CareerPathTemplate => {
 }
 
 const fetchUserProfile = async (clerkId: string) => {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  
   if (!url) return null
   try {
-    const client = new ConvexHttpClient(url)
-    const user = await client.query(api.users.getUserByClerkId, { clerkId })
+        const user = await convexServer.query(api.users.getUserByClerkId, { clerkId })
     return user
   } catch (error) {
     console.warn('CareerPath failed to fetch user profile', error)
@@ -2258,11 +2257,10 @@ const persistCareerPathToConvex = async (
   }
 ): Promise<void> => {
   try {
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
+    
     if (!url) return
 
-    const clientCv = new ConvexHttpClient(url)
-    await clientCv.mutation(api.career_paths.createCareerPath, {
+    await convexServer.mutation(api.career_paths.createCareerPath, {
       clerkId: userId,
       target_role: targetRole,
       current_level: undefined,
@@ -2283,7 +2281,6 @@ const persistCareerPathToConvex = async (
     })
   }
 }
-
 
 export async function POST(request: NextRequest) {
   const timer = startTimer('career_path_generation_total')
@@ -2327,17 +2324,13 @@ export async function POST(request: NextRequest) {
 
         if (!hasPremium) {
           // User is on free plan, check limit (production only)
-          const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-          if (convexUrl) {
-            const convexClient = new ConvexHttpClient(convexUrl)
-            const existingPaths = await convexClient.query(api.career_paths.getUserCareerPaths, { clerkId: userId })
+          const existingPaths = await convexServer.query(api.career_paths.getUserCareerPaths, { clerkId: userId })
 
-            if (existingPaths && existingPaths.length >= 1) {
-              return NextResponse.json(
-                { error: 'Free plan limit reached. Upgrade to Premium for unlimited career paths.' },
-                { status: 403 }
-              )
-            }
+          if (existingPaths && existingPaths.length >= 1) {
+            return NextResponse.json(
+              { error: 'Free plan limit reached. Upgrade to Premium for unlimited career paths.' },
+              { status: 403 }
+            )
           }
         }
       } catch (limitCheckError) {

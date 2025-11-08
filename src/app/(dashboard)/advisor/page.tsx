@@ -1,25 +1,21 @@
-"use client";
+'use client';
 
-import { AdvisorGate } from "@/components/advisor/AdvisorGate";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ActivityChart } from "@/components/advisor/analytics/ActivityChart";
-import { UpcomingItems } from "@/components/advisor/analytics/UpcomingItems";
-import { ReviewQueueSnapshot } from "@/components/advisor/analytics/ReviewQueueSnapshot";
-import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ActivityChart } from '@/components/advisor/analytics/ActivityChart';
+import { UpcomingItems } from '@/components/advisor/analytics/UpcomingItems';
+import { ReviewQueueSnapshot } from '@/components/advisor/analytics/ReviewQueueSnapshot';
+import { useUser } from '@clerk/nextjs';
+import { useQuery } from 'convex/react';
+import { api } from 'convex/_generated/api';
 import {
   LayoutDashboard,
   Users,
   Calendar,
   FileEdit,
-  ClipboardList,
   TrendingUp,
   AlertCircle,
-  Clock,
-  CheckCircle2,
-} from "lucide-react";
-import { format } from "date-fns";
+} from 'lucide-react';
 
 export default function AdvisorDashboardPage() {
   const { user } = useUser();
@@ -45,6 +41,9 @@ export default function AdvisorDashboardPage() {
     api.advisor_dashboard.getReviewQueueSnapshot,
     clerkId ? { clerkId } : "skip"
   );
+
+  // Loading state is handled by checking for undefined
+  // Convex queries return undefined while loading, never null
 
   return (
     <AdvisorGate>

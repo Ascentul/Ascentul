@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { FileText, FileEdit, Clock, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
@@ -12,7 +12,7 @@ interface Review {
   student_id: string;
   student_name: string;
   asset_type: string;
-  asset_id: string;
+  asset_id?: string;
   status: string;
   submitted_at: number;
 }
@@ -36,7 +36,6 @@ export function ReviewQueueSnapshot({ reviews, isLoading }: ReviewQueueSnapshotP
         <CardContent className='h-[300px] flex items-center justify-center' aria-live='polite' aria-busy='true'>
           <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary' role='status' aria-label='Loading pending reviews'></div>
         </CardContent>
-        </CardContent>
       </Card>
     );
   }
@@ -47,7 +46,7 @@ export function ReviewQueueSnapshot({ reviews, isLoading }: ReviewQueueSnapshotP
         <CardTitle className='flex items-center gap-2'>
           <FileEdit className='h-5 w-5' />
           Pending Reviews
-          {reviews && reviews.length > 0 && (
+          {reviews.length > 0 && (
             <Badge variant='secondary' className='ml-2'>
               {reviews.length}
             </Badge>
@@ -55,19 +54,28 @@ export function ReviewQueueSnapshot({ reviews, isLoading }: ReviewQueueSnapshotP
         </CardTitle>
         <CardDescription>Documents waiting for your review</CardDescription>
       </CardHeader>
+      <CardContent>
         {reviews.length === 0 ? (
           <div className='text-center py-12 text-sm text-muted-foreground'>
             <FileEdit className='h-12 w-12 mx-auto mb-3 opacity-50' aria-hidden='true' />
             <p>No pending reviews</p>
             <p className='text-xs mt-1'>All caught up!</p>
           </div>
-          </div>
         ) : (
           <div className='space-y-3 max-h-[400px] overflow-y-auto'>
             {reviews.map((review) => {
-              const timeAgo = formatDistanceToNow(new Date(review.submitted_at), {
-                addSuffix: true,
-              });
+              const submittedDate = new Date(review.submitted_at);
+
+              // Validate date timestamp and provide fallback
+              let timeAgo: string;
+              if (isNaN(submittedDate.getTime())) {
+                console.error(`Invalid submitted_at timestamp for review ${review._id}:`, review.submitted_at);
+                timeAgo = 'at unknown time';
+              } else {
+                timeAgo = formatDistanceToNow(submittedDate, {
+                  addSuffix: true,
+                });
+              }
 
               return (
                 <div key={review._id} className='p-3 border rounded-lg hover:bg-muted/50 space-y-2'>
@@ -95,12 +103,11 @@ export function ReviewQueueSnapshot({ reviews, isLoading }: ReviewQueueSnapshotP
                       </div>
                     </div>
                   </div>
-                  <Link 
+                  <Link
                     href={`/advisor/advising/reviews/${review._id}`}
-                    className='inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 w-full'
+                    className={buttonVariants({ variant: 'outline', className: 'w-full', })}
                   >
                     Start Review
-                  </Link>
                   </Link>
                 </div>
               );
@@ -108,12 +115,13 @@ export function ReviewQueueSnapshot({ reviews, isLoading }: ReviewQueueSnapshotP
           </div>
         )}
 
-        {reviews && reviews.length > 0 && (
+        {reviews.length > 0 && (
           <div className='mt-4 pt-4 border-t'>
-            <Link href='/advisor/advising/reviews'>
-              <Button variant='outline' size='sm' className='w-full'>
-                View All Reviews
-              </Button>
+            <Link
+              href='/advisor/advising/reviews'
+              className={buttonVariants({ variant: 'outline', className: 'w-full', })}
+            >
+              View All Reviews
             </Link>
           </div>
         )}

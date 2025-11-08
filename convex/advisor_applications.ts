@@ -7,23 +7,23 @@
  * - Application pipeline views (Kanban, table)
  */
 
-import { query, mutation, QueryCtx } from "./_generated/server";
-import { v } from "convex/values";
-import { Doc, Id } from "./_generated/dataModel";
+import { query, mutation, QueryCtx } from './_generated/server';
+import { v } from 'convex/values';
+import { Doc, Id } from './_generated/dataModel';
 import {
   getCurrentUser,
   requireAdvisorRole,
   requireTenant,
   getOwnedStudentIds,
-} from "./advisor_auth";
-import { ALL_STAGES, ACTIVE_STAGES, STAGE_TRANSITIONS } from "./advisor_constants";
+} from './advisor_auth';
+import { ALL_STAGES, ACTIVE_STAGES, STAGE_TRANSITIONS, TERMINAL_STAGES } from './advisor_constants';
 
 /**
  * Enriched application with student information
  */
 type EnrichedApplication = {
-  _id: Id<"applications">;
-  user_id: Id<"users">;
+  _id: Id<'applications'>;
+  user_id: Id<'users'>;
   student_name: string;
   student_email: string;
   company_name: string;
@@ -58,8 +58,8 @@ async function fetchApplicationsForStudents(
   const applicationsByStudent = await Promise.all(
     studentIds.map((studentId) =>
       ctx.db
-        .query("applications")
-        .withIndex("by_user", (q) => q.eq("user_id", studentId))
+        .query('applications')
+        .withIndex('by_user', (q) => q.eq('user_id', studentId))
         .collect()
     )
   );
@@ -75,7 +75,7 @@ export const getApplicationsForCaseload = query({
   args: {
     clerkId: v.string(),
     stage: v.optional(v.string()),
-    studentId: v.optional(v.id("users")),
+    studentId: v.optional(v.id('users')),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -243,12 +243,12 @@ export const getApplicationStats = query({
 
     // Count by stage
     const active = allApplications.filter((app) =>
-      ACTIVE_STAGES.includes(app.stage || "Prospect"),
+      ACTIVE_STAGES.includes(app.stage || 'Prospect'),
     ).length;
 
-    const offers = allApplications.filter((app) => app.stage === "Offer").length;
-    const accepted = allApplications.filter((app) => app.stage === "Accepted").length;
-    const rejected = allApplications.filter((app) => app.stage === "Rejected").length;
+    const offers = allApplications.filter((app) => app.stage === 'Offer').length;
+    const accepted = allApplications.filter((app) => app.stage === 'Accepted').length;
+    const rejected = allApplications.filter((app) => app.stage === 'Rejected').length;
 
     // Count students with applications
     const studentsWithApps = new Set(allApplications.map((app) => app.user_id.toString()));
@@ -282,7 +282,7 @@ export const getApplicationStats = query({
 export const getApplicationById = query({
   args: {
     clerkId: v.string(),
-    applicationId: v.id("applications"),
+    applicationId: v.id('applications'),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -291,13 +291,13 @@ export const getApplicationById = query({
 
     const application = await ctx.db.get(args.applicationId);
     if (!application) {
-      throw new Error("Application not found");
+      throw new Error('Application not found');
     }
 
     // Verify advisor owns this student
     const studentIds = await getOwnedStudentIds(ctx, sessionCtx);
     if (!studentIds.some((id) => id === application.user_id)) {
-      throw new Error("Unauthorized: Not your student's application");
+      throw new Error('Unauthorized: Not your student\'s application');
     }
 
     // Enrich with student data
@@ -305,11 +305,19 @@ export const getApplicationById = query({
 
     return {
       ...application,
-      student_name: student?.name || "Unknown",
-      student_email: student?.email || "",
+      student_name: student?.name || 'Unknown',
+      student_email: student?.email || '',
     };
   },
 });
+
+/**
+ * Convex validator for ApplicationStage
+ * Generated from ALL_STAGES constant to maintain single source of truth
+ */
+const applicationStageValidator = v.union(
+  ...ALL_STAGES.map((stage) => v.literal(stage))
+);
 
 /**
  * Update application stage (with transition validation)
@@ -317,17 +325,8 @@ export const getApplicationById = query({
 export const updateApplicationStage = mutation({
   args: {
     clerkId: v.string(),
-    applicationId: v.id("applications"),
-    newStage: v.union(
-      v.literal("Prospect"),
-      v.literal("Applied"),
-      v.literal("Interview"),
-      v.literal("Offer"),
-      v.literal("Accepted"),
-      v.literal("Rejected"),
-      v.literal("Withdrawn"),
-      v.literal("Archived"),
-    ),
+    applicationId: v.id('applications'),
+    newStage: applicationStageValidator,
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -337,16 +336,16 @@ export const updateApplicationStage = mutation({
 
     const application = await ctx.db.get(args.applicationId);
     if (!application) {
-      throw new Error("Application not found");
+      throw new Error('Application not found');
     }
 
     // Verify advisor owns this student
     const studentIds = await getOwnedStudentIds(ctx, sessionCtx);
     if (!studentIds.some((id) => id === application.user_id)) {
-      throw new Error("Unauthorized: Not your student's application");
+      throw new Error('Unauthorized: Not your student\'s application');
     }
 
-    const currentStage = application.stage || "Prospect";
+    const currentStage = application.stage || 'Prospect';
     const newStage = args.newStage;
 
     // Validate transition using stage logic
@@ -358,8 +357,7 @@ export const updateApplicationStage = mutation({
     }
 
     // Require notes for terminal states
-    const terminalStates = ["Rejected", "Withdrawn", "Archived"];
-    if (terminalStates.includes(newStage) && !args.notes) {
+    if (TERMINAL_STAGES.includes(newStage) && !args.notes) {
       throw new Error(
         `Notes required when moving to ${newStage} state`,
       );
@@ -376,8 +374,8 @@ export const updateApplicationStage = mutation({
 
     // Append notes if provided
     if (args.notes) {
-      const currentNotes = application.notes || "";
-      const timestamp = new Date(now).toISOString().split("T")[0];
+      const currentNotes = application.notes || '';
+      const timestamp = new Date(now).toISOString().split('T')[0];
       const newNoteEntry = `[${timestamp}] Stage changed to ${newStage}: ${args.notes}`;
 
       updates.notes = currentNotes

@@ -93,7 +93,7 @@ export const setupAdvisorTestData = internalMutation({
         role: "student",
         subscription_plan: "university",
         subscription_status: "active",
-        major: student === student1 ? "Computer Science" : "Business Administration",
+        major: student.email === "test.student1@ascentful.io" ? "Computer Science" : "Business Administration",
         graduation_year: "2025",
         updated_at: now,
       });

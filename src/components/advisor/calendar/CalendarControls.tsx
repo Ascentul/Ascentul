@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfWeek } from "date-fns";
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, startOfWeek } from 'date-fns';
 
-type ViewMode = "day" | "week" | "month";
+type ViewMode = 'day' | 'week' | 'month';
 
 interface CalendarControlsProps {
   currentDate: Date;
@@ -12,7 +12,7 @@ interface CalendarControlsProps {
   onPrevious: () => void;
   onNext: () => void;
   onToday: () => void;
-  onViewModeChange: (mode: ViewMode) => void;
+  onViewModeChange: (mode: ViewMode) => void,
 }
 
 export function CalendarControls({
@@ -24,12 +24,12 @@ export function CalendarControls({
   onViewModeChange,
 }: CalendarControlsProps) {
   const getDateDisplay = () => {
-    if (viewMode === "month") {
-      return format(currentDate, "MMMM yyyy");
-    } else if (viewMode === "week") {
-      return `Week of ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), "MMM d, yyyy")}`;
+    if (viewMode === 'month') {
+      return format(currentDate, 'MMMM yyyy');
+    } else if (viewMode === 'week') {
+      return `Week of ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM d, yyyy')}`;
     } else {
-      return format(currentDate, "EEEE, MMMM d, yyyy");
+      return format(currentDate, 'EEEE, MMMM d, yyyy');
     }
   };
 
@@ -50,23 +50,23 @@ export function CalendarControls({
 
       <div className="flex items-center gap-2">
         <Button
-          variant={viewMode === "day" ? "default" : "outline"}
+          variant={viewMode === 'day' ? 'default' : 'outline'}
           size="sm"
-          onClick={() => onViewModeChange("day")}
+          onClick={() => onViewModeChange('day')}
         >
           Day
         </Button>
         <Button
-          variant={viewMode === "week" ? "default" : "outline"}
+          variant={viewMode === 'week' ? 'default' : 'outline'}
           size="sm"
-          onClick={() => onViewModeChange("week")}
+          onClick={() => onViewModeChange('week')}
         >
           Week
         </Button>
         <Button
-          variant={viewMode === "month" ? "default" : "outline"}
+          variant={viewMode === 'month' ? 'default' : 'outline'}
           size="sm"
-          onClick={() => onViewModeChange("month")}
+          onClick={() => onViewModeChange('month')}
         >
           Month
         </Button>

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
+import { convexServer } from '@/lib/convex-server';
 
 async function findClerkUserIdByEmail(email: string, clerkSecret?: string): Promise<string | null> {
   try {
@@ -21,9 +22,8 @@ async function findClerkUserIdByEmail(email: string, clerkSecret?: string): Prom
   }
 }
 
-async function upgradeToPremiumByClerkId(convexUrl: string, clerkId: string) {
-  const client = new ConvexHttpClient(convexUrl)
-  return client.mutation(api.users.updateUser, {
+async function upgradeToPremiumByClerkId(clerkId: string) {
+  return convexServer.mutation(api.users.updateUser, {
     clerkId,
     updates: {
       subscription_plan: 'premium',
@@ -32,10 +32,9 @@ async function upgradeToPremiumByClerkId(convexUrl: string, clerkId: string) {
   })
 }
 
-async function upgradeToPremiumByConvexId(convexUrl: string, id: string) {
-  const client = new ConvexHttpClient(convexUrl)
-  return client.mutation(api.users.updateUserById, {
-    id: id as any,
+async function upgradeToPremiumByConvexId(id: Id<'users'>) {
+  return convexServer.mutation(api.users.updateUserById, {
+    id,
     updates: {
       subscription_plan: 'premium',
       subscription_status: 'active',
@@ -50,8 +49,18 @@ export async function GET(request: NextRequest) {
     }
 
     const { userId } = getAuth(request)
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!convexUrl) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+
+    // Require authentication even in non-production
+    if (!userId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    // Verify admin/super_admin role for security
+    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
+    const userRole = user?.role
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
 
     const { searchParams } = new URL(request.url)
     const email = searchParams.get('email') || undefined
@@ -59,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     // If a Convex user document ID is provided, prefer it
     if (convexId) {
-      await upgradeToPremiumByConvexId(convexUrl, convexId)
+      await upgradeToPremiumByConvexId(convexId as Id<'users'>)
       return NextResponse.json({ success: true, convexId, plan: 'premium', status: 'active' }, { status: 200 })
     }
 
@@ -74,7 +83,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No target user found (sign in or provide ?email=)' }, { status: 400 })
     }
 
-    await upgradeToPremiumByClerkId(convexUrl, targetClerkId)
+    await upgradeToPremiumByClerkId(targetClerkId)
 
     return NextResponse.json({ success: true, clerkId: targetClerkId, plan: 'premium', status: 'active' }, { status: 200 })
   } catch (error) {
@@ -90,15 +99,25 @@ export async function POST(request: NextRequest) {
     }
 
     const { userId } = getAuth(request)
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!convexUrl) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+
+    // Require authentication even in non-production
+    if (!userId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    // Verify admin/super_admin role for security
+    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
+    const userRole = user?.role
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
 
     const body = await request.json().catch(() => ({})) as { email?: string, clerkId?: string, convexId?: string, id?: string }
 
     // Prefer explicit Convex user document ID if provided
     const providedConvexId = body.convexId || body.id
     if (providedConvexId) {
-      await upgradeToPremiumByConvexId(convexUrl, providedConvexId)
+      await upgradeToPremiumByConvexId(providedConvexId as Id<'users'>)
       return NextResponse.json({ success: true, convexId: providedConvexId, plan: 'premium', status: 'active' }, { status: 200 })
     }
 
@@ -115,7 +134,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No target user found (provide email/clerkId or sign in)' }, { status: 400 })
     }
 
-    await upgradeToPremiumByClerkId(convexUrl, targetClerkId)
+    await upgradeToPremiumByClerkId(targetClerkId)
 
     return NextResponse.json({ success: true, clerkId: targetClerkId, plan: 'premium', status: 'active' }, { status: 200 })
   } catch (error) {

@@ -21,7 +21,7 @@ interface Student {
     nextSession?: {
       id: string;
       scheduledAt?: number;
-      title: string;
+      title?: string;
     } | null;
     lastActivity: number;
   };
@@ -36,13 +36,13 @@ interface StudentsTableProps {
 const ROW_HEIGHT = 80;
 const VIEWPORT_HEIGHT = 520;
 const OVERSCAN = 6;
+const COLUMN_COUNT = 7;
 
 /**
  * Helper function to generate student status badge
  * Priority: At Risk > Has Offer > Active > Inactive
  */
-function getStatusBadge(student: Student) {
-  const activeApps = student.metadata?.activeApplicationsCount || 0;
+function getStatusBadge(student: Student, activeApps: number) {
   const isAtRisk = student.metadata?.isAtRisk || false;
   const hasOffer = student.metadata?.hasOffer || false;
 
@@ -152,7 +152,7 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
             style={{ maxHeight: VIEWPORT_HEIGHT }}
             onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
           >
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse" aria-rowcount={filteredStudents.length}>
               <caption className="sr-only">
                 Student caseload showing {filteredStudents.length} students with their major, graduation year, active applications, follow-ups, status, and profile links
               </caption>
@@ -184,7 +184,6 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
               <tbody
                 className="relative"
                 style={{ height: totalHeight || ROW_HEIGHT }}
-                aria-rowcount={filteredStudents.length}
               >
                 {/* Spacer row for offset before visible rows */}
                 {translateY > 0 && (
@@ -192,40 +191,14 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
                     style={{ height: translateY, visibility: 'hidden' }}
                     aria-hidden="true"
                   >
-                    <td colSpan={7}></td>
+                    <td colSpan={COLUMN_COUNT}></td>
                   </tr>
                 )}
 
                 {visibleStudents.map((student, index) => {
                             const activeApps =
                               student.metadata?.activeApplicationsCount || 0;
-                            const isAtRisk = student.metadata?.isAtRisk || false;
-                            const hasOffer = student.metadata?.hasOffer || false;
-
-                            // Helper function for clearer status badge logic
-                            const getStatusBadge = () => {
-                              if (isAtRisk) {
-                                return (
-                                  <Badge variant="destructive" className="gap-1">
-                                    <AlertCircle className="h-3 w-3" />
-                                    At Risk
-                                  </Badge>
-                                );
-                              }
-                              if (hasOffer) {
-                                return (
-                                  <Badge variant="default" className="bg-emerald-600">
-                                    Offer
-                                  </Badge>
-                                );
-                              }
-                              if (activeApps > 0) {
-                                return <Badge variant="secondary">Active</Badge>;
-                              }
-                              return <Badge variant="outline">Inactive</Badge>;
-                            };
-
-                            const statusBadge = getStatusBadge();
+                            const statusBadge = getStatusBadge(student, activeApps);
 
                   return (
                     <tr
@@ -298,7 +271,7 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
                     }}
                     aria-hidden="true"
                   >
-                    <td colSpan={7}></td>
+                    <td colSpan={COLUMN_COUNT}></td>
                   </tr>
                 )}
               </tbody>

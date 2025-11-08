@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server';
 
 export const dynamic = 'force-dynamic'
 
@@ -9,10 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const { userId } = getAuth(request)
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    const client = new ConvexHttpClient(url)
-    const projects = await client.query(api.projects.getUserProjects, { clerkId: userId })
+    const projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId })
     return NextResponse.json({ projects })
   } catch (error) {
     console.error('Error fetching projects:', error)
@@ -24,10 +21,6 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = getAuth(request)
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    const client = new ConvexHttpClient(url)
-
     const body = await request.json()
     const { title, description, technologies, github_url, live_url, image_url, role, start_date, end_date, company } = body
 
@@ -35,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
-    const projectId = await client.mutation(api.projects.createProject, {
+    const projectId = await convexServer.mutation(api.projects.createProject, {
       clerkId: userId,
       title: String(title),
       role: role ? String(role) : undefined,

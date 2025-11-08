@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
+import { getErrorMessage } from "@/lib/errors";
 import {
   Save,
   Loader2,
@@ -110,11 +111,12 @@ export function ReviewEditor({
       }
 
       return true;
-    } catch (error: any) {
-      setSaveError(error.message);
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      setSaveError(message);
       toast({
         title: "Save failed",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
       return false;
@@ -186,10 +188,11 @@ export function ReviewEditor({
       if (onSaveSuccess) {
         onSaveSuccess();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
       toast({
         title: "Claim failed",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     }
@@ -224,10 +227,11 @@ export function ReviewEditor({
       if (onCompleteSuccess) {
         onCompleteSuccess();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
       toast({
         title: "Complete failed",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {

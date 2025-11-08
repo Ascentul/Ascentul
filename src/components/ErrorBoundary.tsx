@@ -48,9 +48,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               <p className="text-muted-foreground">
                 An error occurred while loading this page. Please try refreshing or contact support if the problem persists.
               </p>
-              {this.state.error && (
+              {process.env.NODE_ENV === 'development' && this.state.error && (
                 <div className="bg-muted p-4 rounded-md text-sm">
-                  <p className="font-semibold mb-2">Error details:</p>
+                  <p className="font-semibold mb-2">Error details (dev only):</p>
                   <div className="p-2 bg-destructive/10 rounded text-xs font-mono overflow-auto">
                     {this.state.error.message}
                   </div>

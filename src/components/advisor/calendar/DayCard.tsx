@@ -1,11 +1,12 @@
-"use client";
+'use client';
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { format, isSameDay } from "date-fns";
-import { SessionItem } from "./SessionItem";
-import { FollowUpItem } from "./FollowUpItem";
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { format, isSameDay } from 'date-fns';
+import { SessionItem } from './SessionItem';
+import { FollowUpItem } from './FollowUpItem';
+import { cn } from '@/lib/utils';
 
 interface Session {
   _id: string;
@@ -36,15 +37,15 @@ interface DayCardProps {
   day: Date;
   sessions: Session[];
   followUps: FollowUp[];
-  now: number;
+  now: number,
 }
 
 export function DayCard({ day, sessions, followUps, now }: DayCardProps) {
-  const isToday = isSameDay(day, new Date());
+  const isToday = isSameDay(day, new Date(now));
 
   return (
-    <Card key={day.toISOString()} className={isToday ? "border-blue-500" : ""}>
-      <CardContent className="p-4">
+    <Card className={cn(isToday && 'border-blue-500')}>
+      <CardContent className='p-4'>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5 text-muted-foreground" />

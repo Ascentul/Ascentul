@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import OpenAI from 'openai'
+import { convexServer } from '@/lib/convex-server';
 
 export const runtime = 'nodejs'
 
@@ -10,18 +10,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const client = getClient()
-
     const body = await request.json()
     const { currentRole, targetRole, skills, experience, timeframe } = body
 
@@ -69,7 +61,8 @@ Format as a structured plan with clear steps and timelines.`
         temperature: 0.7,
       })
       generatedPath = completion.choices[0]?.message?.content || null
-    } catch {
+    } catch (error) {
+      console.error('OpenAI API call failed:', error)
       generatedPath = null
     }
 
@@ -80,10 +73,10 @@ Format as a structured plan with clear steps and timelines.`
     }
 
     // Save the generated career path with graceful degradation (Convex)
-    let careerPath: any = null
+    let careerPath: unknown = null
     let saveWarning: string | undefined
     try {
-      careerPath = await client.mutation(api.career_paths.createCareerPath, {
+      careerPath = await convexServer.mutation(api.career_paths.createCareerPath, {
         clerkId: userId,
         target_role: String(targetRole),
         current_level: undefined,

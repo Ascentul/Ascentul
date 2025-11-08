@@ -25,6 +25,8 @@ interface AdvisorGateProps {
   loadingFallback?: React.ReactNode;
 }
 
+const ALLOWED_ROLES = ["advisor", "university_admin", "super_admin",];
+
 export function AdvisorGate({
   children,
   requiredFlag = "advisor.dashboard",
@@ -37,7 +39,7 @@ export function AdvisorGate({
   const isFeatureEnabled = featureEnabled === true;
 
   const userRole = user?.publicMetadata?.role as string | undefined;
-  const allowedRoles = ["advisor", "university_admin", "super_admin"];
+  const isAuthorized = userRole && ALLOWED_ROLES.includes(userRole);
 
   useEffect(() => {
     if (!isLoaded || isFeatureLoading) return;
@@ -49,7 +51,7 @@ export function AdvisorGate({
     }
 
     // Check role authorization
-    if (!userRole || !allowedRoles.includes(userRole)) {
+    if (!isAuthorized) {
       // Redirect based on role
       if (userRole === "admin") {
         router.push("/admin");
@@ -71,6 +73,7 @@ export function AdvisorGate({
     isLoaded,
     user,
     userRole,
+    isAuthorized,
     isFeatureEnabled,
     isFeatureLoading,
     router,
@@ -90,10 +93,6 @@ export function AdvisorGate({
       )
     );
   }
-
-  // Check authorization
-  const allowedRoles = ["advisor", "university_admin", "super_admin"];
-  const isAuthorized = userRole && allowedRoles.includes(userRole);
 
   // Not authorized or feature disabled - render nothing (redirect in useEffect)
   if (!isAuthorized || !isFeatureEnabled) {

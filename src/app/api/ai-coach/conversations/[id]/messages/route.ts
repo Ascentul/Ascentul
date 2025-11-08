@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
 import OpenAI from 'openai'
+import { convexServer } from '@/lib/convex-server';
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 }) : null
-
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
 
 export async function GET(
   request: NextRequest,
@@ -23,11 +18,9 @@ export async function GET(
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const conversationId = params.id
-    const client = getClient()
-
-    const messages = await client.query(api.ai_coach.getMessages, {
+    const messages = await convexServer.query(api.ai_coach.getMessages, {
       clerkId: userId,
-      conversationId: conversationId as any
+      conversationId: conversationId as Id<'ai_coach_conversations'>
     })
 
     return NextResponse.json(messages)
@@ -53,24 +46,22 @@ export async function POST(
       return NextResponse.json({ error: 'Message content is required' }, { status: 400 })
     }
 
-    const client = getClient()
-
     // Get conversation history for context
-    const existingMessages = await client.query(api.ai_coach.getMessages, {
+    const existingMessages = await convexServer.query(api.ai_coach.getMessages, {
       clerkId: userId,
-      conversationId: conversationId as any
+      conversationId: conversationId as Id<'ai_coach_conversations'>
     })
 
     // Fetch user context data for personalized coaching
     let userContext = ''
     try {
       const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.all([
-        client.query(api.users.getUserByClerkId, { clerkId: userId }),
-        client.query(api.goals.getUserGoals, { clerkId: userId }),
-        client.query(api.applications.getUserApplications, { clerkId: userId }),
-        client.query(api.resumes.getUserResumes, { clerkId: userId }),
-        client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
-        client.query(api.projects.getUserProjects, { clerkId: userId })
+        convexServer.query(api.users.getUserByClerkId, { clerkId: userId }),
+        convexServer.query(api.goals.getUserGoals, { clerkId: userId }),
+        convexServer.query(api.applications.getUserApplications, { clerkId: userId }),
+        convexServer.query(api.resumes.getUserResumes, { clerkId: userId }),
+        convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
+        convexServer.query(api.projects.getUserProjects, { clerkId: userId })
       ])
 
       // Build user context summary
@@ -203,9 +194,9 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
     }
 
     // Save both messages to the database
-    const newMessages = await client.mutation(api.ai_coach.addMessages, {
+    const newMessages = await convexServer.mutation(api.ai_coach.addMessages, {
       clerkId: userId,
-      conversationId: conversationId as any,
+      conversationId: conversationId as Id<'ai_coach_conversations'>,
       userMessage: content,
       aiMessage: aiResponse
     })

@@ -12,6 +12,11 @@
 
 require('dotenv').config({ path: '.env.local' })
 
+// Polyfill fetch for Node < 18
+if (typeof fetch === 'undefined') {
+  global.fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args))
+}
+
 const CLERK_BASE_URL = 'https://api.clerk.com/v1'
 
 async function clerkRequest(path, { method = 'GET', body } = {}) {
@@ -95,6 +100,7 @@ async function main() {
 
   const PASSWORD = process.env.SEED_TEST_PASSWORD || 'V3ry$Strong!Pa55-2025#'
   const domain = process.env.SEED_TEST_DOMAIN || 'ascentful.io'
+  const testUniversityId = process.env.SEED_TEST_UNIVERSITY_ID || 'temp'
 
   console.log('\n🚀 Seeding Advisor Test User\n')
 
@@ -109,7 +115,7 @@ async function main() {
     firstName: 'Test',
     lastName: 'Advisor',
     role: 'advisor',
-    universityId: 'temp',
+    universityId: testUniversityId,
   })
 
   const student1 = await createOrUpdateClerkUser({
@@ -118,7 +124,7 @@ async function main() {
     firstName: 'Jane',
     lastName: 'Student',
     role: 'student',
-    universityId: 'temp',
+    universityId: testUniversityId,
   })
 
   const student2 = await createOrUpdateClerkUser({
@@ -127,7 +133,7 @@ async function main() {
     firstName: 'John',
     lastName: 'Student',
     role: 'student',
-    universityId: 'temp',
+    universityId: testUniversityId,
   })
 
   console.log('\n✅ Clerk users created/updated')
@@ -144,11 +150,6 @@ async function main() {
   console.log('   - Create/find a test university')
   console.log('   - Update user records with university_id')
   console.log('   - Create student_advisors records linking students to advisor')
-}
-
-// Polyfill fetch for Node < 18
-if (typeof fetch === 'undefined') {
-  global.fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args))
 }
 
 main().catch(err => {

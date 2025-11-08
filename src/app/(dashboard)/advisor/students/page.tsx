@@ -9,14 +9,13 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useUser } from '@clerk/nextjs';
 import { useQuery } from 'convex/react';
 import { api } from 'convex/_generated/api';
-import { Users, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Users } from 'lucide-react';
 
-export default function AdvisorStudentsPage() {
+function AdvisorStudentsPageContent() {
   const { user } = useUser();
   const clerkId = user?.id;
 
-  // Fetch caseload data
+  // Fetch caseload data (errors are caught by ErrorBoundary wrapper)
   const caseloadData = useQuery(
     api.advisor_students.getMyCaseload,
     clerkId ? { clerkId } : 'skip'
@@ -87,63 +86,56 @@ export default function AdvisorStudentsPage() {
     setSelectedStatus('all');
   };
 
-  // Handle query error state (null indicates error)
-  const hasError = caseloadData === null;
+  return (
+    <AdvisorGate requiredFlag='advisor.students'>
+      <div className='container mx-auto p-6 space-y-6'>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">My Students</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your student caseload
+            </p>
+          </div>
+        </div>
 
+        <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Student Caseload
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Filters */}
+          <StudentFilters
+            selectedMajor={selectedMajor}
+            selectedGradYear={selectedGradYear}
+            selectedStatus={selectedStatus}
+            onMajorChange={setSelectedMajor}
+            onGradYearChange={setSelectedGradYear}
+            onStatusChange={setSelectedStatus}
+            onClearFilters={handleClearFilters}
+            majors={majors}
+            gradYears={gradYears}
+            hasActiveFilters={hasActiveFilters}
+          />
+
+          {/* Table */}
+          <StudentsTable
+            students={filteredStudents}
+            isLoading={caseloadData === undefined}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  </AdvisorGate>
+  );
+}
+
+export default function AdvisorStudentsPage() {
   return (
     <ErrorBoundary>
-      <AdvisorGate requiredFlag='advisor.students'>
-        <div className='container mx-auto p-6 space-y-6'>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">My Students</h1>
-              <p className="text-muted-foreground mt-1">
-                Manage your student caseload
-              </p>
-            </div>
-          </div>
-
-          {hasError && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error Loading Data</AlertTitle>
-              <AlertDescription>
-                Failed to load student caseload data. Please try refreshing the page.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Student Caseload
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Filters */}
-            <StudentFilters
-              selectedMajor={selectedMajor}
-              selectedGradYear={selectedGradYear}
-              selectedStatus={selectedStatus}
-              onMajorChange={setSelectedMajor}
-              onGradYearChange={setSelectedGradYear}
-              onStatusChange={setSelectedStatus}
-              onClearFilters={handleClearFilters}
-              majors={majors}
-              gradYears={gradYears}
-              hasActiveFilters={hasActiveFilters}
-            />
-
-            {/* Table */}
-            <StudentsTable
-              students={filteredStudents}
-              isLoading={caseloadData === undefined}
-            />
-          </CardContent>
-        </Card>
-      </div>
-    </AdvisorGate>
+      <AdvisorStudentsPageContent />
     </ErrorBoundary>
   );
 }

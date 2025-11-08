@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
 import Stripe from 'stripe'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server';
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,16 +20,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: `${origin}/account?portal=mock` })
     }
 
-    const stripe = new Stripe(stripeSecret, { apiVersion: '2023-10-16' as any })
-
-    if (!convexUrl) {
-      console.error('Missing NEXT_PUBLIC_CONVEX_URL')
-      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
-    }
-    const convex = new ConvexHttpClient(convexUrl)
+    const stripe = new Stripe(stripeSecret, { apiVersion: '2025-10-29.clover' })
 
     // Fetch Convex user by Clerk ID
-    const user = await convex.query(api.users.getUserByClerkId, { clerkId: userId })
+    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
@@ -45,7 +38,7 @@ export async function POST(request: NextRequest) {
         metadata: { clerkId: user.clerkId },
       })
       customerId = customer.id
-      await convex.mutation(api.users.setStripeCustomer, { clerkId: user.clerkId, stripeCustomerId: customerId })
+      await convexServer.mutation(api.users.setStripeCustomer, { clerkId: user.clerkId, stripeCustomerId: customerId })
     }
 
     const session = await stripe.billingPortal.sessions.create({

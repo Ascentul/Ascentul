@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server';
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -96,20 +96,19 @@ export async function GET(request: NextRequest) {
     // Try to fetch user profile and projects from Convex, but gracefully degrade if unavailable
     let user: any = null
     let projects: any[] = []
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (url) {
+
+    try {
+      user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
+      // Fetch user's projects
       try {
-        const client = new ConvexHttpClient(url)
-        user = await client.query(api.users.getUserByClerkId, { clerkId: userId })
-        // Fetch user's projects
-        try {
-          projects = await client.query(api.projects.getUserProjects, { clerkId: userId }) || []
-        } catch {
-          // ignore; projects are optional
-        }
-      } catch {
-        // ignore; can still return a mock profile
+        projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }) || []
+      } catch (projectError) {
+        console.warn('Failed to fetch user projects:', projectError)
+        // projects are optional; continue with empty array
       }
+    } catch (userError) {
+      console.warn('Failed to fetch user profile:', userError)
+      // can still return a mock profile
     }
 
     // Build a comprehensive profile from actual user data

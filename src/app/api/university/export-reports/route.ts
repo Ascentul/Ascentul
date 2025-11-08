@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
+import { convexServer } from '@/lib/convex-server';
 
 export const dynamic = 'force-dynamic'
 
@@ -26,18 +26,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ClerkId mismatch' }, { status: 403 })
     }
 
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) {
-      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    }
 
-    // Initialize convex client with the URL
-    const convex = new ConvexHttpClient(url)
 
     // Get the current user to verify admin access
-    let user
-    try {
-      user = await convex.query(api.users.getUserByClerkId, { clerkId })
+
+      user = await convexServer.query(api.users.getUserByClerkId, { clerkId })
     } catch (error) {
       console.error('Error fetching user by clerkId:', error)
       return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 })
@@ -57,7 +50,7 @@ export async function POST(request: NextRequest) {
     // If university admin user doesn't have university_id, try to find university by admin_email
     if (!universityId && user.role === 'university_admin' && user.email) {
       try {
-        const universities = await convex.query(api.universities.getAllUniversities, {}) as any[];
+        const universities = await convexServer.query(api.universities.getAllUniversities, {}) as any[];
 
         // Find university where admin_email matches user's email
         const matchingUniversity = universities.find((uni: any) => uni.admin_email === user.email);
@@ -66,7 +59,7 @@ export async function POST(request: NextRequest) {
           universityId = matchingUniversity._id;
 
           // Update user's university_id for future requests
-          await convex.mutation(api.users.updateUser, {
+          await convexServer.mutation(api.users.updateUser, {
             clerkId,
             updates: { university_id: universityId }
           });
@@ -91,9 +84,9 @@ export async function POST(request: NextRequest) {
     let students, departments, overview
     try {
       [students, departments, overview] = await Promise.all([
-        convex.query(api.university_admin.listStudents, { clerkId, limit: 1000 }),
-        convex.query(api.university_admin.listDepartments, { clerkId }),
-        convex.query(api.university_admin.getOverview, { clerkId })
+        convexServer.query(api.university_admin.listStudents, { clerkId, limit: 1000 }),
+        convexServer.query(api.university_admin.listDepartments, { clerkId }),
+        convexServer.query(api.university_admin.getOverview, { clerkId })
       ])
     } catch (error) {
       console.error('Error fetching university data:', error)

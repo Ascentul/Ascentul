@@ -9,6 +9,13 @@ import { clerkClient } from '@clerk/clerk-sdk-node';
 
 async function setAdvisorRole(email: string) {
   try {
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.error('❌ Invalid email format');
+      process.exit(1);
+    }
+
     console.log(`\n🔍 Finding user...`);
 
     // Look up user by email address
@@ -26,7 +33,7 @@ async function setAdvisorRole(email: string) {
     // Update publicMetadata
     await clerkClient.users.updateUser(user.id, {
       publicMetadata: {
-        ...user.publicMetadata,
+        ...(user.publicMetadata || {}),
         role: 'advisor',
       },
     });
@@ -46,7 +53,8 @@ async function setAdvisorRole(email: string) {
       error &&
       typeof error === 'object' &&
       'status' in error &&
-      error.status === 401
+      typeof (error as { status?: unknown }).status === 'number' &&
+      (error as { status: number }).status === 401
     ) {
       console.log('\nPlease ensure CLERK_SECRET_KEY is set in your .env.local file');
     }

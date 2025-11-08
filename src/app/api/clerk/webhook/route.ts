@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Webhook } from 'svix'
 import { clerkClient } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server';
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
 
 /**
  * Clerk Webhook Handler
@@ -36,11 +35,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, warning: 'no_secret' })
     }
 
-    if (!convexUrl) {
-      console.error('[Clerk Webhook] Missing NEXT_PUBLIC_CONVEX_URL')
-      return NextResponse.json({ error: 'Missing Convex URL' }, { status: 500 })
-    }
-
     // Verify webhook signature
     const wh = new Webhook(webhookSecret)
     let event: any
@@ -51,8 +45,6 @@ export async function POST(request: NextRequest) {
       console.error('[Clerk Webhook] Verification failed:', err)
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
-
-    const convex = new ConvexHttpClient(convexUrl)
     const eventType = event.type
     const userData = event.data
 
@@ -68,7 +60,7 @@ export async function POST(request: NextRequest) {
         const userEmail = userData.email_addresses?.[0]?.email_address || ''
 
         // Create/activate user in Convex
-        const userId = await convex.mutation(api.users.createUserFromClerk, {
+        const userId = await convexServer.mutation(api.users.createUserFromClerk, {
           clerkId: userData.id,
           email: userEmail,
           name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'User',
@@ -81,7 +73,7 @@ export async function POST(request: NextRequest) {
 
         // Check if this user was a pending university student
         // If so, sync university_id to Clerk metadata
-        const convexUser = await convex.query(api.users.getUserByClerkId, {
+        const convexUser = await convexServer.query(api.users.getUserByClerkId, {
           clerkId: userData.id,
         })
 
@@ -110,7 +102,7 @@ export async function POST(request: NextRequest) {
         const subscriptionPlan = determineSubscriptionPlan(metadata)
         const subscriptionStatus = determineSubscriptionStatus(metadata)
 
-        await convex.mutation(api.users.updateUser, {
+        await convexServer.mutation(api.users.updateUser, {
           clerkId: userData.id,
           updates: {
             email: userData.email_addresses?.[0]?.email_address,

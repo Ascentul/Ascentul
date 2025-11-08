@@ -17,6 +17,27 @@ import {
 } from './advisor_auth';
 
 /**
+ * Type for resume content details
+ */
+type ResumeContent = {
+  title: string;
+  content: string;
+  created_at: number;
+  updated_at: number;
+};
+
+/**
+ * Type for cover letter content details
+ */
+type CoverLetterContent = {
+  company_name: string | undefined;
+  job_title: string | undefined;
+  content: string;
+  created_at: number;
+  updated_at: number;
+};
+
+/**
  * Helper: Get asset name and optionally its content
  */
 async function getAssetDetails(
@@ -28,13 +49,13 @@ async function getAssetDetails(
 ): Promise<{
   name: string;
   id: Id<"resumes"> | Id<"cover_letters"> | null;
-  content: any;
+  content: ResumeContent | CoverLetterContent | null;
 }> {
-  if (assetType === "resume" && resumeId) {
+  if (assetType === 'resume' && resumeId) {
     const resume = await ctx.db.get(resumeId);
     if (resume) {
       return {
-        name: resume.title || "Untitled Resume",
+        name: resume.title || 'Untitled Resume',
         id: resumeId,
         content: includeContent
           ? {
@@ -46,13 +67,14 @@ async function getAssetDetails(
           : null,
       };
     }
-  } else if (assetType === "cover_letter" && coverLetterId) {
+    console.warn(`Resume ${resumeId} not found for asset_type=${assetType}`);
+  } else if (assetType === 'cover_letter' && coverLetterId) {
     const coverLetter = await ctx.db.get(coverLetterId);
     if (coverLetter) {
       return {
         name: coverLetter.company_name
           ? `Cover Letter for ${coverLetter.company_name}`
-          : "Untitled Cover Letter",
+          : 'Untitled Cover Letter',
         id: coverLetterId,
         content: includeContent
           ? {
@@ -65,9 +87,12 @@ async function getAssetDetails(
           : null,
       };
     }
+    console.warn(`Cover letter ${coverLetterId} not found for asset_type=${assetType}`);
+  } else {
+    console.warn(`Asset not found: type=${assetType}, resumeId=${resumeId}, coverLetterId=${coverLetterId}`);
   }
 
-  return { name: "Unknown", id: null, content: null };
+  return { name: 'Unknown', id: null, content: null };
 }
 
 /**
@@ -208,15 +233,20 @@ export const getReviewById = query({
       true // Include full content for detail view
     );
 
+    // For detail views, asset must exist to provide complete review information
+    if (assetDetails.id === null) {
+      throw new Error(`Associated ${review.asset_type} not found for review`);
+    }
+
     return {
       _id: review._id,
       student_id: review.student_id,
-      student_name: student?.name || "Unknown",
-      student_email: student?.email || "",
+      student_name: student?.name || 'Unknown',
+      student_email: student?.email || '',
       asset_id: assetDetails.id,
       asset_type: review.asset_type,
       asset_name: assetDetails.name,
-      asset_content: assetDetails.content,
+      asset_content: assetDetails.content as ResumeContent | CoverLetterContent,
       status: review.status,
       requested_at: review.created_at,
       reviewed_by: review.reviewed_by,

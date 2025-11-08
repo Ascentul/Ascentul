@@ -4,7 +4,6 @@ import { AdvisorGate } from '@/components/advisor/AdvisorGate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useUser } from '@clerk/nextjs';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from 'convex/_generated/api';
@@ -17,7 +16,6 @@ import {
   User,
   Video,
   MessageSquare,
-  AlertTriangle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -85,9 +83,6 @@ export default function AdvisorTodayPage() {
 
   const now = Date.now();
 
-  // Detect query error (Convex returns null on error)
-  const hasError = todayData === null;
-
   const handleCompleteFollowUp = async (followUpId: Id<"advisor_follow_ups">) => {
     if (!clerkId) return;
 
@@ -127,17 +122,6 @@ export default function AdvisorTodayPage() {
             </Link>
           </div>
         </div>
-
-        {/* Error Alert */}
-        {hasError && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Error Loading Data</AlertTitle>
-            <AlertDescription>
-              Failed to load today's overview. Please try refreshing the page.
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Quick Stats */}
         <div className="grid gap-4 md:grid-cols-4">

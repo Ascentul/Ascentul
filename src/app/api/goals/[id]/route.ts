@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
-
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL || process.env.CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
+import { Id } from 'convex/_generated/dataModel'
+import { convexServer } from '@/lib/convex-server';
 
 export async function PUT(request: NextRequest, context: { params: { id: string } }) {
   try {
@@ -29,10 +24,9 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
     // When completedAt is explicitly null, set to undefined so Convex clears the timestamp
     if (body.completedAt === null) updates.completed_at = undefined
 
-    const client = getClient()
-    await client.mutation(api.goals.updateGoal, {
+    await convexServer.mutation(api.goals.updateGoal, {
       clerkId: userId,
-      goalId: context.params.id as any,
+      goalId: context.params.id as Id<'goals'>,
       updates,
     })
     return NextResponse.json({ ok: true })
@@ -47,8 +41,7 @@ export async function DELETE(request: NextRequest, context: { params: { id: stri
   try {
     const { userId } = getAuth(request)
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const client = getClient()
-    await client.mutation(api.goals.deleteGoal, { clerkId: userId, goalId: context.params.id as any })
+    await convexServer.mutation(api.goals.deleteGoal, { clerkId: userId, goalId: context.params.id as Id<'goals'> })
     return NextResponse.json({ ok: true })
   } catch (error: any) {
     console.error('DELETE /api/goals/[id] error:', error)

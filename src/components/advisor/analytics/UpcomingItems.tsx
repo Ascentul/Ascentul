@@ -7,7 +7,7 @@ import { Calendar, Clock, User, AlertCircle } from 'lucide-react';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import Link from 'next/link';
 
-interface UpcomingItem {
+export interface UpcomingItem {
   _id: string;
   type: 'session' | 'followup';
   student_id: string;
@@ -60,6 +60,13 @@ export function UpcomingItems({ items, isLoading }: UpcomingItemsProps) {
           <div className='space-y-3 max-h-[400px] overflow-y-auto'>
             {items.map((item) => {
               const itemDate = new Date(item.date);
+
+              // Validate date timestamp
+              if (isNaN(itemDate.getTime())) {
+                console.error(`Invalid date timestamp for item ${item._id}:`, item.date);
+                return null;
+              }
+
               const isOverdue = isPast(itemDate) && !isToday(itemDate);
 
               let dateLabel = format(itemDate, 'MMM d, h:mm a');

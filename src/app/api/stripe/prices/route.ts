@@ -9,7 +9,7 @@ export async function GET() {
       return NextResponse.json({}, { status: 200 })
     }
 
-    const stripe = new Stripe(secret, { apiVersion: '2023-10-16' as any })
+    const stripe = new Stripe(secret, { apiVersion: '2025-10-29.clover' })
 
     const monthlyId = process.env.STRIPE_PRICE_ID_MONTHLY
     const annualId = process.env.STRIPE_PRICE_ID_ANNUAL

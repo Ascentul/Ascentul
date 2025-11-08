@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+import { getErrorMessage } from '@/lib/errors';
+import { convexServer } from '@/lib/convex-server';
 
 /**
  * Assign a student to a university
@@ -31,8 +30,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate departmentId format if provided
+    if (departmentId !== undefined && (typeof departmentId !== 'string' || departmentId.trim() === '')) {
+      return NextResponse.json(
+        { error: 'Invalid or empty departmentId' },
+        { status: 400 }
+      );
+    }
+
     // Get the admin's university info
-    const adminUser = await convex.query(api.users.getUserByClerkId, {
+    const adminUser = await convexServer.query(api.users.getUserByClerkId, {
       clerkId: userId,
     });
 
@@ -49,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Assign student in Convex
-    const result = await convex.mutation(api.university_admin.assignStudentByEmail, {
+    const result = await convexServer.mutation(api.university_admin.assignStudentByEmail, {
       clerkId: userId,
       email: email,
       role: role || 'user',
@@ -88,10 +95,11 @@ export async function POST(req: NextRequest) {
       result,
       message: 'Student assigned successfully',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Assign student error:', error);
+    const message = getErrorMessage(error, 'Internal server error');
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: message },
       { status: 500 }
     );
   }

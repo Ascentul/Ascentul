@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { clerkClient } from '@clerk/nextjs/server';
-import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+import { getErrorMessage } from '@/lib/errors';
+import { convexServer } from '@/lib/convex-server';
 
 /**
  * Activate a pending university student account
@@ -27,7 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Find pending user in Convex by email
-    const pendingUsers = await convex.query(api.users.getUserByClerkId, {
+    const pendingUsers = await convexServer.query(api.users.getUserByClerkId, {
       clerkId: '', // Empty clerkId to search by email only
     });
 
@@ -36,7 +35,7 @@ export async function POST(req: NextRequest) {
     // TODO: Add getUserByEmail query to Convex
 
     // Try to get the user by the new Clerk ID first
-    let user = await convex.query(api.users.getUserByClerkId, { clerkId });
+    let user = await convexServer.query(api.users.getUserByClerkId, { clerkId });
 
     // If not found, it might be a pending user. Update the user record.
     // Since we don't have getUserByEmail, we'll update via the webhook-created user
@@ -71,10 +70,11 @@ export async function POST(req: NextRequest) {
       success: true,
       message: 'Student account activation processed',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Activate student error:', error);
+    const message = getErrorMessage(error, 'Internal server error');
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: message },
       { status: 500 }
     );
   }

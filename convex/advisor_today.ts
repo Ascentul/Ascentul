@@ -36,17 +36,20 @@ export const getTodayOverview = query({
     const now = Date.now();
 
     // Calculate "today" in the user's timezone
-    // timezoneOffset is in minutes and is negative for timezones ahead of UTC
+    // timezoneOffset: positive = behind UTC (e.g., PST = +480), negative = ahead of UTC (e.g., CET = -60)
     const tzOffsetMs = (args.timezoneOffset ?? 0) * 60 * 1000;
+
+    // Convert current UTC time to user's local time by subtracting offset
+    // (subtract because getTimezoneOffset() returns minutes *behind* UTC as positive)
     const userNow = new Date(now - tzOffsetMs);
 
-    // Get start and end of day in user's timezone
+    // Find start/end of day in user's local time (using UTC methods to avoid double conversion)
     const startOfDay = new Date(userNow);
     startOfDay.setUTCHours(0, 0, 0, 0);
     const endOfDay = new Date(userNow);
     endOfDay.setUTCHours(23, 59, 59, 999);
 
-    // Convert back to UTC timestamps for database queries
+    // Convert local day boundaries back to UTC timestamps for database queries
     const startTimestamp = startOfDay.getTime() + tzOffsetMs;
     const endTimestamp = endOfDay.getTime() + tzOffsetMs;
 
@@ -79,9 +82,10 @@ export const getTodayOverview = query({
       )
       .collect();
 
-    // Filter follow-ups to only those due today or overdue
+    // Filter ensures due_at exists (DB query already filtered by endTimestamp)
+    // Type guard refines the type to guarantee due_at is number
     const todayFollowUps = followUps.filter(
-      (f) => f.due_at && f.due_at <= endTimestamp,
+      (f): f is typeof f & { due_at: number } => f.due_at !== null
     );
 
     // Batch fetch all unique students to avoid N+1 queries
@@ -95,7 +99,9 @@ export const getTodayOverview = query({
     );
 
     const studentMap = new Map(
-      students.map((student) => [student?._id, student])
+      students
+        .filter((student): student is NonNullable<typeof student> => student !== null)
+        .map((student) => [student._id, student])
     );
 
     // Enrich sessions with student data from map
@@ -143,8 +149,8 @@ export const getTodayOverview = query({
 
     return {
       sessions: enrichedSessions.sort((a, b) => a.start_at - b.start_at),
-      // Sort by due_at (no null check needed - filter ensures due_at exists)
-      followUps: enrichedFollowUps.sort((a, b) => a.due_at! - b.due_at!),
+      // Sort by due_at (type guard ensures due_at is number)
+      followUps: enrichedFollowUps.sort((a, b) => a.due_at - b.due_at),
       stats: {
         totalSessions: sessions.length,
         completedSessions,

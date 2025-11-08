@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import { AdvisorGate } from "@/components/advisor/AdvisorGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CalendarView } from "@/components/advisor/calendar/CalendarView";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
@@ -18,7 +17,6 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -77,8 +75,6 @@ export default function AdvisorCalendarPage() {
     setCurrentDate(new Date());
   };
 
-  // Detect query errors (Convex returns null on error)
-  const hasError = sessions === null || followUps === null || stats === null;
   const isLoading = sessions === undefined || followUps === undefined || stats === undefined;
 
   return (
@@ -105,17 +101,6 @@ export default function AdvisorCalendarPage() {
             </Button>
           </div>
         </div>
-
-        {/* Error Alert */}
-        {hasError && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Error Loading Calendar</AlertTitle>
-            <AlertDescription>
-              Failed to load calendar data. Please try refreshing the page.
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">

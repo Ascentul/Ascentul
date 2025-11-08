@@ -27,8 +27,8 @@ interface SessionItemProps {
 }
 
 export function SessionItem({ session, now }: SessionItemProps) {
-  const isPast = session.end_at && session.end_at < now;
-  const isCurrent = session.start_at <= now && session.end_at && session.end_at >= now;
+  const isPast = session.end_at < now;
+  const isCurrent = session.start_at <= now && session.end_at >= now;
 
   const sessionIcon = {
     "1-on-1": User,
@@ -41,7 +41,7 @@ export function SessionItem({ session, now }: SessionItemProps) {
   const SessionIcon = sessionIcon;
 
   return (
-    <Link key={session._id} href={`/advisor/advising/sessions/${session._id}`}>
+    <Link href={`/advisor/advising/sessions/${session._id}`}>
       <div
         className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer ${
           isCurrent ? "border-blue-500 bg-blue-50" : isPast ? "opacity-60" : ""

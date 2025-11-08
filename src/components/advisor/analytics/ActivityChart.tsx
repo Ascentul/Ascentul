@@ -56,22 +56,37 @@ export function ActivityChart({ data, isLoading }: ActivityChartProps) {
       </CardHeader>
       <CardContent>
         <div className='space-y-3'>
-          {data.map((week, idx) => {
+          {data.map((week) => {
+            const weekDate = new Date(week.date);
+
+            // Validate date string
+            if (isNaN(weekDate.getTime())) {
+              console.error(`Invalid date string for week:`, week.date);
+              return null;
+            }
+
             const percentage = (week.count / maxCount) * 100;
-            const weekLabel = new Date(week.date).toLocaleDateString('en-US', {
+            const weekLabel = weekDate.toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
             });
 
             return (
-              <div key={idx} className='space-y-1'>
+              <div key={week.date} className='space-y-1'>
                 <div className='flex items-center justify-between text-sm'>
                   <span className='text-muted-foreground'>Week of {weekLabel}</span>
                   <span className='font-medium'>
                     {week.count} session{week.count !== 1 ? 's' : ''}
                   </span>
                 </div>
-                <div className='h-2 bg-muted rounded-full overflow-hidden'>
+                <div
+                  className='h-2 bg-muted rounded-full overflow-hidden'
+                  role='progressbar'
+                  aria-valuenow={Math.round(percentage)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`Week of ${weekLabel}: ${week.count} session${week.count !== 1 ? 's' : ''}`}
+                >
                   <div
                     className='h-full bg-primary rounded-full transition-all'
                     style={{ width: `${percentage}%` }}
@@ -86,7 +101,7 @@ export function ActivityChart({ data, isLoading }: ActivityChartProps) {
           <div className='mt-4 pt-4 border-t flex items-center gap-2 text-xs text-muted-foreground'>
             <TrendingUp className='h-3 w-3' />
             <span>
-              Total: {data.reduce((sum, week) => sum + week.count, 0)} sessions in 4 weeks
+              Total: {data.reduce((sum, week) => sum + week.count, 0)} sessions in {data.length} {data.length === 1 ? 'week' : 'weeks'}
             </span>
           </div>
         )}

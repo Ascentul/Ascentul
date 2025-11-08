@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server';
 
 export const dynamic = 'force-dynamic'
+
+type CoverLetterSource = 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload'
 
 export async function GET(request: NextRequest) {
   try {
     const { userId } = getAuth(request)
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    const client = new ConvexHttpClient(url)
-    const coverLetters = await client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId })
+    const coverLetters = await convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId })
     return NextResponse.json({ coverLetters })
   } catch (error) {
     console.error('Error fetching cover letters:', error)
@@ -24,10 +23,6 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = getAuth(request)
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    const client = new ConvexHttpClient(url)
-
     const body = await request.json()
     const { title, content, company_name, position, job_description, source } = body as {
       title?: string
@@ -42,9 +37,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title and content are required' }, { status: 400 })
     }
 
-    const allowedSources = new Set(['manual', 'ai_generated', 'ai_optimized', 'pdf_upload'])
+    const allowedSources = new Set<CoverLetterSource>(['manual', 'ai_generated', 'ai_optimized', 'pdf_upload'])
 
-    const coverLetter = await client.mutation(api.cover_letters.createCoverLetter, {
+    const coverLetter = await convexServer.mutation(api.cover_letters.createCoverLetter, {
       clerkId: userId,
       name: title,
       job_title: position ? String(position) : 'Position',
@@ -52,7 +47,7 @@ export async function POST(request: NextRequest) {
       template: 'standard',
       content: String(content),
       closing: 'Sincerely,',
-      source: allowedSources.has(source ?? '') ? (source as any) : 'manual',
+      source: allowedSources.has(source as CoverLetterSource) ? (source as CoverLetterSource) : 'manual',
     })
 
     return NextResponse.json({ coverLetter }, { status: 201 })

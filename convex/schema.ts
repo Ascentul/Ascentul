@@ -786,10 +786,20 @@ export default defineSchema({
     ),
     template_id: v.optional(v.string()), // Reference to note templates
     outcomes: v.optional(v.array(v.string())), // Checklist of session outcomes
+    location: v.optional(v.string()), // Physical location or room
+    meeting_url: v.optional(v.string()), // Virtual meeting link
     notes: v.optional(v.string()), // Rich text session notes
     visibility: v.union(
       v.literal("shared"), // Visible to student
       v.literal("advisor_only"), // Private advisor notes
+    ),
+    status: v.optional(
+      v.union(
+        v.literal("scheduled"),
+        v.literal("completed"),
+        v.literal("cancelled"),
+        v.literal("no_show"),
+      ),
     ),
     tasks: v.optional(
       v.array(
@@ -825,7 +835,8 @@ export default defineSchema({
     .index("by_student", ["student_id", "university_id"])
     .index("by_advisor_student", ["advisor_id", "student_id", "university_id"])
     .index("by_scheduled_at", ["scheduled_at"])
-    .index("by_advisor_scheduled", ["advisor_id", "scheduled_at"]),
+    .index("by_advisor_scheduled", ["advisor_id", "scheduled_at"])
+    .index("by_status", ["status", "university_id"]),
 
   // Resume/Cover Letter review queue for advisors
   advisor_reviews: defineTable({

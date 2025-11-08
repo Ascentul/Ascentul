@@ -100,6 +100,10 @@ export const reopenFollowUp = mutation({
     followUpId: v.id("advisor_follow_ups"),
   },
   handler: async (ctx, args) => {
+    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    requireAdvisorRole(sessionCtx);
+    const universityId = requireTenant(sessionCtx);
+
     const followUp = await ctx.db.get(args.followUpId);
     if (!followUp) {
       throw new Error("Follow-up not found");

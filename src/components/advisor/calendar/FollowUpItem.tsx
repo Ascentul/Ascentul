@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Badge } from "@/components/ui/badge";
-import { Clock } from "lucide-react";
-import Link from "next/link";
+import { Badge } from '@/components/ui/badge';
+import { Clock } from 'lucide-react';
+import Link from 'next/link';
 
 interface FollowUp {
   _id: string;
@@ -19,10 +19,10 @@ interface FollowUpItemProps {
 }
 
 export function FollowUpItem({ followUp, now }: FollowUpItemProps) {
-  const isOverdue = followUp.due_at && followUp.due_at < now;
+  const isOverdue = followUp.due_at != null && followUp.due_at < now;
 
   return (
-    <Link key={followUp._id} href={`/advisor/students/${followUp.student_id}`}>
+    <Link href={`/advisor/students/${followUp.student_id}`}>
       <div
         className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer ${
           isOverdue ? "border-red-300 bg-red-50" : "bg-orange-50"
