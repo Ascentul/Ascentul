@@ -30,7 +30,7 @@ export function PlanCard({
   return (
     <div
       className={cn(
-        'relative rounded-2xl border bg-white/80 backdrop-blur-sm p-6 md:p-8 transition hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.06)]',
+        'relative rounded-2xl border bg-white/80 backdrop-blur-sm p-8 md:p-10 transition hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.06)]',
         highlighted
           ? 'border-[#5271FF] bg-[#5271FF0D] shadow-md'
           : 'border-zinc-200 shadow-sm'

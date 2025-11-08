@@ -51,9 +51,9 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100/50">
-      <div className="container mx-auto px-4 py-20 md:py-24 max-w-6xl">
+      <div className="container mx-auto px-4 py-16 md:py-24 max-w-6xl">
         {/* Hero Section */}
-        <div className="text-center mb-16 md:mb-20">
+        <div className="text-center mb-12 md:mb-20">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-zinc-900 mb-4 md:mb-6">
             Accelerate Your Career Journey
           </h1>
@@ -63,8 +63,8 @@ export default function PricingPage() {
         </div>
 
         {/* Pricing Cards */}
-        <section className="mb-20 md:mb-24">
-          <div className="grid gap-6 md:grid-cols-2 max-w-5xl mx-auto">
+        <section className="mb-16 md:mb-24">
+          <div className="grid gap-6 md:gap-6 md:grid-cols-2 max-w-5xl mx-auto">
             <PlanCard
               title="Premium Monthly"
               price="$30"
@@ -103,8 +103,8 @@ export default function PricingPage() {
         </section>
 
         {/* Trust Row */}
-        <section className="mb-20 md:mb-24">
-          <div className="text-center mb-12">
+        <section className="mb-16 md:mb-24">
+          <div className="text-center mb-10 md:mb-12">
             <h2 className="text-2xl md:text-3xl font-bold text-zinc-900 mb-3">
               Why Choose Ascentful?
             </h2>
@@ -116,7 +116,7 @@ export default function PricingPage() {
         </section>
 
         {/* FAQ Section */}
-        <section className="mb-20 md:mb-24">
+        <section className="mb-16 md:mb-24">
           <PricingFAQ />
         </section>
 
