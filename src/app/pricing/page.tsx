@@ -33,7 +33,6 @@ export default function PricingPage() {
     if (!sessionRefreshed && clerkUser) {
       // Reload the user to get fresh subscription data from Clerk
       clerkUser.reload().then(() => {
-        console.log('[PricingPage] User session refreshed after payment');
         // Add URL param to prevent repeated reloads
         const url = new URL(window.location.href);
         url.searchParams.set('session_refreshed', 'true');
