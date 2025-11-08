@@ -4,39 +4,44 @@
  * Utilities for building user context and formatting data for AI coaching features.
  */
 
+// Context limits for AI prompt generation
+const MAX_GOALS_IN_CONTEXT = 5;
+const MAX_APPLICATIONS_IN_CONTEXT = 8;
+const MAX_PROJECTS_IN_CONTEXT = 5;
+
 interface UserProfile {
-  name?: string;
-  current_position?: string;
-  current_company?: string;
-  industry?: string;
-  experience_level?: string;
-  skills?: string;
-  career_goals?: string;
+  name?: string,
+  current_position?: string,
+  current_company?: string,
+  industry?: string,
+  experience_level?: string,
+  skills?: string,
+  career_goals?: string,
 }
 
 interface Goal {
-  title: string;
-  status: string;
+  title: string,
+  status: string,
 }
 
 interface Application {
-  job_title: string;
-  company: string;
-  status: string;
+  job_title: string,
+  company: string,
+  status: string,
 }
 
 interface Project {
-  title: string;
-  description?: string;
+  title: string,
+  description?: string,
 }
 
 interface UserContextData {
-  userProfile: UserProfile | null;
-  goals: Goal[];
-  applications: Application[];
-  resumes: unknown[];
-  coverLetters: unknown[];
-  projects: Project[];
+  userProfile: UserProfile | null,
+  goals: Goal[],
+  applications: Application[],
+  resumes: unknown[], // Reserved for future use
+  coverLetters: unknown[], // Reserved for future use
+  projects: Project[],
 }
 
 /**
@@ -63,7 +68,7 @@ export function buildUserContext(data: UserContextData): string {
   // Career goals section
   if (data.goals && data.goals.length > 0) {
     contextParts.push('\n--- CAREER GOALS ---');
-    data.goals.slice(0, 5).forEach((goal, idx) => {
+    data.goals.slice(0, MAX_GOALS_IN_CONTEXT).forEach((goal, idx) => {
       contextParts.push(`${idx + 1}. ${goal.title} (Status: ${goal.status})`);
     });
   }
@@ -71,7 +76,7 @@ export function buildUserContext(data: UserContextData): string {
   // Job applications section
   if (data.applications && data.applications.length > 0) {
     contextParts.push('\n--- RECENT JOB APPLICATIONS ---');
-    data.applications.slice(0, 8).forEach((app, idx) => {
+    data.applications.slice(0, MAX_APPLICATIONS_IN_CONTEXT).forEach((app, idx) => {
       contextParts.push(`${idx + 1}. ${app.job_title} at ${app.company} (Status: ${app.status})`);
     });
   }
@@ -79,7 +84,7 @@ export function buildUserContext(data: UserContextData): string {
   // Projects section
   if (data.projects && data.projects.length > 0) {
     contextParts.push('\n--- PROJECTS & EXPERIENCE ---');
-    data.projects.slice(0, 5).forEach((project, idx) => {
+    data.projects.slice(0, MAX_PROJECTS_IN_CONTEXT).forEach((project, idx) => {
       contextParts.push(`${idx + 1}. ${project.title}`);
       if (project.description) contextParts.push(`   ${project.description}`);
     });

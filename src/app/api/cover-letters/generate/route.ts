@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       // Add work history details
       if (profile.work_history && Array.isArray(profile.work_history) && profile.work_history.length > 0) {
         profileSummary.push('\n--- Work History ---')
-        profile.work_history.forEach((job: any, idx: number) => {
+        profile.work_history.forEach((job: NonNullable<UserProfile['work_history']>[number], idx: number) => {
           const workLines: string[] = []
           workLines.push(`${idx + 1}. ${job.role || 'Role'} at ${job.company || 'Company'}`)
           workLines.push(`   Duration: ${job.start_date || 'N/A'} - ${job.is_current ? 'Present' : (job.end_date || 'N/A')}`)
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       // Add education history details
       if (profile.education_history && Array.isArray(profile.education_history) && profile.education_history.length > 0) {
         profileSummary.push('\n--- Education History ---')
-        profile.education_history.forEach((edu: any, idx: number) => {
+        profile.education_history.forEach((edu: NonNullable<UserProfile['education_history']>[number], idx: number) => {
           const eduLines: string[] = []
           eduLines.push(`${idx + 1}. ${edu.degree || 'Degree'} in ${edu.field_of_study || 'Field'}`)
           eduLines.push(`   Institution: ${edu.institution || 'N/A'}`)
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     // Add projects summary
     if (projects.length > 0) {
       profileSummary.push('\n--- Projects & Experience ---')
-      projects.slice(0, 5).forEach((project: any, idx: number) => {
+      projects.slice(0, 5).forEach((project: Project, idx: number) => {
         const projLines: string[] = []
         projLines.push(`Project ${idx + 1}: ${project.title}`)
         if (project.role) projLines.push(`  Role: ${project.role}`)
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     // Add recent applications context
     if (applications.length > 0) {
       profileSummary.push('\n--- Recent Job Applications (for context) ---')
-      applications.forEach((app: any, idx: number) => {
+      applications.forEach((app: Application, idx: number) => {
         profileSummary.push(`${idx + 1}. ${app.job_title} at ${app.company} (Status: ${app.status})`)
       })
     }

@@ -127,6 +127,9 @@ export const updateContact = mutation({
 
     // Return the updated contact document
     const updatedContact = await ctx.db.get(args.contactId);
+    if (!updatedContact) {
+      throw new Error("Failed to retrieve updated contact");
+    }
     return updatedContact;
   },
 });

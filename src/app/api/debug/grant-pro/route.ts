@@ -15,10 +15,15 @@ async function requireAdminAuth(request: NextRequest): Promise<{ userId: string 
     return { error: NextResponse.json({ error: 'Authentication required' }, { status: 401 }) }
   }
 
-  const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
-  const userRole = user?.role
-  if (userRole !== 'admin' && userRole !== 'super_admin') {
-    return { error: NextResponse.json({ error: 'Admin access required' }, { status: 403 }) }
+  try {
+    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
+    const userRole = user?.role
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
+      return { error: NextResponse.json({ error: 'Admin access required' }, { status: 403 }) }
+    }
+  } catch (error) {
+    console.error('requireAdminAuth: Failed to fetch user', error)
+    return { error: NextResponse.json({ error: 'Authentication failed' }, { status: 401 }) }
   }
 
   return { userId }
@@ -62,42 +67,84 @@ async function upgradeToPremiumByConvexId(id: Id<'users'>) {
   })
 }
 
+async function processUpgrade(params: {
+  convexId?: string
+  email?: string
+  clerkId?: string
+  fallbackUserId: string
+}): Promise<NextResponse> {
+  const { convexId, email, clerkId, fallbackUserId } = params
+
+  // Handle convexId path
+  if (convexId) {
+    // Validate convexId format before casting (Convex IDs are URL-safe Base32)
+    if (!convexId.match(/^[a-z0-9]+$/i)) {
+      return NextResponse.json({
+        error: 'Invalid convexId format',
+        detail: 'Convex IDs must be valid Base32-encoded strings (alphanumeric)',
+        provided: convexId,
+      }, { status: 400 })
+    }
+
+    try {
+      await upgradeToPremiumByConvexId(convexId as Id<'users'>)
+    } catch (error) {
+      console.error('Failed to upgrade by convexId:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      return NextResponse.json({
+        error: 'Failed to upgrade user by convexId',
+        detail: errorMessage,
+        convexId,
+      }, { status: 400 })
+    }
+    return NextResponse.json({ success: true, convexId, plan: 'premium', status: 'active' }, { status: 200 })
+  }
+
+  // Determine target clerk ID
+  let targetClerkId: string | null = null
+  if (clerkId) {
+    targetClerkId = clerkId
+  } else if (email) {
+    targetClerkId = await findClerkUserIdByEmail(email, process.env.CLERK_SECRET_KEY)
+  } else {
+    targetClerkId = fallbackUserId
+  }
+
+  if (!targetClerkId) {
+    return NextResponse.json({
+      error: 'No target user found',
+      detail: email ? `No Clerk user found with email: ${email}` : 'Unable to resolve user from provided parameters',
+      params: { email, clerkId, fallbackUsed: !email && !clerkId },
+    }, { status: 400 })
+  }
+
+  try {
+    await upgradeToPremiumByClerkId(targetClerkId)
+    return NextResponse.json({ success: true, clerkId: targetClerkId, plan: 'premium', status: 'active' }, { status: 200 })
+  } catch (error) {
+    console.error('Failed to upgrade by clerkId:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({
+      error: 'Failed to upgrade user by clerkId',
+      detail: errorMessage,
+      clerkId: targetClerkId,
+    }, { status: 400 })
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAdminAuth(request)
     if ('error' in auth) return auth.error
-    const { userId } = auth
 
     const { searchParams } = new URL(request.url)
-    const email = searchParams.get('email') || undefined
-    const convexId = searchParams.get('convexId') || undefined
-
-    // If a Convex user document ID is provided, prefer it
-    if (convexId) {
-      try {
-        await upgradeToPremiumByConvexId(convexId as Id<'users'>)
-      } catch (error) {
-        return NextResponse.json({ error: 'Invalid convexId format' }, { status: 400 })
-      }
-      return NextResponse.json({ success: true, convexId, plan: 'premium', status: 'active' }, { status: 200 })
-    }
-
-    let targetClerkId: string | null = null
-    if (email) {
-      targetClerkId = await findClerkUserIdByEmail(email, process.env.CLERK_SECRET_KEY)
-    } else {
-      targetClerkId = userId || null
-    }
-
-    if (!targetClerkId) {
-      return NextResponse.json({ error: 'No target user found (sign in or provide ?email=)' }, { status: 400 })
-    }
-
-    await upgradeToPremiumByClerkId(targetClerkId)
-
-    return NextResponse.json({ success: true, clerkId: targetClerkId, plan: 'premium', status: 'active' }, { status: 200 })
+    return await processUpgrade({
+      convexId: searchParams.get('convexId') || undefined,
+      email: searchParams.get('email') || undefined,
+      fallbackUserId: auth.userId,
+    })
   } catch (error) {
-    console.error('grant-pro GET error:', error)
+    console.error('grant-pro GET error:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -106,39 +153,16 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireAdminAuth(request)
     if ('error' in auth) return auth.error
-    const { userId } = auth
 
     const body = await request.json().catch(() => ({})) as { email?: string, clerkId?: string, convexId?: string, id?: string }
-
-    // Prefer explicit Convex user document ID if provided
-    const providedConvexId = body.convexId || body.id
-    if (providedConvexId) {
-      try {
-        await upgradeToPremiumByConvexId(providedConvexId as Id<'users'>)
-      } catch (error) {
-        return NextResponse.json({ error: 'Invalid convexId format' }, { status: 400 })
-      }
-      return NextResponse.json({ success: true, convexId: providedConvexId, plan: 'premium', status: 'active' }, { status: 200 })
-    }
-
-    let targetClerkId: string | null = null
-    if (body.clerkId) {
-      targetClerkId = body.clerkId
-    } else if (body.email) {
-      targetClerkId = await findClerkUserIdByEmail(body.email, process.env.CLERK_SECRET_KEY)
-    } else {
-      targetClerkId = userId || null
-    }
-
-    if (!targetClerkId) {
-      return NextResponse.json({ error: 'No target user found (provide email/clerkId or sign in)' }, { status: 400 })
-    }
-
-    await upgradeToPremiumByClerkId(targetClerkId)
-
-    return NextResponse.json({ success: true, clerkId: targetClerkId, plan: 'premium', status: 'active' }, { status: 200 })
+    return await processUpgrade({
+      convexId: body.convexId || body.id,
+      email: body.email,
+      clerkId: body.clerkId,
+      fallbackUserId: auth.userId,
+    })
   } catch (error) {
-    console.error('grant-pro POST error:', error)
+    console.error('grant-pro POST error:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
