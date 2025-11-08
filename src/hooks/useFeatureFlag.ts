@@ -63,7 +63,15 @@ export function useFeatureFlags(flags: string[]): Record<string, boolean> | unde
  *   // Show advisor dashboard
  * }
  */
-export function useAdvisorFeatureFlags() {
+export function useAdvisorFeatureFlags(): {
+  dashboard: boolean;
+  students: boolean;
+  advising: boolean;
+  reviews: boolean;
+  applications: boolean;
+  analytics: boolean;
+  support: boolean;
+} | undefined {
   const flags = useFeatureFlags([
     "advisor.dashboard",
     "advisor.students",

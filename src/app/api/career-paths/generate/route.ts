@@ -854,7 +854,11 @@ export async function POST(request: NextRequest) {
                 status: 'active',
               })
             } catch (convexError) {
-              console.warn('CareerPath profile persistence failed', convexError)
+              console.error('CareerPath profile persistence failed', convexError)
+              return NextResponse.json(
+                { error: 'Failed to save career path. Please try again.' },
+                { status: 500 }
+              )
             }
 
             return NextResponse.json({
@@ -888,7 +892,11 @@ export async function POST(request: NextRequest) {
         status: 'active',
       })
     } catch (persistenceError) {
-      console.warn('CareerPath guidance persistence failed', persistenceError)
+      console.error('CareerPath guidance persistence failed', persistenceError)
+      return NextResponse.json(
+        { error: 'Failed to save guidance path. Please try again.' },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({

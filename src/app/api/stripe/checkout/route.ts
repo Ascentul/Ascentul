@@ -49,7 +49,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json().catch(() => ({}) as any);
+    let body;
+    try {
+      body = await request.json();
+    } catch (err) {
+      console.error('Failed to parse request body:', err);
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+
     const plan = (body?.plan as string) || "premium";
     const interval = (body?.interval as string) || "monthly";
 
@@ -88,18 +98,47 @@ export async function POST(request: NextRequest) {
     let customerId = user.stripe_customer_id as string | null;
 
     if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email || undefined,
-        name: user.name || undefined,
-        metadata: { clerk_id: userId, user_id: user._id },
+      // Check if a Stripe customer already exists for this user by searching Stripe
+      // This handles the edge case where Stripe customer was created but Convex update failed
+      const existingCustomers = await stripe.customers.list({
+        email: user.email,
+        limit: 1,
       });
-      customerId = customer.id;
 
-      // Update user with stripe customer ID
-      await convexServer.mutation(api.users.updateUser, {
-        clerkId: userId,
-        updates: { stripe_customer_id: customerId },
-      });
+      if (existingCustomers.data.length > 0 && existingCustomers.data[0].metadata.clerk_id === userId) {
+        // Found existing customer - use it and update Convex
+        customerId = existingCustomers.data[0].id;
+        console.log(`[Stripe Checkout] Found existing Stripe customer ${customerId} for user ${userId}`);
+
+        // Update Convex with the existing customer ID
+        await convexServer.mutation(api.users.updateUser, {
+          clerkId: userId,
+          updates: { stripe_customer_id: customerId },
+        });
+      } else {
+        // No existing customer - create new one
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          name: user.name || undefined,
+          metadata: { clerk_id: userId, user_id: user._id },
+        });
+        customerId = customer.id;
+
+        // Update user with stripe customer ID
+        // IMPORTANT: If this fails, we'll have an orphaned Stripe customer, but on retry
+        // the check above will find it and recover gracefully
+        try {
+          await convexServer.mutation(api.users.updateUser, {
+            clerkId: userId,
+            updates: { stripe_customer_id: customerId },
+          });
+        } catch (convexError) {
+          console.error('Failed to save Stripe customer ID to Convex:', convexError);
+          // Log the orphaned customer ID for manual cleanup if needed
+          console.error(`[Stripe Checkout] Orphaned Stripe customer: ${customerId} for user ${userId}`);
+          throw new Error('Failed to save customer information. Please try again.');
+        }
+      }
     }
 
     const cfg = PLAN_CONFIG[plan][interval];

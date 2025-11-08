@@ -25,7 +25,7 @@ interface AdvisorGateProps {
   loadingFallback?: React.ReactNode;
 }
 
-const ALLOWED_ROLES = ["advisor", "university_admin", "super_admin",];
+const ALLOWED_ROLES = ['advisor', 'university_admin', 'super_admin'];
 
 export function AdvisorGate({
   children,
@@ -39,7 +39,7 @@ export function AdvisorGate({
   const isFeatureEnabled = featureEnabled === true;
 
   const userRole = user?.publicMetadata?.role as string | undefined;
-  const isAuthorized = userRole && ALLOWED_ROLES.includes(userRole);
+  const isAuthorized = !!userRole && ALLOWED_ROLES.includes(userRole);
 
   useEffect(() => {
     if (!isLoaded || isFeatureLoading) return;

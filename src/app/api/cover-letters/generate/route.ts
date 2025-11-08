@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
+import { Doc } from 'convex/_generated/dataModel'
 import OpenAI from 'openai'
 import { convexServer } from '@/lib/convex-server';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
+
+// Type definitions based on Convex schema
+type UserProfile = Doc<'users'>
+type Project = Doc<'projects'>
+type Application = Doc<'applications'>
+type CoverLetter = Doc<'cover_letters'>
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,9 +33,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch the user career profile so generation stays grounded in real data
-    let profile: any | null = null
-    let projects: any[] = []
-    let applications: any[] = []
+    let profile: UserProfile | null = null
+    let projects: Project[] = []
+    let applications: Application[] = []
 
     try {
       profile = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
@@ -176,7 +183,7 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
       })
       generatedContent = completion.choices[0]?.message?.content || null
     } catch (e) {
-      // swallow and use fallback
+      console.error('OpenAI generation failed, using fallback:', e)
       generatedContent = null
     }
 
@@ -234,14 +241,14 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
     }
 
     // Save the generated cover letter to Convex, degrade gracefully if persistence fails
-    let coverLetter: any = null
+    let coverLetter: CoverLetter | null = null
     let saveWarning: string | undefined
     try {
       coverLetter = await convexServer.mutation(api.cover_letters.createCoverLetter, {
         clerkId: userId,
         name: `Cover Letter - ${companyName} ${position}`,
-        job_title: String(position),
-        company_name: companyName ? String(companyName) : undefined,
+        job_title: position,
+        company_name: companyName,
         template: 'standard',
         content: generatedContent,
         closing: 'Sincerely,',

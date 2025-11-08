@@ -84,7 +84,8 @@ Format as a structured plan with clear steps and timelines.`
         steps: { planText: generatedPath, inputs: { currentRole, targetRole, skills, experience, timeframe } },
         status: 'active',
       })
-    } catch {
+    } catch (error) {
+      console.error('Failed to save career path to Convex:', error)
       saveWarning = 'Career path generated but could not be saved.'
     }
 

@@ -49,7 +49,7 @@ export async function GET(_request: NextRequest) {
     const cursor = searchParams.get('cursor') || undefined
     const sort = (searchParams.get('sort') || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc'
 
-    const page = await convexServer.query(api.career_paths.getUserCareerPathsPaginated, { clerkId: userId, cursor: cursor || undefined, limit })
+    const page = await convexServer.query(api.career_paths.getUserCareerPathsPaginated, { clerkId: userId, cursor, limit })
     const items = (page?.items || []) as CareerPathDocument[]
 
     // Map only those entries that contain a structured path we can render

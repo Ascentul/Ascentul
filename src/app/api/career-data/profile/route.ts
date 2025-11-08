@@ -101,13 +101,17 @@ export async function GET(request: NextRequest) {
       user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
       // Fetch user's projects
       try {
-        projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }) || []
+        projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId })
       } catch (projectError) {
-        console.warn('Failed to fetch user projects:', projectError)
+        console.warn('Failed to fetch user projects:', {
+          message: projectError instanceof Error ? projectError.message : 'Unknown error',
+        })
         // projects are optional; continue with empty array
       }
     } catch (userError) {
-      console.warn('Failed to fetch user profile:', userError)
+      console.warn('Failed to fetch user profile:', {
+        message: userError instanceof Error ? userError.message : 'Unknown error',
+      })
       // can still return a mock profile
     }
 
@@ -128,7 +132,7 @@ export async function GET(request: NextRequest) {
       workHistory: formatWorkHistory(user?.work_history),
       work_history: user?.work_history || [],
       achievements_history: user?.achievements_history || [],
-      projects: projects || [],
+      projects: projects,
       industry: user?.industry,
       bio: user?.bio,
       career_goals: user?.career_goals,

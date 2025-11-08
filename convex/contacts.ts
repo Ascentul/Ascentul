@@ -125,7 +125,9 @@ export const updateContact = mutation({
       updated_at: Date.now(),
     });
 
-    return args.contactId;
+    // Return the updated contact document
+    const updatedContact = await ctx.db.get(args.contactId);
+    return updatedContact;
   },
 });
 

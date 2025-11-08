@@ -246,7 +246,25 @@ export const getReviewById = query({
       asset_id: assetDetails.id,
       asset_type: review.asset_type,
       asset_name: assetDetails.name,
-      asset_content: assetDetails.content as ResumeContent | CoverLetterContent,
+   // For detail views, asset must exist to provide complete review information
+   if (assetDetails.id === null) {
+     throw new Error(`Associated ${review.asset_type} not found for review`);
+   }
+   if (assetDetails.content === null) {
+     throw new Error(`Content not loaded for ${review.asset_type}`);
+   }
+
+   return {
+     _id: review._id,
+     student_id: review.student_id,
+     student_name: student?.name || 'Unknown',
+     student_email: student?.email || '',
+     asset_id: assetDetails.id,
+     asset_type: review.asset_type,
+     asset_name: assetDetails.name,
+     asset_content: assetDetails.content,
+     status: review.status,
+     requested_at: review.created_at,
       status: review.status,
       requested_at: review.created_at,
       reviewed_by: review.reviewed_by,

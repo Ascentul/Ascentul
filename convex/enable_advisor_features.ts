@@ -17,9 +17,25 @@ const ADVISOR_FLAGS = [
   'advisor.support',
 ] as const;
 
+type EnableFlagsResult = {
+  success: boolean;
+  flagsEnabled: number;
+  flagsCreated: number;
+  total: number;
+  failedCount: number;
+  failedFlags: string[];
+};
+
+type DisableFlagsResult = {
+  success: boolean;
+  flagsDisabled: number;
+  failedCount: number;
+  failedFlags: string[];
+};
+
 export const enableAllAdvisorFlags = internalMutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<EnableFlagsResult> => {
     const now = Date.now();
 
     // Batch fetch all existing settings to avoid N+1 queries
@@ -65,8 +81,13 @@ export const enableAllAdvisorFlags = internalMutation({
       }
     }
 
-    console.log('\n✅ All advisor features enabled!');
-    console.log('Users with advisor role can now access /advisor routes');
+    if (failedCount === 0) {
+      console.log('\n✅ All advisor features enabled!');
+      console.log('Users with advisor role can now access /advisor routes');
+    } else {
+      console.log(`\n⚠️  Completed with ${failedCount} failure(s). Some advisor features may not be enabled.`);
+      console.log('Failed flags:', failedFlags.join(', '));
+    }
 
     return {
       success: failedCount === 0,
@@ -81,7 +102,7 @@ export const enableAllAdvisorFlags = internalMutation({
 
 export const disableAllAdvisorFlags = internalMutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<DisableFlagsResult> => {
     const now = Date.now();
 
     // Batch fetch all existing settings to avoid N+1 queries
@@ -117,7 +138,12 @@ export const disableAllAdvisorFlags = internalMutation({
       }
     }
 
-    console.log('\n✅ All advisor features disabled!');
+    if (failedCount === 0) {
+      console.log('\n✅ All advisor features disabled!');
+    } else {
+      console.log(`\n⚠️  Completed with ${failedCount} failure(s). Some advisor features may not be disabled.`);
+      console.log('Failed flags:', failedFlags.join(', '));
+    }
 
     return {
       success: failedCount === 0,

@@ -31,11 +31,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate departmentId format if provided
-    if (departmentId !== undefined && (typeof departmentId !== 'string' || departmentId.trim() === '')) {
-      return NextResponse.json(
-        { error: 'Invalid or empty departmentId' },
-        { status: 400 }
-      );
+    if (departmentId !== undefined) {
+      if (typeof departmentId !== 'string' || !departmentId.trim()) {
+        return NextResponse.json(
+          { error: 'Invalid or empty departmentId' },
+          { status: 400 }
+        );
+      }
     }
 
     // Get the admin's university info
@@ -56,6 +58,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Assign student in Convex
+    // Note: This mutation should be idempotent - if the student is already assigned,
+    // it should update rather than fail, to prevent issues on retry
     const result = await convexServer.mutation(api.university_admin.assignStudentByEmail, {
       clerkId: userId,
       email: email,

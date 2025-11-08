@@ -43,14 +43,12 @@ export const ACTIVE_STAGES: readonly ApplicationStage[] = [
 
 /**
  * Final stages represent completed outcomes
- * - Offer: Received offer (decision pending)
  * - Accepted: Accepted offer (final positive outcome)
  * - Rejected: Application rejected (final negative outcome)
  * - Withdrawn: Student withdrew (final neutral outcome)
  * - Archived: Manually archived (final inactive outcome)
  */
 export const FINAL_STAGES: readonly ApplicationStage[] = [
-  'Offer',
   'Accepted',
   'Rejected',
   'Withdrawn',

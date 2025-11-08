@@ -4,6 +4,26 @@ import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 
+async function requireAdminAuth(request: NextRequest): Promise<{ userId: string } | { error: NextResponse }> {
+  if (process.env.NODE_ENV === 'production') {
+    return { error: NextResponse.json({ error: 'Disabled in production' }, { status: 403 }) }
+  }
+
+  const { userId } = getAuth(request)
+
+  if (!userId) {
+    return { error: NextResponse.json({ error: 'Authentication required' }, { status: 401 }) }
+  }
+
+  const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
+  const userRole = user?.role
+  if (userRole !== 'admin' && userRole !== 'super_admin') {
+    return { error: NextResponse.json({ error: 'Admin access required' }, { status: 403 }) }
+  }
+
+  return { userId }
+}
+
 async function findClerkUserIdByEmail(email: string, clerkSecret?: string): Promise<string | null> {
   try {
     if (!clerkSecret) return null
@@ -44,23 +64,9 @@ async function upgradeToPremiumByConvexId(id: Id<'users'>) {
 
 export async function GET(request: NextRequest) {
   try {
-    if (process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ error: 'Disabled in production' }, { status: 403 })
-    }
-
-    const { userId } = getAuth(request)
-
-    // Require authentication even in non-production
-    if (!userId) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    }
-
-    // Verify admin/super_admin role for security
-    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
-    const userRole = user?.role
-    if (userRole !== 'admin' && userRole !== 'super_admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
+    const auth = await requireAdminAuth(request)
+    if ('error' in auth) return auth.error
+    const { userId } = auth
 
     const { searchParams } = new URL(request.url)
     const email = searchParams.get('email') || undefined
@@ -68,7 +74,11 @@ export async function GET(request: NextRequest) {
 
     // If a Convex user document ID is provided, prefer it
     if (convexId) {
-      await upgradeToPremiumByConvexId(convexId as Id<'users'>)
+      try {
+        await upgradeToPremiumByConvexId(convexId as Id<'users'>)
+      } catch (error) {
+        return NextResponse.json({ error: 'Invalid convexId format' }, { status: 400 })
+      }
       return NextResponse.json({ success: true, convexId, plan: 'premium', status: 'active' }, { status: 200 })
     }
 
@@ -94,30 +104,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    if (process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ error: 'Disabled in production' }, { status: 403 })
-    }
-
-    const { userId } = getAuth(request)
-
-    // Require authentication even in non-production
-    if (!userId) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    }
-
-    // Verify admin/super_admin role for security
-    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
-    const userRole = user?.role
-    if (userRole !== 'admin' && userRole !== 'super_admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
+    const auth = await requireAdminAuth(request)
+    if ('error' in auth) return auth.error
+    const { userId } = auth
 
     const body = await request.json().catch(() => ({})) as { email?: string, clerkId?: string, convexId?: string, id?: string }
 
     // Prefer explicit Convex user document ID if provided
     const providedConvexId = body.convexId || body.id
     if (providedConvexId) {
-      await upgradeToPremiumByConvexId(providedConvexId as Id<'users'>)
+      try {
+        await upgradeToPremiumByConvexId(providedConvexId as Id<'users'>)
+      } catch (error) {
+        return NextResponse.json({ error: 'Invalid convexId format' }, { status: 400 })
+      }
       return NextResponse.json({ success: true, convexId: providedConvexId, plan: 'premium', status: 'active' }, { status: 200 })
     }
 

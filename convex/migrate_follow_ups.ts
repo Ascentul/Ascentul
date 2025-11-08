@@ -194,6 +194,28 @@ export const migrateFollowUps = mutation({
           .map(a => [a._id, a] as const)
       );
 
+      // Batch session lookups to validate foreign keys
+      const sessionIds = page.page
+        .filter(f => f.related_type === 'session' && f.related_id)
+        .map(f => f.related_id as Id<'advisor_sessions'>);
+      const sessions = await Promise.all(sessionIds.map(id => ctx.db.get(id)));
+      const sessionMap = new Map(
+        sessions
+          .filter((s): s is NonNullable<typeof s> => s !== null)
+          .map(s => [s._id, s] as const)
+      );
+
+      // Batch review lookups to validate foreign keys
+      const reviewIds = page.page
+        .filter(f => f.related_type === 'review' && f.related_id)
+        .map(f => f.related_id as Id<'advisor_reviews'>);
+      const reviews = await Promise.all(reviewIds.map(id => ctx.db.get(id)));
+      const reviewMap = new Map(
+        reviews
+          .filter((r): r is NonNullable<typeof r> => r !== null)
+          .map(r => [r._id, r] as const)
+      );
+
       for (const followUp of page.page) {
       try {
         // Validate users from batched lookup
@@ -230,6 +252,29 @@ export const migrateFollowUps = mutation({
             continue;
           }
         }
+
+        // Validate session references
+        if (followUp.related_type === 'session' && followUp.related_id) {
+          const sessionId = followUp.related_id as Id<'advisor_sessions'>;
+          if (!sessionMap.has(sessionId)) {
+            results.errors.push(
+              `advisor_follow_ups ${followUp._id}: Session ${followUp.related_id} not found`,
+            );
+            continue;
+          }
+        }
+
+        // Validate review references
+        if (followUp.related_type === 'review' && followUp.related_id) {
+          const reviewId = followUp.related_id as Id<'advisor_reviews'>;
+          if (!reviewMap.has(reviewId)) {
+            results.errors.push(
+              `advisor_follow_ups ${followUp._id}: Review ${followUp.related_id} not found`,
+            );
+            continue;
+          }
+        }
+
         // Note: advisor_follow_ups.related_type doesn't include 'contact' type
         // Only 'application', 'session', 'review', 'general'
 
