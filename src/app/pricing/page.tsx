@@ -49,7 +49,7 @@ export default function PricingPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100/50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5371ff] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue mx-auto mb-4"></div>
           <p className="text-zinc-600">Redirecting to dashboard...</p>
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function PricingPage() {
       <div className="container mx-auto px-4 py-16 md:py-24 max-w-6xl">
         {/* Hero Section */}
         <div className="text-center mb-12 md:mb-20">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-[#5371ff] mb-4 md:mb-6">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-brand-blue mb-4 md:mb-6">
             Accelerate Your Career Journey
           </h1>
           <p className="text-lg md:text-xl text-zinc-600 max-w-2xl mx-auto">

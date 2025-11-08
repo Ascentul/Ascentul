@@ -26,7 +26,7 @@ export function TrustRow() {
         return (
           <div key={index} className="text-center">
             <Icon
-              className="h-10 w-10 text-[#5271FF] mx-auto mb-4"
+              className="h-10 w-10 text-brand-blue mx-auto mb-4"
               aria-hidden="true"
               strokeWidth={1.5}
             />

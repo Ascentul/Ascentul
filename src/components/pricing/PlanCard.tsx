@@ -33,12 +33,12 @@ export function PlanCard({
       className={cn(
         'relative rounded-2xl border bg-white/80 backdrop-blur-sm p-8 md:p-10 transition hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.06)]',
         highlighted
-          ? 'border-[#5271FF] bg-[#5271FF0D] shadow-md'
+          ? 'border-brand-blue bg-brand-blue/5 shadow-md'
           : 'border-zinc-200 shadow-sm'
       )}
     >
       {highlighted && (
-        <span className="absolute -top-3 left-4 rounded-full bg-[#5271FF] px-3 py-1 text-xs font-medium text-white">
+        <span className="absolute -top-3 left-4 rounded-full bg-brand-blue px-3 py-1 text-xs font-medium text-white">
           Best Value
         </span>
       )}
@@ -58,7 +58,7 @@ export function PlanCard({
         <p className="mt-1 text-sm text-zinc-500">
           {subline}
           {savings && (
-            <span className="ml-2 text-[#5271FF] font-semibold">{savings}</span>
+            <span className="ml-2 text-brand-blue font-semibold">{savings}</span>
           )}
         </p>
       )}
@@ -66,7 +66,7 @@ export function PlanCard({
       <ul className="mt-6 space-y-3" role="list">
         {features.map((feature, index) => (
           <li key={index} className="flex items-start gap-3 text-sm text-zinc-700">
-            <Check className="h-5 w-5 text-[#5271FF] flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <Check className="h-5 w-5 text-brand-blue flex-shrink-0 mt-0.5" aria-hidden="true" />
             <span>{feature}</span>
           </li>
         ))}
