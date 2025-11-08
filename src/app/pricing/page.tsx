@@ -46,7 +46,14 @@ export default function PricingPage() {
   // If user already has premium, redirect to dashboard
   if (hasPremium && !subscription.isLoading) {
     router.push('/dashboard')
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100/50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5371ff] mx-auto mb-4"></div>
+          <p className="text-zinc-600">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   // Handle checkout
