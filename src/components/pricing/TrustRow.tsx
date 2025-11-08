@@ -21,10 +21,10 @@ const trustItems = [
 export function TrustRow() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-      {trustItems.map((item, index) => {
+      {trustItems.map((item) => {
         const Icon = item.icon
         return (
-          <div key={index} className="text-center">
+          <div key={item.title} className="text-center">
             <Icon
               className="h-10 w-10 text-brand-blue mx-auto mb-4"
               aria-hidden="true"

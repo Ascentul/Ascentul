@@ -51,8 +51,8 @@ export function PricingFAQ() {
       </div>
 
       <Accordion type="single" collapsible className="w-full">
-        {faqItems.map((item, index) => (
-          <AccordionItem key={index} value={`item-${index}`}>
+        {faqItems.map((item) => (
+          <AccordionItem key={item.question} value={item.question}>
             <AccordionTrigger className="text-left text-zinc-900 hover:text-zinc-700">
               {item.question}
             </AccordionTrigger>
