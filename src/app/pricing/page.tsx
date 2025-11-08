@@ -5,10 +5,8 @@ import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, TrendingUp, Users, Zap } from 'lucide-react'
-import { PricingTable } from '@clerk/nextjs'
+import { TrendingUp, Users, Zap } from 'lucide-react'
 
 export default function PricingPage() {
   const { isSignedIn, subscription, hasPremium } = useAuth()
@@ -53,37 +51,92 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Clerk Billing Pricing Table */}
-        <div className="mb-16">
-          <Card className="max-w-4xl mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Choose Your Plan</CardTitle>
-              <CardDescription>
-                Select the plan that best fits your career goals. You can upgrade or downgrade at any time.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Clerk PricingTable Component handles plan display, checkout, and payment */}
-              <div className="clerk-pricing-table-wrapper">
-                <PricingTable />
-              </div>
+        {/* Pricing Table */}
+        <section className="mx-auto max-w-5xl px-4 py-16">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-black">
+              Choose Your Plan
+            </h2>
+            <p className="mt-3 text-base text-neutral-600">
+              Select the plan that fits your career goals. Upgrade or downgrade anytime.
+            </p>
+          </div>
 
-              {/* Free plan option */}
-              <div className="border-t pt-6 mt-6">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Not ready to subscribe?
-                  </p>
-                  <Button variant="outline" asChild>
-                    <Link href={isSignedIn ? "/dashboard" : "/sign-up"}>
-                      {isSignedIn ? "Continue with Free Plan" : "Get Started Free"}
-                    </Link>
-                  </Button>
-                </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Monthly */}
+            <div className="rounded-2xl border border-neutral-200 bg-white/80 backdrop-blur-sm shadow-sm p-6 md:p-8">
+              <h3 className="text-xl font-semibold text-black">Premium Monthly</h3>
+              <div className="mt-3 flex items-end gap-2">
+                <span className="text-5xl font-extrabold text-black">$30</span>
+                <span className="mb-2 text-neutral-500">/month</span>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <p className="mt-1 text-sm text-neutral-500">Billed monthly</p>
+
+              <ul className="mt-6 space-y-3 text-sm">
+                {[
+                  'Unlimited AI resume reviews',
+                  'AI career coaching & interview prep',
+                  'Advanced application tracking',
+                  'Priority support',
+                  'All future features included',
+                ].map((i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-neutral-300 text-[#5271FF]">✓</span>
+                    <span className="text-neutral-800">{i}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button className="mt-8 w-full rounded-xl bg-black px-5 py-3 text-white font-semibold hover:opacity-90 transition">
+                Subscribe Monthly
+              </button>
+            </div>
+
+            {/* Annual */}
+            <div className="rounded-2xl border-2 border-[#5271FF] bg-white shadow-md p-6 md:p-8 relative">
+              <span className="absolute -top-3 left-6 rounded-full bg-[#5271FF] px-3 py-1 text-xs font-semibold text-white">
+                Best Value
+              </span>
+
+              <h3 className="text-xl font-semibold text-black">Premium Annual</h3>
+              <div className="mt-3 flex items-end gap-2">
+                <span className="text-5xl font-extrabold text-black">$20</span>
+                <span className="mb-2 text-neutral-500">/month</span>
+              </div>
+              <p className="mt-1 text-sm text-neutral-500">
+                $240 billed annually <span className="text-[#5271FF] font-semibold">Save $120/year</span>
+              </p>
+
+              <ul className="mt-6 space-y-3 text-sm">
+                {[
+                  'Unlimited AI resume reviews',
+                  'AI career coaching & interview prep',
+                  'Advanced application tracking',
+                  'Priority support',
+                  'All future features included',
+                ].map((i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-neutral-300 text-[#5271FF]">✓</span>
+                    <span className="text-neutral-800">{i}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button className="mt-8 w-full rounded-xl bg-black px-5 py-3 text-white font-semibold hover:opacity-90 transition">
+                Subscribe Annually
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm text-neutral-500 mb-3">Not ready to subscribe?</p>
+            <Button variant="outline" asChild className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-50">
+              <Link href={isSignedIn ? "/dashboard" : "/sign-up"}>
+                {isSignedIn ? "Continue with Free Plan" : "Get Started Free"}
+              </Link>
+            </Button>
+          </div>
+        </section>
 
         {/* Features Comparison */}
         <div className="text-center mb-12">
