@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { TrendingUp, Zap, Users } from 'lucide-react'
 
 const trustItems = [
