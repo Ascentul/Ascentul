@@ -27,10 +27,10 @@ const PLAN_CONFIG: Record<
 > = {
   premium: {
     monthly: {
-      amount: 1500,
+      amount: 3000, // $30.00
       interval: "month",
       interval_count: 1,
-      productName: "Ascentful Premium",
+      productName: "Ascentful Premium Monthly",
     },
     quarterly: {
       amount: 3000,
@@ -39,10 +39,10 @@ const PLAN_CONFIG: Record<
       productName: "Ascentful Premium",
     },
     annual: {
-      amount: 7200,
+      amount: 24000, // $240.00
       interval: "year",
       interval_count: 1,
-      productName: "Ascentful Premium",
+      productName: "Ascentful Premium Annual",
     },
   },
 };

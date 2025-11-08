@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
@@ -24,6 +24,7 @@ export default function PricingPage() {
   const { user: clerkUser } = useUser()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [isCheckingOut, setIsCheckingOut] = useState<string | null>(null)
 
   // Force reload user session after returning from Clerk checkout
   useEffect(() => {
@@ -49,12 +50,44 @@ export default function PricingPage() {
     return null
   }
 
+  // Handle checkout
+  const handleCheckout = async (interval: 'monthly' | 'annual') => {
+    if (!isSignedIn) {
+      router.push('/sign-in?redirect_url=/pricing')
+      return
+    }
+
+    setIsCheckingOut(interval)
+
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'premium', interval }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session')
+      }
+
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (error) {
+      console.error('Checkout error:', error)
+      alert('Failed to start checkout. Please try again.')
+      setIsCheckingOut(null)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100/50">
       <div className="container mx-auto px-4 py-16 md:py-24 max-w-6xl">
         {/* Hero Section */}
         <div className="text-center mb-12 md:mb-20">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-zinc-900 mb-4 md:mb-6">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-[#5371ff] mb-4 md:mb-6">
             Accelerate Your Career Journey
           </h1>
           <p className="text-lg md:text-xl text-zinc-600 max-w-2xl mx-auto">
@@ -71,8 +104,8 @@ export default function PricingPage() {
               cadence="month"
               subline="Billed monthly"
               features={PLAN_FEATURES}
-              ctaLabel="Subscribe Monthly"
-              ctaHref="#"
+              ctaLabel={isCheckingOut === 'monthly' ? 'Processing...' : 'Subscribe Monthly'}
+              onCtaClick={() => handleCheckout('monthly')}
             />
             <PlanCard
               title="Premium Annual"
@@ -81,8 +114,8 @@ export default function PricingPage() {
               subline="$240 billed annually"
               savings="Save $120/year"
               features={PLAN_FEATURES}
-              ctaLabel="Subscribe Annually"
-              ctaHref="#"
+              ctaLabel={isCheckingOut === 'annual' ? 'Processing...' : 'Subscribe Annually'}
+              onCtaClick={() => handleCheckout('annual')}
               highlighted
             />
           </div>

@@ -12,7 +12,8 @@ export type PlanCardProps = {
   savings?: string
   features: string[]
   ctaLabel: string
-  ctaHref: string
+  ctaHref?: string
+  onCtaClick?: () => void | Promise<void>
   highlighted?: boolean
 }
 
@@ -25,6 +26,7 @@ export function PlanCard({
   features,
   ctaLabel,
   ctaHref,
+  onCtaClick,
   highlighted = false,
 }: PlanCardProps) {
   return (
@@ -71,13 +73,23 @@ export function PlanCard({
         ))}
       </ul>
 
-      <Button
-        asChild
-        className="mt-8 w-full"
-        aria-label={`${ctaLabel} - ${title}`}
-      >
-        <Link href={ctaHref}>{ctaLabel}</Link>
-      </Button>
+      {onCtaClick ? (
+        <Button
+          onClick={onCtaClick}
+          className="mt-8 w-full bg-black text-white hover:bg-black/90"
+          aria-label={`${ctaLabel} - ${title}`}
+        >
+          {ctaLabel}
+        </Button>
+      ) : (
+        <Button
+          asChild
+          className="mt-8 w-full bg-black text-white hover:bg-black/90"
+          aria-label={`${ctaLabel} - ${title}`}
+        >
+          <Link href={ctaHref || '#'}>{ctaLabel}</Link>
+        </Button>
+      )}
     </div>
   )
 }
