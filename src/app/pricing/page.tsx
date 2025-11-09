@@ -68,12 +68,17 @@ export default function PricingPage() {
     setIsCheckingOut(interval)
 
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
+
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: 'premium', interval }),
+        signal: controller.signal,
       })
 
+      clearTimeout(timeoutId)
       const data = await response.json()
 
       if (!response.ok) {
@@ -88,7 +93,9 @@ export default function PricingPage() {
       toast({
         variant: 'destructive',
         title: 'Checkout Failed',
-        description: 'Failed to start checkout. Please try again.',
+        description: error instanceof Error && error.name === 'AbortError'
+          ? 'Request timed out. Please try again.'
+          : 'Failed to start checkout. Please try again.',
       })
       setIsCheckingOut(null)
     }
@@ -120,6 +127,7 @@ export default function PricingPage() {
               features={PLAN_FEATURES}
               ctaLabel={isCheckingOut === 'monthly' ? 'Processing...' : 'Subscribe Monthly'}
               onCtaClick={() => handleCheckout('monthly')}
+              disabled={isCheckingOut !== null}
               totalPrice="$30"
               interval="month"
               hasTrial={true}
@@ -132,6 +140,7 @@ export default function PricingPage() {
               features={PLAN_FEATURES}
               ctaLabel={isCheckingOut === 'annual' ? 'Processing...' : 'Subscribe Annually'}
               onCtaClick={() => handleCheckout('annual')}
+              disabled={isCheckingOut !== null}
               highlighted
               totalPrice="$240"
               interval="year"
