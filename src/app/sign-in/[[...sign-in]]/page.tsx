@@ -2,32 +2,18 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSignIn, useAuth } from '@clerk/nextjs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/hooks/use-toast'
-import Link from 'next/link'
-import { Eye, EyeOff, Mail, ArrowLeft, KeyRound, Chrome, Users, Clock, Shield } from 'lucide-react'
+import { useAuth } from '@clerk/nextjs'
+import { Check, KeyRound } from 'lucide-react'
+import { AuthLayout } from '@/components/auth/AuthLayout'
+import { SignInForm } from '@/components/auth/SignInForm'
+import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm'
+import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm'
 
 export default function Page() {
   const router = useRouter()
-  const { isLoaded, signIn, setActive } = useSignIn()
   const { isLoaded: authLoaded, isSignedIn } = useAuth()
-  const { toast } = useToast()
 
   const [step, setStep] = useState<'signin' | 'forgot' | 'reset'>('signin')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [resetCode, setResetCode] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [sendingReset, setSendingReset] = useState(false)
-  const [resettingPassword, setResettingPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   // If a session already exists, redirect to dashboard to avoid Clerk "session_exists" errors
@@ -36,6 +22,16 @@ export default function Page() {
       router.replace('/dashboard')
     }
   }, [authLoaded, isSignedIn, router])
+
+  // Show loading state while checking authentication
+  if (!authLoaded) {
+    return null
+  }
+
+  // Don't render if redirecting
+  if (isSignedIn) {
+    return null
+  }
 
   // Clear any cached authentication data on component mount
   useEffect(() => {
@@ -46,458 +42,110 @@ export default function Page() {
     }
   }, [])
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
+  const handleForgotPassword = () => {
+    setStep('forgot')
     setSuccessMessage(null)
-    if (!isLoaded) return
-
-    if (!email.trim() || !password.trim()) {
-      setError('Please enter both email and password')
-      return
-    }
-
-    try {
-      setSubmitting(true)
-      const result = await signIn.create({ identifier: email, password })
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
-        toast({
-          title: "Welcome back!",
-          description: "You have been successfully signed in.",
-        })
-        router.replace('/dashboard')
-      } else {
-        setError('Additional verification required. Please continue in the next step.')
-      }
-    } catch (err: any) {
-      const code = err?.errors?.[0]?.code
-      if (code === 'session_exists') {
-        // A session already exists; let AdminRedirect component handle routing
-        router.replace('/dashboard')
-        return
-      } else if (code === 'form_identifier_not_found') {
-        setError('No account found with this email address. Please check your email or sign up.')
-      } else if (code === 'form_password_incorrect') {
-        setError('Incorrect password. Please try again or reset your password.')
-      } else if (code === 'too_many_requests') {
-        setError('Too many failed attempts. Please wait a moment before trying again.')
-      } else {
-        const msg = err?.errors?.[0]?.longMessage || err?.message || 'Sign in failed'
-        setError(msg)
-      }
-    } finally {
-      setSubmitting(false)
-    }
   }
 
-  const onSubmitForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
+  const handleBackToSignIn = () => {
+    setStep('signin')
     setSuccessMessage(null)
-    if (!isLoaded) return
-
-    if (!email.trim()) {
-      setError('Please enter your email address')
-      return
-    }
-
-    try {
-      setSendingReset(true)
-      await signIn.create({
-        strategy: 'reset_password_email_code',
-        identifier: email,
-      })
-      setStep('reset')
-      setSuccessMessage(`We've sent a password reset code to ${email}`)
-    } catch (err: any) {
-      const code = err?.errors?.[0]?.code
-      if (code === 'form_identifier_not_found') {
-        setError('No account found with this email address. Please check your email or sign up.')
-      } else {
-        const msg = err?.errors?.[0]?.longMessage || err?.message || 'Failed to send reset email'
-        setError(msg)
-      }
-    } finally {
-      setSendingReset(false)
-    }
   }
 
-  const onSubmitResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setSuccessMessage(null)
-    if (!isLoaded) return
-
-    if (!resetCode.trim() || !newPassword.trim()) {
-      setError('Please enter both the reset code and new password')
-      return
-    }
-
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long')
-      return
-    }
-
-    try {
-      setResettingPassword(true)
-      const result = await signIn.attemptFirstFactor({
-        strategy: 'reset_password_email_code',
-        code: resetCode,
-        password: newPassword,
-      })
-
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
-        toast({
-          title: "Password reset successful!",
-          description: "You have been signed in with your new password.",
-        })
-        router.replace('/dashboard')
-      } else {
-        setError('Password reset failed. Please try again.')
-      }
-    } catch (err: any) {
-      const code = err?.errors?.[0]?.code
-      if (code === 'form_code_incorrect') {
-        setError('Incorrect reset code. Please check your email and try again.')
-      } else if (code === 'form_password_pwned') {
-        setError('This password has been found in a data breach. Please choose a different password.')
-      } else {
-        const msg = err?.errors?.[0]?.longMessage || err?.message || 'Password reset failed'
-        setError(msg)
-      }
-    } finally {
-      setResettingPassword(false)
-    }
+  const handleForgotPasswordSuccess = (userEmail: string) => {
+    setStep('reset')
+    setSuccessMessage(`We've sent a password reset code to ${userEmail}`)
   }
 
-  // Forgot Password Step
+  const handleBackToForgot = () => {
+    setStep('forgot')
+    setSuccessMessage(null)
+  }
+
+  // Render based on current step
   if (step === 'forgot') {
     return (
-      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-        <div className="flex items-center justify-center p-6 lg:p-10 bg-white">
-          <div className="w-full max-w-md">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-semibold tracking-tight">Ascentful</h1>
-            </div>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2 text-center justify-center">
-                  <KeyRound className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-xl">Reset your password</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Enter your email address and we'll send you a code to reset your password.
-                  </p>
-                </div>
-
-                <form onSubmit={onSubmitForgotPassword} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Email Address</Label>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-
-                  {error && (
-                    <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                      {error}
-                    </div>
-                  )}
-
-                  <Button type="submit" className="w-full" disabled={sendingReset}>
-                    {sendingReset ? (
-                      <>
-                        <Mail className="mr-2 h-4 w-4 animate-pulse" />
-                        Sending reset code...
-                      </>
-                    ) : (
-                      'Send Reset Code'
-                    )}
-                  </Button>
-                </form>
-
-                <div className="text-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setStep('signin')
-                      setError(null)
-                      setSuccessMessage(null)
-                    }}
-                    className="text-muted-foreground"
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to sign in
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        <div className="hidden lg:flex items-center justify-center bg-primary text-primary-foreground p-10">
-          <div className="max-w-md">
-            <h2 className="text-3xl font-bold mb-4">Forgot your password?</h2>
-            <p className="opacity-90 mb-6">
+      <AuthLayout
+        marketingTitle="Forgot your password?"
+        marketingContent={
+          <>
+            <p className="text-white/95 mb-6">
               No worries! We'll help you reset it quickly and securely so you can get back to your career journey.
             </p>
-            <div className="flex items-center gap-3 text-sm opacity-90">
+            <div className="flex items-center gap-3">
               <KeyRound className="h-5 w-5" />
-              <span>Secure password reset process</span>
+              <span className="text-white/95">Secure password reset process</span>
             </div>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      >
+        <ForgotPasswordForm
+          onBack={handleBackToSignIn}
+          onSuccess={handleForgotPasswordSuccess}
+        />
+      </AuthLayout>
     )
   }
 
-  // Reset Password Step
   if (step === 'reset') {
     return (
-      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-        <div className="flex items-center justify-center p-6 lg:p-10 bg-white">
-          <div className="w-full max-w-md">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-semibold tracking-tight">Ascentful</h1>
-            </div>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2 text-center justify-center">
-                  <KeyRound className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-xl">Create new password</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {successMessage && (
-                  <div className="text-sm text-green-600 bg-green-50 p-3 rounded-md">
-                    {successMessage}
-                  </div>
-                )}
-
-                <form onSubmit={onSubmitResetPassword} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Reset Code</Label>
-                    <Input
-                      type="text"
-                      value={resetCode}
-                      onChange={(e) => setResetCode(e.target.value)}
-                      placeholder="Enter code from email"
-                      maxLength={6}
-                      className="text-center text-lg tracking-widest"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>New Password</Label>
-                    <div className="relative">
-                      <Input
-                        type={showNewPassword ? 'text' : 'password'}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Create a strong password"
-                        className="pr-10"
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                      >
-                        {showNewPassword ? (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Must be at least 8 characters long
-                    </p>
-                  </div>
-
-                  {error && (
-                    <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                      {error}
-                    </div>
-                  )}
-
-                  <Button type="submit" className="w-full" disabled={resettingPassword}>
-                    {resettingPassword ? 'Resetting password...' : 'Reset Password'}
-                  </Button>
-                </form>
-
-                <div className="text-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setStep('forgot')
-                      setError(null)
-                      setSuccessMessage(null)
-                    }}
-                    className="text-muted-foreground"
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        <div className="hidden lg:flex items-center justify-center bg-primary text-primary-foreground p-10">
-          <div className="max-w-md">
-            <h2 className="text-3xl font-bold mb-4">Almost there!</h2>
-            <p className="opacity-90 mb-6">
+      <AuthLayout
+        marketingTitle="Almost there!"
+        marketingContent={
+          <>
+            <p className="text-white/95 mb-6">
               Enter the code we sent to your email and create a new secure password.
             </p>
-            <div className="flex items-center gap-3 text-sm opacity-90">
+            <div className="flex items-center gap-3">
               <KeyRound className="h-5 w-5" />
-              <span>Your account security is our priority</span>
+              <span className="text-white/95">Your account security is our priority</span>
             </div>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      >
+        <ResetPasswordForm
+          successMessage={successMessage ?? undefined}
+          onBack={handleBackToForgot}
+        />
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-      {/* Left: Form */}
-      <div className="flex items-center justify-center p-6 lg:p-10 bg-white">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-semibold tracking-tight">Ascentful</h1>
+    <AuthLayout
+      marketingTitle={
+        <>
+          Take Control of
+          <br />
+          Your Career Growth
+        </>
+      }
+      marketingContent={
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <span className="text-white/95">Get AI coaching that adapts to your goals</span>
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Welcome back</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={onSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your.email@example.com"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Password</Label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 text-xs text-primary hover:bg-transparent"
-                      onClick={() => {
-                        setStep('forgot')
-                        setError(null)
-                        setSuccessMessage(null)
-                      }}
-                    >
-                      Forgot password?
-                    </Button>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      className="pr-10"
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                    {error}
-                  </div>
-                )}
-
-                <Button type="submit" className="w-full" disabled={submitting}>
-                  {submitting ? 'Signing in...' : 'Sign In'}
-                </Button>
-              </form>
-
-              <div className="mt-6">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Don't have an account?{' '}
-                    <Link href="/sign-up" className="underline font-medium">
-                      Sign up
-                    </Link>
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Right: Marketing Panel */}
-      <div className="hidden lg:flex items-center justify-center bg-primary text-primary-foreground p-10">
-        <div className="max-w-md">
-          <h2 className="text-3xl font-bold mb-4">Accelerate Your Career Path</h2>
-          <p className="opacity-90 mb-6">
-            Your all-in-one platform to plan, build, and launch your career.
-          </p>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3 text-sm opacity-90">
-              <span className="text-lg mt-0.5">✔</span>
-              <span>AI-powered coaching to guide your next steps</span>
-            </div>
-            <div className="flex items-start gap-3 text-sm opacity-90">
-              <span className="text-lg mt-0.5">✔</span>
-              <span>Create polished resumes and tailored cover letters</span>
-            </div>
-            <div className="flex items-start gap-3 text-sm opacity-90">
-              <span className="text-lg mt-0.5">✔</span>
-              <span>Track and achieve your career goals with clarity</span>
-            </div>
-            <div className="flex items-start gap-3 text-sm opacity-90">
-              <span className="text-lg mt-0.5">✔</span>
-              <span>Explore career paths and opportunities with confidence</span>
-            </div>
-            <div className="flex items-start gap-3 text-sm opacity-90">
-              <span className="text-lg mt-0.5">✔</span>
-              <span>Organize your projects, skills, and experiences in one place</span>
-            </div>
+          <div className="flex items-start gap-3">
+            <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <span className="text-white/95">Build standout resumes and cover letters fast</span>
+          </div>
+          <div className="flex items-start gap-3">
+            <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <span className="text-white/95">Track goals and see your progress clearly</span>
+          </div>
+          <div className="flex items-start gap-3">
+            <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <span className="text-white/95">Discover opportunities that match your path</span>
+          </div>
+          <div className="flex items-start gap-3">
+            <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <span className="text-white/95">Keep all your career details in one place</span>
           </div>
         </div>
-      </div>
-    </div>
+      }
+    >
+      <SignInForm onForgotPassword={handleForgotPassword} />
+    </AuthLayout>
   )
 }
