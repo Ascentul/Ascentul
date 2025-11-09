@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useQuery, useMutation } from "convex/react";
@@ -550,10 +551,13 @@ export default function ProfilePage() {
       {/* Cover Image */}
       <div className="relative h-48 bg-gradient-to-r from-[#0C29AB] to-[#1e40af] rounded-t-lg">
         {displayProfile?.cover_image && (
-          <img
+          <Image
             src={displayProfile.cover_image}
             alt="Cover"
-            className="w-full h-full object-cover rounded-t-lg"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 1536px, 1536px"
+            priority
+            className="object-cover rounded-t-lg"
           />
         )}
         {isViewingOwnProfile && (

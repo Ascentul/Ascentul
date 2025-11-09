@@ -403,7 +403,7 @@ export function Heatmap({ data, startOnMonday = true }: Props) {
                               : -1
                           }
                           aria-label={tooltipText}
-                          aria-pressed={day.didAction}
+                          aria-selected={day.didAction}
                           onClick={() => handleCellClick(day)}
                           onMouseEnter={() => handleCellHover(day)}
                           onKeyDown={(e) => handleKeyDown(e, cellIndex)}

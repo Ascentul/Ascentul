@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
+import Image from 'next/image'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
@@ -282,9 +283,11 @@ export default function AdminUsersPage() {
                 <div key={u._id} className="grid grid-cols-[2fr_2fr_1fr_1fr_1.5fr_1fr_80px] gap-3 px-4 py-3 items-center">
                   <div className="min-w-0 truncate">
                     <div className="font-medium flex items-center gap-2">
-                      <img
+                      <Image
                         src={u.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=0C29AB&color=fff`}
                         alt={u.name}
+                        width={32}
+                        height={32}
                         className="h-8 w-8 rounded-full object-cover flex-shrink-0"
                       />
                       {u.name}

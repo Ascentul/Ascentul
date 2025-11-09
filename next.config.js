@@ -1,7 +1,35 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['qyycdduuadsofgabrgip.supabase.co'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'qyycdduuadsofgabrgip.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.clerk.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.clerk.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.adzuna.com',
+      },
+    ],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
