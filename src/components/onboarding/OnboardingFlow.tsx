@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { PricingTable } from "@clerk/nextjs";
+import { PlanCard } from "@/components/pricing/PlanCard";
 
 interface OnboardingData {
   major: string;
@@ -41,12 +41,21 @@ const defaultOnboardingData: OnboardingData = {
   dreamJob: "",
 };
 
+const PLAN_FEATURES = [
+  'Advanced application tracking',
+  'Smart career path insights',
+  'Resume & Cover Letter Studios',
+  'AI Career Coach',
+  'Priority Support',
+];
+
 export function OnboardingFlow() {
-  const { user, subscription, hasPremium } = useAuth();
+  const { user, subscription, hasPremium, isSignedIn } = useAuth();
   const { user: clerkUser } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const [isCheckingOut, setIsCheckingOut] = useState<string | null>(null);
 
   // Force reload user session after returning from Clerk checkout
   useEffect(() => {
@@ -138,6 +147,49 @@ export function OnboardingFlow() {
     setStep(educationStep);
   };
 
+  // Handle checkout
+  const handleCheckout = async (interval: 'monthly' | 'annual') => {
+    if (!isSignedIn) {
+      router.push('/sign-in?redirect_url=/onboarding');
+      return;
+    }
+
+    setIsCheckingOut(interval);
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'premium', interval }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to create checkout session');
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Checkout Failed',
+        description: error instanceof Error && error.name === 'AbortError'
+          ? 'Request timed out. Please try again.'
+          : 'Failed to start checkout. Please try again.',
+      });
+      setIsCheckingOut(null);
+    }
+  };
+
   const saveOnboardingData = async () => {
     if (!user) return false;
 
@@ -175,32 +227,60 @@ export function OnboardingFlow() {
   };
 
   const renderStep = () => {
-    // Plan Selection Step (using Clerk Billing)
+    // Plan Selection Step (using custom pricing cards)
     if (!shouldSkipPlanSelection && step === planSelectionStep) {
       return (
         <div className="space-y-6">
           <CardHeader>
-            <CardTitle className="text-2xl">Choose Your Plan</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-2xl md:text-3xl font-bold text-center">Choose Your Plan</CardTitle>
+            <CardDescription className="text-center">
               Select the plan that best fits your career goals. You can upgrade or downgrade at any time.
             </CardDescription>
+            <p className="mt-2 text-lg md:text-xl font-bold text-brand-blue text-center">
+              Save 33% with annual billing
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Clerk Billing PricingTable Component */}
-            {/* This automatically handles plan display, checkout, and payment */}
-            <div className="clerk-pricing-table-wrapper">
-              <PricingTable />
+            {/* Custom Pricing Cards */}
+            <div className="grid gap-6 md:gap-6 md:grid-cols-2 max-w-5xl mx-auto">
+              <PlanCard
+                title="Pro Monthly"
+                price="$30"
+                cadence="month"
+                features={PLAN_FEATURES}
+                ctaLabel={isCheckingOut === 'monthly' ? 'Processing...' : 'Subscribe Monthly'}
+                onCtaClick={() => handleCheckout('monthly')}
+                disabled={isCheckingOut !== null}
+                totalPrice="$30"
+                interval="month"
+                hasTrial={true}
+              />
+              <PlanCard
+                title="Pro Annual"
+                price="$20"
+                cadence="month"
+                savings="Save $120/year"
+                features={PLAN_FEATURES}
+                ctaLabel={isCheckingOut === 'annual' ? 'Processing...' : 'Subscribe Annually'}
+                onCtaClick={() => handleCheckout('annual')}
+                disabled={isCheckingOut !== null}
+                highlighted
+                totalPrice="$240"
+                interval="year"
+                hasTrial={true}
+              />
             </div>
 
             {/* Free plan option */}
-            <div className="border-t pt-4 mt-6">
+            <div className="border-t pt-6 mt-8">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-3">
+                <p className="text-sm text-zinc-600 mb-4">
                   Not ready to subscribe?
                 </p>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={handleSkipPlanSelection}
+                  className="text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100"
                 >
                   Continue with Free Plan
                 </Button>

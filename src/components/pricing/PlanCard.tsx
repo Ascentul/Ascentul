@@ -17,6 +17,7 @@ export type PlanCardProps = {
   totalPrice?: string
   interval?: 'month' | 'year'
   hasTrial?: boolean
+  disabled?: boolean
 }
 
 const ctaButtonClasses = "mt-8 w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 hover:shadow-md hover:-translate-y-[1px] transition-all duration-200"
@@ -35,6 +36,7 @@ export function PlanCard({
   totalPrice,
   interval,
   hasTrial = false,
+  disabled = false,
 }: PlanCardProps) {
   return (
     <div
@@ -93,6 +95,7 @@ export function PlanCard({
             onClick={onCtaClick}
             className={ctaButtonClasses}
             aria-label={`${ctaLabel} - ${title}`}
+            disabled={disabled}
           >
             {ctaLabel}
           </Button>
@@ -101,6 +104,7 @@ export function PlanCard({
             asChild
             className={ctaButtonClasses}
             aria-label={`${ctaLabel} - ${title}`}
+            disabled={disabled}
           >
             <Link href={ctaHref || '#'}>{ctaLabel}</Link>
           </Button>
