@@ -42,8 +42,8 @@ export function PricingFAQ() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="text-2xl md:text-3xl font-bold text-zinc-900 mb-3">
-          Frequently Asked Questions
+        <h2 className="text-2xl md:text-3xl font-bold mb-3">
+          <span className="text-zinc-900">Frequently Asked</span> <span className="text-brand-blue">Questions</span>
         </h2>
         <p className="text-base text-zinc-600">
           Everything you need to know about our pricing and plans
