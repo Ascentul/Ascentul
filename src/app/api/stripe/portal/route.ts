@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: `${origin}/account?portal=mock` })
     }
 
-    const stripe = new Stripe(stripeSecret, { apiVersion: '2023-10-16' as any })
+    const apiVersion = (process.env.STRIPE_API_VERSION || '2025-02-24.acacia') as Stripe.LatestApiVersion
+    const stripe = new Stripe(stripeSecret, { apiVersion })
 
     if (!convexUrl) {
       console.error('Missing NEXT_PUBLIC_CONVEX_URL')
