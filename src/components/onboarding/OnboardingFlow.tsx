@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { PlanCard } from "@/components/pricing/PlanCard";
+import { PRICING, PLAN_FEATURES } from "@/config/pricing";
 
 interface OnboardingData {
   major: string;
@@ -40,14 +41,6 @@ const defaultOnboardingData: OnboardingData = {
   graduationYear: "",
   dreamJob: "",
 };
-
-const PLAN_FEATURES = [
-  'Advanced application tracking',
-  'Smart career path insights',
-  'Resume & Cover Letter Studios',
-  'AI Career Coach',
-  'Priority Support',
-];
 
 export function OnboardingFlow() {
   const { user, subscription, hasPremium, isSignedIn } = useAuth();
@@ -237,36 +230,36 @@ export function OnboardingFlow() {
               Select the plan that best fits your career goals. You can upgrade or downgrade at any time.
             </CardDescription>
             <p className="mt-2 text-lg md:text-xl font-bold text-brand-blue text-center">
-              Save 33% with annual billing
+              Save {PRICING.annual.savingsPercentage} with annual billing
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Custom Pricing Cards */}
             <div className="grid gap-6 md:gap-6 md:grid-cols-2 max-w-5xl mx-auto">
               <PlanCard
-                title="Pro Monthly"
-                price="$30"
+                title={PRICING.monthly.title}
+                price={PRICING.monthly.price}
                 cadence="month"
                 features={PLAN_FEATURES}
                 ctaLabel={isCheckingOut === 'monthly' ? 'Processing...' : 'Subscribe Monthly'}
                 onCtaClick={() => handleCheckout('monthly')}
                 disabled={isCheckingOut !== null}
-                totalPrice="$30"
-                interval="month"
+                totalPrice={PRICING.monthly.totalPrice}
+                interval={PRICING.monthly.interval}
                 hasTrial={true}
               />
               <PlanCard
-                title="Pro Annual"
-                price="$20"
+                title={PRICING.annual.title}
+                price={PRICING.annual.price}
                 cadence="month"
-                savings="Save $120/year"
+                savings={PRICING.annual.savings}
                 features={PLAN_FEATURES}
                 ctaLabel={isCheckingOut === 'annual' ? 'Processing...' : 'Subscribe Annually'}
                 onCtaClick={() => handleCheckout('annual')}
                 disabled={isCheckingOut !== null}
                 highlighted
-                totalPrice="$240"
-                interval="year"
+                totalPrice={PRICING.annual.totalPrice}
+                interval={PRICING.annual.interval}
                 hasTrial={true}
               />
             </div>
