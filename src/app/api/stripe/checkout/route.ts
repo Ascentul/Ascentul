@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from 'convex/_generated/api';
-import Stripe from 'stripe';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "convex/_generated/api";
+import Stripe from "stripe";
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 
 function getClient() {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!url) throw new Error('Convex URL not configured');
+  if (!url) throw new Error("Convex URL not configured");
   return new ConvexHttpClient(url);
 }
 
@@ -19,7 +19,7 @@ const PLAN_CONFIG: Record<
     string,
     {
       amount: number;
-      interval: 'month' | 'year';
+      interval: "month" | "year";
       interval_count?: number;
       productName: string;
     }
@@ -28,21 +28,21 @@ const PLAN_CONFIG: Record<
   premium: {
     monthly: {
       amount: 3000, // $30.00
-      interval: 'month',
+      interval: "month",
       interval_count: 1,
-      productName: 'Ascentful Premium Monthly',
+      productName: "Ascentful Premium Monthly",
     },
     quarterly: {
       amount: 3000,
-      interval: 'month',
+      interval: "month",
       interval_count: 3,
-      productName: 'Ascentful Premium',
+      productName: "Ascentful Premium",
     },
     annual: {
       amount: 24000, // $240.00
-      interval: 'year',
+      interval: "year",
       interval_count: 1,
-      productName: 'Ascentful Premium Annual',
+      productName: "Ascentful Premium Annual",
     },
   },
 };
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const { userId } = await auth();
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     let body;
@@ -60,43 +60,33 @@ export async function POST(request: NextRequest) {
       body = await request.json();
     } catch {
       return NextResponse.json(
-        { error: 'Invalid request body' },
+        { error: "Invalid request body" },
         { status: 400 },
       );
     }
 
-    const plan = (body?.plan as string) || 'premium';
-    const interval = (body?.interval as string) || 'monthly';
-    const returnUrl = (body?.returnUrl as string) || '/account';
-
-    // Validate returnUrl to prevent open redirect
-    if (!returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
-      return NextResponse.json(
-        { error: 'Invalid return URL. Must be a relative path.' },
-        { status: 400 },
-      );
-    }
+    const plan = (body?.plan as string) || "premium";
+    const interval = (body?.interval as string) || "monthly";
 
     if (!PLAN_CONFIG[plan]?.[interval]) {
       return NextResponse.json(
-        { error: 'Invalid plan or interval' },
+        { error: "Invalid plan or interval" },
         { status: 400 },
       );
     }
 
-    const origin = request.headers.get('origin') || new URL(request.url).origin;
+    const origin = request.headers.get("origin") || new URL(request.url).origin;
 
     // If Stripe is not configured, return error
     if (!stripeSecret) {
       return NextResponse.json(
-        { error: 'Stripe not configured' },
+        { error: "Stripe not configured" },
         { status: 500 },
       );
     }
 
-    const apiVersion = (process.env.STRIPE_API_VERSION || '2025-02-24.acacia') as Stripe.LatestApiVersion
     const stripe = new Stripe(stripeSecret, {
-      apiVersion,
+      apiVersion: "2025-02-24.acacia",
     });
     const client = getClient();
 
@@ -107,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'User record not found' },
+        { error: "User record not found" },
         { status: 404 },
       );
     }
@@ -130,29 +120,13 @@ export async function POST(request: NextRequest) {
     }
 
     const cfg = PLAN_CONFIG[plan][interval];
-
-    // Build success and cancel URLs with proper query parameter handling
-    let successUrl: URL;
-    let cancelUrl: URL;
-    try {
-      successUrl = new URL(returnUrl, origin);
-      successUrl.searchParams.set('checkout', 'success');
-      cancelUrl = new URL(returnUrl, origin);
-      cancelUrl.searchParams.set('checkout', 'cancel');
-    } catch {
-      return NextResponse.json(
-        { error: 'Invalid return URL format.' },
-        { status: 400 },
-      );
-    }
-
     const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
+      mode: "subscription",
       customer: customerId,
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: "usd",
             product_data: { name: cfg.productName },
             recurring: {
               interval: cfg.interval,
@@ -165,8 +139,8 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: successUrl.href,
-      cancel_url: cancelUrl.href,
+      success_url: `${origin}/account?checkout=success`,
+      cancel_url: `${origin}/account?checkout=cancel`,
       allow_promotion_codes: true,
       client_reference_id: userId,
       metadata: { clerk_id: userId, plan, interval },
@@ -177,16 +151,16 @@ export async function POST(request: NextRequest) {
 
     if (!session.url) {
       return NextResponse.json(
-        { error: 'Failed to create checkout session' },
+        { error: "Failed to create checkout session" },
         { status: 500 },
       );
     }
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error('Stripe checkout error:', error);
+    console.error("Stripe checkout error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 },
     );
   }
