@@ -16,6 +16,15 @@ export default function Page() {
   const [step, setStep] = useState<'signin' | 'forgot' | 'reset'>('signin')
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  // Clear any cached authentication data on component mount
+  useEffect(() => {
+    // Clear localStorage and sessionStorage to prevent cached auth issues
+    if (typeof window !== 'undefined') {
+      localStorage.clear()
+      sessionStorage.clear()
+    }
+  }, [])
+
   // If a session already exists, redirect to dashboard to avoid Clerk "session_exists" errors
   useEffect(() => {
     if (authLoaded && isSignedIn) {
@@ -32,15 +41,6 @@ export default function Page() {
   if (isSignedIn) {
     return null
   }
-
-  // Clear any cached authentication data on component mount
-  useEffect(() => {
-    // Clear localStorage and sessionStorage to prevent cached auth issues
-    if (typeof window !== 'undefined') {
-      localStorage.clear()
-      sessionStorage.clear()
-    }
-  }, [])
 
   const handleForgotPassword = () => {
     setStep('forgot')

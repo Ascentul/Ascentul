@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Mail, CheckCircle, ArrowLeft, Eye, EyeOff, Users, Zap, BookOpen, Shield, Check } from 'lucide-react'
-import { calculatePasswordStrength, getPasswordStrengthColor, getPasswordStrengthText, getPasswordStrengthTextColor } from '@/utils/password-strength'
+import { calculatePasswordStrength, getPasswordStrengthColor, getPasswordStrengthText, getPasswordStrengthTextColor, type PasswordStrength } from '@/utils/password-strength'
 
 // Shared signup form component
 interface SignUpFormData {
@@ -49,7 +49,7 @@ function SignUpForm({
   submitting,
   onSubmit,
 }: SignUpFormProps) {
-  const [passwordStrength, setPasswordStrength] = useState(0)
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>(0)
 
   useEffect(() => {
     if (formData.password) {
