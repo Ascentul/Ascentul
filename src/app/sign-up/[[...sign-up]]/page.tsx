@@ -8,194 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/hooks/use-toast'
 import Link from 'next/link'
-import Image from 'next/image'
-import { Mail, CheckCircle, ArrowLeft, Eye, EyeOff, Users, Zap, BookOpen, Shield, Check } from 'lucide-react'
-import { calculatePasswordStrength, getPasswordStrengthColor, getPasswordStrengthText, getPasswordStrengthTextColor } from '@/utils/password-strength'
-
-// Shared signup form component
-interface SignUpFormData {
-  firstName: string
-  lastName: string
-  email: string
-  password: string
-}
-
-interface FormUI {
-  showPassword: boolean
-  acceptTerms: boolean
-}
-
-interface SignUpFormProps {
-  isUniversity?: boolean
-  formData: SignUpFormData
-  setFormData: React.Dispatch<React.SetStateAction<SignUpFormData>>
-  formUI: FormUI
-  setFormUI: React.Dispatch<React.SetStateAction<FormUI>>
-  error: string | null
-  submitting: boolean
-  onSubmit: (e: React.FormEvent) => void
-}
-
-function SignUpForm({
-  isUniversity = false,
-  formData,
-  setFormData,
-  formUI,
-  setFormUI,
-  error,
-  submitting,
-  onSubmit,
-}: SignUpFormProps) {
-  const [passwordStrength, setPasswordStrength] = useState(0)
-
-  useEffect(() => {
-    if (formData.password) {
-      setPasswordStrength(calculatePasswordStrength(formData.password))
-    } else {
-      setPasswordStrength(0)
-    }
-  }, [formData.password])
-
-  const updateFormData = (field: keyof SignUpFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
-
-  const updateFormUI = (field: keyof FormUI, value: boolean) => {
-    setFormUI(prev => ({ ...prev, [field]: value }))
-  }
-
-  return (
-    <form onSubmit={onSubmit} className="space-y-5">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-zinc-700">First Name</Label>
-          <Input
-            type="text"
-            value={formData.firstName}
-            onChange={(e) => updateFormData('firstName', e.target.value)}
-            placeholder="John"
-            className="h-11 rounded-xl bg-white placeholder:text-zinc-400 focus-visible:ring-brand-blue"
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-zinc-700">Last Name</Label>
-          <Input
-            type="text"
-            value={formData.lastName}
-            onChange={(e) => updateFormData('lastName', e.target.value)}
-            placeholder="Doe"
-            className="h-11 rounded-xl bg-white placeholder:text-zinc-400 focus-visible:ring-brand-blue"
-            required
-          />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-zinc-700">
-          {isUniversity ? 'University Email' : 'Email'}
-        </Label>
-        <Input
-          type="email"
-          value={formData.email}
-          onChange={(e) => updateFormData('email', e.target.value)}
-          placeholder={isUniversity ? 'student@university.edu' : 'john@example.com'}
-          className="h-11 rounded-xl bg-white placeholder:text-zinc-400 focus-visible:ring-brand-blue"
-          required
-        />
-        {isUniversity && (
-          <p className="text-xs text-muted-foreground">
-            Use your official university email address
-          </p>
-        )}
-      </div>
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-zinc-700">Password</Label>
-        <div className="relative">
-          <Input
-            type={formUI.showPassword ? 'text' : 'password'}
-            value={formData.password}
-            onChange={(e) => updateFormData('password', e.target.value)}
-            placeholder="Create a strong password"
-            className="h-11 rounded-xl bg-white placeholder:text-zinc-400 focus-visible:ring-brand-blue pr-10"
-            required
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-            onClick={() => updateFormUI('showPassword', !formUI.showPassword)}
-            aria-label={formUI.showPassword ? 'Hide password' : 'Show password'}
-          >
-            {formUI.showPassword ? (
-              <EyeOff className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            )}
-          </Button>
-        </div>
-        {formData.password && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-300 ${getPasswordStrengthColor(passwordStrength)}`}
-                  style={{ width: `${(passwordStrength / 5) * 100}%` }}
-                />
-              </div>
-              <span className={`text-xs font-medium ${getPasswordStrengthTextColor(passwordStrength)}`}>
-                {getPasswordStrengthText(passwordStrength)}
-              </span>
-            </div>
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Must be at least 8 characters long
-        </p>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id={isUniversity ? 'acceptTermsUniversity' : 'acceptTerms'}
-          checked={formUI.acceptTerms}
-          onCheckedChange={(checked) => updateFormUI('acceptTerms', checked === true)}
-          className="border-brand-blue data-[state=checked]:bg-brand-blue data-[state=checked]:border-brand-blue"
-        />
-        <label htmlFor={isUniversity ? 'acceptTermsUniversity' : 'acceptTerms'} className="text-xs text-muted-foreground">
-          I agree to the{' '}
-          <Link href="/terms" className="underline text-brand-blue hover:text-brand-blue/80">
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link href="/privacy" className="underline text-brand-blue hover:text-brand-blue/80">
-            Privacy Policy
-          </Link>
-        </label>
-      </div>
-
-      {error && (
-        <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-xl border border-destructive/20">
-          {error}
-        </div>
-      )}
-
-      <Button
-        type="submit"
-        className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 active:bg-black/95 focus-visible:ring-2 focus-visible:ring-black/20 shadow-md hover:shadow-lg transition-all"
-        disabled={submitting}
-      >
-        {submitting ? 'Creating account...' : isUniversity ? 'Create University Account' : 'Create Account'}
-      </Button>
-
-      <p className="text-xs text-zinc-500 text-center">
-        No charges today. Cancel anytime.
-      </p>
-    </form>
-  )
-}
+import { Mail, CheckCircle, ArrowLeft, Eye, EyeOff, Chrome, Users, Zap, BookOpen, Shield } from 'lucide-react'
 
 export default function Page() {
   const router = useRouter()
@@ -206,20 +21,17 @@ export default function Page() {
 
   const [tab, setTab] = useState<'regular' | 'university'>('regular')
   const [step, setStep] = useState<'signup' | 'verify'>('signup')
-  const [formData, setFormData] = useState<SignUpFormData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-  })
-  const [formUI, setFormUI] = useState<FormUI>({
-    showPassword: false,
-    acceptTerms: false,
-  })
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [verificationCode, setVerificationCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [passwordStrength, setPasswordStrength] = useState(0)
+  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [resending, setResending] = useState(false)
 
   // University invitation parameters from URL
@@ -227,6 +39,42 @@ export default function Page() {
     email?: string
     university?: string
   }>({})
+
+
+  // Password strength functions
+  const calculatePasswordStrength = (password: string) => {
+    let strength = 0
+    if (password.length >= 8) strength += 1
+    if (password.match(/[a-z]/)) strength += 1
+    if (password.match(/[A-Z]/)) strength += 1
+    if (password.match(/[0-9]/)) strength += 1
+    if (password.match(/[^a-zA-Z0-9]/)) strength += 1
+    return strength
+  }
+
+  const getPasswordStrengthColor = (strength: number) => {
+    switch (strength) {
+      case 0:
+      case 1: return 'bg-red-500'
+      case 2: return 'bg-orange-500'
+      case 3: return 'bg-yellow-500'
+      case 4: return 'bg-blue-500'
+      case 5: return 'bg-green-500'
+      default: return 'bg-gray-300'
+    }
+  }
+
+  const getPasswordStrengthText = (strength: number) => {
+    switch (strength) {
+      case 0:
+      case 1: return 'Very weak'
+      case 2: return 'Weak'
+      case 3: return 'Fair'
+      case 4: return 'Good'
+      case 5: return 'Strong'
+      default: return ''
+    }
+  }
 
   // Check for university invitation parameters in URL
   useEffect(() => {
@@ -241,7 +89,7 @@ export default function Page() {
 
       // Pre-fill email and switch to university tab
       if (inviteEmail) {
-        setFormData(prev => ({ ...prev, email: inviteEmail }))
+        setEmail(inviteEmail)
         setTab('university')
       }
     }
@@ -259,17 +107,13 @@ export default function Page() {
     setError(null)
     if (!isLoaded) return
 
-    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.password.trim()) {
+    // Basic validation
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
       setError('Please fill in all fields')
       return
     }
 
-    if (!formUI.acceptTerms) {
-      setError('You must accept the Terms of Service and Privacy Policy to continue')
-      return
-    }
-
-    if (formData.password.length < 8) {
+    if (password.length < 8) {
       setError('Password must be at least 8 characters long')
       return
     }
@@ -277,7 +121,7 @@ export default function Page() {
     // Check for university email if university tab is selected
     if (tab === 'university') {
       const universityDomains = ['.edu', '.ac.', 'university', 'college']
-      const isUniversityEmail = universityDomains.some(domain => formData.email.toLowerCase().includes(domain))
+      const isUniversityEmail = universityDomains.some(domain => email.toLowerCase().includes(domain))
       if (!isUniversityEmail) {
         setError('Please use a valid university email address for University signup')
         return
@@ -287,10 +131,10 @@ export default function Page() {
     try {
       setSubmitting(true)
       const result = await signUp.create({
-        emailAddress: formData.email,
-        password: formData.password,
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
+        emailAddress: email,
+        password,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
       })
 
       if (result.status === 'missing_requirements') {
@@ -354,7 +198,7 @@ export default function Page() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                email: formData.email,
+                email: email,
                 clerkId: result.createdUserId,
               }),
             })
@@ -419,14 +263,7 @@ export default function Page() {
         {/* Left: Verification Form */}
         <div className="flex items-center justify-center p-6 lg:p-10 bg-white">
           <div className="w-full max-w-md">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <Image
-                src="/logo.png"
-                alt="Ascentful logo"
-                width={32}
-                height={32}
-                className="h-8 w-auto"
-              />
+            <div className="text-center mb-6">
               <h1 className="text-2xl font-semibold tracking-tight">Ascentful</h1>
             </div>
             <Card>
@@ -439,7 +276,7 @@ export default function Page() {
               <CardContent className="space-y-4">
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground mb-4">
-                    We've sent a verification code to <strong>{formData.email}</strong>
+                    We've sent a verification code to <strong>{email}</strong>
                   </p>
                 </div>
 
@@ -525,22 +362,14 @@ export default function Page() {
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
       {/* Left: Form */}
-      <div className="flex items-center justify-center p-6 lg:p-10 bg-gradient-to-br from-zinc-50 to-zinc-100/50">
+      <div className="flex items-center justify-center p-6 lg:p-10 bg-white">
         <div className="w-full max-w-md">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <Image
-              src="/logo.png"
-              alt="Ascentful logo"
-              width={32}
-              height={32}
-              className="h-8 w-auto"
-            />
-            <h1 className="text-2xl font-semibold tracking-tight text-brand-blue">Ascentful</h1>
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-semibold tracking-tight">Ascentful</h1>
           </div>
-          <Card className="border-neutral-200/80 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl">
-            <CardHeader className="space-y-1 pb-6">
-              <CardTitle className="text-2xl font-semibold text-zinc-900">Create your account</CardTitle>
-              <p className="text-sm text-zinc-600">Start your career journey today</p>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Create your account</CardTitle>
             </CardHeader>
             <CardContent>
               <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
@@ -550,29 +379,242 @@ export default function Page() {
                 </TabsList>
 
                 <TabsContent value="regular" className="space-y-4">
-                  <SignUpForm
-                    isUniversity={false}
-                    formData={formData}
-                    setFormData={setFormData}
-                    formUI={formUI}
-                    setFormUI={setFormUI}
-                    error={error}
-                    submitting={submitting}
-                    onSubmit={onSubmitSignUp}
-                  />
+                  <form onSubmit={onSubmitSignUp} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>First Name</Label>
+                        <Input
+                          type="text"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          placeholder="John"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Last Name</Label>
+                        <Input
+                          type="text"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          placeholder="Doe"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="john@example.com"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Password</Label>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => {
+                            setPassword(e.target.value)
+                            setPasswordStrength(calculatePasswordStrength(e.target.value))
+                          }}
+                          placeholder="Create a strong password"
+                          className="pr-10"
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
+                      {password && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full transition-all duration-300 ${getPasswordStrengthColor(passwordStrength)}`}
+                                style={{ width: `${(passwordStrength / 5) * 100}%` }}
+                              />
+                            </div>
+                            <span className={`text-xs font-medium ${
+                              passwordStrength <= 2 ? 'text-red-600' :
+                              passwordStrength <= 3 ? 'text-yellow-600' :
+                              passwordStrength <= 4 ? 'text-blue-600' : 'text-green-600'
+                            }`}>
+                              {getPasswordStrengthText(passwordStrength)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Must be at least 8 characters long
+                      </p>
+                    </div>
+
+                    <div className="flex items-start space-x-2">
+                      <input
+                        type="checkbox"
+                        id="acceptTerms"
+                        checked={acceptTerms}
+                        onChange={(e) => setAcceptTerms(e.target.checked)}
+                        className="mt-1"
+                      />
+                      <label htmlFor="acceptTerms" className="text-xs text-muted-foreground">
+                        I agree to the{' '}
+                        <Link href="/terms" className="underline text-primary">
+                          Terms of Service
+                        </Link>{' '}
+                        and{' '}
+                        <Link href="/privacy" className="underline text-primary">
+                          Privacy Policy
+                        </Link>
+                      </label>
+                    </div>
+
+                    {error && (
+                      <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                        {error}
+                      </div>
+                    )}
+
+                    <Button type="submit" className="w-full" disabled={submitting}>
+                      {submitting ? 'Creating account...' : 'Create Account'}
+                    </Button>
+                  </form>
                 </TabsContent>
 
                 <TabsContent value="university" className="space-y-4">
-                  <SignUpForm
-                    isUniversity={true}
-                    formData={formData}
-                    setFormData={setFormData}
-                    formUI={formUI}
-                    setFormUI={setFormUI}
-                    error={error}
-                    submitting={submitting}
-                    onSubmit={onSubmitSignUp}
-                  />
+                  <form onSubmit={onSubmitSignUp} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>First Name</Label>
+                        <Input
+                          type="text"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          placeholder="John"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Last Name</Label>
+                        <Input
+                          type="text"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          placeholder="Doe"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>University Email</Label>
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="student@university.edu"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Use your official university email address
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Password</Label>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => {
+                            setPassword(e.target.value)
+                            setPasswordStrength(calculatePasswordStrength(e.target.value))
+                          }}
+                          placeholder="Create a strong password"
+                          className="pr-10"
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
+                      {password && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full transition-all duration-300 ${getPasswordStrengthColor(passwordStrength)}`}
+                                style={{ width: `${(passwordStrength / 5) * 100}%` }}
+                              />
+                            </div>
+                            <span className={`text-xs font-medium ${
+                              passwordStrength <= 2 ? 'text-red-600' :
+                              passwordStrength <= 3 ? 'text-yellow-600' :
+                              passwordStrength <= 4 ? 'text-blue-600' : 'text-green-600'
+                            }`}>
+                              {getPasswordStrengthText(passwordStrength)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Must be at least 8 characters long
+                      </p>
+                    </div>
+
+                    <div className="flex items-start space-x-2">
+                      <input
+                        type="checkbox"
+                        id="acceptTermsUniversity"
+                        checked={acceptTerms}
+                        onChange={(e) => setAcceptTerms(e.target.checked)}
+                        className="mt-1"
+                      />
+                      <label htmlFor="acceptTermsUniversity" className="text-xs text-muted-foreground">
+                        I agree to the{' '}
+                        <Link href="/terms" className="underline text-primary">
+                          Terms of Service
+                        </Link>{' '}
+                        and{' '}
+                        <Link href="/privacy" className="underline text-primary">
+                          Privacy Policy
+                        </Link>
+                      </label>
+                    </div>
+
+                    {error && (
+                      <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                        {error}
+                      </div>
+                    )}
+
+                    <Button type="submit" className="w-full" disabled={submitting}>
+                      {submitting ? 'Creating account...' : 'Create University Account'}
+                    </Button>
+                  </form>
 
                   <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded-md">
                     <strong>University Account Benefits:</strong>
@@ -585,11 +627,11 @@ export default function Page() {
                 </TabsContent>
               </Tabs>
 
-              <div className="mt-6 pt-6 border-t border-zinc-200">
+              <div className="mt-6">
                 <div className="text-center">
-                  <p className="text-sm text-zinc-600">
+                  <p className="text-sm text-muted-foreground">
                     Already have an account?{' '}
-                    <Link href="/sign-in" className="text-brand-blue hover:underline font-medium">
+                    <Link href="/sign-in" className="underline font-medium">
                       Sign in
                     </Link>
                   </p>
@@ -601,29 +643,48 @@ export default function Page() {
       </div>
 
       {/* Right: Marketing Panel */}
-      <div className="hidden lg:flex items-center justify-center p-10 bg-brand-blue">
-        <div className="max-w-md text-white">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 leading-tight">Take Control of<br />Your Career Growth</h2>
-          <div className="space-y-4">
+      <div className="hidden lg:flex items-center justify-center bg-primary text-primary-foreground p-10">
+        <div className="max-w-md">
+          <h2 className="text-3xl font-bold mb-4">Start Your Career Journey</h2>
+          <p className="opacity-90 mb-6">
+            Join thousands of professionals and students who are accelerating their career growth with Ascentful.
+          </p>
+          <div className="grid gap-4">
             <div className="flex items-start gap-3">
-              <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
-              <span className="text-white/95">Get AI coaching that adapts to your goals</span>
+              <div className="p-2 bg-primary-foreground/20 rounded-lg">
+                <Zap className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold mb-1">AI-Powered Tools</h3>
+                <p className="text-sm opacity-90">Get personalized career guidance and resume optimization</p>
+              </div>
             </div>
             <div className="flex items-start gap-3">
-              <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
-              <span className="text-white/95">Build standout resumes and cover letters fast</span>
+              <div className="p-2 bg-primary-foreground/20 rounded-lg">
+                <BookOpen className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold mb-1">Expert Resources</h3>
+                <p className="text-sm opacity-90">Access professional templates and interview prep</p>
+              </div>
             </div>
             <div className="flex items-start gap-3">
-              <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
-              <span className="text-white/95">Track goals and see your progress clearly</span>
+              <div className="p-2 bg-primary-foreground/20 rounded-lg">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold mb-1">Network Building</h3>
+                <p className="text-sm opacity-90">Connect with peers and industry professionals</p>
+              </div>
             </div>
             <div className="flex items-start gap-3">
-              <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
-              <span className="text-white/95">Discover opportunities that match your path</span>
-            </div>
-            <div className="flex items-start gap-3">
-              <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
-              <span className="text-white/95">Keep all your career details in one place</span>
+              <div className="p-2 bg-primary-foreground/20 rounded-lg">
+                <Shield className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold mb-1">Secure & Private</h3>
+                <p className="text-sm opacity-90">Your data is protected with enterprise-grade security</p>
+              </div>
             </div>
           </div>
         </div>

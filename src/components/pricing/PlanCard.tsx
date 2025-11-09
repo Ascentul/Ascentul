@@ -20,7 +20,7 @@ export type PlanCardProps = {
   disabled?: boolean
 }
 
-const ctaButtonClasses = "mt-8 w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 active:bg-black focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 transition-all duration-200"
+const ctaButtonClasses = "mt-8 w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 hover:shadow-md hover:-translate-y-[1px] transition-all duration-200"
 
 export function PlanCard({
   title,
@@ -74,13 +74,13 @@ export function PlanCard({
       )}
 
       {hasTrial && (
-        <div className="mt-4 inline-flex items-center gap-1 rounded-full border border-brand-blue/25 bg-brand-blue/8 px-2 py-0.5 text-xs font-medium text-brand-blue" aria-label="7 day free trial included">
+        <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-brand-blue/25 bg-brand-blue/8 px-2 py-0.5 text-xs font-medium text-brand-blue" aria-label="7 day free trial included">
           <BadgeCheck className="h-3 w-3" aria-hidden="true" />
           7 day free trial
         </div>
       )}
 
-      <ul className="mt-4 space-y-3" role="list">
+      <ul className="mt-6 space-y-3" role="list">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-3 text-sm text-black">
             <Check className="h-5 w-5 text-brand-blue flex-shrink-0 mt-0.5" aria-hidden="true" />

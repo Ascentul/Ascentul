@@ -46,11 +46,17 @@ export default function PricingPage() {
   }, [clerkUser, searchParams]);
 
   // If user already has premium, redirect to dashboard
-  useEffect(() => {
-    if (hasPremium && !subscription.isLoading) {
-      router.replace('/dashboard')
-    }
-  }, [hasPremium, subscription.isLoading, router])
+  if (hasPremium && !subscription.isLoading) {
+    router.push('/dashboard')
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100/50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue mx-auto mb-4"></div>
+          <p className="text-zinc-600">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    )
+  }
 
   // Handle checkout
   const handleCheckout = async (interval: 'monthly' | 'annual') => {
@@ -61,10 +67,10 @@ export default function PricingPage() {
 
     setIsCheckingOut(interval)
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
-
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
+
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -72,6 +78,7 @@ export default function PricingPage() {
         signal: controller.signal,
       })
 
+      clearTimeout(timeoutId)
       const data = await response.json()
 
       if (!response.ok) {
@@ -80,8 +87,6 @@ export default function PricingPage() {
 
       if (data?.url) {
         window.location.href = data.url
-      } else {
-        throw new Error('No checkout URL returned')
       }
     } catch (error) {
       console.error('Checkout error:', error)
@@ -92,8 +97,6 @@ export default function PricingPage() {
           ? 'Request timed out. Please try again.'
           : 'Failed to start checkout. Please try again.',
       })
-    } finally {
-      clearTimeout(timeoutId)
       setIsCheckingOut(null)
     }
   }
