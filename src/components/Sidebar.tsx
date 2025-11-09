@@ -7,6 +7,7 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
@@ -678,13 +679,15 @@ const Sidebar = React.memo(function Sidebar({
               className={`flex items-center ${expanded ? "space-x-3" : "justify-center"}`}
             >
               <Link href="/profile" className="flex-shrink-0 cursor-pointer">
-                <img
+                <Image
                   src={
                     user?.profile_image ||
                     clerkUser.imageUrl ||
                     `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=0C29AB&color=fff`
                   }
                   alt="Profile"
+                  width={40}
+                  height={40}
                   className="h-10 w-10 rounded-full object-cover hover:ring-2 hover:ring-primary transition-all"
                 />
               </Link>

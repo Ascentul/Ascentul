@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -435,10 +436,11 @@ export default function JobSearchPage() {
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     {job.company_logo && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={job.company_logo}
-                        alt="logo"
+                        alt={`${job.company} logo`}
+                        width={32}
+                        height={32}
                         className="h-8 w-8 object-contain rounded"
                       />
                     )}

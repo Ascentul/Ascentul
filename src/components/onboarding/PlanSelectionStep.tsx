@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button'
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PlanCard } from '@/components/pricing/PlanCard'
-import { PRICING } from '@/constants/pricing'
 
 interface PlanSelectionStepProps {
   isCheckingOut: string | null
@@ -26,33 +25,37 @@ export function PlanSelectionStep({
           Select the plan that best fits your career goals. You can upgrade or downgrade at any time.
         </CardDescription>
         <p className="mt-6 text-lg md:text-xl font-bold text-brand-blue text-center">
-          Save {PRICING.annual.savingsPercentage} with annual billing
+          Save 33% with annual billing
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Custom Pricing Cards */}
         <div className="grid gap-6 md:gap-6 md:grid-cols-2 max-w-5xl mx-auto">
           <PlanCard
-            title={PRICING.monthly.title}
-            price={PRICING.monthly.price}
+            title="Pro Monthly"
+            price="$30"
             cadence="month"
             features={planFeatures}
             ctaLabel={isCheckingOut === 'monthly' ? 'Processing...' : 'Subscribe Monthly'}
             onCtaClick={() => onCheckout('monthly')}
             disabled={isCheckingOut !== null}
-            hasTrial
+            totalPrice="$30"
+            interval="month"
+            hasTrial={true}
           />
           <PlanCard
-            title={PRICING.annual.title}
-            price={PRICING.annual.price}
+            title="Pro Annual"
+            price="$20"
             cadence="month"
-            savings={PRICING.annual.savings}
+            savings="Save $120/year"
             features={planFeatures}
             ctaLabel={isCheckingOut === 'annual' ? 'Processing...' : 'Subscribe Annually'}
             onCtaClick={() => onCheckout('annual')}
             disabled={isCheckingOut !== null}
             highlighted
-            hasTrial
+            totalPrice="$240"
+            interval="year"
+            hasTrial={true}
           />
         </div>
 
