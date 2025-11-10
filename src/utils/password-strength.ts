@@ -4,8 +4,26 @@ export type PasswordStrength = 0 | 1 | 2 | 3 | 4 | 5
 
 const passwordSchema = z.string()
 
+/**
+ * Calculate password strength based on common security criteria.
+ * Returns 0 for invalid/empty passwords, and 1-5 based on strength.
+ *
+ * Criteria:
+ * - Length >= 8 characters (+1)
+ * - Contains lowercase letters (+1)
+ * - Contains uppercase letters (+1)
+ * - Contains numbers (+1)
+ * - Contains special characters (+1)
+ *
+ * @param password - The password to evaluate
+ * @returns PasswordStrength score from 0 (weakest) to 5 (strongest)
+ */
 export const calculatePasswordStrength = (password: string): PasswordStrength => {
-  const validated = passwordSchema.parse(password)
+  // Use safeParse to handle invalid inputs gracefully
+  const result = passwordSchema.safeParse(password)
+  if (!result.success) return 0
+
+  const validated = result.data
 
   let strength: PasswordStrength = 0
   if (validated.length >= 8) strength += 1

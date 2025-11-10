@@ -24,7 +24,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '**.adzuna.com',
+        hostname: '*.adzuna.com',
       },
     ],
     dangerouslyAllowSVG: true,
