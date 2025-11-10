@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSignUp, useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -29,7 +28,6 @@ interface FormUI {
 }
 
 interface SignUpFormProps {
-  isUniversity?: boolean
   formData: SignUpFormData
   setFormData: React.Dispatch<React.SetStateAction<SignUpFormData>>
   formUI: FormUI
@@ -40,7 +38,6 @@ interface SignUpFormProps {
 }
 
 function SignUpForm({
-  isUniversity = false,
   formData,
   setFormData,
   formUI,
@@ -94,22 +91,15 @@ function SignUpForm({
         </div>
       </div>
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-zinc-700">
-          {isUniversity ? 'University Email' : 'Email'}
-        </Label>
+        <Label className="text-sm font-medium text-zinc-700">Email</Label>
         <Input
           type="email"
           value={formData.email}
           onChange={(e) => updateFormData('email', e.target.value)}
-          placeholder={isUniversity ? 'student@university.edu' : 'john@example.com'}
+          placeholder="john@example.com"
           className="h-11 rounded-xl bg-white placeholder:text-zinc-400 focus-visible:ring-brand-blue"
           required
         />
-        {isUniversity && (
-          <p className="text-xs text-muted-foreground">
-            Use your official university email address
-          </p>
-        )}
       </div>
       <div className="space-y-2">
         <Label className="text-sm font-medium text-zinc-700">Password</Label>
@@ -159,12 +149,12 @@ function SignUpForm({
 
       <div className="flex items-center space-x-2">
         <Checkbox
-          id={isUniversity ? 'acceptTermsUniversity' : 'acceptTerms'}
+          id="acceptTerms"
           checked={formUI.acceptTerms}
           onCheckedChange={(checked) => updateFormUI('acceptTerms', checked === true)}
           className="border-brand-blue data-[state=checked]:bg-brand-blue data-[state=checked]:border-brand-blue"
         />
-        <label htmlFor={isUniversity ? 'acceptTermsUniversity' : 'acceptTerms'} className="text-xs text-muted-foreground">
+        <label htmlFor="acceptTerms" className="text-xs text-muted-foreground">
           I agree to the{' '}
           <Link href="/terms" className="underline text-brand-blue hover:text-brand-blue/80">
             Terms of Service
@@ -187,7 +177,7 @@ function SignUpForm({
         className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 active:bg-black/95 focus-visible:ring-2 focus-visible:ring-black/20 shadow-md hover:shadow-lg transition-all"
         disabled={submitting}
       >
-        {submitting ? 'Creating account...' : isUniversity ? 'Create University Account' : 'Create Account'}
+        {submitting ? 'Creating account...' : 'Create Account'}
       </Button>
 
       <p className="text-xs text-zinc-500 text-center">
@@ -204,7 +194,6 @@ export default function Page() {
   const { isLoaded: authLoaded, isSignedIn } = useAuth()
   const { toast } = useToast()
 
-  const [tab, setTab] = useState<'regular' | 'university'>('regular')
   const [step, setStep] = useState<'signup' | 'verify'>('signup')
   const [formData, setFormData] = useState<SignUpFormData>({
     firstName: '',
@@ -222,28 +211,11 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null)
   const [resending, setResending] = useState(false)
 
-  // University invitation parameters from URL
-  const [universityInvite, setUniversityInvite] = useState<{
-    email?: string
-    university?: string
-  }>({})
-
-  // Check for university invitation parameters in URL
+  // Pre-fill email from URL parameter if provided
   useEffect(() => {
     const inviteEmail = searchParams.get('email')
-    const inviteUniversity = searchParams.get('university')
-
-    if (inviteEmail || inviteUniversity) {
-      setUniversityInvite({
-        email: inviteEmail || undefined,
-        university: inviteUniversity || undefined,
-      })
-
-      // Pre-fill email and switch to university tab
-      if (inviteEmail) {
-        setFormData(prev => ({ ...prev, email: inviteEmail }))
-        setTab('university')
-      }
+    if (inviteEmail) {
+      setFormData(prev => ({ ...prev, email: inviteEmail }))
     }
   }, [searchParams])
 
@@ -272,16 +244,6 @@ export default function Page() {
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters long')
       return
-    }
-
-    // Check for university email if university tab is selected
-    if (tab === 'university') {
-      const universityDomains = ['.edu', '.ac.', 'university', 'college']
-      const isUniversityEmail = universityDomains.some(domain => formData.email.toLowerCase().includes(domain))
-      if (!isUniversityEmail) {
-        setError('Please use a valid university email address for University signup')
-        return
-      }
     }
 
     try {
@@ -345,31 +307,6 @@ export default function Page() {
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId })
-
-        // If this is a university invitation signup, link the student to their university
-        if (universityInvite.email && universityInvite.university) {
-          try {
-            // Call API to activate pending university student account
-            const response = await fetch('/api/university/activate-student', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                email: formData.email,
-                clerkId: result.createdUserId,
-              }),
-            })
-
-            if (response.ok) {
-              toast({
-                title: "Welcome to your university!",
-                description: `You now have premium access through ${universityInvite.university}`,
-              })
-            }
-          } catch (activationError) {
-            console.error('Failed to activate university student:', activationError)
-            // Don't fail the signup if activation fails - user can still use the app
-          }
-        }
 
         toast({
           title: "Email verified successfully!",
@@ -543,47 +480,15 @@ export default function Page() {
               <p className="text-sm text-zinc-600">Start your career journey today</p>
             </CardHeader>
             <CardContent>
-              <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
-                <TabsList className="grid grid-cols-2 mb-4">
-                  <TabsTrigger value="regular">Personal Account</TabsTrigger>
-                  <TabsTrigger value="university">University Account</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="regular" className="space-y-4">
-                  <SignUpForm
-                    isUniversity={false}
-                    formData={formData}
-                    setFormData={setFormData}
-                    formUI={formUI}
-                    setFormUI={setFormUI}
-                    error={error}
-                    submitting={submitting}
-                    onSubmit={onSubmitSignUp}
-                  />
-                </TabsContent>
-
-                <TabsContent value="university" className="space-y-4">
-                  <SignUpForm
-                    isUniversity={true}
-                    formData={formData}
-                    setFormData={setFormData}
-                    formUI={formUI}
-                    setFormUI={setFormUI}
-                    error={error}
-                    submitting={submitting}
-                    onSubmit={onSubmitSignUp}
-                  />
-
-                  <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded-md">
-                    <strong>University Account Benefits:</strong>
-                    <ul className="mt-1 space-y-1">
-                      <li>• Access to university-specific resources</li>
-                      <li>• Connect with classmates and alumni</li>
-                      <li>• Enhanced career services integration</li>
-                    </ul>
-                  </div>
-                </TabsContent>
-              </Tabs>
+              <SignUpForm
+                formData={formData}
+                setFormData={setFormData}
+                formUI={formUI}
+                setFormUI={setFormUI}
+                error={error}
+                submitting={submitting}
+                onSubmit={onSubmitSignUp}
+              />
 
               <div className="mt-6 pt-6 border-t border-zinc-200">
                 <div className="text-center">
