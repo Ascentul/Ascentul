@@ -10,7 +10,7 @@ import { Mail, ArrowLeft, KeyRound } from 'lucide-react'
 
 interface ForgotPasswordFormProps {
   onBack: () => void
-  onSuccess: (email: string) => void,
+  onSuccess: (email: string) => void
 }
 
 export function ForgotPasswordForm({

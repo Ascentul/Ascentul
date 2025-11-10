@@ -15,7 +15,7 @@ const RESET_CODE_LENGTH = 6
 
 interface ResetPasswordFormProps {
   successMessage?: string
-  onBack: () => void,
+  onBack: () => void
 }
 
 export function ResetPasswordForm({ successMessage, onBack }: ResetPasswordFormProps) {

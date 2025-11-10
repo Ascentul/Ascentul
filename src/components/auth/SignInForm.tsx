@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 
 interface SignInFormProps {
-  onForgotPassword: () => void,
+  onForgotPassword: () => void
 }
 
 export function SignInForm({ onForgotPassword }: SignInFormProps) {
