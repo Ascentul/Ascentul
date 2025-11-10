@@ -14,8 +14,8 @@ import { Eye, EyeOff, ArrowLeft, KeyRound } from 'lucide-react'
 const RESET_CODE_LENGTH = 6
 
 interface ResetPasswordFormProps {
-  successMessage?: string
-  onBack: () => void
+  successMessage?: string,
+  onBack: () => void,
 }
 
 export function ResetPasswordForm({ successMessage, onBack }: ResetPasswordFormProps) {
@@ -36,6 +36,11 @@ export function ResetPasswordForm({ successMessage, onBack }: ResetPasswordFormP
 
     if (!resetCode.trim() || !newPassword.trim()) {
       setError('Please enter both the reset code and new password')
+      return
+    }
+
+    if (!/^\d{6}$/.test(resetCode.trim())) {
+      setError('Reset code must be 6 digits')
       return
     }
 

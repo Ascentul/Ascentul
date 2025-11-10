@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Mail, ArrowLeft, KeyRound } from 'lucide-react'
 
 interface ForgotPasswordFormProps {
-  onBack: () => void
-  onSuccess: (email: string) => void
+  onBack: () => void,
+  onSuccess: (email: string) => void,
 }
 
 export function ForgotPasswordForm({

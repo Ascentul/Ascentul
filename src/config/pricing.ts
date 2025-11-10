@@ -25,22 +25,31 @@ interface PricingConfig {
   annual: Required<PricingPlan>;
 }
 
+// Base price values in cents to ensure accurate calculations
+const MONTHLY_PRICE_CENTS = 3000; // $30.00
+const ANNUAL_PRICE_CENTS = 24000; // $240.00
+
+// Computed values
+const ANNUAL_MONTHLY_EQUIVALENT = ANNUAL_PRICE_CENTS / 12; // $20.00
+const SAVINGS_CENTS = (MONTHLY_PRICE_CENTS * 12) - ANNUAL_PRICE_CENTS; // $120.00
+const SAVINGS_PERCENTAGE = Math.round((SAVINGS_CENTS / (MONTHLY_PRICE_CENTS * 12)) * 100); // 33%
+
 export const PRICING: PricingConfig = {
   monthly: {
     title: 'Pro Monthly',
-    price: '$30',
-    totalPrice: '$30',
+    price: `$${MONTHLY_PRICE_CENTS / 100}`,
+    totalPrice: `$${MONTHLY_PRICE_CENTS / 100}`,
     interval: 'month',
   },
   annual: {
     title: 'Pro Annual',
-    price: '$20', // Per month when billed annually
-    totalPrice: '$240', // Total annual cost
-    savings: 'Save $120/year',
-    savingsPercentage: '33%',
+    price: `$${ANNUAL_MONTHLY_EQUIVALENT / 100}`, // Per month when billed annually
+    totalPrice: `$${ANNUAL_PRICE_CENTS / 100}`, // Total annual cost
+    savings: `Save $${SAVINGS_CENTS / 100}/year`,
+    savingsPercentage: `${SAVINGS_PERCENTAGE}%`,
     interval: 'year',
   },
-} as const;
+};
 
 export const PLAN_FEATURES: string[] = [
   'Advanced application tracking',
