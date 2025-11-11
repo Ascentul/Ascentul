@@ -619,10 +619,18 @@ export default defineSchema({
     .index("by_status", ["status"]),
 
   // Student invites - token-based invite system for students
+  //
+  // RACE CONDITION NOTE: Without database-level unique constraints on (token, status),
+  // multiple users could theoretically accept the same invite simultaneously.
+  // To mitigate, acceptInvite mutation re-checks status immediately before update:
+  // 1. Initial status check (early validation)
+  // 2. Re-fetch invite before final status update
+  // 3. Verify status is still "pending" before accepting
+  // This minimizes (but does not eliminate) the race window for duplicate acceptance.
   studentInvites: defineTable({
     university_id: v.id("universities"), // University issuing the invite
     email: v.string(), // Email of the invited student
-    token: v.string(), // Unique invite token
+    token: v.string(), // Unique invite token (should be unique but not enforced)
     created_by_id: v.id("users"), // University admin who created the invite
     status: v.union(
       v.literal("pending"),
