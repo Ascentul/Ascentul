@@ -53,6 +53,25 @@ export async function requireStudent(ctx: any, userId: any) {
  * - clerkId: Clerk user ID of the accepting user
  *
  * Returns: { success: true, universityName: string, studentProfileId: Id<"studentProfiles"> }
+ *
+ * KNOWN LIMITATION - Race Conditions:
+ * Despite defensive double-checking and try-catch patterns, this mutation CANNOT
+ * guarantee uniqueness without database-level unique constraints (which Convex lacks).
+ *
+ * Scenarios where duplicates could still occur:
+ * 1. Concurrent acceptInvite calls for same user (extremely rare, requires precise timing)
+ * 2. Manual database modifications outside this controlled mutation
+ *
+ * Mitigation strategy:
+ * - Double-check immediately before insert (minimizes window to < 1ms)
+ * - Try-catch fallback to use existing profile if insert fails
+ * - Monitoring: Run findDuplicateProfiles periodically to detect duplicates
+ * - Manual cleanup: If duplicates found, delete newer profiles (keep oldest)
+ *
+ * Production monitoring:
+ * - Schedule periodic checks: npx convex run students:findDuplicateProfiles
+ * - Alert on: duplicatesFound === true
+ * - Resolution: Manual deletion of duplicate profiles via Convex dashboard
  */
 export const acceptInvite = mutation({
   args: {
@@ -331,6 +350,19 @@ export const findDuplicateInviteAcceptances = query({
  *
  * NOTE: Due to Convex's lack of unique constraints, duplicates are theoretically
  * possible via race conditions. This query helps detect and clean them up.
+ *
+ * USAGE:
+ * 1. Run periodically: npx convex run students:findDuplicateProfiles
+ * 2. If duplicates found, identify which profile to keep (usually oldest: lowest createdAt)
+ * 3. Delete duplicate profiles manually via Convex dashboard or cleanup mutation
+ * 4. Verify: Re-run query to confirm duplicates removed
+ *
+ * CLEANUP INSTRUCTIONS (if duplicates found):
+ * For each duplicate user:
+ * 1. Sort profiles by createdAt (ascending)
+ * 2. Keep the FIRST profile (oldest, likely the "real" one)
+ * 3. Delete all other profiles: await ctx.db.delete(duplicateProfileId)
+ * 4. Verify student can still access their account and see university badge
  */
 export const findDuplicateProfiles = query({
   args: {},
@@ -359,15 +391,27 @@ export const findDuplicateProfiles = query({
           .filter((q) => q.eq(q.field("_id"), profiles[0].user_id))
           .first();
 
+        // Sort profiles by created_at to identify oldest (keep) vs newest (delete)
+        const sortedProfiles = [...profiles].sort((a, b) => a.created_at - b.created_at);
+
         duplicates.push({
           userId: userIdStr,
           email: user?.email || "unknown",
           name: user?.name || "unknown",
           profileCount: profiles.length,
-          profiles: profiles.map((p) => ({
+          // First profile is the one to KEEP
+          profileToKeep: {
+            id: sortedProfiles[0]._id,
+            universityId: sortedProfiles[0].university_id,
+            createdAt: sortedProfiles[0].created_at,
+            createdAtDate: new Date(sortedProfiles[0].created_at).toISOString(),
+          },
+          // Remaining profiles should be DELETED
+          profilesToDelete: sortedProfiles.slice(1).map((p) => ({
             id: p._id,
             universityId: p.university_id,
             createdAt: p.created_at,
+            createdAtDate: new Date(p.created_at).toISOString(),
           })),
         });
       }
@@ -377,6 +421,9 @@ export const findDuplicateProfiles = query({
       duplicatesFound: duplicates.length > 0,
       count: duplicates.length,
       duplicates,
+      cleanupInstructions: duplicates.length > 0
+        ? "For each duplicate, delete profiles listed in 'profilesToDelete' array via Convex dashboard"
+        : null,
     };
   },
 });

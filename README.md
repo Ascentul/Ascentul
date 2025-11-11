@@ -171,6 +171,46 @@ const result = await acceptInvite({
 - Check Clerk `publicMetadata.role` matches Convex `users.role`
 - Clear browser cache and sign out/in again
 
+### Production Monitoring
+
+**Known Limitation: Race Conditions**
+
+Due to Convex's lack of unique constraints, duplicate student profiles are theoretically possible (though extremely rare with current mitigations). Set up periodic monitoring:
+
+```bash
+# Check for duplicate profiles (run weekly or daily)
+npx convex run students:findDuplicateProfiles
+
+# Check for invite acceptance issues
+npx convex run students:findDuplicateInviteAcceptances
+```
+
+**Expected output (healthy system):**
+```json
+{
+  "duplicatesFound": false,
+  "count": 0,
+  "duplicates": [],
+  "cleanupInstructions": null
+}
+```
+
+**If duplicates found:**
+1. Review the `profilesToDelete` array in the output
+2. For each duplicate, delete profiles via Convex dashboard:
+   ```javascript
+   // In Convex dashboard Functions tab
+   await ctx.db.delete("profile-id-to-delete")
+   ```
+3. Re-run `findDuplicateProfiles` to verify cleanup
+4. Test affected student accounts to ensure badge still displays
+
+**Monitoring recommendations:**
+- Schedule automated checks (cron job or monitoring service)
+- Alert on: `duplicatesFound === true`
+- Log all race condition warnings (search logs for "Race condition detected")
+- Track frequency to determine if additional mitigation needed
+
 ## Deployment
 
 - Vercel recommended
