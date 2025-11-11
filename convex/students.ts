@@ -127,6 +127,40 @@ export const acceptInvite = mutation({
       throw new Error("University not found");
     }
 
+    // 6a. Check university license capacity
+    // Enforce license limits before accepting invite
+    // NOTE: This check is not atomic with the increment (step 11), so concurrent
+    // acceptances could theoretically exceed capacity by a small amount. However,
+    // this is an acceptable trade-off as:
+    // 1. The race window is small (milliseconds)
+    // 2. Over-capacity by 1-2 users is not critical for billing
+    // 3. University admins can manually adjust if needed
+    const currentUsage = university.license_used || 0;
+    const licenseLimit = university.license_seats;
+
+    if (currentUsage >= licenseLimit) {
+      throw new Error(
+        `University has reached maximum capacity (${licenseLimit} licenses). ` +
+        `Contact your university administrator to increase capacity.`
+      );
+    }
+
+    // Also check if university license is active
+    if (university.status !== "active") {
+      throw new Error(
+        `University license is ${university.status}. ` +
+        `Contact your university administrator to resolve this issue.`
+      );
+    }
+
+    // Check if license has expired
+    if (university.license_end && university.license_end < now) {
+      throw new Error(
+        `University license has expired. ` +
+        `Contact your university administrator to renew.`
+      );
+    }
+
     // 7. Check if user already has a student profile (race condition check)
     const existingProfile = await ctx.db
       .query("studentProfiles")
