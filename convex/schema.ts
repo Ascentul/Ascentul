@@ -9,7 +9,8 @@ export default defineSchema({
     name: v.string(),
     username: v.optional(v.string()),
     role: v.union(
-      v.literal("user"),
+      v.literal("individual"), // Individual free/premium user (renamed from "user")
+      v.literal("user"), // Legacy role - will be migrated to "individual"
       v.literal("student"), // University student with auto university plan
       v.literal("staff"),
       v.literal("university_admin"),
@@ -583,4 +584,52 @@ export default defineSchema({
     updated_at: v.number(), // ms
   })
     .index("by_clerk_date", ["clerk_id", "date"]),
+
+  // Student profiles - links students to universities
+  // Students MUST have a studentProfile to access student features
+  studentProfiles: defineTable({
+    user_id: v.id("users"), // Reference to users table
+    university_id: v.id("universities"), // REQUIRED: student must belong to a university
+    student_id: v.optional(v.string()), // University-specific student ID
+    enrollment_date: v.optional(v.number()), // Timestamp of enrollment
+    graduation_date: v.optional(v.number()), // Expected graduation timestamp
+    major: v.optional(v.string()),
+    year: v.optional(v.string()), // Freshman, Sophomore, Junior, Senior
+    gpa: v.optional(v.number()),
+    status: v.union(
+      v.literal("active"),
+      v.literal("inactive"),
+      v.literal("graduated"),
+      v.literal("suspended"),
+    ),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user_id", ["user_id"])
+    .index("by_university", ["university_id"])
+    .index("by_status", ["status"]),
+
+  // Student invites - token-based invite system for students
+  studentInvites: defineTable({
+    university_id: v.id("universities"), // University issuing the invite
+    email: v.string(), // Email of the invited student
+    token: v.string(), // Unique invite token
+    created_by_id: v.id("users"), // University admin who created the invite
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("expired"),
+      v.literal("revoked"),
+    ),
+    expires_at: v.number(), // Timestamp when invite expires
+    accepted_at: v.optional(v.number()), // Timestamp when invite was accepted
+    accepted_by_user_id: v.optional(v.id("users")), // User who accepted the invite
+    metadata: v.optional(v.any()), // Additional invite data (major, year, etc.)
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_email", ["email"])
+    .index("by_university", ["university_id"])
+    .index("by_status", ["status"]),
 });
