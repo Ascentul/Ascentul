@@ -171,16 +171,11 @@ export const acceptInvite = mutation({
       throw new Error("User already has a student profile");
     }
 
-    // 8. Update user: set role to "student", link to university, set subscription
-    await ctx.db.patch(user._id, {
-      role: "student",
-      university_id: invite.university_id,
-      subscription_plan: "university",
-      subscription_status: "active",
-      updated_at: now,
-    });
+    // 8. Create student profile FIRST (before updating user role)
+    // CRITICAL: This ordering prevents orphaned "student" users without profiles
+    // If profile creation fails, user role remains unchanged (data integrity preserved)
+    // Orphaned profiles (without student role) are easier to clean up than orphaned students
 
-    // 9. Create student profile with defensive race condition handling
     // Re-check for existing profile immediately before insert to minimize race window
     const raceCheckProfile = await ctx.db
       .query("studentProfiles")
@@ -219,11 +214,22 @@ export const acceptInvite = mutation({
           console.warn(`Insert failed but profile exists - likely race condition for user ${user.email}`);
           studentProfileId = fallbackProfile._id;
         } else {
-          // Genuine error - re-throw
-          throw error;
+          // Genuine error - cannot proceed without profile
+          // User role remains unchanged, maintaining invariant: all students have profiles
+          throw new Error(`Failed to create student profile: ${error}`);
         }
       }
     }
+
+    // 9. Update user role AFTER successful profile creation
+    // This ensures we NEVER have a student role without a valid profile (requireStudent invariant)
+    await ctx.db.patch(user._id, {
+      role: "student",
+      university_id: invite.university_id,
+      subscription_plan: "university",
+      subscription_status: "active",
+      updated_at: now,
+    });
 
     // 10. Mark invite as accepted (with race condition check)
     // Re-fetch invite to ensure status is still "pending"
@@ -405,7 +411,7 @@ export const findDuplicateProfiles = query({
     const allProfiles = await ctx.db.query("studentProfiles").collect();
 
     // Group by user_id
-    const profilesByUser = new Map<string, typeof allProfiles>();
+    const profilesByUser = new Map<string, Array<typeof allProfiles[number]>>();
 
     for (const profile of allProfiles) {
       const userId = profile.user_id.toString();
