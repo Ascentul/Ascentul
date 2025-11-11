@@ -108,7 +108,7 @@ export const acceptInvite = mutation({
       throw new Error("University not found");
     }
 
-    // 7. Check if user already has a student profile
+    // 7. Check if user already has a student profile (race condition check)
     const existingProfile = await ctx.db
       .query("studentProfiles")
       .withIndex("by_user_id", (q) => q.eq("user_id", user._id))
@@ -127,21 +127,52 @@ export const acceptInvite = mutation({
       updated_at: now,
     });
 
-    // 9. Create student profile
-    const metadata = invite.metadata || {};
-    const studentProfileId = await ctx.db.insert("studentProfiles", {
-      user_id: user._id,
-      university_id: invite.university_id,
-      student_id: metadata.student_id,
-      major: metadata.major,
-      year: metadata.year,
-      enrollment_date: now,
-      status: "active",
-      created_at: now,
-      updated_at: now,
-    });
+    // 9. Create student profile with defensive race condition handling
+    // Re-check for existing profile immediately before insert to minimize race window
+    const raceCheckProfile = await ctx.db
+      .query("studentProfiles")
+      .withIndex("by_user_id", (q) => q.eq("user_id", user._id))
+      .first();
 
-    // 10. Update invite status to "accepted"
+    let studentProfileId;
+
+    if (raceCheckProfile) {
+      // Profile was created by concurrent request - this is OK, use existing
+      console.warn(`Race condition detected: studentProfile already exists for user ${user.email}`);
+      studentProfileId = raceCheckProfile._id;
+    } else {
+      // Safe to create profile
+      try {
+        const metadata = invite.metadata || {};
+        studentProfileId = await ctx.db.insert("studentProfiles", {
+          user_id: user._id,
+          university_id: invite.university_id,
+          student_id: metadata.student_id,
+          major: metadata.major,
+          year: metadata.year,
+          enrollment_date: now,
+          status: "active",
+          created_at: now,
+          updated_at: now,
+        });
+      } catch (error) {
+        // If insert fails due to concurrent creation, fetch the existing profile
+        const fallbackProfile = await ctx.db
+          .query("studentProfiles")
+          .withIndex("by_user_id", (q) => q.eq("user_id", user._id))
+          .first();
+
+        if (fallbackProfile) {
+          console.warn(`Insert failed but profile exists - likely race condition for user ${user.email}`);
+          studentProfileId = fallbackProfile._id;
+        } else {
+          // Genuine error - re-throw
+          throw error;
+        }
+      }
+    }
+
+    // 10. Mark invite as accepted
     await ctx.db.patch(invite._id, {
       status: "accepted",
       accepted_at: now,
@@ -149,7 +180,7 @@ export const acceptInvite = mutation({
       updated_at: now,
     });
 
-    // 11. Update university license usage
+    // 11. Increment university license usage
     await ctx.db.patch(university._id, {
       license_used: (university.license_used || 0) + 1,
       updated_at: now,
@@ -240,6 +271,62 @@ export const validateInviteToken = query({
       email: invite.email,
       universityName: university?.name || "Unknown University",
       expiresAt: invite.expires_at,
+    };
+  },
+});
+
+/**
+ * Check for duplicate student profiles (for monitoring/debugging)
+ * Returns users with multiple studentProfile records
+ *
+ * NOTE: Due to Convex's lack of unique constraints, duplicates are theoretically
+ * possible via race conditions. This query helps detect and clean them up.
+ */
+export const findDuplicateProfiles = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get all student profiles
+    const allProfiles = await ctx.db.query("studentProfiles").collect();
+
+    // Group by user_id
+    const profilesByUser = new Map<string, typeof allProfiles>();
+
+    for (const profile of allProfiles) {
+      const userId = profile.user_id.toString();
+      if (!profilesByUser.has(userId)) {
+        profilesByUser.set(userId, []);
+      }
+      profilesByUser.get(userId)!.push(profile);
+    }
+
+    // Find users with multiple profiles
+    const duplicates = [];
+    for (const [userIdStr, profiles] of profilesByUser.entries()) {
+      if (profiles.length > 1) {
+        // Get the actual user document
+        const user = await ctx.db
+          .query("users")
+          .filter((q) => q.eq(q.field("_id"), profiles[0].user_id))
+          .first();
+
+        duplicates.push({
+          userId: userIdStr,
+          email: user?.email || "unknown",
+          name: user?.name || "unknown",
+          profileCount: profiles.length,
+          profiles: profiles.map((p) => ({
+            id: p._id,
+            universityId: p.university_id,
+            createdAt: p.created_at,
+          })),
+        });
+      }
+    }
+
+    return {
+      duplicatesFound: duplicates.length > 0,
+      count: duplicates.length,
+      duplicates,
     };
   },
 });

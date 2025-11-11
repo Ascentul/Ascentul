@@ -587,8 +587,17 @@ export default defineSchema({
 
   // Student profiles - links students to universities
   // Students MUST have a studentProfile to access student features
+  //
+  // RACE CONDITION NOTE: Convex does not support unique constraints beyond primary keys.
+  // The by_user_id index is NOT a unique index - multiple profiles per user_id are technically possible.
+  // To mitigate race conditions, acceptInvite mutation uses defensive double-checking:
+  // 1. Check before user role update
+  // 2. Re-check immediately before insert
+  // 3. Catch insert errors and fetch existing profile if present
+  // This minimizes (but does not eliminate) the race window. For true uniqueness enforcement,
+  // application logic must be careful to only create profiles through controlled mutations.
   studentProfiles: defineTable({
-    user_id: v.id("users"), // Reference to users table
+    user_id: v.id("users"), // Reference to users table (should be unique but not enforced)
     university_id: v.id("universities"), // REQUIRED: student must belong to a university
     student_id: v.optional(v.string()), // University-specific student ID
     enrollment_date: v.optional(v.number()), // Timestamp of enrollment
