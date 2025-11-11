@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Progress } from "@/components/ui/progress";
+import { StudentOrgBadge } from "@/components/StudentOrgBadge";
 import {
   Dialog,
   DialogContent,
@@ -654,8 +655,9 @@ const Sidebar = React.memo(function Sidebar({
           className={`flex items-center ${expanded ? "justify-between" : "justify-center"} p-4 border-b`}
         >
           {expanded && (
-            <div className="flex items-center">
+            <div className="flex flex-col gap-2">
               <h1 className="text-xl font-bold text-primary">Ascentful</h1>
+              <StudentOrgBadge />
             </div>
           )}
           <Button
