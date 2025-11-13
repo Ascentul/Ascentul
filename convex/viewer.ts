@@ -25,16 +25,11 @@ export const getViewer = query({
   handler: async (ctx, args) => {
     // Verify authenticated user matches requested clerkId
     const identity = await ctx.auth.getUserIdentity();
-
-    if (!identity) {
-      throw new Error("Unauthorized: Authentication required");
+    if (!identity || identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized: Cannot access other user's data");
     }
 
-    if (identity.subject !== args.clerkId) {
-      console.warn("viewer:getViewer clerkId mismatch detected");
-      throw new Error("Unauthorized: Identity mismatch");
-    }
-
+    // Get user by Clerk ID
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
