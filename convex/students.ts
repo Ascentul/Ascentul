@@ -2,7 +2,6 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery, action, QueryCtx, MutationCtx } from "./_generated/server";
 import { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
-import crypto from "crypto";
 import { validate as validateEmail } from "email-validator";
 
 /**
@@ -13,21 +12,26 @@ import { validate as validateEmail } from "email-validator";
  */
 const VALID_YEARS = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"] as const;
 
+type CryptoLike = {
+  getRandomValues(array: Uint8Array): Uint8Array;
+};
+
 /**
  * Generate a cryptographically secure random token
  *
- * Uses Node.js crypto.randomBytes() to generate true cryptographic randomness.
- * This is critical for security tokens like invite tokens.
- *
- * @returns 64-character hex string (32 bytes of entropy)
- *
- * SECURITY NOTE: Never use Math.random() for security tokens!
- * Convex's Math.random() is a deterministic PRNG for reproducibility,
- * not cryptographic security. Always generate security tokens in actions
- * using crypto.randomBytes() or crypto.getRandomValues().
+ * Uses Web Crypto `getRandomValues` which Convex exposes in its environment.
+ * Avoids importing Node's `crypto` module so this file can run in the default
+ * Convex runtime while still producing strong randomness.
  */
 function generateSecureToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  const cryptoObj = (globalThis as { crypto?: CryptoLike }).crypto;
+  if (!cryptoObj || typeof cryptoObj.getRandomValues !== 'function') {
+    throw new Error("Secure crypto API is unavailable in this environment");
+  }
+
+  const bytes = new Uint8Array(32);
+  cryptoObj.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /**

@@ -109,7 +109,7 @@ const Sidebar = React.memo(function Sidebar({
   // Fetch viewer data to get student context (university name)
   const viewer = useQuery(
     api.viewer.getViewer,
-    clerkUser ? { clerkId: clerkUser.id } : "skip"
+    clerkUser ? {} : "skip"
   );
 
   // Check if user is on free plan and not a university admin or premium user

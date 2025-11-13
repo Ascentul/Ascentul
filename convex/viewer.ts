@@ -16,33 +16,35 @@ import { query } from "./_generated/server";
  * - Duplicate detection available via admin tools
  *
  * Usage in React components:
- * const viewer = useQuery(api.viewer.getViewer, { clerkId: user.id })
+ * const viewer = useQuery(api.viewer.getViewer)
  */
 export const getViewer = query({
   args: {
-    clerkId: v.string()
+    clerkId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Verify authenticated user matches requested clerkId
+    // Verify authenticated user is available from auth context
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       console.warn("viewer:getViewer called without auth identity", {
         timestamp: new Date().toISOString(),
+        clerkIdArg: args.clerkId,
       });
       return null;
     }
 
-    if (identity.subject !== args.clerkId) {
-      console.warn("viewer:getViewer clerkId mismatch detected", {
+    const clerkId = identity.subject;
+
+    if (args.clerkId && args.clerkId !== clerkId) {
+      console.warn("viewer:getViewer incoming clerkId mismatch ignored", {
         timestamp: new Date().toISOString(),
       });
-      return null;
     }
 
     // Get user by Clerk ID
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
       .first();
 
     // RESILIENCE: Using .first() instead of .unique() allows the app to continue working
