@@ -909,12 +909,12 @@ export const findDuplicateProfiles = query({
     const usersWithDuplicates = [];
     const userIdsToFetch: Id<"users">[] = [];
 
-    for (const [userIdStr, profiles] of profilesByUser.entries()) {
+    profilesByUser.forEach((profiles, userIdStr) => {
       if (profiles.length > 1) {
         usersWithDuplicates.push({ userIdStr, profiles });
         userIdsToFetch.push(profiles[0].user_id);
       }
-    }
+    });
 
     // Fetch user data for affected users
     // NOTE: This still uses sequential N+1 calls (Convex doesn't provide batch get() API).
