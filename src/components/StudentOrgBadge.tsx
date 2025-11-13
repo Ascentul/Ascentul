@@ -28,7 +28,7 @@ export function StudentOrgBadge() {
   // Always call the hook; skip until ready/enabled
   const viewer = useQuery(
     api.viewer.getViewer,
-    featureFlagEnabled && isLoaded && clerkUser ? { clerkId: clerkUser.id } : "skip",
+    featureFlagEnabled && isLoaded && clerkUser ? {} : "skip",
   );
 
   // Don't render while query is loading or conditions not met
