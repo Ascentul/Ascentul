@@ -106,6 +106,12 @@ const Sidebar = React.memo(function Sidebar({
   const { user: clerkUser } = useUser();
   const { user, signOut, isAdmin, subscription, hasPremium } = useAuth();
 
+  // Fetch viewer data to get student context (university name)
+  const viewer = useQuery(
+    api.viewer.getViewer,
+    clerkUser ? { clerkId: clerkUser.id } : "skip"
+  );
+
   // Check if user is on free plan and not a university admin or premium user
   const isFreeUser = useMemo(
     () =>
@@ -654,9 +660,7 @@ const Sidebar = React.memo(function Sidebar({
           className={`flex items-center ${expanded ? "justify-between" : "justify-center"} p-4 border-b`}
         >
           {expanded && (
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-primary">Ascentful</h1>
-            </div>
+            <h1 className="text-xl font-bold text-primary">Ascentful</h1>
           )}
           <Button
             variant="ghost"
@@ -702,7 +706,7 @@ const Sidebar = React.memo(function Sidebar({
                   </p>
                   {!isAdmin && (
                     <p className="text-xs text-gray-500 truncate">
-                      {subscription.planName}
+                      {viewer?.student?.universityName ?? subscription.planName}
                     </p>
                   )}
                 </div>
