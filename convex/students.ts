@@ -1100,7 +1100,7 @@ export const monitorDuplicateProfiles = internalMutation({
 
     // Find users with multiple profiles
     const duplicates = [];
-    for (const [userIdStr, profiles] of profilesByUser.entries()) {
+    for (const [userIdStr, profiles] of Array.from(profilesByUser.entries())) {
       if (profiles.length > 1) {
         const user = await ctx.db.get(profiles[0].user_id);
         const sortedProfiles = [...profiles].sort((a, b) => a.created_at - b.created_at);
@@ -1556,7 +1556,7 @@ export const detectDuplicateInvites = query({
 
     // Find (university, email) pairs with multiple pending invites
     const duplicates = [];
-    for (const [key, invites] of invitesByKey.entries()) {
+    for (const [key, invites] of Array.from(invitesByKey.entries())) {
       if (invites.length > 1) {
         const [universityId, email] = key.split(":");
         const university = await ctx.db.get(universityId as Id<"universities">);
