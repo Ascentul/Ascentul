@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery, action, QueryCtx, MutationCtx } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import crypto from "crypto";
 import { validate as validateEmail } from "email-validator";
@@ -906,7 +906,7 @@ export const findDuplicateProfiles = query({
     }
 
     // Find users with multiple profiles and collect user IDs for batch fetch
-    const usersWithDuplicates = [];
+    const usersWithDuplicates: { userIdStr: string; profiles: Doc<"studentProfiles">[] }[] = [];
     const userIdsToFetch: Id<"users">[] = [];
 
     profilesByUser.forEach((profiles, userIdStr) => {
