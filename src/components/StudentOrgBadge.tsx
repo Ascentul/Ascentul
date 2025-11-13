@@ -25,33 +25,19 @@ export function StudentOrgBadge() {
   const featureFlagEnabled =
     process.env.NEXT_PUBLIC_ENABLE_STUDENT_ORG_BADGE === "true";
 
-  // Don't render if feature is disabled
-  if (!featureFlagEnabled) {
+  // Always call the hook; skip until ready/enabled
+  const viewer = useQuery(
+    api.viewer.getViewer,
+    featureFlagEnabled && isLoaded && clerkUser ? { clerkId: clerkUser.id } : "skip",
+  );
+
+  // Don't render while query is loading or conditions not met
+  if (!featureFlagEnabled || !isLoaded || !clerkUser || viewer === undefined) {
     return null;
   }
 
-  // Don't render anything while loading to avoid flicker
-  if (!isLoaded || !clerkUser) {
-    return null;
-  }
-
-  // Query viewer data (includes student context)
-  const viewer = useQuery(api.viewer.getViewer, {
-    clerkId: clerkUser.id,
-  });
-
-  // Don't render while query is loading
-  if (viewer === undefined) {
-    return null;
-  }
-
-  // Don't render if no viewer data
-  if (!viewer) {
-    return null;
-  }
-
-  // Don't render if not a student or no student context
-  if (!viewer.student || !viewer.student.universityName) {
+  // Don't render if no viewer data or not a student
+  if (!viewer || !viewer.student || !viewer.student.universityName) {
     return null;
   }
 
@@ -59,9 +45,10 @@ export function StudentOrgBadge() {
     <Badge
       variant="outline"
       className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors"
+      aria-label={`Student at ${viewer.student.universityName}`}
     >
-      <School className="h-3.5 w-3.5" />
-      <span className="truncate max-w-[180px]">
+      <School className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+      <span className="truncate">
         {viewer.student.universityName}
       </span>
     </Badge>

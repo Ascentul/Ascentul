@@ -24,6 +24,7 @@ import type * as career_paths from "../career_paths.js";
 import type * as contact_interactions from "../contact_interactions.js";
 import type * as contacts from "../contacts.js";
 import type * as cover_letters from "../cover_letters.js";
+import type * as crons from "../crons.js";
 import type * as email from "../email.js";
 import type * as followups from "../followups.js";
 import type * as goals from "../goals.js";
@@ -35,11 +36,13 @@ import type * as platform_settings from "../platform_settings.js";
 import type * as projects from "../projects.js";
 import type * as recommendations from "../recommendations.js";
 import type * as resumes from "../resumes.js";
+import type * as students from "../students.js";
 import type * as support_tickets from "../support_tickets.js";
 import type * as universities from "../universities.js";
 import type * as university_admin from "../university_admin.js";
 import type * as usage from "../usage.js";
 import type * as users from "../users.js";
+import type * as viewer from "../viewer.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -61,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   contact_interactions: typeof contact_interactions;
   contacts: typeof contacts;
   cover_letters: typeof cover_letters;
+  crons: typeof crons;
   email: typeof email;
   followups: typeof followups;
   goals: typeof goals;
@@ -72,11 +76,13 @@ declare const fullApi: ApiFromModules<{
   projects: typeof projects;
   recommendations: typeof recommendations;
   resumes: typeof resumes;
+  students: typeof students;
   support_tickets: typeof support_tickets;
   universities: typeof universities;
   university_admin: typeof university_admin;
   usage: typeof usage;
   users: typeof users;
+  viewer: typeof viewer;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

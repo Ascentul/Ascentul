@@ -14,7 +14,6 @@ import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Progress } from "@/components/ui/progress";
-import { StudentOrgBadge } from "@/components/StudentOrgBadge";
 import {
   Dialog,
   DialogContent,
@@ -106,6 +105,12 @@ const Sidebar = React.memo(function Sidebar({
   const router = useRouter();
   const { user: clerkUser } = useUser();
   const { user, signOut, isAdmin, subscription, hasPremium } = useAuth();
+
+  // Fetch viewer data to get student context (university name)
+  const viewer = useQuery(
+    api.viewer.getViewer,
+    clerkUser ? { clerkId: clerkUser.id } : "skip"
+  );
 
   // Check if user is on free plan and not a university admin or premium user
   const isFreeUser = useMemo(
@@ -655,10 +660,7 @@ const Sidebar = React.memo(function Sidebar({
           className={`flex items-center ${expanded ? "justify-between" : "justify-center"} p-4 border-b`}
         >
           {expanded && (
-            <div className="flex flex-col gap-2">
-              <h1 className="text-xl font-bold text-primary">Ascentful</h1>
-              <StudentOrgBadge />
-            </div>
+            <h1 className="text-xl font-bold text-primary">Ascentful</h1>
           )}
           <Button
             variant="ghost"
@@ -704,7 +706,7 @@ const Sidebar = React.memo(function Sidebar({
                   </p>
                   {!isAdmin && (
                     <p className="text-xs text-gray-500 truncate">
-                      {subscription.planName}
+                      {viewer?.student?.universityName ?? subscription.planName}
                     </p>
                   )}
                 </div>
