@@ -5,7 +5,7 @@
  * Features: claim review, submit feedback, version control
  */
 
-import { mutation, action } from "./_generated/server";
+import { mutation, action, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import {
@@ -156,7 +156,7 @@ export const completeReview = action({
  * Internal mutation to complete review
  * Called by completeReview action
  */
-export const _completeReviewInternal = mutation({
+export const _completeReviewInternal = internalMutation({
   args: {
     clerkId: v.string(),
     review_id: v.id('advisor_reviews'),

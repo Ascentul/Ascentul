@@ -135,10 +135,6 @@ export const reopenFollowUp = mutation({
       completed_at: undefined,
       completed_by: undefined,
     });
-      status: "open",
-      completed_at: undefined,
-      completed_by: undefined,
-    });
 
     // Audit log
     await createAuditLog(ctx, {
