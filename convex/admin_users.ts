@@ -629,7 +629,7 @@ export const hardDeleteUser = action({
     }
 
     // Create audit log BEFORE deleting the user
-    await ctx.runMutation(api.audit_logs.createAuditLog, {
+    await ctx.runMutation(api.audit_logs._createAuditLogInternal, {
       action: "user_hard_deleted",
       target_type: "user",
       target_id: targetUser._id,

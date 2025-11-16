@@ -5,12 +5,48 @@
 
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { api } from "./_generated/api"
 import { requireSuperAdmin } from "./lib/roles"
 import { paginationOptsValidator } from "convex/server"
 
 /**
+ * Internal audit log creation without auth check
+ * Used by actions that have already verified super admin permissions
+ * SECURITY: Do not expose this directly - only call from verified admin actions
+ */
+export const _createAuditLogInternal = mutation({
+  args: {
+    action: v.string(),
+    target_type: v.string(),
+    target_id: v.string(),
+    target_email: v.optional(v.string()),
+    target_name: v.optional(v.string()),
+    performed_by_id: v.id("users"),
+    performed_by_email: v.optional(v.string()),
+    performed_by_name: v.optional(v.string()),
+    reason: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("audit_logs", {
+      action: args.action,
+      target_type: args.target_type,
+      target_id: args.target_id,
+      target_email: args.target_email,
+      target_name: args.target_name,
+      performed_by_id: args.performed_by_id,
+      performed_by_email: args.performed_by_email,
+      performed_by_name: args.performed_by_name,
+      reason: args.reason,
+      metadata: args.metadata,
+      timestamp: Date.now(),
+    })
+  },
+})
+
+/**
  * Create an audit log entry
- * Internal helper used by other mutations
+ * External API with super admin verification
  * SECURITY: Only callable by super admins to prevent audit log tampering
  */
 export const createAuditLog = mutation({
