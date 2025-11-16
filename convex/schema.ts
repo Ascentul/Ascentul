@@ -592,7 +592,8 @@ export default defineSchema({
     created_at: v.number(), // ms
     updated_at: v.number(), // ms
   })
-    .index("by_clerk_date", ["clerk_id", "date"]),
+    .index("by_clerk_date", ["clerk_id", "date"])
+    .index("by_user", ["user_id"]),
 
   // Student profiles - links students to universities
   // Students MUST have a studentProfile to access student features
@@ -739,4 +740,3 @@ export default defineSchema({
     .index("by_timestamp", ["timestamp"])
     .index("by_target_email", ["target_email"])
 });
-
