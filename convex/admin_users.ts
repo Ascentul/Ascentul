@@ -4,7 +4,7 @@
  */
 
 import { v } from "convex/values"
-import { mutation, query, action } from "./_generated/server"
+import { mutation, query, action, internalMutation, internalQuery } from "./_generated/server"
 import { api, internal } from "./_generated/api"
 import { requireSuperAdmin } from "./lib/roles"
 
@@ -384,8 +384,9 @@ export const getPendingActivations = mutation({
 /**
  * Soft delete a user - Internal mutation (super_admin only)
  * Sets account_status to "deleted" and preserves all data for FERPA compliance
+ * SECURITY: internalMutation ensures this can only be called from server-side code
  */
-export const _softDeleteUserInternal = mutation({
+export const _softDeleteUserInternal = internalMutation({
   args: {
     targetClerkId: v.string(),
     adminClerkId: v.string(),
@@ -494,7 +495,7 @@ export const softDeleteUser = action({
     }
 
     // Soft delete in Convex
-    const result: {success: boolean; message: string; userId: any} = await ctx.runMutation(api.admin_users._softDeleteUserInternal, {
+    const result: {success: boolean; message: string; userId: any} = await ctx.runMutation(internal.admin_users._softDeleteUserInternal, {
       targetClerkId: args.targetClerkId,
       adminClerkId: identity.subject,
       reason: args.reason,
@@ -607,7 +608,7 @@ export const hardDeleteUser = action({
       try {
         // Query records for this user
         const records = await ctx.runQuery(
-          api.admin_users._getRecordsByUserId,
+          internal.admin_users._getRecordsByUserId,
           {
             tableName,
             userId: targetUser._id,
@@ -616,7 +617,7 @@ export const hardDeleteUser = action({
 
         // Delete each record
         for (const recordId of records) {
-          await ctx.runMutation(api.admin_users._deleteRecord, {
+          await ctx.runMutation(internal.admin_users._deleteRecord, {
             tableName,
             recordId,
           });
@@ -648,7 +649,7 @@ export const hardDeleteUser = action({
     });
 
     // Finally, delete the user record
-    await ctx.runMutation(api.admin_users._deleteUserRecord, {
+    await ctx.runMutation(internal.admin_users._deleteUserRecord, {
       userId: targetUser._id,
     });
 
@@ -728,7 +729,7 @@ export const restoreDeletedUser = action({
     }
 
     // Restore in Convex
-    const result = await ctx.runMutation(api.admin_users._restoreUserInternal, {
+    const result = await ctx.runMutation(internal.admin_users._restoreUserInternal, {
       targetUserId: targetUser._id,
       adminId: admin._id,
     });
@@ -758,8 +759,9 @@ export const restoreDeletedUser = action({
 
 /**
  * Internal mutation to restore a deleted user
+ * SECURITY: internalMutation ensures this can only be called from server-side code
  */
-export const _restoreUserInternal = mutation({
+export const _restoreUserInternal = internalMutation({
   args: {
     targetUserId: v.id("users"),
     adminId: v.id("users"),
@@ -866,8 +868,9 @@ export const markTestUser = mutation({
 
 /**
  * Internal helper: Get records by user_id for cascade delete
+ * SECURITY: internalQuery ensures this can only be called from server-side code
  */
-export const _getRecordsByUserId = query({
+export const _getRecordsByUserId = internalQuery({
   args: {
     tableName: v.string(),
     userId: v.id("users"),
@@ -915,8 +918,9 @@ export const _getRecordsByUserId = query({
 
 /**
  * Internal helper: Delete a single record
+ * SECURITY: internalMutation ensures this can only be called from server-side code
  */
-export const _deleteRecord = mutation({
+export const _deleteRecord = internalMutation({
   args: {
     tableName: v.string(),
     recordId: v.string(),
@@ -928,8 +932,9 @@ export const _deleteRecord = mutation({
 
 /**
  * Internal helper: Delete user record
+ * SECURITY: internalMutation ensures this can only be called from server-side code
  */
-export const _deleteUserRecord = mutation({
+export const _deleteUserRecord = internalMutation({
   args: {
     userId: v.id("users"),
   },
