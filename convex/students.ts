@@ -1672,7 +1672,7 @@ export const updateStudentProfile = mutation({
       requestingUser.role === "university_admin" &&
       requestingUser.university_id === profile.university_id;
     const isSuperAdmin =
-      requestingUser.role === "admin" || requestingUser.role === "super_admin";
+      requestingUser.role === "super_admin";
 
     if (!isOwnProfile && !isUniversityAdmin && !isSuperAdmin) {
       throw new Error("Unauthorized: Cannot update this student profile");

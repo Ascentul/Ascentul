@@ -121,7 +121,6 @@ export default function ActivateAccountPage({ params }: PageProps) {
       setTimeout(() => {
         switch (userRole) {
           case 'super_admin':
-          case 'admin':
             router.push('/admin');
             break;
           case 'university_admin':

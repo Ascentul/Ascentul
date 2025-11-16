@@ -235,8 +235,8 @@ export default function AdminUniversitiesPage() {
   }
 
   const role = user?.role
-  const isSuperOrAdmin = role === 'super_admin' || role === 'admin'
-  if (!isSuperOrAdmin) {
+  const isSuperAdmin = role === 'super_admin'
+  if (!isSuperAdmin) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <Card>
@@ -244,7 +244,7 @@ export default function AdminUniversitiesPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Only Admin and Super Admin can access University Management.</p>
+            <p className="text-muted-foreground">Only Super Admin can access University Management.</p>
           </CardContent>
         </Card>
       </div>

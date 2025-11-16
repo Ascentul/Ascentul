@@ -58,7 +58,7 @@ export default function AdminSupportPage() {
   const [responseText, setResponseText] = useState('')
 
   const role = user?.role
-  const canAccess = role === 'super_admin' || role === 'admin'
+  const canAccess = role === 'super_admin'
 
   // Queries
   const tickets = useQuery(

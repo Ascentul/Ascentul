@@ -12,7 +12,7 @@ export const listTickets = query({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["super_admin", "admin"].includes(
+    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
       currentUser.role
     );
 
@@ -279,7 +279,7 @@ export const deleteTicket = mutation({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["super_admin", "admin"].includes(currentUser.role);
+    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(currentUser.role);
     if (!isAdmin) throw new Error("Unauthorized - only admins can delete tickets");
 
     const ticket = await ctx.db.get(args.ticketId);

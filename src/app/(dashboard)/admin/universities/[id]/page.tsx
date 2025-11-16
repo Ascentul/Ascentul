@@ -90,7 +90,7 @@ export default function UniversityDetailPage() {
   const activeStudents = students.filter(s => s.subscription_status === 'active')
 
   const role = user?.role
-  const canAccess = role === 'super_admin' || role === 'admin'
+  const canAccess = role === 'super_admin'
 
   if (!canAccess) {
     return (
