@@ -11,6 +11,19 @@
  * - If queries timeout: Implement scheduled computation with cached results
  * - If accessed frequently: Add a cached_metrics table updated hourly
  *
+ * KNOWN LIMITATIONS:
+ * 1. MRR Calculation (Line ~90-110):
+ *    - Uses weighted average estimate ($23.50/user) instead of actual billing data
+ *    - Assumes 65% annual / 35% monthly billing mix (industry standard)
+ *    - Acceptable for current scale; implement Stripe integration when premium users > 500
+ *    - For Series A due diligence, pull actual revenue from Stripe API
+ *
+ * 2. Historical Active Users (Line ~183):
+ *    - Uses current account_status, not historical state at month end
+ *    - Deleted users are excluded from historical counts even if active at that time
+ *    - Acceptable for high-level trends; implement user_status_history when users > 5,000
+ *    - For accurate retention analysis, track status changes over time
+ *
  * For optimization patterns, see: https://docs.convex.dev/database/pagination
  */
 
@@ -88,7 +101,26 @@ export const getUserMetrics = query({
     ).length
 
     // Monthly recurring revenue estimate (premium users only)
-    const mrr = premiumUsers.length * 30 // Assuming $30/month per premium user
+    // Pricing structure (from Clerk Billing config):
+    //   - Monthly billing: $30/month
+    //   - Annual billing: $240/year ($20/month effective rate)
+    //
+    // ASSUMPTION: 65% of premium users choose annual billing (industry standard for SaaS)
+    // This weighted average provides more accurate MRR than assuming all monthly ($30)
+    const monthlyRate = 30
+    const annualRate = 20  // $240/year = $20/month effective
+    const annualBillingPercentage = 0.65 // 65% choose annual, 35% choose monthly
+
+    const weightedAvgRate = (annualRate * annualBillingPercentage) +
+                             (monthlyRate * (1 - annualBillingPercentage))
+    // Result: (20 * 0.65) + (30 * 0.35) = 13 + 10.5 = $23.50/user average
+
+    const mrr = Math.round(premiumUsers.length * weightedAvgRate)
+
+    // TODO: Replace with actual Stripe data when premium users > 500
+    // For investor-grade accuracy, pull real subscription amounts from Stripe API
+    // This will account for actual billing cycles, discounts, prorations, and failed payments
+    // See documentation in analysis comments for Stripe integration approach
 
     return {
       // Total counts (real users only)
@@ -131,6 +163,9 @@ export const getUserMetrics = query({
         mrr: mrr,
         arr: mrr * 12,
         paying_users: premiumUsers.length,
+        mrr_is_estimate: true,
+        mrr_calculation: `Weighted average: ${(annualBillingPercentage * 100).toFixed(0)}% annual ($${annualRate}/mo), ${((1 - annualBillingPercentage) * 100).toFixed(0)}% monthly ($${monthlyRate}/mo)`,
+        mrr_avg_per_user: weightedAvgRate.toFixed(2),
       },
 
       // Timestamp for report generation
@@ -237,7 +272,9 @@ export const getUniversityMetrics = query({
         total_seats: uni.license_seats,
         used_seats: uniUsers.length,
         available_seats: uni.license_seats - uniUsers.length,
-        utilization_rate: ((uniUsers.length / uni.license_seats) * 100).toFixed(1) + '%',
+        utilization_rate: uni.license_seats > 0
+          ? ((uniUsers.length / uni.license_seats) * 100).toFixed(1) + '%'
+          : '0%',
         students: students.length,
         admins: admins.length,
         advisors: advisors.length,
