@@ -5,7 +5,6 @@
 
 import { v } from "convex/values"
 import { mutation, query, internalMutation } from "./_generated/server"
-import { api } from "./_generated/api"
 import { requireSuperAdmin } from "./lib/roles"
 import { paginationOptsValidator } from "convex/server"
 

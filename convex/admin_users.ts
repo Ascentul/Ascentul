@@ -5,7 +5,7 @@
 
 import { v } from "convex/values"
 import { mutation, query, action } from "./_generated/server"
-import { api } from "./_generated/api"
+import { api, internal } from "./_generated/api"
 import { requireSuperAdmin } from "./lib/roles"
 
 /**
@@ -629,7 +629,7 @@ export const hardDeleteUser = action({
     }
 
     // Create audit log BEFORE deleting the user
-    await ctx.runMutation(api.audit_logs._createAuditLogInternal, {
+    await ctx.runMutation(internal.audit_logs._createAuditLogInternal, {
       action: "user_hard_deleted",
       target_type: "user",
       target_id: targetUser._id,
