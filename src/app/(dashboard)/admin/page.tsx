@@ -53,7 +53,7 @@ function AdminDashboardPage() {
 
   // Check permissions using CLERK directly (source of truth for roles)
   const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])
-  const canAccess = useMemo(() => clerkRole === 'super_admin' || clerkRole === 'admin', [clerkRole])
+  const canAccess = useMemo(() => clerkRole === 'super_admin', [clerkRole])
 
   // OPTIMIZED: Use multiple smaller queries instead of one monolithic query
   // Only query if user has access based on CLERK role

@@ -15,8 +15,7 @@ export default defineSchema({
       v.literal("staff"),
       v.literal("university_admin"),
       v.literal("advisor"),
-      v.literal("admin"),
-      v.literal("super_admin"),
+      v.literal("super_admin"), // Platform administrator
     ),
     // CACHED DISPLAY DATA: Subscription managed by Clerk Billing (source of truth)
     // These fields are auto-synced from Clerk via webhook for fast admin UI display
@@ -106,12 +105,20 @@ export default defineSchema({
         v.literal("pending_activation"),
         v.literal("active"),
         v.literal("suspended"),
+        v.literal("deleted"), // Soft delete status for FERPA compliance
       ),
     ),
     activation_token: v.optional(v.string()),
     activation_expires_at: v.optional(v.number()),
     temp_password: v.optional(v.string()), // Encrypted temporary password for admin-created accounts
     created_by_admin: v.optional(v.boolean()),
+    // Test user and deletion tracking
+    is_test_user: v.optional(v.boolean()), // Flag for test users (can be hard deleted)
+    deleted_at: v.optional(v.number()), // Timestamp when soft deleted
+    deleted_by: v.optional(v.id("users")), // Admin who deleted the user
+    deleted_reason: v.optional(v.string()), // Reason for deletion
+    restored_at: v.optional(v.number()), // Timestamp when restored from deletion
+    restored_by: v.optional(v.id("users")), // Admin who restored the user
     // Password reset fields
     password_reset_token: v.optional(v.string()),
     password_reset_expires_at: v.optional(v.number()),
@@ -126,7 +133,9 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_university", ["university_id"])
     .index("by_department", ["department_id"])
-    .index("by_role", ["role"]),
+    .index("by_role", ["role"])
+    .index("by_account_status", ["account_status"])
+    .index("by_is_test_user", ["is_test_user"]),
 
   // Universities table for institutional licensing
   universities: defineTable({
@@ -706,5 +715,28 @@ export default defineSchema({
     .index("by_created_by", ["created_by_id"])
     .index("by_token", ["token"])
     .index("by_status", ["status"])
-    .index("by_expires_at", ["expires_at"])
+    .index("by_expires_at", ["expires_at"]),
+
+  // Audit logs for tracking admin actions (FERPA/GDPR compliance)
+  audit_logs: defineTable({
+    action: v.string(), // Action performed (e.g., "user_deleted", "user_restored", "user_created", "role_changed")
+    target_type: v.string(), // Type of entity affected (e.g., "user", "university", "application")
+    target_id: v.string(), // ID of the affected entity
+    target_email: v.optional(v.string()), // Email of affected user (for easier searching)
+    target_name: v.optional(v.string()), // Name of affected entity (for easier viewing)
+    performed_by_id: v.id("users"), // Admin who performed the action
+    performed_by_email: v.optional(v.string()), // Email of admin (cached for viewing)
+    performed_by_name: v.optional(v.string()), // Name of admin (cached for viewing)
+    reason: v.optional(v.string()), // Reason for the action
+    metadata: v.optional(v.any()), // Additional context (old values, new values, etc.)
+    ip_address: v.optional(v.string()), // IP address of admin (if available)
+    user_agent: v.optional(v.string()), // Browser/device info (if available)
+    timestamp: v.number(), // When the action was performed
+  })
+    .index("by_action", ["action"])
+    .index("by_target", ["target_type", "target_id"])
+    .index("by_performed_by", ["performed_by_id"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_target_email", ["target_email"])
 });
+

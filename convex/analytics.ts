@@ -109,8 +109,8 @@ export const getSystemStatsOptimized = query({
       throw new Error(`User not found with clerkId: ${args.clerkId}`);
     }
 
-    if (!["admin", "super_admin"].includes(currentUser.role)) {
-      throw new Error(`Unauthorized: User has role '${currentUser.role}' but needs 'admin' or 'super_admin'`);
+    if (!["super_admin"].includes(currentUser.role)) {
+      throw new Error(`Unauthorized: User has role '${currentUser.role}' but needs 'super_admin'`);
     }
 
     // Use efficient counting instead of fetching arrays
@@ -171,7 +171,7 @@ export const getUserGrowthOptimized = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
       throw new Error("Unauthorized");
     }
 
@@ -194,7 +194,7 @@ export const getActivityDataOptimized = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
       throw new Error("Unauthorized");
     }
 
@@ -227,7 +227,7 @@ export const getSupportMetricsOptimized = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
       throw new Error("Unauthorized");
     }
 
@@ -273,7 +273,7 @@ export const getRecentUsersOptimized = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
       throw new Error("Unauthorized");
     }
 
@@ -309,7 +309,7 @@ export const getSubscriptionDistributionOptimized = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
       throw new Error("Unauthorized");
     }
 
@@ -341,7 +341,7 @@ export const getTopUniversitiesOptimized = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
       throw new Error("Unauthorized");
     }
 
@@ -375,8 +375,8 @@ export const getOverviewAnalytics = query({
       throw new Error(`User not found with clerkId: ${args.clerkId}. The user may still be syncing from Clerk to Convex.`);
     }
 
-    if (!["admin", "super_admin"].includes(currentUser.role)) {
-      throw new Error(`Unauthorized: User has role '${currentUser.role}' but needs 'admin' or 'super_admin'`);
+    if (!["super_admin"].includes(currentUser.role)) {
+      throw new Error(`Unauthorized: User has role '${currentUser.role}' but needs 'super_admin'`);
     }
 
     // Fetch only essential data for Overview tab with strict limits
@@ -485,7 +485,7 @@ export const getAdminAnalytics = query({
     clerkId: v.string(),
     dateFrom: v.optional(v.number()),
     dateTo: v.optional(v.number()),
-    userType: v.optional(v.union(v.literal("all"), v.literal("user"), v.literal("admin"), v.literal("super_admin"), v.literal("university_admin"))),
+    userType: v.optional(v.union(v.literal("all"), v.literal("user"), v.literal("super_admin"), v.literal("university_admin"))),
     subscriptionFilter: v.optional(v.union(v.literal("all"), v.literal("free"), v.literal("premium"), v.literal("university"))),
   },
   handler: async (ctx, args) => {
@@ -495,7 +495,7 @@ export const getAdminAnalytics = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
       throw new Error("Unauthorized");
     }
 
@@ -1389,7 +1389,7 @@ export const getSessionAnalytics = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
       throw new Error("Unauthorized");
     }
 
@@ -1415,7 +1415,7 @@ export const getUniversityAnalytics = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
       throw new Error("Unauthorized");
     }
 
@@ -1562,7 +1562,7 @@ export const getRevenueAnalytics = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
       throw new Error("Unauthorized");
     }
 

@@ -1,8 +1,71 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 
-// List support tickets. Admins see all; regular users see their own.
+/**
+ * SECURITY: Helper function to get user IDs within a university's scope
+ * University admins and advisors should only access tickets from their university
+ */
+async function getUniversityScopedUserIds(
+  ctx: any,
+  universityId: Id<"universities"> | undefined
+): Promise<Id<"users">[]> {
+  if (!universityId) {
+    return [];
+  }
+
+  const universityUsers = await ctx.db
+    .query("users")
+    .withIndex("by_university", (q: any) => q.eq("university_id", universityId))
+    .collect();
+
+  return universityUsers.map((u: any) => u._id);
+}
+
+/**
+ * SECURITY: Check if a ticket belongs to the current user's university scope
+ * Returns true if:
+ * - User is super_admin (can access all tickets)
+ * - User is university_admin/advisor and ticket is from their university
+ * - User is the ticket owner
+ */
+async function canAccessTicket(
+  ctx: any,
+  currentUser: any,
+  ticket: any
+): Promise<boolean> {
+  // Super admins can access everything
+  if (currentUser.role === "super_admin") {
+    return true;
+  }
+
+  // University-scoped admins can only access tickets from their university
+  const isUniversityScopedAdmin = ["university_admin", "advisor"].includes(
+    currentUser.role
+  );
+
+  if (isUniversityScopedAdmin) {
+    if (!currentUser.university_id) {
+      // University admin without a university_id shouldn't have admin access
+      return false;
+    }
+
+    // Get the ticket owner
+    const ticketOwner = await ctx.db.get(ticket.user_id);
+    if (!ticketOwner) {
+      return false;
+    }
+
+    // Check if ticket owner is in the same university
+    return ticketOwner.university_id === currentUser.university_id;
+  }
+
+  // Regular users can only access their own tickets
+  return ticket.user_id === currentUser._id;
+}
+
+// List support tickets. Super admins see all; university admins see their university; regular users see their own.
 export const listTickets = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -12,11 +75,13 @@ export const listTickets = query({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["super_admin", "admin"].includes(
+    const isSuperAdmin = currentUser.role === "super_admin";
+    const isUniversityScopedAdmin = ["university_admin", "advisor"].includes(
       currentUser.role
     );
 
-    if (isAdmin) {
+    // Super admins see all tickets
+    if (isSuperAdmin) {
       const all = await ctx.db
         .query("support_tickets")
         .order("desc")
@@ -24,6 +89,30 @@ export const listTickets = query({
       return all;
     }
 
+    // University admins/advisors see tickets from their university
+    if (isUniversityScopedAdmin) {
+      if (!currentUser.university_id) {
+        throw new Error("University admin must be associated with a university");
+      }
+
+      // Get all users in the same university
+      const universityUserIds = await getUniversityScopedUserIds(
+        ctx,
+        currentUser.university_id
+      );
+
+      // Get all tickets and filter to university users
+      const allTickets = await ctx.db
+        .query("support_tickets")
+        .order("desc")
+        .collect();
+
+      return allTickets.filter((ticket) =>
+        universityUserIds.includes(ticket.user_id)
+      );
+    }
+
+    // Regular users see only their own tickets
     const mine = await ctx.db
       .query("support_tickets")
       .withIndex("by_user", (q) => q.eq("user_id", currentUser._id))
@@ -53,9 +142,11 @@ export const listTicketsWithFilters = query({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
+    const isSuperAdmin = currentUser.role === "super_admin";
+    const isUniversityScopedAdmin = ["university_admin", "advisor"].includes(
       currentUser.role
     );
+    const isAdmin = isSuperAdmin || isUniversityScopedAdmin;
 
     if (!isAdmin) throw new Error("Unauthorized");
 
@@ -81,8 +172,24 @@ export const listTicketsWithFilters = query({
 
     const tickets = await query.order("desc").collect();
 
-    // Apply text search and additional filters that can't be done in Convex easily
+    // SECURITY: Filter tickets by university scope for university admins/advisors
     let filteredTickets = tickets;
+    if (isUniversityScopedAdmin) {
+      if (!currentUser.university_id) {
+        throw new Error("University admin must be associated with a university");
+      }
+
+      const universityUserIds = await getUniversityScopedUserIds(
+        ctx,
+        currentUser.university_id
+      );
+
+      filteredTickets = filteredTickets.filter((ticket) =>
+        universityUserIds.includes(ticket.user_id)
+      );
+    }
+
+    // Apply text search and additional filters that can't be done in Convex easily
 
     if (args.search) {
       const searchTerm = args.search.toLowerCase();
@@ -180,6 +287,12 @@ export const updateTicketStatus = mutation({
     const ticket = await ctx.db.get(args.ticketId);
     if (!ticket) throw new Error("Ticket not found");
 
+    // SECURITY: Check if admin can access this ticket
+    const hasAccess = await canAccessTicket(ctx, currentUser, ticket);
+    if (!hasAccess) {
+      throw new Error("Unauthorized: Cannot access tickets from other universities");
+    }
+
     const updates: any = {
       status: args.status,
       updated_at: Date.now(),
@@ -219,6 +332,12 @@ export const assignTicket = mutation({
     const ticket = await ctx.db.get(args.ticketId);
     if (!ticket) throw new Error("Ticket not found");
 
+    // SECURITY: Check if admin can access this ticket
+    const hasAccess = await canAccessTicket(ctx, currentUser, ticket);
+    if (!hasAccess) {
+      throw new Error("Unauthorized: Cannot access tickets from other universities");
+    }
+
     await ctx.db.patch(args.ticketId, {
       assigned_to: args.assignedTo,
       updated_at: Date.now(),
@@ -257,6 +376,17 @@ export const bulkUpdateTickets = mutation({
 
     const updatedTickets = [];
     for (const ticketId of args.ticketIds) {
+      const ticket = await ctx.db.get(ticketId);
+      if (!ticket) {
+        throw new Error(`Ticket not found: ${ticketId}`);
+      }
+
+      // SECURITY: Check if admin can access this ticket
+      const hasAccess = await canAccessTicket(ctx, currentUser, ticket);
+      if (!hasAccess) {
+        throw new Error(`Unauthorized: Cannot access ticket ${ticketId} from other universities`);
+      }
+
       await ctx.db.patch(ticketId, updates);
       const updated = await ctx.db.get(ticketId);
       updatedTickets.push(updated);
@@ -279,11 +409,17 @@ export const deleteTicket = mutation({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    const isAdmin = ["super_admin", "admin"].includes(currentUser.role);
+    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(currentUser.role);
     if (!isAdmin) throw new Error("Unauthorized - only admins can delete tickets");
 
     const ticket = await ctx.db.get(args.ticketId);
     if (!ticket) throw new Error("Ticket not found");
+
+    // SECURITY: Check if admin can access this ticket
+    const hasAccess = await canAccessTicket(ctx, currentUser, ticket);
+    if (!hasAccess) {
+      throw new Error("Unauthorized: Cannot delete tickets from other universities");
+    }
 
     await ctx.db.delete(args.ticketId);
     return { success: true };
@@ -307,15 +443,17 @@ export const addTicketResponse = mutation({
     const ticket = await ctx.db.get(args.ticketId);
     if (!ticket) throw new Error("Ticket not found");
 
+    // SECURITY: Check if user can access this ticket
+    const hasAccess = await canAccessTicket(ctx, currentUser, ticket);
+    if (!hasAccess) {
+      throw new Error("Unauthorized: Cannot respond to tickets from other universities");
+    }
+
     // Check if user is admin or the ticket owner
     const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
       currentUser.role
     );
     const isOwner = ticket.user_id === currentUser._id;
-
-    if (!isAdmin && !isOwner) {
-      throw new Error("Unauthorized");
-    }
 
     // Update ticket with the response in the resolution field
     // In a more complex system, you'd have a separate table for responses/comments

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
@@ -34,7 +35,8 @@ import {
   Cpu,
   Activity,
   MessageSquare,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react'
 
 export default function AdminSettingsPage() {
@@ -145,9 +147,9 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(false)
 
   const role = user?.role
-  const isSuperOrAdmin = role === 'super_admin' || role === 'admin'
+  const isSuperAdmin = role === 'super_admin'
 
-  if (!isSuperOrAdmin) {
+  if (!isSuperAdmin) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <Card>
@@ -155,7 +157,7 @@ export default function AdminSettingsPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Only Admin and Super Admin can access System Settings.</p>
+            <p className="text-muted-foreground">Only Super Admin can access System Settings.</p>
           </CardContent>
         </Card>
       </div>
@@ -565,6 +567,22 @@ export default function AdminSettingsPage() {
                         setSecuritySettings(prev => ({ ...prev, auditLogging: checked }))
                       }
                     />
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label>Audit Trail</Label>
+                    <p className="text-sm text-muted-foreground">
+                      View complete history of all admin actions and user deletions/restorations
+                    </p>
+                    <Link href="/admin/audit-logs">
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Audit Logs
+                      </Button>
+                    </Link>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">

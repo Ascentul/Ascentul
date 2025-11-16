@@ -2,8 +2,9 @@
  * Database migrations for schema changes
  */
 
-import { mutation, internalMutation } from "./_generated/server"
+import { internalMutation, query } from "./_generated/server"
 import { v } from "convex/values"
+import { requireSuperAdmin } from "./lib/roles"
 
 /**
  * Migrate users with role "admin" to "super_admin"
@@ -228,5 +229,82 @@ export const backfillStudentRoles = internalMutation({
     console.log(JSON.stringify(summary, null, 2))
 
     return summary
+  },
+})
+
+/**
+ * List all super_admin users
+ * Run via: npx convex run migrations:listSuperAdmins '{"clerkId": "your_clerk_id"}'
+ */
+export const listSuperAdmins = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    // Use shared authorization utility
+    await requireSuperAdmin(ctx)
+
+    // PERFORMANCE: Use by_role index for efficient query
+    const superAdmins = await ctx.db
+      .query("users")
+      .withIndex("by_role", (q) => q.eq("role", "super_admin"))
+      .collect()
+
+    return {
+      count: superAdmins.length,
+      users: superAdmins.map(u => ({
+        name: u.name,
+        email: u.email,
+        clerkId: u.clerkId,
+        created_at: u.created_at,
+      }))
+    }
+  },
+})
+
+/**
+ * Backfill account_status for existing users
+ *
+ * This migration sets account_status to "active" for all users who don't have it set.
+ * This must run before updating the schema to add "deleted" as a new status option.
+ *
+ * Run via: npx convex run migrations:backfillAccountStatus
+ */
+export const backfillAccountStatus = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    console.log("Starting account_status backfill...");
+
+    // Query all users
+    const allUsers = await ctx.db.query("users").collect();
+
+    let updatedCount = 0;
+    let alreadySetCount = 0;
+
+    for (const user of allUsers) {
+      // Check if account_status is undefined or null
+      if (!user.account_status) {
+        await ctx.db.patch(user._id, {
+          account_status: "active",
+        });
+        updatedCount++;
+
+        if (updatedCount % 10 === 0) {
+          console.log(`Updated ${updatedCount} users so far...`);
+        }
+      } else {
+        alreadySetCount++;
+      }
+    }
+
+    console.log("Backfill complete!");
+    console.log(`Total users: ${allUsers.length}`);
+    console.log(`Updated to "active": ${updatedCount}`);
+    console.log(`Already had status: ${alreadySetCount}`);
+
+    return {
+      success: true,
+      total: allUsers.length,
+      updated: updatedCount,
+      alreadySet: alreadySetCount,
+    };
   },
 })

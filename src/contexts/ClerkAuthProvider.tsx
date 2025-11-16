@@ -108,6 +108,31 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
     const initializeUser = async () => {
       if (!clerkLoaded) return
 
+      // Check account status if user profile exists
+      if (clerkUser && userProfile) {
+        // Block deleted users
+        if (userProfile.account_status === 'deleted') {
+          toast({
+            title: 'Account Deleted',
+            description: 'Your account has been deleted. Please contact support if you believe this is an error.',
+            variant: 'destructive',
+          })
+          await clerkSignOut()
+          return
+        }
+
+        // Block suspended users
+        if (userProfile.account_status === 'suspended') {
+          toast({
+            title: 'Account Suspended',
+            description: 'Your account has been suspended. Please contact support for assistance.',
+            variant: 'destructive',
+          })
+          await clerkSignOut()
+          return
+        }
+      }
+
       if (clerkUser && !userProfile) {
         // Create user profile in Convex if it doesn't exist
         try {
@@ -137,7 +162,7 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     initializeUser()
-  }, [clerkUser, clerkLoaded, userProfile, createUser, toast])
+  }, [clerkUser, clerkLoaded, userProfile, createUser, toast, clerkSignOut])
 
   // Keep Convex role in sync with Clerk publicMetadata.role for existing profiles
   useEffect(() => {

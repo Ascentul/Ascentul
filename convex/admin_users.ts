@@ -4,8 +4,9 @@
  */
 
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { mutation, query, action } from "./_generated/server"
 import { api } from "./_generated/api"
+import { requireSuperAdmin } from "./lib/roles"
 
 /**
  * Generate a random activation token
@@ -45,7 +46,7 @@ export const createUserByAdmin = mutation({
       throw new Error("Admin not found")
     }
 
-    const isSuperAdmin = admin.role === "super_admin" || admin.role === "admin"
+    const isSuperAdmin = admin.role === "super_admin"
     const isUniversityAdmin = (admin.role === "university_admin" || admin.role === "advisor") && admin.university_id === args.university_id
 
     if (!isSuperAdmin && !isUniversityAdmin) {
@@ -250,7 +251,7 @@ export const regenerateActivationToken = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.adminClerkId))
       .unique()
 
-    if (!admin || !["super_admin", "university_admin", "admin", "advisor"].includes(admin.role)) {
+    if (!admin || !["super_admin", "university_admin", "advisor"].includes(admin.role)) {
       throw new Error("Unauthorized: Only admins can regenerate activation tokens")
     }
 
@@ -377,5 +378,562 @@ export const getPendingActivations = mutation({
       created_at: u.created_at,
       activation_expires_at: u.activation_expires_at,
     }))
+  },
+})
+
+/**
+ * Soft delete a user - Internal mutation (super_admin only)
+ * Sets account_status to "deleted" and preserves all data for FERPA compliance
+ */
+export const _softDeleteUserInternal = mutation({
+  args: {
+    targetClerkId: v.string(),
+    adminClerkId: v.string(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Get admin user
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.adminClerkId))
+      .unique();
+
+    if (!admin || admin.role !== "super_admin") {
+      throw new Error("Forbidden: Only super admins can soft delete users");
+    }
+
+    // Get target user
+    const targetUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.targetClerkId))
+      .unique();
+
+    if (!targetUser) {
+      throw new Error("User not found");
+    }
+
+    // Prevent deleting self
+    if (targetUser.clerkId === admin.clerkId) {
+      throw new Error("Cannot delete your own account");
+    }
+
+    // Prevent deleting test users with soft delete
+    if (targetUser.is_test_user) {
+      throw new Error(
+        "Cannot soft delete test users. Use hardDeleteUser instead."
+      );
+    }
+
+    // Already deleted? Treat as idempotent to avoid noisy errors in UI
+    if (targetUser.account_status === "deleted") {
+      return {
+        success: true,
+        message: "User already deleted. No changes applied.",
+        userId: targetUser._id,
+      };
+    }
+
+    // Soft delete: Set status to deleted, preserve all data
+    await ctx.db.patch(targetUser._id, {
+      account_status: "deleted",
+      deleted_at: Date.now(),
+      deleted_by: admin._id,
+      deleted_reason: args.reason || "Deleted by administrator",
+      updated_at: Date.now(),
+    });
+
+    // Create audit log
+    await ctx.db.insert("audit_logs", {
+      action: "user_soft_deleted",
+      target_type: "user",
+      target_id: targetUser._id,
+      target_email: targetUser.email,
+      target_name: targetUser.name,
+      performed_by_id: admin._id,
+      performed_by_email: admin.email,
+      performed_by_name: admin.name,
+      reason: args.reason || "Deleted by administrator",
+      metadata: {
+        targetRole: targetUser.role,
+        targetUniversityId: targetUser.university_id,
+      },
+      timestamp: Date.now(),
+    });
+
+    return {
+      success: true,
+      message: "User soft deleted successfully. Data preserved for compliance.",
+      userId: targetUser._id,
+    };
+  },
+})
+
+/**
+ * Soft delete a user (super_admin only)
+ * Public action that handles both Convex and Clerk
+ */
+export const softDeleteUser = action({
+  args: {
+    targetClerkId: v.string(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{success: boolean; message: string; userId: any}> => {
+    // CRITICAL: Validate required environment variable
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      throw new Error(
+        "Server configuration error: NEXT_PUBLIC_APP_URL is not set. " +
+        "This variable is required for Clerk account synchronization. " +
+        "See .env.example for setup instructions."
+      );
+    }
+
+    // Get admin identity
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Not authenticated");
+    }
+
+    // Soft delete in Convex
+    const result: {success: boolean; message: string; userId: any} = await ctx.runMutation(api.admin_users._softDeleteUserInternal, {
+      targetClerkId: args.targetClerkId,
+      adminClerkId: identity.subject,
+      reason: args.reason,
+    });
+
+    // Disable Clerk account (ban user to prevent login)
+    try {
+      // Call our backend API to disable the Clerk user
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/clerk-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'disable',
+          clerkId: args.targetClerkId,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to disable Clerk account, but Convex delete succeeded');
+      }
+    } catch (clerkError) {
+      // Log error but don't fail the operation - user is still marked deleted in Convex
+      console.error('Failed to disable Clerk account:', clerkError);
+    }
+
+    return result;
+  },
+})
+
+/**
+ * Hard delete a test user (super_admin only)
+ * Permanently removes user and cascades delete to all related data
+ * ONLY works for users marked as test users
+ */
+export const hardDeleteUser = action({
+  args: {
+    targetClerkId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // CRITICAL: Validate required environment variable
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      throw new Error(
+        "Server configuration error: NEXT_PUBLIC_APP_URL is not set. " +
+        "This variable is required for Clerk account synchronization. " +
+        "See .env.example for setup instructions."
+      );
+    }
+
+    // Get admin identity
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Not authenticated");
+    }
+
+    // Get admin user
+    const admin = await ctx.runQuery(api.users.getUserByClerkId, {
+      clerkId: identity.subject,
+    });
+
+    if (!admin || admin.role !== "super_admin") {
+      throw new Error("Forbidden: Only super admins can hard delete users");
+    }
+
+    // Get target user
+    const targetUser = await ctx.runQuery(api.users.getUserByClerkId, {
+      clerkId: args.targetClerkId,
+    });
+
+    if (!targetUser) {
+      throw new Error("User not found");
+    }
+
+    // Prevent deleting self
+    if (targetUser.clerkId === admin.clerkId) {
+      throw new Error("Cannot delete your own account");
+    }
+
+    // ONLY allow hard delete for test users
+    if (!targetUser.is_test_user) {
+      throw new Error(
+        "Cannot hard delete real users. Only test users can be permanently deleted. Use softDeleteUser instead."
+      );
+    }
+
+    // CASCADE DELETE: Remove all related data
+    // This is a destructive operation that cannot be undone
+    // IMPORTANT: Must match validTables list in _getRecordsByUserId
+    const tablesToCascade = [
+      "applications",
+      "resumes",
+      "cover_letters",
+      "goals",
+      "projects",
+      "networking_contacts", // Corrected from "contacts"
+      "contact_interactions",
+      "followup_actions", // Corrected from "followups"
+      "career_paths",
+      "ai_coach_conversations",
+      "ai_coach_messages",
+      "support_tickets",
+      "user_achievements", // Corrected from "achievements"
+      "user_daily_activity", // Corrected from "activity"
+      "job_searches", // Added - missing from original list
+      "daily_recommendations", // Added - missing from original list
+    ];
+
+    let deletedRecords = 0;
+
+    for (const tableName of tablesToCascade) {
+      try {
+        // Query records for this user
+        const records = await ctx.runQuery(
+          api.admin_users._getRecordsByUserId,
+          {
+            tableName,
+            userId: targetUser._id,
+          }
+        );
+
+        // Delete each record
+        for (const recordId of records) {
+          await ctx.runMutation(api.admin_users._deleteRecord, {
+            tableName,
+            recordId,
+          });
+          deletedRecords++;
+        }
+      } catch (error) {
+        console.warn(`Warning: Could not cascade delete from ${tableName}:`, error);
+        // Continue with other tables even if one fails
+      }
+    }
+
+    // Create audit log BEFORE deleting the user
+    await ctx.runMutation(api.audit_logs.createAuditLog, {
+      action: "user_hard_deleted",
+      target_type: "user",
+      target_id: targetUser._id,
+      target_email: targetUser.email,
+      target_name: targetUser.name,
+      performed_by_id: admin._id,
+      performed_by_email: admin.email,
+      performed_by_name: admin.name,
+      reason: "Test user permanently deleted (hard delete)",
+      metadata: {
+        targetRole: targetUser.role,
+        targetUniversityId: targetUser.university_id,
+        deletedRecordsCount: deletedRecords,
+        isTestUser: true,
+      },
+    });
+
+    // Finally, delete the user record
+    await ctx.runMutation(api.admin_users._deleteUserRecord, {
+      userId: targetUser._id,
+    });
+
+    // Delete from Clerk (permanently remove identity)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/clerk-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete',
+          clerkId: args.targetClerkId,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to delete Clerk account, but Convex delete succeeded');
+        // Continue - user is already deleted from Convex
+      }
+    } catch (clerkError) {
+      // Log error but don't fail the operation - user is already deleted from Convex
+      console.error('Failed to delete Clerk account:', clerkError);
+    }
+
+    return {
+      success: true,
+      message: `Test user permanently deleted. Removed ${deletedRecords} related records.`,
+      deletedRecords,
+    };
+  },
+})
+
+/**
+ * Restore a soft-deleted user (super_admin only)
+ * Re-activates the user account and clears deletion metadata
+ */
+export const restoreDeletedUser = action({
+  args: {
+    targetClerkId: v.string(),
+  },
+  handler: async (ctx, args): Promise<{success: boolean; message: string; userId: any}> => {
+    // CRITICAL: Validate required environment variable
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      throw new Error(
+        "Server configuration error: NEXT_PUBLIC_APP_URL is not set. " +
+        "This variable is required for Clerk account synchronization. " +
+        "See .env.example for setup instructions."
+      );
+    }
+
+    // Get admin identity
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Not authenticated");
+    }
+
+    // Get admin user
+    const admin = await ctx.runQuery(api.users.getUserByClerkId, {
+      clerkId: identity.subject,
+    });
+
+    if (!admin || admin.role !== "super_admin") {
+      throw new Error("Forbidden: Only super admins can restore deleted users");
+    }
+
+    // Get target user
+    const targetUser = await ctx.runQuery(api.users.getUserByClerkId, {
+      clerkId: args.targetClerkId,
+    });
+
+    if (!targetUser) {
+      throw new Error("User not found");
+    }
+
+    // Verify user is actually deleted
+    if (targetUser.account_status !== "deleted") {
+      throw new Error("User is not deleted. Cannot restore an active user.");
+    }
+
+    // Restore in Convex
+    const result = await ctx.runMutation(api.admin_users._restoreUserInternal, {
+      targetUserId: targetUser._id,
+      adminId: admin._id,
+    });
+
+    // Re-enable Clerk account (unban user to allow login)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/clerk-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'enable',
+          clerkId: args.targetClerkId,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to re-enable Clerk account, but Convex restore succeeded');
+      }
+    } catch (clerkError) {
+      // Log error but don't fail the operation - user is still marked active in Convex
+      console.error('Failed to re-enable Clerk account:', clerkError);
+    }
+
+    return result;
+  },
+})
+
+/**
+ * Internal mutation to restore a deleted user
+ */
+export const _restoreUserInternal = mutation({
+  args: {
+    targetUserId: v.id("users"),
+    adminId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const targetUser = await ctx.db.get(args.targetUserId);
+
+    if (!targetUser) {
+      throw new Error("User not found");
+    }
+
+    if (targetUser.account_status !== "deleted") {
+      throw new Error("User is not deleted");
+    }
+
+    // Get admin info for audit log
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin) {
+      throw new Error("Admin user not found - cannot complete restore");
+    }
+
+    // Restore the user
+    await ctx.db.patch(targetUser._id, {
+      account_status: "active",
+      // Clear deletion metadata but preserve in history
+      deleted_at: undefined,
+      deleted_by: undefined,
+      deleted_reason: undefined,
+      // Add restoration metadata
+      restored_at: Date.now(),
+      restored_by: args.adminId,
+      updated_at: Date.now(),
+    });
+
+    // Create audit log (guaranteed to have admin info due to check above)
+    await ctx.db.insert("audit_logs", {
+      action: "user_restored",
+      target_type: "user",
+      target_id: targetUser._id,
+      target_email: targetUser.email,
+      target_name: targetUser.name,
+      performed_by_id: admin._id,
+      performed_by_email: admin.email,
+      performed_by_name: admin.name,
+      reason: "User account restored from deleted status",
+      metadata: {
+        targetRole: targetUser.role,
+        targetUniversityId: targetUser.university_id,
+      },
+      timestamp: Date.now(),
+    });
+
+    return {
+      success: true,
+      message: "User restored successfully. Account is now active.",
+      userId: targetUser._id,
+    };
+  },
+})
+
+/**
+ * Mark a user as a test user (super_admin only)
+ * Test users can be hard deleted, while real users can only be soft deleted
+ */
+export const markTestUser = mutation({
+  args: {
+    targetClerkId: v.string(),
+    isTestUser: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    // Require super admin
+    const admin = await requireSuperAdmin(ctx);
+
+    // Get target user
+    const targetUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.targetClerkId))
+      .unique();
+
+    if (!targetUser) {
+      throw new Error("User not found");
+    }
+
+    // Prevent marking self as test user
+    if (targetUser.clerkId === admin.clerkId) {
+      throw new Error("Cannot mark your own account as a test user");
+    }
+
+    // Update test user flag
+    await ctx.db.patch(targetUser._id, {
+      is_test_user: args.isTestUser,
+      updated_at: Date.now(),
+    });
+
+    return {
+      success: true,
+      message: args.isTestUser
+        ? "User marked as test user. Can now be hard deleted."
+        : "Test user flag removed. User can only be soft deleted.",
+      userId: targetUser._id,
+    };
+  },
+})
+
+/**
+ * Internal helper: Get records by user_id for cascade delete
+ */
+export const _getRecordsByUserId = query({
+  args: {
+    tableName: v.string(),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Validate table name against known tables with user_id field
+    // IMPORTANT: Keep this list in sync with schema.ts tables that have user_id
+    const validTables = [
+      "applications",
+      "resumes",
+      "cover_letters",
+      "goals",
+      "projects",
+      "networking_contacts", // Corrected from "contacts"
+      "contact_interactions",
+      "followup_actions", // Corrected from "followups"
+      "career_paths",
+      "ai_coach_conversations",
+      "ai_coach_messages",
+      "support_tickets",
+      "user_achievements", // Corrected from "achievements"
+      "user_daily_activity", // Corrected from "activity"
+      "job_searches", // Added - missing from original list
+      "daily_recommendations", // Added - missing from original list
+    ];
+
+    if (!validTables.includes(args.tableName)) {
+      console.warn(`Invalid table name attempted: ${args.tableName}`);
+      return [];
+    }
+
+    try {
+      // Use by_user index for efficient lookups (O(log n) vs O(n) full table scan)
+      const records = await (ctx.db.query(args.tableName as any) as any)
+        .withIndex("by_user", (q: any) => q.eq("user_id", args.userId))
+        .collect();
+
+      return records.map((r: any) => r._id);
+    } catch (error) {
+      console.error(`Error querying ${args.tableName} for user ${args.userId}:`, error);
+      return [];
+    }
+  },
+})
+
+/**
+ * Internal helper: Delete a single record
+ */
+export const _deleteRecord = mutation({
+  args: {
+    tableName: v.string(),
+    recordId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.recordId as any);
+  },
+})
+
+/**
+ * Internal helper: Delete user record
+ */
+export const _deleteUserRecord = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.userId);
   },
 })

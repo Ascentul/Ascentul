@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (!['admin', 'super_admin', 'university_admin'].includes(user.role)) {
+    if (!['super_admin', 'university_admin'].includes(user.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
@@ -65,11 +65,41 @@ export async function POST(request: NextRequest) {
         if (matchingUniversity) {
           universityId = matchingUniversity._id;
 
+          // SECURITY: Log this auto-assignment for audit trail
+          // Note: Using user._id instead of email for privacy compliance (GDPR/CCPA/FERPA)
+          console.warn(
+            `[SECURITY] Auto-assigning university_id for admin: user_id=${user._id} -> ${universityId} (${matchingUniversity.name}). ` +
+            `This indicates the account was not properly configured during creation.`
+          );
+
           // Update user's university_id for future requests
           await convex.mutation(api.users.updateUser, {
             clerkId,
             updates: { university_id: universityId }
           });
+
+          // COMPLIANCE: Persistent audit log for this security-sensitive auto-assignment
+          try {
+            await convex.mutation(api.audit_logs.createSystemAuditLog, {
+              action: 'university_admin_auto_assigned',
+              target_type: 'user',
+              target_id: user._id,
+              target_email: user.email,
+              target_name: user.name,
+              performed_by_id: user._id,
+              performed_by_email: user.email,
+              performed_by_name: user.name,
+              reason: `Auto-assigned university_id based on admin_email match during export-reports`,
+              metadata: {
+                university_id: universityId,
+                university_name: matchingUniversity.name,
+                trigger: 'export_reports_endpoint',
+              },
+            });
+          } catch (auditError) {
+            console.error('Failed to create audit log for auto-assignment:', auditError);
+            // Don't fail the operation if audit logging fails
+          }
         }
       } catch (error) {
         console.error('Error finding university for admin:', error);

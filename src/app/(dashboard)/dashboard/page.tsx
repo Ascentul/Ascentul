@@ -82,7 +82,7 @@ export default function DashboardPage() {
       router.replace('/university')
       return
     }
-    if (user?.role === 'super_admin' || user?.role === 'admin') {
+    if (user?.role === 'super_admin') {
       router.replace('/admin')
       return
     }
@@ -104,7 +104,7 @@ export default function DashboardPage() {
   }
 
   // Prevent rendering for admin users while redirect is happening
-  if (user?.role === 'university_admin' || user?.role === 'super_admin' || user?.role === 'admin') {
+  if (user?.role === 'university_admin' || user?.role === 'super_admin') {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
