@@ -4,7 +4,7 @@
  */
 
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { mutation, query, internalMutation } from "./_generated/server"
 import { api } from "./_generated/api"
 import { requireSuperAdmin } from "./lib/roles"
 import { paginationOptsValidator } from "convex/server"
@@ -12,9 +12,9 @@ import { paginationOptsValidator } from "convex/server"
 /**
  * Internal audit log creation without auth check
  * Used by actions that have already verified super admin permissions
- * SECURITY: Do not expose this directly - only call from verified admin actions
+ * SECURITY: internalMutation ensures this can only be called from server-side code, not clients
  */
-export const _createAuditLogInternal = mutation({
+export const _createAuditLogInternal = internalMutation({
   args: {
     action: v.string(),
     target_type: v.string(),
