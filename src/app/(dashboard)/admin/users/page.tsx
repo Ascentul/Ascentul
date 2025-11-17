@@ -63,10 +63,10 @@ export default function AdminUsersPage() {
   const updateUser = useMutation(api.users.updateUser)
   const createUserByAdmin = useMutation(api.admin_users.createUserByAdmin)
 
-  // Delete and restore mutations
-  const softDeleteUser = useAction(api.admin_users.softDeleteUser)
-  const hardDeleteUser = useAction(api.admin_users.hardDeleteUser)
-  const restoreDeletedUser = useAction(api.admin_users.restoreDeletedUser)
+  // Delete and restore actions (from admin_users_actions.ts - Node.js runtime)
+  const softDeleteUser = useAction(api.admin_users_actions.softDeleteUser)
+  const hardDeleteUser = useAction(api.admin_users_actions.hardDeleteUser)
+  const restoreDeletedUser = useAction(api.admin_users_actions.restoreDeletedUser)
   const markTestUser = useMutation(api.admin_users.markTestUser)
 
   // Create user mutation for adding new staff users
