@@ -3,7 +3,6 @@ import { Webhook } from 'svix'
 import { clerkClient } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
-import { BILLABLE_ROLES, INTERNAL_ROLES } from '@/../convex/lib/constants'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -190,34 +189,25 @@ export async function POST(request: NextRequest) {
  * - metadata.plan: plan slug
  */
 function determineSubscriptionPlan(metadata: any): 'free' | 'premium' | 'university' {
-  // Priority 0: Internal roles always get 'free' plan (never billable)
-  // This ensures staff/admin accounts don't inflate investor metrics
-  const userRole = metadata.role || 'individual'
-  if (INTERNAL_ROLES.includes(userRole as any)) {
-    return 'free'
-  }
-
-  // Priority 1: Check for university affiliation (billable as university seats)
+  // Check for university affiliation first
   if (metadata.role === 'student' || metadata.university_id) {
     return 'university'
   }
 
-  // Priority 2: Check Clerk Billing subscription data (only for billable roles)
-  if (BILLABLE_ROLES.includes(userRole as any)) {
-    const subscriptions = metadata.subscriptions || []
-    const currentPlan = metadata.billing?.plan || metadata.plan
+  // Check Clerk Billing subscription data
+  const subscriptions = metadata.subscriptions || []
+  const currentPlan = metadata.billing?.plan || metadata.plan
 
-    // Check for premium plan (includes both monthly and annual billing)
-    if (currentPlan === 'premium_monthly') {
-      return 'premium'
-    }
+  // Check for premium plan (includes both monthly and annual billing)
+  if (currentPlan === 'premium_monthly') {
+    return 'premium'
+  }
 
-    // Check subscriptions array
-    for (const sub of subscriptions) {
-      if (sub.plan === 'premium_monthly') {
-        if (sub.status === 'active' || sub.status === 'trialing') {
-          return 'premium'
-        }
+  // Check subscriptions array
+  for (const sub of subscriptions) {
+    if (sub.plan === 'premium_monthly') {
+      if (sub.status === 'active' || sub.status === 'trialing') {
+        return 'premium'
       }
     }
   }

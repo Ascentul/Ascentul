@@ -30,12 +30,10 @@
 import { v } from "convex/values"
 import { query } from "./_generated/server"
 import { requireSuperAdmin } from "./lib/roles"
-import { BILLABLE_ROLES, INTERNAL_ROLES, isBillableRole, isInternalRole } from "./lib/constants"
 
 /**
  * Get comprehensive user metrics for investor reporting
- * Excludes test users and internal roles (staff, admins) for accurate counts
- * Only counts billable roles: individual, student
+ * Excludes test users for accurate counts
  *
  * PERFORMANCE: Loads all users - acceptable for <50k users, super admin only
  */
@@ -51,22 +49,9 @@ export const getUserMetrics = query({
     // For large datasets (>50k users), consider implementing caching
     const allUsers = await ctx.db.query("users").collect()
 
-    // Filter for billable users only (excludes test users AND internal roles)
-    // Billable roles: individual, student
-    // Internal roles (excluded): super_admin, staff, university_admin, advisor
-    const realUsers = allUsers.filter(u =>
-      !u.is_test_user &&
-      isBillableRole(u.role || 'individual')
-    )
-
-    // Track test users separately
+    // Separate real users from test users
+    const realUsers = allUsers.filter(u => !u.is_test_user)
     const testUsers = allUsers.filter(u => u.is_test_user)
-
-    // Track internal users separately (for admin visibility, NOT in investor metrics)
-    const internalUsers = allUsers.filter(u =>
-      !u.is_test_user &&
-      isInternalRole(u.role || 'individual')
-    )
 
     // Active users (real users only, not deleted/suspended)
     const activeUsers = realUsers.filter(
@@ -138,42 +123,34 @@ export const getUserMetrics = query({
     // See documentation in analysis comments for Stripe integration approach
 
     return {
-      // Total counts (billable users only - excludes internal roles)
+      // Total counts (real users only)
       total_real_users: realUsers.length,
       active_users: activeUsers.length,
       deleted_users: deletedUsers.length,
       pending_users: pendingUsers.length,
       suspended_users: suspendedUsers.length,
 
-      // Test users (separate tracking, not in metrics)
+      // Test users (separate tracking)
       test_users: testUsers.length,
 
-      // Internal users (staff/admins - separate tracking, NOT in investor metrics)
-      internal_users: {
-        total: internalUsers.length,
-        active: internalUsers.filter(u => (u.account_status || 'active') === 'active').length,
-        by_role: {
-          super_admin: internalUsers.filter(u => u.role === 'super_admin').length,
-          staff: internalUsers.filter(u => u.role === 'staff').length,
-          university_admin: internalUsers.filter(u => u.role === 'university_admin').length,
-          advisor: internalUsers.filter(u => u.role === 'advisor').length,
-        },
-      },
-
-      // Subscription breakdown (active billable users only)
+      // Subscription breakdown (active only)
       by_plan: {
         free: freeUsers.length,
         premium: premiumUsers.length,
         university: universityUsers.length,
       },
 
-      // Role breakdown (active billable users only)
+      // Role breakdown (active only)
       by_role: {
         individual: individualUsers.length,
         student: students.length,
+        staff: staff.length,
+        university_admin: universityAdmins.length,
+        advisor: advisors.length,
+        super_admin: superAdmins.length,
       },
 
-      // Growth metrics (billable users only)
+      // Growth metrics
       growth: {
         new_users_last_30_days: newUsersLast30Days,
         growth_rate_30d: activeUsers.length > 0
@@ -181,7 +158,7 @@ export const getUserMetrics = query({
           : '0%',
       },
 
-      // Revenue metrics (billable premium users only)
+      // Revenue metrics
       revenue: {
         mrr: mrr,
         arr: mrr * 12,
@@ -200,7 +177,6 @@ export const getUserMetrics = query({
 /**
  * Get user growth over time
  * Returns monthly user counts for the last 12 months
- * Only counts billable users (excludes internal roles and test users)
  *
  * PERFORMANCE: Loads all users - acceptable for <50k users, super admin only
  */
@@ -216,11 +192,7 @@ export const getUserGrowthHistory = query({
     const monthsToShow = args.months || 12
     // NOTE: Loads all users for growth analysis
     const allUsers = await ctx.db.query("users").collect()
-    // Filter for billable users only (excludes test users AND internal roles)
-    const realUsers = allUsers.filter(u =>
-      !u.is_test_user &&
-      isBillableRole(u.role || 'individual')
-    )
+    const realUsers = allUsers.filter(u => !u.is_test_user)
 
     // Calculate monthly data points
     const monthlyData = []
@@ -278,25 +250,20 @@ export const getUniversityMetrics = query({
     // NOTE: Loads all users for university utilization calculation
     const allUsers = await ctx.db.query("users").collect()
 
-    // Filter active billable university users only (students)
-    // Note: university_admin and advisor are internal roles, not counted in seat utilization
+    // Filter active students/advisors only
     const activeUniversityUsers = allUsers.filter(
       u => !u.is_test_user &&
       (u.account_status || 'active') === 'active' &&
       u.subscription_plan === 'university' &&
-      u.university_id &&
-      isBillableRole(u.role || 'individual')  // Only count students, not admins/advisors
+      u.university_id
     )
 
     // Calculate metrics per university
     const universityStats = universities.map(uni => {
       const uniUsers = activeUniversityUsers.filter(u => u.university_id === uni._id)
       const students = uniUsers.filter(u => u.role === 'student')
-
-      // Track internal roles separately (not counted in seat utilization)
-      const allUniUsers = allUsers.filter(u => u.university_id === uni._id && !u.is_test_user)
-      const admins = allUniUsers.filter(u => u.role === 'university_admin')
-      const advisors = allUniUsers.filter(u => u.role === 'advisor')
+      const admins = uniUsers.filter(u => u.role === 'university_admin')
+      const advisors = uniUsers.filter(u => u.role === 'advisor')
 
       return {
         university_id: uni._id,
