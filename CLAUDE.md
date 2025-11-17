@@ -134,26 +134,9 @@ Feature Gating (Access Control)
 - `src/app/api/`: API routes (Stripe webhooks, file uploads, etc.)
 
 ### Roles & Permissions
-
-**Billable Roles** (counted in investor metrics and revenue):
-- `individual`: Main end users (free → premium subscribers)
-- `student`: University students (count toward university seats)
-
-**Internal Roles** (full platform access, NOT counted in metrics):
-- `super_admin`: Platform administrators
-- `staff`: Ascentul staff members
-- `university_admin`: University administrators (manage students, not billable)
-- `advisor`: University advisors/counselors
-
-**Legacy:**
-- `user`: Being migrated to `individual`
-
-**Billable Role Architecture:**
-- Defined in `convex/lib/constants.ts` as `BILLABLE_ROLES` and `INTERNAL_ROLES`
-- Internal roles automatically assigned `subscription_plan: 'free'` (never inflates metrics)
-- Investor metrics (`convex/investor_metrics.ts`) filter by billable roles only
-- Webhook (`src/app/api/clerk/webhook/route.ts`) forces internal roles to 'free' plan
-- Admin UI (`src/app/(dashboard)/admin/users/page.tsx`) locks plan for internal roles
+- `user`: Regular free/premium users
+- `university_admin`: Manages students within their university
+- `admin`/`super_admin`: Platform-wide administration
 
 ### TypeScript Paths
 ```typescript
