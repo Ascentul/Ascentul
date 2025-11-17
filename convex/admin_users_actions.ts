@@ -77,11 +77,16 @@ export const hardDeleteUser = action({
     targetClerkId: v.string(),
   },
   handler: async (ctx, args) => {
+    // DEBUG: Check what env vars are available
+    console.log("ALL ENV KEYS:", Object.keys(process.env));
+    console.log("CONVEX_APP_URL:", process.env.CONVEX_APP_URL);
+    console.log("NEXT_PUBLIC_APP_URL:", process.env.NEXT_PUBLIC_APP_URL);
+    console.log("CONVEX_CLOUD_URL:", process.env.CONVEX_CLOUD_URL);
+    console.log("CONVEX_SITE_URL:", process.env.CONVEX_SITE_URL);
+
     // Get app URL from environment (using CONVEX_APP_URL instead of NEXT_PUBLIC_APP_URL)
     const appUrl = process.env.CONVEX_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
-    console.log("DEBUG: CONVEX_APP_URL:", process.env.CONVEX_APP_URL);
-    console.log("DEBUG: NEXT_PUBLIC_APP_URL:", process.env.NEXT_PUBLIC_APP_URL);
-    console.log("DEBUG: Using appUrl:", appUrl);
+    console.log("Using appUrl:", appUrl);
 
     if (!appUrl) {
       throw new Error("App URL not configured in environment variables");
