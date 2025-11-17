@@ -152,12 +152,12 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
             style={{ maxHeight: VIEWPORT_HEIGHT }}
             onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
           >
-            <table className="w-full border-collapse" aria-rowcount={filteredStudents.length}>
+            <table className="w-full border-collapse" aria-rowcount={filteredStudents.length + 1}>
               <caption className="sr-only">
                 Student caseload showing {filteredStudents.length} students with their major, graduation year, active applications, follow-ups, status, and profile links
               </caption>
               <thead className="bg-muted/50 sticky top-0 z-10">
-                <tr className="border-b">
+                <tr className="border-b" aria-rowindex={1}>
                   <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
                     Student
                   </th>
@@ -196,16 +196,16 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
                 )}
 
                 {visibleStudents.map((student, index) => {
-                            const activeApps =
-                              student.metadata?.activeApplicationsCount || 0;
-                            const statusBadge = getStatusBadge(student, activeApps);
+                  const activeApps =
+                    student.metadata?.activeApplicationsCount || 0;
+                  const statusBadge = getStatusBadge(student, activeApps);
 
                   return (
                     <tr
                       key={student._id}
                       className="border-b hover:bg-muted/30 transition-colors"
                       style={{ height: ROW_HEIGHT }}
-                      aria-rowindex={startIndex + index + 1}
+                      aria-rowindex={startIndex + index + 2}
                     >
                       <td className="px-4 py-3 align-middle">
                         <div>

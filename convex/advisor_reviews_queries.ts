@@ -218,21 +218,6 @@ export const getReviewById = query({
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new Error("Unauthorized: Review not in your university");
-    }
-
-    // Enrich with student data
-    const student = await ctx.db.get(review.student_id);
-
-    // Get the asset details with full content
-    const assetDetails = await getAssetDetails(
-      ctx,
-      review.asset_type,
-      review.resume_id,
-      review.cover_letter_id,
-      true // Include full content for detail view
-    );
-
     // For detail views, asset must exist to provide complete review information
     if (assetDetails.id === null) {
       throw new Error(`Associated ${review.asset_type} not found for review`);

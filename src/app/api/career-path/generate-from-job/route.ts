@@ -1732,8 +1732,10 @@ const selectTemplate = (jobTitle: string): CareerPathTemplate => {
 }
 
 const fetchUserProfile = async (clerkId: string) => {
-  
-  if (!url) return null
+const fetchUserProfile = async (clerkId: string) => {
+  try {
+    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId })
+    return user
   try {
         const user = await convexServer.query(api.users.getUserByClerkId, { clerkId })
     return user
@@ -2257,8 +2259,9 @@ const persistCareerPathToConvex = async (
   }
 ): Promise<void> => {
   try {
-    
-    if (!url) return
+): Promise<void> => {
+  try {
+    await convexServer.mutation(api.career_paths.createCareerPath, {
 
     await convexServer.mutation(api.career_paths.createCareerPath, {
       clerkId: userId,

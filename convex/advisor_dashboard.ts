@@ -204,10 +204,9 @@ export const getUpcomingItems = query({
 });
 
 /**
- * @param timezoneOffset - Client's timezone offset in minutes from UTC, matching JavaScript's getTimezoneOffset() (e.g., 480 for PST, 0 for UTC)
  * Returns sessions count per week
  *
- * @param timezoneOffset - Client's timezone offset in minutes (e.g., -480 for PST, 0 for UTC)
+ * @param timezoneOffset - Client's timezone offset in minutes from UTC, matching JavaScript's getTimezoneOffset() (e.g., 480 for PST/UTC-8, 0 for UTC)
  * @param weekStartDay - Day of week to start (0 = Sunday, 1 = Monday). Defaults to 1 (Monday)
  */
 export const getActivityChart = query({

@@ -167,10 +167,15 @@ export const getReview = query({
     let asset = null;
     if (review.asset_type === "resume" && review.resume_id) {
       asset = await ctx.db.get(review.resume_id);
+      if (asset && asset.student_id !== review.student_id) {
+        throw new Error("Asset ownership mismatch");
+      }
     } else if (review.asset_type === "cover_letter" && review.cover_letter_id) {
       asset = await ctx.db.get(review.cover_letter_id);
+      if (asset && asset.student_id !== review.student_id) {
+        throw new Error("Asset ownership mismatch");
+      }
     }
-
     return {
       ...review,
       student,
@@ -193,14 +198,31 @@ export const createReview = mutation({
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
-    const universityId = requireTenant(sessionCtx);
-
-    // Verify access to student
-    await assertCanAccessStudent(ctx, sessionCtx, args.studentId);
-
     // Validate that exactly one ID is provided based on asset type
     if (args.assetType === "resume" && !args.resumeId) {
       throw new Error("resumeId is required when assetType is resume");
+    }
+    if (args.assetType === "resume" && args.resumeId) {
+      const resume = await ctx.db.get(args.resumeId);
+      if (!resume) {
+        throw new Error("Resume not found");
+      }
+      if (resume.student_id !== args.studentId) {
+        throw new Error("Resume does not belong to this student");
+      }
+    }
+    if (args.assetType === "cover_letter" && !args.coverLetterId) {
+      throw new Error("coverLetterId is required when assetType is cover_letter");
+    }
+    if (args.assetType === "cover_letter" && args.coverLetterId) {
+      const coverLetter = await ctx.db.get(args.coverLetterId);
+      if (!coverLetter) {
+        throw new Error("Cover letter not found");
+      }
+      if (coverLetter.student_id !== args.studentId) {
+        throw new Error("Cover letter does not belong to this student");
+      }
+    }
     }
     if (args.assetType === "cover_letter" && !args.coverLetterId) {
       throw new Error("coverLetterId is required when assetType is cover_letter");
@@ -216,6 +238,7 @@ export const createReview = mutation({
       cover_letter_id: args.coverLetterId,
       status: "waiting",
       comments: [],
+      version: 0, // Initialize version for optimistic concurrency control
       created_at: now,
       updated_at: now,
     });
@@ -262,13 +285,10 @@ export const updateReviewStatus = mutation({
       throw new Error("Review not found");
     }
 
-    // Verify access to student
-    await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
-
-    const previousStatus = review.status;
     const now = Date.now();
+    const previousStatus = review.status;
 
-    // Validate state transition to enforce workflow
+    // Define valid state transitions
     const validTransitions: Record<string, string[]> = {
       waiting: ["in_review"],
       in_review: ["needs_edits", "approved", "waiting"],
@@ -668,7 +688,7 @@ export const approveReview = mutation({
     // Update review
     await ctx.db.patch(args.reviewId, {
       status: "approved",
-      rubric: args.rubric || review.rubric,
+      rubric: args.rubric !== undefined ? args.rubric : review.rubric,
       comments: updatedComments,
       reviewed_by: sessionCtx.userId,
       reviewed_at: now,

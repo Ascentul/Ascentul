@@ -10,8 +10,12 @@ import { api } from 'convex/_generated/api';
 import { FileEdit, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function AdvisorReviewsPage() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const clerkId = user?.id;
+
+  if (!isLoaded) {
+    return <div className='container mx-auto p-6'>Loading...</div>;
+  }
 
   const reviews = useQuery(
     api.advisor_reviews_queries.getReviews,
@@ -90,10 +94,10 @@ export default function AdvisorReviewsPage() {
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
                 <FileEdit className='h-5 w-5' />
-                Review Queue
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              <ReviewQueue
+                reviews={reviews || []}
+                isLoading={isLoaded && clerkId !== undefined && reviews === undefined}
+              />
               <ReviewQueue
                 reviews={reviews || []}
                 isLoading={reviews === undefined}

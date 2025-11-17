@@ -70,6 +70,22 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   const [saveError, setSaveError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState(session.version);
 
+  // Sync form state when session updates
+  useEffect(() => {
+    setTitle(session.title);
+    setSessionType(session.session_type);
+    setStartAt(format(new Date(session.start_at), DATETIME_LOCAL_FORMAT));
+    setDurationMinutes(session.duration_minutes.toString());
+    setLocation(session.location || '');
+    setMeetingUrl(session.meeting_url || '');
+    setNotes(session.notes || '');
+    setVisibility(session.visibility);
+    setStatus(session.status || 'scheduled');
+    setCurrentVersion(session.version);
+    setHasUnsavedChanges(false);
+  }, [session._id, session.version]);
+
+  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track if any field has changed
@@ -142,12 +158,28 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
       setHasUnsavedChanges(false);
 
       if (onSaveSuccess) {
-        onSaveSuccess();
+        try {
+          onSaveSuccess();
+        } catch (callbackError) {
+          console.error('onSaveSuccess callback failed:', callbackError);
+        }
       }
 
       return true;
     } catch (error: unknown) {
       const message = getErrorMessage(error);
+
+      // Check if it's a version conflict
+      if (message.includes('version') || message.includes('conflict')) {
+        setSaveError('This session was updated elsewhere. Please refresh to see the latest version.');
+        toast({
+          title: 'Version conflict',
+          description: 'Please refresh the page to see the latest changes.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
       setSaveError(message);
       toast({
         title: 'Save failed',
@@ -195,6 +227,10 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
     return () => {
       if (autosaveTimerRef.current) {
         clearTimeout(autosaveTimerRef.current);
+      }
+      // Save on unmount if there are unsaved changes
+      if (hasUnsavedChanges) {
+        saveChanges();
       }
     };
   }, [hasUnsavedChanges, saveChanges]);

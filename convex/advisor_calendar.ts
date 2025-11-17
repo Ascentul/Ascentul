@@ -37,8 +37,8 @@ export const getSessionsInRange = query({
       )
       .filter((q) =>
         q.and(
-          q.gte(q.field('start_at'), args.startDate),
           q.lte(q.field('start_at'), args.endDate),
+          q.gte(q.field('end_at'), args.startDate),
         ),
       )
       .collect();
@@ -194,7 +194,12 @@ export const getCalendarStats = query({
     const completedSessions = sessions.filter(
       (s) => s.end_at && s.end_at < now,
     ).length;
-    const upcomingSessions = sessions.filter((s) => s.start_at > now).length;
+    const upcomingSessions = sessions.filter(
+      (s) => s.start_at > now
+    ).length;
+    const inProgressSessions = sessions.filter(
+      (s) => s.start_at <= now && (!s.end_at || s.end_at >= now)
+    ).length;
     const overdueFollowUps = followUps.filter(
       (f) => f.due_at && f.due_at < now,
     ).length;

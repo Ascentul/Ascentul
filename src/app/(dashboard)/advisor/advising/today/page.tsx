@@ -50,6 +50,9 @@ const PRIORITY_COLORS = {
  */
 function formatOverdueTime(dueAt: number, now: number): string {
   const diffMs = now - dueAt;
+  if (diffMs < 0) {
+    return 'not yet due';
+  }
   const minutes = Math.floor(diffMs / (1000 * 60));
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -331,13 +334,13 @@ export default function AdvisorTodayPage() {
               ) : (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
                   {todayData.followUps.map((followUp) => {
-                    const isOverdue = followUp.due_at && followUp.due_at < now;
-
-                    return (
                       <div
                         key={followUp._id}
                         className={`p-4 border rounded-lg ${
                           isOverdue
+                            ? "border-red-300 bg-red-50"
+                            : PRIORITY_COLORS[followUp.priority as keyof typeof PRIORITY_COLORS] || PRIORITY_COLORS.low
+                        }`}
                             ? "border-red-300 bg-red-50"
                             : PRIORITY_COLORS[followUp.priority]
                         }`}
@@ -374,10 +377,11 @@ export default function AdvisorTodayPage() {
                             </div>
                             {followUp.description && (
                               <div className="mt-2 text-xs text-muted-foreground line-clamp-2">
-                                {followUp.description}
+                            {isOverdue && (
+                              <div className="mt-2 text-xs text-red-600 font-medium">
+                                Overdue by {formatOverdueTime(followUp.due_at!, now)}
                               </div>
                             )}
-                            {isOverdue && (
                               <div className="mt-2 text-xs text-red-600 font-medium">
                                 Overdue by {formatOverdueTime(followUp.due_at, now)}
                               </div>

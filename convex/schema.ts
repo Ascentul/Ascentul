@@ -334,15 +334,15 @@ export default defineSchema({
     user_id: v.id("users"),
     company: v.string(),
     job_title: v.string(),
-    // Extended status/stage for advisor workflow
     status: v.union(
-      v.literal("saved"), // Legacy status
-      v.literal("applied"), // Legacy status
-      v.literal("interview"), // Legacy status
-      v.literal("offer"), // Legacy status
-      v.literal("rejected"), // Legacy status
+      v.literal("saved"), // DEPRECATED: Use stage field instead
+      v.literal("applied"), // DEPRECATED: Use stage field instead
+      v.literal("interview"), // DEPRECATED: Use stage field instead
+      v.literal("offer"), // DEPRECATED: Use stage field instead
+      v.literal("rejected"), // DEPRECATED: Use stage field instead
     ),
-    // New stage field for advisor workflow (coexists with status for backwards compatibility)
+    // PRIMARY FIELD: stage is the source of truth for application state
+    // status field is maintained for backward compatibility only
     stage: v.optional(
       v.union(
         v.literal("Prospect"), // Active - researching/considering
@@ -426,6 +426,7 @@ export default defineSchema({
     user_id: v.id('users'), // Primary user (student) this task relates to
     owner_id: v.id('users'), // Who is responsible for completing it (can be student or advisor)
     created_by_id: v.id('users'), // Who created this task
+    created_by_id: v.optional(v.id('users')), // Who created this task (null for system-generated)
     created_by_type: v.union(v.literal('student'), v.literal('advisor'), v.literal('system')),
 
     // Multi-tenancy support
@@ -498,7 +499,7 @@ export default defineSchema({
   // STATUS: Deprecated - Consolidated into follow_ups table
   // MIGRATION SCRIPT: convex/migrate_follow_ups.ts (migrateFollowUps mutation)
   // USAGE: Run 'npx convex run migrate_follow_ups:migrateFollowUps' to migrate data
-  // VERIFICATION: Run 'npx convex run migrate_follow_ups:verifyMigration' after migration
+  // VERIFICATION: Run 'npx convex query migrate_follow_ups:verifyMigration' after migration
   //
   // NEW CODE: Must use follow_ups table - DO NOT insert/query this table
   // REMOVAL TIMELINE: After successful production migration and verification (TBD)
@@ -820,7 +821,7 @@ export default defineSchema({
         v.object({
           id: v.string(),
           name: v.string(),
-          url: v.string(),
+          storage_id: v.id("_storage"), // Use Convex storage for access control
           type: v.string(), // MIME type
           size: v.number(), // bytes
         }),
@@ -850,7 +851,7 @@ export default defineSchema({
     resume_id: v.optional(v.id("resumes")),
     cover_letter_id: v.optional(v.id("cover_letters")),
     related_application_id: v.optional(v.id("applications")),
-    related_session_id: v.optional(v.id("advisor_sessions")),
+    related_review_id: v.optional(v.id("advisor_reviews")), // Previous review in chain
     related_review_id: v.optional(v.string()), // advisor_reviews ID
     status: v.union(
       v.literal("waiting"), // Pending advisor review
@@ -888,6 +889,7 @@ export default defineSchema({
       ),
     ),
     version_id: v.optional(v.string()), // Track which version was reviewed
+    version: v.number(), // Optimistic concurrency control version number
     reviewed_by: v.optional(v.id("users")), // Advisor who reviewed
     reviewed_at: v.optional(v.number()), // timestamp
     created_at: v.number(),
@@ -906,7 +908,7 @@ export default defineSchema({
   // STATUS: Deprecated - Consolidated into follow_ups table
   // MIGRATION SCRIPT: convex/migrate_follow_ups.ts (migrateFollowUps mutation)
   // USAGE: Run 'npx convex run migrate_follow_ups:migrateFollowUps' to migrate data
-  // VERIFICATION: Run 'npx convex run migrate_follow_ups:verifyMigration' after migration
+  // VERIFICATION: Run 'npx convex query migrate_follow_ups:verifyMigration' after migration
   //
   // ⚠️ WARNING: Active queries still reference this table:
   // - convex/advisor_dashboard.ts:152
@@ -977,7 +979,6 @@ export default defineSchema({
   // - Consider implementing a redaction mutation for right-to-be-forgotten requests
   //
   // TODO: Implement scheduled function for automated log retention management
-  audit_logs: defineTable({
     actor_id: v.id("users"), // Who performed the action
     university_id: v.optional(v.id("universities")), // Tenant context
     action: v.string(), // e.g., "application.stage_changed", "review.status_changed"
@@ -986,8 +987,7 @@ export default defineSchema({
     student_id: v.optional(v.id("users")), // Student affected (for PII tracking)
     previous_value: v.optional(v.any()), // State before change (may contain PII - see retention policy)
     new_value: v.optional(v.any()), // State after change (may contain PII - see retention policy)
-    reason: v.optional(v.string()), // Why the change was made (required for sensitive actions)
-    ip_address: v.optional(v.string()), // For security tracking
+    ip_address: v.string(), // Required for security tracking (use "system" for automated actions)
     user_agent: v.optional(v.string()), // Browser/client info
     created_at: v.number(),
   })
@@ -996,5 +996,25 @@ export default defineSchema({
     .index("by_student", ["student_id"])
     .index("by_entity", ["entity_type", "entity_id"])
     .index("by_action", ["action"])
-    .index("by_created_at", ["created_at"]),
+    .index("by_created_at", ["created_at"])
+    .index("by_university_created", ["university_id", "created_at"]),
+
+  // Migration tracking table for idempotency and state management
+  migration_state: defineTable({
+    migration_name: v.string(), // Unique identifier for the migration (e.g., "migrate_follow_ups_v1")
+    status: v.union(
+      v.literal("pending"),    // Migration started but not completed
+      v.literal("in_progress"), // Currently running
+      v.literal("completed"),   // Successfully completed
+      v.literal("failed"),      // Failed with errors
+      v.literal("rolled_back")  // Rolled back due to errors
+    ),
+    started_at: v.number(),
+    completed_at: v.optional(v.number()),
+    error_message: v.optional(v.string()),
+    metadata: v.optional(v.any()), // Migration-specific data (counts, stats, etc.)
+    executed_by: v.optional(v.string()), // Who/what triggered the migration
+  }).index("by_name", ["migration_name"])
+    .index("by_status", ["status"])
+    .index("by_started_at", ["started_at"]),
 });

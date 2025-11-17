@@ -30,7 +30,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     // Mutation now returns the updated contact directly - no need to refetch all contacts
     const contact = await convexServer.mutation(api.contacts.updateContact, {
       clerkId: userId,
-      contactId: params.id as Id<'networking_contacts'>,
+      contactId: params.id as Id<'networking_contacts'>,  // Convex will validate
       updates: {
         name: body.full_name ?? body.name,
         company: body.company,

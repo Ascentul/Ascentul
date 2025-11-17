@@ -5,7 +5,11 @@
  * Run with: npx ts-node scripts/set-clerk-advisor-role.ts <user-email>
  */
 
-import { clerkClient } from '@clerk/clerk-sdk-node';
+import { createClerkClient } from '@clerk/backend';
+
+const clerkClient = createClerkClient({
+  secretKey: process.env.CLERK_SECRET_KEY
+});
 
 async function setAdvisorRole(email: string) {
   try {
@@ -72,4 +76,7 @@ if (!email) {
   process.exit(1);
 }
 
-setAdvisorRole(email);
+setAdvisorRole(email).catch((error) => {
+  console.error('Unhandled error:', error);
+  process.exit(1);
+});

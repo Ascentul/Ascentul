@@ -12,13 +12,40 @@
  * - Dry run (preview): npx convex run migrate_follow_ups:migrateFollowUps '{"dryRun": true}'
  * - Actual migration: npx convex run migrate_follow_ups:migrateFollowUps
  * - Force re-run: npx convex run migrate_follow_ups:migrateFollowUps '{"force": true}' (⚠️ May create duplicates!)
- * - Verify (default 100 samples): npx convex run migrate_follow_ups:verifyMigration
- * - Verify (custom sample): npx convex run migrate_follow_ups:verifyMigration '{"sampleSize": 500}'
+ * - Verify (default 100 samples): npx convex query migrate_follow_ups:verifyMigration
+ * - Verify (custom sample): npx convex query migrate_follow_ups:verifyMigration '{"sampleSize": 500}'
  */
 
-import { mutation } from './_generated/server';
+import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 import { Id } from './_generated/dataModel';
+
+/**
+ * Count records in a table using pagination to avoid memory issues
+ * @param ctx - Database context
+ * @param tableName - Name of the table to count
+ * @returns Total number of records
+ */
+async function countWithPagination(
+  ctx: any,
+  tableName: string
+): Promise<number> {
+  let count = 0;
+  let cursor: string | null = null;
+  let isDone = false;
+
+  while (!isDone) {
+    const page: any = await ctx.db
+      .query(tableName)
+      .order('asc')
+      .paginate({ cursor, numItems: 1000 });
+    count += page.page.length;
+    cursor = page.continueCursor;
+    isDone = page.isDone;
+  }
+
+  return count;
+}
 
 export const migrateFollowUps = mutation({
   args: {
@@ -28,18 +55,63 @@ export const migrateFollowUps = mutation({
   handler: async (ctx, args) => {
     const dryRun = args.dryRun ?? false;
     const force = args.force ?? false;
+    const MIGRATION_NAME = 'migrate_follow_ups_v1';
 
-    // Idempotency check: Prevent duplicate migrations
+    // Enhanced idempotency check using migration_state table
     if (!dryRun && !force) {
-      const existingFollowUps = await ctx.db.query('follow_ups').first();
-      if (existingFollowUps) {
+      const existingMigration = await ctx.db
+        .query('migration_state')
+        .withIndex('by_name', (q) => q.eq('migration_name', MIGRATION_NAME))
+        .first();
+
+      if (existingMigration) {
+        if (existingMigration.status === 'completed') {
+          throw new Error(
+            `Migration '${MIGRATION_NAME}' has already completed successfully at ${new Date(existingMigration.completed_at!).toISOString()}. ` +
+            `Migrated: ${JSON.stringify(existingMigration.metadata)}. ` +
+            'To re-run anyway, use: npx convex run migrate_follow_ups:migrateFollowUps \'{"force": true}\' ' +
+            '(WARNING: This may create duplicate records!)'
+          );
+        } else if (existingMigration.status === 'in_progress') {
+          const elapsed = Date.now() - existingMigration.started_at;
+          const elapsedMinutes = Math.floor(elapsed / 60000);
+          throw new Error(
+            `Migration '${MIGRATION_NAME}' is currently in progress (started ${elapsedMinutes} minutes ago). ` +
+            'If it is stuck, use force=true to override.'
+          );
+        } else if (existingMigration.status === 'failed') {
+          throw new Error(
+            `Migration '${MIGRATION_NAME}' previously failed: ${existingMigration.error_message}. ` +
+            'Fix the issue and use force=true to retry.'
+          );
+        }
+      }
+
+      // Additional check: count records to detect partial migrations
+      const followUpsCount = await countWithPagination(ctx, 'follow_ups');
+      const followupActionsCount = await countWithPagination(ctx, 'followup_actions');
+      const advisorFollowUpsCount = await countWithPagination(ctx, 'advisor_follow_ups');
+      const expectedCount = followupActionsCount + advisorFollowUpsCount;
+
+      if (followUpsCount > 0 && followUpsCount !== expectedCount) {
         throw new Error(
-          'Migration may have already been run - follow_ups table is not empty. ' +
-          'Please verify the table state before proceeding. ' +
-          'To run anyway, use: npx convex run migrate_follow_ups:migrateFollowUps \'{"force": true}\' ' +
-          '(WARNING: This may create duplicate records!)'
+          `Partial migration detected! follow_ups has ${followUpsCount} records but expected ${expectedCount} ` +
+          `(${followupActionsCount} from followup_actions + ${advisorFollowUpsCount} from advisor_follow_ups). ` +
+          'This indicates a previous migration may have partially completed. ' +
+          'Please verify the data integrity before proceeding with force=true.'
         );
       }
+    }
+
+    // Record migration start
+    let migrationStateId;
+    if (!dryRun) {
+      migrationStateId = await ctx.db.insert('migration_state', {
+        migration_name: MIGRATION_NAME,
+        status: 'in_progress',
+        started_at: Date.now(),
+        executed_by: 'manual', // Could be enhanced to track actual user
+      });
     }
 
     const results = {
@@ -100,7 +172,7 @@ export const migrateFollowUps = mutation({
       );
 
       for (const action of page.page) {
-      try {
+        try {
         // Get user from batched lookup
         const user = userMap.get(action.user_id);
         if (!user) {
@@ -257,7 +329,7 @@ export const migrateFollowUps = mutation({
       );
 
       for (const followUp of page.page) {
-      try {
+        try {
         // Validate users from batched lookup
         if (!userMap.has(followUp.student_id)) {
           results.errors.push(
@@ -384,6 +456,32 @@ export const migrateFollowUps = mutation({
       results.errors.forEach((err) => console.log(`  - ${err}`));
     }
 
+    // Update migration state on completion
+    if (!dryRun && migrationStateId) {
+      if (results.errors.length > 0) {
+        await ctx.db.patch(migrationStateId, {
+          status: 'failed',
+          completed_at: Date.now(),
+          error_message: `Migration completed with ${results.errors.length} errors`,
+          metadata: {
+            followup_actions_migrated: results.followup_actions_migrated,
+            advisor_follow_ups_migrated: results.advisor_follow_ups_migrated,
+            errors: results.errors,
+          },
+        });
+      } else {
+        await ctx.db.patch(migrationStateId, {
+          status: 'completed',
+          completed_at: Date.now(),
+          metadata: {
+            followup_actions_migrated: results.followup_actions_migrated,
+            advisor_follow_ups_migrated: results.advisor_follow_ups_migrated,
+            total_migrated: results.followup_actions_migrated + results.advisor_follow_ups_migrated,
+          },
+        });
+      }
+    }
+
     return results;
   },
 });
@@ -398,21 +496,17 @@ export const migrateFollowUps = mutation({
  * - Dual-field pattern correctness (related_id matches typed IDs)
  * - Status and enum values are valid
  */
-export const verifyMigration = mutation({
+export const verifyMigration = query({
   args: {
     sampleSize: v.optional(v.number()), // Number of records to validate (default: 100)
   },
   handler: async (ctx, args) => {
     const sampleSize = args.sampleSize ?? 100;
 
-    // Count checks
-    const followupActionsCount = (
-      await ctx.db.query('followup_actions').collect()
-    ).length;
-    const advisorFollowUpsCount = (
-      await ctx.db.query('advisor_follow_ups').collect()
-    ).length;
-    const followUpsCount = (await ctx.db.query('follow_ups').collect()).length;
+    // Count checks using pagination to avoid memory issues with large tables
+    const followupActionsCount = await countWithPagination(ctx, 'followup_actions');
+    const advisorFollowUpsCount = await countWithPagination(ctx, 'advisor_follow_ups');
+    const followUpsCount = await countWithPagination(ctx, 'follow_ups');
 
     const expected = followupActionsCount + advisorFollowUpsCount;
     const actual = followUpsCount;

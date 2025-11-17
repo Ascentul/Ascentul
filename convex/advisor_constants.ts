@@ -39,6 +39,7 @@ export const ACTIVE_STAGES: readonly ApplicationStage[] = [
   'Prospect',
   'Applied',
   'Interview',
+  'Offer',
 ] as const;
 
 /**

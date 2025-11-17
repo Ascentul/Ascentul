@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   if (!achievementId) return NextResponse.json({ error: 'achievement_id is required' }, { status: 400 })
 
   try {
-    const id = await convexServer.mutation(api.achievements.awardAchievement, { clerkId: userId, achievement_id: achievementId as any })
+    const id = await convexServer.mutation(api.achievements.awardAchievement, { clerkId: userId, achievement_id: achievementId })
     return NextResponse.json({ userAchievementId: id }, { status: 201 })
   } catch (e: any) {
     const message = typeof e?.message === 'string' && e.message.includes('Already') ? 'Already earned' : 'Failed to award achievement'

@@ -49,7 +49,7 @@ export function DayCard({ day, sessions, followUps, now }: DayCardProps) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-semibold">{format(day, "EEEE, MMMM d")}</h3>
+            <h3 className="font-semibold">{format(day, 'EEEE, MMMM d')}</h3>
             {isToday && (
               <Badge variant="default" className="ml-2">
                 Today
@@ -57,7 +57,7 @@ export function DayCard({ day, sessions, followUps, now }: DayCardProps) {
             )}
           </div>
           <div className="text-sm text-muted-foreground">
-            {sessions.length} sessions, {followUps.length} tasks
+            {sessions.length} {sessions.length === 1 ? 'session' : 'sessions'}, {followUps.length} {followUps.length === 1 ? 'task' : 'tasks'}
           </div>
         </div>
 

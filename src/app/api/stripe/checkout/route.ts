@@ -98,9 +98,12 @@ export async function POST(request: NextRequest) {
     let customerId = user.stripe_customer_id as string | null;
 
     if (!customerId) {
-      // Check if a Stripe customer already exists for this user by searching Stripe
-      // This handles the edge case where Stripe customer was created but Convex update failed
-      if (!customerId) {
+      if (!user.email) {
+        return NextResponse.json(
+          { error: "User email is required for checkout" },
+          { status: 400 },
+        );
+      }
         if (!user.email) {
           return NextResponse.json(
             { error: "User email is required for checkout" },
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
           limit: 1,
         });
 
-      if (existingCustomers.data.length > 0 && existingCustomers.data[0].metadata.clerk_id === userId) {
+      if (existingCustomers.data.length > 0 && existingCustomers.data[0].metadata?.clerk_id === userId) {
         // Found existing customer - use it and update Convex
         customerId = existingCustomers.data[0].id;
         console.log(`[Stripe Checkout] Found existing Stripe customer ${customerId} for user ${userId}`);

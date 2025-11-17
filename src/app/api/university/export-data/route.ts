@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     let students, departments
     try {
       [students, departments] = await Promise.all([
-        convexServer.query(api.university_admin.listStudents, { clerkId, limit: 1000 }),
+        convexServer.query(api.university_admin.listStudents, { clerkId }),
         convexServer.query(api.university_admin.listDepartments, { clerkId })
       ])
     } catch (error) {

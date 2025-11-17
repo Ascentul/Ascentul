@@ -48,8 +48,8 @@ export function DayCell({ day, currentMonth, sessions, followUps }: DayCellProps
   return (
     <div
       className={`min-h-[120px] p-2 border-r border-b last:border-r-0 ${
-        !isCurrentMonth ? 'bg-muted/30' : ''
-      } ${isToday ? 'bg-blue-50' : ''}`}
+        isToday ? 'bg-blue-50' : !isCurrentMonth ? 'bg-muted/30' : ''
+      }`}
     >
       <div
         className={`text-sm font-medium mb-1 ${
