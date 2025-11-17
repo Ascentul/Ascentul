@@ -16,6 +16,7 @@ import type {
 import type * as achievements from "../achievements.js";
 import type * as activity from "../activity.js";
 import type * as admin_users from "../admin_users.js";
+import type * as admin_users_actions from "../admin_users_actions.js";
 import type * as ai_coach from "../ai_coach.js";
 import type * as analytics from "../analytics.js";
 import type * as applications from "../applications.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   achievements: typeof achievements;
   activity: typeof activity;
   admin_users: typeof admin_users;
+  admin_users_actions: typeof admin_users_actions;
   ai_coach: typeof ai_coach;
   analytics: typeof analytics;
   applications: typeof applications;
