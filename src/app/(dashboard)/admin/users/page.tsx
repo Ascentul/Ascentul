@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { INTERNAL_ROLES } from '@/../convex/lib/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -164,13 +165,17 @@ export default function AdminUsersPage() {
     if (!editing || !form) return
     setSaving(true)
     try {
+      // Force internal roles to 'free' plan (never billable)
+      const isInternalRole = INTERNAL_ROLES.includes(form.role as any)
+      const planToSave = isInternalRole ? 'free' : form.plan
+
       await updateUser({
         clerkId: editing.clerkId,
         updates: {
           name: form.name,
           email: form.email,
           role: form.role as any,
-          subscription_plan: form.plan, // Updates cached field in Convex (actual source is Clerk)
+          subscription_plan: planToSave, // Updates cached field in Convex (actual source is Clerk)
           subscription_status: form.status, // Updates cached field in Convex (actual source is Clerk)
         },
       })
@@ -535,17 +540,31 @@ export default function AdminUsersPage() {
                   </div>
                   <div>
                     <label className="text-sm font-medium">Plan (Display Only)</label>
-                    <Select
-                      value={form.plan}
-                      onValueChange={(v: any) => setForm({ ...form, plan: v })}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="free">Free</SelectItem>
-                        <SelectItem value="premium">Premium</SelectItem>
-                        <SelectItem value="university">University</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {INTERNAL_ROLES.includes(form.role as any) ? (
+                      <div className="relative">
+                        <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-gray-50 px-3 py-2 text-sm">
+                          <span className="text-muted-foreground">Internal (Not Billable)</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {form.role === 'super_admin' && 'Super admins have full access without subscription'}
+                          {form.role === 'staff' && 'Staff have full access without subscription'}
+                          {form.role === 'university_admin' && 'University admins manage students but are not billable'}
+                          {form.role === 'advisor' && 'Advisors have full access without subscription'}
+                        </p>
+                      </div>
+                    ) : (
+                      <Select
+                        value={form.plan}
+                        onValueChange={(v: any) => setForm({ ...form, plan: v })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">Free</SelectItem>
+                          <SelectItem value="premium">Premium</SelectItem>
+                          <SelectItem value="university">University</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   <div>
                     <label className="text-sm font-medium">Status (Display Only)</label>
