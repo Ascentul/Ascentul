@@ -77,14 +77,14 @@ export const hardDeleteUser = action({
     targetClerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // CRITICAL: Validate required environment variable
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    // Get app URL from environment (using CONVEX_APP_URL instead of NEXT_PUBLIC_APP_URL)
+    const appUrl = process.env.CONVEX_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+    console.log("DEBUG: CONVEX_APP_URL:", process.env.CONVEX_APP_URL);
+    console.log("DEBUG: NEXT_PUBLIC_APP_URL:", process.env.NEXT_PUBLIC_APP_URL);
+    console.log("DEBUG: Using appUrl:", appUrl);
+
     if (!appUrl) {
-      throw new Error(
-        "Server configuration error: NEXT_PUBLIC_APP_URL is not set. " +
-        "This variable is required for Clerk account synchronization. " +
-        "See .env.example for setup instructions."
-      );
+      throw new Error("App URL not configured in environment variables");
     }
 
     // Get admin identity
