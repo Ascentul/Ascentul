@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { BILLABLE_ROLES, INTERNAL_ROLES, isBillableRole, isInternalRole } from "./lib/constants";
 
 // ============================================================================
 // Helper Functions for Optimized Analytics
@@ -118,20 +119,24 @@ export const getSystemStatsOptimized = query({
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    // Get counts efficiently
+    // Get counts efficiently (billable users only - excludes test users and internal roles)
     const allUsers = await ctx.db.query("users").collect();
-    const totalUsers = allUsers.length;
-    const activeUsers = allUsers.filter(u => u.subscription_status === "active").length;
+    const billableUsers = allUsers.filter(u =>
+      !u.is_test_user &&
+      isBillableRole(u.role || 'individual')
+    );
+    const totalUsers = billableUsers.length;
+    const activeUsers = billableUsers.filter(u => u.subscription_status === "active").length;
 
-    // Calculate monthly growth
-    const thisMonthUsers = allUsers.filter(u => {
+    // Calculate monthly growth (billable users only)
+    const thisMonthUsers = billableUsers.filter(u => {
       const userDate = new Date(u.created_at);
       return userDate.getMonth() === currentMonth && userDate.getFullYear() === currentYear;
     }).length;
 
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-    const prevMonthUsers = allUsers.filter(u => {
+    const prevMonthUsers = billableUsers.filter(u => {
       const userDate = new Date(u.created_at);
       return userDate.getMonth() === lastMonth && userDate.getFullYear() === lastMonthYear;
     }).length;
@@ -315,7 +320,13 @@ export const getSubscriptionDistributionOptimized = query({
 
     const users = await ctx.db.query("users").collect();
 
-    const planSegmentation = users.reduce((acc, user) => {
+    // Filter for billable users only (excludes test users and internal roles)
+    const billableUsers = users.filter(u =>
+      !u.is_test_user &&
+      isBillableRole(u.role || 'individual')
+    );
+
+    const planSegmentation = billableUsers.reduce((acc, user) => {
       const plan = user.subscription_plan || 'free';
       acc[plan] = (acc[plan] || 0) + 1;
       return acc;
@@ -386,27 +397,33 @@ export const getOverviewAnalytics = query({
       ctx.db.query("support_tickets").take(200), // Reduced from 2000
     ]);
 
+    // Filter for billable users only (excludes test users and internal roles)
+    const billableUsers = users.filter(u =>
+      !u.is_test_user &&
+      isBillableRole(u.role || 'individual')
+    );
+
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
 
-    // System stats - lightweight calculations
+    // System stats - lightweight calculations (billable users only)
     const systemStats = {
-      totalUsers: users.length,
+      totalUsers: billableUsers.length,
       totalUniversities: universities.length,
-      activeUsers: users.filter(u => u.subscription_status === "active").length,
+      activeUsers: billableUsers.filter(u => u.subscription_status === "active").length,
       systemHealth: 98.5,
-      monthlyGrowth: calculateMonthlyGrowth(users, currentMonth, currentYear),
+      monthlyGrowth: calculateMonthlyGrowth(billableUsers, currentMonth, currentYear),
       supportTickets: supportTickets.filter(t => t.status === "open" || t.status === "in_progress").length,
       systemUptime: 99.9
     };
 
-    // User growth data (last 6 months only) - single pass
-    const userGrowth = calculateUserGrowth(users, 6);
+    // User growth data (last 6 months only) - single pass (billable users only)
+    const userGrowth = calculateUserGrowth(billableUsers, 6);
 
-    // Subscription distribution
-    const planSegmentation = users.reduce((acc, user) => {
+    // Subscription distribution (billable users only)
+    const planSegmentation = billableUsers.reduce((acc, user) => {
       const plan = user.subscription_plan || 'free';
       acc[plan] = (acc[plan] || 0) + 1;
       return acc;
@@ -418,8 +435,8 @@ export const getOverviewAnalytics = query({
       { name: 'Free', value: planSegmentation.free || 0, color: '#F59E0B' },
     ];
 
-    // Recent users (last 30 days, limit 20)
-    const recentUsers = users
+    // Recent users (last 30 days, limit 20) - billable users only
+    const recentUsers = billableUsers
       .filter(u => u.created_at >= thirtyDaysAgo)
       .sort((a, b) => b.created_at - a.created_at)
       .slice(0, 20);
