@@ -20,13 +20,13 @@ export const softDeleteUser = action({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<{success: boolean; message: string; userId: any}> => {
-    // CRITICAL: Validate required environment variable
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    // Get app URL from environment
+    const appUrl = process.env.CONVEX_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+
     if (!appUrl) {
       throw new Error(
-        "Server configuration error: NEXT_PUBLIC_APP_URL is not set. " +
-        "This variable is required for Clerk account synchronization. " +
-        "See .env.example for setup instructions."
+        "Server configuration error: App URL not configured. " +
+        "Set CONVEX_APP_URL or NEXT_PUBLIC_APP_URL in Convex dashboard."
       );
     }
 
@@ -77,19 +77,14 @@ export const hardDeleteUser = action({
     targetClerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // DEBUG: Check what env vars are available
-    console.log("ALL ENV KEYS:", Object.keys(process.env));
-    console.log("CONVEX_APP_URL:", process.env.CONVEX_APP_URL);
-    console.log("NEXT_PUBLIC_APP_URL:", process.env.NEXT_PUBLIC_APP_URL);
-    console.log("CONVEX_CLOUD_URL:", process.env.CONVEX_CLOUD_URL);
-    console.log("CONVEX_SITE_URL:", process.env.CONVEX_SITE_URL);
-
-    // Get app URL from environment (using CONVEX_APP_URL instead of NEXT_PUBLIC_APP_URL)
+    // Get app URL from environment
     const appUrl = process.env.CONVEX_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
-    console.log("Using appUrl:", appUrl);
 
     if (!appUrl) {
-      throw new Error("App URL not configured in environment variables");
+      throw new Error(
+        "Server configuration error: App URL not configured. " +
+        "Set CONVEX_APP_URL or NEXT_PUBLIC_APP_URL in Convex dashboard."
+      );
     }
 
     // Get admin identity
@@ -238,13 +233,13 @@ export const restoreDeletedUser = action({
     targetClerkId: v.string(),
   },
   handler: async (ctx, args): Promise<{success: boolean; message: string; userId: any}> => {
-    // CRITICAL: Validate required environment variable
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    // Get app URL from environment
+    const appUrl = process.env.CONVEX_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+
     if (!appUrl) {
       throw new Error(
-        "Server configuration error: NEXT_PUBLIC_APP_URL is not set. " +
-        "This variable is required for Clerk account synchronization. " +
-        "See .env.example for setup instructions."
+        "Server configuration error: App URL not configured. " +
+        "Set CONVEX_APP_URL or NEXT_PUBLIC_APP_URL in Convex dashboard."
       );
     }
 
