@@ -102,15 +102,29 @@ export async function POST(request: NextRequest) {
         const subscriptionPlan = determineSubscriptionPlan(metadata)
         const subscriptionStatus = determineSubscriptionStatus(metadata)
 
+        // Check if user was banned in Clerk - sync to account_status
+        const updates: any = {
+          email: userData.email_addresses?.[0]?.email_address,
+          name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
+          profile_image: userData.image_url,
+          subscription_plan: subscriptionPlan,
+          subscription_status: subscriptionStatus,
+        }
+
+        // If user is banned in Clerk, ensure account_status is suspended
+        if (userData.banned) {
+          updates.account_status = 'suspended'
+        } else if (metadata.account_status) {
+          // Sync account_status from metadata if present
+          updates.account_status = metadata.account_status
+        } else {
+          // Reset to active when unbanned and no metadata override
+          updates.account_status = 'active'
+        }
+
         await convexServer.mutation(api.users.updateUser, {
           clerkId: userData.id,
-          updates: {
-            email: userData.email_addresses?.[0]?.email_address,
-            name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
-            profile_image: userData.image_url,
-            subscription_plan: subscriptionPlan,
-            subscription_status: subscriptionStatus,
-          },
+          updates,
         })
 
         console.log(`[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}`)
@@ -118,9 +132,31 @@ export async function POST(request: NextRequest) {
       }
 
       case 'user.deleted': {
-        // Optionally soft-delete or remove user from Convex
-        console.log(`[Clerk Webhook] User deleted: ${userData.id}`)
-        // Note: Implement soft delete if needed
+        // User was deleted from Clerk
+        // This should only happen for hard-deleted test users
+        console.log(`[Clerk Webhook] User deleted from Clerk: ${userData.id}`)
+
+        // Check if user exists in Convex and is a test user
+        try {
+          const convexUser = await convex.query(api.users.getUserByClerkId, {
+            clerkId: userData.id,
+          })
+
+          if (convexUser) {
+            if (convexUser.is_test_user) {
+              // Test user - this is expected, the hard delete was initiated from our side
+              console.log(`[Clerk Webhook] Test user deletion confirmed: ${userData.id}`)
+            } else {
+              // Real user - this shouldn't happen, log warning
+              console.warn(`[Clerk Webhook] WARNING: Real user was deleted from Clerk: ${userData.id}`)
+              // Note: Deletions should only happen through softDeleteUser/hardDeleteUser actions
+              // which handle both Clerk and Convex updates atomically
+            }
+          }
+        } catch (error) {
+          console.error(`[Clerk Webhook] Error handling user deletion: ${error}`)
+        }
+
         break
       }
 

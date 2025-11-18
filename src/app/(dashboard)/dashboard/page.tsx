@@ -87,7 +87,7 @@ export default function DashboardPage() {
       router.replace('/university')
       return
     }
-    if (user?.role === 'super_admin' || user?.role === 'admin') {
+    if (user?.role === 'super_admin') {
       router.replace('/admin')
       return
     }
@@ -106,7 +106,7 @@ export default function DashboardPage() {
     return <LoadingSpinner message="Redirecting to advisor dashboard..." />
   }
 
-  if (user?.role === 'university_admin' || user?.role === 'super_admin' || user?.role === 'admin') {
+  if (user?.role === 'university_admin' || user?.role === 'super_admin') {
     return <LoadingSpinner message="Redirecting to admin portal..." />
   }
 

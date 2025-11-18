@@ -7,6 +7,7 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
@@ -104,6 +105,12 @@ const Sidebar = React.memo(function Sidebar({
   const router = useRouter();
   const { user: clerkUser } = useUser();
   const { user, signOut, isAdmin, subscription, hasPremium } = useAuth();
+
+  // Fetch viewer data to get student context (university name)
+  const viewer = useQuery(
+    api.viewer.getViewer,
+    clerkUser ? {} : "skip"
+  );
 
   // Check if user is on free plan and not a university admin or premium user
   const isFreeUser = useMemo(
@@ -724,9 +731,7 @@ const Sidebar = React.memo(function Sidebar({
           className={`flex items-center ${expanded ? "justify-between" : "justify-center"} p-4 border-b`}
         >
           {expanded && (
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-primary">Ascentful</h1>
-            </div>
+            <h1 className="text-xl font-bold text-primary">Ascentful</h1>
           )}
           <Button
             variant="ghost"
@@ -749,13 +754,15 @@ const Sidebar = React.memo(function Sidebar({
               className={`flex items-center ${expanded ? "space-x-3" : "justify-center"}`}
             >
               <Link href="/profile" className="flex-shrink-0 cursor-pointer">
-                <img
+                <Image
                   src={
                     user?.profile_image ||
                     clerkUser.imageUrl ||
                     `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=0C29AB&color=fff`
                   }
                   alt="Profile"
+                  width={40}
+                  height={40}
                   className="h-10 w-10 rounded-full object-cover hover:ring-2 hover:ring-primary transition-all"
                 />
               </Link>
@@ -770,7 +777,7 @@ const Sidebar = React.memo(function Sidebar({
                   </p>
                   {!isAdmin && (
                     <p className="text-xs text-gray-500 truncate">
-                      {subscription.planName}
+                      {viewer?.student?.universityName ?? subscription.planName}
                     </p>
                   )}
                 </div>

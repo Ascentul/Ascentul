@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       clerkId: userId,
     });
 
-    if (!adminUser || !['super_admin', 'university_admin', 'advisor'].includes(adminUser.role)) {
+    if (!adminUser || !['super_admin', 'university_admin'].includes(adminUser.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

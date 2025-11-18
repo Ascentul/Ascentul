@@ -54,7 +54,9 @@ export async function POST(req: NextRequest) {
 
     // Verify admin has permission
     if (!['super_admin', 'university_admin', 'advisor'].includes(adminUser.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({
+        error: 'Insufficient permissions. Only super admins, university admins, and advisors can assign students.'
+      }, { status: 403 });
     }
 
     // Assign student in Convex

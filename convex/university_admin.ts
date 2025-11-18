@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
 
 function requireAdmin(user: any) {
-  const isAdmin = ["admin", "super_admin", "university_admin"].includes(
+  const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
     user.role,
   );
   if (

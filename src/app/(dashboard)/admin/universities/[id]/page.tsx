@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
@@ -89,7 +90,7 @@ export default function UniversityDetailPage() {
   const activeStudents = students.filter(s => s.subscription_status === 'active')
 
   const role = user?.role
-  const canAccess = role === 'super_admin' || role === 'admin'
+  const canAccess = role === 'super_admin'
 
   if (!canAccess) {
     return (
@@ -342,9 +343,11 @@ export default function UniversityDetailPage() {
                       <TableRow key={student._id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                            <img
+                            <Image
                               src={student.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name || 'User')}&background=0C29AB&color=fff`}
                               alt={student.name}
+                              width={32}
+                              height={32}
                               className="h-8 w-8 rounded-full object-cover"
                             />
                             {student.name}
@@ -391,9 +394,11 @@ export default function UniversityDetailPage() {
                     <TableRow key={advisor._id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          <img
+                          <Image
                             src={advisor.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(advisor.name || 'User')}&background=0C29AB&color=fff`}
                             alt={advisor.name}
+                            width={32}
+                            height={32}
                             className="h-8 w-8 rounded-full object-cover"
                           />
                           {advisor.name}

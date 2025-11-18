@@ -58,7 +58,10 @@ export default function AdminSupportPage() {
   const [responseText, setResponseText] = useState('')
 
   const role = user?.role
-  const canAccess = role === 'super_admin' || role === 'admin'
+  // SECURITY: Backend now properly isolates tickets by university
+  // University admins and advisors can access support for their university's students
+  const canAccess = role === 'super_admin' ||
+                     ['university_admin', 'advisor'].includes(role || '')
 
   // Queries
   const tickets = useQuery(

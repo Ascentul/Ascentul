@@ -1,6 +1,52 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, MutationCtx } from "./_generated/server";
 import { api } from "./_generated/api";
+
+/**
+ * Internal helper: Log role changes to audit_logs
+ * Only logs when performed by super_admin
+ * Gracefully handles errors without failing the parent operation
+ */
+async function logRoleChange(
+  ctx: MutationCtx,
+  targetUser: any,
+  oldRole: string,
+  newRole: string
+) {
+  try {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return; // No authenticated user
+
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    // Only log if performed by super_admin
+    if (admin && admin.role === "super_admin") {
+      await ctx.db.insert("audit_logs", {
+        action: "user_role_changed",
+        target_type: "user",
+        target_id: targetUser._id,
+        target_email: targetUser.email,
+        target_name: targetUser.name,
+        performed_by_id: admin._id,
+        performed_by_email: admin.email,
+        performed_by_name: admin.name,
+        reason: `Role changed from ${oldRole} to ${newRole}`,
+        metadata: {
+          old_role: oldRole,
+          new_role: newRole,
+          target_university_id: targetUser.university_id,
+        },
+        timestamp: Date.now(),
+      });
+    }
+  } catch (auditError) {
+    console.error("Failed to create role change audit log:", auditError);
+    // Don't fail the update if audit logging fails
+  }
+}
 
 // Get user by Clerk ID
 export const getUserByClerkId = query({
@@ -329,10 +375,20 @@ export const updateUser = mutation({
       Object.entries(args.updates).filter(([_, value]) => value !== undefined)
     );
 
+    // Track role changes for audit logging
+    const roleChanged = args.updates.role && args.updates.role !== user.role;
+    const oldRole = user.role;
+    const newRole = args.updates.role;
+
     await ctx.db.patch(user._id, {
       ...cleanUpdates,
       updated_at: Date.now(),
     });
+
+    // Create audit log for role changes (super admin actions)
+    if (roleChanged) {
+      await logRoleChange(ctx, user, oldRole, newRole!);
+    }
 
     return user._id;
   },
@@ -455,29 +511,36 @@ export const updateUserById = mutation({
       Object.entries(args.updates).filter(([_, value]) => value !== undefined)
     );
 
+    // Track role changes for audit logging
+    const roleChanged = args.updates.role && args.updates.role !== user.role;
+    const oldRole = user.role;
+    const newRole = args.updates.role;
+
     await ctx.db.patch(args.id, {
       ...cleanUpdates,
       updated_at: Date.now(),
     });
+
+    // Create audit log for role changes (super admin actions)
+    if (roleChanged) {
+      await logRoleChange(ctx, user, oldRole, newRole!);
+    }
+
     return args.id;
   },
 });
 
-// Delete user
+/**
+ * DEPRECATED: Legacy deleteUser function
+ * DO NOT USE - No longer performs deletions
+ * Use admin_users:softDeleteUser or admin_users:hardDeleteUser instead
+ */
 export const deleteUser = mutation({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    await ctx.db.delete(user._id);
-    return user._id;
+    throw new Error(
+      "deleteUser is deprecated. Use admin_users:softDeleteUser or admin_users:hardDeleteUser instead."
+    );
   },
 });
 
@@ -552,6 +615,11 @@ export const getAllUsersMinimal = query({
         role: user.role,
         subscription_plan: user.subscription_plan,
         subscription_status: user.subscription_status,
+        account_status: user.account_status,
+        is_test_user: user.is_test_user,
+        deleted_at: user.deleted_at,
+        deleted_by: user.deleted_by,
+        deleted_reason: user.deleted_reason,
         university_id: user.university_id,
         profile_image: user.profile_image,
         created_at: user.created_at,

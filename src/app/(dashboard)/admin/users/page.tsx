@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
+import Image from 'next/image'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
@@ -10,9 +11,14 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Loader2, MoreHorizontal, Search, ShieldCheck, User as UserIcon } from 'lucide-react'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Loader2, MoreHorizontal, Search, ShieldCheck, User as UserIcon, Trash2, AlertTriangle } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { useAction } from 'convex/react'
 
 // Types matching Convex users table
 interface UserRow {
@@ -21,9 +27,14 @@ interface UserRow {
   email: string
   name: string
   username?: string
-  role: 'user' | 'student' | 'staff' | 'university_admin' | 'advisor' | 'admin' | 'super_admin'
+  role: 'user' | 'student' | 'staff' | 'university_admin' | 'advisor' | 'super_admin'
   subscription_plan: 'free' | 'premium' | 'university' // Cached from Clerk for display (read-only)
   subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due' // Cached from Clerk for display (read-only)
+  account_status?: 'pending_activation' | 'active' | 'suspended' | 'deleted'
+  is_test_user?: boolean
+  deleted_at?: number
+  deleted_by?: string
+  deleted_reason?: string
   university_id?: string
   profile_image?: string
   created_at: number
@@ -37,6 +48,7 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState<'all' | UserRow['role']>('all')
   const [planFilter, setPlanFilter] = useState<'all' | UserRow['subscription_plan']>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | UserRow['subscription_status']>('all')
+  const [accountStatusFilter, setAccountStatusFilter] = useState<'all' | 'active' | 'deleted' | 'pending_activation' | 'suspended'>('active') // Default to active only
   const [universityFilter, setUniversityFilter] = useState<'all' | string>('all')
 
   // Fetch users with minimal fields (optimized for bandwidth, reduced limit)
@@ -50,6 +62,12 @@ export default function AdminUsersPage() {
 
   const updateUser = useMutation(api.users.updateUser)
   const createUserByAdmin = useMutation(api.admin_users.createUserByAdmin)
+
+  // Delete and restore actions (from admin_users_actions.ts - Node.js runtime)
+  const softDeleteUser = useAction(api.admin_users_actions.softDeleteUser)
+  const hardDeleteUser = useAction(api.admin_users_actions.hardDeleteUser)
+  const restoreDeletedUser = useAction(api.admin_users_actions.restoreDeletedUser)
+  const markTestUser = useMutation(api.admin_users.markTestUser)
 
   // Create user mutation for adding new staff users
   const createUser = useMutation(api.users.createUser)
@@ -71,14 +89,21 @@ export default function AdminUsersPage() {
       const matchesRole = roleFilter === 'all' || u.role === roleFilter
       const matchesPlan = planFilter === 'all' || u.subscription_plan === planFilter
       const matchesStatus = statusFilter === 'all' || u.subscription_status === statusFilter
+      const matchesAccountStatus = accountStatusFilter === 'all' || (u.account_status || 'active') === accountStatusFilter
       const matchesUniversity = universityFilter === 'all' || u.university_id === universityFilter
-      return matchesText && matchesRole && matchesPlan && matchesStatus && matchesUniversity
+      return matchesText && matchesRole && matchesPlan && matchesStatus && matchesAccountStatus && matchesUniversity
     })
-  }, [users, search, roleFilter, planFilter, statusFilter, universityFilter])
+  }, [users, search, roleFilter, planFilter, statusFilter, accountStatusFilter, universityFilter])
 
   const [editing, setEditing] = useState<UserRow | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<{ name: string; email: string; role: UserRow['role']; plan: UserRow['subscription_plan']; status: UserRow['subscription_status'] } | null>(null)
+
+  // Delete state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteReason, setDeleteReason] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteType, setDeleteType] = useState<'soft' | 'hard' | null>(null)
 
   // Add staff user state
   const [showAddUser, setShowAddUser] = useState(false)
@@ -155,9 +180,79 @@ export default function AdminUsersPage() {
     }
   }
 
+  const handleToggleTestUser = async () => {
+    if (!editing) return
+    setSaving(true)
+    try {
+      await markTestUser({
+        targetClerkId: editing.clerkId,
+        isTestUser: !editing.is_test_user,
+      })
+      // Close dialog and let Convex query update the UI
+      setEditing(null)
+    } catch (error) {
+      console.error('Error toggling test user:', error)
+      alert('Failed to toggle test user status')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!editing || !deleteType) return
+    setDeleting(true)
+    try {
+      if (deleteType === 'soft') {
+        await softDeleteUser({
+          targetClerkId: editing.clerkId,
+          reason: deleteReason || undefined,
+        })
+        alert('User soft deleted successfully. Account preserved for compliance.')
+      } else {
+        await hardDeleteUser({
+          targetClerkId: editing.clerkId,
+        })
+        alert('Test user permanently deleted.')
+      }
+      setShowDeleteConfirm(false)
+      setEditing(null)
+      setDeleteReason('')
+      setDeleteType(null)
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      const message = error instanceof Error ? error.message : 'Failed to delete user'
+      alert(`Error: ${message}`)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleRestore = async () => {
+    if (!editing) return
+    setSaving(true)
+    try {
+      await restoreDeletedUser({
+        targetClerkId: editing.clerkId,
+      })
+      alert('User restored successfully. Account is now active.')
+      setEditing(null)
+    } catch (error) {
+      console.error('Error restoring user:', error)
+      const message = error instanceof Error ? error.message : 'Failed to restore user'
+      alert(`Error: ${message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const openDeleteDialog = (type: 'soft' | 'hard') => {
+    setDeleteType(type)
+    setShowDeleteConfirm(true)
+  }
+
   const role = user?.role
-  const isSuperOrAdmin = role === 'super_admin'
-  if (!isSuperOrAdmin) {
+  const isSuperAdmin = role === 'super_admin'
+  if (!isSuperAdmin) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <Card>
@@ -213,7 +308,6 @@ export default function AdminUsersPage() {
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="university_admin">University Admin</SelectItem>
                 <SelectItem value="advisor">Advisor</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="super_admin">Super Admin</SelectItem>
               </SelectContent>
             </Select>
@@ -243,18 +337,32 @@ export default function AdminUsersPage() {
             </Select>
           </div>
           <div className="flex items-center justify-between gap-3">
-            <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="past_due">Past Due</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-3">
+              <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Subscription Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subscription Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="past_due">Past Due</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={accountStatusFilter} onValueChange={(v: any) => setAccountStatusFilter(v)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Account Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Account Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="pending_activation">Pending Activation</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="deleted">Deleted</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               Showing {filtered.length} of {users.length} users
             </div>
@@ -268,126 +376,255 @@ export default function AdminUsersPage() {
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
-            <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1.5fr_1fr_80px] gap-3 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1.5fr_1fr_1fr_80px] gap-3 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
               <div className="min-w-0">Name</div>
               <div className="hidden md:block min-w-0">Email</div>
               <div className="min-w-0">Role</div>
               <div className="hidden md:block min-w-0">Plan</div>
               <div className="min-w-0">University</div>
-              <div className="min-w-0">Status</div>
+              <div className="min-w-0">Sub Status</div>
+              <div className="min-w-0">Account</div>
               <div className="text-right min-w-0">Actions</div>
             </div>
             <div className="divide-y">
-              {filtered.map(u => (
-                <div key={u._id} className="grid grid-cols-[2fr_2fr_1fr_1fr_1.5fr_1fr_80px] gap-3 px-4 py-3 items-center">
-                  <div className="min-w-0 truncate">
-                    <div className="font-medium flex items-center gap-2">
-                      <img
-                        src={u.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=0C29AB&color=fff`}
-                        alt={u.name}
-                        className="h-8 w-8 rounded-full object-cover flex-shrink-0"
-                      />
-                      {u.name}
+              {filtered.map(u => {
+                const isDeleted = u.account_status === 'deleted'
+                return (
+                  <div
+                    key={u._id}
+                    className={`grid grid-cols-[2fr_2fr_1fr_1fr_1.5fr_1fr_1fr_80px] gap-3 px-4 py-3 items-center ${
+                      isDeleted ? 'bg-red-50/50 opacity-60' : ''
+                    }`}
+                    title={isDeleted && u.deleted_reason ? `Deleted: ${u.deleted_reason}` : undefined}
+                  >
+                    <div className="min-w-0 truncate">
+                      <div className="font-medium flex items-center gap-2">
+                        <Image
+                          src={u.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=0C29AB&color=fff`}
+                          alt={u.name}
+                          width={32}
+                          height={32}
+                          className={`h-8 w-8 rounded-full object-cover flex-shrink-0 ${isDeleted ? 'grayscale' : ''}`}
+                        />
+                        <div className="flex flex-col">
+                          <span className={isDeleted ? 'line-through text-muted-foreground' : ''}>{u.name}</span>
+                          {u.is_test_user && (
+                            <Badge variant="outline" className="text-[10px] w-fit border-orange-300 text-orange-600 bg-orange-50">TEST</Badge>
+                          )}
+                          {isDeleted && u.deleted_at && (
+                            <span className="text-[10px] text-red-600">
+                              Deleted {new Date(u.deleted_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className={`text-xs md:hidden truncate ${isDeleted ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>{u.email}</div>
                     </div>
-                    <div className="text-xs text-muted-foreground md:hidden truncate">{u.email}</div>
+                    <div className={`hidden md:block min-w-0 truncate ${isDeleted ? 'line-through text-muted-foreground' : ''}`}>{u.email}</div>
+                    <div className="min-w-0">
+                      <Badge variant="outline" className="capitalize text-xs">{u.role.replace('_', ' ')}</Badge>
+                    </div>
+                    <div className="hidden md:block min-w-0"><Badge variant={u.subscription_plan === 'premium' ? 'default' : 'secondary'} className="capitalize text-xs">{u.subscription_plan}</Badge></div>
+                    <div className="min-w-0 truncate">
+                      <span className="text-xs text-muted-foreground">{getUniversityName(u.university_id)}</span>
+                    </div>
+                    <div className="min-w-0"><Badge variant={u.subscription_status === 'active' ? 'default' : 'destructive'} className="capitalize text-xs">{u.subscription_status}</Badge></div>
+                    <div className="min-w-0">
+                      <Badge
+                        variant={
+                          u.account_status === 'deleted' ? 'destructive' :
+                          u.account_status === 'suspended' ? 'destructive' :
+                          u.account_status === 'pending_activation' ? 'secondary' :
+                          'default'
+                        }
+                        className="capitalize text-xs"
+                      >
+                        {u.account_status || 'active'}
+                      </Badge>
+                    </div>
+                    <div className="text-right min-w-0">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => openEdit(u)}>
+                            {isDeleted ? 'View / Restore' : 'Edit'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
-                  <div className="hidden md:block min-w-0 truncate">{u.email}</div>
-                  <div className="min-w-0">
-                    <Badge variant="outline" className="capitalize text-xs">{u.role.replace('_', ' ')}</Badge>
-                  </div>
-                  <div className="hidden md:block min-w-0"><Badge variant={u.subscription_plan === 'premium' ? 'default' : 'secondary'} className="capitalize text-xs">{u.subscription_plan}</Badge></div>
-                  <div className="min-w-0 truncate">
-                    <span className="text-xs text-muted-foreground">{getUniversityName(u.university_id)}</span>
-                  </div>
-                  <div className="min-w-0"><Badge variant={u.subscription_status === 'active' ? 'default' : 'destructive'} className="capitalize text-xs">{u.subscription_status}</Badge></div>
-                  <div className="text-right min-w-0">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => openEdit(u)}>Edit</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Update user profile and access.</DialogDescription>
+            <DialogDescription>Update user profile, access, and account status.</DialogDescription>
           </DialogHeader>
-          {form ? (
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Name</label>
-                <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Email</label>
-                <Input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
+          {form && editing ? (
+            <div className="space-y-6">
+              {/* Deleted User Warning */}
+              {editing.account_status === 'deleted' && (
+                <div className="rounded-lg bg-red-100 border border-red-300 p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="text-sm font-semibold text-red-900">User Deleted</h4>
+                          <p className="text-sm text-red-700 mt-1">
+                            This user account has been soft deleted and cannot be edited.
+                          </p>
+                          {editing.deleted_at && (
+                            <p className="text-xs text-red-600 mt-2">
+                              Deleted on: {new Date(editing.deleted_at).toLocaleString()}
+                            </p>
+                          )}
+                          {editing.deleted_reason && (
+                            <p className="text-xs text-red-600 mt-1">
+                              Reason: {editing.deleted_reason}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRestore}
+                          disabled={saving}
+                          className="ml-4 border-green-600 text-green-700 hover:bg-green-50"
+                        >
+                          {saving ? 'Restoring...' : 'Restore User'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Role</label>
-                  <Select value={form.role} onValueChange={(v: any) => setForm({ ...form, role: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="staff">Staff</SelectItem>
-                      <SelectItem value="university_admin">University Admin</SelectItem>
-                      <SelectItem value="advisor">Advisor</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="super_admin">Super Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <label className="text-sm font-medium">Name</label>
+                  <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Plan (Display Only)</label>
-                  <Select
-                    value={form.plan}
-                    onValueChange={(v: any) => setForm({ ...form, plan: v })}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="free">Free</SelectItem>
-                      <SelectItem value="premium">Premium</SelectItem>
-                      <SelectItem value="university">University</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Note: This updates the cached display value. Actual subscription is managed by Clerk Billing.
-                  </p>
+                  <label className="text-sm font-medium">Email</label>
+                  <Input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Status (Display Only)</label>
-                  <Select value={form.status} onValueChange={(v: any) => setForm({ ...form, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                      <SelectItem value="past_due">Past Due</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Note: This updates the cached display value. Actual subscription is managed by Clerk Billing.
-                  </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-sm font-medium">Role</label>
+                    <Select value={form.role} onValueChange={(v: any) => setForm({ ...form, role: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="student">Student</SelectItem>
+                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="university_admin">University Admin</SelectItem>
+                        <SelectItem value="advisor">Advisor</SelectItem>
+                        <SelectItem value="super_admin">Super Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Plan (Display Only)</label>
+                    <Select
+                      value={form.plan}
+                      onValueChange={(v: any) => setForm({ ...form, plan: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="free">Free</SelectItem>
+                        <SelectItem value="premium">Premium</SelectItem>
+                        <SelectItem value="university">University</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Status (Display Only)</label>
+                    <Select value={form.status} onValueChange={(v: any) => setForm({ ...form, status: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        <SelectItem value="past_due">Past Due</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Test User Toggle */}
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Test User</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Test users can be permanently deleted. Real users can only be soft deleted.
+                    </div>
+                  </div>
+                  <Switch
+                    checked={editing.is_test_user || false}
+                    onCheckedChange={handleToggleTestUser}
+                    disabled={saving}
+                  />
+                </div>
+              </div>
+
+              {/* Danger Zone - Delete User */}
+              <div className="border-t border-red-200 pt-4 bg-red-50 -mx-6 px-6 -mb-6 pb-6 rounded-b-lg">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <h4 className="text-sm font-semibold text-red-900">Danger Zone</h4>
+                      <p className="text-sm text-red-700 mt-1">
+                        Delete this user account. This action has serious consequences.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => openDeleteDialog('soft')}
+                        disabled={editing.is_test_user}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Soft Delete
+                      </Button>
+                      {editing.is_test_user && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => openDeleteDialog('hard')}
+                          className="bg-red-700 hover:bg-red-800"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Hard Delete (Permanent)
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-red-600">
+                      {editing.is_test_user
+                        ? "Test user: Can be permanently deleted with all data removed."
+                        : "Real user: Can only be soft deleted. Data preserved for FERPA compliance."}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           ) : (
             <div className="flex items-center justify-center h-24"><Loader2 className="h-6 w-6 animate-spin" /></div>
           )}
-          <DialogFooter>
+          <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
             <Button onClick={submitEdit} disabled={saving}>{saving ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>) : 'Save changes'}</Button>
           </DialogFooter>
@@ -478,6 +715,93 @@ export default function AdminUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              {deleteType === 'hard' ? 'Permanently Delete User?' : 'Soft Delete User?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteType === 'hard' ? (
+                <div className="space-y-2">
+                  <p className="font-semibold text-red-600">
+                    This will PERMANENTLY delete the user and all their data. This action CANNOT be undone.
+                  </p>
+                  <p>
+                    User: <span className="font-medium">{editing?.name}</span> ({editing?.email})
+                  </p>
+                  <ul className="list-disc list-inside text-sm space-y-1 mt-2">
+                    <li>User account will be removed from Convex</li>
+                    <li>Clerk identity will be deleted</li>
+                    <li>All user data will be permanently deleted (applications, resumes, etc.)</li>
+                    <li>This action is IRREVERSIBLE</li>
+                  </ul>
+                  <p className="text-sm text-red-600 font-medium mt-3">
+                    Only use this for test users. Real user data must be preserved for compliance.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="font-semibold">
+                    This will soft delete the user. Data will be preserved for FERPA compliance.
+                  </p>
+                  <p>
+                    User: <span className="font-medium">{editing?.name}</span> ({editing?.email})
+                  </p>
+                  <ul className="list-disc list-inside text-sm space-y-1 mt-2">
+                    <li>User will be unable to log in</li>
+                    <li>Account marked as "deleted" in database</li>
+                    <li>All user data is preserved for compliance</li>
+                    <li>Clerk account will be disabled (not deleted)</li>
+                  </ul>
+                  <div className="mt-4">
+                    <Label htmlFor="deleteReason" className="text-sm font-medium">
+                      Reason for deletion (optional)
+                    </Label>
+                    <Textarea
+                      id="deleteReason"
+                      value={deleteReason}
+                      onChange={(e) => setDeleteReason(e.target.value)}
+                      placeholder="Enter reason for deleting this user..."
+                      className="mt-1"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowDeleteConfirm(false)
+              setDeleteReason('')
+              setDeleteType(null)
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {deleteType === 'hard' ? 'Permanently Delete' : 'Soft Delete'}
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

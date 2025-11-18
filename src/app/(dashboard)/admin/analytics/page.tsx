@@ -15,7 +15,7 @@ function AdminAnalyticsPage() {
 
   // Check permissions using CLERK directly (source of truth for roles)
   const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])
-  const canAccess = useMemo(() => clerkRole === 'super_admin' || clerkRole === 'admin', [clerkRole])
+  const canAccess = useMemo(() => clerkRole === 'super_admin', [clerkRole])
 
   // OPTIMIZED: Use multiple lightweight queries instead of one monolithic query
   const shouldQuery = clerkLoaded && canAccess && clerkUser?.id
@@ -45,6 +45,11 @@ function AdminAnalyticsPage() {
     shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
   )
 
+  const investorMetrics = useQuery(
+    api.investor_metrics.getUserMetrics,
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
+  )
+
   // Memoize derived calculations BEFORE any early returns (Rules of Hooks)
   const totalUsers = useMemo(() => systemStats?.totalUsers ?? 0, [systemStats])
   const activeUsers = useMemo(() => systemStats?.activeUsers ?? 0, [systemStats])
@@ -56,7 +61,8 @@ function AdminAnalyticsPage() {
   const last6Months = useMemo(() => userGrowth?.slice(-6) ?? [], [userGrowth])
 
   // Combined loading state - show loading if critical data isn't ready
-  const isLoading = !systemStats || !userGrowth || !subscriptionData
+  // Include investorMetrics to ensure complete page render for business-critical data
+  const isLoading = !systemStats || !userGrowth || !subscriptionData || !investorMetrics
 
   if (!canAccess) {
     return (
@@ -292,6 +298,99 @@ function AdminAnalyticsPage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Investor Metrics */}
+      {investorMetrics && (
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
+              Investor Metrics
+            </CardTitle>
+            <CardDescription>Accurate user counts for investor reporting (excludes test users)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Key Metrics Grid */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="p-4 bg-white rounded-lg border">
+                <div className="text-sm text-muted-foreground">Active Real Users</div>
+                <div className="text-3xl font-bold text-blue-600">{investorMetrics.active_users.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {investorMetrics.growth.new_users_last_30_days} new in last 30 days ({investorMetrics.growth.growth_rate_30d})
+                </div>
+              </div>
+              <div className="p-4 bg-white rounded-lg border">
+                <div className="text-sm text-muted-foreground">Monthly Recurring Revenue</div>
+                <div className="text-3xl font-bold text-green-600">${investorMetrics.revenue.mrr.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  ARR: ${investorMetrics.revenue.arr.toLocaleString()}
+                </div>
+              </div>
+              <div className="p-4 bg-white rounded-lg border">
+                <div className="text-sm text-muted-foreground">Paying Users</div>
+                <div className="text-3xl font-bold text-purple-600">{investorMetrics.revenue.paying_users.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Premium subscribers
+                </div>
+              </div>
+            </div>
+
+            {/* User Breakdown */}
+            <div className="space-y-3">
+              <div className="font-medium text-sm">User Breakdown by Plan</div>
+              <div className="grid gap-2 md:grid-cols-3">
+                <div className="flex items-center justify-between p-3 bg-white rounded border">
+                  <span className="text-sm">Free Users</span>
+                  <span className="font-semibold">{investorMetrics.by_plan.free}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-white rounded border">
+                  <span className="text-sm">Premium Users</span>
+                  <span className="font-semibold text-green-600">{investorMetrics.by_plan.premium}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-white rounded border">
+                  <span className="text-sm">University Users</span>
+                  <span className="font-semibold text-blue-600">{investorMetrics.by_plan.university}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Account Status */}
+            <div className="space-y-3">
+              <div className="font-medium text-sm">Account Status (Real Users Only)</div>
+              <div className="grid gap-2 md:grid-cols-4">
+                <div className="flex items-center justify-between p-3 bg-white rounded border">
+                  <span className="text-sm">Active</span>
+                  <span className="font-semibold text-green-600">{investorMetrics.active_users}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-white rounded border">
+                  <span className="text-sm">Pending</span>
+                  <span className="font-semibold text-yellow-600">{investorMetrics.pending_users}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-white rounded border">
+                  <span className="text-sm">Suspended</span>
+                  <span className="font-semibold text-orange-600">{investorMetrics.suspended_users}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-white rounded border">
+                  <span className="text-sm">Deleted</span>
+                  <span className="font-semibold text-red-600">{investorMetrics.deleted_users}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Test Users Note */}
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="text-sm text-yellow-800">
+                <strong>Note:</strong> Test users ({investorMetrics.test_users}) are excluded from all metrics above.
+                Total database users: {investorMetrics.total_real_users + investorMetrics.test_users}
+              </div>
+            </div>
+
+            <div className="text-xs text-muted-foreground text-right">
+              Generated: {new Date(investorMetrics.generated_at).toLocaleString()}
+            </div>
           </CardContent>
         </Card>
       )}
