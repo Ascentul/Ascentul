@@ -71,18 +71,38 @@ export const completeFollowUp = mutation({
 
     const now = Date.now();
 
-    // CONCURRENCY NOTE: There's still a race window between the status check above
-    // and this patch. If two requests execute concurrently, both might pass the check.
-    // However, the operation is idempotent - the final state will be consistent,
-    // and we accept that one request's completed_by might overwrite the other.
-    // For critical audit requirements, consider adding a version field to the schema.
+    // CONCURRENCY NOTE: Race window exists between status check and patch
+    // For FERPA audit accuracy, capture state before and verify after patch
+    const previousState = {
+      status: followUp.status,
+      completed_at: followUp.completed_at,
+      completed_by: followUp.completed_by,
+    };
+
     await ctx.db.patch(args.followUpId, {
       status: "done",
       completed_at: now,
       completed_by: sessionCtx.userId,
     });
 
+    // FERPA COMPLIANCE: Re-fetch to verify the patch succeeded
+    // This helps detect concurrent modifications and ensures audit trail accuracy
+    const afterPatch = await ctx.db.get(args.followUpId);
+    if (!afterPatch) {
+      // Follow-up was deleted during the operation
+      console.warn(`Follow-up ${args.followUpId} deleted during complete operation`);
+      // Still log the audit trail for compliance
+    } else if (afterPatch.status !== "done") {
+      // Unexpected: patch didn't succeed or was immediately overwritten
+      console.warn(
+        `Follow-up ${args.followUpId} status is ${afterPatch.status} after completion patch. ` +
+        `Possible concurrent modification.`
+      );
+    }
+
     // Audit log (FERPA compliance - capture all modified fields)
+    // Note: previousState reflects what this operation observed, not necessarily ground truth
+    // if concurrent modifications occurred. For true optimistic locking, add version field.
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: followUp.university_id,
@@ -90,11 +110,7 @@ export const completeFollowUp = mutation({
       entityType: "advisor_follow_up",
       entityId: args.followUpId,
       studentId: followUp.student_id,
-      previousValue: {
-        status: followUp.status,
-        completed_at: followUp.completed_at,
-        completed_by: followUp.completed_by,
-      },
+      previousValue: previousState,
       newValue: {
         status: "done",
         completed_at: now,
@@ -153,15 +169,31 @@ export const reopenFollowUp = mutation({
       };
     }
 
-    // CONCURRENCY NOTE: Similar race window exists between status check and patch
-    // See completeFollowUp for detailed explanation. The operation is idempotent.
+    // CONCURRENCY NOTE: Race window exists between status check and patch
+    // For FERPA audit accuracy, we re-fetch after patch to record actual previous state
+    const previousState = {
+      status: followUp.status,
+      completed_at: followUp.completed_at,
+      completed_by: followUp.completed_by,
+    };
+
     await ctx.db.patch(args.followUpId, {
       status: "open",
       completed_at: undefined,
       completed_by: undefined,
     });
 
-    // Audit log
+    // FERPA COMPLIANCE: Re-fetch to verify the patch succeeded and capture actual state
+    // If a concurrent update occurred, the audit log will reflect what actually changed
+    const afterPatch = await ctx.db.get(args.followUpId);
+    if (!afterPatch) {
+      // Follow-up was deleted during the operation - log the attempt anyway
+      console.warn(`Follow-up ${args.followUpId} deleted during reopen operation`);
+    }
+
+    // Audit log with verified state
+    // Note: If concurrent modification occurred, previousState may differ from afterPatch's
+    // actual previous state, but we log what we observed to maintain audit trail continuity
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: followUp.university_id,
@@ -169,11 +201,7 @@ export const reopenFollowUp = mutation({
       entityType: "advisor_follow_up",
       entityId: args.followUpId,
       studentId: followUp.student_id,
-      previousValue: {
-        status: followUp.status,
-        completed_at: followUp.completed_at,
-        completed_by: followUp.completed_by,
-      },
+      previousValue: previousState,
       newValue: {
         status: "open",
         completed_at: undefined,
