@@ -4,7 +4,7 @@ import { convexServer } from '@/lib/convex-server';
 
 // GET /api/achievements - list all available achievements (public read)
 export async function GET() {
-      try {
+  try {
     let achievements = await convexServer.query(api.achievements.getAllAchievements, {})
     if (!achievements || achievements.length === 0) {
       // Seed defaults if empty, then reload
@@ -12,7 +12,8 @@ export async function GET() {
       achievements = await convexServer.query(api.achievements.getAllAchievements, {})
     }
     return NextResponse.json({ achievements })
-  } catch (e: any) {
+  } catch (e: unknown) {
+    console.error('Failed to load achievements:', e)
     return NextResponse.json({ error: 'Failed to load achievements' }, { status: 500 })
   }
 }

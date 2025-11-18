@@ -18,6 +18,12 @@ export async function GET(
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const conversationId = params.id
+    
+    // Validate ID format (Convex IDs are lowercase alphanumeric strings)
+    if (!conversationId || !/^[0-9a-z]+$/.test(conversationId)) {
+      return NextResponse.json({ error: 'Invalid conversation ID' }, { status: 400 })
+    }
+    
     const messages = await convexServer.query(api.ai_coach.getMessages, {
       clerkId: userId,
       conversationId: conversationId as Id<'ai_coach_conversations'>

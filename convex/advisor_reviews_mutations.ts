@@ -27,9 +27,9 @@ export const claimReview = mutation({
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
-    // ATOMIC CLAIM: Single read within serialized mutation ensures atomicity
-    // Convex guarantees that mutations execute serially, so the review state
-    // we read here cannot change until this entire handler completes.
+    // ATOMIC CLAIM: Optimistic concurrency control ensures serializable semantics
+    // Convex uses optimistic concurrency: mutations may execute concurrently for
+    // performance, but commits only succeed if the transaction is serializable.
     const review = await ctx.db.get(args.review_id);
     if (!review) {
       throw new Error('Review not found');
@@ -40,22 +40,22 @@ export const claimReview = mutation({
       throw new Error('Unauthorized: Review not in your university');
     }
 
-    // CRITICAL: This check is now atomic because Convex mutations are serialized.
-    // If two advisors call this simultaneously, their mutations will execute
-    // one after another, not concurrently. The first will see status='waiting'
-    // and succeed. The second will see status='in_review' and fail here.
+    // CRITICAL: Race condition prevention via optimistic concurrency control.
+    // If two advisors claim simultaneously, both may read status='waiting', but
+    // only one commit will succeed. The second will fail serialization check,
+    // retry, see status='in_review', and fail this validation.
     if (review.status !== 'waiting') {
       throw new Error('Review is not available to claim');
     }
 
-    // Safe to claim - no other mutation can have modified this review between
-    // our read above and this patch because we're in a serialized transaction
-    await ctx.db.patch(args.review_id, {
-      status: 'in_review',
-      reviewed_by: sessionCtx.userId,
-      version: review.version + 1,
-      updated_at: Date.now(),
-    });
+    // Safe to claim - optimistic concurrency control guarantees that if another
+    // mutation modified this review concurrently, this transaction will abort and retry
+      await ctx.db.patch(args.review_id, {
+        status: 'in_review',
+        reviewed_by: sessionCtx.userId,
+        version: review.version + 1,
+        updated_at: Date.now(),
+      });
 
     return { success: true, version: review.version + 1 };
   },
@@ -224,7 +224,9 @@ export const _completeReviewInternal = internalMutation({
     const reviewType = review.asset_type === 'resume' ? 'Resume' : 'Cover Letter';
 
     // Build review URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io';
+    // Convex environment variables must be configured in Convex dashboard
+    // (not NEXT_PUBLIC_* which are Next.js client-side only)
+    const appUrl = process.env.APP_URL || 'https://app.ascentful.io';
     let reviewUrl = `${appUrl}/dashboard`;
 
     if (review.asset_type === 'resume' && review.resume_id) {

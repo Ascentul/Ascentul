@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
@@ -29,6 +30,26 @@ import {
   Send,
   Trash2
 } from 'lucide-react'
+import type { Id } from 'convex/_generated/dataModel'
+
+interface SupportTicket {
+  _id: Id<'support_tickets'>
+  _creationTime: number
+  user_id: Id<'users'>
+  subject: string
+  category: string
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  department: string
+  contact_person?: string
+  description: string
+  status: 'open' | 'in_progress' | 'resolved' | 'closed'
+  ticket_type: string
+  assigned_to?: Id<'users'>
+  resolution?: string
+  resolved_at?: number
+  created_at: number
+  updated_at: number
+}
 
 export default function AdvisorSupportPage() {
   const { user: clerkUser } = useUser()
@@ -38,7 +59,9 @@ export default function AdvisorSupportPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'open' | 'in_progress' | 'resolved' | 'closed'>('all')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
-  const [selectedTicket, setSelectedTicket] = useState<any>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null)
+  const [ticketToDelete, setTicketToDelete] = useState<Id<'support_tickets'> | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -57,7 +80,7 @@ export default function AdvisorSupportPage() {
   const tickets = useQuery(
     api.support_tickets.listTickets,
     clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
-  ) as any[] | undefined
+  )
 
   // Mutations
   const createTicket = useMutation(api.support_tickets.createTicket)
@@ -142,14 +165,17 @@ export default function AdvisorSupportPage() {
   }
 
   // Handle update status
-  const handleUpdateStatus = async (ticketId: any, newStatus: string) => {
+  const handleUpdateStatus = async (
+    ticketId: Id<'support_tickets'>,
+    newStatus: 'open' | 'in_progress' | 'resolved' | 'closed'
+  ) => {
     if (!clerkUser?.id) return
 
     try {
       await updateTicketStatus({
         clerkId: clerkUser.id,
         ticketId,
-        status: newStatus as any
+        status: newStatus
       })
 
       // Update local state to reflect the change immediately
@@ -198,16 +224,20 @@ export default function AdvisorSupportPage() {
     }
   }
 
-  // Handle delete ticket
-  const handleDeleteTicket = async (ticketId: any) => {
-    if (!clerkUser?.id) return
+  // Handle delete ticket - opens confirmation dialog
+  const handleDeleteTicket = (ticketId: Id<'support_tickets'>) => {
+    setTicketToDelete(ticketId)
+    setDeleteDialogOpen(true)
+  }
 
-    if (!confirm('Are you sure you want to delete this ticket?')) return
+  // Confirm delete ticket - executes the deletion
+  const confirmDeleteTicket = async () => {
+    if (!clerkUser?.id || !ticketToDelete) return
 
     try {
       await deleteTicket({
         clerkId: clerkUser.id,
-        ticketId
+        ticketId: ticketToDelete
       })
 
       toast({
@@ -216,6 +246,8 @@ export default function AdvisorSupportPage() {
         variant: 'success'
       })
 
+      setDeleteDialogOpen(false)
+      setTicketToDelete(null)
       setDetailDialogOpen(false)
       setSelectedTicket(null)
     } catch (error: any) {
@@ -571,6 +603,32 @@ export default function AdvisorSupportPage() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Support Ticket</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this ticket? This action cannot be undone and the ticket will be permanently removed from the system.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setDeleteDialogOpen(false)
+                setTicketToDelete(null)
+              }}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeleteTicket}
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              >
+                Delete Ticket
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdvisorGate>
   )

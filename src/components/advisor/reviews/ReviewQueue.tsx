@@ -207,7 +207,7 @@ export function ReviewQueue({ reviews, isLoading }: ReviewQueueProps) {
                           <Clock className='h-3 w-3' />
                           Requested {format(new Date(review.requested_at), 'MMM d, h:mm a')}
                         </div>
-                        {review.reviewed_at && (
+                        {review.reviewed_at != null && (
                           <div className='flex items-center gap-1'>
                             Reviewed {format(new Date(review.reviewed_at), 'MMM d, h:mm a')}
                           </div>

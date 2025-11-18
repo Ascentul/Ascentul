@@ -371,7 +371,6 @@ export const cancelSession = mutation({
       version: (session.version ?? 0) + 1,
       updated_at: Date.now(),
     });
-
     // Audit log for FERPA compliance
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
@@ -380,12 +379,12 @@ export const cancelSession = mutation({
       entityType: "advisor_session",
       entityId: args.session_id,
       studentId: session.student_id,
+      reason: args.reason,
       previousValue: {
         status: session.status,
       },
       newValue: {
         status: "cancelled",
-        reason: args.reason,
       },
       ipAddress: "server",
     });

@@ -181,9 +181,8 @@ export default function AdvisorCalendarPage() {
                   size="sm"
                   onClick={handleToday}
                   className="min-w-[100px]"
-                  aria-label="Go to today"
                 >
-                  {format(currentDate, 'MMM yyyy')}
+                  Today
                 </Button>
                 <Button
                   variant="outline"

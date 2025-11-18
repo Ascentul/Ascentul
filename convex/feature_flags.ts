@@ -123,6 +123,7 @@ export const initializeAdvisorFlags = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
+    let newlyInitialized = 0;
 
     const defaultFlags = [
       { key: "advisor.dashboard", value: false },
@@ -151,6 +152,7 @@ export const initializeAdvisorFlags = internalMutation({
           created_at: now,
           updated_at: now,
         });
+        newlyInitialized++;
         console.log(`✓ Initialized flag: ${flag.key} = ${flag.value}`);
       } else {
         const existingValue = existingMap.get(flag.key);
@@ -158,7 +160,7 @@ export const initializeAdvisorFlags = internalMutation({
       }
     }
 
-    return { success: true, flagsInitialized: defaultFlags.length };
+    return { success: true, flagsInitialized: newlyInitialized };
   },
 });
 

@@ -55,6 +55,10 @@ export const getSessionById = query({
       student_email: student?.email || "",
     };
   },
+
+  },
+});
+  },
 });
 
 /**
@@ -161,7 +165,6 @@ export const getTodaySessions = query({
     ).getTime();
     const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
 
-    // Use collect() to return all sessions for the day (typically < 20 for most advisors)
     const sessions = await ctx.db
       .query("advisor_sessions")
       .withIndex("by_advisor_scheduled", (q) =>
@@ -173,7 +176,7 @@ export const getTodaySessions = query({
           q.lt(q.field("scheduled_at"), endOfDay),
         ),
       )
-      .collect();
+      .take(100);
 
     return sessions;
   },
@@ -211,12 +214,17 @@ export const createSession = mutation({
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
-    // Validate timing fields
+    // Validate timing inputs
     if (args.startAt <= 0) {
-      throw new Error("startAt must be a valid timestamp");
+      throw new Error("startAt must be a positive timestamp");
     }
-    if (args.durationMinutes !== undefined && (args.durationMinutes <= 0 || args.durationMinutes > 1440)) {
+    
+    if (args.durationMinutes !== undefined && (args.durationMinutes < 1 || args.durationMinutes > 1440)) {
       throw new Error("durationMinutes must be between 1 and 1440 (24 hours)");
+    }
+    
+    if (args.endAt !== undefined && args.endAt <= args.startAt) {
+      throw new Error("endAt must be after startAt");
     }
 
     // Verify access to student
@@ -254,16 +262,15 @@ export const createSession = mutation({
       entityId: sessionId,
       studentId: args.studentId,
       newValue: { title: args.title, visibility: args.visibility },
-      ipAddress: "server",
     });
 
     return sessionId;
   },
 });
+});
 
 /**
  * Update existing session (with version conflict detection)
- */
 export const updateSession = mutation({
   args: {
     clerkId: v.string(),
@@ -327,11 +334,6 @@ export const updateSession = mutation({
       );
     }
 
-    // Validate timing fields
-    if (args.updates.durationMinutes !== undefined && (args.updates.durationMinutes <= 0 || args.updates.durationMinutes > 1440)) {
-      throw new Error("durationMinutes must be between 1 and 1440 (24 hours)");
-    }
-
     const previousVisibility = session.visibility;
     const newVersion = (session.version || 1) + 1;
 
@@ -344,7 +346,12 @@ export const updateSession = mutation({
     if (args.updates.title !== undefined) patchData.title = args.updates.title;
     if (args.updates.scheduledAt !== undefined) patchData.scheduled_at = args.updates.scheduledAt;
     if (args.updates.endAt !== undefined) patchData.end_at = args.updates.endAt;
-    if (args.updates.durationMinutes !== undefined) patchData.duration_minutes = args.updates.durationMinutes;
+    if (args.updates.durationMinutes !== undefined) {
+      if (args.updates.durationMinutes < 1 || args.updates.durationMinutes > 1440) {
+        throw new Error("durationMinutes must be between 1 and 1440 (24 hours)");
+      }
+      patchData.duration_minutes = args.updates.durationMinutes;
+    }
     if (args.updates.sessionType !== undefined) patchData.session_type = args.updates.sessionType;
     if (args.updates.outcomes !== undefined) patchData.outcomes = args.updates.outcomes;
     if (args.updates.notes !== undefined) patchData.notes = args.updates.notes;
@@ -367,12 +374,12 @@ export const updateSession = mutation({
         studentId: session.student_id,
         previousValue: previousVisibility,
         newValue: args.updates.visibility,
-      ipAddress: "server",
-    });
+      });
     }
 
     return { success: true, newVersion };
   },
+});
 });
 
 /**
@@ -514,4 +521,5 @@ export const completeSession = mutation({
 
     return { success: true };
   },
+});
 });

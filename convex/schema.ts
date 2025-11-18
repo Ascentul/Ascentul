@@ -105,6 +105,7 @@ export default defineSchema({
         v.literal("pending_activation"),
         v.literal("active"),
         v.literal("suspended"),
+        v.literal("deleted"), // Legacy status for hard-deleted users
       ),
     ),
     activation_token: v.optional(v.string()),
@@ -118,6 +119,10 @@ export default defineSchema({
     university_admin_notes: v.optional(v.string()),
     // User preferences
     hide_progress_card: v.optional(v.boolean()),
+    // Legacy deletion fields (for hard-deleted users)
+    deleted_at: v.optional(v.number()),
+    deleted_by: v.optional(v.id("users")),
+    deleted_reason: v.optional(v.string()),
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -425,7 +430,6 @@ export default defineSchema({
     // Ownership & creation tracking
     user_id: v.id('users'), // Primary user (student) this task relates to
     owner_id: v.id('users'), // Who is responsible for completing it (can be student or advisor)
-    created_by_id: v.id('users'), // Who created this task
     created_by_id: v.optional(v.id('users')), // Who created this task (null for system-generated)
     created_by_type: v.union(v.literal('student'), v.literal('advisor'), v.literal('system')),
 
@@ -852,7 +856,6 @@ export default defineSchema({
     cover_letter_id: v.optional(v.id("cover_letters")),
     related_application_id: v.optional(v.id("applications")),
     related_review_id: v.optional(v.id("advisor_reviews")), // Previous review in chain
-    related_review_id: v.optional(v.string()), // advisor_reviews ID
     status: v.union(
       v.literal("waiting"), // Pending advisor review
       v.literal("in_review"), // Advisor actively reviewing
@@ -861,11 +864,11 @@ export default defineSchema({
     ),
     rubric: v.optional(
       v.object({
-        content_quality: v.optional(v.number()), // 1-5
-        formatting: v.optional(v.number()), // 1-5
-        relevance: v.optional(v.number()), // 1-5
-        grammar: v.optional(v.number()), // 1-5
-        overall: v.optional(v.number()), // 1-5
+        content_quality: v.optional(v.number()), // 0-100
+        formatting: v.optional(v.number()), // 0-100
+        relevance: v.optional(v.number()), // 0-100
+        grammar: v.optional(v.number()), // 0-100
+        overall: v.optional(v.number()), // 0-100
       }),
     ),
     // Autosave fields for work-in-progress feedback (before finalization)
@@ -979,25 +982,44 @@ export default defineSchema({
   // - Consider implementing a redaction mutation for right-to-be-forgotten requests
   //
   // TODO: Implement scheduled function for automated log retention management
-    actor_id: v.id("users"), // Who performed the action
-    university_id: v.optional(v.id("universities")), // Tenant context
-    action: v.string(), // e.g., "application.stage_changed", "review.status_changed"
-    entity_type: v.string(), // e.g., "application", "review", "session"
-    entity_id: v.string(), // ID of affected entity
-    student_id: v.optional(v.id("users")), // Student affected (for PII tracking)
-    previous_value: v.optional(v.any()), // State before change (may contain PII - see retention policy)
-    new_value: v.optional(v.any()), // State after change (may contain PII - see retention policy)
-    ip_address: v.string(), // Required for security tracking (use "system" for automated actions)
-    user_agent: v.optional(v.string()), // Browser/client info
-    created_at: v.number(),
+  //
+  // MIGRATION NOTE: Schema supports both legacy and new formats for backward compatibility:
+  // - Legacy: performed_by_id, target_id, timestamp, metadata
+  // - New: actor_id, entity_id, created_at, previous_value/new_value
+  // All new audit logs use the new format (see createAuditLog in advisor_auth.ts)
+  audit_logs: defineTable({
+    // New format (current - used by createAuditLog)
+    actor_id: v.optional(v.id("users")), // User who performed the action
+    university_id: v.optional(v.id("universities")), // Tenant isolation
+    action: v.string(), // e.g., "session.created", "review.approved"
+    entity_type: v.optional(v.string()), // e.g., "advisor_session", "advisor_review"
+    entity_id: v.optional(v.string()), // ID of the entity being audited
+    student_id: v.optional(v.id("users")), // Student affected by this action (for FERPA queries)
+    previous_value: v.optional(v.any()), // Previous state (may contain PII - subject to redaction)
+    new_value: v.optional(v.any()), // New state (may contain PII - subject to redaction)
+    ip_address: v.optional(v.string()), // IP address for security tracking
+    user_agent: v.optional(v.string()), // Browser/client info for security tracking
+    created_at: v.optional(v.number()), // Timestamp for retention policy enforcement
+
+    // Legacy format (backward compatibility - deprecated)
+    performed_by_id: v.optional(v.string()), // Legacy: actor_id
+    performed_by_name: v.optional(v.string()), // Legacy: actor name
+    performed_by_email: v.optional(v.string()), // Legacy: actor email
+    target_id: v.optional(v.string()), // Legacy: entity_id
+    target_type: v.optional(v.string()), // Legacy: entity_type
+    target_name: v.optional(v.string()), // Legacy: entity name
+    target_email: v.optional(v.string()), // Legacy: entity email
+    timestamp: v.optional(v.number()), // Legacy: created_at
+    reason: v.optional(v.string()), // Legacy: action reason
+    metadata: v.optional(v.any()), // Legacy: additional data
   })
-    .index("by_actor", ["actor_id"])
-    .index("by_university", ["university_id"])
-    .index("by_student", ["student_id"])
-    .index("by_entity", ["entity_type", "entity_id"])
-    .index("by_action", ["action"])
-    .index("by_created_at", ["created_at"])
-    .index("by_university_created", ["university_id", "created_at"]),
+    .index("by_actor", ["actor_id", "created_at"]) // Find all actions by a user
+    .index("by_entity", ["entity_type", "entity_id", "created_at"]) // Find all changes to an entity
+    .index("by_student", ["student_id", "created_at"]) // FERPA: Find all actions affecting a student
+    .index("by_university", ["university_id", "created_at"]) // Tenant-scoped queries
+    .index("by_action", ["action", "created_at"]) // Find all instances of a specific action type
+    .index("by_created_at", ["created_at"]) // Retention policy: find old logs for archival
+    .index("by_timestamp", ["timestamp"]), // Legacy: retention policy for old logs
 
   // Migration tracking table for idempotency and state management
   migration_state: defineTable({

@@ -139,6 +139,26 @@ export const deleteCoverLetter = mutation({
       throw new Error("Cover letter not found or unauthorized");
     }
 
+    // Referential integrity: Check for active reviews before deletion
+    const activeReviews = await ctx.db
+      .query("advisor_reviews")
+      .withIndex("by_student", (q) => q.eq("student_id", user._id))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("asset_type"), "cover_letter"),
+          q.eq(q.field("cover_letter_id"), args.coverLetterId),
+          q.neq(q.field("status"), "completed"),
+          q.neq(q.field("status"), "cancelled"),
+        ),
+      )
+      .first();
+
+    if (activeReviews) {
+      throw new Error(
+        "Cannot delete cover letter: Active review in progress. Please wait for the review to complete or contact your advisor.",
+      );
+    }
+
     await ctx.db.delete(args.coverLetterId);
     return args.coverLetterId;
   },

@@ -167,12 +167,12 @@ export const getReview = query({
     let asset = null;
     if (review.asset_type === "resume" && review.resume_id) {
       asset = await ctx.db.get(review.resume_id);
-      if (asset && asset.student_id !== review.student_id) {
+      if (asset && asset.user_id !== review.student_id) {
         throw new Error("Asset ownership mismatch");
       }
     } else if (review.asset_type === "cover_letter" && review.cover_letter_id) {
       asset = await ctx.db.get(review.cover_letter_id);
-      if (asset && asset.student_id !== review.student_id) {
+      if (asset && asset.user_id !== review.student_id) {
         throw new Error("Asset ownership mismatch");
       }
     }
@@ -198,34 +198,44 @@ export const createReview = mutation({
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
-    // Validate that exactly one ID is provided based on asset type
-    if (args.assetType === "resume" && !args.resumeId) {
-      throw new Error("resumeId is required when assetType is resume");
+    const universityId = requireTenant(sessionCtx);
+
+    // Validate mutual exclusivity of asset IDs
+    if (args.resumeId && args.coverLetterId) {
+      throw new Error("Cannot specify both resumeId and coverLetterId");
     }
-    if (args.assetType === "resume" && args.resumeId) {
+
+    // Validate that exactly one ID is provided based on asset type
+    if (args.assetType === "resume") {
+      if (!args.resumeId) {
+        throw new Error("resumeId is required when assetType is resume");
+      }
+      if (args.coverLetterId) {
+        throw new Error("coverLetterId cannot be specified when assetType is resume");
+      }
       const resume = await ctx.db.get(args.resumeId);
       if (!resume) {
         throw new Error("Resume not found");
       }
-      if (resume.student_id !== args.studentId) {
+      if (resume.user_id !== args.studentId) {
         throw new Error("Resume does not belong to this student");
       }
     }
-    if (args.assetType === "cover_letter" && !args.coverLetterId) {
-      throw new Error("coverLetterId is required when assetType is cover_letter");
-    }
-    if (args.assetType === "cover_letter" && args.coverLetterId) {
+
+    if (args.assetType === "cover_letter") {
+      if (!args.coverLetterId) {
+        throw new Error("coverLetterId is required when assetType is cover_letter");
+      }
+      if (args.resumeId) {
+        throw new Error("resumeId cannot be specified when assetType is cover_letter");
+      }
       const coverLetter = await ctx.db.get(args.coverLetterId);
       if (!coverLetter) {
         throw new Error("Cover letter not found");
       }
-      if (coverLetter.student_id !== args.studentId) {
+      if (coverLetter.user_id !== args.studentId) {
         throw new Error("Cover letter does not belong to this student");
       }
-    }
-    }
-    if (args.assetType === "cover_letter" && !args.coverLetterId) {
-      throw new Error("coverLetterId is required when assetType is cover_letter");
     }
 
     const now = Date.now();
@@ -256,6 +266,7 @@ export const createReview = mutation({
         resume_id: args.resumeId,
         cover_letter_id: args.coverLetterId,
       },
+      ipAddress: "server",
     });
 
     return reviewId;
@@ -323,6 +334,7 @@ export const updateReviewStatus = mutation({
       studentId: review.student_id,
       previousValue: previousStatus,
       newValue: args.status,
+      ipAddress: "server",
     });
 
     return { success: true };
@@ -384,6 +396,7 @@ export const updateRubric = mutation({
       studentId: review.student_id,
       previousValue: previousRubric,
       newValue: args.rubric,
+      ipAddress: "server",
     });
 
     return { success: true };
@@ -423,7 +436,9 @@ export const addComment = mutation({
     const sanitizedBody = args.body.trim().replace(/\0/g, "");
 
     const now = Date.now();
-    const commentId = crypto.randomUUID();
+    const currentComments = review.comments || [];
+    // Generate deterministic ID using timestamp + index (Convex mutations must be deterministic)
+    const commentId = `${now}-${currentComments.length}`;
 
     const newComment = {
       id: commentId,
@@ -434,7 +449,6 @@ export const addComment = mutation({
       updated_at: now,
     };
 
-    const currentComments = review.comments || [];
     const updatedComments = [...currentComments, newComment];
 
     await ctx.db.patch(args.reviewId, {
@@ -451,6 +465,7 @@ export const addComment = mutation({
       entityId: args.reviewId,
       studentId: review.student_id,
       newValue: { visibility: args.visibility, comment_id: commentId },
+      ipAddress: "server",
     });
 
     return commentId;
@@ -533,6 +548,7 @@ export const updateComment = mutation({
         studentId: review.student_id,
         previousValue: { body: previousBody },
         newValue: { body: sanitizedBody },
+        ipAddress: "server",
       });
     }
 
@@ -547,6 +563,7 @@ export const updateComment = mutation({
         studentId: review.student_id,
         previousValue: previousVisibility,
         newValue: args.visibility,
+        ipAddress: "server",
       });
     }
 
@@ -613,6 +630,7 @@ export const deleteComment = mutation({
         visibility: comment.visibility,
         author_id: comment.author_id,
       },
+      ipAddress: "server",
     });
 
     return { success: true };
@@ -670,7 +688,8 @@ export const approveReview = mutation({
     let updatedComments = review.comments || [];
     let approvalCommentId: string | undefined;
     if (sanitizedComment) {
-      const commentId = crypto.randomUUID();
+      // Generate deterministic ID using timestamp + index (Convex mutations must be deterministic)
+      const commentId = `${now}-${updatedComments.length}`;
       approvalCommentId = commentId;
       updatedComments = [
         ...updatedComments,
@@ -704,6 +723,7 @@ export const approveReview = mutation({
       entityId: args.reviewId,
       studentId: review.student_id,
       newValue: { status: "approved", approved_at: now },
+      ipAddress: "server",
     });
 
     // Audit log for approval comment if provided (FERPA compliance)
@@ -720,6 +740,7 @@ export const approveReview = mutation({
           comment_id: approvalCommentId,
           context: "approval"
         },
+        ipAddress: "server",
       });
     }
 

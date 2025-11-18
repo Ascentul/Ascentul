@@ -130,12 +130,26 @@ export default function Page() {
 
     try {
       setSubmitting(true)
-      const result = await signUp.create({
+
+      // Build signup params with university metadata if applicable
+      const signUpParams: any = {
         emailAddress: email,
         password,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-      })
+      }
+
+      // Pass university invite data to Clerk for webhook processing
+      if (tab === 'university' && universityInvite.university) {
+        signUpParams.unsafeMetadata = {
+          universityInvite: {
+            universityName: universityInvite.university,
+            inviteEmail: universityInvite.email || email,
+          }
+        }
+      }
+
+      const result = await signUp.create(signUpParams)
 
       if (result.status === 'missing_requirements') {
         // Send email verification
@@ -190,35 +204,20 @@ export default function Page() {
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId })
 
-        // If this is a university invitation signup, link the student to their university
-        if (universityInvite.email && universityInvite.university) {
-          try {
-            // Call API to activate pending university student account
-            const response = await fetch('/api/university/activate-student', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                email: email,
-                clerkId: result.createdUserId,
-              }),
-            })
-
-            if (response.ok) {
-              toast({
-                title: "Welcome to your university!",
-                description: `You now have premium access through ${universityInvite.university}`,
-              })
-            }
-          } catch (activationError) {
-            console.error('Failed to activate university student:', activationError)
-            // Don't fail the signup if activation fails - user can still use the app
-          }
+        // University invitation signup: Show appropriate message
+        // Note: Webhook processes university access asynchronously after user creation
+        // Access will be available shortly, but not guaranteed at this exact moment
+        if (universityInvite.university) {
+          toast({
+            title: "Email verified successfully!",
+            description: `Setting up your ${universityInvite.university} account. This may take a few moments.`,
+          })
+        } else {
+          toast({
+            title: "Email verified successfully!",
+            description: "Welcome to Ascentful!",
+          })
         }
-
-        toast({
-          title: "Email verified successfully!",
-          description: "Welcome to Ascentful!",
-        })
         router.replace('/onboarding')
       } else {
         setError('Verification failed. Please try again.')

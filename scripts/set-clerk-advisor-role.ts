@@ -7,6 +7,12 @@
 
 import { createClerkClient } from '@clerk/backend';
 
+if (!process.env.CLERK_SECRET_KEY) {
+  console.error('❌ CLERK_SECRET_KEY is not set in environment variables');
+  console.log('\nPlease ensure CLERK_SECRET_KEY is set in your .env.local file');
+  process.exit(1);
+}
+
 const clerkClient = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY
 });

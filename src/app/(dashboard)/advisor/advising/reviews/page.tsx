@@ -94,10 +94,10 @@ export default function AdvisorReviewsPage() {
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
                 <FileEdit className='h-5 w-5' />
-              <ReviewQueue
-                reviews={reviews || []}
-                isLoading={isLoaded && clerkId !== undefined && reviews === undefined}
-              />
+                Review Queue
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <ReviewQueue
                 reviews={reviews || []}
                 isLoading={reviews === undefined}

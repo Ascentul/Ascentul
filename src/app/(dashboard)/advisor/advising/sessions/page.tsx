@@ -28,7 +28,7 @@ export default function AdvisorSessionsPage() {
           <CardContent className="flex flex-col items-center justify-center h-[400px] text-center space-y-4">
             <Mic className="h-16 w-16 text-muted-foreground/50" />
             <div className="space-y-2">
-              <p className="text-lg font-medium">Session management coming in PR 6</p>
+              <p className="text-lg font-medium">Session management coming soon</p>
               <p className="text-sm text-muted-foreground max-w-md">
                 This page will display a searchable, filterable table of all advising sessions
                 with autosave notes, session types, privacy controls, and follow-up creation.

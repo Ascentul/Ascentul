@@ -132,6 +132,26 @@ export const deleteResume = mutation({
       throw new Error("Resume not found or unauthorized");
     }
 
+    // Referential integrity: Check for active reviews before deletion
+    const activeReviews = await ctx.db
+      .query("advisor_reviews")
+      .withIndex("by_student", (q) => q.eq("student_id", user._id))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("asset_type"), "resume"),
+          q.eq(q.field("resume_id"), args.resumeId),
+          q.neq(q.field("status"), "completed"),
+          q.neq(q.field("status"), "cancelled"),
+        ),
+      )
+      .first();
+
+    if (activeReviews) {
+      throw new Error(
+        "Cannot delete resume: Active review in progress. Please wait for the review to complete or contact your advisor.",
+      );
+    }
+
     await ctx.db.delete(args.resumeId);
     return args.resumeId;
   },

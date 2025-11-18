@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
 
     // Get the current user to verify admin access
-
+      let user
       user = await convexServer.query(api.users.getUserByClerkId, { clerkId })
     } catch (error) {
       console.error('Error fetching user by clerkId:', error)

@@ -16,6 +16,7 @@ import {
   requireTenant,
   getOwnedStudentIds,
 } from "./advisor_auth";
+import { ACTIVE_STAGES } from './advisor_constants';
 
 /**
  * Get dashboard overview stats
@@ -42,7 +43,7 @@ export const getDashboardStats = query({
       )
       .collect();
 
-    const activeStages = new Set(["Prospect", "Applied", "Interview"]);
+    const activeStages = new Set(ACTIVE_STAGES);
     let activeApplicationsCount = 0;
     const perStudentAppStats = new Map<
       string,
@@ -79,20 +80,23 @@ export const getDashboardStats = query({
       .collect();
 
     // Count pending reviews (status = "waiting") scoped to caseload students
-    // Query by student IDs to avoid fetching all university reviews
-    const pendingReviewsPromises = studentIds.map((studentId) =>
-      ctx.db
-        .query("advisor_reviews")
-        .withIndex("by_student", (q) =>
-          q.eq("student_id", studentId).eq("university_id", universityId),
-        )
-        .filter((q) => q.eq(q.field("status"), "waiting"))
-        .collect(),
-    );
-    const pendingReviewsArrays = await Promise.all(pendingReviewsPromises);
-    const pendingReviews = pendingReviewsArrays.flat();
+    // OPTIMIZED: Single query using by_status index instead of N+1 pattern
+    const allPendingReviews = await ctx.db
+      .query("advisor_reviews")
+      .withIndex("by_status", (q) =>
+        q.eq("status", "waiting").eq("university_id", universityId),
+      )
+      .collect();
 
-    const atRiskCount = Array.from(perStudentAppStats.values()).reduce(
+    // Filter to only reviews for students in this advisor's caseload
+    const pendingReviews = allPendingReviews.filter((review) =>
+      studentIdSet.has(review.student_id),
+    );
+
+    // At-risk students (outcome-based): >5 applications but no offers yet
+    // NOTE: This differs from engagement-based at-risk in advisor_students.ts (60+ days inactive)
+    // Dashboard shows outcome risk, student list shows engagement risk
+    const atRiskNoOfferCount = Array.from(perStudentAppStats.values()).reduce(
       (total, stats) =>
         stats.total > 5 && !stats.hasOffer ? total + 1 : total,
       0,
@@ -109,7 +113,7 @@ export const getDashboardStats = query({
       activeApplications: activeApplicationsCount,
       sessionsThisWeek: sessionsThisWeek.length,
       pendingReviews: pendingReviews.length,
-      atRiskStudents: atRiskCount,
+      atRiskStudents: atRiskNoOfferCount, // Outcome-based: >5 apps, no offers
       averageApplicationsPerStudent:
         studentIds.length > 0
           ? Math.round((totalApplicationsCount / studentIds.length) * 10) / 10
@@ -130,6 +134,10 @@ export const getUpcomingItems = query({
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
+    // Get owned student IDs for filtering
+    const studentIds = await getOwnedStudentIds(ctx, sessionCtx);
+    const studentIdSet = new Set(studentIds);
+
     const now = Date.now();
     const oneWeekFromNow = now + 7 * 24 * 60 * 60 * 1000;
 
@@ -147,21 +155,31 @@ export const getUpcomingItems = query({
       )
       .collect();
 
-    // Get upcoming follow-ups
-    // TODO: Migrate to follow_ups table (see convex/migrate_follow_ups.ts)
-    const followUps = await ctx.db
-      .query("advisor_follow_ups") // DEPRECATED: Use follow_ups table instead
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+    // Get upcoming follow-ups (using unified follow_ups table)
+    // Query by university and filter for advisor-created tasks
+    const allFollowUps = await ctx.db
+      .query("follow_ups")
+      .withIndex("by_university", (q) =>
+        q.eq("university_id", universityId),
       )
       .filter((q) =>
         q.and(
+          // Only advisor-created follow-ups for this advisor
+          q.eq(q.field("created_by_id"), sessionCtx.userId),
+          q.eq(q.field("created_by_type"), "advisor"),
+          // Due within next week
           q.gte(q.field("due_at"), now),
           q.lte(q.field("due_at"), oneWeekFromNow),
+          // Open status only
           q.eq(q.field("status"), "open"),
         ),
       )
       .collect();
+
+    // Filter to only students in this advisor's caseload
+    const followUps = allFollowUps.filter((followUp) =>
+      studentIdSet.has(followUp.user_id),
+    );
 
     // Enrich with student names
     const enrichedSessions = await Promise.all(
@@ -180,11 +198,11 @@ export const getUpcomingItems = query({
 
     const enrichedFollowUps = await Promise.all(
       followUps.map(async (followUp) => {
-        const student = await ctx.db.get(followUp.student_id);
+        const student = await ctx.db.get(followUp.user_id);
         return {
           _id: followUp._id,
           type: "followup" as const,
-          student_id: followUp.student_id,
+          student_id: followUp.user_id,
           student_name: student?.name || "Unknown",
           title: followUp.title,
           date: followUp.due_at || now,
@@ -283,22 +301,19 @@ export const getReviewQueueSnapshot = query({
 
     const limit = args.limit ?? 10; // Default to 10 for dashboard preview
 
-    // Query by student IDs to avoid fetching all university reviews
-    const reviewsPromises = studentIds.map((studentId) =>
-      ctx.db
-        .query("advisor_reviews")
-        .withIndex("by_student", (q) =>
-          q.eq("student_id", studentId).eq("university_id", universityId),
-        )
-        .filter((q) => q.eq(q.field("status"), "waiting"))
-        .collect(),
-    );
-    const reviewsArrays = await Promise.all(reviewsPromises);
-    const allReviews = reviewsArrays.flat();
+    // OPTIMIZED: Single query using by_status index instead of N+1 pattern
+    const allPendingReviews = await ctx.db
+      .query("advisor_reviews")
+      .withIndex("by_status", (q) =>
+        q.eq("status", "waiting").eq("university_id", universityId),
+      )
+      .collect();
 
-    // Sort by creation time (newest first) and limit
-    const caseloadReviews = allReviews
-      .sort((a, b) => b.created_at - a.created_at)
+    // Filter to only reviews for students in this advisor's caseload
+    const caseloadReviews = allPendingReviews
+      .filter((review) => studentIdSet.has(review.student_id))
+      // Sort by creation time (newest first) and limit
+      .sort((a, b) => b._creationTime - a._creationTime)
       .slice(0, limit);
 
     // Enrich with student names

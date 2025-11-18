@@ -25,10 +25,8 @@ import { useMutation } from 'convex/react';
 import { api } from 'convex/_generated/api';
 import type { Id } from 'convex/_generated/dataModel';
 import { toast } from 'sonner';
-import { getNextStages, getStageLabel, getStageColor } from '@/lib/advisor/stages';
+import { getNextStages, getStageLabel, getStageColor, TERMINAL_STAGES } from '@/lib/advisor/stages';
 import type { ApplicationStage } from '@/lib/advisor/stages';
-
-const TERMINAL_STAGES: ApplicationStage[] = ['Rejected', 'Withdrawn', 'Archived'];
 
 interface StageTransitionModalProps {
   isOpen: boolean;
@@ -41,7 +39,7 @@ interface StageTransitionModalProps {
     stage: string;
   };
   clerkId: string;
-  onSuccess?: (applicationId: string, newStage: string) => void;
+  onSuccess?: (applicationId: Id<'applications'>, newStage: string) => void;
 }
 
 export function StageTransitionModal({

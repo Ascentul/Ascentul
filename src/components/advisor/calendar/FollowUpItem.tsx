@@ -22,17 +22,17 @@ export function FollowUpItem({ followUp, now }: FollowUpItemProps) {
   const isOverdue = followUp.due_at != null && followUp.due_at < now;
 
   return (
-    <Link href={`/advisor/students/${followUp.student_id}`}>
+    <Link 
+      href={`/advisor/students/${followUp.student_id}`}
+      aria-label={isOverdue ? `Overdue follow-up: ${followUp.title}` : undefined}
+    >
       <div
-     <Link href={`/advisor/students/${followUp.student_id}`}>
-       <div
-         aria-label={isOverdue ? `Overdue follow-up: ${followUp.title}` : undefined}
-         className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer ${
-           isOverdue ? "border-red-300 bg-red-50" : "bg-orange-50"
-         }`}
+        className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer ${
+          isOverdue ? "border-red-300 bg-red-50" : "bg-orange-50"
+        }`}
       >
         <div className="flex items-center gap-3">
-          <Clock className="h-5 w-5 text-orange-500" />
+          <Clock className={`h-5 w-5 ${isOverdue ? "text-red-500" : "text-orange-500"}`} />
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <div className="font-medium text-sm">{followUp.title}</div>

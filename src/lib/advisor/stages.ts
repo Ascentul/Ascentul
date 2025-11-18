@@ -34,8 +34,8 @@ export {
  * Check if a stage is "active" (requires advisor tracking)
  *
  * Active logic:
- * - Prospect, Applied, Interview = ACTIVE (ongoing work)
- * - Offer, Accepted, Rejected, Withdrawn, Archived = NOT ACTIVE (final states)
+ * - Prospect, Applied, Interview, Offer = ACTIVE (ongoing work)
+ * - Accepted, Rejected, Withdrawn, Archived = NOT ACTIVE (final states)
  *
  * @param stage - Application stage to check
  * @returns true if stage is active, false otherwise

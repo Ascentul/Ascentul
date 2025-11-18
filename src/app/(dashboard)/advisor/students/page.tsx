@@ -65,10 +65,13 @@ function AdvisorStudentsPageContent() {
         const hasApps = (student.metadata?.activeApplicationsCount || 0) > 0;
         const hasOffer = student.metadata?.hasOffer || false;
 
-        if (selectedStatus === 'at-risk' && !isAtRisk) return false;
-        if (selectedStatus === 'has-offer' && !hasOffer) return false;
-        if (selectedStatus === 'active' && !hasApps) return false;
-        if (selectedStatus === 'inactive' && hasApps) return false;
+        // Match the badge priority logic: At Risk > Has Offer > Active > Inactive
+        const effectiveStatus = isAtRisk ? 'at-risk' 
+          : hasOffer ? 'has-offer'
+          : hasApps ? 'active'
+          : 'inactive';
+        
+        if (selectedStatus !== effectiveStatus) return false;
       }
 
       return true;

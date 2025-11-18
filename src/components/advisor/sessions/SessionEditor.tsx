@@ -70,7 +70,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   const [saveError, setSaveError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState(session.version);
 
-  // Sync form state when session updates
+  // Sync form state when session updates (on ID change, version change, or any field update)
   useEffect(() => {
     setTitle(session.title);
     setSessionType(session.session_type);
@@ -83,9 +83,8 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
     setStatus(session.status || 'scheduled');
     setCurrentVersion(session.version);
     setHasUnsavedChanges(false);
-  }, [session._id, session.version]);
+  }, [session]);
 
-  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track if any field has changed
@@ -224,17 +223,33 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
       }, 2000);
     }
 
+    // Cleanup: only clear timer on effect re-run or unmount
     return () => {
       if (autosaveTimerRef.current) {
         clearTimeout(autosaveTimerRef.current);
       }
-      // Save on unmount if there are unsaved changes
-      if (hasUnsavedChanges) {
-        saveChanges();
+    };
+  }, [hasUnsavedChanges]); // Remove saveChanges from deps to prevent infinite loop
+
+  // Save on unmount if there are unsaved changes
+  const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
+  const isSavingRef = useRef(isSaving);
+  const saveChangesRef = useRef(saveChanges);
+
+  // Keep refs up to date
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+    isSavingRef.current = isSaving;
+    saveChangesRef.current = saveChanges;
+  }, [hasUnsavedChanges, isSaving, saveChanges]);
+
+  useEffect(() => {
+    return () => {
+      if (hasUnsavedChangesRef.current && !isSavingRef.current) {
+        void saveChangesRef.current();
       }
     };
-  }, [hasUnsavedChanges, saveChanges]);
-
+  }, []);
   // Manual save button
   const handleManualSave = async () => {
     const success = await saveChanges();

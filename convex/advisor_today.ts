@@ -68,14 +68,14 @@ export const getTodayOverview = query({
       .collect();
 
     // Get follow-ups due today
-    // TODO: Migrate to follow_ups table (see convex/migrate_follow_ups.ts)
+    // Migrated to follow_ups table (unified table for all follow-up tasks)
     const followUps = await ctx.db
-      .query("advisor_follow_ups") // DEPRECATED: Use follow_ups table instead
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
-      )
+      .query("follow_ups")
+      .withIndex("by_university", (q) => q.eq("university_id", universityId))
       .filter((q) =>
         q.and(
+          q.eq(q.field("created_by_id"), sessionCtx.userId),
+          q.eq(q.field("created_by_type"), "advisor"),
           q.lte(q.field("due_at"), endTimestamp),
           q.eq(q.field("status"), "open"),
         ),
@@ -91,7 +91,7 @@ export const getTodayOverview = query({
     // Batch fetch all unique students to avoid N+1 queries
     const studentIds = new Set([
       ...sessions.map((s) => s.student_id),
-      ...todayFollowUps.map((f) => f.student_id),
+      ...todayFollowUps.map((f) => f.user_id),
     ]);
 
     const students = await Promise.all(
@@ -124,10 +124,10 @@ export const getTodayOverview = query({
 
     // Enrich follow-ups with student data from map
     const enrichedFollowUps = todayFollowUps.map((followUp) => {
-      const student = studentMap.get(followUp.student_id);
+      const student = studentMap.get(followUp.user_id);
       return {
         _id: followUp._id,
-        student_id: followUp.student_id,
+        student_id: followUp.user_id, // Return as student_id for backward compatibility
         student_name: student?.name || "Unknown",
         title: followUp.title,
         description: followUp.description,

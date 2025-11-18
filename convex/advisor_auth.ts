@@ -170,8 +170,14 @@ export async function canAccessStudent(
   try {
     await assertCanAccessStudent(ctx, sessionCtx, studentId);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    // Expected authorization errors - return false
+    if (error instanceof Error && error.message.startsWith("Unauthorized")) {
+      return false;
+    }
+    // Unexpected errors - log and rethrow for visibility
+    console.error("Unexpected error in canAccessStudent:", error);
+    throw error;
   }
 }
 
@@ -250,7 +256,7 @@ export function canViewPrivateContent(
 
     // Advisors can see their own private content
     if (sessionCtx.role === "advisor") {
-      return authorId === sessionCtx.userId;
+      return !authorId || authorId === sessionCtx.userId;
     }
   }
 
@@ -272,8 +278,7 @@ export async function createAuditLog(
     studentId?: Id<"users">;
     previousValue?: unknown;
     newValue?: unknown;
-    reason?: string;
-    ipAddress?: string;
+    ipAddress: string;
     userAgent?: string;
   },
 ): Promise<Id<"audit_logs">> {
@@ -286,7 +291,6 @@ export async function createAuditLog(
     student_id: params.studentId,
     previous_value: params.previousValue,
     new_value: params.newValue,
-    reason: params.reason,
     ip_address: params.ipAddress,
     user_agent: params.userAgent,
     created_at: Date.now(),

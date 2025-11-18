@@ -77,11 +77,11 @@ async function processUpgrade(params: {
 
   // Handle convexId path
   if (convexId) {
-    // Validate convexId format before casting (Convex IDs are URL-safe Base32)
-    if (!convexId.match(/^[a-z0-9]+$/i)) {
+    // Validate convexId format before casting (Convex IDs are lowercase alphanumeric)
+    if (!convexId.match(/^[0-9a-z]+$/)) {
       return NextResponse.json({
         error: 'Invalid convexId format',
-        detail: 'Convex IDs must be valid Base32-encoded strings (alphanumeric)',
+        detail: 'Convex IDs must be lowercase alphanumeric strings (0-9, a-z)',
         provided: convexId,
       }, { status: 400 })
     }

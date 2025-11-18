@@ -2,6 +2,9 @@
 /**
  * Seed Advisor Test User
  *
+ * ⚠️ DEVELOPMENT ONLY - DO NOT RUN IN PRODUCTION ⚠️
+ * This script uses hardcoded test passwords and is intended for local development only.
+ *
  * Creates a test advisor user in Clerk and Convex with:
  * - Advisor role in Clerk public_metadata
  * - Associated with a test university
@@ -98,11 +101,20 @@ async function main() {
     process.exit(1)
   }
 
+  // Production safety check
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
+    console.error('❌ SECURITY ERROR: This script must not be run in production!')
+    console.error('This script contains hardcoded test passwords and is for development only.')
+    process.exit(1)
+  }
+
+  // ⚠️ TEST PASSWORD - DEVELOPMENT ONLY
+  // Never use this password in production or for real user accounts
   const PASSWORD = process.env.SEED_TEST_PASSWORD || 'V3ry$Strong!Pa55-2025#'
   const domain = process.env.SEED_TEST_DOMAIN || 'ascentful.io'
   const testUniversityId = process.env.SEED_TEST_UNIVERSITY_ID || 'temp'
 
-  console.log('\n🚀 Seeding Advisor Test User\n')
+  console.log('\n🚀 Seeding Advisor Test User (DEVELOPMENT ONLY)\n')
 
   // 1. Create advisor user in Clerk
   const advisorEmail = `test.advisor@${domain}`

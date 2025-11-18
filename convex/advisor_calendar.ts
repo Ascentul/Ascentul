@@ -38,7 +38,10 @@ export const getSessionsInRange = query({
       .filter((q) =>
         q.and(
           q.lte(q.field('start_at'), args.endDate),
-          q.gte(q.field('end_at'), args.startDate),
+          q.or(
+            q.gte(q.field('end_at'), args.startDate),
+            q.eq(q.field('end_at'), undefined)
+          ),
         ),
       )
       .collect();
@@ -96,14 +99,14 @@ export const getFollowUpsInRange = query({
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
-    // TODO: Migrate to follow_ups table (see convex/migrate_follow_ups.ts)
+    // Migrated to follow_ups table (unified table for all follow-up tasks)
     const followUps = await ctx.db
-      .query('advisor_follow_ups') // DEPRECATED: Use follow_ups table instead
-      .withIndex('by_advisor', (q) =>
-        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
-      )
+      .query('follow_ups')
+      .withIndex('by_university', (q) => q.eq('university_id', universityId))
       .filter((q) =>
         q.and(
+          q.eq(q.field('created_by_id'), sessionCtx.userId),
+          q.eq(q.field('created_by_type'), 'advisor'),
           q.gte(q.field('due_at'), args.startDate),
           q.lte(q.field('due_at'), args.endDate),
           q.eq(q.field('status'), 'open'),
@@ -113,7 +116,7 @@ export const getFollowUpsInRange = query({
 
     // Enrich with student names
     // Optimize by fetching each unique student only once (reduces N database reads to 1 per unique student)
-    const uniqueStudentIds = Array.from(new Set(followUps.map((f) => f.student_id)));
+    const uniqueStudentIds = Array.from(new Set(followUps.map((f) => f.user_id)));
 
     // Use allSettled to handle individual fetch failures gracefully (e.g., deleted students)
     const studentFetchResults = await Promise.allSettled(
@@ -130,10 +133,10 @@ export const getFollowUpsInRange = query({
     );
 
     const enrichedFollowUps = followUps.map((followUp) => {
-      const student = studentsMap.get(followUp.student_id);
+      const student = studentsMap.get(followUp.user_id);
       return {
         _id: followUp._id,
-        student_id: followUp.student_id,
+        student_id: followUp.user_id, // Return as student_id for backward compatibility
         student_name: student?.name || 'Unknown',
         title: followUp.title,
         description: followUp.description,
@@ -175,14 +178,14 @@ export const getCalendarStats = query({
       )
       .collect();
 
-    // TODO: Migrate to follow_ups table (see convex/migrate_follow_ups.ts)
+    // Migrated to follow_ups table (unified table for all follow-up tasks)
     const followUps = await ctx.db
-      .query('advisor_follow_ups') // DEPRECATED: Use follow_ups table instead
-      .withIndex('by_advisor', (q) =>
-        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
-      )
+      .query('follow_ups')
+      .withIndex('by_university', (q) => q.eq('university_id', universityId))
       .filter((q) =>
         q.and(
+          q.eq(q.field('created_by_id'), sessionCtx.userId),
+          q.eq(q.field('created_by_type'), 'advisor'),
           q.gte(q.field('due_at'), args.startDate),
           q.lte(q.field('due_at'), args.endDate),
           q.eq(q.field('status'), 'open'),
@@ -217,6 +220,7 @@ export const getCalendarStats = query({
       totalSessions: sessions.length,
       completedSessions,
       upcomingSessions,
+      inProgressSessions,
       totalFollowUps: followUps.length,
       overdueFollowUps,
       totalHours: Math.round(totalHours * 10) / 10,

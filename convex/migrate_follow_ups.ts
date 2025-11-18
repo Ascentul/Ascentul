@@ -66,8 +66,11 @@ export const migrateFollowUps = mutation({
 
       if (existingMigration) {
         if (existingMigration.status === 'completed') {
+          const completedDate = existingMigration.completed_at 
+            ? new Date(existingMigration.completed_at).toISOString()
+            : 'unknown time';
           throw new Error(
-            `Migration '${MIGRATION_NAME}' has already completed successfully at ${new Date(existingMigration.completed_at!).toISOString()}. ` +
+            `Migration '${MIGRATION_NAME}' has already completed successfully at ${completedDate}. ` +
             `Migrated: ${JSON.stringify(existingMigration.metadata)}. ` +
             'To re-run anyway, use: npx convex run migrate_follow_ups:migrateFollowUps \'{"force": true}\' ' +
             '(WARNING: This may create duplicate records!)'

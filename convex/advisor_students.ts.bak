@@ -96,7 +96,6 @@ export const getMyCaseload = query({
     const studentIdSet = new Set<Id<"users">>(filteredStudents.map((s) => s._id));
 
     // Aggregate follow-ups once (from unified follow_ups table)
-    // Use collect() instead of take() to ensure accurate counts for all students
     const openFollowUps = await ctx.db
       .query('follow_ups')
       .withIndex('by_university', (q) => q.eq('university_id', universityId))
@@ -106,7 +105,7 @@ export const getMyCaseload = query({
           q.eq(q.field('created_by_id'), sessionCtx.userId),
         ),
       )
-      .collect();
+      .take(2000);
 
     const followUpsByStudent = new Map<Id<'users'>, number>();
     for (const followUp of openFollowUps) {
@@ -118,7 +117,6 @@ export const getMyCaseload = query({
     }
 
     // Aggregate upcoming sessions once
-    // Use collect() instead of take() to ensure accurate next session for all students
     const upcomingSessions = await ctx.db
       .query("advisor_sessions")
       .withIndex("by_advisor", (q) =>
@@ -126,7 +124,7 @@ export const getMyCaseload = query({
       )
       .filter((q) => q.gte(q.field("start_at"), now))
       .order("asc")
-      .collect();
+      .take(1000);
 
     const nextSessionByStudent = new Map<
       Id<"users">,
@@ -144,12 +142,12 @@ export const getMyCaseload = query({
     }
 
     // Aggregate application stats once
-    // Use collect() instead of take() to ensure accurate counts for all students
     const advisorApplications = await ctx.db
       .query("applications")
       .withIndex("by_advisor", (q) =>
         q.eq("assigned_advisor_id", sessionCtx.userId),
       )
+      .take(5000)
       .collect();
 
     const activeStages = new Set(ACTIVE_STAGES);
@@ -228,13 +226,13 @@ export const getStudentProfile = query({
     const universityId = requireTenant(sessionCtx);
 
     // Fetch all related data in parallel
-    // Use collect() for single-student queries to avoid silently truncating data
     const [
       goals,
       applications,
       resumes,
       coverLetters,
       projects,
+      advisorNotes,
       sessions,
       followUps,
       reviews,
@@ -243,40 +241,49 @@ export const getStudentProfile = query({
       ctx.db
         .query("goals")
         .withIndex("by_user", (q) => q.eq("user_id", args.studentId))
-        .collect(),
+        .take(100),
 
       // Applications
       ctx.db
         .query("applications")
         .withIndex("by_user", (q) => q.eq("user_id", args.studentId))
-        .collect(),
+        .take(500),
 
       // Resumes
       ctx.db
         .query("resumes")
         .withIndex("by_user", (q) => q.eq("user_id", args.studentId))
-        .collect(),
+        .take(50),
 
       // Cover Letters
       ctx.db
         .query("cover_letters")
         .withIndex("by_user", (q) => q.eq("user_id", args.studentId))
-        .collect(),
+        .take(50),
 
       // Projects
       ctx.db
         .query("projects")
         .withIndex("by_user", (q) => q.eq("user_id", args.studentId))
-        .collect(),
+        .take(100),
 
-      // Advisor sessions (fetch once, slice for recent activity)
+      // Advisor sessions (for timeline)
       ctx.db
         .query("advisor_sessions")
         .withIndex("by_student", (q) =>
           q.eq("student_id", args.studentId).eq("university_id", universityId),
         )
         .order("desc")
-        .collect(),
+        .take(100),
+
+      // Recent sessions for activity feed
+      ctx.db
+        .query("advisor_sessions")
+        .withIndex("by_student", (q) =>
+          q.eq("student_id", args.studentId).eq("university_id", universityId),
+        )
+        .order("desc")
+        .take(10),
 
       // Follow-ups (from unified follow_ups table)
       ctx.db
@@ -285,7 +292,7 @@ export const getStudentProfile = query({
           q.eq('user_id', args.studentId).eq('university_id', universityId),
         )
         .order('desc')
-        .collect(),
+        .take(100),
 
       // Reviews
       ctx.db
@@ -294,7 +301,7 @@ export const getStudentProfile = query({
           q.eq("student_id", args.studentId).eq("university_id", universityId),
         )
         .order("desc")
-        .collect(),
+        .take(50),
     ]);
 
     return {
@@ -304,8 +311,8 @@ export const getStudentProfile = query({
       resumes,
       coverLetters,
       projects,
-      sessions,
-      recentActivity: sessions.slice(0, 10), // First 10 sessions for activity feed
+      sessions: advisorNotes,
+      recentActivity: sessions,
       followUps,
       reviews,
     };
@@ -364,7 +371,6 @@ export const addAdvisorNote = mutation({
       entityId: args.studentId,
       studentId: args.studentId,
       newValue: args.note,
-      ipAddress: "server",
     });
 
     return { success: true };
@@ -463,8 +469,7 @@ export const assignStudentToAdvisor = mutation({
         studentId: args.studentId,
         previousValue: { is_owner: existing.is_owner },
         newValue: { is_owner: args.isOwner },
-      ipAddress: "server",
-    });
+      });
 
       return existing._id;
     } else {
@@ -491,8 +496,7 @@ export const assignStudentToAdvisor = mutation({
         entityId: assignmentId,
         studentId: args.studentId,
         newValue: { advisor_id: args.advisorId, is_owner: args.isOwner },
-      ipAddress: "server",
-    });
+      });
 
       return assignmentId;
     }
@@ -541,9 +545,8 @@ export const removeStudentAdvisor = mutation({
       previousValue: {
         advisor_id: assignment.advisor_id,
         is_owner: assignment.is_owner,
-        reason: args.reason,
       },
-      ipAddress: "server",
+      reason: args.reason,
     });
 
     await ctx.db.delete(args.assignmentId);

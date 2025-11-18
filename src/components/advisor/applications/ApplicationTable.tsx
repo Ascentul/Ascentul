@@ -128,6 +128,7 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
             <SelectItem value="Accepted">Accepted</SelectItem>
             <SelectItem value="Rejected">Rejected</SelectItem>
             <SelectItem value="Withdrawn">Withdrawn</SelectItem>
+            <SelectItem value="Archived">Archived</SelectItem>
           </SelectContent>
         </Select>
 
@@ -229,7 +230,7 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
                             )}
                             {app.next_step}
                           </div>
-                          {app.next_step_date && (
+                          {app.next_step_date && app.next_step_date > 0 && (
                             <div
                               className={`text-xs ${
                                 isOverdue ? "text-orange-600" : "text-muted-foreground"

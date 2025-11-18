@@ -58,7 +58,7 @@ attachments: v.optional(
 
 **Benefits**:
 - ✅ Access control enforced via Convex permissions
-- ✅ Time-limited URLs generated on-demand
+- ✅ Secure URLs generated on-demand (with access control enforcement)
 - ✅ Can revoke access by changing permissions
 - ✅ Audit trail for file access
 - ✅ Tenant isolation (university-based)
@@ -124,7 +124,9 @@ export const getSessionAttachmentUrl = query({
     const attachment = session.attachments?.find(a => a.id === args.attachmentId);
     if (!attachment) throw new Error("Attachment not found");
 
-    // 4. Generate time-limited URL (valid for 1 hour)
+    // 4. Generate download URL with access control
+    // Note: Access control is enforced by this query function, not by URL expiration
+    // Upload URLs (ctx.storage.generateUploadUrl) expire after 1 hour
     const url = await ctx.storage.getUrl(attachment.storage_id);
     return url;
   },
@@ -213,7 +215,10 @@ export const getSessionAttachment = query({
       throw new Error("Unauthorized: No permission");
     }
 
-    // 3. Generate secure URL
+    // 3. Find attachment
+    const attachment = session.attachments?.find(a => a.id === args.attachmentId);
+    if (!attachment) throw new Error("Attachment not found");
+
     return await ctx.storage.getUrl(attachment.storage_id);
   },
 });
@@ -274,10 +279,12 @@ export const getSessionAttachment = query({
 | Before (URL) | After (storage_id) |
 |-------------|-------------------|
 | ❌ No access control | ✅ Permission-based access |
-| ❌ Permanent URLs | ✅ Time-limited URLs |
+| ❌ Permanent URLs | ✅ Time-limited upload URLs* |
 | ❌ No revocation | ✅ Can revoke access |
 | ❌ No audit trail | ✅ Logged access |
 | ❌ Cross-tenant risk | ✅ Tenant isolation enforced |
+
+*Download URLs via getUrl() do not expire; upload URLs expire after 1 hour.
 
 ---
 

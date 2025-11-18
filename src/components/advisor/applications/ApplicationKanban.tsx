@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { StageTransitionModal } from './StageTransitionModal';
 import type { Id } from 'convex/_generated/dataModel';
 import { cn } from '@/lib/utils';
+import { ACTIVE_STAGES, ALL_STAGES, type ApplicationStage } from '@/lib/advisor/stages';
 
 interface Application {
   _id: string;
@@ -47,15 +48,8 @@ const STAGE_COLORS: Record<string, string> = {
   Archived: "bg-slate-100 border-slate-300",
 };
 
-const STAGE_ORDER = [
-  "Prospect",
-  "Applied",
-  "Interview",
-  "Offer",
-  "Accepted",
-  "Rejected",
-  "Withdrawn",
-];
+// Kanban view excludes 'Archived' stage from display
+const STAGE_ORDER = ALL_STAGES.filter(stage => stage !== 'Archived');
 
 export function ApplicationKanban({
   applicationsByStage,
@@ -115,7 +109,7 @@ export function ApplicationKanban({
       <div className="flex gap-4 pb-4 min-w-max">
         {STAGE_ORDER.map((stage) => {
           const applications = applicationsByStage[stage] || [];
-          const isActive = ["Prospect", "Applied", "Interview"].includes(stage);
+          const isActive = ACTIVE_STAGES.includes(stage as ApplicationStage);
           const now = Date.now();
 
           return (

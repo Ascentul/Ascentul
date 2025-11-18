@@ -72,6 +72,13 @@ export const createContactFollowup = mutation({
       throw new Error('Contact not found or unauthorized');
     }
 
+    // Verify user role for audit trail accuracy
+    // Students can have role 'user' (regular) or 'student' (university)
+    const userRole = user.role;
+    if (userRole !== 'user' && userRole !== 'student') {
+      throw new Error('createContactFollowup is only for student-created follow-ups. Advisors should use advisor-specific mutations.');
+    }
+
     const now = Date.now();
     const title =
       args.description?.substring(0, 100) || `${args.type} follow-up`;

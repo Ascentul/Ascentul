@@ -67,7 +67,7 @@ export const createFollowup = mutation({
     clerkId: v.string(),
     applicationId: v.id('applications'),
     description: v.string(),
-    due_date: v.optional(v.number()),
+    due_at: v.optional(v.number()),
     notes: v.optional(v.string()),
     type: v.optional(v.string()),
   },
@@ -81,7 +81,7 @@ export const createFollowup = mutation({
 
     const now = Date.now();
     const title =
-      args.description.substring(0, 100) ||
+      args.description?.trim().substring(0, 100) ||
       `${args.type || 'Follow-up'} task`;
 
     const id = await ctx.db.insert('follow_ups', {
@@ -106,7 +106,7 @@ export const createFollowup = mutation({
       application_id: args.applicationId, // Typed field for referential integrity
 
       // Task management
-      due_at: args.due_date,
+      due_at: args.due_at,
       status: 'open',
 
       // Timestamps
