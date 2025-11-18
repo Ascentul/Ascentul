@@ -66,6 +66,7 @@ export const completeFollowUp = mutation({
         alreadyCompleted: true,
         completed_at: followUp.completed_at,
         completed_by: followUp.completed_by,
+        verified: true, // Already in desired state, so verification would pass
       };
     }
 
@@ -88,16 +89,22 @@ export const completeFollowUp = mutation({
     // FERPA COMPLIANCE: Re-fetch to verify the patch succeeded
     // This helps detect concurrent modifications and ensures audit trail accuracy
     const afterPatch = await ctx.db.get(args.followUpId);
+    let verified = true;
+
     if (!afterPatch) {
-      // Follow-up was deleted during the operation
-      console.warn(`Follow-up ${args.followUpId} deleted during complete operation`);
-      // Still log the audit trail for compliance
+      // Follow-up was deleted during the operation - this is a hard failure
+      console.error(`Follow-up ${args.followUpId} deleted during complete operation`);
+      throw new Error(
+        "Follow-up was deleted during completion. This may indicate a concurrent deletion."
+      );
     } else if (afterPatch.status !== "done") {
       // Unexpected: patch didn't succeed or was immediately overwritten
+      // This is a soft failure - we tried to complete it, but something else changed it
       console.warn(
         `Follow-up ${args.followUpId} status is ${afterPatch.status} after completion patch. ` +
-        `Possible concurrent modification.`
+        `Expected "done". Possible concurrent modification.`
       );
+      verified = false;
     }
 
     // Audit log (FERPA compliance - capture all modified fields)
@@ -120,12 +127,14 @@ export const completeFollowUp = mutation({
     });
 
     // Return consistent shape with idempotent path (lines 63-69)
+    // verified=false means the patch may have been overwritten by concurrent modification
     return {
       success: true,
       followUpId: args.followUpId,
       alreadyCompleted: false,
       completed_at: now,
       completed_by: sessionCtx.userId,
+      verified,
     };
   },
 });
@@ -173,6 +182,7 @@ export const reopenFollowUp = mutation({
         success: true,
         followUpId: args.followUpId,
         alreadyOpen: true,
+        verified: true, // Already in desired state, so verification would pass
       };
     }
 
@@ -193,9 +203,22 @@ export const reopenFollowUp = mutation({
     // FERPA COMPLIANCE: Re-fetch to verify the patch succeeded and capture actual state
     // If a concurrent update occurred, the audit log will reflect what actually changed
     const afterPatch = await ctx.db.get(args.followUpId);
+    let verified = true;
+
     if (!afterPatch) {
-      // Follow-up was deleted during the operation - log the attempt anyway
-      console.warn(`Follow-up ${args.followUpId} deleted during reopen operation`);
+      // Follow-up was deleted during the operation - this is a hard failure
+      console.error(`Follow-up ${args.followUpId} deleted during reopen operation`);
+      throw new Error(
+        "Follow-up was deleted during reopen. This may indicate a concurrent deletion."
+      );
+    } else if (afterPatch.status !== "open") {
+      // Unexpected: patch didn't succeed or was immediately overwritten
+      // This is a soft failure - we tried to reopen it, but something else changed it
+      console.warn(
+        `Follow-up ${args.followUpId} status is ${afterPatch.status} after reopen patch. ` +
+        `Expected "open". Possible concurrent modification.`
+      );
+      verified = false;
     }
 
     // Audit log with verified state
@@ -218,10 +241,12 @@ export const reopenFollowUp = mutation({
     });
 
     // Return consistent shape with idempotent path (lines 165-169)
+    // verified=false means the patch may have been overwritten by concurrent modification
     return {
       success: true,
       followUpId: args.followUpId,
       alreadyOpen: false,
+      verified,
     };
   },
 });
