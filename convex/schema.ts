@@ -1088,6 +1088,7 @@ export default defineSchema({
     ),
     completed_at: v.optional(v.number()),
     completed_by: v.optional(v.id('users')),
+    version: v.optional(v.number()), // Optimistic concurrency control for FERPA audit accuracy
     created_at: v.number(),
     updated_at: v.number(),
   })
