@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 
         // Check if user exists in Convex and is a test user
         try {
-          const convexUser = await convex.query(api.users.getUserByClerkId, {
+          const convexUser = await convexServer.query(api.users.getUserByClerkId, {
             clerkId: userData.id,
           })
 

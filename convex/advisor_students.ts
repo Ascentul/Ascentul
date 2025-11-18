@@ -463,8 +463,8 @@ export const assignStudentToAdvisor = mutation({
         studentId: args.studentId,
         previousValue: { is_owner: existing.is_owner },
         newValue: { is_owner: args.isOwner },
-      ipAddress: "server",
-    });
+        ipAddress: "server",
+      });
 
       return existing._id;
     } else {
@@ -491,8 +491,8 @@ export const assignStudentToAdvisor = mutation({
         entityId: assignmentId,
         studentId: args.studentId,
         newValue: { advisor_id: args.advisorId, is_owner: args.isOwner },
-      ipAddress: "server",
-    });
+        ipAddress: "server",
+      });
 
       return assignmentId;
     }
