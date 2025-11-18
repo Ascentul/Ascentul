@@ -874,29 +874,6 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_expires_at", ["expires_at"]),
 
-  // Audit logs for tracking admin actions (FERPA/GDPR compliance)
-  audit_logs: defineTable({
-    action: v.string(), // Action performed (e.g., "user_deleted", "user_restored", "user_created", "role_changed")
-    target_type: v.string(), // Type of entity affected (e.g., "user", "university", "application")
-    target_id: v.string(), // ID of the affected entity
-    target_email: v.optional(v.string()), // Email of affected user (for easier searching)
-    target_name: v.optional(v.string()), // Name of affected entity (for easier viewing)
-    performed_by_id: v.id("users"), // Admin who performed the action
-    performed_by_email: v.optional(v.string()), // Email of admin (cached for viewing)
-    performed_by_name: v.optional(v.string()), // Name of admin (cached for viewing)
-    reason: v.optional(v.string()), // Reason for the action
-    metadata: v.optional(v.any()), // Additional context (old values, new values, etc.)
-    ip_address: v.optional(v.string()), // IP address of admin (if available)
-    user_agent: v.optional(v.string()), // Browser/device info (if available)
-    timestamp: v.number(), // When the action was performed
-  })
-    .index("by_action", ["action"])
-    .index("by_target", ["target_type", "target_id"])
-    .index("by_performed_by", ["performed_by_id"])
-    .index("by_timestamp", ["timestamp"])
-    .index("by_target_email", ["target_email"])
-    .index("by_clerk_date", ["clerk_id", "date"]),
-
   // ========================================
   // ADVISOR FEATURE TABLES
   // ========================================

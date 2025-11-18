@@ -379,16 +379,15 @@ export const cancelSession = mutation({
       entityType: "advisor_session",
       entityId: args.session_id,
       studentId: session.student_id,
-      reason: args.reason,
       previousValue: {
         status: session.status,
       },
       newValue: {
         status: "cancelled",
+        reason: args.reason,
       },
       ipAddress: "server",
     });
-
     return { success: true };
   },
 });

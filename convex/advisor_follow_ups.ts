@@ -38,10 +38,6 @@ export const completeFollowUp = mutation({
       throw new Error("Follow-up not found");
     }
 
-    if (followUp.status === "done") {
-      throw new Error("Follow-up is already completed");
-    }
-
     // Verify tenant isolation
     if (followUp.university_id !== universityId) {
       throw new Error("Unauthorized: Follow-up belongs to different university");
@@ -59,8 +55,27 @@ export const completeFollowUp = mutation({
       throw new Error("Unauthorized: Not the assigned advisor for this follow-up");
     }
 
+    // RACE CONDITION MITIGATION: Make this operation idempotent
+    // If already completed, return success without error (concurrent completion is acceptable)
+    // This prevents errors when multiple users complete the same follow-up simultaneously
+    if (followUp.status === "done") {
+      // Already completed - return existing completion data (idempotent)
+      return {
+        success: true,
+        followUpId: args.followUpId,
+        alreadyCompleted: true,
+        completed_at: followUp.completed_at,
+        completed_by: followUp.completed_by,
+      };
+    }
+
     const now = Date.now();
 
+    // CONCURRENCY NOTE: There's still a race window between the status check above
+    // and this patch. If two requests execute concurrently, both might pass the check.
+    // However, the operation is idempotent - the final state will be consistent,
+    // and we accept that one request's completed_by might overwrite the other.
+    // For critical audit requirements, consider adding a version field to the schema.
     await ctx.db.patch(args.followUpId, {
       status: "done",
       completed_at: now,
@@ -110,10 +125,6 @@ export const reopenFollowUp = mutation({
       throw new Error("Follow-up not found");
     }
 
-    if (followUp.status !== "done") {
-      throw new Error("Only completed follow-ups can be reopened");
-    }
-
     // Verify tenant isolation
     if (followUp.university_id !== universityId) {
       throw new Error("Unauthorized: Follow-up belongs to different university");
@@ -131,6 +142,19 @@ export const reopenFollowUp = mutation({
       throw new Error("Unauthorized: Not the assigned advisor for this follow-up");
     }
 
+    // RACE CONDITION MITIGATION: Make this operation idempotent
+    // If already open, return success without error (concurrent reopen is acceptable)
+    if (followUp.status !== "done") {
+      // Already reopened - return success (idempotent)
+      return {
+        success: true,
+        followUpId: args.followUpId,
+        alreadyOpen: true,
+      };
+    }
+
+    // CONCURRENCY NOTE: Similar race window exists between status check and patch
+    // See completeFollowUp for detailed explanation. The operation is idempotent.
     await ctx.db.patch(args.followUpId, {
       status: "open",
       completed_at: undefined,
