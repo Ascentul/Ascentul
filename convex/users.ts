@@ -25,21 +25,15 @@ async function logRoleChange(
     // Only log if performed by super_admin
     if (admin && admin.role === "super_admin") {
       await ctx.db.insert("audit_logs", {
-        action: "user_role_changed",
-        target_type: "user",
-        target_id: targetUser._id,
-        target_email: targetUser.email,
-        target_name: targetUser.name,
-        performed_by_id: admin._id,
-        performed_by_email: admin.email,
-        performed_by_name: admin.name,
-        reason: `Role changed from ${oldRole} to ${newRole}`,
-        metadata: {
-          old_role: oldRole,
-          new_role: newRole,
-          target_university_id: targetUser.university_id,
-        },
-        timestamp: Date.now(),
+        action: "user.role_changed",
+        actor_id: admin._id,
+        university_id: targetUser.university_id,
+        entity_type: "user",
+        entity_id: targetUser._id,
+        student_id: targetUser.role === "student" ? targetUser._id : undefined,
+        previous_value: { role: oldRole },
+        new_value: { role: newRole },
+        created_at: Date.now(),
       });
     }
   } catch (auditError) {
