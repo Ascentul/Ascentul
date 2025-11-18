@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
+import { mapStatusToStage, mapStageToStatus } from "./migrate_application_status_to_stage";
 
 // Get applications for a user
 export const getUserApplications = query({
@@ -69,19 +70,25 @@ export const createApplication = mutation({
     //   }
     // }
 
+    const now = Date.now();
+
     const applicationId = await ctx.db.insert("applications", {
       user_id: user._id,
       company: args.company,
       job_title: args.job_title,
       status: args.status,
+      // MIGRATION: Sync stage field from status for data consistency
+      // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
+      stage: mapStatusToStage(args.status) as any,
+      stage_set_at: now,
       source: args.source,
       url: args.url,
       notes: args.notes,
       applied_at: args.applied_at,
       resume_id: args.resume_id,
       cover_letter_id: args.cover_letter_id,
-      created_at: Date.now(),
-      updated_at: Date.now(),
+      created_at: now,
+      updated_at: now,
     });
 
     // Track activity for streak (fire-and-forget)
@@ -123,10 +130,21 @@ export const updateApplication = mutation({
       throw new Error("Application not found or unauthorized");
     }
 
-    await ctx.db.patch(args.applicationId, {
+    const now = Date.now();
+
+    // MIGRATION: Sync stage field when status changes
+    // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
+    const patchData: any = {
       ...args.updates,
-      updated_at: Date.now(),
-    });
+      updated_at: now,
+    };
+
+    if (args.updates.status) {
+      patchData.stage = mapStatusToStage(args.updates.status);
+      patchData.stage_set_at = now;
+    }
+
+    await ctx.db.patch(args.applicationId, patchData);
 
     return args.applicationId;
   },

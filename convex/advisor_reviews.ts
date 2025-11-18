@@ -248,7 +248,7 @@ export const createReview = mutation({
       cover_letter_id: args.coverLetterId,
       status: "waiting",
       comments: [],
-      version: 0, // Initialize version for optimistic concurrency control
+      version: 1, // Initialize version for optimistic concurrency control
       created_at: now,
       updated_at: now,
     });

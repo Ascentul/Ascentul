@@ -20,33 +20,6 @@ import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 import { Id } from './_generated/dataModel';
 
-/**
- * Count records in a table using pagination to avoid memory issues
- * @param ctx - Database context
- * @param tableName - Name of the table to count
- * @returns Total number of records
- */
-async function countWithPagination(
-  ctx: any,
-  tableName: string
-): Promise<number> {
-  let count = 0;
-  let cursor: string | null = null;
-  let isDone = false;
-
-  while (!isDone) {
-    const page: any = await ctx.db
-      .query(tableName)
-      .order('asc')
-      .paginate({ cursor, numItems: 1000 });
-    count += page.page.length;
-    cursor = page.continueCursor;
-    isDone = page.isDone;
-  }
-
-  return count;
-}
-
 export const migrateFollowUps = mutation({
   args: {
     dryRun: v.optional(v.boolean()), // Set to true to preview changes without committing
@@ -91,9 +64,16 @@ export const migrateFollowUps = mutation({
       }
 
       // Additional check: count records to detect partial migrations
-      const followUpsCount = await countWithPagination(ctx, 'follow_ups');
-      const followupActionsCount = await countWithPagination(ctx, 'followup_actions');
-      const advisorFollowUpsCount = await countWithPagination(ctx, 'advisor_follow_ups');
+      // Use collect() instead of pagination - Convex doesn't allow multiple paginated queries
+      const [followUps, followupActions, advisorFollowUps] = await Promise.all([
+        ctx.db.query('follow_ups').collect(),
+        ctx.db.query('followup_actions').collect(),
+        ctx.db.query('advisor_follow_ups').collect(),
+      ]);
+
+      const followUpsCount = followUps.length;
+      const followupActionsCount = followupActions.length;
+      const advisorFollowUpsCount = advisorFollowUps.length;
       const expectedCount = followupActionsCount + advisorFollowUpsCount;
 
       if (followUpsCount > 0 && followUpsCount !== expectedCount) {
@@ -506,10 +486,16 @@ export const verifyMigration = query({
   handler: async (ctx, args) => {
     const sampleSize = args.sampleSize ?? 100;
 
-    // Count checks using pagination to avoid memory issues with large tables
-    const followupActionsCount = await countWithPagination(ctx, 'followup_actions');
-    const advisorFollowUpsCount = await countWithPagination(ctx, 'advisor_follow_ups');
-    const followUpsCount = await countWithPagination(ctx, 'follow_ups');
+    // Count checks using collect() - Convex doesn't allow multiple paginated queries
+    const [followupActions, advisorFollowUps, followUps] = await Promise.all([
+      ctx.db.query('followup_actions').collect(),
+      ctx.db.query('advisor_follow_ups').collect(),
+      ctx.db.query('follow_ups').collect(),
+    ]);
+
+    const followupActionsCount = followupActions.length;
+    const advisorFollowUpsCount = advisorFollowUps.length;
+    const followUpsCount = followUps.length;
 
     const expected = followupActionsCount + advisorFollowUpsCount;
     const actual = followUpsCount;

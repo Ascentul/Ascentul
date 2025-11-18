@@ -34,6 +34,7 @@ export const ALL_STAGES: readonly ApplicationStage[] = [
  * - Prospect: Researching/considering application
  * - Applied: Submitted, waiting for response
  * - Interview: Active interview process
+ * - Offer: Received offer, decision pending
  */
 export const ACTIVE_STAGES: readonly ApplicationStage[] = [
   'Prospect',

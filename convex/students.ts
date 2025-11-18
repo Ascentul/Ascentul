@@ -2,7 +2,34 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery, action, QueryCtx, MutationCtx } from "./_generated/server";
 import { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
-import { validate as validateEmail } from "email-validator";
+
+/**
+ * Basic email format validation
+ *
+ * IMPORTANT: This is a simplified validation for Convex compatibility.
+ * The email-validator package is not compatible with Convex's V8 isolate environment.
+ *
+ * Current validation ONLY checks:
+ * - Non-whitespace characters before @
+ * - Non-whitespace characters after @ and before .
+ * - Non-whitespace characters after final .
+ *
+ * This regex does NOT validate:
+ * - RFC 5322 compliance
+ * - Internationalized domain names (IDN)
+ * - Plus-addressing or special characters
+ * - Length limits (local part max 64, domain max 255)
+ * - IPv6 address literals
+ * - Quoted strings in local parts
+ *
+ * Trade-off: We rely on email delivery systems to catch actual delivery issues.
+ * This basic validation prevents obviously malformed addresses while remaining
+ * compatible with Convex's runtime environment.
+ */
+function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
 
 /**
  * Valid academic year classifications for students
@@ -301,13 +328,10 @@ export const createInviteInternal = internalMutation({
     // This ensures we don't reject valid emails due to formatting differences
     const normalizedEmail = args.email.toLowerCase().trim();
 
-    // 1. Validate email format using email-validator library
-    // This library provides comprehensive RFC 5322 validation including:
-    // - Internationalized domain names (IDN)
-    // - Plus-addressing and other valid special characters
-    // - Proper length validation (local part max 64, domain max 255)
-    // - IPv6 address literals
-    // - Quoted strings in local parts
+    // 1. Validate email format using basic regex validation
+    // NOTE: This is simplified validation for Convex compatibility (see validateEmail function)
+    // Checks basic structure only: local@domain.tld
+    // Email delivery systems will catch actual delivery issues
     if (!validateEmail(normalizedEmail)) {
       throw new Error("Invalid email format. Please provide a valid email address.");
     }

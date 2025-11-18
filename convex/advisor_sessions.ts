@@ -131,7 +131,9 @@ export const getSessions = query({
     if (args.endDate !== undefined) {
       const endDate = args.endDate; // Capture for type narrowing
       sessions = sessions.filter((s) => {
-        const sessionDate = s.scheduled_at || s.start_at;
+        // Note: scheduled_at should always be set after migration
+        // Fallback to start_at for backward compatibility with old data
+        const sessionDate = s.scheduled_at ?? s.start_at;
         return sessionDate <= endDate;
       });
     }
@@ -229,7 +231,7 @@ export const createSession = mutation({
       advisor_id: sessionCtx.userId,
       university_id: universityId,
       title: args.title,
-      scheduled_at: args.scheduledAt,
+      scheduled_at: args.scheduledAt ?? args.startAt, // Fallback to startAt for query consistency
       start_at: args.startAt,
       end_at: args.endAt,
       duration_minutes: args.durationMinutes,
@@ -367,8 +369,8 @@ export const updateSession = mutation({
         studentId: session.student_id,
         previousValue: previousVisibility,
         newValue: args.updates.visibility,
-      ipAddress: "server",
-    });
+        ipAddress: "server",
+      });
     }
 
     return { success: true, newVersion };

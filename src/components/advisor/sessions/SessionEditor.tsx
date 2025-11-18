@@ -83,7 +83,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
     setStatus(session.status || 'scheduled');
     setCurrentVersion(session.version);
     setHasUnsavedChanges(false);
-  }, [session]);
+  }, [session._id, session.version]);
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -229,27 +229,24 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
         clearTimeout(autosaveTimerRef.current);
       }
     };
-  }, [hasUnsavedChanges]); // Remove saveChanges from deps to prevent infinite loop
+  }, [hasUnsavedChanges, saveChanges]);
 
-  // Save on unmount if there are unsaved changes
-  const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
-  const isSavingRef = useRef(isSaving);
-  const saveChangesRef = useRef(saveChanges);
-
-  // Keep refs up to date
+  // Save when tab becomes hidden (more reliable than unmount)
+  // This catches cases like tab switching, window closing, or navigation
   useEffect(() => {
-    hasUnsavedChangesRef.current = hasUnsavedChanges;
-    isSavingRef.current = isSaving;
-    saveChangesRef.current = saveChanges;
-  }, [hasUnsavedChanges, isSaving, saveChanges]);
-
-  useEffect(() => {
-    return () => {
-      if (hasUnsavedChangesRef.current && !isSavingRef.current) {
-        void saveChangesRef.current();
+    const handleVisibilityChange = () => {
+      if (document.hidden && hasUnsavedChanges && !isSaving) {
+        // Save immediately when tab becomes hidden
+        // Browser gives more time to complete visibility change operations
+        void saveChanges();
       }
     };
-  }, []);
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [hasUnsavedChanges, isSaving, saveChanges]);
   // Manual save button
   const handleManualSave = async () => {
     const success = await saveChanges();

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSignUp, useAuth } from '@clerk/nextjs'
+import type { SignUpCreateParams } from '@clerk/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -268,11 +269,11 @@ export default function Page() {
       setSubmitting(true)
 
       // Build signup params with university metadata if applicable
-      const signUpParams: any = {
+      const signUpParams: SignUpCreateParams = {
         emailAddress: formData.email,
         password: formData.password,
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
       }
 
       // Pass university invite data to Clerk for webhook processing

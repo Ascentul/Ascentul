@@ -189,6 +189,13 @@ export default function AdvisorSupportPage() {
         variant: 'success'
       })
     } catch (error: any) {
+      // Revert optimistic update on error
+      if (selectedTicket && selectedTicket._id === ticketId) {
+        const original = tickets?.find(t => t._id === ticketId);
+        if (original) {
+          setSelectedTicket({ ...selectedTicket, status: original.status });
+        }
+      }
       toast({
         title: 'Error',
         description: error.message || 'Failed to update status',

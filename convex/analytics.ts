@@ -1019,13 +1019,15 @@ export const getUserDashboardAnalytics = query({
       ctx.db.query("career_paths").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
     ]);
 
-    // Calculate stats
+    // Calculate stats using stage field (source of truth)
+    // MIGRATION: Using stage instead of status for consistency
+    // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
     const applicationStats = {
       total: applications.length,
-      applied: applications.filter(app => app.status === "applied").length,
-      interview: applications.filter(app => app.status === "interview").length,
-      offer: applications.filter(app => app.status === "offer").length,
-      rejected: applications.filter(app => app.status === "rejected").length,
+      applied: applications.filter(app => app.stage === "Applied").length,
+      interview: applications.filter(app => app.stage === "Interview").length,
+      offer: applications.filter(app => app.stage === "Offer" || app.stage === "Accepted").length,
+      rejected: applications.filter(app => app.stage === "Rejected" || app.stage === "Withdrawn").length,
     };
 
     const activeGoals = goals.filter(goal =>
@@ -1083,26 +1085,27 @@ export const getUserDashboardAnalytics = query({
         });
       }
 
+      // MIGRATION: Using stage instead of status
       if (
-        app.status !== "saved" &&
+        app.stage && app.stage !== "Prospect" &&
         app.updated_at &&
         app.updated_at !== app.created_at
       ) {
-        const statusText =
-          app.status === "applied"
+        const stageText =
+          app.stage === "Applied"
             ? "Applied to"
-            : app.status === "interview"
+            : app.stage === "Interview"
               ? "Moved to interviews for"
-              : app.status === "offer"
+              : app.stage === "Offer" || app.stage === "Accepted"
                 ? "Received an offer from"
-                : app.status === "rejected"
+                : app.stage === "Rejected" || app.stage === "Withdrawn"
                   ? "Closed application for"
                   : "Updated application for";
 
         addActivity({
           id: `application-update-${app._id}`,
           type: "application_update",
-          description: `${statusText} ${app.company}`,
+          description: `${stageText} ${app.company}`,
           timestamp: app.updated_at,
         });
       }

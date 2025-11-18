@@ -86,6 +86,7 @@ export const createSession = mutation({
       university_id: universityId,
       title: args.title,
       session_type: args.session_type,
+      scheduled_at: args.start_at, // Always set for date-range query consistency
       start_at: args.start_at,
       end_at,
       duration_minutes: args.duration_minutes,
@@ -179,6 +180,7 @@ export const updateSession = mutation({
       updated_at: number;
       title?: string;
       session_type?: "career_planning" | "resume_review" | "mock_interview" | "application_strategy" | "general_advising" | "other";
+      scheduled_at?: number;
       start_at?: number;
       end_at?: number;
       duration_minutes?: number;
@@ -201,6 +203,8 @@ export const updateSession = mutation({
     }
     if (args.start_at !== undefined) {
       updates.start_at = args.start_at;
+      // Keep scheduled_at in sync with start_at for query consistency
+      updates.scheduled_at = args.start_at;
     }
     if (args.duration_minutes !== undefined) {
       updates.duration_minutes = args.duration_minutes;

@@ -17,7 +17,7 @@ import type { Id } from "./_generated/dataModel";
 export interface AdvisorSessionContext {
   userId: Id<"users">;
   clerkId: string;
-  role: "advisor" | "university_admin" | "super_admin" | "student" | "user" | "staff" | "admin";
+  role: "advisor" | "university_admin" | "super_admin" | "student" | "individual" | "user" | "staff";
   universityId: Id<"universities"> | undefined;
   email: string;
 }

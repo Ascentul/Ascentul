@@ -37,7 +37,7 @@ interface DayCardProps {
   day: Date;
   sessions: Session[];
   followUps: FollowUp[];
-  now: number,
+  now: number;
 }
 
 export function DayCard({ day, sessions, followUps, now }: DayCardProps) {

@@ -172,8 +172,11 @@ export const getCalendarStats = query({
       )
       .filter((q) =>
         q.and(
-          q.gte(q.field('start_at'), args.startDate),
           q.lte(q.field('start_at'), args.endDate),
+          q.or(
+            q.gte(q.field('end_at'), args.startDate),
+            q.eq(q.field('end_at'), undefined)
+          ),
         ),
       )
       .collect();

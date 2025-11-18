@@ -1,192 +1,225 @@
-# Technical Debt: Migrate from ConvexHttpClient to Next.js Utilities
+# Technical Debt: Migrate from ConvexHttpClient to convex/nextjs Utilities
 
 ## Issue
 
-**Priority**: Medium
-**Effort**: Medium (33 files affected)
-**Risk**: Low (backward compatible)
+**Priority**: MEDIUM
+**Effort**: Medium (36 files affected)
+**Risk**: LOW - Current implementation works but not following best practices
+**Impact**: Performance, Authentication, Best Practices
 
 ## Problem
 
-Current implementation uses `ConvexHttpClient` from `convex/browser` in server-side API routes:
+The application currently uses `ConvexHttpClient` from `convex/browser` for server-side Convex operations. This is a legacy pattern that works but is not the recommended approach for Next.js App Router applications.
+
+### Current Pattern (Legacy)
 
 ```typescript
 // src/lib/convex-server.ts
-import { ConvexHttpClient } from 'convex/browser'; // ❌ Browser client in server context
+import { ConvexHttpClient } from 'convex/browser';
+export const convexServer = new ConvexHttpClient(process.env.CONVEX_URL!);
 
-export const convexServer = new ConvexHttpClient(CONVEX_URL);
+// Usage in API routes
+import { convexServer } from '@/lib/convex-server';
+const user = await convexServer.query(api.users.getUserByClerkId, { clerkId });
 ```
 
-This pattern is **not recommended** for Next.js server-side operations. Convex provides dedicated Next.js utilities that are better optimized for Server Components, Server Actions, and Route Handlers.
+### Issues with Current Approach
+
+1. **Wrong Import Source**: Uses `convex/browser` which is intended for client-side usage
+2. **Not Next.js Optimized**: Doesn't leverage Next.js-specific optimizations
+3. **Manual URL Management**: Requires manual CONVEX_URL environment variable handling
+4. **Authentication Complexity**: Doesn't automatically integrate with Next.js auth context
+5. **Deviation from Docs**: Official Convex docs recommend `convex/nextjs` for server-side operations
 
 ## Recommended Solution
 
-Use Next.js-specific utilities from `convex/nextjs`:
+Use the Next.js-specific utilities from `convex/nextjs`:
+
+### For API Routes and Server Actions
 
 ```typescript
-// Instead of:
-import { convexServer } from '@/lib/convex-server';
-const user = await convexServer.query(api.users.getUserByClerkId, { clerkId });
+import { fetchQuery, fetchMutation, fetchAction } from 'convex/nextjs';
 
-// Use:
-import { fetchQuery } from 'convex/nextjs';
-import { api } from '@/convex/_generated/api';
+// Queries
 const user = await fetchQuery(api.users.getUserByClerkId, { clerkId });
+
+// Mutations
+const result = await fetchMutation(api.users.updateUser, { clerkId, updates });
+
+// Actions
+const data = await fetchAction(api.external.processData, { input });
 ```
 
-## Benefits
+### For Server Components with Preloading
 
-1. **Next.js Optimized**: Built specifically for Next.js 13+ App Router
-2. **Better Performance**: Designed for server-side rendering and caching
-3. **Type Safety**: Better TypeScript integration with Next.js patterns
-4. **Official Pattern**: Matches Convex documentation and best practices
-5. **Token Support**: Built-in support for passing auth tokens
+```typescript
+// Server Component
+import { preloadQuery } from 'convex/nextjs';
+import { api } from 'convex/_generated/api';
 
-## Affected Files (33 API Routes)
+export default async function MyServerComponent() {
+  const preloadedData = await preloadQuery(api.myQuery, { args });
 
-All files currently importing `convexServer`:
+  return <MyClientComponent preloadedData={preloadedData} />;
+}
 
+// Client Component
+"use client";
+import { usePreloadedQuery, Preloaded } from 'convex/react';
+
+interface Props {
+  preloadedData: Preloaded<typeof api.myQuery>;
+}
+
+export function MyClientComponent({ preloadedData }: Props) {
+  const data = usePreloadedQuery(preloadedData);
+  // Use data...
+}
 ```
-src/app/api/clerk/webhook/route.ts
-src/app/api/stripe/checkout/route.ts
-src/app/api/university/export-reports/route.ts
-src/app/api/university/sync-clerk-metadata/route.ts
-src/app/api/university/assign-student/route.ts
-src/app/api/university/export-data/route.ts
-src/app/api/debug/grant-pro/route.ts
-src/app/api/ai-coach/conversations/[id]/messages/route.ts
-src/app/api/achievements/route.ts
-src/app/api/users/me/route.ts
-src/app/api/university/send-invitations/route.ts
-src/app/api/support/tickets/route.ts
-src/app/api/stripe/portal/route.ts
-src/app/api/recommendations/daily/route.ts
-src/app/api/goals/[id]/route.ts
-src/app/api/goals/route.ts
-src/app/api/projects/route.ts
-src/app/api/cover-letters/route.ts
-src/app/api/cover-letters/analyze/route.ts
-src/app/api/cover-letters/generate/route.ts
-src/app/api/contacts/[id]/route.ts
-src/app/api/contacts/route.ts
-src/app/api/career-paths/generate/route.ts
-src/app/api/career-paths/route.ts
-src/app/api/career-paths/[id]/name/route.ts
-src/app/api/career-paths/[id]/route.ts
-src/app/api/career-path/generate-from-job/route.ts
-src/app/api/career-path/generate/route.ts
-src/app/api/ai-coach/generate-response/route.ts
-src/app/api/career-data/profile/route.ts
-src/app/api/ai-coach/conversations/route.ts
-src/app/api/achievements/user/route.ts
-src/app/api/achievements/award/route.ts
-```
+
+## Benefits of Migration
+
+1. **Official Best Practice**: Follows Convex's recommended pattern for Next.js
+2. **Better Integration**: Automatically handles deployment URL configuration
+3. **Auth Integration**: Better integration with Next.js authentication context
+4. **Performance**: Optimized for Next.js server rendering patterns
+5. **Type Safety**: Better TypeScript support for preloaded queries
+6. **Future-Proof**: Aligned with modern Next.js App Router patterns
+
+## Files Requiring Migration
+
+### API Routes (36 files)
+All files currently importing from `@/lib/convex-server`:
+
+- `src/app/api/ai-coach/conversations/[id]/messages/route.ts`
+- `src/app/api/ai-coach/conversations/route.ts`
+- `src/app/api/ai-coach/generate-response/route.ts`
+- `src/app/api/debug/grant-pro/route.ts`
+- `src/app/api/clerk/webhook/route.ts`
+- `src/app/api/stripe/checkout/route.ts`
+- `src/app/api/stripe/portal/route.ts`
+- `src/app/api/university/export-reports/route.ts`
+- `src/app/api/university/sync-clerk-metadata/route.ts`
+- `src/app/api/university/assign-student/route.ts`
+- `src/app/api/university/export-data/route.ts`
+- `src/app/api/university/send-invitations/route.ts`
+- `src/app/api/admin/clerk-sync/route.ts`
+- `src/app/api/achievements/route.ts`
+- `src/app/api/achievements/user/route.ts`
+- `src/app/api/achievements/award/route.ts`
+- `src/app/api/users/me/route.ts`
+- `src/app/api/support/tickets/route.ts`
+- `src/app/api/recommendations/daily/route.ts`
+- `src/app/api/goals/[id]/route.ts`
+- `src/app/api/goals/route.ts`
+- `src/app/api/projects/route.ts`
+- `src/app/api/cover-letters/route.ts`
+- `src/app/api/cover-letters/analyze/route.ts`
+- `src/app/api/cover-letters/generate/route.ts`
+- `src/app/api/contacts/[id]/route.ts`
+- `src/app/api/contacts/route.ts`
+- `src/app/api/career-paths/generate/route.ts`
+- `src/app/api/career-paths/route.ts`
+- `src/app/api/career-paths/[id]/name/route.ts`
+- `src/app/api/career-paths/[id]/route.ts`
+- `src/app/api/career-path/generate-from-job/route.ts`
+- `src/app/api/career-path/generate/route.ts`
+- `src/app/api/career-data/profile/route.ts`
+- `src/lib/convex-server.ts` (delete after migration)
+- `src/__tests__/ai-coach-api.test.ts`
 
 ## Migration Steps
 
-### 1. Update Imports (Each File)
+### Phase 1: Update Individual Route (Example)
 
-```diff
-- import { convexServer } from '@/lib/convex-server';
-+ import { fetchQuery, fetchMutation, fetchAction } from 'convex/nextjs';
-```
-
-### 2. Update Query Calls
-
-```diff
-- const result = await convexServer.query(api.users.getUserByClerkId, { clerkId });
-+ const result = await fetchQuery(api.users.getUserByClerkId, { clerkId });
-```
-
-### 3. Update Mutation Calls
-
-```diff
-- const result = await convexServer.mutation(api.users.updateUser, { ... });
-+ const result = await fetchMutation(api.users.updateUser, { ... });
-```
-
-### 4. Pass Auth Tokens (If Needed)
-
+**Before:**
 ```typescript
-// With authentication
-const result = await fetchQuery(
-  api.users.getUserByClerkId,
-  { clerkId },
-  { token: authToken }  // Optional JWT token
-);
+import { convexServer } from '@/lib/convex-server';
+
+export async function GET(request: Request) {
+  const user = await convexServer.query(api.users.getUserByClerkId, { clerkId });
+  return Response.json(user);
+}
 ```
 
-### 5. Environment Variables
+**After:**
+```typescript
+import { fetchQuery } from 'convex/nextjs';
 
-Ensure `NEXT_PUBLIC_CONVEX_URL` is set (already required):
-```env
-NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
+export async function GET(request: Request) {
+  const user = await fetchQuery(api.users.getUserByClerkId, { clerkId });
+  return Response.json(user);
+}
 ```
 
-### 6. Remove Deprecated File
+### Phase 2: Batch Migration
 
-After migration complete:
-```bash
-rm src/lib/convex-server.ts
-```
+1. **Find and Replace Pattern**:
+   ```bash
+   # Find usage
+   grep -r "convexServer.query" src/app/api/
+   grep -r "convexServer.mutation" src/app/api/
+
+   # Replace pattern (manual verification required)
+   convexServer.query(api.X, ...) -> fetchQuery(api.X, ...)
+   convexServer.mutation(api.X, ...) -> fetchMutation(api.X, ...)
+   convexServer.action(api.X, ...) -> fetchAction(api.X, ...)
+   ```
+
+2. **Update Imports**:
+   ```typescript
+   // Remove
+   - import { convexServer } from '@/lib/convex-server';
+
+   // Add
+   + import { fetchQuery, fetchMutation } from 'convex/nextjs';
+   ```
+
+3. **Test Each Route**: Verify functionality after migration
+
+### Phase 3: Cleanup
+
+1. Add deprecation warning to `src/lib/convex-server.ts`
+2. Migrate all 36 files
+3. Delete `src/lib/convex-server.ts`
+4. Update documentation
 
 ## Testing Strategy
 
-1. **Unit Tests**: Ensure no breaking changes in API responses
-2. **Integration Tests**: Test auth token passing
-3. **Incremental Migration**: Migrate one route at a time
-4. **Rollback Plan**: Keep `convex-server.ts` until all routes migrated
+For each migrated route:
 
-## Timeline
-
-- **Week 1**: Migrate 10 routes (prioritize high-traffic routes)
-- **Week 2**: Migrate remaining 23 routes
-- **Week 3**: Testing and cleanup
+1. **Functional Test**: Verify the route still works correctly
+2. **Auth Test**: Confirm authentication still works
+3. **Error Handling**: Ensure errors are handled properly
+4. **Performance**: Compare response times (should be same or better)
 
 ## Breaking Changes
 
-**None** - This is a drop-in replacement with identical behavior.
+**None** - This is an internal refactoring. The API contracts remain the same.
+
+## Rollback Plan
+
+If issues arise:
+1. Git revert the changes
+2. Keep `src/lib/convex-server.ts` in place
+3. No data loss or schema changes involved
 
 ## References
 
-- [Convex Next.js Documentation](https://docs.convex.dev/client/react/nextjs/server-rendering)
-- [Type Definitions](node_modules/convex/dist/cjs-types/nextjs/index.d.ts)
-- Original Issue: Identified during code review (2024-11-18)
+- **Official Documentation**: https://docs.convex.dev/client/react/nextjs/server-rendering
+- **Next.js Integration Guide**: https://docs.convex.dev/client/react/nextjs/
+- **API Reference**: https://docs.convex.dev/api/modules/nextjs
+- **Demo Repository**: https://github.com/get-convex/convex-nextjs-app-router-demo
 
-## Example Migration
+## Priority Justification
 
-### Before:
-```typescript
-// src/app/api/users/me/route.ts
-import { convexServer } from '@/lib/convex-server';
-import { api } from '@/convex/_generated/api';
+**Medium Priority** because:
+- ✅ Current implementation works (no broken functionality)
+- ✅ Low risk (internal refactoring only)
+- ❌ Deviates from official best practices
+- ❌ May cause confusion for developers following Convex docs
+- ❌ Could impact future features that rely on Next.js-specific optimizations
 
-export async function GET(request: NextRequest) {
-  const { userId } = await auth();
-  const user = await convexServer.query(api.users.getUserByClerkId, {
-    clerkId: userId,
-  });
-  return NextResponse.json(user);
-}
-```
+**Should be addressed**: During next refactoring sprint or when touching related code.
 
-### After:
-```typescript
-// src/app/api/users/me/route.ts
-import { fetchQuery } from 'convex/nextjs';
-import { api } from '@/convex/_generated/api';
-
-export async function GET(request: NextRequest) {
-  const { userId } = await auth();
-  const user = await fetchQuery(api.users.getUserByClerkId, {
-    clerkId: userId,
-  });
-  return NextResponse.json(user);
-}
-```
-
-## Notes
-
-- Current implementation works but is not the recommended pattern
-- No security issues, just architectural improvement
-- Can be done gradually without disrupting existing functionality
+**Not urgent**: No immediate functional issues or security concerns.

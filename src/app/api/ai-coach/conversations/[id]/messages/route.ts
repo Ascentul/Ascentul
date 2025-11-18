@@ -18,12 +18,22 @@ export async function GET(
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const conversationId = params.id
-    
-    // Validate ID format (Convex IDs are lowercase alphanumeric strings)
-    if (!conversationId || !/^[0-9a-z]+$/.test(conversationId)) {
-      return NextResponse.json({ error: 'Invalid conversation ID' }, { status: 400 })
+
+    // Validate ID format - Convex IDs use Crockford Base32 (excludes i, l, o, u)
+    if (!conversationId || !/^[0-9a-hj-km-np-z]+$/.test(conversationId)) {
+      return NextResponse.json({ error: 'Invalid conversation ID format' }, { status: 400 })
     }
-    
+
+    // Verify conversation exists and belongs to user (prevents unauthorized access)
+    const conversations = await convexServer.query(api.ai_coach.getConversations, {
+      clerkId: userId
+    })
+
+    const conversation = conversations.find((c: any) => c._id === conversationId)
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation not found or access denied' }, { status: 404 })
+    }
+
     const messages = await convexServer.query(api.ai_coach.getMessages, {
       clerkId: userId,
       conversationId: conversationId as Id<'ai_coach_conversations'>
@@ -50,6 +60,21 @@ export async function POST(
 
     if (!content || typeof content !== 'string') {
       return NextResponse.json({ error: 'Message content is required' }, { status: 400 })
+    }
+
+    // Validate ID format - Convex IDs use Crockford Base32 (excludes i, l, o, u)
+    if (!conversationId || !/^[0-9a-hj-km-np-z]+$/.test(conversationId)) {
+      return NextResponse.json({ error: 'Invalid conversation ID format' }, { status: 400 })
+    }
+
+    // Verify conversation exists and belongs to user (prevents unauthorized access)
+    const conversations = await convexServer.query(api.ai_coach.getConversations, {
+      clerkId: userId
+    })
+
+    const conversation = conversations.find((c: any) => c._id === conversationId)
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation not found or access denied' }, { status: 404 })
     }
 
     // Get conversation history for context

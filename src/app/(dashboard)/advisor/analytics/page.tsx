@@ -28,7 +28,6 @@ export default function AdvisorAnalyticsPage() {
           <CardContent className="flex flex-col items-center justify-center h-[400px] text-center space-y-4">
             <LineChart className="h-16 w-16 text-muted-foreground/50" />
             <div className="space-y-2">
-              <div className="space-y-2">
               <p className="text-lg font-medium">Analytics dashboard coming soon</p>
               <p className="text-sm text-muted-foreground max-w-md">
                 This page will display caseload metrics, stage velocity charts, offer acceptance rates,

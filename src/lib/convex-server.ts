@@ -1,8 +1,22 @@
 /**
- * Server-side Convex client utility
+ * Server-side Convex utilities for Next.js
  *
- * Provides a singleton ConvexHttpClient instance for API routes.
- * Uses server-only CONVEX_URL environment variable (not exposed to browser).
+ * DEPRECATED: This file uses the legacy ConvexHttpClient pattern.
+ *
+ * RECOMMENDED MIGRATION:
+ * Import fetchQuery, fetchMutation, fetchAction directly from 'convex/nextjs' instead:
+ *
+ * @example Before (deprecated):
+ * import { convexServer } from '@/lib/convex-server';
+ * const user = await convexServer.query(api.users.getUserByClerkId, { clerkId });
+ *
+ * @example After (recommended):
+ * import { fetchQuery } from 'convex/nextjs';
+ * const user = await fetchQuery(api.users.getUserByClerkId, { clerkId });
+ *
+ * See: https://docs.convex.dev/client/react/nextjs/server-rendering
+ *
+ * MIGRATION STATUS: 36 files still using this legacy pattern (tracked in docs/TECH_DEBT_CONVEX_NEXTJS.md)
  */
 
 import { ConvexHttpClient } from 'convex/browser';
@@ -14,12 +28,9 @@ if (!CONVEX_URL) {
 }
 
 /**
- * Singleton ConvexHttpClient instance for server-side use
+ * @deprecated Use fetchQuery, fetchMutation, fetchAction from 'convex/nextjs' instead
  *
- * Use this in API routes instead of creating new clients:
- * @example
- * import { convexServer } from '@/lib/convex-server';
- *
- * const user = await convexServer.query(api.users.getUserByClerkId, { clerkId });
+ * Singleton ConvexHttpClient instance for server-side use (LEGACY PATTERN)
+ * This works but is not the recommended approach for Next.js App Router.
  */
 export const convexServer = new ConvexHttpClient(CONVEX_URL);

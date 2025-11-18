@@ -105,6 +105,7 @@ export const getAuditLogs = query({
         .take(args.limit || 100)
       return logs
     } else if (args.target_email) {
+      // Use by_target_email index for efficient email-based queries
       const logs = await ctx.db
         .query("audit_logs")
         .withIndex("by_target_email", (q) => q.eq("target_email", args.target_email!))
@@ -145,6 +146,7 @@ export const getAuditLogsPaginated = query({
         .order("desc")
         .paginate(args.paginationOpts)
     } else if (args.target_email) {
+      // Use by_target_email index for efficient paginated email-based queries
       return await ctx.db
         .query("audit_logs")
         .withIndex("by_target_email", (q) => q.eq("target_email", args.target_email!))
@@ -172,11 +174,11 @@ export const getAuditLogsForUser = query({
     // Verify super admin
     await requireSuperAdmin(ctx)
 
+    // Use by_target index for efficient user-specific queries
     const logs = await ctx.db
       .query("audit_logs")
       .withIndex("by_target", (q) =>
-        q.eq("target_type", "user").eq("target_id", args.targetUserId)
-      )
+        q.eq("target_type", "user").eq("target_id", args.targetUserId))
       .order("desc")
       .take(50)
 
@@ -267,7 +269,7 @@ export const getAuditLogStats = query({
 
     // Filter end date in memory if needed (can't use index for upper bound)
     const filteredLogs = args.endDate
-      ? allLogs.filter(log => log.timestamp <= args.endDate!)
+      ? allLogs.filter(log => log.timestamp !== undefined && log.timestamp <= args.endDate!)
       : allLogs
 
     // Count by action type

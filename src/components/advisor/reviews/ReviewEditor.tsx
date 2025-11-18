@@ -81,6 +81,13 @@ export function ReviewEditor({
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Sync local state when review is updated externally (e.g., by another user/session)
+  // This prevents stale state comparisons and ensures version tracking is accurate
+  useEffect(() => {
+    setFeedback(review.feedback || "");
+    setCurrentVersion(review.version);
+  }, [review.feedback, review.version, review._id]);
+
   // Track if feedback has changed
   useEffect(() => {
     const changed = feedback !== (review.feedback || "");

@@ -69,7 +69,10 @@ export function ReviewQueueSnapshot({ reviews, isLoading }: ReviewQueueSnapshotP
               // Validate date timestamp and provide fallback
               let timeAgo: string;
               if (isNaN(submittedDate.getTime())) {
-                console.error(`Invalid submitted_at timestamp for review ${review._id}:`, review.submitted_at);
+                // Log to error tracking service without exposing IDs in production
+                if (process.env.NODE_ENV === 'development') {
+                  console.error(`Invalid submitted_at timestamp for review ${review._id}:`, review.submitted_at);
+                }
                 timeAgo = 'at unknown time';
               } else {
                 timeAgo = formatDistanceToNow(submittedDate, {

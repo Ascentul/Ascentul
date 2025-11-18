@@ -126,10 +126,6 @@ export default defineSchema({
     university_admin_notes: v.optional(v.string()),
     // User preferences
     hide_progress_card: v.optional(v.boolean()),
-    // Legacy deletion fields (for hard-deleted users)
-    deleted_at: v.optional(v.number()),
-    deleted_by: v.optional(v.id("users")),
-    deleted_reason: v.optional(v.string()),
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -491,6 +487,9 @@ export default defineSchema({
     // Completion audit trail
     completed_at: v.optional(v.number()),
     completed_by: v.optional(v.id('users')),
+
+    // Optimistic concurrency control for FERPA audit accuracy
+    version: v.optional(v.number()),
 
     // Timestamps
     created_at: v.number(),
@@ -1041,19 +1040,24 @@ export default defineSchema({
   // =============================================================================
   // DEPRECATED: Legacy advisor_follow_ups table
   // =============================================================================
-  // STATUS: Deprecated - Consolidated into follow_ups table
+  // STATUS: ✅ READY FOR REMOVAL - All queries migrated to follow_ups table
   // MIGRATION SCRIPT: convex/migrate_follow_ups.ts (migrateFollowUps mutation)
-  // USAGE: Run 'npx convex run migrate_follow_ups:migrateFollowUps' to migrate data
-  // VERIFICATION: Run 'npx convex query migrate_follow_ups:verifyMigration' after migration
+  // MIGRATION STATUS: Complete - all active queries have been updated
+  // VERIFICATION: Run 'npx convex query migrate_follow_ups:verifyMigration' to confirm data migration
   //
-  // ⚠️ WARNING: Active queries still reference this table:
-  // - convex/advisor_dashboard.ts:152
-  // - convex/advisor_calendar.ts:94, 166
-  // - convex/advisor_today.ts:69
-  // These queries MUST be updated to use follow_ups before this table can be removed.
+  // ✅ ALL QUERIES MIGRATED:
+  // - convex/advisor_dashboard.ts - Now uses follow_ups table
+  // - convex/advisor_calendar.ts - Now uses follow_ups table
+  // - convex/advisor_today.ts - Now uses follow_ups table
+  //
+  // REMOVAL PROCESS:
+  // 1. Verify data migration: npx convex query migrate_follow_ups:verifyMigration
+  // 2. Confirm no production data loss
+  // 3. Remove this table definition from schema
+  // 4. Remove convex/advisor_follow_ups.ts file
+  // 5. Update migration docs
   //
   // NEW CODE: Must use follow_ups table - DO NOT insert/query this table
-  // REMOVAL TIMELINE: After updating all queries and successful production migration (TBD)
   //
   // NOTE: This table was replaced to consolidate student-created and advisor-created
   // follow-ups into a single unified table with better ownership tracking and multi-tenancy.
@@ -1088,7 +1092,12 @@ export default defineSchema({
     ),
     completed_at: v.optional(v.number()),
     completed_by: v.optional(v.id('users')),
-    version: v.optional(v.number()), // Optimistic concurrency control for FERPA audit accuracy
+    // MIGRATION ONLY: Version field required for safe operation during migration period
+    // This field enables FERPA-compliant optimistic locking in advisor_follow_ups.ts
+    // mutations (completeFollowUp, reopenFollowUp) while active queries still reference
+    // this deprecated table. Once all queries are migrated to follow_ups table and
+    // convex/advisor_follow_ups.ts is removed, this field becomes unused.
+    version: v.optional(v.number()),
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -1153,7 +1162,9 @@ export default defineSchema({
     .index("by_university", ["university_id", "created_at"]) // Tenant-scoped queries
     .index("by_action", ["action", "created_at"]) // Find all instances of a specific action type
     .index("by_created_at", ["created_at"]) // Retention policy: find old logs for archival
-    .index("by_timestamp", ["timestamp"]), // Legacy: retention policy for old logs
+    .index("by_timestamp", ["timestamp"]) // Legacy: retention policy for old logs
+    .index("by_target", ["target_type", "target_id", "timestamp"]) // Legacy: Find logs by target (user-specific queries)
+    .index("by_target_email", ["target_email", "timestamp"]), // Legacy: Find logs by target email
 
   // Migration tracking table for idempotency and state management
   migration_state: defineTable({

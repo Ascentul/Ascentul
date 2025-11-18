@@ -23,3 +23,8 @@ out/
 
 TEST_ACCOUNTS.md
 .env*.local
+
+# Backup files
+*.bak
+*.backup
+*~

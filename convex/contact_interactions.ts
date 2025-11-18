@@ -101,7 +101,7 @@ export const createContactFollowup = mutation({
 
       // Relationships (dual-field pattern: populate both generic and typed fields)
       related_type: 'contact',
-      related_id: args.contactId, // String version for composite index queries
+      related_id: args.contactId as string, // String version for composite index queries
       contact_id: args.contactId, // Typed field for referential integrity
 
       // Task management

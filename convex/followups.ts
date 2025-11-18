@@ -148,11 +148,37 @@ export const updateFollowup = mutation({
 
     const now = Date.now();
 
+    // RACE CONDITION MITIGATION: Idempotent handling for status changes
+    const statusChangingToDone = args.updates.status === 'done' && item.status !== 'done';
+    const statusChangingToOpen = args.updates.status === 'open' && item.status === 'done';
+
+    // If status is already in desired state, return success (idempotent)
+    if (args.updates.status === 'done' && item.status === 'done') {
+      return {
+        success: true,
+        followupId: args.followupId,
+        alreadyCompleted: true,
+        completed_at: item.completed_at,
+        completed_by: item.completed_by,
+        verified: true,
+      };
+    }
+
+    if (args.updates.status === 'open' && item.status !== 'done') {
+      return {
+        success: true,
+        followupId: args.followupId,
+        alreadyOpen: true,
+        verified: true,
+      };
+    }
+
     // Build patch data with explicit typing for completion fields
     type PatchData = Partial<typeof item> & {
       updated_at: number;
       completed_at?: number | undefined;
       completed_by?: typeof user._id | undefined;
+      version?: number;
     };
 
     const patchData: PatchData = {
@@ -160,19 +186,61 @@ export const updateFollowup = mutation({
       updated_at: now,
     };
 
-    // If status changed to done, set completion fields
-    if (args.updates.status === 'done' && item.status !== 'done') {
-      patchData.completed_at = now;
-      patchData.completed_by = user._id;
-    }
-    // If status changed back to open, clear completion fields
-    if (args.updates.status === 'open' && item.status === 'done') {
-      patchData.completed_at = undefined;
-      patchData.completed_by = undefined;
-    }
+    // FERPA COMPLIANCE: Optimistic locking for status changes
+    // Status changes affect audit trail and must be tracked accurately
+    if (statusChangingToDone || statusChangingToOpen) {
+      const currentVersion = item.version ?? 0;
+      patchData.version = currentVersion + 1;
 
-    await ctx.db.patch(args.followupId, patchData);
-    return args.followupId;
+      // Set/clear completion fields based on status change
+      if (statusChangingToDone) {
+        patchData.completed_at = now;
+        patchData.completed_by = user._id;
+      } else if (statusChangingToOpen) {
+        patchData.completed_at = undefined;
+        patchData.completed_by = undefined;
+      }
+
+      await ctx.db.patch(args.followupId, patchData);
+
+      // Verify the patch succeeded by checking version
+      const afterPatch = await ctx.db.get(args.followupId);
+
+      if (!afterPatch) {
+        // Follow-up was deleted during the operation - hard failure
+        console.error(`Follow-up ${args.followupId} deleted during update operation`);
+        throw new Error(
+          'Follow-up was deleted during update. This may indicate a concurrent deletion.'
+        );
+      }
+
+      if (afterPatch.version !== currentVersion + 1) {
+        // Version mismatch: concurrent modification occurred
+        console.error(
+          `Follow-up ${args.followupId} version mismatch. ` +
+          `Expected ${currentVersion + 1}, got ${afterPatch.version}. ` +
+          `Concurrent modification detected.`
+        );
+        throw new Error(
+          'Follow-up was modified by another request. Please refresh and try again.'
+        );
+      }
+
+      // Return consistent shape with idempotent paths
+      return {
+        success: true,
+        followupId: args.followupId,
+        alreadyCompleted: false,
+        alreadyOpen: false,
+        completed_at: statusChangingToDone ? now : undefined,
+        completed_by: statusChangingToDone ? user._id : undefined,
+        verified: true,
+      };
+    } else {
+      // Non-status updates don't need optimistic locking
+      await ctx.db.patch(args.followupId, patchData);
+      return args.followupId;
+    }
   },
 });
 
