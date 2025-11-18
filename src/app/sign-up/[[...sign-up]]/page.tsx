@@ -211,11 +211,29 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null)
   const [resending, setResending] = useState(false)
 
-  // Pre-fill email from URL parameter if provided
+  // University invite data from URL parameters
+  const [universityInvite, setUniversityInvite] = useState<{
+    university: string | null
+    email: string | null
+  }>({
+    university: null,
+    email: null,
+  })
+
+  // Pre-fill email and university from URL parameters if provided
   useEffect(() => {
     const inviteEmail = searchParams.get('email')
+    const university = searchParams.get('university')
+
     if (inviteEmail) {
       setFormData(prev => ({ ...prev, email: inviteEmail }))
+    }
+
+    if (university || inviteEmail) {
+      setUniversityInvite({
+        university: university,
+        email: inviteEmail,
+      })
     }
   }, [searchParams])
 
@@ -258,7 +276,8 @@ export default function Page() {
       }
 
       // Pass university invite data to Clerk for webhook processing
-      if (tab === 'university' && universityInvite.university) {
+      // This happens when user signs up via university invitation link (URL params)
+      if (universityInvite.university) {
         signUpParams.unsafeMetadata = {
           universityInvite: {
             universityName: universityInvite.university,
