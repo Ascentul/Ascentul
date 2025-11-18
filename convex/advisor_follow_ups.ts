@@ -119,7 +119,14 @@ export const completeFollowUp = mutation({
       ipAddress: "server",
     });
 
-    return { success: true };
+    // Return consistent shape with idempotent path (lines 63-69)
+    return {
+      success: true,
+      followUpId: args.followUpId,
+      alreadyCompleted: false,
+      completed_at: now,
+      completed_by: sessionCtx.userId,
+    };
   },
 });
 
@@ -210,6 +217,11 @@ export const reopenFollowUp = mutation({
       ipAddress: "server",
     });
 
-    return { success: true };
+    // Return consistent shape with idempotent path (lines 165-169)
+    return {
+      success: true,
+      followUpId: args.followUpId,
+      alreadyOpen: false,
+    };
   },
 });
