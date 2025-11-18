@@ -30,7 +30,7 @@ async function logRoleChange(
         university_id: targetUser.university_id,
         entity_type: "user",
         entity_id: targetUser._id,
-        student_id: targetUser.role === "student" ? targetUser._id : undefined,
+        student_id: newRole === "student" ? targetUser._id : undefined,
         previous_value: { role: oldRole },
         new_value: { role: newRole },
         created_at: Date.now(),
