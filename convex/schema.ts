@@ -422,7 +422,9 @@ export default defineSchema({
     .index("by_user", ["user_id"])
     .index("by_status", ["status"])
     .index("by_stage", ["stage"])
-    .index("by_advisor", ["assigned_advisor_id"]),
+    .index("by_advisor", ["assigned_advisor_id"])
+    .index("by_due_date", ["due_date"]) // For overdue/upcoming queries
+    .index("by_stage_due_date", ["stage", "due_date"]), // For active + overdue filtering
 
   // Unified follow-ups table (replaces followup_actions and advisor_follow_ups)
   follow_ups: defineTable({

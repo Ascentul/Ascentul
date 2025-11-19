@@ -1,31 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AdvisorGate } from "@/components/advisor/AdvisorGate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ApplicationKanban } from "@/components/advisor/applications/ApplicationKanban";
-import { ApplicationTable } from "@/components/advisor/applications/ApplicationTable";
+import { ApplicationKanbanEnhanced } from "@/components/advisor/applications/ApplicationKanbanEnhanced";
+import { ApplicationTableEnhanced } from "@/components/advisor/applications/ApplicationTableEnhanced";
+import { ApplicationsHeader } from "./components/ApplicationsHeader";
+import { AdvancedFiltersPanel } from "./components/AdvancedFiltersPanel";
+import { CompactFilterBar } from "./components/CompactFilterBar";
+import { ActiveFiltersChips } from "./components/ActiveFiltersChips";
+import { QuickFilterPills } from "./components/QuickFilterPills";
+import { EmptyState, ApplicationsLoadingSkeleton } from "./components/EmptyStates";
+import { BulkActionBar } from "./components/BulkActionBar";
+import { useApplicationFilters, useAvailableCohorts } from "./hooks/useApplicationFilters";
+import { useApplicationSelection } from "./hooks/useApplicationSelection";
+import { enrichApplicationsWithNeedAction } from "./hooks/useNeedActionRules";
+import { ApplicationViewMode, ApplicationScope, EnrichedApplication } from "./types";
 import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
-import {
-  LayoutGrid,
-  Table as TableIcon,
-  TrendingUp,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Target,
-} from "lucide-react";
+import { Id } from "convex/_generated/dataModel";
+import { AlertCircle } from "lucide-react";
 
 export default function AdvisorApplicationsPage() {
   const { user } = useUser();
   const clerkId = user?.id;
+  const userRole = user?.publicMetadata?.role as string | undefined;
 
-  const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
+  // ============================================================================
+  // View State
+  // ============================================================================
+
+  const [viewMode, setViewMode] = useState<ApplicationViewMode>("table");
+  const [scope, setScope] = useState<ApplicationScope>("my-students");
+  const [showFilters, setShowFilters] = useState(false);
+
+  // ============================================================================
+  // Data Fetching
+  // ============================================================================
 
   const applicationsByStage = useQuery(
     api.advisor_applications.getApplicationsByStage,
@@ -41,6 +55,188 @@ export default function AdvisorApplicationsPage() {
     api.advisor_applications.getApplicationStats,
     clerkId ? { clerkId } : "skip"
   );
+
+  // ============================================================================
+  // Mutations
+  // ============================================================================
+
+  const bulkUpdateStageMutation = useMutation(api.advisor_applications.bulkUpdateApplicationStage);
+  const bulkArchiveMutation = useMutation(api.advisor_applications.bulkArchiveApplications);
+  const bulkUpdateNextStepMutation = useMutation(api.advisor_applications.bulkUpdateNextStep);
+  const bulkMarkReviewedMutation = useMutation(api.advisor_applications.bulkMarkReviewed);
+
+  // ============================================================================
+  // Filter & Selection State
+  // ============================================================================
+
+  const filterHook = useApplicationFilters();
+  const selectionHook = useApplicationSelection();
+
+  // ============================================================================
+  // Data Enrichment & Filtering
+  // ============================================================================
+
+  // Enrich applications with need-action metadata
+  const enrichedApplications = useMemo(() => {
+    if (!applications) return [];
+
+    return enrichApplicationsWithNeedAction(applications);
+  }, [applications]);
+
+  // Apply filters
+  const filteredApplications = useMemo(() => {
+    return filterHook.applyFilters(enrichedApplications);
+  }, [enrichedApplications, filterHook]);
+
+  // Get available cohorts for filter UI
+  const availableCohorts = useAvailableCohorts(enrichedApplications);
+
+  // ============================================================================
+  // Metric Click Handlers (Apply Filters)
+  // ============================================================================
+
+  const handleFilterByActive = () => {
+    filterHook.setActiveOnly(true);
+    filterHook.setStages([]);
+  };
+
+  const handleFilterByOffers = () => {
+    filterHook.setStages(['Offer']);
+    filterHook.setActiveOnly(false);
+  };
+
+  const handleFilterByAccepted = () => {
+    filterHook.setStages(['Accepted']);
+    filterHook.setActiveOnly(false);
+  };
+
+  const handleFilterByNeedAction = () => {
+    filterHook.setNeedsAction(true);
+    filterHook.setActiveOnly(false);
+  };
+
+  const handleFilterByNeedActionReason = (reason: EnrichedApplication['needActionReasons'][number]) => {
+    filterHook.setNeedActionReason(reason);
+  };
+
+  // ============================================================================
+  // Bulk Actions
+  // ============================================================================
+
+  const handleBulkChangeStage = async (newStage: EnrichedApplication['stage'], notes?: string) => {
+    if (!clerkId) return;
+
+    const selectedIds = selectionHook.getSelectedIds();
+
+    try {
+      const result = await bulkUpdateStageMutation({
+        clerkId,
+        applicationIds: selectedIds,
+        newStage,
+        notes,
+      });
+
+      // Show success/error feedback
+      if (result.success > 0) {
+        console.log(`Successfully updated ${result.success} applications`);
+      }
+      if (result.failed > 0) {
+        console.error(`Failed to update ${result.failed} applications:`, result.errors);
+      }
+
+      // Clear selection after bulk action
+      selectionHook.clearSelection();
+    } catch (error) {
+      console.error('Bulk update failed:', error);
+    }
+  };
+
+  const handleBulkArchive = async (reason: string) => {
+    if (!clerkId) return;
+
+    const selectedIds = selectionHook.getSelectedIds();
+
+    try {
+      const result = await bulkArchiveMutation({
+        clerkId,
+        applicationIds: selectedIds,
+        reason,
+      });
+
+      if (result.success > 0) {
+        console.log(`Successfully archived ${result.success} applications`);
+      }
+      if (result.failed > 0) {
+        console.error(`Failed to archive ${result.failed} applications:`, result.errors);
+      }
+
+      selectionHook.clearSelection();
+    } catch (error) {
+      console.error('Bulk archive failed:', error);
+    }
+  };
+
+  const handleBulkUpdateNextStep = async (nextStep: string, dueDate?: number) => {
+    if (!clerkId) return;
+
+    const selectedIds = selectionHook.getSelectedIds();
+
+    try {
+      const result = await bulkUpdateNextStepMutation({
+        clerkId,
+        applicationIds: selectedIds,
+        nextStep,
+        dueDate,
+      });
+
+      if (result.success > 0) {
+        console.log(`Successfully updated ${result.success} applications`);
+      }
+      if (result.failed > 0) {
+        console.error(`Failed to update ${result.failed} applications:`, result.errors);
+      }
+
+      selectionHook.clearSelection();
+    } catch (error) {
+      console.error('Bulk update next step failed:', error);
+    }
+  };
+
+  const handleBulkMarkReviewed = async () => {
+    if (!clerkId) return;
+
+    const selectedIds = selectionHook.getSelectedIds();
+
+    try {
+      const result = await bulkMarkReviewedMutation({
+        clerkId,
+        applicationIds: selectedIds,
+      });
+
+      if (result.success > 0) {
+        console.log(`Successfully marked ${result.success} applications as reviewed`);
+      }
+      if (result.failed > 0) {
+        console.error(`Failed to mark ${result.failed} applications as reviewed:`, result.errors);
+      }
+
+      selectionHook.clearSelection();
+    } catch (error) {
+      console.error('Bulk mark reviewed failed:', error);
+    }
+  };
+
+  // ============================================================================
+  // Empty State Detection
+  // ============================================================================
+
+  const isEmpty = enrichedApplications.length === 0;
+  const hasNoResults = !isEmpty && filteredApplications.length === 0;
+  const hasNoActionNeeded = filterHook.filters.needsAction && filteredApplications.length === 0;
+
+  // ============================================================================
+  // Render
+  // ============================================================================
 
   return (
     <AdvisorGate requiredFlag="advisor.applications">
@@ -59,137 +255,153 @@ export default function AdvisorApplicationsPage() {
         }
       >
         <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Applications</h1>
-            <p className="text-muted-foreground mt-1">
-              Track student application pipelines
-            </p>
-          </div>
+          {/* Loading State */}
+          {applications === undefined && (
+            <ApplicationsLoadingSkeleton viewMode={viewMode} />
+          )}
 
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === "kanban" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("kanban")}
-            >
-              <LayoutGrid className="h-4 w-4 mr-2" />
-              Kanban
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-            >
-              <TableIcon className="h-4 w-4 mr-2" />
-              Table
-            </Button>
-          </div>
-        </div>
+          {/* Only show UI when data is loaded */}
+          {applications !== undefined && (
+            <>
+              {/* Header with Metrics */}
+              <ApplicationsHeader
+                stats={stats}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                scope={scope}
+                onScopeChange={setScope}
+                canViewAllStudents={userRole === 'university_admin'}
+                searchQuery={filterHook.filters.search}
+                onSearchChange={filterHook.setSearch}
+                showFilters={showFilters}
+                onToggleFilters={() => setShowFilters(!showFilters)}
+                hasActiveFilters={filterHook.hasActiveFilters}
+                onFilterByActive={handleFilterByActive}
+                onFilterByOffers={handleFilterByOffers}
+                onFilterByAccepted={handleFilterByAccepted}
+                onFilterByNeedAction={handleFilterByNeedAction}
+                onFilterByNeedActionReason={handleFilterByNeedActionReason}
+              />
 
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.total ?? "-"}</div>
-            </CardContent>
-          </Card>
+              {/* Quick Filter Pills (shown when there are need-action apps) */}
+              <QuickFilterPills
+                stats={stats}
+                activeReason={filterHook.filters.needActionReason}
+                onFilterByReason={handleFilterByNeedActionReason}
+              />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active</CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.active ?? "-"}</div>
-            </CardContent>
-          </Card>
+              {/* Compact Filter Bar for Inbox Mode */}
+              <CompactFilterBar
+                needsAction={filterHook.filters.needsAction}
+                selectedStages={filterHook.filters.stages}
+                timeWindow={filterHook.filters.timeWindow}
+                scope={scope}
+                onNeedsActionChange={filterHook.setNeedsAction}
+                onStagesChange={filterHook.setStages}
+                onTimeWindowChange={filterHook.setTimeWindow}
+                onScopeChange={setScope}
+                onOpenAdvancedFilters={() => setShowFilters(true)}
+                canViewAllStudents={userRole === 'university_admin'}
+                hasActiveFilters={filterHook.hasActiveFilters}
+              />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Offers</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {stats?.offers ?? "-"}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Accepted</CardTitle>
-              <CheckCircle className="h-4 w-4 text-emerald-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-emerald-600">
-                {stats?.accepted ?? "-"}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Need Action</CardTitle>
-              <AlertCircle className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {stats?.needingAction ?? "-"}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Conv. Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats?.conversionRate ?? "-"}%
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Applications View */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {viewMode === "kanban" ? (
-                <LayoutGrid className="h-5 w-5" />
-              ) : (
-                <TableIcon className="h-5 w-5" />
-              )}
-              Application Pipeline
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {viewMode === "kanban" ? (
-              <ApplicationKanban
-                applicationsByStage={applicationsByStage || {}}
-                isLoading={applicationsByStage === undefined}
-                clerkId={clerkId}
-                onRefresh={() => {
-                  // Convex will automatically refetch when data changes
-                  // No manual refresh needed
+              {/* Active Filter Chips */}
+              <ActiveFiltersChips
+                filters={filterHook.filters}
+                onRemoveStage={(stage) => {
+                  filterHook.setStages(filterHook.filters.stages.filter(s => s !== stage));
                 }}
+                onRemoveCohort={(cohort) => {
+                  filterHook.setCohorts(filterHook.filters.cohorts.filter(c => c !== cohort));
+                }}
+                onRemoveNeedsAction={() => filterHook.setNeedsAction(false)}
+                onRemoveNeedActionReason={() => filterHook.setNeedActionReason(undefined)}
+                onRemoveActiveOnly={() => filterHook.setActiveOnly(false)}
+                onRemoveTimeWindow={() => filterHook.setTimeWindow('all')}
+                onClearAll={filterHook.clearFilters}
               />
-            ) : (
-              <ApplicationTable
-                applications={applications || []}
-                isLoading={applications === undefined}
-              />
-            )}
-          </CardContent>
-        </Card>
+
+              {/* Advanced Filters Panel (Collapsible) */}
+              {showFilters && (
+                <AdvancedFiltersPanel
+                  filters={filterHook.filters}
+                  availableCohorts={availableCohorts}
+                  onToggleStage={filterHook.toggleStage}
+                  onSetStages={filterHook.setStages}
+                  onToggleCohort={filterHook.toggleCohort}
+                  onSetCohorts={filterHook.setCohorts}
+                  onSetActiveOnly={filterHook.setActiveOnly}
+                  onClearFilters={filterHook.clearFilters}
+                  onSetDateRange={filterHook.setAppliedDateRange}
+                />
+              )}
+            </>
+          )}
+
+          {/* Main Content */}
+          {applications !== undefined && (
+            <Card>
+              <CardContent className="p-6">
+                {/* Empty State: No Applications */}
+                {isEmpty && (
+                  <EmptyState
+                    type="no-apps"
+                    onViewAllStudents={() => {
+                      // TODO: Navigate to students page
+                      console.log('Navigate to students');
+                    }}
+                  />
+                )}
+
+                {/* Empty State: No Action Needed (Positive!) */}
+                {!isEmpty && hasNoActionNeeded && (
+                  <EmptyState type="no-action-needed" />
+                )}
+
+                {/* Empty State: No Results from Filters */}
+                {!isEmpty && hasNoResults && !hasNoActionNeeded && (
+                  <EmptyState
+                    type="no-results"
+                    onClearFilters={filterHook.clearFilters}
+                  />
+                )}
+
+                {/* Kanban View */}
+                {!isEmpty && !hasNoResults && viewMode === "kanban" && (
+                  <ApplicationKanbanEnhanced
+                    applications={filteredApplications}
+                    isLoading={false}
+                    clerkId={clerkId}
+                    onRefresh={() => {
+                      // Convex will automatically refetch when data changes
+                      // No manual refresh needed
+                    }}
+                  />
+                )}
+
+                {/* Table View */}
+                {!isEmpty && !hasNoResults && viewMode === "table" && (
+                  <ApplicationTableEnhanced
+                    applications={filteredApplications}
+                    isLoading={false}
+                    clerkId={clerkId}
+                    selectionHook={selectionHook}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
+
+        {/* Bulk Action Bar (Floating) */}
+        <BulkActionBar
+          selectedCount={selectionHook.selectedCount}
+          onClearSelection={selectionHook.clearSelection}
+          onChangeStage={handleBulkChangeStage}
+          onArchive={handleBulkArchive}
+          onUpdateNextStep={handleBulkUpdateNextStep}
+          onMarkReviewed={handleBulkMarkReviewed}
+        />
       </ErrorBoundary>
     </AdvisorGate>
   );

@@ -54,6 +54,18 @@ export const getUserByClerkId = query({
   },
 });
 
+// Get user by email (useful for webhook sync verification)
+export const getUserByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+    return user;
+  },
+});
+
 // DEPRECATED: Legacy Stripe integration - Use Clerk Billing instead
 // Kept for backwards compatibility only
 export const setStripeCustomer = mutation({
@@ -200,14 +212,17 @@ export const createUser = mutation({
         username: args.username || pendingUser.username,
         profile_image: args.profile_image,
         account_status: "active",
-        // Preserve university assignment from invitation
+        // Preserve university assignment and role from pending user
+        // Only override role if explicitly provided in args (from Clerk metadata)
+        ...(args.role ? { role: args.role } : {}),
         // Update cached subscription data if provided, otherwise keep university plan
         subscription_plan: args.subscription_plan || pendingUser.subscription_plan || "free",
         subscription_status: args.subscription_status || pendingUser.subscription_status || "active",
         updated_at: Date.now(),
       });
 
-      console.log(`[createUser] Activated pending university student: ${pendingUser._id}`);
+      const finalRole = args.role || pendingUser.role;
+      console.log(`[createUser] Activated pending user: ${pendingUser._id} (role: ${finalRole})`);
       return pendingUser._id;
     }
 

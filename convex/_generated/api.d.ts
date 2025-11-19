@@ -54,6 +54,7 @@ import type * as projects from "../projects.js";
 import type * as recommendations from "../recommendations.js";
 import type * as resumes from "../resumes.js";
 import type * as seed_advisor_data from "../seed_advisor_data.js";
+import type * as seed_test_student from "../seed_test_student.js";
 import type * as set_advisor_role from "../set_advisor_role.js";
 import type * as students from "../students.js";
 import type * as support_tickets from "../support_tickets.js";
@@ -116,6 +117,7 @@ declare const fullApi: ApiFromModules<{
   recommendations: typeof recommendations;
   resumes: typeof resumes;
   seed_advisor_data: typeof seed_advisor_data;
+  seed_test_student: typeof seed_test_student;
   set_advisor_role: typeof set_advisor_role;
   students: typeof students;
   support_tickets: typeof support_tickets;
