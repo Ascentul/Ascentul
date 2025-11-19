@@ -785,23 +785,6 @@ export default function ResumeEditorPage() {
         })
       }
 
-      // Fallback: Additional Content from uploaded resume
-      const extractedText: string | undefined = typeof (resume?.content as any)?.extractedText === 'string' ? (resume?.content as any).extractedText : undefined
-      if (extractedText && extractedText.trim().length > 0) {
-        if (y > pageHeight - margin - 20) { doc.addPage(); y = margin }
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(12)
-        applyTemplateStyle()
-        doc.text('Additional Content (from uploaded resume)', margin, y)
-        doc.setTextColor(0, 0, 0)
-        moveY(6)
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(10)
-        const wrapped = doc.splitTextToSize(extractedText, usableWidth) as string[]
-        wrapped.forEach(line => { if (y > pageHeight - margin) { doc.addPage(); y = margin } doc.text(line, margin, y); y += 5 })
-        moveY(2)
-      }
-
       const fileName = `${(title || contactInfo?.name || 'resume').replace(/\s+/g, '_')}.pdf`
       doc.save(fileName)
       toast({ title: 'Exported', description: 'PDF downloaded successfully.', variant: 'success' })

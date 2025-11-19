@@ -344,11 +344,10 @@ export default function ResumesPage() {
           education: parsedData.education || [],
           projects: parsedData.projects || [],
           achievements: parsedData.achievements || [],
-          extractedText: text, // Keep original text as fallback
         },
         visibility: 'private',
         source: 'pdf_upload',
-        extracted_text: text,
+        extracted_text: text, // Keep raw text for AI analysis, but not in content
       })
 
       toast({
@@ -887,23 +886,6 @@ export default function ResumesPage() {
           }
           moveY(2)
         })
-      }
-
-      // Fallback: Additional Content from uploaded resume
-      const extractedText: string | undefined = typeof content.extractedText === 'string' ? content.extractedText : undefined
-      if (extractedText && extractedText.trim().length > 0) {
-        if (y > pageHeight - margin - 20) { doc.addPage(); y = margin }
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(12)
-        applyTemplateStyle()
-        doc.text('Additional Content (from uploaded resume)', margin, y)
-        doc.setTextColor(0, 0, 0)
-        moveY(6)
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(10)
-        const wrapped = doc.splitTextToSize(extractedText, usableWidth) as string[]
-        wrapped.forEach((line) => { if (y > pageHeight - margin) { doc.addPage(); y = margin } doc.text(line, margin, y); y += 5 })
-        moveY(2)
       }
 
       const fileName = `${(resume.title || fullName || 'resume').replace(/\s+/g, '_')}.pdf`
