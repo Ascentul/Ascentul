@@ -10,8 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Save, Trash2, ArrowLeft, Download, Plus, X, Upload as UploadIcon } from "lucide-react"
-import { jsPDF } from 'jspdf'
 import { useToast } from "@/hooks/use-toast"
+import { generateResumePDF } from "@/lib/resume-pdf-generator"
+import type { ResumeData } from "@/components/resume/ResumeDocument"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -450,360 +451,31 @@ export default function ResumeEditorPage() {
     ))
   }
 
-  // PDF export with template support
+  // PDF export using unified generator
   const exportPdf = async () => {
     try {
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
-      const margin = selectedTemplate === "minimal" ? 20 : 15
-      const pageWidth = doc.internal.pageSize.getWidth()
-      const usableWidth = pageWidth - margin * 2
-      const pageHeight = doc.internal.pageSize.getHeight()
-      let y = margin
-
-      const moveY = (amount: number) => {
-        y += amount
-        if (y > pageHeight - margin) {
-          doc.addPage()
-          y = margin
-        }
-      }
-
-      // Apply template-specific styling
-      const applyTemplateStyle = () => {
-        if (selectedTemplate === "modern") {
-          doc.setTextColor(12, 41, 171) // Primary blue
-        } else if (selectedTemplate === "classic") {
-          doc.setTextColor(0, 0, 0)
-        } else {
-          doc.setTextColor(60, 60, 60)
-        }
-      }
-
-      // Header - Contact Info
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(selectedTemplate === "modern" ? 20 : 18)
-      applyTemplateStyle()
-      doc.text(contactInfo.name || title || 'Resume', margin, y)
-      doc.setTextColor(0, 0, 0)
-      moveY(7)
-
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(10)
-      const contactParts = [contactInfo.email, contactInfo.phone, contactInfo.location].filter(Boolean)
-      if (contactParts.length) {
-        doc.text(contactParts.join(' | '), margin, y)
-        moveY(5)
-      }
-
-      // Only include social links that have actual values
-      const linkParts = [contactInfo.linkedin, contactInfo.github, contactInfo.website]
-        .filter((link) => link && typeof link === 'string' && link.trim().length > 0)
-      if (linkParts.length) {
-        doc.text(linkParts.join(' | '), margin, y)
-        moveY(5)
-      }
-
-      // Divider
-      if (selectedTemplate !== "minimal") {
-        doc.setLineWidth(0.5)
-        doc.setDrawColor(12, 41, 171)
-        doc.line(margin, y, pageWidth - margin, y)
-        moveY(6)
-      } else {
-        moveY(4)
-      }
-
-      // Summary
-      if (summary) {
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(12)
-        applyTemplateStyle()
-        doc.text('PROFESSIONAL SUMMARY', margin, y)
-        doc.setTextColor(0, 0, 0)
-        moveY(6)
-
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(10)
-        const wrapped = doc.splitTextToSize(summary, usableWidth) as string[]
-        wrapped.forEach(line => {
-          if (y > pageHeight - margin) { doc.addPage(); y = margin }
-          doc.text(line, margin, y)
-          y += 5
-        })
-        moveY(4)
-      }
-
-      // Skills
-      if (skillsText) {
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(12)
-        applyTemplateStyle()
-        doc.text('SKILLS', margin, y)
-        doc.setTextColor(0, 0, 0)
-        moveY(6)
-
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(10)
-        doc.text(skillsText, margin, y)
-        moveY(8)
-      }
-
-      // Experience
-      if (experience.length > 0) {
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(12)
-        applyTemplateStyle()
-        doc.text('EXPERIENCE', margin, y)
-        doc.setTextColor(0, 0, 0)
-        moveY(6)
-
-        experience.forEach((exp, idx) => {
-          if (y > pageHeight - margin - 20) { doc.addPage(); y = margin }
-
-          doc.setFont('helvetica', 'bold')
-          doc.setFontSize(11)
-          doc.text(exp.title || 'Position', margin, y)
-          moveY(5)
-
-          doc.setFont('helvetica', 'normal')
-          doc.setFontSize(10)
-          const companyLine = [exp.company, exp.location].filter(Boolean).join(' • ')
-          if (companyLine) {
-            doc.text(companyLine, margin, y)
-            moveY(5)
-          }
-
-          const dates = exp.current ? `${exp.startDate} - Present` : `${exp.startDate} - ${exp.endDate}`
-          if (exp.startDate || exp.endDate) {
-            doc.text(dates, margin, y)
-            moveY(5)
-          }
-
-          if (exp.description) {
-            // Split by newlines to preserve user's bullet structure
-            const lines = exp.description.split('\n').filter(line => line.trim())
-
-            lines.forEach(line => {
-              const trimmedLine = line.trim()
-
-              // Check if line starts with a bullet marker
-              const bulletMatch = trimmedLine.match(/^([•\-\*]|\d+[\.\)])\s*/)
-              const hasBullet = !!bulletMatch
-              const bulletText = hasBullet ? bulletMatch[0] : '• '
-              const textWithoutBullet = hasBullet ? trimmedLine.substring(bulletMatch[0].length) : trimmedLine
-
-              // Wrap the text (without bullet)
-              const wrappedLines = doc.splitTextToSize(textWithoutBullet, usableWidth - 8) as string[]
-
-              wrappedLines.forEach((wrappedLine, idx) => {
-                if (y > pageHeight - margin) { doc.addPage(); y = margin }
-
-                if (idx === 0) {
-                  // First line gets the bullet
-                  doc.text(`${bulletText}${wrappedLine}`, margin + 2, y)
-                } else {
-                  // Continuation lines are indented without bullet
-                  doc.text(wrappedLine, margin + 6, y)
-                }
-                y += 5
-              })
-            })
-          }
-          moveY(3)
-        })
-      }
-
-      // Projects
-      if (projects.length > 0) {
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(12)
-        applyTemplateStyle()
-        doc.text('PROJECTS', margin, y)
-        doc.setTextColor(0, 0, 0)
-        moveY(6)
-
-        projects.forEach(proj => {
-          if (y > pageHeight - margin - 15) { doc.addPage(); y = margin }
-
-          doc.setFont('helvetica', 'bold')
-          doc.setFontSize(11)
-          doc.text(proj.name || 'Project', margin, y)
-          moveY(5)
-
-          doc.setFont('helvetica', 'normal')
-          doc.setFontSize(10)
-          if (proj.role) {
-            doc.text(proj.role, margin, y)
-            moveY(5)
-          }
-
-          if (proj.technologies) {
-            doc.text(`Technologies: ${proj.technologies}`, margin, y)
-            moveY(5)
-          }
-
-          if (proj.description) {
-            // Split by newlines to preserve user's structure
-            const lines = proj.description.split('\n').filter(line => line.trim())
-
-            lines.forEach(line => {
-              const trimmedLine = line.trim()
-
-              // Check if line starts with a bullet marker
-              const bulletMatch = trimmedLine.match(/^([•\-\*]|\d+[\.\)])\s*/)
-              const hasBullet = !!bulletMatch
-
-              if (hasBullet) {
-                // Has bullet - extract and preserve it
-                const bulletText = bulletMatch[0]
-                const textWithoutBullet = trimmedLine.substring(bulletMatch[0].length)
-                const wrappedLines = doc.splitTextToSize(textWithoutBullet, usableWidth - 8) as string[]
-
-                wrappedLines.forEach((wrappedLine, idx) => {
-                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
-
-                  if (idx === 0) {
-                    doc.text(`${bulletText}${wrappedLine}`, margin + 2, y)
-                  } else {
-                    doc.text(wrappedLine, margin + 6, y)
-                  }
-                  y += 5
-                })
-              } else {
-                // No bullet - just wrap the text normally
-                const wrappedLines = doc.splitTextToSize(trimmedLine, usableWidth - 5) as string[]
-                wrappedLines.forEach(wrappedLine => {
-                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
-                  doc.text(wrappedLine, margin + 2, y)
-                  y += 5
-                })
-              }
-            })
-          }
-          moveY(3)
-        })
-      }
-
-      // Education
-      if (education.length > 0) {
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(12)
-        applyTemplateStyle()
-        doc.text('EDUCATION', margin, y)
-        doc.setTextColor(0, 0, 0)
-        moveY(6)
-
-        education.forEach(edu => {
-          if (y > pageHeight - margin - 15) { doc.addPage(); y = margin }
-
-          doc.setFont('helvetica', 'bold')
-          doc.setFontSize(11)
-          const degreeText = [edu.degree, edu.field].filter(Boolean).join(' in ')
-          doc.text(degreeText || 'Degree', margin, y)
-          moveY(5)
-
-          doc.setFont('helvetica', 'normal')
-          doc.setFontSize(10)
-          const schoolLine = [edu.school, edu.location].filter(Boolean).join(' • ')
-          if (schoolLine) {
-            doc.text(schoolLine, margin, y)
-            moveY(5)
-          }
-
-          const eduMeta = [
-            edu.startYear && edu.endYear ? `${edu.startYear} - ${edu.endYear}` : edu.endYear,
-            edu.gpa ? `GPA: ${edu.gpa}` : null,
-            edu.honors
-          ].filter(Boolean).join(' • ')
-
-          if (eduMeta) {
-            doc.text(eduMeta, margin, y)
-            moveY(5)
-          }
-          moveY(2)
-        })
-      }
-
-      // Achievements
-      if (achievements.length > 0) {
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(12)
-        applyTemplateStyle()
-        doc.text('ACHIEVEMENTS', margin, y)
-        doc.setTextColor(0, 0, 0)
-        moveY(6)
-
-        achievements.forEach(ach => {
-          if (y > pageHeight - margin - 10) { doc.addPage(); y = margin }
-
-          doc.setFont('helvetica', 'bold')
-          doc.setFontSize(10)
-          const achTitle = ach.title + (ach.date ? ` (${ach.date})` : '')
-          doc.text(achTitle, margin, y)
-          moveY(5)
-
-          if (ach.description) {
-            doc.setFont('helvetica', 'normal')
-            // Split by newlines to preserve user's structure
-            const lines = ach.description.split('\n').filter(line => line.trim())
-
-            lines.forEach(line => {
-              const trimmedLine = line.trim()
-
-              // Check if line starts with a bullet marker
-              const bulletMatch = trimmedLine.match(/^([•\-\*]|\d+[\.\)])\s*/)
-              const hasBullet = !!bulletMatch
-
-              if (hasBullet) {
-                // Has bullet - extract and preserve it
-                const bulletText = bulletMatch[0]
-                const textWithoutBullet = trimmedLine.substring(bulletMatch[0].length)
-                const wrappedLines = doc.splitTextToSize(textWithoutBullet, usableWidth - 8) as string[]
-
-                wrappedLines.forEach((wrappedLine, idx) => {
-                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
-
-                  if (idx === 0) {
-                    doc.text(`${bulletText}${wrappedLine}`, margin + 2, y)
-                  } else {
-                    doc.text(wrappedLine, margin + 6, y)
-                  }
-                  y += 5
-                })
-              } else {
-                // No bullet - just wrap the text normally
-                const wrappedLines = doc.splitTextToSize(trimmedLine, usableWidth - 5) as string[]
-                wrappedLines.forEach(wrappedLine => {
-                  if (y > pageHeight - margin) { doc.addPage(); y = margin }
-                  doc.text(wrappedLine, margin + 2, y)
-                  y += 5
-                })
-              }
-            })
-          }
-          moveY(2)
-        })
-      }
-
-      // Fallback: Additional Content from uploaded resume
-      const extractedText: string | undefined = typeof (resume?.content as any)?.extractedText === 'string' ? (resume?.content as any).extractedText : undefined
-      if (extractedText && extractedText.trim().length > 0) {
-        if (y > pageHeight - margin - 20) { doc.addPage(); y = margin }
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(12)
-        applyTemplateStyle()
-        doc.text('Additional Content (from uploaded resume)', margin, y)
-        doc.setTextColor(0, 0, 0)
-        moveY(6)
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(10)
-        const wrapped = doc.splitTextToSize(extractedText, usableWidth) as string[]
-        wrapped.forEach(line => { if (y > pageHeight - margin) { doc.addPage(); y = margin } doc.text(line, margin, y); y += 5 })
-        moveY(2)
+      // Normalize data to ResumeData format
+      const resumeData: ResumeData = {
+        contactInfo: {
+          name: contactInfo.name || title || 'Resume',
+          email: contactInfo.email || '',
+          phone: contactInfo.phone || '',
+          location: contactInfo.location || '',
+          linkedin: contactInfo.linkedin || '',
+          github: contactInfo.github || '',
+          website: contactInfo.website || '',
+        },
+        summary,
+        skills: skillsText ? skillsText.split(',').map(s => s.trim()).filter(Boolean) : [],
+        experience,
+        education,
+        projects,
+        achievements,
       }
 
       const fileName = `${(title || contactInfo?.name || 'resume').replace(/\s+/g, '_')}.pdf`
-      doc.save(fileName)
+      await generateResumePDF(resumeData, fileName)
+
       toast({ title: 'Exported', description: 'PDF downloaded successfully.', variant: 'success' })
     } catch (e: any) {
       console.error('PDF export error:', e)
