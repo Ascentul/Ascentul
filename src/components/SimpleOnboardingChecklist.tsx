@@ -173,7 +173,7 @@ export function SimpleOnboardingChecklist({ dashboardData }: SimpleOnboardingChe
             {checklistItems.map((item) => (
               <div
                 key={item.id}
-                className={`flex items-start gap-2.5 rounded-xl border transition-colors ${
+                className={`flex items-start gap-2.5 rounded-xl border p-3 transition-colors ${
                   item.completed
                     ? 'border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900'
                     : 'border-slate-200 hover:bg-slate-50'
