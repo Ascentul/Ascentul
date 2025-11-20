@@ -153,6 +153,7 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
             contactInfo.phone,
             contactInfo.email,
             contactInfo.linkedin,
+            contactInfo.github,
             contactInfo.website,
           ]
             .filter(Boolean)
