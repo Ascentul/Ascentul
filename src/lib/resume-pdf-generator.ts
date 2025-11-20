@@ -8,68 +8,69 @@
  *
  * When updating resume styling, make changes in BOTH files to ensure
  * preview and export remain identical.
+ *
+ * Design principles:
+ * - Brand-aligned: Uses #5371FF as primary accent color
+ * - Professional: Clean typography, comfortable spacing
+ * - ATS-friendly: Simple structure, standard fonts
  */
 
 import jsPDF from 'jspdf';
-import type { ResumeData, Experience, Education, Project, Achievement } from '@/components/resume/ResumeDocument';
+import type { ResumeData } from '@/components/resume/ResumeDocument';
+import { formatDateRange, parseDescription } from '@/lib/resume-utils';
+
+// Color constants (brand-aligned, matching ResumeDocument)
+const COLORS = {
+  PRIMARY_ACCENT: '#5371FF',
+  BLACK: '#000000',
+  DARK_GRAY: '#2D3748',
+  GRAY: '#4A5568',
+  LIGHT_GRAY: '#718096',
+  SUBTLE_ACCENT: 'rgba(83, 113, 255, 0.3)',
+};
+
+// Convert hex to RGB for jsPDF
+function hexToRgb(hex: string): [number, number, number] {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
+    : [0, 0, 0];
+}
 
 // Typography constants (matching ResumeDocument)
 const FONT_SIZE = {
-  NAME: 24,
-  SECTION_HEADING: 12,
-  BODY: 10.5,
+  NAME: 20,
+  SECTION_HEADING: 13,
+  COMPANY: 12,
+  BODY: 11,
   SMALL: 10,
-  SUBSECTION: 11,
 };
 
 const LINE_HEIGHT = {
-  NORMAL: 1.5,
-  TIGHT: 1.3,
+  HEADER: 1.2,
+  BODY: 1.3,
 };
 
-// Layout constants (matching 0.75in margins)
+// Layout constants (0.7in margins = ~18mm)
 const MARGIN = {
-  TOP: 20,
-  RIGHT: 20,
-  BOTTOM: 20,
-  LEFT: 20,
+  TOP: 18,
+  RIGHT: 18,
+  BOTTOM: 18,
+  LEFT: 18,
 };
 
 const PAGE_WIDTH = 210; // A4 width in mm
 const PAGE_HEIGHT = 297; // A4 height in mm
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN.LEFT - MARGIN.RIGHT;
 
-// Colors (matching ResumeDocument)
-const COLORS = {
-  BLACK: '#000000',
-  DARK_GRAY: '#1F2937',
-  GRAY: '#374151',
-  MID_GRAY: '#4B5563',
-  LIGHT_GRAY: '#6B7280',
-  BLUE: '#2563EB',
+// Spacing scale (in mm, matching px scale from ResumeDocument)
+const SPACING = {
+  xs: 1.5,   // ~4px
+  sm: 3,     // ~8px
+  md: 4.5,   // ~12px
+  lg: 6,     // ~16px
+  xl: 9,     // ~24px
 };
-
-/**
- * Parse description text into bullet points
- */
-function parseDescription(description: string): string[] {
-  if (!description) return [];
-
-  const lines = description
-    .split(/\n|•/)
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
-
-  return lines;
-}
-
-/**
- * Format date range for experience/education
- */
-function formatDateRange(startDate: string, endDate: string, current: boolean): string {
-  if (current) return `${startDate} - Present`;
-  return `${startDate} - ${endDate}`;
-}
 
 /**
  * Add text with automatic word wrapping
@@ -88,21 +89,24 @@ function addWrappedText(
 }
 
 /**
- * Add a section heading with underline
+ * Add a section heading with brand accent color and subtle underline
  */
 function addSectionHeading(doc: jsPDF, title: string, y: number): number {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(FONT_SIZE.SECTION_HEADING);
-  doc.setTextColor(COLORS.DARK_GRAY);
+
+  // Set color to primary accent
+  const [r, g, b] = hexToRgb(COLORS.PRIMARY_ACCENT);
+  doc.setTextColor(r, g, b);
   doc.text(title.toUpperCase(), MARGIN.LEFT, y);
 
-  // Add underline
-  const headingWidth = doc.getTextWidth(title.toUpperCase());
-  doc.setDrawColor(COLORS.MID_GRAY);
-  doc.setLineWidth(0.4);
-  doc.line(MARGIN.LEFT, y + 1, PAGE_WIDTH - MARGIN.RIGHT, y + 1);
+  // Add subtle underline
+  const [ur, ug, ub] = [83, 113, 255]; // #5371FF with 30% opacity approximation
+  doc.setDrawColor(ur, ug, ub);
+  doc.setLineWidth(0.3);
+  doc.line(MARGIN.LEFT, y + 1.5, PAGE_WIDTH - MARGIN.RIGHT, y + 1.5);
 
-  return y + 6; // Return Y position after heading
+  return y + SPACING.sm + SPACING.xs; // 8mm spacing after heading
 }
 
 /**
@@ -128,20 +132,25 @@ export async function generateResumePDF(data: ResumeData, filename: string = 're
 
   let yPos = MARGIN.TOP;
 
-  // ==================== HEADER ====================
-  // Name (centered)
+  // ==================== HEADER STRIP ====================
+  // Add padding top
+  yPos += SPACING.sm; // 3mm padding top
+
+  // Name (centered, bold, 20pt)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(FONT_SIZE.NAME);
-  doc.setTextColor(COLORS.BLACK);
+  const [nameR, nameG, nameB] = hexToRgb(COLORS.BLACK);
+  doc.setTextColor(nameR, nameG, nameB);
   const nameWidth = doc.getTextWidth(data.contactInfo.name);
   const nameX = (PAGE_WIDTH - nameWidth) / 2;
   doc.text(data.contactInfo.name, nameX, yPos);
-  yPos += 8;
+  yPos += SPACING.sm; // 3mm spacing to contact line
 
-  // Contact info (centered)
+  // Contact info (centered, light gray, 10pt)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(FONT_SIZE.SMALL);
-  doc.setTextColor(COLORS.LIGHT_GRAY);
+  const [contactR, contactG, contactB] = hexToRgb(COLORS.LIGHT_GRAY);
+  doc.setTextColor(contactR, contactG, contactB);
 
   const contactParts = [
     data.contactInfo.location,
@@ -151,87 +160,104 @@ export async function generateResumePDF(data: ResumeData, filename: string = 're
     data.contactInfo.website,
   ].filter(Boolean);
 
-  const contactLine = contactParts.join(' • ');
+  const contactLine = contactParts.join(' · ');
   const contactWidth = doc.getTextWidth(contactLine);
   const contactX = (PAGE_WIDTH - contactWidth) / 2;
   doc.text(contactLine, contactX, yPos);
-  yPos += 10;
+  yPos += SPACING.md; // 4.5mm padding to border
+
+  // Add header bottom border (brand accent)
+  const [borderR, borderG, borderB] = hexToRgb(COLORS.PRIMARY_ACCENT);
+  doc.setDrawColor(borderR, borderG, borderB);
+  doc.setLineWidth(0.3);
+  doc.line(MARGIN.LEFT, yPos, PAGE_WIDTH - MARGIN.RIGHT, yPos);
+  yPos += SPACING.xl; // 9mm spacing after header
 
   // ==================== SUMMARY ====================
   if (data.summary && data.summary.trim()) {
     yPos = checkPageBreak(doc, yPos, 20);
+    yPos += SPACING.lg; // 6mm margin top for section
     yPos = addSectionHeading(doc, 'Professional Summary', yPos);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(FONT_SIZE.BODY);
-    doc.setTextColor(COLORS.BLACK);
-    yPos = addWrappedText(doc, data.summary, MARGIN.LEFT, yPos, CONTENT_WIDTH, 5);
-    yPos += 5;
+    const [textR, textG, textB] = hexToRgb(COLORS.BLACK);
+    doc.setTextColor(textR, textG, textB);
+    yPos = addWrappedText(doc, data.summary, MARGIN.LEFT, yPos, CONTENT_WIDTH, 4.5);
+    yPos += SPACING.md; // Section spacing
   }
 
   // ==================== SKILLS ====================
   if (data.skills && data.skills.length > 0) {
     yPos = checkPageBreak(doc, yPos, 20);
+    yPos += SPACING.lg; // 6mm margin top for section
     yPos = addSectionHeading(doc, 'Skills', yPos);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(FONT_SIZE.BODY);
-    doc.setTextColor(COLORS.BLACK);
+    const [textR, textG, textB] = hexToRgb(COLORS.BLACK);
+    doc.setTextColor(textR, textG, textB);
 
     const skillsText = data.skills.join(', ');
-    yPos = addWrappedText(doc, skillsText, MARGIN.LEFT, yPos, CONTENT_WIDTH, 5);
-    yPos += 5;
+    yPos = addWrappedText(doc, skillsText, MARGIN.LEFT, yPos, CONTENT_WIDTH, 4.5);
+    yPos += SPACING.md; // Section spacing
   }
 
   // ==================== EXPERIENCE ====================
   if (data.experience && data.experience.length > 0) {
     yPos = checkPageBreak(doc, yPos, 30);
+    yPos += SPACING.lg; // 6mm margin top for section
     yPos = addSectionHeading(doc, 'Experience', yPos);
 
     data.experience.forEach((exp, index) => {
-      if (index > 0) yPos += 4;
+      if (index > 0) yPos += SPACING.md; // 4.5mm between entries
 
-      // Check if we need space for this entry (estimate ~30mm)
+      // Check if we need space for this entry
       yPos = checkPageBreak(doc, yPos, 30);
 
-      // Company name and location
+      // Company name (bold, 12pt, black) and location (small, light gray)
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(FONT_SIZE.SUBSECTION);
-      doc.setTextColor(COLORS.BLACK);
+      doc.setFontSize(FONT_SIZE.COMPANY);
+      const [blackR, blackG, blackB] = hexToRgb(COLORS.BLACK);
+      doc.setTextColor(blackR, blackG, blackB);
       doc.text(exp.company, MARGIN.LEFT, yPos);
 
-      // Date range (right-aligned)
+      // Location (inline, after company with small gap)
+      if (exp.location) {
+        const companyWidth = doc.getTextWidth(exp.company);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(FONT_SIZE.SMALL);
+        const [grayR, grayG, grayB] = hexToRgb(COLORS.LIGHT_GRAY);
+        doc.setTextColor(grayR, grayG, grayB);
+        doc.text(exp.location, MARGIN.LEFT + companyWidth + 3, yPos); // 3mm gap
+      }
+
+      // Date range (right-aligned, small, light gray)
       const dateText = formatDateRange(exp.startDate, exp.endDate, exp.current);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(FONT_SIZE.SMALL);
-      doc.setTextColor(COLORS.LIGHT_GRAY);
+      const [grayR, grayG, grayB] = hexToRgb(COLORS.LIGHT_GRAY);
+      doc.setTextColor(grayR, grayG, grayB);
       const dateWidth = doc.getTextWidth(dateText);
       doc.text(dateText, PAGE_WIDTH - MARGIN.RIGHT - dateWidth, yPos);
 
-      yPos += 5;
+      yPos += SPACING.xs + 1; // ~4mm spacing
 
-      // Location (if provided)
-      if (exp.location) {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(FONT_SIZE.SMALL);
-        doc.setTextColor(COLORS.LIGHT_GRAY);
-        doc.text(exp.location, MARGIN.LEFT, yPos);
-        yPos += 4;
-      }
-
-      // Role (italic)
-      doc.setFont('helvetica', 'italic');
+      // Role (semi-bold, 11pt, gray)
+      doc.setFont('helvetica', 'bold'); // jsPDF doesn't have semi-bold, use bold
       doc.setFontSize(FONT_SIZE.BODY);
-      doc.setTextColor(COLORS.GRAY);
+      const [roleR, roleG, roleB] = hexToRgb(COLORS.GRAY);
+      doc.setTextColor(roleR, roleG, roleB);
       doc.text(exp.title, MARGIN.LEFT, yPos);
-      yPos += 5;
+      yPos += SPACING.xs + 1; // ~4mm spacing
 
       // Description bullets
       const bullets = parseDescription(exp.description);
       if (bullets.length > 0) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(FONT_SIZE.BODY);
-        doc.setTextColor(COLORS.BLACK);
+        const [textR, textG, textB] = hexToRgb(COLORS.BLACK);
+        doc.setTextColor(textR, textG, textB);
 
         bullets.forEach((bullet) => {
           yPos = checkPageBreak(doc, yPos, 10);
@@ -239,49 +265,53 @@ export async function generateResumePDF(data: ResumeData, filename: string = 're
           // Bullet point
           doc.text('•', MARGIN.LEFT + 2, yPos);
 
-          // Bullet text with wrapping
-          const bulletLines = doc.splitTextToSize(bullet, CONTENT_WIDTH - 8);
-          doc.text(bulletLines, MARGIN.LEFT + 6, yPos);
-          yPos += bulletLines.length * 4.5;
+          // Bullet text with wrapping (paddingLeft: 20px = ~7mm)
+          const bulletLines = doc.splitTextToSize(bullet, CONTENT_WIDTH - 7);
+          doc.text(bulletLines, MARGIN.LEFT + 7, yPos);
+          yPos += bulletLines.length * 4.3; // Line height 1.3 * font size ~11pt
         });
       }
     });
 
-    yPos += 3;
+    yPos += SPACING.md; // Section spacing
   }
 
   // ==================== EDUCATION ====================
   if (data.education && data.education.length > 0) {
     yPos = checkPageBreak(doc, yPos, 25);
+    yPos += SPACING.lg; // 6mm margin top for section
     yPos = addSectionHeading(doc, 'Education', yPos);
 
     data.education.forEach((edu, index) => {
-      if (index > 0) yPos += 4;
+      if (index > 0) yPos += SPACING.md; // 4.5mm between entries
 
       yPos = checkPageBreak(doc, yPos, 20);
 
-      // School name
+      // School name (bold, 12pt, black)
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(FONT_SIZE.SUBSECTION);
-      doc.setTextColor(COLORS.BLACK);
+      doc.setFontSize(FONT_SIZE.COMPANY);
+      const [blackR, blackG, blackB] = hexToRgb(COLORS.BLACK);
+      doc.setTextColor(blackR, blackG, blackB);
       doc.text(edu.school, MARGIN.LEFT, yPos);
 
-      // Dates (right-aligned)
+      // Dates (right-aligned, small, light gray)
       if (edu.startYear && edu.endYear) {
         const dateText = `${edu.startYear} - ${edu.endYear}`;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(FONT_SIZE.SMALL);
-        doc.setTextColor(COLORS.LIGHT_GRAY);
+        const [grayR, grayG, grayB] = hexToRgb(COLORS.LIGHT_GRAY);
+        doc.setTextColor(grayR, grayG, grayB);
         const dateWidth = doc.getTextWidth(dateText);
         doc.text(dateText, PAGE_WIDTH - MARGIN.RIGHT - dateWidth, yPos);
       }
 
-      yPos += 5;
+      yPos += SPACING.xs + 1; // ~4mm spacing
 
       // Degree and field
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(FONT_SIZE.BODY);
-      doc.setTextColor(COLORS.BLACK);
+      const [textR, textG, textB] = hexToRgb(COLORS.BLACK);
+      doc.setTextColor(textR, textG, textB);
 
       const degreeText = edu.degree && edu.field
         ? `${edu.degree} in ${edu.field}`
@@ -289,78 +319,85 @@ export async function generateResumePDF(data: ResumeData, filename: string = 're
 
       if (degreeText) {
         doc.text(degreeText, MARGIN.LEFT, yPos);
-        yPos += 4;
+        yPos += SPACING.xs + 1;
       }
 
       // Location
       if (edu.location) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(FONT_SIZE.SMALL);
-        doc.setTextColor(COLORS.LIGHT_GRAY);
+        const [grayR, grayG, grayB] = hexToRgb(COLORS.LIGHT_GRAY);
+        doc.setTextColor(grayR, grayG, grayB);
         doc.text(edu.location, MARGIN.LEFT, yPos);
-        yPos += 4;
+        yPos += SPACING.xs + 1;
       }
 
       // GPA and honors
       if (edu.gpa || edu.honors) {
         const extraInfo = [edu.gpa && `GPA: ${edu.gpa}`, edu.honors]
           .filter(Boolean)
-          .join(' • ');
+          .join(' · ');
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(FONT_SIZE.SMALL);
-        doc.setTextColor(COLORS.GRAY);
+        const [grayR, grayG, grayB] = hexToRgb(COLORS.GRAY);
+        doc.setTextColor(grayR, grayG, grayB);
         doc.text(extraInfo, MARGIN.LEFT, yPos);
-        yPos += 4;
+        yPos += SPACING.xs + 1;
       }
     });
 
-    yPos += 3;
+    yPos += SPACING.md; // Section spacing
   }
 
   // ==================== PROJECTS ====================
   if (data.projects && data.projects.length > 0) {
     yPos = checkPageBreak(doc, yPos, 25);
+    yPos += SPACING.lg; // 6mm margin top for section
     yPos = addSectionHeading(doc, 'Projects', yPos);
 
     data.projects.forEach((project, index) => {
-      if (index > 0) yPos += 4;
+      if (index > 0) yPos += SPACING.md; // 4.5mm between entries
 
       yPos = checkPageBreak(doc, yPos, 25);
 
-      // Project name
+      // Project name (bold, 12pt, black)
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(FONT_SIZE.SUBSECTION);
-      doc.setTextColor(COLORS.BLACK);
+      doc.setFontSize(FONT_SIZE.COMPANY);
+      const [blackR, blackG, blackB] = hexToRgb(COLORS.BLACK);
+      doc.setTextColor(blackR, blackG, blackB);
       doc.text(project.name, MARGIN.LEFT, yPos);
 
-      // Role (italic, on same line)
+      // Role (italic, small, gray, inline)
       if (project.role) {
         const nameWidth = doc.getTextWidth(project.name);
         doc.setFont('helvetica', 'italic');
         doc.setFontSize(FONT_SIZE.SMALL);
-        doc.setTextColor(COLORS.GRAY);
-        doc.text(`- ${project.role}`, MARGIN.LEFT + nameWidth + 2, yPos);
+        const [grayR, grayG, grayB] = hexToRgb(COLORS.GRAY);
+        doc.setTextColor(grayR, grayG, grayB);
+        doc.text(project.role, MARGIN.LEFT + nameWidth + 3, yPos); // 3mm gap
       }
 
-      yPos += 5;
+      yPos += SPACING.xs + 1; // ~4mm spacing
 
       // Technologies
       if (project.technologies) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(FONT_SIZE.SMALL);
-        doc.setTextColor(COLORS.LIGHT_GRAY);
+        const [grayR, grayG, grayB] = hexToRgb(COLORS.LIGHT_GRAY);
+        doc.setTextColor(grayR, grayG, grayB);
         doc.text(`Technologies: ${project.technologies}`, MARGIN.LEFT, yPos);
-        yPos += 4;
+        yPos += SPACING.xs + 1;
       }
 
-      // URL
+      // URL (brand accent color)
       if (project.url) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(FONT_SIZE.SMALL);
-        doc.setTextColor(COLORS.BLUE);
+        const [accentR, accentG, accentB] = hexToRgb(COLORS.PRIMARY_ACCENT);
+        doc.setTextColor(accentR, accentG, accentB);
         doc.text(project.url, MARGIN.LEFT, yPos);
-        yPos += 4;
+        yPos += SPACING.xs + 1;
       }
 
       // Description bullets
@@ -368,25 +405,27 @@ export async function generateResumePDF(data: ResumeData, filename: string = 're
       if (bullets.length > 0) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(FONT_SIZE.BODY);
-        doc.setTextColor(COLORS.BLACK);
+        const [textR, textG, textB] = hexToRgb(COLORS.BLACK);
+        doc.setTextColor(textR, textG, textB);
 
         bullets.forEach((bullet) => {
           yPos = checkPageBreak(doc, yPos, 10);
 
           doc.text('•', MARGIN.LEFT + 2, yPos);
-          const bulletLines = doc.splitTextToSize(bullet, CONTENT_WIDTH - 8);
-          doc.text(bulletLines, MARGIN.LEFT + 6, yPos);
-          yPos += bulletLines.length * 4.5;
+          const bulletLines = doc.splitTextToSize(bullet, CONTENT_WIDTH - 7);
+          doc.text(bulletLines, MARGIN.LEFT + 7, yPos);
+          yPos += bulletLines.length * 4.3;
         });
       }
     });
 
-    yPos += 3;
+    yPos += SPACING.md; // Section spacing
   }
 
   // ==================== ACHIEVEMENTS ====================
   if (data.achievements && data.achievements.length > 0) {
     yPos = checkPageBreak(doc, yPos, 25);
+    yPos += SPACING.lg; // 6mm margin top for section
     yPos = addSectionHeading(doc, 'Achievements', yPos);
 
     data.achievements.forEach((achievement) => {
@@ -395,32 +434,38 @@ export async function generateResumePDF(data: ResumeData, filename: string = 're
       // Bullet point
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(FONT_SIZE.BODY);
-      doc.setTextColor(COLORS.BLACK);
+      const [textR, textG, textB] = hexToRgb(COLORS.BLACK);
+      doc.setTextColor(textR, textG, textB);
       doc.text('•', MARGIN.LEFT + 2, yPos);
 
-      // Title (bold)
+      // Title (semi-bold/bold)
       doc.setFont('helvetica', 'bold');
       const titleText = achievement.title;
-      doc.text(titleText, MARGIN.LEFT + 6, yPos);
+      doc.text(titleText, MARGIN.LEFT + 7, yPos);
 
-      // Date (if provided)
+      // Date (if provided, light gray)
       if (achievement.date) {
         const titleWidth = doc.getTextWidth(titleText);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(COLORS.LIGHT_GRAY);
-        doc.text(`(${achievement.date})`, MARGIN.LEFT + 6 + titleWidth + 2, yPos);
+        doc.setFontSize(FONT_SIZE.SMALL);
+        const [grayR, grayG, grayB] = hexToRgb(COLORS.LIGHT_GRAY);
+        doc.setTextColor(grayR, grayG, grayB);
+        doc.text(`(${achievement.date})`, MARGIN.LEFT + 7 + titleWidth + 2, yPos);
       }
 
-      yPos += 5;
+      yPos += SPACING.xs + 1; // ~4mm spacing
 
       // Description
       if (achievement.description) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(FONT_SIZE.BODY);
-        doc.setTextColor(COLORS.BLACK);
-        const descLines = doc.splitTextToSize(achievement.description, CONTENT_WIDTH - 8);
-        doc.text(descLines, MARGIN.LEFT + 6, yPos);
-        yPos += descLines.length * 4.5 + 2;
+        const [textR, textG, textB] = hexToRgb(COLORS.BLACK);
+        doc.setTextColor(textR, textG, textB);
+        const descLines = doc.splitTextToSize(achievement.description, CONTENT_WIDTH - 7);
+        doc.text(descLines, MARGIN.LEFT + 7, yPos);
+        yPos += descLines.length * 4.3 + SPACING.sm; // 3mm extra spacing between achievements
+      } else {
+        yPos += SPACING.sm; // 3mm spacing if no description
       }
     });
   }

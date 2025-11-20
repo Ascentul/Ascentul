@@ -14,9 +14,11 @@
  * - ATS-friendly: Single column, simple structure, no complex layouts
  * - Professional: Clean typography, comfortable spacing, minimal color
  * - Readable: Good contrast, clear hierarchy, proper line-height
+ * - Brand-aligned: Uses #5371FF as primary accent color
  */
 
 import React from 'react';
+import { formatDateRange, parseDescription } from '@/lib/resume-utils';
 
 export interface ContactInfo {
   name: string;
@@ -82,27 +84,27 @@ interface ResumeDocumentProps {
   className?: string;
 }
 
+// Color constants (brand-aligned)
+const COLORS = {
+  PRIMARY_ACCENT: '#5371FF',
+  BLACK: '#000000',
+  DARK_GRAY: '#2D3748',
+  GRAY: '#4A5568',
+  LIGHT_GRAY: '#718096',
+  SUBTLE_ACCENT: 'rgba(83, 113, 255, 0.3)',
+};
+
+// Typography constants
+const FONT_SIZES = {
+  name: '20pt',
+  sectionHeading: '13pt',
+  company: '12pt',
+  body: '11pt',
+  small: '10pt',
+};
+
 export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className = '' }) => {
   const { contactInfo, summary, skills, experience, education, projects, achievements } = data;
-
-  // Helper to format date range
-  const formatDateRange = (startDate: string, endDate: string, current: boolean) => {
-    if (current) return `${startDate} - Present`;
-    return `${startDate} - ${endDate}`;
-  };
-
-  // Helper to parse description into bullet points
-  const parseDescription = (description: string): string[] => {
-    if (!description) return [];
-
-    // Split by newlines or bullet points
-    const lines = description
-      .split(/\n|•/)
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
-
-    return lines;
-  };
 
   return (
     <div
@@ -111,24 +113,40 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
         maxWidth: '8.5in',
         minHeight: '11in',
         margin: '0 auto',
-        padding: '0.75in',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-        fontSize: '10.5pt',
-        lineHeight: '1.5',
-        color: '#000000',
+        padding: '0.7in',
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: FONT_SIZES.body,
+        lineHeight: '1.3',
+        color: COLORS.BLACK,
       }}
     >
-      {/* Header - Contact Information */}
-      <header className="mb-6">
+      {/* Header - Contact Information with Strip Design */}
+      <header
+        style={{
+          paddingTop: '8px',
+          paddingBottom: '12px',
+          marginBottom: '24px',
+          borderBottom: `1px solid ${COLORS.PRIMARY_ACCENT}`
+        }}
+      >
         <h1
-          className="text-center font-bold mb-2"
-          style={{ fontSize: '24pt', letterSpacing: '0.5px' }}
+          className="text-center mb-2"
+          style={{
+            fontSize: FONT_SIZES.name,
+            fontWeight: 700,
+            lineHeight: '1.2',
+            color: COLORS.BLACK
+          }}
         >
           {contactInfo.name}
         </h1>
         <div
-          className="text-center text-gray-700"
-          style={{ fontSize: '10pt' }}
+          className="text-center"
+          style={{
+            fontSize: FONT_SIZES.small,
+            color: COLORS.LIGHT_GRAY,
+            lineHeight: '1.2'
+          }}
         >
           {[
             contactInfo.location,
@@ -138,24 +156,26 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
             contactInfo.website,
           ]
             .filter(Boolean)
-            .join(' • ')}
+            .join(' · ')}
         </div>
       </header>
 
       {/* Summary Section */}
       {summary && summary.trim() && (
-        <section className="mb-5">
+        <section style={{ marginTop: '16px', marginBottom: '16px' }}>
           <h2
-            className="font-bold uppercase tracking-wide mb-2 pb-1"
+            className="font-bold uppercase tracking-wide"
             style={{
-              fontSize: '12pt',
-              borderBottom: '1.5px solid #4B5563',
-              color: '#1F2937'
+              fontSize: FONT_SIZES.sectionHeading,
+              color: COLORS.PRIMARY_ACCENT,
+              marginBottom: '8px',
+              paddingBottom: '4px',
+              borderBottom: `1px solid ${COLORS.SUBTLE_ACCENT}`,
             }}
           >
             Professional Summary
           </h2>
-          <p className="text-justify" style={{ fontSize: '10.5pt' }}>
+          <p className="text-justify" style={{ fontSize: FONT_SIZES.body }}>
             {summary}
           </p>
         </section>
@@ -163,18 +183,20 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
 
       {/* Skills Section */}
       {skills && skills.length > 0 && (
-        <section className="mb-5">
+        <section style={{ marginTop: '16px', marginBottom: '16px' }}>
           <h2
-            className="font-bold uppercase tracking-wide mb-2 pb-1"
+            className="font-bold uppercase tracking-wide"
             style={{
-              fontSize: '12pt',
-              borderBottom: '1.5px solid #4B5563',
-              color: '#1F2937'
+              fontSize: FONT_SIZES.sectionHeading,
+              color: COLORS.PRIMARY_ACCENT,
+              marginBottom: '8px',
+              paddingBottom: '4px',
+              borderBottom: `1px solid ${COLORS.SUBTLE_ACCENT}`,
             }}
           >
             Skills
           </h2>
-          <p style={{ fontSize: '10.5pt' }}>
+          <p style={{ fontSize: FONT_SIZES.body }}>
             {skills.join(', ')}
           </p>
         </section>
@@ -182,13 +204,15 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
 
       {/* Experience Section */}
       {experience && experience.length > 0 && (
-        <section className="mb-5">
+        <section style={{ marginTop: '16px', marginBottom: '16px' }}>
           <h2
-            className="font-bold uppercase tracking-wide mb-2 pb-1"
+            className="font-bold uppercase tracking-wide"
             style={{
-              fontSize: '12pt',
-              borderBottom: '1.5px solid #4B5563',
-              color: '#1F2937'
+              fontSize: FONT_SIZES.sectionHeading,
+              color: COLORS.PRIMARY_ACCENT,
+              marginBottom: '8px',
+              paddingBottom: '4px',
+              borderBottom: `1px solid ${COLORS.SUBTLE_ACCENT}`,
             }}
           >
             Experience
@@ -197,34 +221,43 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
             const bullets = parseDescription(exp.description);
 
             return (
-              <div key={exp.id} className={index > 0 ? 'mt-4' : ''}>
-                {/* Company and Title */}
-                <div className="flex justify-between items-baseline mb-1">
-                  <div>
-                    <span className="font-bold" style={{ fontSize: '11pt' }}>
+              <div key={exp.id} style={{ marginTop: index > 0 ? '12px' : '0' }}>
+                {/* Company and Date - Flex Layout */}
+                <div className="flex justify-between items-baseline gap-2" style={{ marginBottom: '4px' }}>
+                  <div className="flex items-baseline gap-2">
+                    <span style={{ fontSize: FONT_SIZES.company, fontWeight: 700, color: COLORS.BLACK }}>
                       {exp.company}
                     </span>
                     {exp.location && (
-                      <span className="text-gray-600 ml-2" style={{ fontSize: '10pt' }}>
+                      <span style={{ fontSize: FONT_SIZES.small, color: COLORS.LIGHT_GRAY }}>
                         {exp.location}
                       </span>
                     )}
                   </div>
-                  <div className="text-gray-600" style={{ fontSize: '10pt' }}>
+                  <span style={{ fontSize: FONT_SIZES.small, color: COLORS.LIGHT_GRAY, whiteSpace: 'nowrap' }}>
                     {formatDateRange(exp.startDate, exp.endDate, exp.current)}
-                  </div>
+                  </span>
                 </div>
 
                 {/* Role */}
-                <div className="italic mb-2" style={{ fontSize: '10.5pt', color: '#374151' }}>
+                <div style={{ fontSize: FONT_SIZES.body, fontWeight: 600, color: COLORS.GRAY, marginBottom: '4px' }}>
                   {exp.title}
                 </div>
 
                 {/* Description Bullets */}
                 {bullets.length > 0 && (
-                  <ul className="list-disc ml-5 space-y-1">
+                  <ul style={{
+                    listStyleType: 'disc',
+                    listStylePosition: 'outside',
+                    paddingLeft: '20px',
+                    marginTop: '4px'
+                  }}>
                     {bullets.map((bullet, idx) => (
-                      <li key={idx} style={{ fontSize: '10.5pt' }}>
+                      <li key={idx} style={{
+                        fontSize: FONT_SIZES.body,
+                        lineHeight: '1.3',
+                        marginBottom: '4px'
+                      }}>
                         {bullet}
                       </li>
                     ))}
@@ -238,25 +271,27 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
 
       {/* Education Section */}
       {education && education.length > 0 && (
-        <section className="mb-5">
+        <section style={{ marginTop: '16px', marginBottom: '16px' }}>
           <h2
-            className="font-bold uppercase tracking-wide mb-2 pb-1"
+            className="font-bold uppercase tracking-wide"
             style={{
-              fontSize: '12pt',
-              borderBottom: '1.5px solid #4B5563',
-              color: '#1F2937'
+              fontSize: FONT_SIZES.sectionHeading,
+              color: COLORS.PRIMARY_ACCENT,
+              marginBottom: '8px',
+              paddingBottom: '4px',
+              borderBottom: `1px solid ${COLORS.SUBTLE_ACCENT}`,
             }}
           >
             Education
           </h2>
           {education.map((edu, index) => (
-            <div key={edu.id} className={index > 0 ? 'mt-3' : ''}>
+            <div key={edu.id} style={{ marginTop: index > 0 ? '12px' : '0' }}>
               {/* School and Dates */}
-              <div className="flex justify-between items-baseline mb-1">
-                <span className="font-bold" style={{ fontSize: '11pt' }}>
+              <div className="flex justify-between items-baseline gap-2" style={{ marginBottom: '4px' }}>
+                <span style={{ fontSize: FONT_SIZES.company, fontWeight: 700, color: COLORS.BLACK }}>
                   {edu.school}
                 </span>
-                <span className="text-gray-600" style={{ fontSize: '10pt' }}>
+                <span style={{ fontSize: FONT_SIZES.small, color: COLORS.LIGHT_GRAY, whiteSpace: 'nowrap' }}>
                   {edu.startYear && edu.endYear
                     ? `${edu.startYear} - ${edu.endYear}`
                     : edu.endYear || ''}
@@ -264,7 +299,7 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
               </div>
 
               {/* Degree and Field */}
-              <div style={{ fontSize: '10.5pt' }}>
+              <div style={{ fontSize: FONT_SIZES.body }}>
                 {edu.degree && edu.field
                   ? `${edu.degree} in ${edu.field}`
                   : edu.degree || edu.field || ''}
@@ -272,17 +307,17 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
 
               {/* Location */}
               {edu.location && (
-                <div className="text-gray-600" style={{ fontSize: '10pt' }}>
+                <div style={{ fontSize: FONT_SIZES.small, color: COLORS.LIGHT_GRAY }}>
                   {edu.location}
                 </div>
               )}
 
               {/* GPA and Honors */}
               {(edu.gpa || edu.honors) && (
-                <div className="text-gray-700 mt-1" style={{ fontSize: '10pt' }}>
+                <div style={{ fontSize: FONT_SIZES.small, color: COLORS.GRAY, marginTop: '4px' }}>
                   {[edu.gpa && `GPA: ${edu.gpa}`, edu.honors]
                     .filter(Boolean)
-                    .join(' • ')}
+                    .join(' · ')}
                 </div>
               )}
             </div>
@@ -292,13 +327,15 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
 
       {/* Projects Section */}
       {projects && projects.length > 0 && (
-        <section className="mb-5">
+        <section style={{ marginTop: '16px', marginBottom: '16px' }}>
           <h2
-            className="font-bold uppercase tracking-wide mb-2 pb-1"
+            className="font-bold uppercase tracking-wide"
             style={{
-              fontSize: '12pt',
-              borderBottom: '1.5px solid #4B5563',
-              color: '#1F2937'
+              fontSize: FONT_SIZES.sectionHeading,
+              color: COLORS.PRIMARY_ACCENT,
+              marginBottom: '8px',
+              paddingBottom: '4px',
+              borderBottom: `1px solid ${COLORS.SUBTLE_ACCENT}`,
             }}
           >
             Projects
@@ -307,14 +344,14 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
             const bullets = parseDescription(project.description);
 
             return (
-              <div key={project.id} className={index > 0 ? 'mt-3' : ''}>
+              <div key={project.id} style={{ marginTop: index > 0 ? '12px' : '0' }}>
                 {/* Project Name and Role */}
-                <div className="mb-1">
-                  <span className="font-bold" style={{ fontSize: '11pt' }}>
+                <div style={{ marginBottom: '4px' }}>
+                  <span style={{ fontSize: FONT_SIZES.company, fontWeight: 700, color: COLORS.BLACK }}>
                     {project.name}
                   </span>
                   {project.role && (
-                    <span className="italic ml-2 text-gray-700" style={{ fontSize: '10pt' }}>
+                    <span style={{ fontSize: FONT_SIZES.small, fontStyle: 'italic', color: COLORS.GRAY, marginLeft: '8px' }}>
                       {project.role}
                     </span>
                   )}
@@ -322,15 +359,15 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
 
                 {/* Technologies */}
                 {project.technologies && (
-                  <div className="text-gray-600 mb-1" style={{ fontSize: '10pt' }}>
+                  <div style={{ fontSize: FONT_SIZES.small, color: COLORS.LIGHT_GRAY, marginBottom: '4px' }}>
                     Technologies: {project.technologies}
                   </div>
                 )}
 
                 {/* URL */}
                 {project.url && (
-                  <div className="text-gray-600 mb-1" style={{ fontSize: '10pt' }}>
-                    <a href={project.url} className="text-blue-600 hover:underline">
+                  <div style={{ fontSize: FONT_SIZES.small, marginBottom: '4px' }}>
+                    <a href={project.url} style={{ color: COLORS.PRIMARY_ACCENT, textDecoration: 'underline' }}>
                       {project.url}
                     </a>
                   </div>
@@ -338,9 +375,18 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
 
                 {/* Description */}
                 {bullets.length > 0 && (
-                  <ul className="list-disc ml-5 space-y-1">
+                  <ul style={{
+                    listStyleType: 'disc',
+                    listStylePosition: 'outside',
+                    paddingLeft: '20px',
+                    marginTop: '4px'
+                  }}>
                     {bullets.map((bullet, idx) => (
-                      <li key={idx} style={{ fontSize: '10.5pt' }}>
+                      <li key={idx} style={{
+                        fontSize: FONT_SIZES.body,
+                        lineHeight: '1.3',
+                        marginBottom: '4px'
+                      }}>
                         {bullet}
                       </li>
                     ))}
@@ -354,28 +400,39 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
 
       {/* Achievements Section */}
       {achievements && achievements.length > 0 && (
-        <section className="mb-5">
+        <section style={{ marginTop: '16px', marginBottom: '16px' }}>
           <h2
-            className="font-bold uppercase tracking-wide mb-2 pb-1"
+            className="font-bold uppercase tracking-wide"
             style={{
-              fontSize: '12pt',
-              borderBottom: '1.5px solid #4B5563',
-              color: '#1F2937'
+              fontSize: FONT_SIZES.sectionHeading,
+              color: COLORS.PRIMARY_ACCENT,
+              marginBottom: '8px',
+              paddingBottom: '4px',
+              borderBottom: `1px solid ${COLORS.SUBTLE_ACCENT}`,
             }}
           >
             Achievements
           </h2>
-          <ul className="list-disc ml-5 space-y-2">
+          <ul style={{
+            listStyleType: 'disc',
+            listStylePosition: 'outside',
+            paddingLeft: '20px',
+            marginTop: '4px'
+          }}>
             {achievements.map((achievement) => (
-              <li key={achievement.id} style={{ fontSize: '10.5pt' }}>
-                <span className="font-semibold">{achievement.title}</span>
+              <li key={achievement.id} style={{
+                fontSize: FONT_SIZES.body,
+                lineHeight: '1.3',
+                marginBottom: '8px'
+              }}>
+                <span style={{ fontWeight: 600 }}>{achievement.title}</span>
                 {achievement.date && (
-                  <span className="text-gray-600 ml-2" style={{ fontSize: '10pt' }}>
+                  <span style={{ fontSize: FONT_SIZES.small, color: COLORS.LIGHT_GRAY, marginLeft: '8px' }}>
                     ({achievement.date})
                   </span>
                 )}
                 {achievement.description && (
-                  <span className="block mt-1">{achievement.description}</span>
+                  <span className="block" style={{ marginTop: '4px' }}>{achievement.description}</span>
                 )}
               </li>
             ))}
