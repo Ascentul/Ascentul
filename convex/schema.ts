@@ -351,6 +351,8 @@ export default defineSchema({
       v.literal("offer"),
       v.literal("rejected"),
     ),
+    stage: v.optional(v.string()), // Legacy field - keeping for backward compatibility
+    stage_set_at: v.optional(v.number()), // Legacy field - keeping for backward compatibility
     source: v.optional(v.string()),
     url: v.optional(v.string()),
     notes: v.optional(v.string()),

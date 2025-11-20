@@ -227,18 +227,18 @@ export default function Goals() {
 
   return (
     <motion.div 
-        className="container mx-auto"
+        className="mx-auto w-full max-w-6xl px-4 md:px-0"
         initial="hidden"
         animate="visible"
         variants={fadeIn}
       >
         <motion.div 
-          className="flex flex-col md:flex-row md:items-center justify-between mb-6"
+          className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4"
           variants={subtleUp}
         >
           <div>
-            <h1 className="text-3xl font-bold mb-2 text-[#0C29AB]">Career Goals</h1>
-            <p className="text-neutral-500">Track and manage your career goals</p>
+            <h1 className="text-2xl font-semibold text-slate-900">Career Goals</h1>
+            <p className="text-sm text-neutral-500">Track and manage your career goals</p>
           </div>
           <Button
             className="mt-4 md:mt-0"
@@ -259,8 +259,8 @@ export default function Goals() {
         
         {/* Filters & Search */}
         <motion.div variants={subtleUp}>
-          <Card className="mb-6">
-            <CardContent className="p-4">
+          <Card className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
+            <CardContent className="px-4 py-3">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="relative">
                   <Input
@@ -342,7 +342,7 @@ export default function Goals() {
         </motion.div>
         
         {/* Goal Templates Section */}
-        <motion.div variants={subtleUp} className="mb-6">
+        <motion.div variants={subtleUp} className="mb-5">
           <GoalTemplates
             onSelectTemplate={(templateId) => {
               // Check free user limit (1 goal max)
@@ -357,79 +357,81 @@ export default function Goals() {
         </motion.div>
         
         {/* Active Goals Section */}
-        <motion.div className="mb-10" variants={subtleUp}>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Active Goals</h2>
-          </div>
-          
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <motion.div className="mb-8" variants={subtleUp}>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-base font-semibold text-slate-900">Active Goals</h2>
             </div>
-          ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status !== 'completed').length > 0 ? (
-            <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-              variants={listContainer}
-            >
-              {sortedAndFilteredGoals()
-                .filter(goal => goal.status !== 'completed')
-                .map((goal: any) => (
-                  <motion.div 
-                    key={goal.id} 
-                    className="relative"
-                    variants={listItem}
-                  >
-                    <GoalCard
-                      id={goal.id}
-                      title={goal.title}
-                      description={goal.description || ''}
-                      progress={goal.progress}
-                      status={goal.status}
-                      dueDate={goal.dueDate ? new Date(goal.dueDate) : undefined}
-                      checklist={goal.checklist || []}
-                      onEdit={handleEditGoal}
-                      onComplete={handleGoalComplete}
-                    />
-                  </motion.div>
-                ))}
-            </motion.div>
-          ) : (
-            <motion.div 
-              className="text-center py-8 bg-white shadow-md shadow-gray-200 rounded-xl"
-              variants={subtleUp}
-            >
-              <div className="bg-white shadow-sm rounded-full p-3 inline-block mb-4">
-                <Target className="h-12 w-12 text-blue-500" />
+            
+            {isLoading ? (
+              <div className="flex justify-center items-center py-6">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
               </div>
-              <h3 className="text-xl font-medium mb-2">No Active Goals</h3>
-              <p className="text-neutral-500 mb-6 max-w-md mx-auto">
-                Start by creating your first career goal to track your progress toward professional success
-              </p>
-              <Button
-                onClick={() => {
-                  // Check free user limit (1 goal max)
-                  if (isFreeUser && goals.length >= 1) {
-                    setShowUpgradeModal(true)
-                    return
-                  }
-                  setSelectedGoal(null)
-                  setIsAddGoalOpen(true)
-                }}
-                className="px-6 py-2 shadow-sm hover:shadow transition-all"
+            ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status !== 'completed').length > 0 ? (
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
+                variants={listContainer}
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Create First Goal
-              </Button>
-            </motion.div>
-          )}
+                {sortedAndFilteredGoals()
+                  .filter(goal => goal.status !== 'completed')
+                  .map((goal: any) => (
+                    <motion.div 
+                      key={goal.id} 
+                      className="relative"
+                      variants={listItem}
+                    >
+                      <GoalCard
+                        id={goal.id}
+                        title={goal.title}
+                        description={goal.description || ''}
+                        progress={goal.progress}
+                        status={goal.status}
+                        dueDate={goal.dueDate ? new Date(goal.dueDate) : undefined}
+                        checklist={goal.checklist || []}
+                        onEdit={handleEditGoal}
+                        onComplete={handleGoalComplete}
+                      />
+                    </motion.div>
+                  ))}
+              </motion.div>
+            ) : (
+              <motion.div 
+                className="text-center py-6 bg-white border border-slate-200 shadow-sm rounded-xl"
+                variants={subtleUp}
+              >
+                <div className="bg-white shadow-sm rounded-full p-3 inline-block mb-3">
+                  <Target className="h-10 w-10 text-blue-500" />
+                </div>
+                <h3 className="text-lg font-medium mb-1 text-slate-900">No Active Goals</h3>
+                <p className="text-sm text-neutral-500 mb-4 max-w-md mx-auto">
+                  Start by creating your first career goal to track your progress toward professional success
+                </p>
+                <Button
+                  onClick={() => {
+                    // Check free user limit (1 goal max)
+                    if (isFreeUser && goals.length >= 1) {
+                      setShowUpgradeModal(true)
+                      return
+                    }
+                    setSelectedGoal(null)
+                    setIsAddGoalOpen(true)
+                  }}
+                  className="px-5 py-2 shadow-sm hover:shadow transition-all"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create First Goal
+                </Button>
+              </motion.div>
+            )}
+          </div>
         </motion.div>
         
         {/* Completed Goals Section */}
         <motion.div variants={subtleUp}>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold flex items-center">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-base font-semibold flex items-center text-slate-900">
               <CheckCircle className="h-5 w-5 mr-2 text-green-500" />
-              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Completed Goals</span>
+              <span>Completed Goals</span>
             </h2>
             <div className="flex items-center space-x-2">
               <Button
@@ -458,8 +460,8 @@ export default function Goals() {
           ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status === 'completed' && !hiddenGoalIds.includes(g.id)).length > 0 ? (
             <>
               {viewMode === 'timeline' && (
-                <Card>
-                  <CardContent className="p-6">
+                <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-4">
                     <GoalTimeline 
                       goals={goals.filter((goal: any) => goal.status === 'completed' && !hiddenGoalIds.includes(goal.id))} 
                     />
@@ -468,9 +470,9 @@ export default function Goals() {
               )}
               
               {viewMode === 'list' && (
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
+                <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
                       <AnimatePresence mode="sync">
                         {goals
                           .filter((goal: any) => goal.status === 'completed' && !hiddenGoalIds.includes(goal.id))

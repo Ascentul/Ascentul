@@ -5,6 +5,7 @@ import { useUser } from '@clerk/nextjs'
 import { Loader2, Menu } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import { Button } from '@/components/ui/button'
+import AppTopBar from '@/components/layout/AppTopBar'
 
 interface LayoutProps {
   children: ReactNode
@@ -13,50 +14,66 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const { user, isLoaded } = useUser()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  
+
   const toggleMobileSidebar = () => {
     setMobileSidebarOpen(!mobileSidebarOpen)
   }
-  
+
   if (!isLoaded) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="flex h-screen items-center justify-center bg-[#F1F3F9]">
+        <Loader2 className="h-10 w-10 animate-spin text-primary-500" />
       </div>
     )
   }
-  
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Mobile menu toggle (floating) - replaces removed top bar */}
-      <div className="md:hidden fixed top-4 left-4 z-40">
+    <>
+      {/* Mobile menu toggle (floating) - only visible on mobile */}
+      <div className="md:hidden fixed top-4 left-4 z-50">
         <Button
           variant="ghost"
-          className="text-neutral-700 p-2"
+          className="shadow-lg bg-white"
           aria-label="Open sidebar menu"
           onClick={toggleMobileSidebar}
         >
           <Menu className="h-6 w-6" />
         </Button>
       </div>
-      
+
       {/* Mobile overlay backdrop - only visible when mobile sidebar is open */}
       {mobileSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/30 z-20 md:hidden" 
+        <div
+          className="fixed inset-0 bg-black/30 z-20 md:hidden"
           onClick={toggleMobileSidebar}
           aria-hidden="true"
         />
       )}
-      
-      <div className="flex flex-1 overflow-hidden">
+
+      {/* Mobile Sidebar (drawer) - only on mobile */}
+      <div className="md:hidden">
         <Sidebar isOpen={mobileSidebarOpen} onToggle={toggleMobileSidebar} />
-        <div className="flex-1 overflow-auto">
-          <main className="p-4 md:p-6 max-w-7xl mx-auto">
-            {children}
+      </div>
+
+      {/* Desktop & main layout */}
+      <div className="flex min-h-screen bg-[#F1F3F9]">
+        {/* Sidebar - desktop */}
+        <aside className="hidden md:sticky md:top-0 md:h-screen md:block">
+          <Sidebar />
+        </aside>
+
+        {/* Main column with top bar and content */}
+        <div className="flex flex-1 flex-col">
+          <AppTopBar />
+          <main className="flex-1 overflow-y-auto">
+            <div className="px-4 pb-4 md:px-6">
+              <div className="w-full rounded-3xl bg-white p-5 shadow-sm">
+                {children}
+              </div>
+            </div>
           </main>
         </div>
       </div>
-    </div>
+    </>
   )
 }

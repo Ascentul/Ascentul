@@ -195,10 +195,10 @@ export default function ApplicationsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             Application Tracker
           </h1>
           <p className="text-muted-foreground">
@@ -207,7 +207,7 @@ export default function ApplicationsPage() {
         </div>
         <Button
           onClick={handleNewApplicationClick}
-          className="bg-[#0C29AB] hover:bg-[#0C29AB]/90"
+          className="bg-primary-500 hover:bg-primary-700"
         >
           <Plus className="h-4 w-4 mr-2" /> New Application
         </Button>

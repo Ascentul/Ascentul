@@ -565,7 +565,7 @@ export default function ContactsPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
               Network Hub
             </h1>
             <p className="text-muted-foreground">
@@ -819,7 +819,7 @@ export default function ContactsPage() {
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[#0C29AB] text-white flex items-center justify-center text-xl font-bold">
+              <div className="w-12 h-12 rounded-full bg-primary-500 text-white flex items-center justify-center text-xl font-bold">
                 {detailContact?.name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1">
@@ -1246,7 +1246,7 @@ export default function ContactsPage() {
                         >
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-[#0C29AB] text-white flex items-center justify-center font-semibold">
+                              <div className="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center font-semibold">
                                 {contact.name.charAt(0).toUpperCase()}
                               </div>
                               <div>
@@ -1451,7 +1451,7 @@ export default function ContactsPage() {
                               >
                                 <TableCell>
                                   <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-[#0C29AB] text-white flex items-center justify-center font-semibold">
+                                    <div className="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center font-semibold">
                                       {contact.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div>
