@@ -149,10 +149,37 @@ Feature Gating (Access Control)
 convex/*      → ./convex/*
 ```
 
-### Styling
-- Tailwind with custom brand colors: `bg-primary` (base: `#0C29AB`), `bg-primary-700` for hover
-- Component library: Radix UI primitives in `src/components/ui/`
-- Responsive design: Mobile-first approach
+### Styling & Design System
+
+**Modern Rounded Dashboard Shell:**
+The app uses a floating rounded shell design with clean, modern SaaS styling:
+- Light neutral background (`bg-neutral-100`) for entire viewport
+- Content and sidebar inside one large rounded white shell (`rounded-shell`, `shadow-card`)
+- Inner content area with slightly tinted surface (`bg-neutral-100/60`)
+- All cards use `rounded-card` with `shadow-card`
+
+**Brand Colors:**
+- Primary brand: `#5371FF` (use `bg-primary-500`, `text-primary-500`)
+- Primary hover: `bg-primary-700`
+- Neutral grays: `neutral-100/300/500/700/900` for UI elements
+- Semantic colors: `success-500`, `warning-500`, `danger-500`
+
+**Border Radius Tokens:**
+- `rounded-shell`: 24px (outer app shell, main containers)
+- `rounded-card`: 18px (inner cards, panels)
+- `rounded-control`: 999px (pills, buttons, inputs)
+
+**Component Library:**
+- Radix UI primitives in `src/components/ui/`
+- AppShell: `src/components/AppShell.tsx` - wraps all authenticated pages
+- PageHeader: `src/components/ui/page-header.tsx` - standardized page headers
+- Card: Updated with default padding and rounded corners
+- Button: Uses `rounded-control` and new primary colors
+
+**Navigation:**
+- Active nav items: `bg-neutral-900 text-white`
+- Inactive nav items: `text-neutral-700 hover:bg-neutral-100`
+- Responsive design: Mobile-first with drawer navigation on mobile
 
 ## Common Patterns
 

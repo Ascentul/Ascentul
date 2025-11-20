@@ -13,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { format, isBefore } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Goal {
   id: string | number;
@@ -85,99 +86,103 @@ export function CareerGoalsSummary() {
       className="mb-6 h-full"
     >
       <Card
-        className="h-full flex flex-col"
+        className="h-full flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-0 shadow-[0_6px_18px_rgba(0,0,0,0.05)]"
       >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 py-3">
           <div>
-            <CardTitle className="text-base font-medium">
+            <CardTitle className="text-sm font-semibold text-slate-900">
               Career Goals
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {completedGoals} completed • {inProgressGoals} in progress
             </p>
           </div>
           <Link href="/goals">
-            <Button variant="outline" size="sm">
-              <ExternalLink className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" className="h-8 rounded-xl px-3 text-xs font-medium text-slate-700 hover:bg-slate-100">
+              <ExternalLink className="mr-2 h-4 w-4" />
               View All
             </Button>
           </Link>
         </CardHeader>
 
-        <CardContent className="flex-1">
+        <div className="border-t border-slate-200/70" />
+
+        <CardContent className="flex-1 px-5 pb-4 pt-3 text-sm text-slate-600">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-3">
-                  <div className="h-8 w-8 bg-muted rounded-full animate-pulse" />
-                  <div className="space-y-1 flex-1">
-                    <div className="h-4 bg-muted rounded animate-pulse" />
-                    <div className="h-3 bg-muted rounded animate-pulse w-2/3" />
+                <div key={i} className="flex items-center space-x-3 rounded-xl bg-slate-50 p-3 shadow-sm">
+                  <div className="h-8 w-8 rounded-full bg-slate-100 animate-pulse" />
+                  <div className="flex-1 space-y-1">
+                    <div className="h-4 rounded bg-slate-100 animate-pulse" />
+                    <div className="h-3 w-2/3 rounded bg-slate-100 animate-pulse" />
                   </div>
-                  <div className="h-6 w-16 bg-muted rounded animate-pulse" />
+                  <div className="h-6 w-16 rounded bg-slate-100 animate-pulse" />
                 </div>
               ))}
             </div>
           ) : activeGoals.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">
-              <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm">No active goals</p>
-              <p className="text-xs">
-                Create your first goal to track your progress
+            <section className="flex flex-col items-center justify-center rounded-2xl bg-[#EEF2FF] border border-transparent py-8 text-center">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm">
+                <Target className="h-5 w-5 text-[#5371FF]" />
+              </div>
+              <p className="text-sm font-medium text-slate-900">No active goals</p>
+              <p className="text-xs text-slate-600 mt-1">
+                Create your first goal to start tracking progress.
               </p>
-              <Link href="/goals">
-                <Button variant="link" className="mt-2 text-sm">
-                  Create Goal
+              <Link href="/goals" className="mt-3 inline-flex">
+                <Button className="rounded-lg bg-[#5371FF] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4863e0]">
+                  Create goal
                 </Button>
               </Link>
-            </div>
+            </section>
           ) : (
-            <div className="space-y-3">
-              {activeGoals.map((goal) => (
+            <div className="divide-y divide-slate-200">
+              {activeGoals.map((goal, idx) => (
                 <div
                   key={goal.id}
-                  className="p-3 rounded-lg border min-h-[90px] flex flex-col"
+                  className={cn("py-3", idx === 0 ? "pt-0" : "", idx === activeGoals.length - 1 ? "pb-0" : "")}
                 >
-                  <div className="min-w-0 max-w-full overflow-hidden flex-1">
-                    <div className="flex items-start gap-2 mb-1">
-                      <h3 className="font-medium text-sm truncate flex-1 min-w-0">
-                        {goal.title}
-                      </h3>
-                      {goal.dueDate && isOverdue(goal.dueDate) && (
-                        <AlertCircle className="h-3 w-3 text-red-500 flex-shrink-0" />
+                  <div className="flex min-h-[90px] flex-col rounded-xl bg-white border border-slate-200 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
+                    <div className="min-w-0 max-w-full flex-1 overflow-hidden">
+                      <div className="mb-1 flex items-start gap-2">
+                        <h3 className="text-sm font-semibold text-slate-900 truncate flex-1 min-w-0">
+                          {goal.title}
+                        </h3>
+                        {goal.dueDate && isOverdue(goal.dueDate) && (
+                          <AlertCircle className="flex-shrink-0 h-3 w-3 text-red-500" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-auto -mt-2 min-w-0">
+                      <div className="mb-1 flex items-center justify-between text-xs">
+                        <span className="text-slate-500">
+                          Progress
+                        </span>
+                        <span
+                          className={getStatusColor(
+                            goal.status,
+                            goal.progress,
+                          )}
+                        >
+                          {goal.progress}%
+                        </span>
+                      </div>
+                      <Progress value={goal.progress} className="h-1.5 w-full" />
+                      {goal.dueDate && (
+                        <p className="mt-1 text-xs text-slate-500 truncate">
+                          Due: {format(new Date(goal.dueDate), "MMM dd, yyyy")}
+                        </p>
                       )}
                     </div>
-                  </div>
-
-                  <div className="mt-auto -mt-2 min-w-0">
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">
-                        Progress
-                      </span>
-                      <span
-                        className={getStatusColor(
-                          goal.status,
-                          goal.progress,
-                        )}
-                      >
-                        {goal.progress}%
-                      </span>
-                    </div>
-                    <Progress value={goal.progress} className="h-1.5 w-full" />
-                    {goal.dueDate && (
-                      <p className="text-xs text-muted-foreground mt-1 truncate">
-                        Due: {format(new Date(goal.dueDate), "MMM dd, yyyy")}
-                      </p>
-                    )}
                   </div>
                 </div>
               ))}
 
               {allActiveGoals.length > 3 && (
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground text-center">
-                    +{allActiveGoals.length - 3} more goals
-                  </p>
+                <div className="py-2 text-center text-xs text-slate-500">
+                  +{allActiveGoals.length - 3} more goals
                 </div>
               )}
             </div>

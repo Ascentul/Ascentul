@@ -214,23 +214,18 @@ export function TodaysRecommendations() {
   }
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={{
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
-      }}
-      className="mb-6"
-    >
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <motion.div initial="hidden" animate="visible" variants={{
+      hidden: { opacity: 0, y: 20 },
+      visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+    }} className="mb-6">
+      <section className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-md">
+        <div className="flex items-center justify-between px-5 py-3">
           <div>
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-yellow-500" />
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <Lightbulb className="h-4 w-4 text-[#F59E0B]" />
               Today's Recommendations
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
+            </h3>
+            <p className="text-xs text-slate-500">
               AI-powered suggestions for your career
             </p>
           </div>
@@ -239,43 +234,44 @@ export function TodaysRecommendations() {
             size="sm"
             onClick={handleRefresh}
             disabled={isLoading}
-            className="h-8 px-2"
+            className="h-8 rounded-xl px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
-        </CardHeader>
+        </div>
+        <div className="border-t border-slate-100" />
 
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="flex items-start p-3 bg-background rounded-lg border">
-                  <div className="h-4 w-4 bg-muted rounded-full animate-pulse mr-3 flex-shrink-0" />
-                  <div className="space-y-2 flex-1">
-                    <div className="h-4 bg-muted rounded animate-pulse" />
+        <div className="px-5 pb-4 pt-3 text-sm text-slate-700">
+            {isLoading ? (
+              <div className="space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-start rounded-xl border border-slate-100 bg-white p-3">
+                    <div className="mr-3 flex h-4 w-4 flex-shrink-0 rounded-full bg-slate-100 animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 rounded bg-slate-100 animate-pulse" />
                     <div className="flex gap-2">
-                      <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                      <div className="h-4 w-16 rounded bg-slate-100 animate-pulse" />
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="p-5 text-center">
-              <p className="text-red-500 mb-2">Failed to load recommendations</p>
-              <Button onClick={handleRefresh} variant="outline" size="sm">
-                Try Again
-              </Button>
-            </div>
-          ) : sortedRecommendations.length === 0 ? (
-            <div className="text-center p-6 border border-dashed rounded-lg flex flex-col items-center">
-              <Lightbulb className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground mb-2">No recommendations for today</p>
-              <Button variant="outline" size="sm" onClick={handleRefresh}>
-                Generate Recommendations
-              </Button>
-            </div>
-          ) : (
+                  </div>
+                ))}
+              </div>
+            ) : error ? (
+              <div className="p-5 text-center">
+                <p className="text-red-500 mb-2">Failed to load recommendations</p>
+                <Button onClick={handleRefresh} variant="outline" size="sm">
+                  Try Again
+                </Button>
+              </div>
+            ) : sortedRecommendations.length === 0 ? (
+              <div className="flex flex-col items-center rounded-xl border border-dashed border-slate-200 p-6 text-slate-600">
+                <Lightbulb className="mb-4 h-12 w-12 text-slate-400" />
+                <p className="mb-2 text-slate-600">No recommendations for today</p>
+                <Button variant="outline" size="sm" onClick={handleRefresh}>
+                  Generate Recommendations
+                </Button>
+              </div>
+            ) : (
             <>
               <ul className="space-y-3">
                 <AnimatePresence initial={false}>
@@ -300,20 +296,20 @@ export function TodaysRecommendations() {
                         role="button"
                         tabIndex={0}
                         aria-pressed={recommendation.completed}
-                        className={`flex items-start p-3 rounded-lg border-2 cursor-pointer focus:outline-none transition-all duration-300 ${
+                        className={`flex items-start rounded-xl border cursor-pointer px-3 py-3 transition-all duration-300 focus:outline-none ${
                           recommendation.completed
-                            ? 'bg-green-50 text-muted-foreground border-green-300'
-                            : 'bg-background border-border hover:border-primary/30 focus:ring-2 focus:ring-primary/40'
+                            ? 'border-green-200 bg-green-50 text-slate-600'
+                            : 'border-slate-200 bg-white hover:border-[#5371FF]/50 focus:ring-2 focus:ring-[#5371FF]/40'
                         }`}
                       >
                         <div
-                          className="flex-shrink-0 mt-0.5"
+                          className="mt-0.5 flex-shrink-0"
                           aria-label={`Recommendation ${recommendation.completed ? 'complete' : 'incomplete'}`}
                         >
                           {recommendation.completed ? (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <CheckCircle className="h-4 w-4 text-[#16A34A]" />
                           ) : (
-                            <Circle className="h-4 w-4 text-muted-foreground opacity-60" />
+                            <Circle className="h-4 w-4 text-slate-400" />
                           )}
                         </div>
 
@@ -339,8 +335,8 @@ export function TodaysRecommendations() {
                             )}
                           </div>
 
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="text-xs bg-muted px-2 py-1 rounded-full flex items-center gap-1">
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700">
                               {getTypePillIcon(recommendation.type)}
                               {getTypeLabel(recommendation.type)}
                             </span>
@@ -383,8 +379,8 @@ export function TodaysRecommendations() {
               )}
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </motion.div>
   )
 }

@@ -193,9 +193,9 @@ export default function JobSearchPage() {
   const canNext = totalPages ? page < totalPages : false;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
           Application Tracker
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -317,7 +317,7 @@ export default function JobSearchPage() {
               <Button
                 onClick={() => doSearch({ page: 1 })}
                 disabled={loading || !query.trim()}
-                className="w-full bg-primary hover:bg-primary/90"
+                className="w-full bg-primary-500 hover:bg-primary-700"
               >
                 {loading ? "Searching..." : "Search Jobs"}
               </Button>

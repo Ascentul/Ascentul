@@ -18,45 +18,43 @@ export function HeatmapCard() {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Activity Streak</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+      <section className="mt-6 rounded-2xl bg-slate-50 border border-slate-200 shadow-[0_6px_18px_rgba(0,0,0,0.05)] p-5">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold text-slate-900">Activity Streak</CardTitle>
+        </div>
+        <div className="mt-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-center py-6 text-slate-500">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     )
   }
 
   // Handle empty or error state
   if (!activityData || activityData.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Activity Streak</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              No activity data available yet. Start tracking your progress!
-            </p>
+      <section className="mt-6 rounded-2xl bg-slate-50 border border-slate-200 shadow-[0_6px_18px_rgba(0,0,0,0.05)] p-5">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold text-slate-900">Activity Streak</CardTitle>
+        </div>
+        <div className="mt-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="flex flex-col items-center justify-center py-6 text-center text-sm text-slate-600">
+            <p>No activity data available yet. Start tracking your progress!</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Activity Streak</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <section className="mt-6 rounded-2xl bg-slate-50 border border-slate-200 shadow-[0_6px_18px_rgba(0,0,0,0.05)] p-5">
+      <div className="flex items-center justify-between">
+        <CardTitle className="text-sm font-semibold text-slate-900">Activity Streak</CardTitle>
+      </div>
+      <div className="mt-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
         <Heatmap data={activityData} startOnMonday={true} />
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   )
 }

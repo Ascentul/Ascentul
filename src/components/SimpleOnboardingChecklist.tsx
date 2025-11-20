@@ -150,10 +150,10 @@ export function SimpleOnboardingChecklist({ dashboardData }: SimpleOnboardingChe
       variants={fadeIn}
       className="mb-6"
     >
-      <Card className="relative overflow-hidden border border-border/60 bg-background/95 shadow-sm">
-        <CardHeader className="pb-1 pt-4 px-4">
-          <CardTitle className="text-lg font-medium">Get Started with Ascentful</CardTitle>
-          <CardDescription className="text-sm">
+      <Card className="relative overflow-hidden p-0 shadow-sm">
+        <CardHeader className="space-y-1 px-5 py-3">
+          <CardTitle className="text-sm font-semibold text-slate-900">Get Started with Ascentful</CardTitle>
+          <CardDescription className="text-xs text-slate-500">
             Want to personalize your dashboard and unlock advanced features? Complete these quick steps.
           </CardDescription>
 
@@ -166,35 +166,37 @@ export function SimpleOnboardingChecklist({ dashboardData }: SimpleOnboardingChe
           </div>
         </CardHeader>
 
-        <CardContent className="pt-3 pb-4 px-4">
+        <div className="border-t border-slate-100" />
+
+        <CardContent className="px-5 pb-4 pt-3">
           <div className="space-y-2.5">
             {checklistItems.map((item) => (
               <div
                 key={item.id}
-                className={`flex items-start p-2.5 rounded-md border transition-colors ${
+                className={`flex items-start gap-2.5 rounded-xl border transition-colors ${
                   item.completed
                     ? 'border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900'
-                    : 'border-border/60 hover:bg-muted/50'
+                    : 'border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <div
-                  className="flex-shrink-0 mt-0.5 cursor-default"
+                  className="mt-0.5 flex-shrink-0 cursor-default"
                   aria-label={`${item.title} is ${item.completed ? 'complete' : 'incomplete'}`}
                 >
                   {item.completed ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-600" />
                   ) : (
                     <Circle className="h-4 w-4 text-muted-foreground opacity-60" />
                   )}
                 </div>
 
-                <div className="ml-2.5 flex-grow">
-                  <h3 className={`text-sm font-medium ${
+                <div className="flex-grow">
+                  <h3 className={`text-sm font-medium text-slate-800 ${
                     item.completed ? 'text-green-700 dark:text-green-400' : ''
                   }`}>
                     {item.title}
                   </h3>
-                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                  <p className="text-xs text-slate-600">{item.description}</p>
                 </div>
 
                 {!item.completed && (
@@ -202,7 +204,7 @@ export function SimpleOnboardingChecklist({ dashboardData }: SimpleOnboardingChe
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-shrink-0 ml-2 h-7 px-2 text-xs whitespace-nowrap"
+                      className="ml-2 flex-shrink-0 h-7 rounded-xl px-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
                     >
                       Go <ChevronRight className="ml-1 h-3 w-3" />
                     </Button>

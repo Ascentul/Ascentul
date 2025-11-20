@@ -471,15 +471,13 @@ const Sidebar = React.memo(function Sidebar({
           key={item.href}
           href={disabled ? "#" : item.href}
           className={`
-          flex items-center px-3 py-2 text-sm rounded-md transition-all duration-200 relative
-          ${
-            active
-              ? "bg-[#f0f2ff] text-[#616ef6]"
-              : disabled
-                ? "text-gray-400 cursor-not-allowed"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-          }
-        `}
+          relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 border border-transparent
+          ${active
+            ? "bg-white text-slate-900 shadow-sm border-slate-200"
+            : disabled
+              ? "cursor-not-allowed text-neutral-500"
+              : "text-slate-700 hover:bg-white/60 hover:text-slate-900"}
+          `}
           onClick={
             disabled
               ? (e) => {
@@ -489,14 +487,14 @@ const Sidebar = React.memo(function Sidebar({
               : undefined
           }
         >
-          <span className={`${expanded ? "mr-3" : ""} flex-shrink-0`}>
+          <span className="flex-shrink-0">
             {item.icon}
           </span>
           {expanded && (
             <>
               <span className="flex-1">{item.label}</span>
               {item.pro && isFreeUser && (
-                <Zap className="h-3 w-3 text-yellow-500" />
+                <Zap className="h-3 w-3 text-warning-500" />
               )}
             </>
           )}
@@ -533,20 +531,18 @@ const Sidebar = React.memo(function Sidebar({
             key={section.id}
             onClick={section.onClick}
             className={`
-            w-full flex items-center px-3 py-2 mx-2 text-sm rounded-lg transition-colors
-            ${
-              disabled
-                ? "text-gray-400 cursor-not-allowed"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            }
+            w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors
+            ${disabled
+              ? "cursor-not-allowed text-neutral-500"
+              : "text-slate-700 hover:bg-white/60 hover:text-slate-900"}
           `}
           >
-            <span className="mr-3">{section.icon}</span>
+            <span className="flex-shrink-0">{section.icon}</span>
             {expanded && (
               <>
                 <span className="flex-1">{section.title}</span>
                 {isPro && isFreeUser && (
-                  <Zap className="h-3 w-3 text-yellow-500" />
+                  <Zap className="h-3 w-3 text-warning-500" />
                 )}
               </>
             )}
@@ -561,14 +557,12 @@ const Sidebar = React.memo(function Sidebar({
             key={section.id}
             href={disabled ? "#" : section.href}
             className={`
-            flex items-center px-3 py-2 mx-2 text-sm rounded-lg transition-colors
-            ${
-              sectionActive || hasActiveItem
-                ? "bg-[#f0f2ff] text-[#616ef6]"
-                : disabled
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            }
+            flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors border border-transparent
+            ${sectionActive || hasActiveItem
+              ? "bg-white text-slate-900 shadow-sm border-slate-200"
+              : disabled
+                ? "cursor-not-allowed text-neutral-500"
+                : "text-slate-700 hover:bg-white/60 hover:text-slate-900"}
           `}
             onClick={
               disabled
@@ -579,12 +573,12 @@ const Sidebar = React.memo(function Sidebar({
                 : undefined
             }
           >
-            <span className="mr-3">{section.icon}</span>
+            <span className="flex-shrink-0">{section.icon}</span>
             {expanded && (
               <>
                 <span className="flex-1">{section.title}</span>
                 {isPro && isFreeUser && (
-                  <Zap className="h-3 w-3 text-yellow-500" />
+                  <Zap className="h-3 w-3 text-warning-500" />
                 )}
               </>
             )}
@@ -609,12 +603,12 @@ const Sidebar = React.memo(function Sidebar({
       return (
         <div key={section.id} className="space-y-1">
           <div
-            className="flex items-center px-3 py-2 mx-2 text-sm rounded-lg cursor-pointer select-none transition-colors text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium cursor-pointer select-none transition-colors text-slate-700 hover:bg-white/60 hover:text-slate-900"
             role="button"
             aria-expanded={!isCollapsed}
             onClick={toggleSectionItems}
           >
-            <span className="mr-3 flex-shrink-0">{section.icon}</span>
+            <span className="flex-shrink-0">{section.icon}</span>
             {expanded && <span className="flex-1">{section.title}</span>}
             {expanded && (
               <ChevronRight
@@ -631,7 +625,7 @@ const Sidebar = React.memo(function Sidebar({
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
                 style={{ overflow: "hidden" }}
-                className="ml-2 space-y-1"
+                className="ml-4 space-y-1"
               >
                 {section.items?.map((it) => renderSidebarItem(it, section.id))}
               </motion.div>
@@ -648,37 +642,49 @@ const Sidebar = React.memo(function Sidebar({
       <div
         ref={sidebarRef}
         className={`
-          bg-white shadow-lg transition-all duration-300 ease-in-out z-30
+          transition-all duration-300 ease-in-out z-30
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          ${expanded ? "w-64" : "w-20"}
-          md:translate-x-0 md:static md:inset-0
-          fixed inset-y-0 left-0 flex flex-col
+          ${expanded ? "w-72" : "w-20"}
+          md:translate-x-0
+          fixed inset-y-0 left-0 md:relative md:inset-0 flex flex-col
+          bg-[#F1F3F9] pl-6 pr-3 py-5 h-full overflow-y-auto no-scrollbar
+          shadow-none
         `}
       >
-        {/* Header */}
-        <div
-          className={`flex items-center ${expanded ? "justify-between" : "justify-center"} p-4 border-b`}
-        >
-          {expanded && (
-            <h1 className="text-xl font-bold text-primary">Ascentful</h1>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleExpanded}
-            className="hidden md:flex"
+        <div className="flex h-full w-full flex-col">
+          {/* Header */}
+          <div
+            className={`flex items-center ${expanded ? "justify-between" : "justify-center"} mb-6`}
           >
-            {expanded ? (
-              <ChevronsLeft className="h-4 w-4" />
-            ) : (
-              <PanelRight className="h-4 w-4" />
+            {expanded && (
+              <div className="flex items-center gap-2">
+                <Image
+                  src="/logo.png"
+                  alt="Ascentful logo"
+                  width={28}
+                  height={28}
+                  className="h-7 w-7 rounded-[5px] object-contain"
+                />
+                <h1 className="text-xl font-semibold text-[#5371FF]">Ascentful</h1>
+              </div>
             )}
-          </Button>
-        </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleExpanded}
+              className="hidden md:flex"
+            >
+              {expanded ? (
+                <ChevronsLeft className="h-4 w-4" />
+              ) : (
+                <PanelRight className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
 
         {/* User Profile */}
         {clerkUser && (
-          <div className="p-4 border-b">
+          <div className="mb-6">
             <div
               className={`flex items-center ${expanded ? "space-x-3" : "justify-center"}`}
             >
@@ -692,7 +698,7 @@ const Sidebar = React.memo(function Sidebar({
                   alt="Profile"
                   width={40}
                   height={40}
-                  className="h-10 w-10 rounded-full object-cover hover:ring-2 hover:ring-primary transition-all"
+                  className="h-10 w-10 rounded-full object-cover hover:ring-2 hover:ring-primary-500 transition-all"
                 />
               </Link>
               {expanded && (
@@ -712,184 +718,194 @@ const Sidebar = React.memo(function Sidebar({
                 </div>
               )}
             </div>
-            {expanded && isFreeUser && (
-              <div className="mt-3">
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                  <span>Free Plan</span>
-                  {usageData ? (
-                    <span>{usageData.stepsCompleted}/{usageData.totalSteps} steps</span>
-                  ) : (
-                    <span>Loading...</span>
-                  )}
-                </div>
+          </div>
+        )}
+
+          {/* Navigation */}
+          <nav className="flex-1 space-y-2 mb-4 w-full">
+            {allSections.map(renderSection)}
+          </nav>
+
+          {/* Free Plan Tile near footer */}
+          {isFreeUser && (
+            <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between text-xs text-slate-600">
+                <span className="font-semibold text-slate-800">Free Plan</span>
+                {usageData ? (
+                  <span>{usageData.stepsCompleted}/{usageData.totalSteps} steps</span>
+                ) : (
+                  <span>Loading...</span>
+                )}
+              </div>
+              <div className="mt-2">
                 <Progress
                   value={usageData ? (usageData.stepsCompleted / usageData.totalSteps) * 100 : 0}
                   className="h-2"
                 />
-                <Link
-                  href="/pricing"
-                  className="text-xs text-primary hover:underline mt-1 block cursor-pointer"
+              </div>
+              <Link
+                href="/pricing"
+                className="mt-3 block w-full"
+              >
+                <Button
+                  size="sm"
+                  className="w-full bg-primary-500 hover:bg-primary-700 text-white"
                 >
                   Upgrade to Pro
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Navigation */}
-        <nav className="flex-1 px-2 py-4 space-y-1">
-          {allSections.map(renderSection)}
-        </nav>
-
-        {/* Footer */}
-        <div className="p-4 border-t space-y-2">
-          {/* Pro Upsell Modal */}
-          <Dialog open={showUpsellModal} onOpenChange={setShowUpsellModal}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Unlock Pro Features</DialogTitle>
-                <DialogDescription>
-                  This feature is available on the Pro plan. Upgrade to access
-                  LinkedIn Integration and other premium tools.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="text-sm text-gray-600">
-                • Save time with LinkedIn job search shortcuts and history
-                <br />• Advanced career tools and automations
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Maybe later</Button>
-                </DialogClose>
-                <Button
-                  onClick={async () => {
-                    setShowUpsellModal(false);
-                    try {
-                      const response = await fetch("/api/stripe/checkout", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          plan: "premium",
-                          interval: "monthly",
-                        }),
-                      });
-                      const data = await response.json();
-                      if (data.url) {
-                        window.location.href = data.url;
-                      }
-                    } catch (error) {
-                      console.error("Checkout error:", error);
-                    }
-                  }}
-                >
-                  Upgrade Now
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* Settings Button */}
-          {isUniAdmin ? (
-            <Link href="/university/settings">
-              <Button
-                variant="ghost"
-                className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
-              >
-                <Settings className="h-4 w-4" />
-                {expanded && <span className="ml-3">Settings</span>}
-              </Button>
-            </Link>
-          ) : !isAdmin && (
-            <Link href="/account">
-              <Button
-                variant="ghost"
-                className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
-              >
-                <Settings className="h-4 w-4" />
-                {expanded && <span className="ml-3">Account Settings</span>}
-              </Button>
-            </Link>
+              </Link>
+            </div>
           )}
 
-          {/* Support Button for non-admin users only */}
-          {!isAdmin && (
-            <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
-                >
-                  <HelpCircle className="h-4 w-4" />
-                  {expanded && <span className="ml-3">Support</span>}
-                </Button>
-              </DialogTrigger>
+          {/* Footer - Account actions */}
+          <div className="mt-2 space-y-1 border-t border-neutral-200 pt-4">
+            {/* Pro Upsell Modal */}
+            <Dialog open={showUpsellModal} onOpenChange={setShowUpsellModal}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Contact Support</DialogTitle>
+                  <DialogTitle>Unlock Pro Features</DialogTitle>
                   <DialogDescription>
-                    Describe your issue and we'll help you resolve it.
+                    This feature is available on the Pro plan. Upgrade to access
+                    LinkedIn Integration and other premium tools.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Issue Type</label>
-                    <Select value={issueType} onValueChange={setIssueType}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Bug">Bug Report</SelectItem>
-                        <SelectItem value="Feature">Feature Request</SelectItem>
-                        <SelectItem value="Account">Account Issue</SelectItem>
-                        <SelectItem value="Billing">Billing Question</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Subject</label>
-                    <Input
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      placeholder="Brief description of your issue"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Description</label>
-                    <Textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Please provide details about your issue"
-                      rows={4}
-                    />
-                  </div>
+                <div className="text-sm text-gray-600">
+                  • Save time with LinkedIn job search shortcuts and history
+                  <br />• Advanced career tools and automations
                 </div>
                 <DialogFooter>
                   <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
+                    <Button variant="outline">Maybe later</Button>
                   </DialogClose>
                   <Button
-                    onClick={handleSupportSubmit}
-                    disabled={
-                      isSubmitting || !subject.trim() || !description.trim()
-                    }
+                    onClick={async () => {
+                      setShowUpsellModal(false);
+                      try {
+                        const response = await fetch("/api/stripe/checkout", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            plan: "premium",
+                            interval: "monthly",
+                          }),
+                        });
+                        const data = await response.json();
+                        if (data.url) {
+                          window.location.href = data.url;
+                        }
+                      } catch (error) {
+                        console.error("Checkout error:", error);
+                      }
+                    }}
                   >
-                    {isSubmitting ? "Submitting..." : "Submit Ticket"}
+                    Upgrade Now
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          )}
 
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className={`w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ${expanded ? "justify-start" : "justify-center"}`}
-          >
-            <LogOut className="h-4 w-4" />
-            {expanded && <span className="ml-3">Sign Out</span>}
-          </Button>
+            {/* Settings Button */}
+            {isUniAdmin ? (
+              <Link href="/university/settings">
+                <Button
+                  variant="ghost"
+                  className={`w-full ${expanded ? "justify-start" : "justify-center"} text-slate-700 hover:bg-white/60 hover:text-slate-900`}
+                >
+                  <Settings className="h-4 w-4" />
+                  {expanded && <span className="ml-3">Settings</span>}
+                </Button>
+              </Link>
+            ) : !isAdmin && (
+              <Link href="/account">
+                <Button
+                  variant="ghost"
+                  className={`w-full ${expanded ? "justify-start" : "justify-center"} text-slate-700 hover:bg-white/60 hover:text-slate-900`}
+                >
+                  <Settings className="h-4 w-4" />
+                  {expanded && <span className="ml-3">Account Settings</span>}
+                </Button>
+              </Link>
+            )}
+
+            {/* Support Button for non-admin users only */}
+            {!isAdmin && (
+              <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={`w-full ${expanded ? "justify-start" : "justify-center"} text-slate-700 hover:bg-white/60 hover:text-slate-900`}
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                    {expanded && <span className="ml-3">Support</span>}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Contact Support</DialogTitle>
+                    <DialogDescription>
+                      Describe your issue and we'll help you resolve it.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Issue Type</label>
+                      <Select value={issueType} onValueChange={setIssueType}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Bug">Bug Report</SelectItem>
+                          <SelectItem value="Feature">Feature Request</SelectItem>
+                          <SelectItem value="Account">Account Issue</SelectItem>
+                          <SelectItem value="Billing">Billing Question</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Subject</label>
+                      <Input
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        placeholder="Brief description of your issue"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Description</label>
+                      <Textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Please provide details about your issue"
+                        rows={4}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button
+                      onClick={handleSupportSubmit}
+                      disabled={
+                        isSubmitting || !subject.trim() || !description.trim()
+                      }
+                    >
+                      {isSubmitting ? "Submitting..." : "Submit Ticket"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className={`w-full ${expanded ? "justify-start" : "justify-center"} text-slate-700 hover:bg-white/60 hover:text-slate-900`}
+            >
+              <LogOut className="h-4 w-4" />
+              {expanded && <span className="ml-3">Sign Out</span>}
+            </Button>
+          </div>
         </div>
       </div>
     </>

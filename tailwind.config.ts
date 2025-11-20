@@ -65,7 +65,26 @@ const config = {
         },
         brand: {
           blue: "#5371ff"
-        }
+        },
+        // New design tokens for rounded dashboard shell
+        neutral: {
+          900: '#111827',
+          700: '#4B5563',
+          500: '#6B7280',
+          300: '#D1D5DB',
+          200: '#E5E7EB',
+          100: '#F3F4F6',
+          50: '#F9FAFB',
+        },
+        success: {
+          500: '#16A34A'
+        },
+        warning: {
+          500: '#F59E0B'
+        },
+        danger: {
+          500: '#DC2626'
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
@@ -114,7 +133,14 @@ const config = {
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)"
+        sm: "calc(var(--radius) - 4px)",
+        // New rounded dashboard shell tokens
+        shell: '24px',
+        card: '18px',
+        control: '999px',
+      },
+      boxShadow: {
+        card: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
       }
     }
   },
