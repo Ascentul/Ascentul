@@ -84,7 +84,7 @@ export function QuickActionChips() {
             <Link href="/applications" className="w-full">
               <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm transition-colors hover:bg-slate-50">
                 <div className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50">
-                  <Briefcase className="h-5 w-5 text-[#16A34A]" />
+                  <Briefcase className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
                   <div className="font-medium">Add Application</div>

@@ -306,7 +306,8 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="w-full">
+      <div className="w-full rounded-3xl bg-white p-5 shadow-sm space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
@@ -753,6 +754,7 @@ export default function ProjectsPage() {
         onOpenChange={setShowUpgradeModal}
         feature="project"
       />
+    </div>
     </div>
   );
 }

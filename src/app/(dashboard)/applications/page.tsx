@@ -195,26 +195,27 @@ export default function ApplicationsPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Application Tracker
-          </h1>
-          <p className="text-muted-foreground">
-            Manage your job applications from first save to final offer
-          </p>
-        </div>
-        <Button
-          onClick={handleNewApplicationClick}
-          className="bg-primary-500 hover:bg-primary-700"
+    <div className="w-full">
+      <div className="w-full rounded-3xl bg-white p-5 shadow-sm space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              Application Tracker
+            </h1>
+            <p className="text-muted-foreground">
+              Manage your job applications from first save to final offer
+            </p>
+          </div>
+          <Button
+            onClick={handleNewApplicationClick}
+            className="bg-primary-500 hover:bg-primary-700"
         >
           <Plus className="h-4 w-4 mr-2" /> New Application
         </Button>
-      </div>
+        </div>
 
       {/* Toggle between All Applications and Find Jobs */}
-      <div className="mb-6 flex gap-2">
+      <div className="flex gap-2">
         <Button
           variant={activeTab === "applications" ? "default" : "outline"}
           onClick={() => handleTabChange("applications")}
@@ -234,7 +235,7 @@ export default function ApplicationsPage() {
       </div>
 
       {/* Search bar */}
-      <div className="mb-8">
+      <div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -533,6 +534,8 @@ export default function ApplicationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      </div>
 
       {/* Upgrade Modal for Free User Limits */}
       <UpgradeModal

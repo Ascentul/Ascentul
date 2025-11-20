@@ -227,11 +227,12 @@ export default function Goals() {
 
   return (
     <motion.div 
-        className="mx-auto w-full max-w-6xl px-4 md:px-0"
+        className="w-full"
         initial="hidden"
         animate="visible"
         variants={fadeIn}
       >
+        <div className="w-full rounded-3xl bg-white p-5 shadow-sm space-y-6">
         <motion.div 
           className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4"
           variants={subtleUp}
@@ -567,6 +568,7 @@ export default function Goals() {
           onOpenChange={setShowUpgradeModal}
           feature="goal"
         />
+        </div>
       </motion.div>
     )
 }

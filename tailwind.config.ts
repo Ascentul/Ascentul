@@ -64,26 +64,30 @@ const config = {
           foreground: "hsl(var(--card-foreground))"
         },
         brand: {
-          blue: "#5371ff"
+          blue: "#5271FF"
         },
         // New design tokens for rounded dashboard shell
         neutral: {
-          900: '#111827',
-          700: '#4B5563',
-          500: '#6B7280',
-          300: '#D1D5DB',
-          200: '#E5E7EB',
-          100: '#F3F4F6',
-          50: '#F9FAFB',
+          900: 'rgb(var(--neutral-900))',
+          700: 'rgb(var(--neutral-700))',
+          500: 'rgb(var(--neutral-500))',
+          300: 'rgb(var(--neutral-300))',
+          200: 'rgb(var(--neutral-200))',
+          100: 'rgb(var(--neutral-100))',
+          50: 'rgb(var(--neutral-50))',
+        },
+        // App background color - slightly cooler/bluer than neutral-100
+        app: {
+          bg: 'rgb(var(--app-bg))',
         },
         success: {
-          500: '#16A34A'
+          500: 'rgb(var(--success-500))'
         },
         warning: {
-          500: '#F59E0B'
+          500: 'rgb(var(--warning-500))'
         },
         danger: {
-          500: '#DC2626'
+          500: 'rgb(var(--danger-500))'
         },
       },
       fontFamily: {

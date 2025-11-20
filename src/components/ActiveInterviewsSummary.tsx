@@ -279,7 +279,7 @@ export function ActiveInterviewsSummary() {
               <p className="text-sm text-slate-700">No active interviews or applications</p>
               <p className="text-xs">Your upcoming interviews and applications will appear here</p>
               <Link href="/applications">
-                <Button variant="link" className="mt-2 text-sm text-[#5371FF]">
+                <Button variant="link" className="mt-2 text-sm text-primary-500">
                   View Applications
                 </Button>
               </Link>
