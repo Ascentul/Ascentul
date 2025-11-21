@@ -52,7 +52,15 @@ async function main() {
     process.exit(1)
   }
 
-
+  // Polyfill fetch and related globals for Node < 18
+  if (typeof fetch === 'undefined') {
+    const nodeFetch = require('node-fetch')
+    const fetch_ = nodeFetch.default || nodeFetch
+    global.fetch = fetch_
+    global.Request = nodeFetch.Request
+    global.Response = nodeFetch.Response
+    global.Headers = nodeFetch.Headers
+  }
 
   const { ConvexHttpClient } = require('convex/browser')
   const { api } = require('../convex/_generated/api')
