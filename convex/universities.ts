@@ -157,12 +157,23 @@ export const assignUniversityToUser = mutation({
 
 // Get all universities for admin management
 export const getAllUniversities = query({
-  args: { clerkId: v.optional(v.string()) },
+  args: {
+    clerkId: v.optional(v.string()),
+    includeDeleted: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
     await requireSuperAdmin(ctx);
-    return await ctx.db
+
+    const universities = await ctx.db
       .query("universities")
       .collect();
+
+    // By default, exclude soft-deleted universities
+    if (!args.includeDeleted) {
+      return universities.filter((u) => u.status !== "deleted");
+    }
+
+    return universities;
   }
 });
 
@@ -286,6 +297,194 @@ export const getUniversityBySlug = query({
       .withIndex("by_slug", q => q.eq("slug", args.slug))
       .unique();
   }
+});
+
+// Delete a university (soft or hard delete - super admin only)
+// Soft delete: marks as deleted, preserves data
+// Hard delete: permanently removes university and all related data (for test universities)
+export const deleteUniversity = mutation({
+  args: {
+    universityId: v.id("universities"),
+    hardDelete: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+
+    const university = await ctx.db.get(args.universityId);
+    if (!university) {
+      throw new Error("University not found");
+    }
+
+    const now = Date.now();
+
+    // Get the acting user for audit logging
+    const actingUser = await getAuthenticatedUser(ctx);
+
+    // Soft delete: just mark as deleted
+    if (!args.hardDelete) {
+      await ctx.db.patch(args.universityId, {
+        status: "deleted",
+        deleted_at: now,
+        updated_at: now,
+      });
+
+      // Create audit log entry for soft delete
+      await ctx.db.insert("audit_logs", {
+        action: "university_soft_deleted",
+        target_type: "university",
+        target_id: args.universityId,
+        target_name: university.name,
+        performed_by_id: actingUser._id,
+        performed_by_email: actingUser.email,
+        performed_by_name: actingUser.name,
+        metadata: {
+          university_slug: university.slug,
+          previous_status: university.status,
+        },
+        timestamp: now,
+      });
+
+      return {
+        success: true,
+        type: "soft_delete",
+        universityId: args.universityId,
+        message: `University "${university.name}" has been soft deleted`,
+      };
+    }
+
+    // Hard delete: remove all related data
+    // 1. Delete advisorStudents
+    const advisorStudents = await ctx.db
+      .query("advisorStudents")
+      .withIndex("by_university", (q) => q.eq("university_id", args.universityId))
+      .collect();
+    for (const record of advisorStudents) {
+      await ctx.db.delete(record._id);
+    }
+
+    // 2. Delete memberships
+    const memberships = await ctx.db
+      .query("memberships")
+      .withIndex("by_university", (q) => q.eq("university_id", args.universityId))
+      .collect();
+    for (const record of memberships) {
+      await ctx.db.delete(record._id);
+    }
+
+    // 3. Delete studentInvites
+    const studentInvites = await ctx.db
+      .query("studentInvites")
+      .filter((q) => q.eq(q.field("university_id"), args.universityId))
+      .collect();
+    for (const record of studentInvites) {
+      await ctx.db.delete(record._id);
+    }
+
+    // 4. Delete studentProfiles
+    const studentProfiles = await ctx.db
+      .query("studentProfiles")
+      .withIndex("by_university", (q) => q.eq("university_id", args.universityId))
+      .collect();
+    for (const record of studentProfiles) {
+      await ctx.db.delete(record._id);
+    }
+
+    // 5. Delete courses
+    const courses = await ctx.db
+      .query("courses")
+      .withIndex("by_university", (q) => q.eq("university_id", args.universityId))
+      .collect();
+    for (const record of courses) {
+      await ctx.db.delete(record._id);
+    }
+
+    // 6. Delete departments
+    const departments = await ctx.db
+      .query("departments")
+      .withIndex("by_university", (q) => q.eq("university_id", args.universityId))
+      .collect();
+    for (const record of departments) {
+      await ctx.db.delete(record._id);
+    }
+
+    // 7. Unlink users from this university (don't delete users, just clear university_id)
+    const linkedUsers = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("university_id"), args.universityId))
+      .collect();
+    for (const user of linkedUsers) {
+      await ctx.db.patch(user._id, {
+        university_id: undefined,
+        // Reset role if they were university_admin or advisor
+        ...(user.role === "university_admin" || user.role === "advisor"
+          ? { role: "user" as const }
+          : {}),
+        // Reset subscription if it was university plan
+        ...(user.subscription_plan === "university"
+          ? { subscription_plan: "free" as const }
+          : {}),
+        updated_at: now,
+      });
+    }
+
+    // 8. Clear university_id from optional tables (applications, goals, etc.)
+    // These have optional university_id, so we just clear them
+    const applications = await ctx.db
+      .query("applications")
+      .filter((q) => q.eq(q.field("university_id"), args.universityId))
+      .collect();
+    for (const record of applications) {
+      await ctx.db.patch(record._id, { university_id: undefined, updated_at: now });
+    }
+
+    const goals = await ctx.db
+      .query("goals")
+      .filter((q) => q.eq(q.field("university_id"), args.universityId))
+      .collect();
+    for (const record of goals) {
+      await ctx.db.patch(record._id, { university_id: undefined, updated_at: now });
+    }
+
+    // 9. Create audit log entry for hard delete (before deleting the university)
+    const deletedCounts = {
+      advisorStudents: advisorStudents.length,
+      memberships: memberships.length,
+      studentInvites: studentInvites.length,
+      studentProfiles: studentProfiles.length,
+      courses: courses.length,
+      departments: departments.length,
+      unlinkedUsers: linkedUsers.length,
+      clearedApplications: applications.length,
+      clearedGoals: goals.length,
+    };
+
+    await ctx.db.insert("audit_logs", {
+      action: "university_hard_deleted",
+      target_type: "university",
+      target_id: args.universityId,
+      target_name: university.name,
+      performed_by_id: actingUser._id,
+      performed_by_email: actingUser.email,
+      performed_by_name: actingUser.name,
+      metadata: {
+        university_slug: university.slug,
+        university_status: university.status,
+        deletedCounts,
+      },
+      timestamp: now,
+    });
+
+    // 10. Finally delete the university record itself
+    await ctx.db.delete(args.universityId);
+
+    return {
+      success: true,
+      type: "hard_delete",
+      universityId: args.universityId,
+      message: `University "${university.name}" and all related data have been permanently deleted`,
+      deletedCounts,
+    };
+  },
 });
 
 // Get university admin counts for all universities (optimized for bandwidth)
