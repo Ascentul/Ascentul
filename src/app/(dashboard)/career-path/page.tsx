@@ -762,8 +762,7 @@ export default function CareerPathPage() {
   // Removed animation objects
 
   return (
-    <div className="w-full">
-      <div className="w-full rounded-3xl bg-white p-5 shadow-sm space-y-6">
+    <div className="container mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
         <div>
           <h1 className="text-3xl font-bold mb-2 text-slate-900">
@@ -1516,7 +1515,6 @@ export default function CareerPathPage() {
         onOpenChange={setShowUpgradeModal}
         feature="careerPath"
       />
-    </div>
     </div>
   );
 }

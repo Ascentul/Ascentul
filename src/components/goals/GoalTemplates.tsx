@@ -1,3 +1,8 @@
+"use client";
+
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Target,
   Briefcase,
@@ -5,7 +10,6 @@ import {
   Code,
   Users,
   TrendingUp,
-  type LucideIcon,
 } from "lucide-react";
 
 export const goalTemplates = [
@@ -13,7 +17,7 @@ export const goalTemplates = [
     id: "career-change",
     title: "Career Change",
     description: "Transition to a new career field",
-    icon: Briefcase,
+    icon: <Briefcase className="h-5 w-5" />,
     category: "Career",
     prefill: {
       title: "Transition to [New Field]",
@@ -33,7 +37,7 @@ export const goalTemplates = [
     id: "skill-development",
     title: "Skill Development",
     description: "Learn new technical or professional skills",
-    icon: Code,
+    icon: <Code className="h-5 w-5" />,
     category: "Learning",
     prefill: {
       title: "Master [Skill Name]",
@@ -53,7 +57,7 @@ export const goalTemplates = [
     id: "promotion",
     title: "Get Promoted",
     description: "Advance to the next level in your current role",
-    icon: TrendingUp,
+    icon: <TrendingUp className="h-5 w-5" />,
     category: "Career",
     prefill: {
       title: "Get Promoted to [Target Position]",
@@ -72,7 +76,7 @@ export const goalTemplates = [
     id: "networking",
     title: "Build Network",
     description: "Expand your professional network",
-    icon: Users,
+    icon: <Users className="h-5 w-5" />,
     category: "Networking",
     prefill: {
       title: "Build Professional Network",
@@ -92,7 +96,7 @@ export const goalTemplates = [
     id: "education",
     title: "Further Education",
     description: "Pursue additional education or certifications",
-    icon: GraduationCap,
+    icon: <GraduationCap className="h-5 w-5" />,
     category: "Education",
     prefill: {
       title: "Complete [Degree/Certification]",
@@ -112,7 +116,7 @@ export const goalTemplates = [
     id: "leadership",
     title: "Leadership Development",
     description: "Develop leadership and management skills",
-    icon: Target,
+    icon: <Target className="h-5 w-5" />,
     category: "Leadership",
     prefill: {
       title: "Develop Leadership Skills",
@@ -130,5 +134,62 @@ export const goalTemplates = [
   },
 ];
 
-// NOTE: This component has been replaced by GoalTemplatesStrip.tsx
-// Keeping this file for the goalTemplates data export used by GoalForm and other components
+interface GoalTemplatesProps {
+  onSelectTemplate: (templateId: string) => void;
+}
+
+export default function GoalTemplates({
+  onSelectTemplate,
+}: GoalTemplatesProps) {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold mb-2">Goal Templates</h3>
+          <p className="text-sm text-muted-foreground">
+            Get started quickly with pre-built goal templates
+          </p>
+        </div>
+
+        <div
+          className="flex overflow-x-auto space-x-4 pb-4 scrollbar-hide"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {goalTemplates.map((template) => (
+            <Card
+              key={template.id}
+              className="hover:shadow-md transition-shadow cursor-pointer flex-shrink-0 w-64"
+            >
+              <CardContent className="p-4 flex flex-col h-full">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-[#0C29AB] rounded-lg flex-shrink-0">
+                    <div className="text-white">{template.icon}</div>
+                  </div>
+                  <h4 className="font-medium text-sm">{template.title}</h4>
+                </div>
+
+                <p className="text-xs text-muted-foreground mb-3 flex-grow">
+                  {template.description}
+                </p>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full text-xs mt-auto"
+                  onClick={() => onSelectTemplate(template.id)}
+                >
+                  Use Template
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <style jsx>{`
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+      </CardContent>
+    </Card>
+  );
+}
