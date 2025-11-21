@@ -209,6 +209,89 @@ const { userId } = await auth();
 if (!userId) return new Response("Unauthorized", { status: 401 });
 ```
 
+## University Lifecycle Management
+
+### University Statuses
+Universities can have the following statuses:
+- `trial`: University in trial period
+- `active`: Fully active university with paid license
+- `expired`: License has expired
+- `suspended`: Temporarily suspended by admin
+- `archived`: Non-destructively disabled (preferred for real universities)
+- `deleted`: Hard deleted (only for test universities)
+
+### Safe Lifecycle Operations
+
+**Archive (Preferred for Real Universities):**
+```typescript
+await archiveUniversity({ universityId })
+```
+- **Non-destructive**: Preserves all data (users, applications, goals, metrics)
+- University becomes inactive and stops appearing in active lists
+- Can be restored if needed
+- Counts toward "total universities all time" metric but not "active"
+
+**Hard Delete (Test Universities Only):**
+```typescript
+await hardDeleteUniversity({ universityId })
+```
+- **Destructive**: Permanently removes university and related data
+- Only allowed for universities marked as `is_test: true`
+- Deletes: university record, memberships, student profiles, invitations, departments, courses
+- Unlinks users (sets `university_id` to null, marks as test users)
+- Clears `university_id` from applications/goals but preserves records
+- Real universities are protected by guard - will throw error directing to use archive
+
+**Toggle Test Status:**
+```typescript
+await toggleTestUniversity({ universityId, isTest: boolean })
+```
+- Marks university as test or production
+- Test universities are automatically excluded from investor metrics
+- Use this before hard deleting a university for cleanup
+
+### Investor-Facing Metrics
+
+Centralized metrics in `convex/metrics.ts`:
+
+```typescript
+// Single query for all metrics
+const metrics = await getAllMetrics({})
+
+// Or individual queries
+const totalUniversities = await getTotalUniversitiesAllTime({})
+const activeUniversities = await getActiveUniversitiesCurrent({})
+const archivedUniversities = await getArchivedUniversities({})
+const totalUsers = await getTotalUsersAllTime({})
+const activeUsers = await getActiveUsers30d({})
+```
+
+**Metric Definitions:**
+- `totalUniversitiesAllTime`: Real universities with status in (trial, active, archived)
+- `activeUniversitiesCurrent`: Real universities with status in (trial, active)
+- `archivedUniversities`: Real universities with status = archived
+- `totalUsersAllTime`: All non-test, non-internal users ever created
+- `activeUsers30d`: Non-test users who logged in within 30 days, on active/trial universities
+
+**Automatic Exclusions:**
+- Test universities (`is_test = true`) never appear in metrics
+- Test users (`is_test_user = true`) never appear in metrics
+- Internal users (`role = "super_admin"`) never appear in metrics
+
+### Dev Sanity Check
+
+Verify lifecycle and metrics are working correctly:
+```bash
+npx convex run dev/checkMetrics:runSanityCheck --clerkId YOUR_CLERK_ID
+```
+
+This creates test data, performs operations, and validates that:
+- Test universities are excluded from metrics
+- Real universities count correctly
+- Archive removes from active but keeps in total
+- Hard delete is blocked for real universities
+- Hard delete works for test universities
+
 ## Testing
 
 - Jest configured (`jest.config.js`, `jest.setup.js`)
