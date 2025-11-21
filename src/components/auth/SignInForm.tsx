@@ -45,7 +45,9 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
         password
       })
 
-      console.log('Sign-in result:', result.status, result)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Sign-in result:', result.status, result)
+      }
 
       // Handle complete sign-in
       if (result.status === 'complete') {
