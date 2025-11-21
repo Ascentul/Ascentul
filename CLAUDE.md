@@ -153,13 +153,13 @@ convex/*      → ./convex/*
 
 **Modern Rounded Dashboard Shell:**
 The app uses a floating rounded shell design with clean, modern SaaS styling:
-- Light neutral background (`bg-neutral-100`) for entire viewport
+- Light neutral background (`bg-app-bg` / `#F1F3F9`) for entire viewport
 - Content and sidebar inside one large rounded white shell (`rounded-shell`, `shadow-card`)
 - Inner content area with slightly tinted surface (`bg-neutral-100/60`)
 - All cards use `rounded-card` with `shadow-card`
 
 **Brand Colors:**
-- Primary brand: `#5371FF` (use `bg-primary-500`, `text-primary-500`)
+- Primary brand: `#4257FF` (use `bg-primary-500`, `text-primary-500`) - WCAG AA compliant (5.19:1 contrast)
 - Primary hover: `bg-primary-700`
 - Neutral grays: `neutral-100/300/500/700/900` for UI elements
 - Semantic colors: `success-500`, `warning-500`, `danger-500`
@@ -171,9 +171,10 @@ The app uses a floating rounded shell design with clean, modern SaaS styling:
 
 **Component Library:**
 - Radix UI primitives in `src/components/ui/`
-- AppShell: `src/components/AppShell.tsx` - wraps all authenticated pages
+- Layout: `src/components/Layout.tsx` - wraps all authenticated pages with mobile-responsive navigation
+- Sidebar: `src/components/Sidebar.tsx` - collapsible navigation with mobile drawer support
 - PageHeader: `src/components/ui/page-header.tsx` - standardized page headers
-- Card: Updated with default padding and rounded corners
+- Card: Base component with rounded corners and default `p-6` padding (override with `p-0` if needed)
 - Button: Uses `rounded-control` and new primary colors
 
 **Navigation:**

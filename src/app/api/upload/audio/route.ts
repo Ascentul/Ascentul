@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { promises as fs } from 'fs'
 import path from 'path'
 
@@ -16,10 +17,15 @@ function getExtFromFilename(name: string | undefined, fallback: string) {
 }
 
 export async function POST(request: NextRequest) {
+  // Authenticate user
+  const { userId } = await auth()
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const form = await request.formData()
     const file = form.get('file') as File | null
-    const userId = (form.get('userId') as string) || 'anonymous'
 
     if (!file) {
       return NextResponse.json({ error: 'Missing file field' }, { status: 400 })
