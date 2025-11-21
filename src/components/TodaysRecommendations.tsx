@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -214,11 +214,7 @@ export function TodaysRecommendations() {
   }
 
   return (
-    <motion.div initial="hidden" animate="visible" variants={{
-      hidden: { opacity: 0, y: 20 },
-      visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
-    }} className="mb-6">
-      <section className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-md">
+    <section className="h-full overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col">
         <div className="flex items-center justify-between px-5 py-3">
           <div>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -241,7 +237,7 @@ export function TodaysRecommendations() {
         </div>
         <div className="border-t border-slate-100" />
 
-        <div className="px-5 pb-4 pt-3 text-sm text-slate-700">
+        <div className="flex-1 px-5 pb-4 pt-3 text-sm text-slate-700">
             {isLoading ? (
               <div className="space-y-3">
                 {[...Array(4)].map((_, i) => (
@@ -380,7 +376,6 @@ export function TodaysRecommendations() {
             </>
           )}
         </div>
-      </section>
-    </motion.div>
+    </section>
   )
 }
