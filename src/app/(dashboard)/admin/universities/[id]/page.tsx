@@ -58,6 +58,7 @@ export default function UniversityDetailPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'advisors' | 'analytics'>('overview')
   const [isTogglingTest, setIsTogglingTest] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [skipQueries, setSkipQueries] = useState(false) // Skip queries during deletion
 
   // Edit state
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -93,19 +94,19 @@ export default function UniversityDetailPage() {
   // Query university details
   const university = useQuery(
     api.universities.getUniversity,
-    universityId ? { universityId } : 'skip'
+    universityId && !skipQueries ? { universityId } : 'skip'
   )
 
   // Query users in this university
   const universityUsers = useQuery(
     api.users.getUsersByUniversity,
-    universityId && clerkUser?.id ? { clerkId: clerkUser.id, universityId } : 'skip'
+    universityId && clerkUser?.id && !skipQueries ? { clerkId: clerkUser.id, universityId } : 'skip'
   )
 
   // Query real analytics data for this university
   const universityAnalytics = useQuery(
     api.analytics.getSingleUniversityAnalytics,
-    universityId && clerkUser?.id ? { clerkId: clerkUser.id, universityId } : 'skip'
+    universityId && clerkUser?.id && !skipQueries ? { clerkId: clerkUser.id, universityId } : 'skip'
   )
 
   // Filter users based on search and filters
@@ -203,14 +204,14 @@ export default function UniversityDetailPage() {
   const handleHardDelete = async () => {
     setIsDeleting(true)
     try {
-      // Navigate away BEFORE deleting to prevent query errors
-      const deletePromise = hardDeleteUniversity({ universityId })
+      // FIRST: Stop all queries immediately to prevent race conditions
+      setSkipQueries(true)
 
-      // Immediately navigate away
+      // SECOND: Navigate away to unmount component
       router.replace('/admin/universities')
 
-      // Wait for deletion to complete
-      await deletePromise
+      // THIRD: Perform the actual deletion
+      await hardDeleteUniversity({ universityId })
 
       toast({
         title: 'University permanently deleted',
