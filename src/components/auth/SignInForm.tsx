@@ -46,7 +46,7 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
       })
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('Sign-in result:', result.status, result)
+        console.log('Sign-in result status:', result.status)
       }
 
       // Handle complete sign-in
@@ -89,9 +89,9 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
 
       // Handle other statuses
       if (result.status === 'needs_second_factor') {
-        // This shouldn't happen if MFA is disabled
-        console.error('Unexpected needs_second_factor status - MFA should be disabled')
-        setError('Authentication configuration error. Please contact support - MFA is unexpectedly required.')
+        // MFA is disabled globally but user account may have it enabled
+        console.warn('MFA required for this account:', result)
+        setError('Your account has two-factor authentication enabled. Please contact support to disable MFA or use an alternative sign-in method.')
         return
       }
 
