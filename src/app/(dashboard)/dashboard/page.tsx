@@ -269,7 +269,7 @@ export default function DashboardPage() {
           </motion.div>
 
           {/* Row 4: Usage Progress / Onboarding Checklist - only show if not hidden */}
-          {!hasPremium && userData !== undefined && !userData.hide_progress_card && (
+          {!hasPremium && userData && !userData.hide_progress_card && (
             <motion.div variants={cardAnimation} className="mb-6">
               <UsageProgressCard dashboardData={dashboardData} />
             </motion.div>

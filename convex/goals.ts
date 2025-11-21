@@ -64,9 +64,9 @@ export const createGoal = mutation({
 
     if (!user) throw new Error("User not found");
 
-    if (user.role === "student") {
-      await requireMembership(ctx, { role: "student" });
-    }
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
 
     // TEMPORARILY DISABLED: Free plan limit check
     // NOTE: Clerk Billing (publicMetadata) is the source of truth for subscriptions.

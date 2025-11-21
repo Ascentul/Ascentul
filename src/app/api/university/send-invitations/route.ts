@@ -28,9 +28,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    const universityId = adminUser.university_id;
+
     // Get the university details
     const university = await convex.query(api.universities.getUniversity, {
-      universityId: adminUser.university_id
+      universityId
     });
 
     if (!university) {
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest) {
         try {
           // Create stored invite and send secure tokenized link
           const { token } = await convex.action(api.students.createInvite, {
-            universityId: adminUser.university_id,
+            universityId,
             email,
             createdByClerkId: userId,
           });

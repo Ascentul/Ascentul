@@ -434,6 +434,7 @@ export const assignAdvisorToStudent = mutation({
       student_profile_id: args.studentProfileId,
       assigned_by_id: acting._id,
       created_at: now,
+      updated_at: now,
     });
 
     return { success: true, advisorStudentId, updated: true };
