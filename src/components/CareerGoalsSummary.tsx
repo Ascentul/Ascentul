@@ -170,14 +170,11 @@ export function CareerGoalsSummary() {
                         </span>
                       </div>
                       <Progress value={goal.progress} className="h-1.5 w-full" />
-                      {goal.dueDate && (() => {
-                        const date = new Date(goal.dueDate);
-                        return !isNaN(date.getTime()) && (
-                          <p className="mt-1 text-xs text-slate-500 truncate">
-                            Due: {format(date, "MMM dd, yyyy")}
-                          </p>
-                        );
-                      })()}
+                      {goal.dueDate && (
+                        <p className="mt-1 text-xs text-slate-500 truncate">
+                          Due: {format(new Date(goal.dueDate), "MMM dd, yyyy")}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
