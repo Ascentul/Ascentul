@@ -14,21 +14,34 @@ if (!CLERK_SECRET_KEY) {
 async function disableMFAForAllUsers() {
   console.log('Fetching all users...');
 
-  // Fetch all users
-  const usersResponse = await fetch('https://api.clerk.com/v1/users?limit=500', {
-    headers: {
-      'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
-      'Content-Type': 'application/json'
-    }
-  });
+  // Fetch all users with pagination
+  const allUsers = [];
+  let offset = 0;
+  const limit = 500;
 
-  if (!usersResponse.ok) {
-    console.error('Failed to fetch users:', await usersResponse.text());
-    process.exit(1);
+  while (true) {
+    const usersResponse = await fetch(`https://api.clerk.com/v1/users?limit=${limit}&offset=${offset}`, {
+      headers: {
+        'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!usersResponse.ok) {
+      console.error('Failed to fetch users:', await usersResponse.text());
+      process.exit(1);
+    }
+
+    const users = await usersResponse.json();
+    allUsers.push(...users);
+    console.log(`Fetched ${users.length} users (total: ${allUsers.length})`);
+
+    if (users.length < limit) break;
+    offset += limit;
   }
 
-  const users = await usersResponse.json();
-  console.log(`Found ${users.length} users`);
+  console.log(`Found ${allUsers.length} total users`);
+  const users = allUsers;
 
   let fixed = 0;
   let failed = 0;
