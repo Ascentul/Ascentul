@@ -93,7 +93,7 @@ export default function AdminUniversitiesPage() {
     slug: string
     license_plan: UniversityRow['license_plan']
     license_seats: number
-    status: UniversityRow['status']
+    status: 'active' | 'expired' | 'trial' | 'suspended' // Only statuses allowed for creation
     admin_email: string
   }>({
     name: '',
