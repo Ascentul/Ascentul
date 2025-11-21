@@ -126,6 +126,8 @@ export default defineSchema({
     university_admin_notes: v.optional(v.string()),
     // User preferences
     hide_progress_card: v.optional(v.boolean()),
+    // Activity tracking for metrics
+    last_login_at: v.optional(v.number()), // Timestamp of last login (for activeUsers30d metric)
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -160,11 +162,14 @@ export default defineSchema({
       v.literal("expired"),
       v.literal("trial"),
       v.literal("suspended"),
-      v.literal("deleted"),
+      v.literal("archived"), // Non-destructive way to disable a university
+      v.literal("deleted"), // Only for hard delete with guard
     ),
     admin_email: v.optional(v.string()),
     created_by_id: v.optional(v.id("users")),
-    deleted_at: v.optional(v.number()),
+    is_test: v.optional(v.boolean()), // Test universities can be hard deleted
+    archived_at: v.optional(v.number()), // Timestamp when archived (non-destructive disable)
+    deleted_at: v.optional(v.number()), // Timestamp when hard deleted (rare, guarded)
     created_at: v.number(),
     updated_at: v.number(),
   })
