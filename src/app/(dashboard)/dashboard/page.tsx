@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery } from 'convex/react'
@@ -60,6 +60,12 @@ export default function DashboardPage() {
   // Get real dashboard analytics from database - must be called before any returns
   const dashboardData = useQuery(
     api.analytics.getUserDashboardAnalytics,
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+  )
+
+  // Get user data to check if progress card is hidden
+  const userData = useQuery(
+    api.users.getUserByClerkId,
     clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
   )
 
@@ -239,24 +245,7 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
-          {/* Row 2: Usage Progress / Onboarding Checklist + Recommendations side by side */}
-          <motion.div
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"
-            variants={staggeredContainer}
-          >
-            <motion.div variants={cardAnimation}>
-              {!hasPremium ? (
-                <UsageProgressCard dashboardData={dashboardData} />
-              ) : (
-                <SimpleOnboardingChecklist dashboardData={dashboardData} />
-              )}
-            </motion.div>
-            <motion.div variants={cardAnimation}>
-              <TodaysRecommendations />
-            </motion.div>
-          </motion.div>
-
-          {/* Row 3: Active Interviews, Follow-up Actions, Goals */}
+          {/* Row 2: Active Interviews, Follow-up Actions, Goals */}
           <motion.div
             className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6"
             variants={staggeredContainer}
@@ -273,6 +262,23 @@ export default function DashboardPage() {
               <CareerGoalsSummary />
             </motion.div>
           </motion.div>
+
+          {/* Row 3: Today's Recommendations - full width */}
+          <motion.div variants={cardAnimation} className="mb-6">
+            <TodaysRecommendations />
+          </motion.div>
+
+          {/* Row 4: Usage Progress / Onboarding Checklist - only show if not hidden */}
+          {!hasPremium && userData && !userData.hide_progress_card && (
+            <motion.div variants={cardAnimation} className="mb-6">
+              <UsageProgressCard dashboardData={dashboardData} />
+            </motion.div>
+          )}
+          {hasPremium && (
+            <motion.div variants={cardAnimation} className="mb-6">
+              <SimpleOnboardingChecklist dashboardData={dashboardData} />
+            </motion.div>
+          )}
 
           {/* Row 4: Activity Streak Heatmap */}
           <motion.div variants={cardAnimation} className="mb-6">

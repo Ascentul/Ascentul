@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireMembership } from "./lib/roles";
 
 // Get cover letters for a user
 export const getUserCoverLetters = query({
@@ -13,6 +14,10 @@ export const getUserCoverLetters = query({
     if (!user) {
       throw new Error("User not found");
     }
+
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
 
     // OPTIMIZED: Add limit to prevent bandwidth issues
     const coverLetters = await ctx.db
@@ -54,8 +59,13 @@ export const createCoverLetter = mutation({
       throw new Error("User not found");
     }
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const coverLetterId = await ctx.db.insert("cover_letters", {
       user_id: user._id,
+      university_id: membership?.university_id ?? user.university_id,
       name: args.name,
       job_title: args.job_title,
       company_name: args.company_name,
@@ -104,9 +114,17 @@ export const updateCoverLetter = mutation({
       throw new Error("User not found");
     }
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const coverLetter = await ctx.db.get(args.coverLetterId);
     if (!coverLetter || coverLetter.user_id !== user._id) {
       throw new Error("Cover letter not found or unauthorized");
+    }
+
+    if (coverLetter.university_id && membership && coverLetter.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Cover letter belongs to another university");
     }
 
     await ctx.db.patch(args.coverLetterId, {
@@ -134,9 +152,17 @@ export const deleteCoverLetter = mutation({
       throw new Error("User not found");
     }
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const coverLetter = await ctx.db.get(args.coverLetterId);
     if (!coverLetter || coverLetter.user_id !== user._id) {
       throw new Error("Cover letter not found or unauthorized");
+    }
+
+    if (coverLetter.university_id && membership && coverLetter.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Cover letter belongs to another university");
     }
 
     await ctx.db.delete(args.coverLetterId);

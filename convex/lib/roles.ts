@@ -7,6 +7,7 @@ import { DataModel } from "../_generated/dataModel";
 
 type QueryCtx = GenericQueryCtx<DataModel>;
 type MutationCtx = GenericMutationCtx<DataModel>;
+type Ctx = QueryCtx | MutationCtx;
 
 /**
  * Get the authenticated user from context
@@ -29,6 +30,39 @@ export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx) {
   }
 
   return user;
+}
+
+/**
+ * Fetch active membership for the authenticated user and optional role
+ */
+export async function requireMembership(
+  ctx: Ctx,
+  opts: { role?: "student" | "advisor" | "university_admin" }
+) {
+  const user = await getAuthenticatedUser(ctx);
+
+  let membership = null as any;
+
+  if (opts.role) {
+    membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_role", (q) => q.eq("user_id", user._id).eq("role", opts.role!))
+      .first();
+  } else {
+    membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .first();
+  }
+  if (!membership) {
+    throw new Error("Unauthorized: Membership not found");
+  }
+
+  if (membership.status !== "active") {
+    throw new Error("Unauthorized: Inactive membership");
+  }
+
+  return { user, membership };
 }
 
 /**

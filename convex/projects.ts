@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireMembership } from "./lib/roles";
 
 // Get projects for a user
 export const getUserProjects = query({
@@ -13,6 +14,10 @@ export const getUserProjects = query({
     if (!user) {
       throw new Error("User not found");
     }
+
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
 
     // OPTIMIZED: Add limit to prevent bandwidth issues
     const projects = await ctx.db
@@ -51,6 +56,10 @@ export const createProject = mutation({
       throw new Error("User not found");
     }
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     // TEMPORARILY DISABLED: Free plan limit check
     // NOTE: Clerk Billing (publicMetadata) is the source of truth for subscriptions.
     // The subscription_plan field in Convex is cached display data only (see CLAUDE.md).
@@ -71,6 +80,7 @@ export const createProject = mutation({
 
     const projectId = await ctx.db.insert("projects", {
       user_id: user._id,
+      university_id: membership?.university_id ?? user.university_id,
       title: args.title,
       role: args.role,
       start_date: args.start_date,
@@ -119,9 +129,17 @@ export const updateProject = mutation({
       throw new Error("User not found");
     }
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const project = await ctx.db.get(args.projectId);
     if (!project || project.user_id !== user._id) {
       throw new Error("Project not found or unauthorized");
+    }
+
+    if (project.university_id && membership && project.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Project belongs to another university");
     }
 
     await ctx.db.patch(args.projectId, {
@@ -149,9 +167,17 @@ export const deleteProject = mutation({
       throw new Error("User not found");
     }
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const project = await ctx.db.get(args.projectId);
     if (!project || project.user_id !== user._id) {
       throw new Error("Project not found or unauthorized");
+    }
+
+    if (project.university_id && membership && project.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Project belongs to another university");
     }
 
     await ctx.db.delete(args.projectId);

@@ -23,13 +23,16 @@ export async function POST(req: NextRequest) {
     // Get the university admin's info to fetch university name
     const adminUser = await convex.query(api.users.getUserByClerkId, { clerkId: userId });
 
-    if (!adminUser || !adminUser.university_id) {
-      return NextResponse.json({ error: 'University admin not found' }, { status: 404 });
+    const isAdmin = adminUser && ['university_admin', 'advisor'].includes(adminUser.role);
+    if (!isAdmin || !adminUser?.university_id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
+
+    const universityId = adminUser.university_id;
 
     // Get the university details
     const university = await convex.query(api.universities.getUniversity, {
-      universityId: adminUser.university_id
+      universityId
     });
 
     if (!university) {
@@ -40,9 +43,15 @@ export async function POST(req: NextRequest) {
     const results = await Promise.allSettled(
       emails.map(async (email: string) => {
         try {
-          // Create invite link to sign-up page with email pre-filled
+          // Create stored invite and send secure tokenized link
+          const { token } = await convex.action(api.students.createInvite, {
+            universityId,
+            email,
+            createdByClerkId: userId,
+          });
+
           const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io';
-          const inviteLink = `${baseUrl}/sign-up?email=${encodeURIComponent(email)}&university=${encodeURIComponent(university.name)}`;
+          const inviteLink = `${baseUrl}/student-invite/${encodeURIComponent(token)}`;
 
           await sendUniversityInvitationEmail(email, university.name, inviteLink);
           return { email, success: true };
