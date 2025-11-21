@@ -740,5 +740,27 @@ export default defineSchema({
     .index("by_target", ["target_type", "target_id"])
     .index("by_performed_by", ["performed_by_id"])
     .index("by_timestamp", ["timestamp"])
-    .index("by_target_email", ["target_email"])
+    .index("by_target_email", ["target_email"]),
+
+  // Notifications table for in-app notifications
+  notifications: defineTable({
+    user_id: v.id("users"), // User who should see this notification
+    type: v.union(
+      v.literal("support_ticket"), // New support ticket
+      v.literal("ticket_update"), // Ticket status/assignment changed
+      v.literal("application_update"), // Application status changed
+      v.literal("goal_reminder"), // Goal deadline approaching
+      v.literal("system"), // System announcements
+    ),
+    title: v.string(), // Notification title
+    message: v.string(), // Notification message
+    link: v.optional(v.string()), // Optional link to related resource
+    related_id: v.optional(v.string()), // ID of related entity (ticket, application, etc.)
+    read: v.boolean(), // Whether user has read this notification
+    read_at: v.optional(v.number()), // When notification was read
+    created_at: v.number(), // When notification was created
+  })
+    .index("by_user", ["user_id"])
+    .index("by_user_read", ["user_id", "read"])
+    .index("by_created_at", ["created_at"])
 });
