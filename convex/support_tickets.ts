@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { validateNotificationLink } from "./notifications";
 
 /**
  * SECURITY: Helper function to get user IDs within a university's scope
@@ -268,6 +269,9 @@ export const createTicket = mutation({
         .withIndex("by_role", (q) => q.eq("role", "super_admin"))
         .collect();
 
+      // Validate link to prevent open redirect vulnerabilities
+      const validatedLink = validateNotificationLink(`/admin/support`);
+
       await Promise.all(
         superAdmins.map(admin =>
           ctx.db.insert("notifications", {
@@ -275,7 +279,7 @@ export const createTicket = mutation({
             type: "support_ticket",
             title: "New Support Ticket",
             message: `${user.name || user.email} submitted: ${args.subject}`,
-            link: `/admin/support`,
+            link: validatedLink,
             related_id: String(id),
             read: false,
             read_at: undefined,

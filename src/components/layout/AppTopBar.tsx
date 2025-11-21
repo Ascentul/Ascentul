@@ -15,6 +15,27 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
 
+/**
+ * Validates that a notification link is safe (internal route only).
+ * Prevents open redirect vulnerabilities.
+ * This is a client-side defense-in-depth measure - primary validation is in Convex backend.
+ */
+function isValidInternalLink(link: string | undefined): boolean {
+  if (!link) return false;
+
+  // Must start with / (internal route)
+  if (!link.startsWith('/')) return false;
+
+  // Prevent protocol-relative URLs (//example.com)
+  if (link.startsWith('//')) return false;
+
+  // Prevent javascript: and data: URIs
+  const lowerLink = link.toLowerCase();
+  if (lowerLink.includes('javascript:') || lowerLink.includes('data:')) return false;
+
+  return true;
+}
+
 type IconButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   hasUnread?: boolean;
   isActive?: boolean;
@@ -287,8 +308,11 @@ export default function AppTopBar() {
                           markAsRead({ clerkId: user.clerkId, notificationId: notification._id })
                             .catch((err) => console.error("Failed to mark notification as read:", err));
                         }
-                        if (notification.link) {
+                        // Validate link before navigating to prevent open redirect attacks
+                        if (notification.link && isValidInternalLink(notification.link)) {
                           router.push(notification.link);
+                        } else if (notification.link) {
+                          console.error("Invalid notification link detected:", notification.link);
                         }
                       }}
                     >
