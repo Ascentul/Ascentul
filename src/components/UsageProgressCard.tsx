@@ -175,9 +175,9 @@ export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}
 
         {stepsCompleted >= totalSteps && (
           <div className="pt-2">
-            <div className="rounded-xl border border-primary-500/20 bg-primary-50 p-4">
+            <div className="rounded-xl border border-[#5371FF]/20 bg-[#EEF1FF] p-4">
               <div className="flex items-start gap-3">
-                <Sparkles className="mt-0.5 h-5 w-5 text-primary-500" />
+                <Sparkles className="mt-0.5 h-5 w-5 text-[#5371FF]" />
                 <div className="flex-1">
                   <h4 className="mb-1 text-sm font-semibold text-slate-900">
                     Ready for unlimited access?
@@ -213,7 +213,7 @@ function FeatureItem({ icon: Icon, label, count, limit, used }: FeatureItemProps
     <div className="flex items-center gap-3">
       <Icon
         className={`h-4 w-4 flex-shrink-0 ${
-          used ? 'text-green-600' : 'text-slate-400'
+          used ? 'text-[#16A34A]' : 'text-slate-400'
         }`}
       />
       <div className="flex-1 min-w-0">

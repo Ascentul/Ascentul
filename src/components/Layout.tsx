@@ -21,7 +21,7 @@ export function Layout({ children }: LayoutProps) {
 
   if (!isLoaded) {
     return (
-      <div className="flex h-screen items-center justify-center bg-app-bg">
+      <div className="flex h-screen items-center justify-center bg-[#F1F3F9]">
         <Loader2 className="h-10 w-10 animate-spin text-primary-500" />
       </div>
     )
@@ -56,7 +56,7 @@ export function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Desktop & main layout */}
-      <div className="flex min-h-screen bg-app-bg">
+      <div className="flex min-h-screen bg-[#F1F3F9]">
         {/* Sidebar - desktop */}
         <aside className="hidden md:sticky md:top-0 md:h-screen md:block">
           <Sidebar />
@@ -66,8 +66,10 @@ export function Layout({ children }: LayoutProps) {
         <div className="flex flex-1 flex-col">
           <AppTopBar />
           <main className="flex-1 overflow-y-auto">
-            <div className="w-full px-4 md:px-6 space-y-4">
-              {children}
+            <div className="px-4 pb-4 md:px-6">
+              <div className="w-full rounded-3xl bg-white p-5 shadow-sm">
+                {children}
+              </div>
             </div>
           </main>
         </div>

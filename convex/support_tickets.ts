@@ -260,34 +260,6 @@ export const createTicket = mutation({
     } as any);
 
     const doc = await ctx.db.get(id);
-
-    // Create notifications for all super admins (non-critical)
-    try {
-      const superAdmins = await ctx.db
-        .query("users")
-        .withIndex("by_role", (q) => q.eq("role", "super_admin"))
-        .collect();
-
-      await Promise.all(
-        superAdmins.map(admin =>
-          ctx.db.insert("notifications", {
-            user_id: admin._id,
-            type: "support_ticket",
-            title: "New Support Ticket",
-            message: `${user.name || user.email} submitted: ${args.subject}`,
-            link: `/admin/support`,
-            related_id: String(id),
-            read: false,
-            read_at: undefined,
-            created_at: now,
-          })
-        )
-      );
-    } catch (notificationError) {
-      // Log but don't fail the mutation if notification creation fails
-      console.error("Failed to create notifications for new support ticket:", notificationError);
-    }
-
     return doc;
   },
 });

@@ -222,7 +222,7 @@ export function TodaysRecommendations() {
         <div className="flex items-center justify-between px-5 py-3">
           <div>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <Lightbulb className="h-4 w-4 text-[#F59E0B]" />
               Today's Recommendations
             </h3>
             <p className="text-xs text-slate-500">
@@ -299,7 +299,7 @@ export function TodaysRecommendations() {
                         className={`flex items-start rounded-xl border cursor-pointer px-3 py-3 transition-all duration-300 focus:outline-none ${
                           recommendation.completed
                             ? 'border-green-200 bg-green-50 text-slate-600'
-                            : 'border-slate-200 bg-white hover:border-primary/50 focus:ring-2 focus:ring-primary/40'
+                            : 'border-slate-200 bg-white hover:border-[#5371FF]/50 focus:ring-2 focus:ring-[#5371FF]/40'
                         }`}
                       >
                         <div
@@ -307,7 +307,7 @@ export function TodaysRecommendations() {
                           aria-label={`Recommendation ${recommendation.completed ? 'complete' : 'incomplete'}`}
                         >
                           {recommendation.completed ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <CheckCircle className="h-4 w-4 text-[#16A34A]" />
                           ) : (
                             <Circle className="h-4 w-4 text-slate-400" />
                           )}

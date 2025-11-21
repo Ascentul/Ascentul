@@ -547,8 +547,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="w-full">
-      <div className="w-full rounded-3xl bg-white p-5 shadow-sm space-y-6">
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Cover Image */}
       <div className="relative h-48 bg-gradient-to-r from-[#0C29AB] to-[#1e40af] rounded-t-lg">
         {displayProfile?.cover_image && (
@@ -1435,7 +1434,6 @@ export default function ProfilePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      </div>
     </div>
   );
 }

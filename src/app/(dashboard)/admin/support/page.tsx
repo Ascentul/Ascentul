@@ -271,36 +271,31 @@ export default function AdminSupportPage() {
 
   if (!canAccess) {
     return (
-      <div className="space-y-4 min-w-0">
-        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
-          <Card>
-            <CardHeader>
-              <CardTitle>Unauthorized</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">You do not have access to support management.</p>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Unauthorized</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">You do not have access to support management.</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   if (!tickets) {
     return (
-      <div className="space-y-4 min-w-0">
-        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4 min-w-0">
-      <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm space-y-6">
+    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -660,7 +655,6 @@ export default function AdminSupportPage() {
           )}
         </DialogContent>
       </Dialog>
-      </div>
     </div>
   )
 }
