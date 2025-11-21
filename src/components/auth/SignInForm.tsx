@@ -38,12 +38,16 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
 
     try {
       setSubmitting(true)
+
+      // Start the sign-in process
       const result = await signIn.create({
         identifier: email,
-        password,
-        strategy: 'password'
+        password
       })
 
+      console.log('Sign-in result:', result.status, result)
+
+      // Handle complete sign-in
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId })
         toast({
@@ -51,19 +55,57 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
           description: 'You have been successfully signed in.',
         })
         router.replace('/dashboard')
-      } else if (result.status === 'needs_first_factor') {
-        setError('Please complete the first authentication factor to continue.')
-      } else if (result.status === 'needs_second_factor') {
-        setError('Two-factor authentication is required for your account. Please contact support if you need help setting up 2FA.')
-      } else if (result.status === 'needs_identifier') {
-        setError('Additional information is required. Please try signing in again or contact support.')
-      } else if (result.status === 'needs_new_password') {
-        setError('You need to reset your password. Please use the "Forgot password?" link.')
-      } else {
-        // Handle any other unexpected statuses
-        console.warn('Unexpected sign-in status:', result.status, result)
-        setError(`Unable to complete sign-in (status: ${result.status}). Please contact support if this issue persists.`)
+        return
       }
+
+      // If status is needs_first_factor, attempt to complete with password strategy
+      if (result.status === 'needs_first_factor') {
+        try {
+          const attemptResult = await signIn.attemptFirstFactor({
+            strategy: 'password',
+            password
+          })
+
+          if (attemptResult.status === 'complete') {
+            await setActive({ session: attemptResult.createdSessionId })
+            toast({
+              title: 'Welcome back!',
+              description: 'You have been successfully signed in.',
+            })
+            router.replace('/dashboard')
+            return
+          }
+
+          console.warn('First factor attempt incomplete:', attemptResult.status, attemptResult)
+          setError(`Sign-in incomplete. Status: ${attemptResult.status}. Please contact support.`)
+          return
+        } catch (factorErr) {
+          console.error('First factor attempt failed:', factorErr)
+          throw factorErr
+        }
+      }
+
+      // Handle other statuses
+      if (result.status === 'needs_second_factor') {
+        // This shouldn't happen if MFA is disabled
+        console.error('Unexpected needs_second_factor status - MFA should be disabled')
+        setError('Authentication configuration error. Please contact support - MFA is unexpectedly required.')
+        return
+      }
+
+      if (result.status === 'needs_identifier') {
+        setError('Additional information is required. Please try signing in again or contact support.')
+        return
+      }
+
+      if (result.status === 'needs_new_password') {
+        setError('You need to reset your password. Please use the "Forgot password?" link.')
+        return
+      }
+
+      // Unexpected status
+      console.warn('Unexpected sign-in status:', result.status, result)
+      setError(`Unable to complete sign-in (status: ${result.status}). Please contact support.`)
     } catch (err: unknown) {
       const clerkError = err as { errors?: Array<{ code?: string; longMessage?: string }>; message?: string }
       const code = clerkError?.errors?.[0]?.code
