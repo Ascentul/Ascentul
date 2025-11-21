@@ -366,7 +366,8 @@ export default function CoverLettersPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="w-full">
+      <div className="w-full rounded-3xl bg-white p-5 shadow-sm space-y-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
           Cover Letter Coach
@@ -891,6 +892,7 @@ export default function CoverLettersPage() {
           userEmail={user?.primaryEmailAddress?.emailAddress || ""}
         />
       )}
+      </div>
     </div>
   );
 }

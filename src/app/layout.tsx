@@ -33,7 +33,7 @@ export default function RootLayout({
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         </head>
-        <body className={`${inter.className} min-h-screen bg-[#F1F3F9]`}>
+        <body className={`${inter.className} min-h-screen bg-app-bg`}>
           {/* Header removed: SignIn/SignUp bar for signed-out users */}
           {publishableKey ? (
             <ClerkProvider

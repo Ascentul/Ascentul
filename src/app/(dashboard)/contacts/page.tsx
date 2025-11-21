@@ -561,7 +561,8 @@ export default function ContactsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="w-full">
+      <div className="w-full rounded-3xl bg-white p-5 shadow-sm space-y-6">
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -1627,6 +1628,7 @@ export default function ContactsPage() {
         onOpenChange={setShowUpgradeModal}
         feature="contact"
       />
+    </div>
     </div>
   );
 }

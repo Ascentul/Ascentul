@@ -35,6 +35,7 @@ import type * as investor_metrics from "../investor_metrics.js";
 import type * as jobs from "../jobs.js";
 import type * as lib_roles from "../lib/roles.js";
 import type * as migrations from "../migrations.js";
+import type * as notifications from "../notifications.js";
 import type * as password_reset from "../password_reset.js";
 import type * as platform_settings from "../platform_settings.js";
 import type * as projects from "../projects.js";
@@ -79,6 +80,7 @@ declare const fullApi: ApiFromModules<{
   jobs: typeof jobs;
   "lib/roles": typeof lib_roles;
   migrations: typeof migrations;
+  notifications: typeof notifications;
   password_reset: typeof password_reset;
   platform_settings: typeof platform_settings;
   projects: typeof projects;
