@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireMembership } from "./lib/roles";
 
 // Get resumes for a user
 export const getUserResumes = query({
@@ -13,6 +14,10 @@ export const getUserResumes = query({
     if (!user) {
       throw new Error("User not found");
     }
+
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
 
     // OPTIMIZED: Add limit to prevent bandwidth issues
     const resumes = await ctx.db
@@ -52,8 +57,13 @@ export const createResume = mutation({
       throw new Error("User not found");
     }
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const resumeId = await ctx.db.insert("resumes", {
       user_id: user._id,
+      university_id: membership?.university_id ?? user.university_id,
       title: args.title,
       content: args.content,
       visibility: args.visibility,
@@ -95,10 +105,18 @@ export const updateResume = mutation({
       throw new Error("User not found");
     }
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     // Verify ownership
     const resume = await ctx.db.get(resumeId);
     if (!resume || resume.user_id !== user._id) {
       throw new Error("Resume not found or access denied");
+    }
+
+    if (resume.university_id && membership && resume.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Resume belongs to another university");
     }
 
     // Update the resume
@@ -127,9 +145,17 @@ export const deleteResume = mutation({
       throw new Error("User not found");
     }
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const resume = await ctx.db.get(args.resumeId);
     if (!resume || resume.user_id !== user._id) {
       throw new Error("Resume not found or unauthorized");
+    }
+
+    if (resume.university_id && membership && resume.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Resume belongs to another university");
     }
 
     await ctx.db.delete(args.resumeId);
@@ -151,10 +177,18 @@ export const getResumeById = query({
 
     if (!user) throw new Error("User not found");
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const resume = await ctx.db.get(args.resumeId);
     if (!resume || resume.user_id !== user._id) {
       // Return null instead of throwing to avoid client runtime errors during transitions
       return null;
+    }
+
+    if (resume.university_id && membership && resume.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Resume belongs to another university");
     }
 
     return resume;

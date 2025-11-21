@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
+import { requireMembership } from "./lib/roles";
 
 // List contacts for the current user by Clerk ID
 export const getUserContacts = query({
@@ -12,6 +13,10 @@ export const getUserContacts = query({
       .unique();
 
     if (!user) throw new Error("User not found");
+
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
 
     // OPTIMIZED: Add limit to prevent bandwidth issues
     const contacts = await ctx.db
@@ -46,6 +51,10 @@ export const createContact = mutation({
 
     if (!user) throw new Error("User not found");
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     // TEMPORARILY DISABLED: Free plan limit check
     // NOTE: Clerk Billing (publicMetadata) is the source of truth for subscriptions.
     // The subscription_plan field in Convex is cached display data only (see CLAUDE.md).
@@ -67,6 +76,7 @@ export const createContact = mutation({
     const now = Date.now();
     const id = await ctx.db.insert("networking_contacts", {
       user_id: user._id,
+      university_id: membership?.university_id ?? user.university_id,
       name: args.name,
       company: args.company,
       position: args.position,
@@ -115,9 +125,17 @@ export const updateContact = mutation({
 
     if (!user) throw new Error("User not found");
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const contact = await ctx.db.get(args.contactId);
     if (!contact || contact.user_id !== user._id) {
       throw new Error("Contact not found or unauthorized");
+    }
+
+    if (contact.university_id && membership && contact.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Contact belongs to another university");
     }
 
     await ctx.db.patch(args.contactId, {
@@ -143,9 +161,17 @@ export const deleteContact = mutation({
 
     if (!user) throw new Error("User not found");
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const contact = await ctx.db.get(args.contactId);
     if (!contact || contact.user_id !== user._id) {
       throw new Error("Contact not found or unauthorized");
+    }
+
+    if (contact.university_id && membership && contact.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Contact belongs to another university");
     }
 
     await ctx.db.delete(args.contactId);

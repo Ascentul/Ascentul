@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
+import { requireMembership } from "./lib/roles";
 
 // Get applications for a user
 export const getUserApplications = query({
@@ -14,6 +15,10 @@ export const getUserApplications = query({
     if (!user) {
       throw new Error("User not found");
     }
+
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
 
     // OPTIMIZED: Add limit to prevent bandwidth issues for power users
     const applications = await ctx.db
@@ -50,6 +55,10 @@ export const createApplication = mutation({
       throw new Error("User not found");
     }
 
+    if (user.role === "student") {
+      await requireMembership(ctx, { role: "student" });
+    }
+
     // TEMPORARILY DISABLED: Free plan limit check
     // NOTE: Clerk Billing (publicMetadata) is the source of truth for subscriptions.
     // The subscription_plan field in Convex is cached display data only (see CLAUDE.md).
@@ -71,6 +80,7 @@ export const createApplication = mutation({
 
     const applicationId = await ctx.db.insert("applications", {
       user_id: user._id,
+      university_id: membership?.university_id ?? user.university_id,
       company: args.company,
       job_title: args.job_title,
       status: args.status,
@@ -118,9 +128,17 @@ export const updateApplication = mutation({
       throw new Error("User not found");
     }
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const application = await ctx.db.get(args.applicationId);
     if (!application || application.user_id !== user._id) {
       throw new Error("Application not found or unauthorized");
+    }
+
+    if (application.university_id && membership && application.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Application belongs to another university");
     }
 
     await ctx.db.patch(args.applicationId, {
@@ -148,9 +166,17 @@ export const deleteApplication = mutation({
       throw new Error("User not found");
     }
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const application = await ctx.db.get(args.applicationId);
     if (!application || application.user_id !== user._id) {
       throw new Error("Application not found or unauthorized");
+    }
+
+    if (application.university_id && membership && application.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Application belongs to another university");
     }
 
     await ctx.db.delete(args.applicationId);

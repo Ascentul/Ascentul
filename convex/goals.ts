@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
+import { requireMembership } from "./lib/roles";
 
 // Get goals for a Clerk user
 export const getUserGoals = query({
@@ -12,6 +13,10 @@ export const getUserGoals = query({
       .unique();
 
     if (!user) throw new Error("User not found");
+
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
 
     // OPTIMIZED: Add limit to prevent bandwidth issues for power users
     const goals = await ctx.db
@@ -59,6 +64,10 @@ export const createGoal = mutation({
 
     if (!user) throw new Error("User not found");
 
+    if (user.role === "student") {
+      await requireMembership(ctx, { role: "student" });
+    }
+
     // TEMPORARILY DISABLED: Free plan limit check
     // NOTE: Clerk Billing (publicMetadata) is the source of truth for subscriptions.
     // The subscription_plan field in Convex is cached display data only (see CLAUDE.md).
@@ -81,6 +90,7 @@ export const createGoal = mutation({
     const now = Date.now();
     const id = await ctx.db.insert("goals", {
       user_id: user._id,
+      university_id: membership?.university_id ?? user.university_id,
       title: args.title,
       description: args.description,
       category: args.category,
@@ -123,9 +133,17 @@ export const updateGoal = mutation({
       .unique();
     if (!user) throw new Error("User not found");
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const goal = await ctx.db.get(args.goalId);
     if (!goal || goal.user_id !== user._id)
       throw new Error("Goal not found or unauthorized");
+
+    if (goal.university_id && membership && goal.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Goal belongs to another university");
+    }
 
     // Remove 'completed' field as it's not in the schema
     const { completed, ...restUpdates } = args.updates;
@@ -161,9 +179,17 @@ export const deleteGoal = mutation({
       .unique();
     if (!user) throw new Error("User not found");
 
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
     const goal = await ctx.db.get(args.goalId);
     if (!goal || goal.user_id !== user._id)
       throw new Error("Goal not found or unauthorized");
+
+    if (goal.university_id && membership && goal.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Goal belongs to another university");
+    }
 
     await ctx.db.delete(args.goalId);
     return args.goalId;

@@ -3,14 +3,14 @@ import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
 
 function requireAdmin(user: any) {
-  const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
-    user.role,
-  );
-  if (
-    !isAdmin &&
-    !(user.subscription_plan === "university" && user.university_id)
-  ) {
+  const isAdmin = ["super_admin", "university_admin", "advisor"].includes(user.role);
+  if (!isAdmin) {
     throw new Error("Unauthorized");
+  }
+
+  // University-scoped roles must be tied to a university
+  if (user.role !== "super_admin" && !user.university_id) {
+    throw new Error("Unauthorized: University membership required");
   }
 }
 
@@ -309,12 +309,24 @@ export const assignStudentByEmail = mutation({
     const admin = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(admin);
     if (!admin.university_id) throw new Error("No university assigned");
+    const now = Date.now();
 
     // Check if user already exists
     const existingStudent = await ctx.db
       .query("users")
       .withIndex("by_email", (q: any) => q.eq("email", args.email))
       .first();
+
+    if (existingStudent && existingStudent.university_id && existingStudent.university_id !== admin.university_id) {
+      // Prevent silently moving a user between universities
+      throw new Error("User already belongs to a different university");
+    }
+
+    // Only super admins/university admins/advisors can operate within their own university
+    const isSameUniversity = !existingStudent || !existingStudent.university_id || existingStudent.university_id === admin.university_id;
+    if (!isSameUniversity) {
+      throw new Error("Unauthorized to reassign this user");
+    }
 
     if (existingStudent) {
       // Update existing user
@@ -323,8 +335,26 @@ export const assignStudentByEmail = mutation({
         subscription_plan: "university",
         ...(args.role ? { role: args.role } : {}),
         ...(args.departmentId ? { department_id: args.departmentId } : {}),
-        updated_at: Date.now(),
+        updated_at: now,
       });
+      const membership = await ctx.db
+        .query("memberships")
+        .withIndex("by_user_role", (q: any) => q.eq("user_id", existingStudent._id).eq("role", "student"))
+        .first();
+      if (!membership) {
+        await ctx.db.insert("memberships", {
+          user_id: existingStudent._id,
+          university_id: admin.university_id,
+          role: "student",
+          status: "active",
+          created_at: now,
+          updated_at: now,
+        });
+      } else if (membership.university_id !== admin.university_id) {
+        throw new Error("Existing student membership is tied to another university");
+      } else if (membership.status !== "active") {
+        await ctx.db.patch(membership._id, { status: "active", updated_at: now });
+      }
       return { userId: existingStudent._id, isNew: false };
     } else {
       // Create pending user invitation
@@ -339,11 +369,74 @@ export const assignStudentByEmail = mutation({
         role: args.role || "user",
         account_status: "pending_activation",
         ...(args.departmentId ? { department_id: args.departmentId } : {}),
-        created_at: Date.now(),
-        updated_at: Date.now(),
+        created_at: now,
+        updated_at: now,
+      });
+      await ctx.db.insert("memberships", {
+        user_id: userId,
+        university_id: admin.university_id,
+        role: "student",
+        status: "active",
+        created_at: now,
+        updated_at: now,
       });
       return { userId, isNew: true };
     }
+  },
+});
+
+export const assignAdvisorToStudent = mutation({
+  args: {
+    clerkId: v.string(),
+    advisorId: v.id("users"),
+    studentProfileId: v.id("studentProfiles"),
+  },
+  handler: async (ctx, args) => {
+    const acting = await getCurrentUser(ctx, args.clerkId);
+    requireAdmin(acting);
+    if (!acting.university_id) throw new Error("No university assigned");
+
+    const studentProfile = await ctx.db.get(args.studentProfileId);
+    if (!studentProfile) throw new Error("Student profile not found");
+    if (studentProfile.university_id !== acting.university_id) {
+      throw new Error("Unauthorized: Student not in your university");
+    }
+
+    const advisor = await ctx.db.get(args.advisorId);
+    if (!advisor) throw new Error("Advisor not found");
+    if (advisor.role !== "advisor" || advisor.university_id !== acting.university_id) {
+      throw new Error("Advisor must belong to your university");
+    }
+
+    // Prevent duplicate mappings for the same student
+    const existing = await ctx.db
+      .query("advisorStudents")
+      .withIndex("by_student_profile", (q: any) => q.eq("student_profile_id", args.studentProfileId))
+      .first();
+
+    const now = Date.now();
+
+    if (existing) {
+      // If already assigned to this advisor, no-op
+      if (existing.advisor_id === args.advisorId) {
+        return { success: true, advisorStudentId: existing._id, updated: false };
+      }
+      // Only super admins or university admins can reassign an existing mapping
+      if (acting.role !== "super_admin" && acting.role !== "university_admin") {
+        throw new Error("Unauthorized: Cannot reassign advisor");
+      }
+      await ctx.db.delete(existing._id);
+    }
+
+    const advisorStudentId = await ctx.db.insert("advisorStudents", {
+      university_id: acting.university_id,
+      advisor_id: args.advisorId,
+      student_profile_id: args.studentProfileId,
+      assigned_by_id: acting._id,
+      created_at: now,
+    });
+
+    return { success: true, advisorStudentId, updated: true };
   },
 });
 

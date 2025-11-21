@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireSuperAdmin, getAuthenticatedUser } from "./lib/roles";
 
 // Create a university if it doesn't exist (by slug), otherwise return existing id
 export const createUniversity = mutation({
@@ -23,6 +24,7 @@ export const createUniversity = mutation({
     created_by_clerkId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
     const existing = await ctx.db
       .query("universities")
       .withIndex("by_slug", q => q.eq("slug", args.slug))
@@ -30,14 +32,8 @@ export const createUniversity = mutation({
 
     if (existing) return existing._id;
 
-    let created_by_id: any = undefined;
-    if (args.created_by_clerkId) {
-      const creator = await ctx.db
-        .query("users")
-        .withIndex("by_clerk_id", q => q.eq("clerkId", args.created_by_clerkId as string))
-        .unique();
-      if (creator) created_by_id = creator._id;
-    }
+    const creator = await getAuthenticatedUser(ctx);
+    const created_by_id = creator?._id ?? undefined;
 
     const now = Date.now();
     const uniId = await ctx.db.insert("universities", {
@@ -69,6 +65,9 @@ export const assignUniversityToUser = mutation({
     sendInviteEmail: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const actingUser = await getAuthenticatedUser(ctx);
+    const isSuperAdmin = actingUser.role === "super_admin";
+
     // Find user by clerkId or email - at least one must be provided
     if (!args.userClerkId && !args.userEmail) {
       throw new Error("Either userClerkId or userEmail must be provided");
@@ -96,8 +95,20 @@ export const assignUniversityToUser = mutation({
       .unique();
     if (!university) throw new Error("University not found");
 
+    // University admins can only assign within their university
+    if (
+      !isSuperAdmin &&
+      !(actingUser.role === "university_admin" && actingUser.university_id === university._id)
+    ) {
+      throw new Error("Unauthorized");
+    }
+
     // Determine new role if making admin
     const newRole = args.makeAdmin ? "university_admin" as const : user.role;
+
+    if (!isSuperAdmin && user.university_id && user.university_id !== university._id) {
+      throw new Error("User already assigned to a different university");
+    }
 
     await ctx.db.patch(user._id, {
       university_id: university._id,
@@ -148,7 +159,7 @@ export const assignUniversityToUser = mutation({
 export const getAllUniversities = query({
   args: { clerkId: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    // TODO: Add proper admin authorization check
+    await requireSuperAdmin(ctx);
     return await ctx.db
       .query("universities")
       .collect();
@@ -179,11 +190,11 @@ export const updateUniversity = mutation({
         v.literal("trial"),
         v.literal("suspended"),
       )),
-      admin_email: v.optional(v.string()),
-    }),
+    admin_email: v.optional(v.string()),
+  }),
   },
   handler: async (ctx, args) => {
-    // TODO: Add proper admin authorization check
+    await requireSuperAdmin(ctx);
     const { universityId, updates } = args;
 
     await ctx.db.patch(universityId, {

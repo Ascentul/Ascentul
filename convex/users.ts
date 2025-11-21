@@ -48,6 +48,24 @@ async function logRoleChange(
   }
 }
 
+async function getActingUser(ctx: MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Unauthorized");
+  }
+
+  const actingUser = await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .unique();
+
+  if (!actingUser) {
+    throw new Error("Unauthorized");
+  }
+
+  return actingUser;
+}
+
 // Get user by Clerk ID
 export const getUserByClerkId = query({
   args: { clerkId: v.string() },
@@ -361,36 +379,64 @@ export const updateUser = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
+    const actingUser = await getActingUser(ctx);
+    const targetUser = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (!user) {
+    if (!targetUser) {
       throw new Error("User not found");
     }
+
+    const isSelf = actingUser._id === targetUser._id;
+    const sameUniversity =
+      actingUser.university_id && targetUser.university_id &&
+      actingUser.university_id === targetUser.university_id;
+    const canManageTenant = actingUser.role === "super_admin" ||
+      (actingUser.role === "university_admin" && sameUniversity);
+
+    if (!isSelf && !canManageTenant) {
+      throw new Error("Unauthorized");
+    }
+
+    const protectedFields = new Set([
+      "role",
+      "university_id",
+      "subscription_plan",
+      "subscription_status",
+      "account_status",
+      "department_id",
+    ]);
 
     // Filter out undefined values from updates
     const cleanUpdates = Object.fromEntries(
       Object.entries(args.updates).filter(([_, value]) => value !== undefined)
     );
 
+    if (
+      actingUser.role !== "super_admin" &&
+      Object.keys(cleanUpdates).some((key) => protectedFields.has(key))
+    ) {
+      throw new Error("Unauthorized to change restricted fields");
+    }
+
     // Track role changes for audit logging
-    const roleChanged = args.updates.role && args.updates.role !== user.role;
-    const oldRole = user.role;
+    const roleChanged = args.updates.role && args.updates.role !== targetUser.role;
+    const oldRole = targetUser.role;
     const newRole = args.updates.role;
 
-    await ctx.db.patch(user._id, {
+    await ctx.db.patch(targetUser._id, {
       ...cleanUpdates,
       updated_at: Date.now(),
     });
 
     // Create audit log for role changes (super admin actions)
     if (roleChanged) {
-      await logRoleChange(ctx, user, oldRole, newRole!);
+      await logRoleChange(ctx, targetUser, oldRole, newRole!);
     }
 
-    return user._id;
+    return targetUser._id;
   },
 });
 
@@ -501,15 +547,44 @@ export const updateUserById = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const actingUser = await getActingUser(ctx);
     const user = await ctx.db.get(args.id);
+
     if (!user) {
       throw new Error("User not found");
     }
+
+    const isSelf = actingUser._id === user._id;
+    const sameUniversity =
+      actingUser.university_id && user.university_id &&
+      actingUser.university_id === user.university_id;
+    const canManageTenant = actingUser.role === "super_admin" ||
+      (actingUser.role === "university_admin" && sameUniversity);
+
+    if (!isSelf && !canManageTenant) {
+      throw new Error("Unauthorized");
+    }
+
+    const protectedFields = new Set([
+      "role",
+      "university_id",
+      "subscription_plan",
+      "subscription_status",
+      "account_status",
+      "department_id",
+    ]);
 
     // Filter out undefined values from updates
     const cleanUpdates = Object.fromEntries(
       Object.entries(args.updates).filter(([_, value]) => value !== undefined)
     );
+
+    if (
+      actingUser.role !== "super_admin" &&
+      Object.keys(cleanUpdates).some((key) => protectedFields.has(key))
+    ) {
+      throw new Error("Unauthorized to change restricted fields");
+    }
 
     // Track role changes for audit logging
     const roleChanged = args.updates.role && args.updates.role !== user.role;

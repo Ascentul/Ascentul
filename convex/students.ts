@@ -3,6 +3,7 @@ import { mutation, query, internalMutation, internalQuery, action, QueryCtx, Mut
 import { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { validate as validateEmail } from "email-validator";
+import { requireMembership } from "./lib/roles";
 
 /**
  * Valid academic year classifications for students
@@ -204,6 +205,16 @@ export async function requireStudent(
     throw new Error("Student must belong to a university");
   }
 
+  // Validate active membership
+  const membership = await ctx.db
+    .query("memberships")
+    .withIndex("by_user_role", (q) => q.eq("user_id", userId).eq("role", "student"))
+    .first();
+
+  if (!membership || membership.status !== "active") {
+    throw new Error("Unauthorized: Active student membership required");
+  }
+
   // Check if studentProfile exists
   const studentProfile = await ctx.db
     .query("studentProfiles")
@@ -246,6 +257,11 @@ export const createInvite = action({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx, args): Promise<{ inviteId: Id<"studentInvites">; token: string; expiresAt: number }> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity && identity.subject !== args.createdByClerkId) {
+      throw new Error("Unauthorized: Clerk identity mismatch");
+    }
+
     // Generate cryptographically secure token
     const token = generateSecureToken();
 
@@ -334,8 +350,8 @@ export const createInviteInternal = internalMutation({
       throw new Error("Creator not found");
     }
 
-    if (creator.role !== "university_admin") {
-      throw new Error("Only university admins can create invites");
+    if (!["university_admin", "advisor"].includes(creator.role)) {
+      throw new Error("Only university admins or advisors can create invites");
     }
 
     if (creator.university_id !== args.universityId) {
@@ -490,6 +506,11 @@ export const acceptInvite = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (identity && identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized: Clerk identity mismatch");
+    }
 
     // 1. Find the invite by token
     const invite = await ctx.db
@@ -530,6 +551,10 @@ export const acceptInvite = mutation({
 
     if (!user) {
       throw new Error("User not found");
+    }
+
+    if (user.university_id && user.university_id !== invite.university_id) {
+      throw new Error("User already belongs to a different university");
     }
 
     // 5. Verify email matches (optional security check)
@@ -661,6 +686,30 @@ export const acceptInvite = mutation({
       updated_at: now,
     });
 
+    // 9a. Ensure membership record exists for this student
+    const existingMembership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_role", (q) => q.eq("user_id", user._id).eq("role", "student"))
+      .first();
+
+    if (!existingMembership) {
+      await ctx.db.insert("memberships", {
+        user_id: user._id,
+        university_id: invite.university_id,
+        role: "student",
+        status: "active",
+        created_at: now,
+        updated_at: now,
+      });
+    } else if (existingMembership.university_id !== invite.university_id) {
+      throw new Error("Student membership belongs to a different university");
+    } else if (existingMembership.status !== "active") {
+      await ctx.db.patch(existingMembership._id, {
+        status: "active",
+        updated_at: now,
+      });
+    }
+
     // 10. Mark invite as accepted (with race condition check)
     // Re-fetch invite to ensure status is still "pending"
     // This prevents multiple users from accepting the same invite simultaneously
@@ -740,6 +789,11 @@ export const getStudentProfile = query({
       return null;
     }
 
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_role", (q) => q.eq("user_id", user._id).eq("role", "student"))
+      .first();
+
     // Get student profile
     const studentProfile = await ctx.db
       .query("studentProfiles")
@@ -759,6 +813,7 @@ export const getStudentProfile = query({
         name: university.name,
         slug: university.slug,
       } : null,
+      membershipId: membership?._id,
     };
   },
 });
