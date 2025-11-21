@@ -160,9 +160,11 @@ export default defineSchema({
       v.literal("expired"),
       v.literal("trial"),
       v.literal("suspended"),
+      v.literal("deleted"),
     ),
     admin_email: v.optional(v.string()),
     created_by_id: v.optional(v.id("users")),
+    deleted_at: v.optional(v.number()),
     created_at: v.number(),
     updated_at: v.number(),
   })
