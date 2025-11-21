@@ -66,9 +66,8 @@ function AdminAnalyticsPage() {
 
   if (!canAccess) {
     return (
-      <div className="space-y-4 min-w-0">
-        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
-          <Card>
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <Card>
           <CardHeader>
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
@@ -76,15 +75,13 @@ function AdminAnalyticsPage() {
             <p className="text-muted-foreground">You do not have access to admin analytics.</p>
           </CardContent>
         </Card>
-        </div>
       </div>
     )
   }
 
   if (isLoading) {
     return (
-      <div className="space-y-4 min-w-0">
-        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm space-y-6">
+      <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
@@ -102,14 +99,12 @@ function AdminAnalyticsPage() {
             </div>
           </CardContent>
         </Card>
-        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4 min-w-0">
-      <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm space-y-6">
+    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
@@ -399,7 +394,6 @@ function AdminAnalyticsPage() {
           </CardContent>
         </Card>
       )}
-      </div>
     </div>
   )
 }

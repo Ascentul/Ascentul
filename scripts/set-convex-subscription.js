@@ -52,7 +52,10 @@ async function main() {
     process.exit(1)
   }
 
-
+  // Node 18+ fetch shim if needed
+  if (typeof fetch === 'undefined') {
+    global.fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args))
+  }
 
   const { ConvexHttpClient } = require('convex/browser')
   const { api } = require('../convex/_generated/api')

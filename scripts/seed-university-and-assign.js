@@ -119,14 +119,8 @@ async function main() {
   console.log('Done.')
 }
 
-// Polyfill fetch and related globals for Node < 18
 if (typeof fetch === 'undefined') {
-  const nodeFetch = require('node-fetch')
-  const fetch_ = nodeFetch.default || nodeFetch
-  global.fetch = fetch_
-  global.Request = nodeFetch.Request
-  global.Response = nodeFetch.Response
-  global.Headers = nodeFetch.Headers
+  global.fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args))
 }
 
 main().catch(err => {
