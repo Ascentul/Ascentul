@@ -684,84 +684,83 @@ const Sidebar = React.memo(function Sidebar({
             </Button>
           </div>
 
+        {/* User Profile */}
+        {clerkUser && (
+          <div className="mb-6">
+            <div
+              className={`flex items-center ${expanded ? "space-x-3" : "justify-center"}`}
+            >
+              <Link href="/account" className="flex-shrink-0 cursor-pointer" aria-label="Account settings">
+                <Image
+                  src={
+                    user?.profile_image ||
+                    clerkUser.imageUrl ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=0C29AB&color=fff`
+                  }
+                  alt="Profile"
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 rounded-full object-cover ring-2 ring-brand-blue hover:ring-brand-blue/70 transition-all"
+                />
+              </Link>
+              {expanded && (
+                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                  <p className="text-sm font-medium text-slate-900 truncate">
+                    {clerkUser.firstName ||
+                      clerkUser.emailAddresses[0]?.emailAddress?.split(
+                        "@",
+                      )[0] ||
+                      "User"}
+                  </p>
+                  {!isAdmin && (
+                    <span className="inline-flex items-center self-start rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 truncate max-w-full">
+                      {viewer?.student?.universityName || subscription.planName || "Free plan"}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
           {/* Navigation */}
           <nav className="flex-1 space-y-2 mb-4 w-full">
             {allSections.map(renderSection)}
           </nav>
 
-          <div className="mt-auto w-full space-y-4">
-            {/* Free Plan Tile near footer */}
-            {isFreeUser && expanded && (
-              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between text-xs text-slate-600">
-                  <span className="font-semibold text-slate-800">Free Plan</span>
-                  {usageData ? (
-                    <span>{usageData.stepsCompleted}/{usageData.totalSteps} steps</span>
-                  ) : (
-                    <span>Loading...</span>
-                  )}
-                </div>
-                <div className="mt-2">
-                  <Progress
-                    value={usageData ? (usageData.stepsCompleted / usageData.totalSteps) * 100 : 0}
-                    className="h-2"
-                  />
-                </div>
-                <Link
-                  href="/pricing"
-                  className="mt-3 block w-full"
-                >
-                  <Button
-                    size="sm"
-                    className="w-full bg-primary-500 hover:bg-primary-700 text-white"
-                  >
-                    Upgrade to Pro
-                  </Button>
-                </Link>
+          {/* Free Plan Tile near footer */}
+          {isFreeUser && expanded && (
+            <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between text-xs text-slate-600">
+                <span className="font-semibold text-slate-800">Free Plan</span>
+                {usageData ? (
+                  <span>{usageData.stepsCompleted}/{usageData.totalSteps} steps</span>
+                ) : (
+                  <span>Loading...</span>
+                )}
               </div>
-            )}
-
-            {/* User Profile */}
-            {clerkUser && (
-              <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-                <div
-                  className={`flex items-center ${expanded ? "space-x-3" : "justify-center"}`}
-                >
-                  <Link href="/account" className="flex-shrink-0 cursor-pointer" aria-label="Account settings">
-                    <Image
-                      src={
-                        user?.profile_image ||
-                        clerkUser.imageUrl ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=0C29AB&color=fff`
-                      }
-                      alt="Profile"
-                      width={40}
-                      height={40}
-                      className="h-10 w-10 rounded-full object-cover ring-2 ring-brand-blue hover:ring-brand-blue/70 transition-all"
-                    />
-                  </Link>
-                  {expanded && (
-                    <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                      <p className="text-sm font-medium text-slate-900 truncate">
-                        {clerkUser.firstName ||
-                          clerkUser.emailAddresses[0]?.emailAddress?.split(
-                            "@",
-                          )[0] ||
-                          "User"}
-                      </p>
-                      {!isAdmin && (
-                        <span className="inline-flex items-center self-start rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 truncate max-w-full">
-                          {viewer?.student?.universityName || subscription.planName || "Free plan"}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
+              <div className="mt-2">
+                <Progress
+                  value={usageData ? (usageData.stepsCompleted / usageData.totalSteps) * 100 : 0}
+                  className="h-2"
+                />
               </div>
-            )}
+              <Link
+                href="/pricing"
+                className="mt-3 block w-full"
+              >
+                <Button
+                  size="sm"
+                  className="w-full bg-primary-500 hover:bg-primary-700 text-white"
+                >
+                  Upgrade to Pro
+                </Button>
+              </Link>
+            </div>
+          )}
 
-            {/* Footer - Account actions */}
-            <div className="space-y-1">
+          {/* Footer - Account actions */}
+          <div className="space-y-1">
             {/* Pro Upsell Modal */}
             <Dialog open={showUpsellModal} onOpenChange={setShowUpsellModal}>
               <DialogContent>
@@ -818,7 +817,6 @@ const Sidebar = React.memo(function Sidebar({
               </DialogContent>
             </Dialog>
 
-          </div>
           </div>
         </div>
       </div>

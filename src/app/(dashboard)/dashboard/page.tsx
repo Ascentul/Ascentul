@@ -221,25 +221,21 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
-          {/* Row 2: Usage Progress/Onboarding Checklist + Today's Recommendations */}
-          <motion.div
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"
-            variants={staggeredContainer}
-          >
-            <motion.div variants={cardAnimation}>
-              {!hasPremium ? (
-                <UsageProgressCard dashboardData={dashboardData} />
-              ) : (
-                <SimpleOnboardingChecklist dashboardData={dashboardData} />
-              )}
-            </motion.div>
-
-            <motion.div variants={cardAnimation}>
-              <TodaysRecommendations />
-            </motion.div>
+          {/* Row 2: Usage Progress (Free Users) or Onboarding Checklist */}
+          <motion.div variants={cardAnimation} className="mb-6">
+            {!hasPremium ? (
+              <UsageProgressCard dashboardData={dashboardData} />
+            ) : (
+              <SimpleOnboardingChecklist dashboardData={dashboardData} />
+            )}
           </motion.div>
 
-          {/* Row 3: Active Interviews, Follow-up Actions, Goals */}
+          {/* Row 3: Recommendations */}
+          <motion.div variants={cardAnimation} className="mb-6">
+            <TodaysRecommendations />
+          </motion.div>
+
+          {/* Row 4: Active Interviews, Follow-up Actions, Goals */}
           <motion.div
             className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
             variants={staggeredContainer}
