@@ -16,7 +16,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    /* Brand primary: #4257FF (HSL: 231 100% 61%) - WCAG AA compliant (4.51:1 contrast) */
+    /* Brand primary: #4257FF (HSL: 231 100% 61%) - 4.51:1 contrast (WCAG AA compliant) */
     --primary: 231 100% 61%;
     --primary-foreground: 0 0% 100%;
     /* Primary scale */
@@ -80,7 +80,7 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    /* Brand primary: #4257FF (HSL: 231 100% 61%) - WCAG AA compliant (4.51:1 contrast) */
+    /* Brand primary: #4257FF (HSL: 231 100% 61%) - 4.51:1 contrast (WCAG AA compliant) */
     --primary: 231 100% 61%;
     --primary-foreground: 0 0% 100%;
     /* Primary scale */

@@ -25,7 +25,8 @@ import { Input } from '@/components/ui/input'
 import GoalCard from '@/components/GoalCard'
 import GoalForm from '@/components/GoalForm'
 import GoalTimeline from '@/components/goals/GoalTimeline'
-import GoalTemplates, { goalTemplates } from '@/components/goals/GoalTemplates'
+import { GoalTemplatesStrip } from '@/components/goals/GoalTemplatesStrip'
+import { goalTemplates } from '@/components/goals/GoalTemplates'
 import { UpgradeModal } from '@/components/modals/UpgradeModal'
 import { useToast } from '@/hooks/use-toast'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -226,13 +227,13 @@ export default function Goals() {
   }
 
   return (
-    <motion.div 
-        className="w-full"
+    <motion.div
+        className="space-y-4 min-w-0"
         initial="hidden"
         animate="visible"
         variants={fadeIn}
       >
-        <div className="w-full rounded-3xl bg-white p-5 shadow-sm space-y-6">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-5 shadow-sm space-y-6">
         <motion.div 
           className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4"
           variants={subtleUp}
@@ -257,94 +258,10 @@ export default function Goals() {
             New Goal
           </Button>
         </motion.div>
-        
-        {/* Filters & Search */}
-        <motion.div variants={subtleUp}>
-          <Card className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
-            <CardContent className="px-4 py-3">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="relative">
-                  <Input
-                    placeholder="Search goals..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400">
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                  </div>
-                </div>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between rounded-full px-4 py-1 bg-gray-100 hover:bg-white hover:ring-1 hover:ring-gray-300 transition-all">
-                      <div className="flex items-center">
-                        <Filter className="mr-2 h-4 w-4" />
-                        {statusFilter === 'in_progress' ? 'In Progress' : statusFilter === 'completed' ? 'Completed' : 'Filter by Status'}
-                      </div>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => setStatusFilter(null)}>
-                      All Statuses
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('in_progress')}>
-                      In Progress
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('completed')}>
-                      Completed
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between rounded-full px-4 py-1 bg-gray-100 hover:bg-white hover:ring-1 hover:ring-gray-300 transition-all">
-                      <div className="flex items-center">
-                        <ArrowUpDown className="mr-2 h-4 w-4" />
-                        Sort by
-                      </div>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => setSortOption('dueDate-asc')}>
-                      Due Date (Earliest First)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortOption('dueDate-desc')}>
-                      Due Date (Latest First)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortOption('progress-desc')}>
-                      Progress (Highest First)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortOption('progress-asc')}>
-                      Progress (Lowest First)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortOption('title-asc')}>
-                      Title (A-Z)
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-        
+
         {/* Goal Templates Section */}
         <motion.div variants={subtleUp} className="mb-5">
-          <GoalTemplates
+          <GoalTemplatesStrip
             onSelectTemplate={(templateId) => {
               // Check free user limit (1 goal max)
               if (isFreeUser && goals.length >= 1) {
@@ -358,8 +275,8 @@ export default function Goals() {
         </motion.div>
         
         {/* Active Goals Section */}
-        <motion.div className="mb-8" variants={subtleUp}>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+        <motion.div className="mb-8 min-w-0" variants={subtleUp}>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm min-w-0">
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-base font-semibold text-slate-900">Active Goals</h2>
             </div>
@@ -369,8 +286,8 @@ export default function Goals() {
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
               </div>
             ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status !== 'completed').length > 0 ? (
-              <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
+              <motion.div
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0"
                 variants={listContainer}
               >
                 {sortedAndFilteredGoals()

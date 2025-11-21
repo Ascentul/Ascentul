@@ -122,7 +122,7 @@ export function CareerGoalsSummary() {
               ))}
             </div>
           ) : activeGoals.length === 0 ? (
-            <section className="flex flex-col items-center justify-center rounded-2xl bg-[#EEF2FF] border border-transparent py-8 text-center">
+            <section className="flex flex-col items-center justify-center rounded-2xl bg-primary-50 border border-transparent py-8 text-center">
               <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm">
                 <Target className="h-5 w-5 text-primary-500" />
               </div>

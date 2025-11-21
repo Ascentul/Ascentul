@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -105,6 +106,7 @@ const Sidebar = React.memo(function Sidebar({
   const router = useRouter();
   const { user: clerkUser } = useUser();
   const { user, signOut, isAdmin, subscription, hasPremium } = useAuth();
+  const { toast } = useToast();
 
   // Fetch viewer data to get student context (university name)
   const viewer = useQuery(
@@ -792,9 +794,20 @@ const Sidebar = React.memo(function Sidebar({
                         const data = await response.json();
                         if (data.url) {
                           window.location.href = data.url;
+                        } else {
+                          toast({
+                            title: "Checkout failed",
+                            description: "Unable to initiate checkout. Please try again.",
+                            variant: "destructive",
+                          });
                         }
                       } catch (error) {
                         console.error("Checkout error:", error);
+                        toast({
+                          title: "Checkout failed",
+                          description: "Unable to initiate checkout. Please try again.",
+                          variant: "destructive",
+                        });
                       }
                     }}
                   >

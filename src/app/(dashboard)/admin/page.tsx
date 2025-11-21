@@ -151,9 +151,11 @@ function AdminDashboardPage() {
   // Show loading state while Clerk is loading
   if (!clerkLoaded) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         </div>
       </div>
     )
@@ -162,13 +164,15 @@ function AdminDashboardPage() {
   // Show unauthorized message if user doesn't have access (based on Clerk role)
   if (!canAccess) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Unauthorized</h1>
-          <p className="text-gray-600">
-            You do not have permission to access this page.
-            {clerkRole && <span className="block mt-2 text-sm">Your role: {clerkRole}</span>}
-          </p>
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Unauthorized</h1>
+            <p className="text-gray-600">
+              You do not have permission to access this page.
+              {clerkRole && <span className="block mt-2 text-sm">Your role: {clerkRole}</span>}
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -178,10 +182,12 @@ function AdminDashboardPage() {
   // Show loading state only if systemStats is undefined (not just checking shouldQuery)
   if (!systemStats && shouldQuery) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex items-center justify-center py-16 flex-col gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-center py-16 flex-col gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+          </div>
         </div>
       </div>
     )
@@ -296,21 +302,22 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
   avgLicenseUtilization: number
 }) {
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#0C29AB' }}>
-            Super Admin Dashboard
-          </h1>
-          <p className="text-muted-foreground">System overview and platform management</p>
+    <div className="space-y-4 min-w-0">
+      <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#0C29AB' }}>
+              Super Admin Dashboard
+            </h1>
+            <p className="text-muted-foreground">System overview and platform management</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="default" className="bg-green-500">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              System Healthy
+            </Badge>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="default" className="bg-green-500">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            System Healthy
-          </Badge>
-        </div>
-      </div>
 
       <Tabs defaultValue="overview" className="space-y-6" onValueChange={(value) => setActiveAnalyticsTab(value as any)}>
         <TabsList className="grid w-full grid-cols-5">
@@ -1283,6 +1290,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   )
 })

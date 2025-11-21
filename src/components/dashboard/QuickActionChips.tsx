@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, Target, FileText, Briefcase, Calendar } from "lucide-react";
+import {
+  Plus,
+  FileText,
+  Briefcase,
+  Compass,
+  MessageCircle,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,12 +15,73 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/contexts/ClerkAuthProvider";
+
+type QuickActionsUser = {
+  role?: string | null;
+  university_id?: string | null;
+  universityId?: string | null; // Alternative property name used in some contexts
+  advisor_id?: string | null;
+  advisorId?: string | null;
+  primaryAdvisorId?: string | null;
+};
+
+type QuickActionId =
+  | "trackApplication"
+  | "explorePaths"
+  | "updateResume"
+  | "askAdvisor"
+  | "askCareerCoach";
+
+interface QuickActionConfig {
+  id: QuickActionId;
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  description?: string;
+  iconBgClass?: string;
+  iconColorClass?: string;
+  visible?: boolean;
+}
 
 interface ChipProps {
   href: string;
   icon?: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
 }
+
+export const canShowAdvisorPill = (
+  user: QuickActionsUser | null | undefined,
+): boolean => {
+  if (!user) return false;
+
+  const isStudentLike =
+    user.role === "student" || user.role === "user" || user.role === "individual";
+  if (!isStudentLike) return false;
+
+  const universityId = user.university_id || user.universityId;
+  const hasUniversity = Boolean(universityId);
+  const advisorId =
+    user.advisor_id || user.advisorId || user.primaryAdvisorId;
+  const hasAdvisor = Boolean(advisorId);
+
+  return hasUniversity && hasAdvisor;
+};
+
+const canShowCareerCoachPill = (
+  user: QuickActionsUser | null | undefined,
+): boolean => {
+  if (!user) return false;
+
+  const isStudentLike =
+    user.role === "student" || user.role === "user" || user.role === "individual";
+  if (!isStudentLike) return false;
+
+  const universityId = user.university_id || user.universityId;
+  const hasUniversity = Boolean(universityId);
+
+  return !hasUniversity;
+};
 
 function Chip({ href, icon: Icon, children }: ChipProps) {
   const IconComponent = Icon || Plus;
@@ -31,14 +98,72 @@ function Chip({ href, icon: Icon, children }: ChipProps) {
 }
 
 export function QuickActionChips() {
+  const { user } = useAuth();
+
+  const actions: QuickActionConfig[] = [
+    {
+      id: "trackApplication",
+      label: "Track application",
+      href: "/applications",
+      icon: Briefcase,
+      description: "Track your job applications",
+      iconBgClass: "bg-emerald-50",
+      iconColorClass: "text-green-600",
+      visible: true,
+    },
+    {
+      id: "explorePaths",
+      label: "Explore career paths",
+      href: "/career-path",
+      icon: Compass,
+      description: "Discover tailored career directions",
+      iconBgClass: "bg-indigo-50",
+      iconColorClass: "text-indigo-500",
+      visible: true,
+    },
+    {
+      id: "updateResume",
+      label: "Update resume",
+      href: "/resumes",
+      icon: FileText,
+      description: "Build or refresh your resume",
+      iconBgClass: "bg-primary-50",
+      iconColorClass: "text-primary-500",
+      visible: true,
+    },
+    {
+      id: "askAdvisor",
+      label: "Ask advisor",
+      href: "/support",
+      icon: MessageCircle,
+      description: "Connect with your advisor",
+      iconBgClass: "bg-blue-50",
+      iconColorClass: "text-blue-500",
+      visible: canShowAdvisorPill(user),
+    },
+    {
+      id: "askCareerCoach",
+      label: "Ask Career Coach",
+      href: "/career-coach",
+      icon: MessageCircle,
+      description: "Chat with your career coach",
+      iconBgClass: "bg-blue-50",
+      iconColorClass: "text-blue-500",
+      visible: canShowCareerCoachPill(user),
+    },
+  ];
+
+  const visibleActions = actions.filter((action) => action.visible !== false);
+
   return (
     <div className="flex items-center justify-between">
       {/* Pills - desktop and up */}
       <div className="hidden md:flex flex-wrap items-center gap-2.5">
-        <Chip href="/applications" icon={Briefcase}>Add application</Chip>
-        <Chip href="/applications?action=interview" icon={Calendar}>Log interview</Chip>
-        <Chip href="/goals" icon={Target}>Create goal</Chip>
-        <Chip href="/resumes" icon={FileText}>Update resume</Chip>
+        {visibleActions.map((action) => (
+          <Chip key={action.id} href={action.href} icon={action.icon}>
+            {action.label}
+          </Chip>
+        ))}
       </div>
 
       {/* Quick actions button - mobile only */}
@@ -57,53 +182,27 @@ export function QuickActionChips() {
             <DialogTitle className="text-center">Quick Actions</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-2 py-4">
-            <Link href="/goals" className="w-full">
-              <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm transition-colors hover:bg-slate-50">
-                <div className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary-50">
-                  <Target className="h-5 w-5 text-primary-500" />
+            {visibleActions.map((action) => (
+              <Link key={action.id} href={action.href} className="w-full">
+                <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm transition-colors hover:bg-slate-50">
+                  <div
+                    className={`mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${action.iconBgClass || "bg-primary-50"}`}
+                  >
+                    <action.icon
+                      className={`h-5 w-5 ${action.iconColorClass || "text-primary-500"}`}
+                    />
+                  </div>
+                  <div>
+                    <div className="font-medium">{action.label}</div>
+                    {action.description ? (
+                      <div className="text-xs text-muted-foreground">
+                        {action.description}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-                <div>
-                  <div className="font-medium">Create a Goal</div>
-                  <div className="text-xs text-muted-foreground">Track your career objectives</div>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/resumes" className="w-full">
-              <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm transition-colors hover:bg-slate-50">
-                <div className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary-50">
-                  <FileText className="h-5 w-5 text-primary-500" />
-                </div>
-                <div>
-                  <div className="font-medium">Update Resume</div>
-                  <div className="text-xs text-muted-foreground">Build a professional resume</div>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/applications" className="w-full">
-              <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm transition-colors hover:bg-slate-50">
-                <div className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50">
-                  <Briefcase className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <div className="font-medium">Add Application</div>
-                  <div className="text-xs text-muted-foreground">Track your job applications</div>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/applications?action=interview" className="w-full">
-              <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm transition-colors hover:bg-slate-50">
-                <div className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-blue-50">
-                  <Calendar className="h-5 w-5 text-blue-500" />
-                </div>
-                <div>
-                  <div className="font-medium">Log Interview</div>
-                  <div className="text-xs text-muted-foreground">Record interview details</div>
-                </div>
-              </div>
-            </Link>
+              </Link>
+            ))}
           </div>
         </DialogContent>
       </Dialog>

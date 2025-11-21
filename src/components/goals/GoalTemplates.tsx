@@ -1,8 +1,3 @@
-"use client";
-
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Target,
   Briefcase,
@@ -134,62 +129,5 @@ export const goalTemplates = [
   },
 ];
 
-interface GoalTemplatesProps {
-  onSelectTemplate: (templateId: string) => void;
-}
-
-export default function GoalTemplates({
-  onSelectTemplate,
-}: GoalTemplatesProps) {
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold mb-2">Goal Templates</h3>
-          <p className="text-sm text-muted-foreground">
-            Get started quickly with pre-built goal templates
-          </p>
-        </div>
-
-        <div
-          className="flex overflow-x-auto space-x-4 pb-4 scrollbar-hide"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          {goalTemplates.map((template) => (
-            <Card
-              key={template.id}
-              className="hover:shadow-md transition-shadow cursor-pointer flex-shrink-0 w-64"
-            >
-              <CardContent className="p-4 flex flex-col h-full">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="p-2 bg-[#0C29AB] rounded-lg flex-shrink-0">
-                    <div className="text-white">{template.icon}</div>
-                  </div>
-                  <h4 className="font-medium text-sm">{template.title}</h4>
-                </div>
-
-                <p className="text-xs text-muted-foreground mb-3 flex-grow">
-                  {template.description}
-                </p>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full text-xs mt-auto"
-                  onClick={() => onSelectTemplate(template.id)}
-                >
-                  Use Template
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <style jsx>{`
-          .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-          }
-        `}</style>
-      </CardContent>
-    </Card>
-  );
-}
+// NOTE: This component has been replaced by GoalTemplatesStrip.tsx
+// Keeping this file for the goalTemplates data export used by GoalForm and other components

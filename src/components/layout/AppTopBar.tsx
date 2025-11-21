@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Bell, HelpCircle, MessageCircle, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { QuickActionChips } from "@/components/dashboard/QuickActionChips";
+import { useAuth } from "@/contexts/ClerkAuthProvider";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "convex/_generated/api";
+import { useToast } from "@/hooks/use-toast";
 
 type IconButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   hasUnread?: boolean;
@@ -22,7 +26,7 @@ function IconButton({ hasUnread, isActive, className = "", children, ...rest }: 
       {...rest}
       className={cn(
         "relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors",
-        isActive ? "ring-2 ring-[#5371FF]/30 text-slate-700" : "hover:bg-slate-50 hover:text-slate-700",
+        isActive ? "ring-2 ring-primary-500/30 text-slate-700" : "hover:bg-slate-50 hover:text-slate-700",
         className
       )}
     >
@@ -35,9 +39,11 @@ function IconButton({ hasUnread, isActive, className = "", children, ...rest }: 
 }
 
 export default function AppTopBar() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [openPanel, setOpenPanel] = useState<null | "search" | "messages" | "notifications">(null);
   const [unreadMessages, setUnreadMessages] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const [supportOpen, setSupportOpen] = useState(false);
   const [subject, setSubject] = useState("");
@@ -45,14 +51,34 @@ export default function AppTopBar() {
   const [issueType, setIssueType] = useState("Other");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Hide quick action chips for super_admin
+  const isSuperAdmin = user?.role === "super_admin";
+
+  // Fetch notification count from Convex
+  const unreadCount = useQuery(
+    api.notifications.getUnreadCount,
+    user?.clerkId ? { clerkId: user.clerkId } : "skip"
+  );
+
+  // Fetch notifications
+  const notifications = useQuery(
+    api.notifications.getNotifications,
+    openPanel === "notifications" && user?.clerkId
+      ? { clerkId: user.clerkId, unreadOnly: false }
+      : "skip"
+  );
+
+  // Mark notification as read mutation
+  const markAsRead = useMutation(api.notifications.markAsRead);
+  const markAllAsRead = useMutation(api.notifications.markAllAsRead);
+
+  const hasUnreadNotifications = (unreadCount ?? 0) > 0;
+
   const togglePanel = (panel: "search" | "messages" | "notifications") => {
     setOpenPanel((prev) => {
       const next = prev === panel ? null : panel;
       if (next === "messages") {
         setUnreadMessages(false);
-      }
-      if (next === "notifications") {
-        setUnreadNotifications(false);
       }
       return next;
     });
@@ -73,7 +99,7 @@ export default function AppTopBar() {
     if (!subject.trim() || !description.trim()) return;
     setIsSubmitting(true);
     try {
-      await fetch("/api/support/tickets", {
+      const response = await fetch("/api/support/tickets", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -85,12 +111,27 @@ export default function AppTopBar() {
           source: "topbar",
         }),
       });
+      
+      if (!response.ok) {
+        throw new Error("Failed to submit support ticket");
+      }
+      
+      toast({
+        title: "Support ticket submitted",
+        description: "We'll get back to you soon.",
+      });
+      
       setSupportOpen(false);
       setSubject("");
       setDescription("");
       setIssueType("Other");
     } catch (error) {
       console.error("Error submitting support ticket:", error);
+      toast({
+        title: "Failed to submit ticket",
+        description: "Please try again or contact us directly.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -99,9 +140,11 @@ export default function AppTopBar() {
   return (
     <header className="relative z-20 bg-app-bg/70 backdrop-blur">
       <div className="relative flex w-full items-center justify-between gap-3 px-4 md:px-6" style={{ minHeight: "56px" }}>
-        <div className="hidden md:flex items-center gap-2.5 flex-nowrap">
-          <QuickActionChips inline />
-        </div>
+        {!isSuperAdmin && (
+          <div className="hidden md:flex items-center gap-2.5 flex-nowrap">
+            <QuickActionChips />
+          </div>
+        )}
 
         <div className="flex flex-1 items-center justify-end gap-2.5" ref={panelRef}>
           {openPanel === "search" && (
@@ -109,7 +152,7 @@ export default function AppTopBar() {
               <Search className="h-4 w-4 text-slate-500" />
               <Input
                 placeholder="Search across apps..."
-                className="h-8 border-0 bg-transparent p-0 text-sm text-slate-700 focus-visible:ring-0"
+                className="h-8 border-0 bg-transparent p-0 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 focus-visible:ring-offset-0"
                 autoFocus
               />
             </div>
@@ -192,7 +235,7 @@ export default function AppTopBar() {
           </Dialog>
           <IconButton
             aria-label="Notifications"
-            hasUnread={unreadNotifications}
+            hasUnread={hasUnreadNotifications}
             isActive={openPanel === "notifications"}
             onClick={() => togglePanel("notifications")}
           >
@@ -208,9 +251,68 @@ export default function AppTopBar() {
         )}
 
         {openPanel === "notifications" && (
-          <div className="absolute right-4 top-[calc(100%+8px)] w-full max-w-xs rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
-            <p className="mb-2 text-xs font-semibold text-slate-500">Notifications</p>
-            <p className="text-sm text-slate-600">You are all caught up.</p>
+          <div className="absolute right-4 top-[calc(100%+8px)] w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 p-3">
+              <p className="text-sm font-semibold text-slate-900">Notifications</p>
+              {hasUnreadNotifications && (
+                <button
+                  onClick={() => {
+                    if (user?.clerkId) {
+                      markAllAsRead({ clerkId: user.clerkId })
+                        .catch((err) => console.error("Failed to mark all notifications as read:", err));
+                    }
+                  }}
+                  className="text-xs text-[#4257FF] hover:text-[#3f5dde] transition-colors"
+                >
+                  Mark all as read
+                </button>
+              )}
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              {!notifications || notifications.length === 0 ? (
+                <div className="p-4 text-center">
+                  <p className="text-sm text-slate-600">You are all caught up.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification._id}
+                      className={cn(
+                        "p-3 hover:bg-slate-50 transition-colors cursor-pointer",
+                        !notification.read && "bg-blue-50/50"
+                      )}
+                      onClick={() => {
+                        if (!notification.read && user?.clerkId) {
+                          markAsRead({ clerkId: user.clerkId, notificationId: notification._id })
+                            .catch((err) => console.error("Failed to mark notification as read:", err));
+                        }
+                        if (notification.link) {
+                          router.push(notification.link);
+                        }
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900">
+                            {notification.title}
+                          </p>
+                          <p className="text-xs text-slate-600 mt-0.5">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {new Date(notification.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        {!notification.read && (
+                          <div className="h-2 w-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -159,7 +159,7 @@ The app uses a floating rounded shell design with clean, modern SaaS styling:
 - All cards use `rounded-card` with `shadow-card`
 
 **Brand Colors:**
-- Primary brand: `#4257FF` (use `bg-primary-500`, `text-primary-500`) - WCAG AA compliant
+- Primary brand: `#4257FF` (use `bg-primary-500`, `text-primary-500`) - WCAG AA compliant (4.51:1 contrast)
 - Primary hover: `bg-primary-700`
 - Neutral grays: `neutral-100/300/500/700/900` for UI elements
 - Semantic colors: `success-500`, `warning-500`, `danger-500`
