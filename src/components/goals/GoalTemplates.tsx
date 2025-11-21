@@ -5,6 +5,7 @@ import {
   Code,
   Users,
   TrendingUp,
+  type LucideIcon,
 } from "lucide-react";
 
 export const goalTemplates = [
@@ -12,7 +13,7 @@ export const goalTemplates = [
     id: "career-change",
     title: "Career Change",
     description: "Transition to a new career field",
-    icon: <Briefcase className="h-5 w-5" />,
+    icon: Briefcase,
     category: "Career",
     prefill: {
       title: "Transition to [New Field]",
@@ -32,7 +33,7 @@ export const goalTemplates = [
     id: "skill-development",
     title: "Skill Development",
     description: "Learn new technical or professional skills",
-    icon: <Code className="h-5 w-5" />,
+    icon: Code,
     category: "Learning",
     prefill: {
       title: "Master [Skill Name]",
@@ -52,7 +53,7 @@ export const goalTemplates = [
     id: "promotion",
     title: "Get Promoted",
     description: "Advance to the next level in your current role",
-    icon: <TrendingUp className="h-5 w-5" />,
+    icon: TrendingUp,
     category: "Career",
     prefill: {
       title: "Get Promoted to [Target Position]",
@@ -71,7 +72,7 @@ export const goalTemplates = [
     id: "networking",
     title: "Build Network",
     description: "Expand your professional network",
-    icon: <Users className="h-5 w-5" />,
+    icon: Users,
     category: "Networking",
     prefill: {
       title: "Build Professional Network",
@@ -91,7 +92,7 @@ export const goalTemplates = [
     id: "education",
     title: "Further Education",
     description: "Pursue additional education or certifications",
-    icon: <GraduationCap className="h-5 w-5" />,
+    icon: GraduationCap,
     category: "Education",
     prefill: {
       title: "Complete [Degree/Certification]",
@@ -111,7 +112,7 @@ export const goalTemplates = [
     id: "leadership",
     title: "Leadership Development",
     description: "Develop leadership and management skills",
-    icon: <Target className="h-5 w-5" />,
+    icon: Target,
     category: "Leadership",
     prefill: {
       title: "Develop Leadership Skills",

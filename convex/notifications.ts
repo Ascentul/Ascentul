@@ -16,17 +16,20 @@ export const getNotifications = query({
 
     if (!user) throw new Error("User not found");
 
-    // Fetch all user's notifications first
-    const allNotifications = await ctx.db
+    // Use database-level sorting and filtering for better performance
+    let query = ctx.db
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .collect();
-    
-    // Filter and sort by created_at descending
-    const notifications = allNotifications
-      .filter(n => !args.unreadOnly || !n.read)
-      .sort((a, b) => b.created_at - a.created_at)
-      .slice(0, 50); // Limit to 50 most recent
+      .order("desc");
+
+    if (args.unreadOnly) {
+      query = ctx.db
+        .query("notifications")
+        .withIndex("by_user_read", (q) => q.eq("user_id", user._id).eq("read", false))
+        .order("desc");
+    }
+
+    const notifications = await query.take(50);
 
     return notifications;
   },

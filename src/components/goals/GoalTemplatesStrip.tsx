@@ -43,9 +43,7 @@ export const GoalTemplatesStrip: React.FC<GoalTemplatesStripProps> = ({
 
         <div className="flex flex-wrap items-center gap-2">
           {primaryTemplates.map((template) => {
-            // Extract icon component from JSX element
-            const IconComponent = template.icon.type;
-            const iconProps = template.icon.props;
+            const Icon = template.icon;
 
             return (
               <button
@@ -54,7 +52,7 @@ export const GoalTemplatesStrip: React.FC<GoalTemplatesStripProps> = ({
                 onClick={() => handleUseTemplate(template.id)}
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 transition-all"
               >
-                <IconComponent {...iconProps} className="h-4 w-4" />
+                <Icon className="h-4 w-4" />
                 <span>{template.title}</span>
               </button>
             );
@@ -83,9 +81,7 @@ export const GoalTemplatesStrip: React.FC<GoalTemplatesStripProps> = ({
           <div className="overflow-y-auto flex-1 pr-2 -mr-2">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {goalTemplates.map((template) => {
-                // Extract icon component from JSX element
-                const IconComponent = template.icon.type;
-                const iconProps = template.icon.props;
+                const Icon = template.icon;
 
                 return (
                   <button
@@ -96,7 +92,7 @@ export const GoalTemplatesStrip: React.FC<GoalTemplatesStripProps> = ({
                   >
                     <div className="mb-3 flex items-start gap-3">
                       <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary-500 text-white">
-                        <IconComponent {...iconProps} className="h-5 w-5" />
+                        <Icon className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-semibold text-slate-900 mb-1">
