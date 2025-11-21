@@ -2,37 +2,6 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
-/**
- * Validates that a notification link is safe (internal route only).
- * Prevents open redirect vulnerabilities by ensuring links start with /
- * and don't contain protocol schemes or double slashes.
- *
- * @param link - The notification link to validate
- * @returns The validated link or undefined if no link provided
- * @throws Error if link is not a safe internal route
- */
-export function validateNotificationLink(link: string | undefined): string | undefined {
-  if (!link) return undefined;
-
-  // Must start with / (internal route)
-  if (!link.startsWith('/')) {
-    throw new Error('Notification links must be internal routes starting with /');
-  }
-
-  // Prevent protocol-relative URLs (//example.com)
-  if (link.startsWith('//')) {
-    throw new Error('Protocol-relative URLs are not allowed in notification links');
-  }
-
-  // Prevent javascript: and data: URIs
-  const lowerLink = link.toLowerCase();
-  if (lowerLink.includes('javascript:') || lowerLink.includes('data:')) {
-    throw new Error('JavaScript and data URIs are not allowed in notification links');
-  }
-
-  return link;
-}
-
 // Get notifications for a user
 export const getNotifications = query({
   args: {
@@ -174,15 +143,12 @@ export const createNotification = internalMutation({
       throw new Error("User not found");
     }
 
-    // Validate link to prevent open redirect vulnerabilities
-    const validatedLink = validateNotificationLink(args.link);
-
     const notificationId = await ctx.db.insert("notifications", {
       user_id: args.user_id,
       type: args.type,
       title: args.title,
       message: args.message,
-      link: validatedLink,
+      link: args.link,
       related_id: args.related_id,
       read: false,
       read_at: undefined,

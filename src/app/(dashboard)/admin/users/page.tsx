@@ -254,31 +254,36 @@ export default function AdminUsersPage() {
   const isSuperAdmin = role === 'super_admin'
   if (!isSuperAdmin) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <Card>
-          <CardHeader>
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <Card>
+            <CardHeader>
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">Only Super Admin can access User Management.</p>
           </CardContent>
         </Card>
+        </div>
       </div>
     )
   }
 
   if (!usersResult) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
+    <div className="space-y-4 min-w-0">
+      <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
         <Button onClick={() => setShowAddUser(true)} className="flex items-center gap-2">
@@ -802,6 +807,7 @@ export default function AdminUsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   )
 }

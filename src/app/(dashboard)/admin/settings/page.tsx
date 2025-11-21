@@ -151,15 +151,17 @@ export default function AdminSettingsPage() {
 
   if (!isSuperAdmin) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Unauthorized</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Only Super Admin can access System Settings.</p>
-          </CardContent>
-        </Card>
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <Card>
+            <CardHeader>
+              <CardTitle>Unauthorized</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Only Super Admin can access System Settings.</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
@@ -265,11 +267,12 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">
-          System Settings
-        </h1>
+    <div className="space-y-4 min-w-0">
+      <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">
+            System Settings
+          </h1>
         <Button variant="outline" onClick={() => window.location.reload()}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
@@ -851,6 +854,7 @@ export default function AdminSettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   )
 }
