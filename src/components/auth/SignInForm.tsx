@@ -38,11 +38,7 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
 
     try {
       setSubmitting(true)
-      const result = await signIn.create({
-        identifier: email,
-        password,
-        strategy: 'password'
-      })
+      const result = await signIn.create({ identifier: email, password })
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId })
@@ -51,18 +47,20 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
           description: 'You have been successfully signed in.',
         })
         router.replace('/dashboard')
-      } else if (result.status === 'needs_first_factor') {
-        setError('Please complete the first authentication factor to continue.')
       } else if (result.status === 'needs_second_factor') {
-        setError('Two-factor authentication is required for your account. Please contact support if you need help setting up 2FA.')
+        // Handle 2FA requirement - redirect to Clerk's built-in 2FA flow
+        toast({
+          title: 'Two-factor authentication required',
+          description: 'Please complete two-factor authentication to continue.',
+        })
+        // Clerk will handle the 2FA flow through their components
+        router.push('/sign-in/factor-one')
       } else if (result.status === 'needs_identifier') {
-        setError('Additional information is required. Please try signing in again or contact support.')
-      } else if (result.status === 'needs_new_password') {
-        setError('You need to reset your password. Please use the "Forgot password?" link.')
+        setError('Additional identifier required. Please try signing in again.')
       } else {
-        // Handle any other unexpected statuses
-        console.warn('Unexpected sign-in status:', result.status, result)
-        setError(`Unable to complete sign-in (status: ${result.status}). Please contact support if this issue persists.`)
+        // Handle any other incomplete statuses
+        console.warn('Unexpected sign-in status:', result.status)
+        setError(`Sign in incomplete (${result.status}). Please try again or contact support if the issue persists.`)
       }
     } catch (err: unknown) {
       const clerkError = err as { errors?: Array<{ code?: string; longMessage?: string }>; message?: string }
