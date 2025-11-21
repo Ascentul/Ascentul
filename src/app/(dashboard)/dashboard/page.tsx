@@ -13,26 +13,11 @@ import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
 import { TodaysRecommendations } from '@/components/TodaysRecommendations'
 import { UsageProgressCard } from '@/components/UsageProgressCard'
 import { HeatmapCard } from '@/components/streak/HeatmapCard'
-import { QuickActionChips } from '@/components/dashboard/QuickActionChips'
 import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { PageHeader } from '@/components/ui/page-header'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog'
-import {
-  Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
-  Briefcase, Mail, Users, Eye, Edit, Calendar, ChevronDown, ChevronUp,
-  Square, CheckSquare, RefreshCw
-} from 'lucide-react'
+import { Target, Clock, Users } from 'lucide-react'
 import { motion } from 'framer-motion'
-import Link from 'next/link'
 
 // Helper function to format time ago
 function formatTimeAgo(timestamp: number): string {
@@ -181,87 +166,7 @@ export default function DashboardPage() {
                   Welcome back, {user.name}! Here's your career progress.
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Quick Actions
-                    </Button>
-                  </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className="text-center">Quick Actions</DialogTitle>
-                </DialogHeader>
-                <div className="grid grid-cols-1 gap-2 py-4">
-                  <Link href="/goals" className="w-full">
-                    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm transition-colors hover:bg-slate-50">
-                      <div className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#EEF1FF]">
-                        <Target className="h-5 w-5 text-[#5371FF]" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Create a Goal</div>
-                        <div className="text-xs text-muted-foreground">Track your career objectives</div>
-                      </div>
-                    </div>
-                  </Link>
-
-                  <Link href="/resumes" className="w-full">
-                    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm transition-colors hover:bg-slate-50">
-                      <div className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#EEF1FF]">
-                        <FileText className="h-5 w-5 text-[#5371FF]" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Create a Resume</div>
-                        <div className="text-xs text-muted-foreground">Build a professional resume</div>
-                      </div>
-                    </div>
-                  </Link>
-
-                  <Link href="/cover-letters" className="w-full">
-                    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm transition-colors hover:bg-slate-50">
-                      <div className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50">
-                        <Mail className="h-5 w-5 text-indigo-500" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Create a Cover Letter</div>
-                        <div className="text-xs text-muted-foreground">Craft a compelling cover letter</div>
-                      </div>
-                    </div>
-                  </Link>
-
-                  <Link href="/applications" className="w-full">
-                    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm transition-colors hover:bg-slate-50">
-                      <div className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50">
-                        <Briefcase className="h-5 w-5 text-[#16A34A]" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Track an Application</div>
-                        <div className="text-xs text-muted-foreground">Track your job applications</div>
-                      </div>
-                    </div>
-                  </Link>
-
-                  <Link href="/contacts" className="w-full">
-                    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm transition-colors hover:bg-slate-50">
-                      <div className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-sky-50">
-                        <Users className="h-5 w-5 text-[#0EA5E9]" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Add Contact</div>
-                        <div className="text-xs text-muted-foreground">Add to your Network Hub</div>
-                      </div>
-                      </div>
-                    </Link>
-
-                  </div>
-                </DialogContent>
-              </Dialog>
-              </div>
             </header>
-
-            {/* Quick Action Chips */}
-            <QuickActionChips />
           </motion.div>
 
           {/* Row 1: Stats Overview - Removed Interview Rate card */}
@@ -334,23 +239,26 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
-          {/* Row 2: Usage Progress (Free Users) or Onboarding Checklist */}
-          <motion.div variants={cardAnimation} className="mb-6">
-            {!hasPremium ? (
-              <UsageProgressCard dashboardData={dashboardData} />
-            ) : (
-              <SimpleOnboardingChecklist dashboardData={dashboardData} />
-            )}
-          </motion.div>
-
-          {/* Row 3: Recommendations */}
-          <motion.div variants={cardAnimation} className="mb-6">
-            <TodaysRecommendations />
-          </motion.div>
-
-          {/* Row 4: Active Interviews, Follow-up Actions, Goals */}
+          {/* Row 2: Usage Progress / Onboarding Checklist + Recommendations side by side */}
           <motion.div
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"
+            variants={staggeredContainer}
+          >
+            <motion.div variants={cardAnimation}>
+              {!hasPremium ? (
+                <UsageProgressCard dashboardData={dashboardData} />
+              ) : (
+                <SimpleOnboardingChecklist dashboardData={dashboardData} />
+              )}
+            </motion.div>
+            <motion.div variants={cardAnimation}>
+              <TodaysRecommendations />
+            </motion.div>
+          </motion.div>
+
+          {/* Row 3: Active Interviews, Follow-up Actions, Goals */}
+          <motion.div
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6"
             variants={staggeredContainer}
           >
             <motion.div variants={cardAnimation}>
@@ -366,8 +274,8 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
-          {/* Row 5: Activity Streak Heatmap */}
-          <motion.div variants={cardAnimation} className="mb-8">
+          {/* Row 4: Activity Streak Heatmap */}
+          <motion.div variants={cardAnimation} className="mb-6">
             <HeatmapCard />
           </motion.div>
 

@@ -684,45 +684,6 @@ const Sidebar = React.memo(function Sidebar({
             </Button>
           </div>
 
-        {/* User Profile */}
-        {clerkUser && (
-          <div className="mb-6">
-            <div
-              className={`flex items-center ${expanded ? "space-x-3" : "justify-center"}`}
-            >
-              <Link href="/account" className="flex-shrink-0 cursor-pointer" aria-label="Account settings">
-                <Image
-                  src={
-                    user?.profile_image ||
-                    clerkUser.imageUrl ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=0C29AB&color=fff`
-                  }
-                  alt="Profile"
-                  width={40}
-                  height={40}
-                  className="h-10 w-10 rounded-full object-cover ring-2 ring-brand-blue hover:ring-brand-blue/70 transition-all"
-                />
-              </Link>
-              {expanded && (
-                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                  <p className="text-sm font-medium text-slate-900 truncate">
-                    {clerkUser.firstName ||
-                      clerkUser.emailAddresses[0]?.emailAddress?.split(
-                        "@",
-                      )[0] ||
-                      "User"}
-                  </p>
-                  {!isAdmin && (
-                    <span className="inline-flex items-center self-start rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 truncate max-w-full">
-                      {viewer?.student?.universityName || subscription.planName || "Free plan"}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
           {/* Navigation */}
           <nav className="flex-1 space-y-2 mb-4 w-full">
             {allSections.map(renderSection)}
@@ -756,6 +717,45 @@ const Sidebar = React.memo(function Sidebar({
                   Upgrade to Pro
                 </Button>
               </Link>
+            </div>
+          )}
+
+          {/* User Profile - at bottom */}
+          {clerkUser && (
+            <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div
+                className={`flex items-center ${expanded ? "space-x-3" : "justify-center"}`}
+              >
+                <Link href="/account" className="flex-shrink-0 cursor-pointer" aria-label="Account settings">
+                  <Image
+                    src={
+                      user?.profile_image ||
+                      clerkUser.imageUrl ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=0C29AB&color=fff`
+                    }
+                    alt="Profile"
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 rounded-full object-cover ring-2 ring-brand-blue hover:ring-brand-blue/70 transition-all"
+                  />
+                </Link>
+                {expanded && (
+                  <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                    <p className="text-sm font-medium text-slate-900 truncate">
+                      {clerkUser.firstName ||
+                        clerkUser.emailAddresses[0]?.emailAddress?.split(
+                          "@",
+                        )[0] ||
+                        "User"}
+                    </p>
+                    {!isAdmin && (
+                      <span className="inline-flex items-center self-start rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600 truncate max-w-full">
+                        {viewer?.student?.universityName || subscription.planName || "Free plan"}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

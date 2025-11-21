@@ -99,7 +99,7 @@ export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}
   }
 
   return (
-    <Card className="p-0 shadow-sm">
+    <Card className="h-full p-0 shadow-sm flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 py-3">
         <div>
           <CardTitle className="text-sm font-semibold text-slate-900">Free Plan Progress</CardTitle>
@@ -121,7 +121,7 @@ export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}
 
       <div className="border-t border-slate-100" />
 
-      <CardContent className="space-y-4 px-5 pb-4 pt-3">
+      <CardContent className="flex-1 space-y-4 px-5 pb-4 pt-3">
         <div>
           <Progress value={progressPercentage} className="h-2" />
         </div>
