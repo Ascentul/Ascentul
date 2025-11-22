@@ -23,13 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 interface ContactInfo {
   name: string
@@ -124,7 +117,6 @@ export default function ResumeEditorPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [achievements, setAchievements] = useState<Achievement[]>([])
 
-  const [selectedTemplate, setSelectedTemplate] = useState<"modern" | "classic" | "minimal">("modern")
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const { toast } = useToast()
@@ -304,7 +296,6 @@ export default function ResumeEditorPage() {
       education,
       projects,
       achievements,
-      template: selectedTemplate,
     }
 
     setSaving(true)
@@ -544,26 +535,6 @@ export default function ResumeEditorPage() {
         </Card>
       ) : (
         <div className="grid gap-6">
-          {/* PDF Template Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>PDF Template</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <label className="block text-sm font-medium mb-2">Choose a template for PDF export</label>
-              <Select value={selectedTemplate} onValueChange={(value: any) => setSelectedTemplate(value)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select template" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="modern">Modern (Blue accents, professional)</SelectItem>
-                  <SelectItem value="classic">Classic (Traditional black & white)</SelectItem>
-                  <SelectItem value="minimal">Minimal (Clean, spacious layout)</SelectItem>
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
           {/* Basic Info */}
           <Card>
             <CardHeader>
