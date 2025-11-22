@@ -303,7 +303,12 @@ Return a JSON object with this exact structure:
       "startDate": "MM/YYYY",
       "endDate": "MM/YYYY or Present",
       "current": false,
-      "description": "Bullet points separated by newlines"
+      "summary": "Brief paragraph summarizing the role and overall responsibilities (2-3 sentences, NO bullet point)",
+      "keyContributions": [
+        "Specific achievement or contribution (no bullet symbol, just the text)",
+        "Another key contribution (no bullet symbol, just the text)",
+        "Additional accomplishment (no bullet symbol, just the text)"
+      ]
     }
   ],
   "education": [
@@ -337,7 +342,13 @@ Return a JSON object with this exact structure:
   ]
 }
 
-Extract all information accurately. If a field is not found, use an empty string or empty array. Preserve bullet points with newlines in descriptions. For experience descriptions, preserve the original bullet format when possible.`
+IMPORTANT FORMATTING RULES:
+1. For work experience, separate the role summary from specific achievements:
+   - "summary": A paragraph describing overall responsibilities (NO bullets, just plain text)
+   - "keyContributions": An array of specific achievements (each item is PLAIN TEXT without bullet symbols like •, -, or *)
+2. DO NOT include bullet point symbols (•, -, *, etc.) in the keyContributions array - just the text content
+3. Extract all information accurately. If a field is not found, use an empty string or empty array.
+4. Clean up any bullet symbols from the original resume text before adding to keyContributions.`
 
         const response = await client.chat.completions.create({
           model: 'gpt-4o',
