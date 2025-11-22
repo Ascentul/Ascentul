@@ -691,9 +691,9 @@ const Sidebar = React.memo(function Sidebar({
 
           {/* Free Plan Tile near footer */}
           {isFreeUser && expanded && (
-            <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-[0_6px_18px_rgba(0,0,0,0.05)]">
               <div className="flex items-center justify-between text-xs text-slate-600">
-                <span className="font-semibold text-slate-800">Free Plan</span>
+                <span className="font-semibold text-slate-900">Free Plan</span>
                 {usageData ? (
                   <span>{usageData.stepsCompleted}/{usageData.totalSteps} steps</span>
                 ) : (
@@ -722,22 +722,24 @@ const Sidebar = React.memo(function Sidebar({
 
           {/* User Profile - at bottom */}
           {clerkUser && (
-            <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-4 rounded-xl bg-white p-4 shadow-sm">
               <div
                 className={`flex items-center ${expanded ? "space-x-3" : "justify-center"}`}
               >
                 <Link href="/account" className="flex-shrink-0 cursor-pointer" aria-label="Account settings">
-                  <Image
-                    src={
-                      user?.profile_image ||
-                      clerkUser.imageUrl ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=0C29AB&color=fff`
-                    }
-                    alt="Profile"
-                    width={40}
-                    height={40}
-                    className="h-10 w-10 rounded-full object-cover ring-2 ring-brand-blue hover:ring-brand-blue/70 transition-all"
-                  />
+                  <div className="relative h-10 w-10 rounded-full ring-2 ring-primary-500 hover:ring-primary-600 transition-all overflow-hidden">
+                    <Image
+                      src={
+                        user?.profile_image ||
+                        clerkUser.imageUrl ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=0C29AB&color=fff`
+                      }
+                      alt="Profile"
+                      width={40}
+                      height={40}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
                 </Link>
                 {expanded && (
                   <div className="flex-1 min-w-0 flex flex-col gap-1.5">

@@ -110,12 +110,12 @@ export const updateApplication = mutation({
       company: v.optional(v.string()),
       job_title: v.optional(v.string()),
       status: v.optional(v.union(v.literal("saved"), v.literal("applied"), v.literal("interview"), v.literal("offer"), v.literal("rejected"))),
-      source: v.optional(v.string()),
-      url: v.optional(v.string()),
-      notes: v.optional(v.string()),
-      applied_at: v.optional(v.number()),
-      resume_id: v.optional(v.id("resumes")),
-      cover_letter_id: v.optional(v.id("cover_letters")),
+      source: v.optional(v.union(v.string(), v.null())),
+      url: v.optional(v.union(v.string(), v.null())),
+      notes: v.optional(v.union(v.string(), v.null())),
+      applied_at: v.optional(v.union(v.number(), v.null())),
+      resume_id: v.optional(v.union(v.id("resumes"), v.null())),
+      cover_letter_id: v.optional(v.union(v.id("cover_letters"), v.null())),
     }),
   },
   handler: async (ctx, args) => {
@@ -141,8 +141,13 @@ export const updateApplication = mutation({
       throw new Error("Unauthorized: Application belongs to another university");
     }
 
+    // Convert null values to undefined for Convex patch
+    const cleanedUpdates = Object.fromEntries(
+      Object.entries(args.updates).map(([key, value]) => [key, value === null ? undefined : value])
+    );
+
     await ctx.db.patch(args.applicationId, {
-      ...args.updates,
+      ...cleanedUpdates,
       updated_at: Date.now(),
     });
 

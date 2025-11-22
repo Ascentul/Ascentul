@@ -485,9 +485,9 @@ export default function ApplicationsPage() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="saved">Saved</SelectItem>
+                  <SelectItem value="saved">In Progress</SelectItem>
                   <SelectItem value="applied">Applied</SelectItem>
-                  <SelectItem value="interview">Interview</SelectItem>
+                  <SelectItem value="interview">Interviewing</SelectItem>
                   <SelectItem value="offer">Offer</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>

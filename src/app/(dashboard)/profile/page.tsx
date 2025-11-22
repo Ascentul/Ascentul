@@ -734,13 +734,14 @@ export default function ProfilePage() {
           <div className="flex flex-col md:flex-row gap-6 items-start">
             {/* Profile Picture */}
             <div className="relative -mt-32">
-              <Avatar className="w-32 h-32 border-4 border-white">
+              <Avatar className="w-32 h-32 ring-4 ring-primary-500 bg-white">
                 <AvatarImage
                   src={
                     profilePreview ||
                     displayProfile.profile_image ||
                     clerkUser?.imageUrl
                   }
+                  className="object-cover"
                 />
                 <AvatarFallback className="text-2xl">
                   {displayProfile.name

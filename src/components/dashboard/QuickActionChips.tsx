@@ -89,7 +89,7 @@ function Chip({ href, icon: Icon, children }: ChipProps) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 h-10 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-50 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5271FF]/40 focus-visible:ring-offset-2"
+      className="inline-flex items-center gap-2 rounded-full bg-white shadow-sm px-4 h-10 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-50 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5271FF]/40 focus-visible:ring-offset-2"
     >
       <IconComponent className="h-4 w-4 text-slate-500" />
       {children}
@@ -171,7 +171,7 @@ export function QuickActionChips() {
         <DialogTrigger asChild>
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 h-10 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-50 hover:text-slate-700 md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5271FF]/40 focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 rounded-full bg-white shadow-sm px-4 h-10 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-50 hover:text-slate-700 md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5271FF]/40 focus-visible:ring-offset-2"
           >
             <Plus className="h-4 w-4 text-slate-500" />
             Quick actions

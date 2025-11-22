@@ -26,6 +26,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.adzuna.com',
       },
+      {
+        protocol: 'https',
+        hostname: '*.convex.cloud',
+      },
     ],
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
