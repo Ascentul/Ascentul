@@ -523,7 +523,7 @@ export default function ProfilePage() {
     }
 
     try {
-      const currentAchievements = userProfile?.achievements_history || [];
+      const currentAchievements = (userProfile as any)?.achievements_history || [];
       const newAchievement = {
         id: Date.now().toString(),
         title: achievementForm.title,
@@ -565,8 +565,8 @@ export default function ProfilePage() {
     if (!clerkUser || !editingAchievementId) return;
 
     try {
-      const currentAchievements = userProfile?.achievements_history || [];
-      const updatedAchievements = currentAchievements.map((item) =>
+      const currentAchievements = (userProfile as any)?.achievements_history || [];
+      const updatedAchievements = currentAchievements.map((item: any) =>
         item.id === editingAchievementId
           ? {
               ...item,
@@ -611,8 +611,8 @@ export default function ProfilePage() {
     if (!clerkUser) return;
 
     try {
-      const currentAchievements = userProfile?.achievements_history || [];
-      const updatedAchievements = currentAchievements.filter((item) => item.id !== id);
+      const currentAchievements = (userProfile as any)?.achievements_history || [];
+      const updatedAchievements = currentAchievements.filter((item: any) => item.id !== id);
 
       await updateUser({
         clerkId: clerkUser.id,
@@ -1162,9 +1162,9 @@ export default function ProfilePage() {
             </div>
           </CardHeader>
           <CardContent>
-            {displayProfile.achievements_history && displayProfile.achievements_history.length > 0 ? (
+            {(displayProfile as any).achievements_history && (displayProfile as any).achievements_history.length > 0 ? (
               <div className="space-y-4">
-                {displayProfile.achievements_history.map((achievement, index) => (
+                {(displayProfile as any).achievements_history.map((achievement: any, index: number) => (
                   <div key={achievement.id || index} className="border-b last:border-0 pb-4 last:pb-0">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">

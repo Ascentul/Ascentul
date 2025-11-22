@@ -147,7 +147,6 @@ export default function ResumeEditorPage() {
     setEducation(content.education || [])
     setProjects(content.projects || [])
     setAchievements(content.achievements || [])
-    setSelectedTemplate(content.template || "modern")
   }, [resume])
 
   const loading = !isNewResume && resume === undefined
