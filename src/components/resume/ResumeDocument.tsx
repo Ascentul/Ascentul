@@ -39,6 +39,9 @@ export interface Experience {
   endDate: string;
   current: boolean;
   description: string;
+  // New format fields
+  summary?: string;
+  keyContributions?: string[];
 }
 
 export interface Education {
@@ -245,8 +248,39 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
                   {exp.title}
                 </div>
 
-                {/* Description Bullets */}
-                {bullets.length > 0 && (
+                {/* Summary paragraph (new format) */}
+                {exp.summary && (
+                  <p style={{ fontSize: FONT_SIZES.body, marginTop: '4px', marginBottom: '4px' }}>
+                    {exp.summary}
+                  </p>
+                )}
+
+                {/* Key Contributions (new format) */}
+                {exp.keyContributions && exp.keyContributions.length > 0 && (
+                  <div style={{ marginTop: '4px' }}>
+                    <div style={{ fontSize: FONT_SIZES.small, fontWeight: 600, color: COLORS.DARK_GRAY, marginBottom: '4px' }}>
+                      Key Contributions
+                    </div>
+                    <ul style={{
+                      listStyleType: 'disc',
+                      listStylePosition: 'outside',
+                      paddingLeft: '20px',
+                    }}>
+                      {exp.keyContributions.map((contribution, idx) => (
+                        <li key={idx} style={{
+                          fontSize: FONT_SIZES.body,
+                          lineHeight: '1.3',
+                          marginBottom: '4px'
+                        }}>
+                          {contribution}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Description Bullets (fallback for old format) */}
+                {!exp.summary && !exp.keyContributions && bullets.length > 0 && (
                   <ul style={{
                     listStyleType: 'disc',
                     listStylePosition: 'outside',

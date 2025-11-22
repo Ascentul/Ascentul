@@ -251,25 +251,65 @@ export async function generateResumePDF(data: ResumeData, filename: string = 're
       doc.text(exp.title, MARGIN.LEFT, yPos);
       yPos += SPACING.xs + 1; // ~4mm spacing
 
-      // Description bullets
-      const bullets = parseDescription(exp.description);
-      if (bullets.length > 0) {
+      // Summary paragraph (if using new format)
+      if ((exp as any).summary) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(FONT_SIZE.BODY);
+        const [textR, textG, textB] = hexToRgb(COLORS.BLACK);
+        doc.setTextColor(textR, textG, textB);
+        yPos = addWrappedText(doc, (exp as any).summary, MARGIN.LEFT, yPos, CONTENT_WIDTH, 4.5);
+        yPos += SPACING.xs; // Small spacing after summary
+      }
+
+      // Key Contributions (if using new format)
+      if ((exp as any).keyContributions && Array.isArray((exp as any).keyContributions) && (exp as any).keyContributions.length > 0) {
+        // "Key Contributions" heading
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(FONT_SIZE.SMALL);
+        const [headingR, headingG, headingB] = hexToRgb(COLORS.DARK_GRAY);
+        doc.setTextColor(headingR, headingG, headingB);
+        doc.text('Key Contributions', MARGIN.LEFT, yPos);
+        yPos += SPACING.xs + 1; // ~4mm spacing
+
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(FONT_SIZE.BODY);
         const [textR, textG, textB] = hexToRgb(COLORS.BLACK);
         doc.setTextColor(textR, textG, textB);
 
-        bullets.forEach((bullet) => {
+        (exp as any).keyContributions.forEach((contribution: string) => {
           yPos = checkPageBreak(doc, yPos, 10);
 
           // Bullet point
           doc.text('•', MARGIN.LEFT + 2, yPos);
 
           // Bullet text with wrapping (paddingLeft: 20px = ~7mm)
-          const bulletLines = doc.splitTextToSize(bullet, CONTENT_WIDTH - 7);
+          const bulletLines = doc.splitTextToSize(contribution, CONTENT_WIDTH - 7);
           doc.text(bulletLines, MARGIN.LEFT + 7, yPos);
           yPos += bulletLines.length * 4.3; // Line height 1.3 * font size ~11pt
         });
+      }
+
+      // Description bullets (fallback for old format)
+      if (!(exp as any).summary && !(exp as any).keyContributions && exp.description) {
+        const bullets = parseDescription(exp.description);
+        if (bullets.length > 0) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(FONT_SIZE.BODY);
+          const [textR, textG, textB] = hexToRgb(COLORS.BLACK);
+          doc.setTextColor(textR, textG, textB);
+
+          bullets.forEach((bullet) => {
+            yPos = checkPageBreak(doc, yPos, 10);
+
+            // Bullet point
+            doc.text('•', MARGIN.LEFT + 2, yPos);
+
+            // Bullet text with wrapping (paddingLeft: 20px = ~7mm)
+            const bulletLines = doc.splitTextToSize(bullet, CONTENT_WIDTH - 7);
+            doc.text(bulletLines, MARGIN.LEFT + 7, yPos);
+            yPos += bulletLines.length * 4.3; // Line height 1.3 * font size ~11pt
+          });
+        }
       }
     });
 

@@ -495,12 +495,14 @@ export default function ResumesPage() {
         description: "Creating an optimized version based on analysis...",
       })
 
-      // Generate optimized version using AI
+      // Optimize the uploaded resume using AI
       const userProfile = getUserProfile()
-      const response = await fetch('/api/resumes/generate', {
+      const response = await fetch('/api/resumes/optimize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          originalResumeText: extractedText,
+          analysisRecommendations: analysisResult,
           jobDescription: analyzeJobDescription,
           userProfile,
         }),
@@ -520,6 +522,7 @@ export default function ResumesPage() {
         source: 'ai_optimized',
         job_description: analyzeJobDescription,
         analysis_result: analysisResult,
+        extracted_text: extractedText, // Store original resume for reference
       })
 
       toast({
@@ -907,7 +910,21 @@ export default function ResumesPage() {
                                   <span> | {exp.startDate}{exp.startDate && exp.endDate && ' - '}{exp.endDate}</span>
                                 )}
                               </div>
-                              {exp.description && (
+                              {exp.summary && (
+                                <p className="text-xs mt-2 text-gray-700">{exp.summary}</p>
+                              )}
+                              {exp.keyContributions && exp.keyContributions.length > 0 && (
+                                <div className="mt-2">
+                                  <h6 className="text-xs font-medium text-gray-800">Key Contributions</h6>
+                                  <ul className="list-disc list-inside space-y-1 mt-1">
+                                    {exp.keyContributions.map((contribution: string, cIdx: number) => (
+                                      <li key={cIdx} className="text-xs text-gray-700">{contribution}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {/* Fallback for old format with description */}
+                              {!exp.summary && !exp.keyContributions && exp.description && (
                                 <p className="text-xs mt-1 text-gray-700 whitespace-pre-line">{exp.description}</p>
                               )}
                             </div>

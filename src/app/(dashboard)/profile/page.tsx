@@ -163,6 +163,16 @@ export default function ProfilePage() {
     summary: "",
   });
 
+  // Achievements Management
+  const [isAddingAchievement, setIsAddingAchievement] = useState(false);
+  const [editingAchievementId, setEditingAchievementId] = useState<string | null>(null);
+  const [achievementForm, setAchievementForm] = useState({
+    title: "",
+    organization: "",
+    date: "",
+    description: "",
+  });
+
   // Avatar mutations
   const generateAvatarUploadUrl = useMutation(
     api.avatar.generateAvatarUploadUrl,
@@ -499,6 +509,139 @@ export default function ProfilePage() {
       summary: item.summary || "",
     });
     setEditingWorkHistoryId(item.id);
+  };
+
+  // Achievements Management Functions
+  const handleAddAchievement = async () => {
+    if (!clerkUser || !achievementForm.title) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in the achievement title",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const currentAchievements = (userProfile as any)?.achievements_history || [];
+      const newAchievement = {
+        id: Date.now().toString(),
+        title: achievementForm.title,
+        organization: achievementForm.organization || undefined,
+        date: achievementForm.date || undefined,
+        description: achievementForm.description || undefined,
+      };
+
+      await updateUser({
+        clerkId: clerkUser.id,
+        updates: {
+          achievements_history: [...currentAchievements, newAchievement],
+        },
+      });
+
+      toast({
+        title: "Achievement added",
+        description: "Your achievement has been added successfully",
+      });
+
+      // Reset form
+      setAchievementForm({
+        title: "",
+        organization: "",
+        date: "",
+        description: "",
+      });
+      setIsAddingAchievement(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add achievement",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateAchievement = async () => {
+    if (!clerkUser || !editingAchievementId) return;
+
+    try {
+      const currentAchievements = (userProfile as any)?.achievements_history || [];
+      const updatedAchievements = currentAchievements.map((item: any) =>
+        item.id === editingAchievementId
+          ? {
+              ...item,
+              title: achievementForm.title,
+              organization: achievementForm.organization || undefined,
+              date: achievementForm.date || undefined,
+              description: achievementForm.description || undefined,
+            }
+          : item
+      );
+
+      await updateUser({
+        clerkId: clerkUser.id,
+        updates: {
+          achievements_history: updatedAchievements,
+        },
+      });
+
+      toast({
+        title: "Achievement updated",
+        description: "Your achievement has been updated successfully",
+      });
+
+      // Reset form
+      setAchievementForm({
+        title: "",
+        organization: "",
+        date: "",
+        description: "",
+      });
+      setEditingAchievementId(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update achievement",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAchievement = async (id: string) => {
+    if (!clerkUser) return;
+
+    try {
+      const currentAchievements = (userProfile as any)?.achievements_history || [];
+      const updatedAchievements = currentAchievements.filter((item: any) => item.id !== id);
+
+      await updateUser({
+        clerkId: clerkUser.id,
+        updates: {
+          achievements_history: updatedAchievements,
+        },
+      });
+
+      toast({
+        title: "Achievement deleted",
+        description: "Your achievement has been removed",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete achievement",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditAchievement = (item: any) => {
+    setAchievementForm({
+      title: item.title || "",
+      organization: item.organization || "",
+      date: item.date || "",
+      description: item.description || "",
+    });
+    setEditingAchievementId(item.id);
   };
 
   if (!clerkUser || !userProfile) {
@@ -997,6 +1140,77 @@ export default function ProfilePage() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Awards & Achievements */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Award className="h-5 w-5" />
+                Awards & Achievements
+              </CardTitle>
+              {isViewingOwnProfile && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddingAchievement(true)}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Achievement
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {(displayProfile as any).achievements_history && (displayProfile as any).achievements_history.length > 0 ? (
+              <div className="space-y-4">
+                {(displayProfile as any).achievements_history.map((achievement: any, index: number) => (
+                  <div key={achievement.id || index} className="border-b last:border-0 pb-4 last:pb-0">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-base">{achievement.title}</h3>
+                        {achievement.organization && (
+                          <p className="text-sm text-muted-foreground">{achievement.organization}</p>
+                        )}
+                        {achievement.date && (
+                          <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                            <Calendar className="h-3 w-3" />
+                            {achievement.date}
+                          </p>
+                        )}
+                        {achievement.description && (
+                          <p className="text-sm mt-2">{achievement.description}</p>
+                        )}
+                      </div>
+                      {isViewingOwnProfile && (
+                        <div className="flex gap-2 ml-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditAchievement(achievement)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteAchievement(achievement.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No awards or achievements added yet. {isViewingOwnProfile && "Click 'Add Achievement' to showcase your accomplishments."}
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Edit Profile Dialog */}
@@ -1430,6 +1644,103 @@ export default function ProfilePage() {
               onClick={editingWorkHistoryId ? handleUpdateWorkHistory : handleAddWorkHistory}
             >
               {editingWorkHistoryId ? "Update" : "Add"} Experience
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add/Edit Achievement Dialog */}
+      <Dialog
+        open={isAddingAchievement || !!editingAchievementId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsAddingAchievement(false);
+            setEditingAchievementId(null);
+            setAchievementForm({
+              title: "",
+              organization: "",
+              date: "",
+              description: "",
+            });
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingAchievementId ? "Edit Achievement" : "Add Achievement"}
+            </DialogTitle>
+            <DialogDescription>
+              Add details about your award or achievement
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Achievement Title *</label>
+              <Input
+                placeholder="e.g. Dean's List, Employee of the Year"
+                value={achievementForm.title}
+                onChange={(e) =>
+                  setAchievementForm({ ...achievementForm, title: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Organization</label>
+              <Input
+                placeholder="e.g. Stanford University, Company Name"
+                value={achievementForm.organization}
+                onChange={(e) =>
+                  setAchievementForm({ ...achievementForm, organization: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Date</label>
+              <Input
+                type="month"
+                value={achievementForm.date}
+                onChange={(e) =>
+                  setAchievementForm({ ...achievementForm, date: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                placeholder="Describe your achievement and its significance..."
+                value={achievementForm.description}
+                onChange={(e) =>
+                  setAchievementForm({ ...achievementForm, description: e.target.value })
+                }
+                rows={4}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddingAchievement(false);
+                setEditingAchievementId(null);
+                setAchievementForm({
+                  title: "",
+                  organization: "",
+                  date: "",
+                  description: "",
+                });
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={editingAchievementId ? handleUpdateAchievement : handleAddAchievement}
+            >
+              {editingAchievementId ? "Update" : "Add"} Achievement
             </Button>
           </DialogFooter>
         </DialogContent>
