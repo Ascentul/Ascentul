@@ -36,7 +36,8 @@ import {
   Activity,
   MessageSquare,
   Loader2,
-  FileText
+  FileText,
+  Eye
 } from 'lucide-react'
 
 export default function AdminSettingsPage() {
@@ -718,6 +719,36 @@ export default function AdminSettingsPage() {
                   {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   Save Notification Settings
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Email Template Preview Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Templates
+              </CardTitle>
+              <CardDescription>
+                Preview and test email templates sent by the platform
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Email Template Preview</Label>
+                <p className="text-sm text-muted-foreground">
+                  View all email templates including activation emails, invitations, and notifications
+                </p>
+                <Link href="/admin/email-preview">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview Email Templates
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
