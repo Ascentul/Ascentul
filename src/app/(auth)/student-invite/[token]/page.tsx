@@ -28,6 +28,8 @@ export default function StudentInvitePage({ params }: PageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const validInvite = useMemo(() => invite && invite.valid, [invite]);
 
@@ -51,6 +53,74 @@ export default function StudentInvitePage({ params }: PageProps) {
     }
   };
 
+  const handleVerifyEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clerkLoaded || !signUp || !validInvite) {
+      setError('Please try again.');
+      return;
+    }
+
+    if (!verificationCode || verificationCode.length !== 6) {
+      setError('Please enter the 6-digit verification code.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError('');
+
+      // Attempt email verification
+      const verifyResponse = await signUp.attemptEmailAddressVerification({
+        code: verificationCode,
+      });
+
+      // Get the Clerk user ID
+      const clerkUserId = verifyResponse.createdUserId;
+      if (!clerkUserId) {
+        throw new Error('Failed to verify email. Please try again.');
+      }
+
+      // Accept the invite in Convex
+      try {
+        await acceptInvite({ token: params.token, clerkId: clerkUserId });
+      } catch (inviteErr: any) {
+        console.error('Invite acceptance failed after verification:', inviteErr);
+
+        // Check if it's a retryable error
+        const errorMessage = inviteErr.message || inviteErr.toString();
+        if (errorMessage.includes('already has a student profile')) {
+          // User already accepted the invite - this is OK, proceed to login
+          console.log('User already has student profile, proceeding to dashboard');
+        } else {
+          // Non-retryable error - show helpful message
+          setError(
+            `Unable to link your account to the university: ${errorMessage}. ` +
+            `Your account was created successfully. Please contact your university administrator ` +
+            `or email support@ascentful.io for assistance with linking your account.`
+          );
+          return;
+        }
+      }
+
+      // Set the session as active
+      if (verifyResponse.createdSessionId) {
+        await setActive({ session: verifyResponse.createdSessionId });
+      }
+
+      // Redirect to dashboard
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Verification error:', err);
+      if (err?.errors?.[0]?.code === 'form_code_incorrect') {
+        setError('Incorrect verification code. Please try again.');
+      } else {
+        setError(err.message || 'Failed to verify email. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clerkLoaded || !signUp || !validInvite) {
@@ -67,29 +137,60 @@ export default function StudentInvitePage({ params }: PageProps) {
       setIsLoading(true);
       setError('');
 
+      // Step 1: Create the Clerk account
       const signUpResponse = await signUp.create({
         emailAddress: email,
         password,
       });
 
-      const clerkUserId = signUpResponse.createdUserId;
-      if (!clerkUserId) {
-        throw new Error('Failed to create account. Please try again.');
-      }
+      // Step 2: Handle email verification if required
+      if (signUpResponse.status === 'missing_requirements') {
+        // Prepare email verification
+        await signUp.prepareEmailAddressVerification({
+          strategy: 'email_code',
+        });
 
-      try {
-        await acceptInvite({ token: params.token, clerkId: clerkUserId });
-      } catch (inviteErr: any) {
-        // TODO: Clean up Clerk account or log for manual cleanup
-        console.error('Invite acceptance failed after account creation:', inviteErr);
-        setError('Account created but invite acceptance failed. Please contact support.');
+        // Show verification code input
+        setNeedsVerification(true);
+        setIsLoading(false);
+        setError('');
         return;
       }
 
+      // Step 3: Get the Clerk user ID
+      const clerkUserId = signUpResponse.createdUserId;
+      if (!clerkUserId) {
+        throw new Error('Failed to create user account. Please try again.');
+      }
+
+      // Step 4: Accept the invite in Convex
+      try {
+        await acceptInvite({ token: params.token, clerkId: clerkUserId });
+      } catch (inviteErr: any) {
+        console.error('Invite acceptance failed after account creation:', inviteErr);
+
+        // Check if it's a retryable error
+        const errorMessage = inviteErr.message || inviteErr.toString();
+        if (errorMessage.includes('already has a student profile')) {
+          // User already accepted the invite - this is OK, proceed to login
+          console.log('User already has student profile, proceeding to dashboard');
+        } else {
+          // Non-retryable error - show helpful message
+          setError(
+            `Unable to link your account to the university: ${errorMessage}. ` +
+            `Your account was created successfully. Please contact your university administrator ` +
+            `or email support@ascentful.io for assistance with linking your account.`
+          );
+          return;
+        }
+      }
+
+      // Step 5: Set the session as active
       if (signUpResponse.createdSessionId) {
         await setActive({ session: signUpResponse.createdSessionId });
       }
 
+      // Step 6: Redirect to dashboard
       router.push('/dashboard');
     } catch (err: any) {
       if (err?.errors?.[0]?.code === 'form_identifier_exists') {
@@ -165,7 +266,7 @@ export default function StudentInvitePage({ params }: PageProps) {
             </div>
           )}
 
-          {!isSignedIn && (
+          {!isSignedIn && !needsVerification && (
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -212,6 +313,69 @@ export default function StudentInvitePage({ params }: PageProps) {
                 ) : (
                   'Create account & join'
                 )}
+              </Button>
+            </form>
+          )}
+
+          {!isSignedIn && needsVerification && (
+            <form onSubmit={handleVerifyEmail} className="space-y-4">
+              <Alert>
+                <AlertDescription>
+                  We sent a 6-digit verification code to <strong>{email}</strong>. Please check your email and enter the code below.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                <Label htmlFor="verificationCode">Verification Code</Label>
+                <Input
+                  id="verificationCode"
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="Enter 6-digit code"
+                  required
+                  disabled={isLoading}
+                  maxLength={6}
+                  className="text-center text-2xl tracking-widest"
+                />
+                <p className="text-xs text-gray-500">Enter the 6-digit code from your email.</p>
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button type="submit" className="w-full" disabled={isLoading || verificationCode.length !== 6}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify & Complete Signup'
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  // Reset local state
+                  setNeedsVerification(false);
+                  setVerificationCode('');
+                  setError('');
+
+                  // Note: The Clerk signUp object will still have pending verification state.
+                  // The user should refresh the page to fully reset, or they can proceed
+                  // with entering the verification code. This is intentional to allow
+                  // users to go back and check their password without losing progress.
+                }}
+                disabled={isLoading}
+              >
+                Go Back
               </Button>
             </form>
           )}

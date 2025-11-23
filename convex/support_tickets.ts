@@ -57,7 +57,12 @@ async function canAccessTicket(
   );
 
   if (isUniversityScopedAdmin) {
-    const membership = await getMembershipForUser(ctx, currentUser);
+    // University admins have university_id directly on their user record
+    const adminUniversityId = currentUser.university_id;
+
+    if (!adminUniversityId) {
+      return false;
+    }
 
     // Get the ticket owner
     const ticketOwner = await ctx.db.get(ticket.user_id);
@@ -68,11 +73,7 @@ async function canAccessTicket(
     // Prefer ticket.university_id if set, otherwise fall back to owner
     const ticketUniversityId = ticket.university_id || ticketOwner.university_id;
 
-    if (!membership || membership.status !== "active") {
-      return false;
-    }
-
-    return ticketUniversityId && membership.university_id === ticketUniversityId;
+    return ticketUniversityId && adminUniversityId === ticketUniversityId;
   }
 
   // Regular users can only access their own tickets
@@ -123,7 +124,10 @@ export const listTickets = query({
 
     // University admins/advisors see tickets from their university
     if (isUniversityScopedAdmin) {
-      if (!membership || membership.status !== "active") {
+      // University admins have university_id directly on their user record
+      const universityId = currentUser.university_id;
+
+      if (!universityId) {
         throw new Error("University admin must be associated with a university");
       }
 
@@ -133,7 +137,7 @@ export const listTickets = query({
         .order("desc")
         .collect();
 
-      return allTickets.filter((ticket) => ticket.university_id === membership.university_id);
+      return allTickets.filter((ticket) => ticket.university_id === universityId);
     }
 
     // Regular users see only their own tickets
@@ -205,12 +209,15 @@ export const listTicketsWithFilters = query({
     // SECURITY: Filter tickets by university scope for university admins/advisors
     let filteredTickets = tickets;
     if (isUniversityScopedAdmin) {
-      if (!membership || membership.status !== "active") {
+      // University admins have university_id directly on their user record
+      const universityId = currentUser.university_id;
+
+      if (!universityId) {
         throw new Error("University admin must be associated with a university");
       }
 
       filteredTickets = filteredTickets.filter((ticket) =>
-        ticket.university_id === membership.university_id
+        ticket.university_id === universityId
       );
     }
 
