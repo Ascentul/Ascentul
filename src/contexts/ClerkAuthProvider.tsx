@@ -16,7 +16,7 @@ interface UserProfile {
   role: string
   // Subscription fields removed - now managed by Clerk Billing via useSubscription hook
   university_id?: string
-  profile_image?: string
+  profile_image?: string | null
   cover_image?: string
   linkedin_url?: string
   github_url?: string
