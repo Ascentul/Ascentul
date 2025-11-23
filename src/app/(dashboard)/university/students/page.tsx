@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "convex/_generated/api";
 import {
   Card,
@@ -104,7 +104,7 @@ export default function UniversityStudentsPage() {
   const updateUserByIdMutation = useMutation(api.users.updateUserById);
   const assignStudentMutation = useMutation(api.university_admin.assignStudentByEmail);
   const createUserMutation = useMutation(api.admin_users.createUserByAdmin);
-  const softDeleteUserAction = useMutation(api.admin_users_actions.softDeleteUser);
+  const softDeleteUserAction = useAction(api.admin_users_actions.softDeleteUser);
   const regenerateActivationMutation = useMutation(api.admin_users.regenerateActivationToken);
 
   // State
