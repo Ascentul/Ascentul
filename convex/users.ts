@@ -1,6 +1,29 @@
 import { v } from "convex/values";
-import { mutation, query, MutationCtx } from "./_generated/server";
+import { mutation, query, MutationCtx, QueryCtx } from "./_generated/server";
 import { api } from "./_generated/api";
+
+/**
+ * Internal helper: Resolve profile_image storage ID to URL
+ * If the profile_image is a storage ID (not a URL), convert it to a URL
+ * This ensures backward compatibility with old URL-based images
+ */
+async function resolveProfileImageUrl(ctx: QueryCtx, profileImage: string | undefined): Promise<string | null> {
+  if (!profileImage) return null;
+
+  // If it's already a URL, return it as-is (backward compatibility)
+  if (profileImage.startsWith("http")) {
+    return profileImage;
+  }
+
+  // It's a storage ID, convert to URL
+  try {
+    const url = await ctx.storage.getUrl(profileImage);
+    return url;
+  } catch {
+    // Invalid storage ID, return null
+    return null;
+  }
+}
 
 /**
  * Internal helper: Log role changes to audit_logs
@@ -67,6 +90,7 @@ async function getActingUser(ctx: MutationCtx) {
 }
 
 // Get user by Clerk ID
+// Automatically resolves profile_image storage ID to URL if it exists
 export const getUserByClerkId = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -74,7 +98,16 @@ export const getUserByClerkId = query({
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
-    return user;
+
+    if (!user) return null;
+
+    // Resolve profile_image storage ID to URL
+    const profileImageUrl = await resolveProfileImageUrl(ctx, user.profile_image);
+
+    return {
+      ...user,
+      profile_image: profileImageUrl,
+    };
   },
 });
 
@@ -678,9 +711,9 @@ export const getAllUsersMinimal = query({
       });
 
     // Return only essential fields to reduce bandwidth
-    const minimalUsers = {
-      ...users,
-      page: users.page.map((user) => ({
+    // Resolve profile images in parallel
+    const resolvedUsers = await Promise.all(
+      users.page.map(async (user) => ({
         _id: user._id,
         _creationTime: user._creationTime,
         clerkId: user.clerkId,
@@ -696,14 +729,17 @@ export const getAllUsersMinimal = query({
         deleted_by: user.deleted_by,
         deleted_reason: user.deleted_reason,
         university_id: user.university_id,
-        profile_image: user.profile_image,
+        profile_image: await resolveProfileImageUrl(ctx, user.profile_image),
         created_at: user.created_at,
         updated_at: user.updated_at,
         // Exclude: education_history, work_history, achievements_history, bio, etc.
-      })),
-    };
+      }))
+    );
 
-    return minimalUsers;
+    return {
+      ...users,
+      page: resolvedUsers,
+    };
   },
 });
 

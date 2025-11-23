@@ -214,7 +214,7 @@ export function TodaysRecommendations() {
   }
 
   return (
-    <section className="h-full overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col">
+    <section className="h-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 shadow-[0_6px_18px_rgba(0,0,0,0.05)] flex flex-col">
         <div className="flex items-center justify-between px-5 py-3">
           <div>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">

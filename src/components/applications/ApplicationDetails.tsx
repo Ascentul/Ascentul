@@ -192,8 +192,8 @@ export function ApplicationDetails({
     await deleteStage({ clerkId, stageId } as any);
   };
 
-  // Handle status change
-  const handleStatusChange = (newStatusLabel: string) => {
+  // Handle status change - auto-save immediately
+  const handleStatusChange = async (newStatusLabel: string) => {
     const statusMap: Record<string, DBApplication["status"]> = {
       'In Progress': 'saved',
       'Applied': 'applied',
@@ -203,7 +203,27 @@ export function ApplicationDetails({
     };
     const newStatus = statusMap[newStatusLabel];
     if (newStatus) {
-      setLocal({ ...local, status: newStatus });
+      const updatedLocal = { ...local, status: newStatus };
+      setLocal(updatedLocal);
+
+      // Auto-save the status change immediately
+      try {
+        if (saveFn) {
+          const updated = await saveFn(application.id, { status: newStatus });
+          onChanged?.(updated);
+        } else if (clerkId) {
+          await updateApplication({
+            clerkId,
+            applicationId: application.id as any,
+            updates: { status: newStatus } as any,
+          } as any);
+          onChanged?.(updatedLocal);
+        }
+      } catch (error) {
+        console.error('Failed to update status:', error);
+        // Revert on error
+        setLocal(local);
+      }
     }
   };
 

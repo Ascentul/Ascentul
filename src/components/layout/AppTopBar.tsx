@@ -25,7 +25,7 @@ function IconButton({ hasUnread, isActive, className = "", children, ...rest }: 
     <button
       {...rest}
       className={cn(
-        "relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors",
+        "relative flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm text-slate-500 transition-colors",
         isActive ? "ring-2 ring-primary-500/30 text-slate-700" : "hover:bg-slate-50 hover:text-slate-700",
         className
       )}
@@ -176,7 +176,7 @@ export default function AppTopBar() {
             <DialogTrigger asChild>
               <button
                 type="button"
-                className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+                className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
                 aria-label="Support"
               >
                 <HelpCircle className="h-4 w-4" />

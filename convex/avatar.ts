@@ -2,7 +2,7 @@
  * Avatar upload and management functions
  */
 
-import { mutation } from "./_generated/server"
+import { mutation, query } from "./_generated/server"
 import { v } from "convex/values"
 
 /**
@@ -18,6 +18,7 @@ export const generateAvatarUploadUrl = mutation({
 
 /**
  * Update user's profile image after successful upload
+ * Stores the permanent storageId instead of temporary URL
  */
 export const updateUserAvatar = mutation({
   args: {
@@ -35,23 +36,38 @@ export const updateUserAvatar = mutation({
       throw new Error("User not found")
     }
 
-    // Get the URL for the uploaded file
+    // Verify the storage ID is valid
     const imageUrl = await ctx.storage.getUrl(args.storageId)
-
     if (!imageUrl) {
-      throw new Error("Failed to get image URL")
+      throw new Error("Invalid storage ID")
     }
 
-    // Update user with new profile image
+    // Store the permanent storageId (not the temporary URL)
+    // This ensures the image persists indefinitely
     await ctx.db.patch(user._id, {
-      profile_image: imageUrl,
+      profile_image: args.storageId,
       updated_at: Date.now(),
     })
 
     return {
       success: true,
-      imageUrl,
+      storageId: args.storageId,
+      imageUrl, // Return URL for immediate display
     }
+  },
+})
+
+/**
+ * Get user's profile image URL from storage ID
+ * This converts the permanent storage ID to a temporary URL for display
+ */
+export const getUserProfileImageUrl = query({
+  args: {
+    storageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const url = await ctx.storage.getUrl(args.storageId)
+    return url
   },
 })
 

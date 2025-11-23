@@ -13,7 +13,7 @@ function IconButton(
       type="button"
       {...rest}
       className={cn(
-        "relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors",
+        "relative flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors",
         className
       )}
     >
