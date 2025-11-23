@@ -151,7 +151,7 @@ The Ascentful Team`
 
       <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
         <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
-        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Retention-first career development for universities</p>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
       </div>
       <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
         <h1 style="color: #000000; font-size: 28px; margin: 0;">Welcome to Ascentful!</h1>
@@ -274,7 +274,7 @@ www.ascentful.io`
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
       <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
         <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
-        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Retention-first career development for universities</p>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
       </div>
       <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
         <h1 style="color: #000000; font-size: 28px; margin: 0;">You're Invited!</h1>
@@ -397,7 +397,7 @@ The Ascentful Support Team`
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
       <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
         <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
-        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Retention-first career development for universities</p>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
       </div>
       <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
         <h1 style="color: #000000; font-size: 24px; margin: 0;">Support Ticket Update</h1>
@@ -494,7 +494,7 @@ The Ascentful Team`
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
       <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
         <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
-        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Retention-first career development for universities</p>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
       </div>
       <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
         <h1 style="color: #000000; font-size: 28px; margin: 0;">Welcome to Ascentful 🚀</h1>
@@ -603,7 +603,7 @@ The Ascentful Team`
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
       <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
         <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
-        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Retention-first career development for universities</p>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
       </div>
       <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
         <h1 style="color: #000000; font-size: 28px; margin: 0;">You've Been Invited!</h1>
@@ -711,7 +711,7 @@ The Ascentful Partnerships Team`
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
       <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
         <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
-        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Retention-first career development for universities</p>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
       </div>
       <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
         <h1 style="color: #000000; font-size: 28px; margin: 0;">Welcome to Ascentful!</h1>

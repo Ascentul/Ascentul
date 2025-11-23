@@ -28,6 +28,7 @@ export default function StudentInvitePage({ params }: PageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [needsVerification, setNeedsVerification] = useState(false);
 
@@ -347,6 +348,12 @@ export default function StudentInvitePage({ params }: PageProps) {
                 </Alert>
               )}
 
+              {successMessage && (
+                <Alert>
+                  <AlertDescription>{successMessage}</AlertDescription>
+                </Alert>
+              )}
+
               <Button type="submit" className="w-full" disabled={isLoading || verificationCode.length !== 6}>
                 {isLoading ? (
                   <>
@@ -362,20 +369,25 @@ export default function StudentInvitePage({ params }: PageProps) {
                 type="button"
                 variant="outline"
                 className="w-full"
-                onClick={() => {
-                  // Reset local state
-                  setNeedsVerification(false);
-                  setVerificationCode('');
+                onClick={async () => {
+                  if (!signUp) return;
+                  setIsLoading(true);
                   setError('');
-
-                  // Note: The Clerk signUp object will still have pending verification state.
-                  // The user should refresh the page to fully reset, or they can proceed
-                  // with entering the verification code. This is intentional to allow
-                  // users to go back and check their password without losing progress.
+                  setSuccessMessage('');
+                  try {
+                    await signUp.prepareEmailAddressVerification({
+                      strategy: 'email_code',
+                    });
+                    setSuccessMessage('A new verification code has been sent to your email.');
+                  } catch (err: any) {
+                    setError('Failed to resend code. Please try again.');
+                  } finally {
+                    setIsLoading(false);
+                  }
                 }}
                 disabled={isLoading}
               >
-                Go Back
+                Resend Code
               </Button>
             </form>
           )}

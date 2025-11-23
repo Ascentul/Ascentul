@@ -28,7 +28,10 @@ export default function ActivateAccountPage({ params }: PageProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [tokenValid, setTokenValid] = useState<boolean | null>(null);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   // Check if the token is valid
   const userWithToken = useQuery(api.admin_users.getUserByActivationToken, {
@@ -45,6 +48,70 @@ export default function ActivateAccountPage({ params }: PageProps) {
       }
     }
   }, [userWithToken]);
+
+  const handleVerifyEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clerkLoaded || !signUp || !tokenValid) {
+      setError('Please try again.');
+      return;
+    }
+
+    if (!verificationCode || verificationCode.length !== 6) {
+      setError('Please enter the 6-digit verification code.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError('');
+
+      // Attempt email verification
+      const verifyResponse = await signUp.attemptEmailAddressVerification({
+        code: verificationCode,
+      });
+
+      // Get the Clerk user ID
+      const clerkUserId = verifyResponse.createdUserId;
+      if (!clerkUserId) {
+        throw new Error('Failed to verify email. Please try again.');
+      }
+
+      // Update the user record in Convex
+      await activateUserAccount({
+        activationToken: params.token,
+        clerkId: clerkUserId,
+      });
+
+      // Set the session as active
+      if (verifyResponse.createdSessionId) {
+        await setActive({ session: verifyResponse.createdSessionId });
+      }
+
+      // Redirect based on user role
+      const userRole = userWithToken?.role || 'user';
+      setTimeout(() => {
+        switch (userRole) {
+          case 'super_admin':
+            router.push('/admin');
+            break;
+          case 'university_admin':
+            router.push('/university');
+            break;
+          default:
+            router.push('/dashboard');
+        }
+      }, 1500);
+    } catch (err: any) {
+      console.error('Verification error:', err);
+      if (err?.errors?.[0]?.code === 'form_code_incorrect') {
+        setError('Incorrect verification code. Please try again.');
+      } else {
+        setError(err.message || 'Failed to verify email. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleActivate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,17 +147,18 @@ export default function ActivateAccountPage({ params }: PageProps) {
         password: password,
       });
 
-      // Step 2: If email verification is required, complete it automatically
-      // since we know this email is valid (admin created the user)
+      // Step 2: Handle email verification if required
       if (signUpResponse.status === 'missing_requirements') {
         // Prepare email verification
         await signUp.prepareEmailAddressVerification({
           strategy: 'email_code',
         });
 
-        // For admin-created users, we can skip email verification
-        // by using a special verification code or marking as verified
-        // This would require backend configuration in Clerk
+        // Show verification code input
+        setNeedsVerification(true);
+        setIsLoading(false);
+        setError('');
+        return;
       }
 
       // Step 3: Get the Clerk user ID
@@ -215,108 +283,184 @@ export default function ActivateAccountPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleActivate} className="space-y-4">
-            {/* Email (readonly) */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                disabled
-                className="bg-gray-50"
-              />
-            </div>
-
-            {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
+          {!needsVerification && (
+            <form onSubmit={handleActivate} className="space-y-4">
+              {/* Email (readonly) */}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Choose a strong password"
-                  required
-                  disabled={isLoading}
-                  minLength={8}
+                  id="email"
+                  type="email"
+                  value={email}
+                  disabled
+                  className="bg-gray-50"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
               </div>
-              <p className="text-xs text-gray-500">
-                Must be at least 8 characters long
-              </p>
-            </div>
 
-            {/* Confirm Password */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter your new password"
-                  required
-                  disabled={isLoading}
-                  minLength={8}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  tabIndex={-1}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
+              {/* Password */}
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Choose a strong password"
+                    required
+                    disabled={isLoading}
+                    minLength={8}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Must be at least 8 characters long
+                </p>
               </div>
-            </div>
 
-            {/* Error Alert */}
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+              {/* Confirm Password */}
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter your new password"
+                    required
+                    disabled={isLoading}
+                    minLength={8}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
 
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Setting Up Your Account...
-                </>
-              ) : (
-                'Set Password & Activate'
+              {/* Error Alert */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
-            </Button>
 
-            {/* Help Text */}
-            <div className="text-center text-sm text-gray-500">
-              <p>Having trouble? <a href="/contact" className="text-primary hover:underline">Contact support</a></p>
-            </div>
-          </form>
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Setting Up Your Account...
+                  </>
+                ) : (
+                  'Set Password & Activate'
+                )}
+              </Button>
+
+              {/* Help Text */}
+              <div className="text-center text-sm text-gray-500">
+                <p>Having trouble? <a href="/contact" className="text-primary hover:underline">Contact support</a></p>
+              </div>
+            </form>
+          )}
+
+          {needsVerification && (
+            <form onSubmit={handleVerifyEmail} className="space-y-4">
+              <Alert>
+                <AlertDescription>
+                  We sent a 6-digit verification code to <strong>{email}</strong>. Please check your email and enter the code below.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                <Label htmlFor="verificationCode">Verification Code</Label>
+                <Input
+                  id="verificationCode"
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="Enter 6-digit code"
+                  required
+                  disabled={isLoading}
+                  maxLength={6}
+                  className="text-center text-2xl tracking-widest"
+                />
+                <p className="text-xs text-gray-500">Enter the 6-digit code from your email.</p>
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {successMessage && (
+                <Alert>
+                  <AlertDescription>{successMessage}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button type="submit" className="w-full" disabled={isLoading || verificationCode.length !== 6}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify & Complete Activation'
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  if (!signUp) return;
+                  setIsLoading(true);
+                  setError('');
+                  setSuccessMessage('');
+                  try {
+                    await signUp.prepareEmailAddressVerification({
+                      strategy: 'email_code',
+                    });
+                    setSuccessMessage('A new verification code has been sent to your email.');
+                  } catch (err: any) {
+                    setError('Failed to resend code. Please try again.');
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                disabled={isLoading}
+              >
+                Resend Code
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>
