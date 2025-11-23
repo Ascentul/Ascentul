@@ -1,0 +1,355 @@
+/**
+ * Role Validation Business Logic
+ *
+ * This module provides validation rules for role transitions to ensure
+ * data integrity and prevent invalid role assignments.
+ */
+
+import { QueryCtx, MutationCtx } from "../_generated/server"
+import { Id } from "../_generated/dataModel"
+
+export type UserRole =
+  | "individual"
+  | "user"
+  | "student"
+  | "staff"
+  | "university_admin"
+  | "advisor"
+  | "super_admin"
+
+export interface RoleValidationResult {
+  valid: boolean
+  error?: string
+  warnings?: string[]
+  requiredActions?: string[]
+}
+
+/**
+ * Validate a role transition for a user
+ *
+ * @param ctx Convex context
+ * @param userId User document ID
+ * @param oldRole Current role
+ * @param newRole Desired new role
+ * @param universityId User's university affiliation (if any)
+ * @returns Validation result with errors/warnings/required actions
+ */
+export async function validateRoleTransition(
+  ctx: QueryCtx | MutationCtx,
+  userId: string,
+  oldRole: UserRole,
+  newRole: UserRole,
+  universityId?: Id<"universities">,
+): Promise<RoleValidationResult> {
+  const warnings: string[] = []
+  const requiredActions: string[] = []
+
+  // Rule 1: Student role requires university_id
+  if (newRole === "student" && !universityId) {
+    return {
+      valid: false,
+      error: "Student role requires a university affiliation. Please assign a university first.",
+    }
+  }
+
+  // Rule 2: University admin role requires university_id
+  if (newRole === "university_admin" && !universityId) {
+    return {
+      valid: false,
+      error: "University admin role requires a university affiliation. Please assign a university first.",
+    }
+  }
+
+  // Rule 3: Advisor role requires university_id
+  if (newRole === "advisor" && !universityId) {
+    return {
+      valid: false,
+      error: "Advisor role requires a university affiliation. Please assign a university first.",
+    }
+  }
+
+  // Rule 4: Individual role should NOT have university_id
+  if (newRole === "individual" && universityId) {
+    warnings.push(
+      "Individual users should not be affiliated with a university. Consider removing university affiliation."
+    )
+    requiredActions.push("Remove university_id if transitioning to individual role")
+  }
+
+  // Rule 5: Cannot remove the last super_admin
+  if (oldRole === "super_admin" && newRole !== "super_admin") {
+    // Count total super admins (excluding the user being changed)
+    // Use filtered query for better performance
+    const superAdmins = await ctx.db
+      .query("users")
+      .filter(q => q.eq(q.field("role"), "super_admin"))
+      .collect()
+
+    // Exclude the current user from the count since they're being downgraded
+    const otherSuperAdminCount = superAdmins.filter(u => u._id !== userId).length
+
+    if (otherSuperAdminCount === 0) {
+      return {
+        valid: false,
+        error: "Cannot remove the last super admin. Assign another super admin first.",
+      }
+    }
+
+    warnings.push(
+      "Downgrading from super_admin will remove all platform administration privileges."
+    )
+  }
+
+  // Rule 6: Transitioning from student requires handling student profile
+  if (oldRole === "student" && newRole !== "student") {
+    requiredActions.push("Student profile data will be preserved but user loses university access")
+  }
+
+  // Rule 7: Transitioning to student may require creating student profile
+  if (oldRole !== "student" && newRole === "student") {
+    requiredActions.push("Student profile will be created if it doesn't exist")
+  }
+
+  // Rule 8: Changing university roles may affect memberships
+  if (
+    (oldRole === "university_admin" || oldRole === "advisor") &&
+    (newRole !== "university_admin" && newRole !== "advisor")
+  ) {
+    warnings.push("University admin privileges will be revoked")
+    requiredActions.push("Remove from university admin/advisor groups")
+  }
+
+  // Rule 9: Verify university exists if assigning university role
+  if (universityId && (newRole === "student" || newRole === "university_admin" || newRole === "advisor")) {
+    try {
+      const university = await ctx.db.get(universityId)
+      if (!university) {
+        return {
+          valid: false,
+          error: "The specified university does not exist.",
+        }
+      }
+
+      // Check if university is active (only if this is a university record)
+      if ('status' in university) {
+        if (university.status !== "active" && university.status !== "trial") {
+          warnings.push(
+            `Warning: This university has status "${university.status}". User may have limited access.`
+          )
+        }
+      }
+    } catch (e) {
+      return {
+        valid: false,
+        error: "Invalid university ID format.",
+      }
+    }
+  }
+
+  return {
+    valid: true,
+    warnings: warnings.length > 0 ? warnings : undefined,
+    requiredActions: requiredActions.length > 0 ? requiredActions : undefined,
+  }
+}
+
+/**
+ * Get a human-readable description of what a role can access
+ */
+export function getRoleDescription(role: UserRole): string {
+  const descriptions: Record<UserRole, string> = {
+    super_admin: "Full platform access: Manage all users, universities, system settings, and view all analytics and audit logs.",
+    university_admin: "University administrator: Manage students, advisors, and settings for assigned university only.",
+    advisor: "University advisor: View and assist students within assigned university.",
+    student: "University student: Access career tools with university subscription and support.",
+    individual: "Individual user: Access career tools with free or premium subscription.",
+    user: "Legacy individual user: Access career tools (being migrated to 'individual' role).",
+    staff: "Platform staff: Limited internal access to support and operational tools.",
+  }
+
+  return descriptions[role] || "Unknown role"
+}
+
+/**
+ * Get all permissions for a specific role
+ * Returns a structured object of feature areas and their access levels
+ */
+export function getRolePermissions(role: UserRole): {
+  platformSettings: boolean
+  userManagement: "all" | "university" | "none"
+  universityManagement: "all" | "own" | "none"
+  studentManagement: "all" | "university" | "assigned" | "none"
+  platformAnalytics: boolean
+  universityAnalytics: "all" | "own" | "none"
+  auditLogs: boolean
+  supportTickets: "all" | "university" | "own" | "none"
+  careerTools: boolean
+} {
+  const permissions = {
+    super_admin: {
+      platformSettings: true,
+      userManagement: "all" as const,
+      universityManagement: "all" as const,
+      studentManagement: "all" as const,
+      platformAnalytics: true,
+      universityAnalytics: "all" as const,
+      auditLogs: true,
+      supportTickets: "all" as const,
+      careerTools: true,
+    },
+    university_admin: {
+      platformSettings: false,
+      userManagement: "university" as const,
+      universityManagement: "own" as const,
+      studentManagement: "university" as const,
+      platformAnalytics: false,
+      universityAnalytics: "own" as const,
+      auditLogs: false,
+      supportTickets: "university" as const,
+      careerTools: true,
+    },
+    advisor: {
+      platformSettings: false,
+      userManagement: "none" as const,
+      universityManagement: "none" as const,
+      studentManagement: "assigned" as const,
+      platformAnalytics: false,
+      universityAnalytics: "own" as const,
+      auditLogs: false,
+      supportTickets: "university" as const,
+      careerTools: true,
+    },
+    student: {
+      platformSettings: false,
+      userManagement: "none" as const,
+      universityManagement: "none" as const,
+      studentManagement: "none" as const,
+      platformAnalytics: false,
+      universityAnalytics: "none" as const,
+      auditLogs: false,
+      supportTickets: "own" as const,
+      careerTools: true,
+    },
+    individual: {
+      platformSettings: false,
+      userManagement: "none" as const,
+      universityManagement: "none" as const,
+      studentManagement: "none" as const,
+      platformAnalytics: false,
+      universityAnalytics: "none" as const,
+      auditLogs: false,
+      supportTickets: "own" as const,
+      careerTools: true,
+    },
+    user: {
+      // Legacy role - same as individual
+      platformSettings: false,
+      userManagement: "none" as const,
+      universityManagement: "none" as const,
+      studentManagement: "none" as const,
+      platformAnalytics: false,
+      universityAnalytics: "none" as const,
+      auditLogs: false,
+      supportTickets: "own" as const,
+      careerTools: true,
+    },
+    staff: {
+      platformSettings: false,
+      userManagement: "none" as const,
+      universityManagement: "none" as const,
+      studentManagement: "none" as const,
+      platformAnalytics: false,
+      universityAnalytics: "none" as const,
+      auditLogs: false,
+      supportTickets: "all" as const,
+      careerTools: true,
+    },
+  }
+
+  return permissions[role]
+}
+
+/**
+ * Get route access for a role
+ * Returns list of route patterns the role can access
+ */
+export function getRoleRouteAccess(role: UserRole): string[] {
+  const routes: Record<UserRole, string[]> = {
+    super_admin: [
+      "/admin/*",
+      "/university/*",
+      "/dashboard/*",
+      "/applications/*",
+      "/resumes/*",
+      "/career-coach/*",
+      "/goals/*",
+      "/projects/*",
+      "/contacts/*",
+      "/account/*",
+    ],
+    university_admin: [
+      "/university/*",
+      "/dashboard/*",
+      "/applications/*",
+      "/resumes/*",
+      "/career-coach/*",
+      "/goals/*",
+      "/projects/*",
+      "/contacts/*",
+      "/account/*",
+    ],
+    advisor: [
+      "/university/*",
+      "/dashboard/*",
+      "/applications/*",
+      "/resumes/*",
+      "/career-coach/*",
+      "/goals/*",
+      "/projects/*",
+      "/contacts/*",
+      "/account/*",
+    ],
+    student: [
+      "/dashboard/*",
+      "/applications/*",
+      "/resumes/*",
+      "/career-coach/*",
+      "/goals/*",
+      "/projects/*",
+      "/contacts/*",
+      "/account/*",
+    ],
+    individual: [
+      "/dashboard/*",
+      "/applications/*",
+      "/resumes/*",
+      "/career-coach/*",
+      "/goals/*",
+      "/projects/*",
+      "/contacts/*",
+      "/account/*",
+    ],
+    user: [
+      "/dashboard/*",
+      "/applications/*",
+      "/resumes/*",
+      "/career-coach/*",
+      "/goals/*",
+      "/projects/*",
+      "/contacts/*",
+      "/account/*",
+    ],
+    staff: [
+      "/dashboard/*",
+      "/applications/*",
+      "/resumes/*",
+      "/career-coach/*",
+      "/goals/*",
+      "/projects/*",
+      "/contacts/*",
+      "/account/*",
+    ],
+  }
+
+  return routes[role] || []
+}

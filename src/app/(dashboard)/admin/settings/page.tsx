@@ -37,8 +37,13 @@ import {
   MessageSquare,
   Loader2,
   FileText,
-  Eye
+  Eye,
+  UserCog
 } from 'lucide-react'
+import { RolePermissionsGuide } from '@/components/admin/RolePermissionsGuide'
+import { RoleManagementTable } from '@/components/admin/RoleManagementTable'
+import { RoleHistoryView } from '@/components/admin/RoleHistoryView'
+import { RoleDiagnostics } from '@/components/admin/RoleDiagnostics'
 
 export default function AdminSettingsPage() {
   const { user: clerkUser } = useUser()
@@ -281,11 +286,12 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="ai">AI & OpenAI</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="roles">User Roles</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
@@ -883,6 +889,20 @@ export default function AdminSettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="roles" className="space-y-6">
+          {/* Role Permissions Guide */}
+          <RolePermissionsGuide />
+
+          {/* Role Management Table */}
+          {clerkUser && <RoleManagementTable clerkId={clerkUser.id} />}
+
+          {/* Role History */}
+          {clerkUser && <RoleHistoryView clerkId={clerkUser.id} />}
+
+          {/* Role Diagnostics */}
+          {clerkUser && <RoleDiagnostics clerkId={clerkUser.id} />}
         </TabsContent>
       </Tabs>
       </div>
