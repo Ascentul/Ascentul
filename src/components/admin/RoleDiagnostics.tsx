@@ -19,12 +19,17 @@ import {
   XCircle,
   ArrowRight,
 } from 'lucide-react'
-import { User } from '@clerk/nextjs/server'
 import { Doc } from 'convex/_generated/dataModel'
+
+interface ClerkDataResult {
+  id: string
+  email: string
+  name?: string
+}
 
 interface DiagnosticResult {
   user: Doc<"users"> | null
-  clerkData: User
+  clerkData: ClerkDataResult
   mismatch: boolean
   clerkRole: string | null
   convexRole: string | null
