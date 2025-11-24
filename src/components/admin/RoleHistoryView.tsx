@@ -229,11 +229,11 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="capitalize">
-                            {oldRole?.replaceAll('_', ' ')}
+                            {oldRole?.replace(/_/g, ' ')}
                           </Badge>
                           <ArrowRight className="h-4 w-4 text-muted-foreground" />
                           <Badge variant="default" className="capitalize">
-                            {newRole?.replaceAll('_', ' ')}
+                            {newRole?.replace(/_/g, ' ')}
                           </Badge>
                         </div>
                       </TableCell>

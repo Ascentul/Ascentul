@@ -119,7 +119,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Build metadata update - sync both role and university_id from Convex
-    const requiresUniversity = ['student', 'university_admin', 'advisor'].includes(role)
     const newMetadata: Record<string, any> = {
       ...targetUser.publicMetadata,
       role,

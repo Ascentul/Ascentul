@@ -195,7 +195,9 @@ export const createUser = mutation({
     // Allow optionally setting initial role (e.g., from Clerk public metadata)
     role: v.optional(
       v.union(
+        v.literal("individual"),
         v.literal("user"),
+        v.literal("student"),
         v.literal("staff"),
         v.literal("university_admin"),
         v.literal("advisor"),
@@ -375,11 +377,13 @@ export const updateUser = mutation({
       onboarding_completed: v.optional(v.boolean()),
       role: v.optional(
         v.union(
+          v.literal("individual"),
           v.literal("user"),
-          v.literal("admin"),
-          v.literal("super_admin"),
-          v.literal("university_admin"),
+          v.literal("student"),
           v.literal("staff"),
+          v.literal("university_admin"),
+          v.literal("advisor"),
+          v.literal("super_admin"),
         ),
       ),
       subscription_plan: v.optional(
@@ -543,11 +547,13 @@ export const updateUserById = mutation({
       onboarding_completed: v.optional(v.boolean()),
       role: v.optional(
         v.union(
+          v.literal("individual"),
           v.literal("user"),
-          v.literal("admin"),
-          v.literal("super_admin"),
-          v.literal("university_admin"),
+          v.literal("student"),
           v.literal("staff"),
+          v.literal("university_admin"),
+          v.literal("advisor"),
+          v.literal("super_admin"),
         ),
       ),
       subscription_plan: v.optional(

@@ -39,10 +39,12 @@ export function RoleDiagnostics() {
   const [loading, setLoading] = useState(false)
   const [diagnosticResult, setDiagnosticResult] = useState<DiagnosticResult | null>(null)
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isMountedRef = useRef(true)
 
   // Cleanup timeout on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
+      isMountedRef.current = false
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current)
       }
@@ -121,8 +123,10 @@ export function RoleDiagnostics() {
 
       // Wait for webhook to process before re-checking (webhook takes ~500ms-1s)
       syncTimeoutRef.current = setTimeout(async () => {
-        await runDiagnostic()
-        setLoading(false)
+        if (isMountedRef.current) {
+          await runDiagnostic()
+          setLoading(false)
+        }
       }, 2000)
     } catch (error) {
       toast({
@@ -167,8 +171,10 @@ export function RoleDiagnostics() {
 
       // Wait for webhook to process before re-checking (webhook takes ~500ms-1s)
       syncTimeoutRef.current = setTimeout(async () => {
-        await runDiagnostic()
-        setLoading(false)
+        if (isMountedRef.current) {
+          await runDiagnostic()
+          setLoading(false)
+        }
       }, 2000)
     } catch (error) {
       toast({
@@ -247,7 +253,7 @@ export function RoleDiagnostics() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>User Not Found in Convex</AlertTitle>
                 <AlertDescription>
-                  This user exists in Clerk ({diagnosticResult.clerkData.email}) but has not been synced to the Convex database yet. This may indicate a webhook configuration issue.
+                  This user exists in Clerk ({diagnosticResult.clerkData.emailAddresses?.[0]?.emailAddress || diagnosticResult.clerkData.id}) but has not been synced to the Convex database yet. This may indicate a webhook configuration issue.
                 </AlertDescription>
               </Alert>
             )}

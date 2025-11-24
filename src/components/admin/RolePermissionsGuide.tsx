@@ -158,6 +158,24 @@ const rolePermissions: RoleInfo[] = [
       { feature: 'Career Tools', access: 'full', details: 'Access all career development features' },
     ],
   },
+  {
+    role: 'user',
+    displayName: 'User (Legacy)',
+    icon: <User className="h-4 w-4" />,
+    color: 'bg-gray-400',
+    description: 'Legacy individual user role (being migrated to individual)',
+    permissions: [
+      { feature: 'Platform Settings', access: 'none' },
+      { feature: 'User Management', access: 'none' },
+      { feature: 'University Management', access: 'none' },
+      { feature: 'Student Management', access: 'none' },
+      { feature: 'Platform Analytics', access: 'none' },
+      { feature: 'University Analytics', access: 'none' },
+      { feature: 'Audit Logs', access: 'none' },
+      { feature: 'Support Tickets', access: 'own', details: 'Create and view own support tickets' },
+      { feature: 'Career Tools', access: 'full', details: 'Access based on subscription tier' },
+    ],
+  },
 ]
 
 const accessLevelColors = {

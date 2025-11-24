@@ -28,12 +28,27 @@ export const syncAllRolesToClerk = action({
     dryRun: v.optional(v.boolean()), // If true, only shows what would be synced
   },
   handler: async (ctx, args) => {
+    // SECURITY: Verify the caller is authenticated and matches the provided clerkId
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) {
+      throw new Error('Unauthorized: Authentication required')
+    }
+
+    // Extract Clerk ID from the authenticated identity token
+    const authenticatedClerkId = identity.subject
+    if (authenticatedClerkId !== args.clerkId) {
+      throw new Error(
+        'Unauthorized: Clerk ID mismatch. The provided clerkId must match your authenticated session.'
+      )
+    }
+
     const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY
     if (!CLERK_SECRET_KEY) {
       throw new Error('CLERK_SECRET_KEY environment variable is required')
     }
 
     // Verify caller is super_admin by checking their Clerk role
+    // Now safe to use args.clerkId since we've verified it matches the authenticated user
     const callerResponse = await fetch(
       `https://api.clerk.com/v1/users/${args.clerkId}`,
       {
@@ -71,7 +86,7 @@ export const syncAllRolesToClerk = action({
     let totalFetched = 0
 
     do {
-      const page = await ctx.runQuery(internal.admin.syncRolesToClerk.getAllUsersInternal, {
+      const page: { users: Array<{ _id: string; clerkId: string; email: string; name: string; role: string }>; cursor: string | null } = await ctx.runQuery(internal.admin.syncRolesToClerk.getAllUsersInternal, {
         cursor: cursor ?? undefined,
         pageSize: 100,
       })
@@ -314,7 +329,7 @@ export const getAllUsersInternal = internalQuery({
 
     if (args.cursor) {
       // Resume from cursor if provided
-      query = query.filter(q => q.gt(q.field("_id"), args.cursor))
+      query = query.filter(q => q.gt(q.field("_id"), args.cursor!))
     }
 
     const users = await query.take(pageSize + 1) // Take one extra to check if there are more

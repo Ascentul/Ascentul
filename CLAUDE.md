@@ -187,7 +187,7 @@ Admin UI Display → Reads convexUser.role (display only) 📊
 import { clerkClient } from '@clerk/nextjs/server'
 
 const client = await clerkClient()
-await client.users.updateUser(userId, {
+await client.users.updateUserMetadata(userId, {
   publicMetadata: { role: 'super_admin' }
 })
 // Webhook will automatically sync to Convex

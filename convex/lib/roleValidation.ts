@@ -19,7 +19,7 @@ import { Id } from "../_generated/dataModel"
  * - convex/lib/roleValidation.ts (this file)
  * - src/lib/constants/roles.ts
  *
- * A test should be added to verify these stay in sync.
+ * These are kept in sync via src/__tests__/role-sync.test.ts
  */
 const ROLE_VALUES = [
   "super_admin",
@@ -161,7 +161,7 @@ export async function validateRoleTransition(
     } catch (e) {
       return {
         valid: false,
-        error: "Invalid university ID format.",
+        error: `Failed to verify university: ${e instanceof Error ? e.message : "Unknown error"}`,
       }
     }
   }

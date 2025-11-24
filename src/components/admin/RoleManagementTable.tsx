@@ -59,7 +59,7 @@ interface MinimalUser {
   role: UserRole
   subscription_plan: 'free' | 'premium' | 'university' | undefined
   subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due' | undefined
-  account_status: 'active' | 'suspended' | 'pending_activation' | undefined
+  account_status: 'active' | 'suspended' | 'pending_activation' | 'deleted' | undefined
   is_test_user: boolean | undefined
   deleted_at: number | undefined
   deleted_by: string | undefined
@@ -287,7 +287,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                 <div className="flex items-center gap-2 mb-1">
                   {roleIcons[role]}
                   <span className="text-xs font-medium capitalize">
-                    {role.replaceAll('_', ' ')}
+                    {role.replace(/_/g, ' ')}
                   </span>
                 </div>
                 <div className="text-2xl font-bold">{count}</div>
@@ -369,7 +369,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                         <Badge variant="outline" className={roleColors[user.role]}>
                           <span className="flex items-center gap-1">
                             {roleIcons[user.role]}
-                            {user.role.replaceAll('_', ' ')}
+                            {user.role.replace(/_/g, ' ')}
                           </span>
                         </Badge>
                       </TableCell>
@@ -435,7 +435,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                 <Badge variant="outline" className={roleColors[dialogState.user?.role || 'user']}>
                   <span className="flex items-center gap-1">
                     {roleIcons[dialogState.user?.role || 'user']}
-                    {dialogState.user?.role?.replaceAll('_', ' ')}
+                    {dialogState.user?.role?.replace(/_/g, ' ')}
                   </span>
                 </Badge>
               </div>

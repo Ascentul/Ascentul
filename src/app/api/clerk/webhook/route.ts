@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
           subscription_plan: subscriptionPlan,
           subscription_status: subscriptionStatus,
           // Pass validated role from Clerk metadata if present
-          role: validatedRole,
+          role: validatedRole || undefined,
         })
 
         console.log(`[Clerk Webhook] Created/activated user: ${userData.id}`)

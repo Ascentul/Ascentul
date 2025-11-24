@@ -10,7 +10,7 @@
  * - src/lib/constants/roles.ts (this file)
  * - convex/lib/roleValidation.ts
  *
- * A test should be added to verify these stay in sync.
+ * These are kept in sync via __tests__/role-sync.test.ts
  *
  * @see convex/lib/roleValidation.ts for role transition validation logic
  */

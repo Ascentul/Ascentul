@@ -58,6 +58,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate universityId format if provided
+    if (universityId !== undefined && universityId !== null) {
+      if (typeof universityId !== 'string' || universityId.trim().length === 0) {
+        return NextResponse.json(
+          { valid: false, error: 'Invalid university ID: must be a non-empty string' },
+          { status: 400 }
+        )
+      }
+
+      // Basic format check: Convex IDs are alphanumeric with possible underscores
+      if (!/^[a-z0-9_]+$/i.test(universityId)) {
+        return NextResponse.json(
+          { valid: false, error: 'Invalid university ID format: contains invalid characters' },
+          { status: 400 }
+        )
+      }
+    }
+
     // Use Convex query to validate (centralizes business logic)
     const convex = new ConvexHttpClient(convexUrl)
 
@@ -65,7 +83,9 @@ export async function POST(request: NextRequest) {
       userId: targetUserId,
       currentRole,
       newRole,
-      universityId: universityId ? (universityId as Id<"universities">) : undefined,
+      universityId: universityId && typeof universityId === 'string' && universityId.trim().length > 0
+        ? (universityId as Id<"universities">)
+        : undefined,
     })
 
     return NextResponse.json(result)
