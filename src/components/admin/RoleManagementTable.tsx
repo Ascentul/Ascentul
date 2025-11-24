@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -46,10 +47,32 @@ import {
   CheckCircle,
   RefreshCw,
 } from 'lucide-react'
+import { UserRole } from '@/lib/constants/roles'
+
+interface MinimalUser {
+  _id: Id<"users">
+  _creationTime: number
+  clerkId: string
+  name: string
+  email: string
+  username: string | undefined
+  role: UserRole
+  subscription_plan: 'free' | 'premium' | 'university' | undefined
+  subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due' | undefined
+  account_status: 'active' | 'suspended' | 'pending_activation' | undefined
+  is_test_user: boolean | undefined
+  deleted_at: number | undefined
+  deleted_by: string | undefined
+  deleted_reason: string | undefined
+  university_id: Id<"universities"> | undefined
+  profile_image: string | null
+  created_at: number
+  updated_at: number
+}
 
 interface RoleChangeDialogState {
   open: boolean
-  user: any | null
+  user: MinimalUser | null
   newRole: string
   loading: boolean
   validation: {
@@ -99,7 +122,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
   const filteredUsers = useMemo(() => {
     if (!usersData?.page) return []
 
-    return usersData.page.filter((user: any) => {
+    return usersData.page.filter((user) => {
       // Role filter
       if (roleFilter !== 'all' && user.role !== roleFilter) return false
 
@@ -119,13 +142,13 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
   const roleStats = useMemo(() => {
     if (!usersData?.page) return {}
 
-    return usersData.page.reduce((acc: Record<string, number>, user: any) => {
+    return usersData.page.reduce((acc: Record<string, number>, user) => {
       acc[user.role] = (acc[user.role] || 0) + 1
       return acc
     }, {})
   }, [usersData])
 
-  const handleRoleChangeClick = (user: any) => {
+  const handleRoleChangeClick = (user: MinimalUser) => {
     setDialogState({
       open: true,
       user,
@@ -137,6 +160,8 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
 
   const handleRoleChange = async () => {
     if (!dialogState.user || !dialogState.newRole) return
+    // Prevent double-clicks and race conditions
+    if (dialogState.loading) return
 
     setDialogState(prev => ({ ...prev, loading: true }))
 
@@ -148,7 +173,6 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
         body: JSON.stringify({
           userId: dialogState.user.clerkId,
           newRole: dialogState.newRole,
-          currentRole: dialogState.user.role,
           universityId: dialogState.user.university_id,
         }),
       })
@@ -165,6 +189,9 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
       })
 
       // Close dialog
+      // Note: Data will automatically update via Convex reactivity when the webhook completes
+      // The flow: API updates Clerk → Clerk webhook → Convex mutation → useQuery re-renders
+      // Expected delay: ~500ms-1s for webhook processing
       setDialogState({
         open: false,
         user: null,
@@ -182,7 +209,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
     }
   }
 
-  const handleValidateRoleChange = async () => {
+  const handleValidateRoleChange = useCallback(async () => {
     if (!dialogState.user || !dialogState.newRole) return
 
     try {
@@ -190,7 +217,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: dialogState.user._id,
+          userId: dialogState.user.clerkId,
           currentRole: dialogState.user.role,
           newRole: dialogState.newRole,
           universityId: dialogState.user.university_id,
@@ -202,14 +229,14 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
     } catch (error) {
       console.error('Validation error:', error)
     }
-  }
+  }, [dialogState.user, dialogState.newRole])
 
   // Validate when new role selected
   React.useEffect(() => {
     if (dialogState.newRole && dialogState.user && dialogState.newRole !== dialogState.user.role) {
       handleValidateRoleChange()
     }
-  }, [dialogState.newRole, dialogState.user])
+  }, [dialogState.newRole, dialogState.user, handleValidateRoleChange])
 
   if (!usersData) {
     return (
@@ -304,7 +331,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map((user: any) => (
+                  filteredUsers.map((user) => (
                     <TableRow key={user._id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">

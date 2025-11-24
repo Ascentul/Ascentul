@@ -3,6 +3,9 @@ import { auth, clerkClient } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
+import { ClerkPublicMetadata } from '@/types/clerk'
+import { VALID_USER_ROLES } from '@/lib/constants/roles'
+import { isValidUserRole } from '@/lib/validation/roleValidation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,7 +20,7 @@ export const dynamic = 'force-dynamic'
  * 4. Webhook automatically syncs to Convex
  *
  * POST /api/admin/users/update-role
- * Body: { userId: string, newRole: string, currentRole: string, universityId?: string }
+ * Body: { userId: string, newRole: string, universityId?: string }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Get caller's role from Clerk
     const client = await clerkClient()
     const caller = await client.users.getUser(userId)
-    const callerRole = (caller.publicMetadata as any)?.role
+    const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role
 
     // Only super_admin can update roles
     if (callerRole !== 'super_admin') {
@@ -44,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { userId: targetUserId, newRole, currentRole, universityId } = body
+    const { userId: targetUserId, newRole, universityId } = body
 
     if (!targetUserId || !newRole) {
       return NextResponse.json(
@@ -54,53 +57,54 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate role is allowed
-    const allowedRoles = ['super_admin', 'university_admin', 'advisor', 'student', 'individual', 'staff', 'user']
-    if (!allowedRoles.includes(newRole)) {
+    if (!isValidUserRole(newRole)) {
       return NextResponse.json(
         { error: `Invalid role: ${newRole}` },
         { status: 400 }
       )
     }
 
-    // Get target user from Clerk
-    const targetUser = await client.users.getUser(targetUserId)
-    if (!targetUser) {
+    // Prevent self-modification to avoid accidental lockout
+    if (targetUserId === userId) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        { error: 'Cannot modify your own role. Use another super_admin account.' },
+        { status: 403 }
       )
     }
 
-    // Critical validation: prevent removing the last super_admin
+    // Get target user from Clerk
+    // Note: getUser() throws ClerkAPIResponseError if user not found
+    let targetUser
+    try {
+      targetUser = await client.users.getUser(targetUserId)
+    } catch (error: any) {
+      if (error?.status === 404 || error?.errors?.[0]?.code === 'resource_not_found') {
+        return NextResponse.json(
+          { error: 'User not found' },
+          { status: 404 }
+        )
+      }
+      throw error // Re-throw other errors to be caught by outer catch
+    }
+
+    // Extract current role from Clerk (source of truth, don't trust client)
+    const currentRole = (targetUser.publicMetadata as ClerkPublicMetadata)?.role
+
+    // Critical validation: prevent changing the super_admin role
+    // BUSINESS RULE: There is only ONE super_admin (the founder).
+    // The super_admin role should never be changed through the admin UI.
+    // This prevents accidental lockout from the platform.
+    //
+    // If the founder needs to change their role for testing, they must:
+    // 1. Use Clerk Dashboard to manually update publicMetadata.role
+    // 2. Or temporarily disable this check in code
     if (currentRole === 'super_admin' && newRole !== 'super_admin') {
-      // Query Clerk for all super_admin users (excluding the target user)
-      // LIMITATION: Clerk getUserList limits to 500 results per request
-      // For large user bases, implement pagination or fail-safe approach
-      const allUsers = await client.users.getUserList({ limit: 500 })
-
-      // Fail-safe: If we hit the limit, we can't reliably verify all super_admins
-      if (allUsers.data.length >= 500) {
-        console.warn('[API] User base at/exceeds 500 - super_admin count may be incomplete. Failing safe.')
-        return NextResponse.json(
-          {
-            error: 'Cannot safely verify super_admin count. User base too large for single query. Please contact support or implement pagination.'
-          },
-          { status: 400 }
-        )
-      }
-
-      const otherSuperAdmins = allUsers.data.filter(
-        u => (u.publicMetadata as any)?.role === 'super_admin' && u.id !== targetUserId
+      return NextResponse.json(
+        {
+          error: 'Cannot change super_admin role. This role is reserved for the platform founder and cannot be modified through the admin interface. Use Clerk Dashboard for emergency role changes.'
+        },
+        { status: 403 }
       )
-
-      if (otherSuperAdmins.length === 0) {
-        return NextResponse.json(
-          { error: 'Cannot remove the last super admin. Assign another super admin first.' },
-          { status: 400 }
-        )
-      }
-
-      console.log(`[API] Downgrading super_admin. ${otherSuperAdmins.length} other super_admin(s) exist.`)
     }
 
     // Validate university requirements
@@ -156,17 +160,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Determine if we should remove university_id
+    const requiresUniversity = ['student', 'university_admin', 'advisor'].includes(newRole)
+    
     // Update Clerk publicMetadata with new role
+    const newMetadata: Record<string, any> = {
+      ...targetUser.publicMetadata,
+      role: newRole,
+    }
+    
+    if (requiresUniversity && universityId) {
+      newMetadata.university_id = universityId
+    } else if (!requiresUniversity) {
+      // Remove university_id if changing to a non-university role
+      delete newMetadata.university_id
+    }
+    
     await client.users.updateUser(targetUserId, {
-      publicMetadata: {
-        ...targetUser.publicMetadata,
-        role: newRole,
-        // Include university_id if provided
-        ...(universityId ? { university_id: universityId } : {}),
-      },
+      publicMetadata: newMetadata,
     })
 
-    console.log(`[API] Updated role for user ${targetUser.emailAddresses[0]?.emailAddress || targetUser.id}: ${currentRole} → ${newRole}`)
+    console.log(`[API] Updated role for user ${targetUser.id}: ${currentRole} → ${newRole}`)
 
     // The Clerk webhook will automatically sync this change to Convex
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { ClerkPublicMetadata } from '@/types/clerk'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
     // Verify caller is super_admin
     const client = await clerkClient()
     const caller = await client.users.getUser(userId)
-    const callerRole = (caller.publicMetadata as any)?.role
+    const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role
 
     if (callerRole !== 'super_admin') {
       return NextResponse.json(
@@ -67,8 +68,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (clerkUsers.data.length > 1) {
+      return NextResponse.json(
+        { error: `Multiple users found with email ${email}. Please use Clerk ID instead.` },
+        { status: 400 }
+      )
+    }
+
     const clerkUser = clerkUsers.data[0]
-    const clerkRole = (clerkUser.publicMetadata as any)?.role || null
+    const clerkRole = (clerkUser.publicMetadata as ClerkPublicMetadata)?.role || null
 
     // Find user in Convex
     const convex = new ConvexHttpClient(convexUrl)

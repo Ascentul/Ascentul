@@ -48,7 +48,8 @@ export const syncAllRolesToClerk = action({
     }
 
     const caller = await callerResponse.json()
-    const callerRole = (caller.public_metadata as any)?.role
+    const callerMetadata = caller.public_metadata as Record<string, unknown>
+    const callerRole = typeof callerMetadata?.role === 'string' ? callerMetadata.role : null
 
     if (callerRole !== 'super_admin') {
       throw new Error('Unauthorized: Only super_admin can run this operation')
@@ -56,15 +57,34 @@ export const syncAllRolesToClerk = action({
 
     console.log(`[SyncRolesToClerk] Authorized: ${caller.email_addresses?.[0]?.email_address || args.clerkId} (super_admin)`)
 
-    // Get all users from Convex
-    const users: Array<{
+    // Get all users from Convex using pagination
+    const allUsers: Array<{
       _id: string
       clerkId: string
       email: string
       name: string
       role: string
-    }> = await ctx.runQuery(internal.admin.syncRolesToClerk.getAllUsersInternal, {})
+    }> = []
 
+    let cursor: string | null = null
+    let totalFetched = 0
+
+    do {
+      const page = await ctx.runQuery(internal.admin.syncRolesToClerk.getAllUsersInternal, {
+        cursor: cursor ?? undefined,
+        pageSize: 100,
+      })
+
+      allUsers.push(...page.users)
+      totalFetched += page.users.length
+      cursor = page.cursor
+
+      if (cursor) {
+        console.log(`[SyncRolesToClerk] Fetched ${totalFetched} users so far...`)
+      }
+    } while (cursor)
+
+    const users = allUsers
     console.log(`[SyncRolesToClerk] Found ${users.length} users in Convex`)
 
     const results: {
@@ -95,8 +115,8 @@ export const syncAllRolesToClerk = action({
     for (let i = 0; i < users.length; i++) {
       const user = users[i]
       try {
-        // Skip users without Clerk ID (pending activation, etc.)
-        if (!user.clerkId || user.clerkId.startsWith('pending_')) {
+        // Skip users without valid Clerk ID (pending activation, empty, etc.)
+        if (!user.clerkId || user.clerkId === '' || user.clerkId.startsWith('pending_')) {
           results.skipped++
           results.details.push({
             email: user.email,
@@ -104,7 +124,9 @@ export const syncAllRolesToClerk = action({
             convexRole: user.role,
             clerkRole: null,
             action: 'skipped',
-            message: 'No Clerk ID (pending activation)',
+            message: user.clerkId?.startsWith('pending_')
+              ? 'Pending activation'
+              : 'No Clerk ID',
           })
           continue
         }
@@ -134,7 +156,8 @@ export const syncAllRolesToClerk = action({
         }
 
         const clerkUser = await clerkResponse.json()
-        const clerkRole = (clerkUser.public_metadata as any)?.role || null
+        const metadata = clerkUser.public_metadata as Record<string, unknown>
+        const clerkRole = typeof metadata?.role === 'string' ? metadata.role : null
 
         // Check if sync needed
         if (clerkRole === user.role) {
@@ -164,7 +187,34 @@ export const syncAllRolesToClerk = action({
           continue
         }
 
-        // Update Clerk publicMetadata
+        // Refetch user immediately before update to minimize race condition window
+        // This ensures we use the latest metadata and don't overwrite concurrent changes
+        const freshResponse = await fetch(
+          `https://api.clerk.com/v1/users/${user.clerkId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${CLERK_SECRET_KEY}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+
+        if (!freshResponse.ok) {
+          results.errors++
+          results.details.push({
+            email: user.email,
+            clerkId: user.clerkId,
+            convexRole: user.role,
+            clerkRole,
+            action: 'error',
+            message: `Failed to refetch user before update: ${freshResponse.status}`,
+          })
+          continue
+        }
+
+        const freshClerkUser = await freshResponse.json()
+
+        // Update Clerk publicMetadata with fresh data
         const updateResponse = await fetch(
           `https://api.clerk.com/v1/users/${user.clerkId}`,
           {
@@ -175,7 +225,7 @@ export const syncAllRolesToClerk = action({
             },
             body: JSON.stringify({
               public_metadata: {
-                ...clerkUser.public_metadata,
+                ...freshClerkUser.public_metadata,
                 role: user.role,
               },
             }),
@@ -234,19 +284,36 @@ export const syncAllRolesToClerk = action({
 })
 
 /**
- * Internal query to get all users
- * Used by action above
+ * Internal query to get users with pagination
+ * Prevents memory issues with large user bases
  */
 export const getAllUsersInternal = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const users = await ctx.db.query("users").collect()
-    return users.map(u => ({
-      _id: u._id,
-      clerkId: u.clerkId,
-      email: u.email,
-      name: u.name,
-      role: u.role,
-    }))
+  args: {
+    cursor: v.optional(v.string()),
+    pageSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const pageSize = args.pageSize ?? 100
+    let query = ctx.db.query("users")
+
+    if (args.cursor) {
+      // Resume from cursor if provided
+      query = query.filter(q => q.gt(q.field("_id"), args.cursor))
+    }
+
+    const users = await query.take(pageSize + 1) // Take one extra to check if there are more
+    const hasMore = users.length > pageSize
+    const pageUsers = hasMore ? users.slice(0, pageSize) : users
+
+    return {
+      users: pageUsers.map(u => ({
+        _id: u._id,
+        clerkId: u.clerkId,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+      })),
+      cursor: hasMore ? pageUsers[pageUsers.length - 1]._id : null,
+    }
   },
 })

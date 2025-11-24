@@ -101,6 +101,7 @@ Feature Gating (Access Control)
 
 ### Authentication & Authorization
 - **Clerk** handles authentication via JWT tokens
+- **Clerk `publicMetadata.role`** is the source of truth for all authorization (see [Roles & Permissions](#roles--permissions) for details)
 - Middleware (`src/middleware.ts`) protects routes and enforces role-based redirects:
   - Regular users → `/dashboard`
   - `super_admin`/`admin` → `/admin`

@@ -31,7 +31,7 @@ interface DiagnosticResult {
   suggestions: string[]
 }
 
-export function RoleDiagnostics({ clerkId }: { clerkId: string }) {
+export function RoleDiagnostics() {
   const { toast } = useToast()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -99,18 +99,20 @@ export function RoleDiagnostics({ clerkId }: { clerkId: string }) {
 
       toast({
         title: 'Role Synced',
-        description: 'Successfully synced role from Convex to Clerk',
+        description: 'Successfully synced role from Convex to Clerk. Re-checking in 2 seconds...',
       })
 
-      // Re-run diagnostic
-      await runDiagnostic()
+      // Wait for webhook to process before re-checking (webhook takes ~500ms-1s)
+      setTimeout(async () => {
+        await runDiagnostic()
+        setLoading(false)
+      }, 2000)
     } catch (error) {
       toast({
         title: 'Sync Failed',
         description: error instanceof Error ? error.message : 'Failed to sync role',
         variant: 'destructive',
       })
-    } finally {
       setLoading(false)
     }
   }
@@ -138,18 +140,20 @@ export function RoleDiagnostics({ clerkId }: { clerkId: string }) {
 
       toast({
         title: 'Role Synced',
-        description: 'Successfully synced role from Clerk to Convex',
+        description: 'Successfully synced role from Clerk to Convex. Re-checking in 2 seconds...',
       })
 
-      // Re-run diagnostic
-      await runDiagnostic()
+      // Wait for webhook to process before re-checking (webhook takes ~500ms-1s)
+      setTimeout(async () => {
+        await runDiagnostic()
+        setLoading(false)
+      }, 2000)
     } catch (error) {
       toast({
         title: 'Sync Failed',
         description: error instanceof Error ? error.message : 'Failed to sync role',
         variant: 'destructive',
       })
-    } finally {
       setLoading(false)
     }
   }
@@ -204,17 +208,27 @@ export function RoleDiagnostics({ clerkId }: { clerkId: string }) {
         {diagnosticResult && (
           <div className="space-y-4 mt-6">
             {/* User Info */}
-            <div className="p-4 border rounded-lg bg-muted/50">
-              <div className="font-semibold mb-2">User Information</div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="text-muted-foreground">Name:</div>
-                <div className="font-medium">{diagnosticResult.user.name}</div>
-                <div className="text-muted-foreground">Email:</div>
-                <div className="font-medium">{diagnosticResult.user.email}</div>
-                <div className="text-muted-foreground">Clerk ID:</div>
-                <div className="font-mono text-xs">{diagnosticResult.clerkData.id}</div>
+            {diagnosticResult.user ? (
+              <div className="p-4 border rounded-lg bg-muted/50">
+                <div className="font-semibold mb-2">User Information</div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-muted-foreground">Name:</div>
+                  <div className="font-medium">{diagnosticResult.user.name}</div>
+                  <div className="text-muted-foreground">Email:</div>
+                  <div className="font-medium">{diagnosticResult.user.email}</div>
+                  <div className="text-muted-foreground">Clerk ID:</div>
+                  <div className="font-mono text-xs">{diagnosticResult.clerkData.id}</div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>User Not Found in Convex</AlertTitle>
+                <AlertDescription>
+                  This user exists in Clerk ({diagnosticResult.clerkData.email}) but has not been synced to the Convex database yet. This may indicate a webhook configuration issue.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Sync Status */}
             <div className="p-4 border rounded-lg">
@@ -348,9 +362,10 @@ export function RoleDiagnostics({ clerkId }: { clerkId: string }) {
         <Alert className="mt-6">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-sm">
-            <strong>Important:</strong> Clerk `publicMetadata.role` is always the source of truth for
-            authorization. The Convex role is only used for display purposes. If there's a mismatch,
-            the recommended fix is to sync from Convex to Clerk, then let the webhook sync back to Convex.
+            <strong>Important:</strong> Clerk `publicMetadata.role` is the source of truth for
+            authorization. The Convex role is cached for display purposes. Normal role changes
+            flow: Update Clerk → Webhook → Convex. If there's a mismatch, use sync tools to
+            resolve inconsistencies, then investigate why the webhook failed to sync properly.
           </AlertDescription>
         </Alert>
       </CardContent>

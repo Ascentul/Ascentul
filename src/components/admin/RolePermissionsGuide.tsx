@@ -246,7 +246,9 @@ export function RolePermissionsGuide() {
             </TableHeader>
             <TableBody>
               {/* Create rows for each unique feature */}
-              {rolePermissions.length > 0 && Array.from(new Set(rolePermissions[0].permissions.map(p => p.feature))).map((feature) => (
+              {rolePermissions.length > 0 && Array.from(
+                new Set(rolePermissions.flatMap(r => r.permissions.map(p => p.feature)))
+              ).map((feature) => (
                 <TableRow key={feature}>
                   <TableCell className="font-medium">{feature}</TableCell>
                   {rolePermissions.map((roleInfo) => {
@@ -352,6 +354,10 @@ export function RolePermissionsGuide() {
               <div className="space-y-4">
                 {roleRoutes.map(({ role, routes }) => {
                   const roleInfo = rolePermissions.find(r => r.role === role)
+
+                  // Skip roles with no routes
+                  if (!routes || routes.length === 0) return null
+
                   return (
                     <div key={role} className="border rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-3">

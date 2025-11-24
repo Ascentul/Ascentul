@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { ClerkPublicMetadata } from '@/types/clerk'
+import { VALID_USER_ROLES } from '@/lib/constants/roles'
+import { isValidUserRole } from '@/lib/validation/roleValidation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -35,7 +38,7 @@ export async function POST(request: NextRequest) {
     // Verify caller is super_admin
     const client = await clerkClient()
     const caller = await client.users.getUser(callerId)
-    const callerRole = (caller.publicMetadata as any)?.role
+    const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role
 
     if (callerRole !== 'super_admin') {
       return NextResponse.json(
@@ -62,11 +65,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate role is allowed
-    const allowedRoles = ['super_admin', 'university_admin', 'advisor', 'student', 'individual', 'staff', 'user']
-    if (!allowedRoles.includes(role)) {
+    if (!isValidUserRole(role)) {
       return NextResponse.json(
-        { error: `Invalid role: ${role}. Must be one of: ${allowedRoles.join(', ')}` },
+        { error: `Invalid role: ${role}. Must be one of: ${VALID_USER_ROLES.join(', ')}` },
         { status: 400 }
+      )
+    }
+
+    // Prevent self-modification to avoid accidental lockout
+    if (userId === callerId) {
+      return NextResponse.json(
+        { error: 'Cannot modify your own role. Use another super_admin account.' },
+        { status: 403 }
       )
     }
 
@@ -74,11 +84,12 @@ export async function POST(request: NextRequest) {
     const targetUser = await client.users.getUser(userId)
 
     // Update Convex
+    // Role is already validated by isValidUserRole above
     const convex = new ConvexHttpClient(convexUrl)
     await convex.mutation(api.users.updateUser, {
       clerkId: userId,
       updates: {
-        role: role as any,
+        role: role as 'super_admin' | 'university_admin' | 'advisor' | 'student' | 'individual' | 'staff' | 'user',
       },
     })
 

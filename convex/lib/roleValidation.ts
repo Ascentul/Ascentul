@@ -8,14 +8,40 @@
 import { QueryCtx, MutationCtx } from "../_generated/server"
 import { Id } from "../_generated/dataModel"
 
-export type UserRole =
-  | "individual"
-  | "user"
-  | "student"
-  | "staff"
-  | "university_admin"
-  | "advisor"
-  | "super_admin"
+/**
+ * Valid user roles (Convex backend source of truth)
+ * Define roles as a const array, then derive the type from it
+ * This prevents divergence between the type definition and runtime validation
+ *
+ * ⚠️ IMPORTANT: This array is duplicated in src/lib/constants/roles.ts
+ * due to module boundary restrictions (Convex cannot import from Next.js src/).
+ * When adding/removing roles, update BOTH files:
+ * - convex/lib/roleValidation.ts (this file)
+ * - src/lib/constants/roles.ts
+ *
+ * A test should be added to verify these stay in sync.
+ */
+const ROLE_VALUES = [
+  "super_admin",
+  "university_admin",
+  "advisor",
+  "student",
+  "individual",
+  "staff",
+  "user",
+] as const
+
+/**
+ * UserRole type derived from ROLE_VALUES array
+ * This ensures compile-time and runtime role definitions stay in sync
+ */
+export type UserRole = typeof ROLE_VALUES[number]
+
+/**
+ * Valid user roles array for runtime validation
+ * Exported for use in validation functions across Convex
+ */
+export const VALID_ROLES: readonly UserRole[] = ROLE_VALUES
 
 export interface RoleValidationResult {
   valid: boolean
@@ -25,10 +51,17 @@ export interface RoleValidationResult {
 }
 
 /**
+ * Type guard to check if a string is a valid user role
+ */
+export function isValidUserRole(role: string): role is UserRole {
+  return VALID_ROLES.includes(role as UserRole)
+}
+
+/**
  * Validate a role transition for a user
  *
  * @param ctx Convex context
- * @param userId User document ID
+ * @param userId Clerk user ID (string)
  * @param oldRole Current role
  * @param newRole Desired new role
  * @param universityId User's university affiliation (if any)
@@ -76,28 +109,15 @@ export async function validateRoleTransition(
     requiredActions.push("Remove university_id if transitioning to individual role")
   }
 
-  // Rule 5: Cannot remove the last super_admin
+  // Rule 5: Cannot change super_admin role
+  // BUSINESS RULE: There is only ONE super_admin (the founder).
+  // The super_admin role cannot be changed through the admin UI.
+  // This prevents accidental lockout from the platform.
   if (oldRole === "super_admin" && newRole !== "super_admin") {
-    // Count total super admins (excluding the user being changed)
-    // Use filtered query for better performance
-    const superAdmins = await ctx.db
-      .query("users")
-      .filter(q => q.eq(q.field("role"), "super_admin"))
-      .collect()
-
-    // Exclude the current user from the count since they're being downgraded
-    const otherSuperAdminCount = superAdmins.filter(u => u._id !== userId).length
-
-    if (otherSuperAdminCount === 0) {
-      return {
-        valid: false,
-        error: "Cannot remove the last super admin. Assign another super admin first.",
-      }
+    return {
+      valid: false,
+      error: "Cannot change super_admin role. This role is reserved for the platform founder and cannot be modified through the admin interface. Use Clerk Dashboard for emergency role changes.",
     }
-
-    warnings.push(
-      "Downgrading from super_admin will remove all platform administration privileges."
-    )
   }
 
   // Rule 6: Transitioning from student requires handling student profile

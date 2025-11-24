@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, clerkClient } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
+import { ClerkPublicMetadata } from '@/types/clerk'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { valid: false, error: 'Unauthorized - Please sign in' },
         { status: 401 }
+      )
+    }
+
+    // Verify caller is super_admin
+    const client = await clerkClient()
+    const caller = await client.users.getUser(userId)
+    const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role
+
+    if (callerRole !== 'super_admin') {
+      return NextResponse.json(
+        { valid: false, error: 'Forbidden - Only super admins can validate roles' },
+        { status: 403 }
       )
     }
 
@@ -52,7 +65,7 @@ export async function POST(request: NextRequest) {
       userId: targetUserId,
       currentRole,
       newRole,
-      universityId: universityId as Id<"universities"> | undefined,
+      universityId: universityId ? (universityId as Id<"universities">) : undefined,
     })
 
     return NextResponse.json(result)

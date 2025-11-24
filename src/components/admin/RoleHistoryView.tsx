@@ -78,8 +78,8 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
   const stats = React.useMemo(() => {
     if (!filteredLogs) return { total: 0, uniqueUsers: 0, uniquePerformers: 0 }
 
-    const uniqueUsers = new Set(filteredLogs.map(log => log.target_email))
-    const uniquePerformers = new Set(filteredLogs.map(log => log.performed_by_email))
+    const uniqueUsers = new Set(filteredLogs.map(log => log.target_email).filter(Boolean))
+    const uniquePerformers = new Set(filteredLogs.map(log => log.performed_by_email).filter(Boolean))
 
     return {
       total: filteredLogs.length,
@@ -104,7 +104,11 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
+      ...rows.map(row => row.map(cell => {
+        // Escape quotes and handle newlines/carriage returns
+        const str = String(cell).replace(/"/g, '""').replace(/\r?\n/g, ' ')
+        return `"${str}"`
+      }).join(',')),
     ].join('\n')
 
     const blob = new Blob([csvContent], { type: 'text/csv' })
@@ -113,7 +117,8 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
     a.href = url
     a.download = `role-history-${format(new Date(), 'yyyy-MM-dd')}.csv`
     a.click()
-    URL.revokeObjectURL(url)
+    // Delay revocation to ensure download completes
+    setTimeout(() => URL.revokeObjectURL(url), 100)
   }
 
   if (!auditLogs) {
@@ -261,7 +266,7 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
         </div>
 
         {/* Pagination info */}
-        {filteredLogs.length >= 100 && (
+        {auditLogs && auditLogs.length >= 100 && (
           <div className="text-sm text-muted-foreground text-center">
             Showing the most recent 100 role changes. Export to CSV for complete history.
           </div>

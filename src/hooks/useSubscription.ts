@@ -2,6 +2,7 @@
 
 import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs'
 import { useMemo } from 'react'
+import { ClerkPublicMetadata } from '@/types/clerk'
 
 export interface SubscriptionInfo {
   isPremium: boolean
@@ -46,10 +47,10 @@ export function useSubscription(): SubscriptionInfo {
       }
     }
 
-    const metadata = user.publicMetadata as any
+    const metadata = user.publicMetadata as ClerkPublicMetadata
 
     // Check if user is part of a university (legacy/admin-assigned)
-    const isUniversity = metadata?.role === 'student' || metadata?.university_id
+    const isUniversity = metadata?.role === 'student' || Boolean(metadata?.university_id)
 
     // Use Clerk's built-in has() method to check subscription plans
     // This is the official way to check Clerk Billing subscriptions

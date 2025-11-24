@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from 'convex/_generated/api'
+import { ClerkPublicMetadata } from '@/types/clerk'
+import { VALID_USER_ROLES } from '@/lib/constants/roles'
+import { isValidUserRole } from '@/lib/validation/roleValidation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -31,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Verify caller is super_admin
     const client = await clerkClient()
     const caller = await client.users.getUser(callerId)
-    const callerRole = (caller.publicMetadata as any)?.role
+    const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role
 
     if (callerRole !== 'super_admin') {
       return NextResponse.json(
@@ -50,17 +55,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate role is allowed
-    const allowedRoles = ['super_admin', 'university_admin', 'advisor', 'student', 'individual', 'staff', 'user']
-    if (!allowedRoles.includes(role)) {
+    // Prevent self-modification to avoid accidental lockout
+    if (userId === callerId) {
       return NextResponse.json(
-        { error: `Invalid role: ${role}. Must be one of: ${allowedRoles.join(', ')}` },
+        { error: 'Cannot modify your own role. Use another super_admin account.' },
+        { status: 403 }
+      )
+    }
+
+    // Validate role is allowed
+    if (!isValidUserRole(role)) {
+      return NextResponse.json(
+        { error: `Invalid role: ${role}. Must be one of: ${VALID_USER_ROLES.join(', ')}` },
         { status: 400 }
       )
     }
 
     // Get target user
     const targetUser = await client.users.getUser(userId)
+    const oldRole = (targetUser.publicMetadata as ClerkPublicMetadata)?.role
 
     // Update Clerk publicMetadata
     await client.users.updateUser(userId, {
@@ -70,7 +83,42 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log(`[API] Synced role to Clerk for ${targetUser.emailAddresses[0]?.emailAddress || targetUser.id}: ${role}`)
+    console.log(`[API] Synced role to Clerk for user ${targetUser.id}: ${oldRole} → ${role}`)
+
+    // Create audit log entry
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (convexUrl) {
+      try {
+        const convex = new ConvexHttpClient(convexUrl)
+
+        // Get caller's Convex user for audit log
+        const callerConvexUser = await convex.query(api.users.getUserByClerkId, {
+          clerkId: callerId,
+        })
+
+        if (callerConvexUser) {
+          await convex.mutation(api.audit_logs.createAuditLog, {
+            action: 'sync_role_to_clerk',
+            target_type: 'user',
+            target_id: userId,
+            target_email: targetUser.emailAddresses[0]?.emailAddress,
+            target_name: `${targetUser.firstName || ''} ${targetUser.lastName || ''}`.trim(),
+            performed_by_id: callerConvexUser._id,
+            performed_by_email: caller.emailAddresses[0]?.emailAddress,
+            performed_by_name: `${caller.firstName || ''} ${caller.lastName || ''}`.trim(),
+            reason: 'Manual role sync from Convex to Clerk',
+            metadata: {
+              old_role: oldRole,
+              new_role: role,
+              sync_direction: 'convex_to_clerk',
+            },
+          })
+        }
+      } catch (auditError) {
+        // Don't fail the operation if audit logging fails
+        console.error('[API] Failed to create audit log:', auditError)
+      }
+    }
 
     return NextResponse.json({
       success: true,

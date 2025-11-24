@@ -896,13 +896,21 @@ export default function AdminSettingsPage() {
           <RolePermissionsGuide />
 
           {/* Role Management Table */}
-          {clerkUser && <RoleManagementTable clerkId={clerkUser.id} />}
-
-          {/* Role History */}
-          {clerkUser && <RoleHistoryView clerkId={clerkUser.id} />}
+          {clerkUser ? (
+            <>
+              <RoleManagementTable clerkId={clerkUser.id} />
+              <RoleHistoryView clerkId={clerkUser.id} />
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                Loading user data...
+              </CardContent>
+            </Card>
+          )}
 
           {/* Role Diagnostics */}
-          {clerkUser && <RoleDiagnostics clerkId={clerkUser.id} />}
+          <RoleDiagnostics />
         </TabsContent>
       </Tabs>
       </div>
