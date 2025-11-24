@@ -74,6 +74,7 @@ interface RoleChangeDialogState {
   open: boolean
   user: MinimalUser | null
   newRole: string
+  selectedUniversityId: string | undefined
   loading: boolean
   validation: {
     valid: boolean
@@ -111,12 +112,19 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
     open: false,
     user: null,
     newRole: '',
+    selectedUniversityId: undefined,
     loading: false,
     validation: null,
   })
 
   // Fetch all users (minimal data)
+  // NOTE: Hard-coded limit of 1000 users. For larger user bases, implement cursor-based
+  // pagination with UI controls. The query already supports pagination via continueCursor.
+  // TODO: Add pagination UI when user count exceeds 1000
   const usersData = useQuery(api.users.getAllUsersMinimal, { clerkId, limit: 1000 })
+
+  // Fetch universities for role change dialog
+  const universitiesData = useQuery(api.universities.getAllUniversities, { clerkId })
 
   // Filter and search users
   const filteredUsers = useMemo(() => {
@@ -153,6 +161,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
       open: true,
       user,
       newRole: user.role,
+      selectedUniversityId: user.university_id,
       loading: false,
       validation: null,
     })
@@ -173,7 +182,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
         body: JSON.stringify({
           userId: dialogState.user.clerkId,
           newRole: dialogState.newRole,
-          universityId: dialogState.user.university_id,
+          universityId: dialogState.selectedUniversityId,
         }),
       })
 
@@ -196,6 +205,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
         open: false,
         user: null,
         newRole: '',
+        selectedUniversityId: undefined,
         loading: false,
         validation: null,
       })
@@ -220,7 +230,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
           userId: dialogState.user.clerkId,
           currentRole: dialogState.user.role,
           newRole: dialogState.newRole,
-          universityId: dialogState.user.university_id,
+          universityId: dialogState.selectedUniversityId,
         }),
       })
 
@@ -229,14 +239,17 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
     } catch (error) {
       console.error('Validation error:', error)
     }
-  }, [dialogState.user, dialogState.newRole])
+  }, [dialogState.user, dialogState.newRole, dialogState.selectedUniversityId])
 
-  // Validate when new role selected
+  // Validate when new role or university selected
   React.useEffect(() => {
     if (dialogState.newRole && dialogState.user && dialogState.newRole !== dialogState.user.role) {
       handleValidateRoleChange()
     }
-  }, [dialogState.newRole, dialogState.user, handleValidateRoleChange])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only re-validate when newRole, selectedUniversityId, or user identity changes
+    // handleValidateRoleChange is intentionally excluded to prevent unnecessary re-validations
+  }, [dialogState.newRole, dialogState.selectedUniversityId, dialogState.user?.clerkId])
 
   if (!usersData) {
     return (
@@ -389,6 +402,18 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination warning */}
+          {usersData?.page && usersData.page.length >= 1000 && (
+            <Alert className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Large User Base Detected</AlertTitle>
+              <AlertDescription>
+                Showing the first 1000 users. If you have more users, some may not be visible in this view.
+                Use the search and filter options to find specific users, or contact support for bulk operations.
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 
@@ -467,6 +492,48 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
               </Select>
             </div>
 
+            {/* University Selection (conditional) */}
+            {['student', 'university_admin', 'advisor'].includes(dialogState.newRole) && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  University <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  value={dialogState.selectedUniversityId || ''}
+                  onValueChange={(value) => setDialogState(prev => ({ ...prev, selectedUniversityId: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select university" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {!universitiesData ? (
+                      <SelectItem value="" disabled>
+                        Loading universities...
+                      </SelectItem>
+                    ) : universitiesData.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        No universities available
+                      </SelectItem>
+                    ) : (
+                      universitiesData.map((university) => (
+                        <SelectItem key={university._id} value={university._id}>
+                          {university.name}
+                          {university.status !== 'active' && university.status !== 'trial' && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({university.status})
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Required for university-affiliated roles
+                </p>
+              </div>
+            )}
+
             {/* Validation Results */}
             {dialogState.validation && (
               <div className="space-y-3">
@@ -512,7 +579,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDialogState({ open: false, user: null, newRole: '', loading: false, validation: null })}
+              onClick={() => setDialogState({ open: false, user: null, newRole: '', selectedUniversityId: undefined, loading: false, validation: null })}
               disabled={dialogState.loading}
             >
               Cancel

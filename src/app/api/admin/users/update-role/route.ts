@@ -115,13 +115,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Prevent university_id for non-university roles
+    if (newRole === 'individual' && universityId) {
+      return NextResponse.json(
+        { error: 'Individual role cannot have university affiliation' },
+        { status: 400 }
+      )
+    }
+
     // Validate university exists if provided
     if (universityId) {
-      // Validate ID format before type assertion
-      // Convex IDs are alphanumeric strings that start with a table identifier
+      // Validate ID format before querying
+      // Convex IDs are URL-safe base32-encoded strings
       if (typeof universityId !== 'string' || universityId.trim().length === 0) {
         return NextResponse.json(
           { error: 'Invalid university ID format - must be a non-empty string' },
+          { status: 400 }
+        )
+      }
+
+      // Basic format check: Convex IDs are alphanumeric with possible underscores
+      // More thorough validation happens when querying Convex
+      if (!/^[a-z0-9_]+$/i.test(universityId)) {
+        return NextResponse.json(
+          { error: 'Invalid university ID format - contains invalid characters' },
           { status: 400 }
         )
       }
@@ -154,7 +171,7 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error('[API] University validation error:', error)
         return NextResponse.json(
-          { error: 'Invalid university ID format' },
+          { error: 'Invalid university ID format or university does not exist' },
           { status: 400 }
         )
       }

@@ -90,6 +90,7 @@ export const getAuditLogs = query({
     clerkId: v.string(),
     action: v.optional(v.string()),
     target_email: v.optional(v.string()),
+    startDate: v.optional(v.number()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -97,7 +98,25 @@ export const getAuditLogs = query({
     await requireSuperAdmin(ctx)
 
     // Apply filters using indexes
-    if (args.action) {
+    // NOTE: When startDate is provided, we use the timestamp index for efficient filtering
+    if (args.startDate) {
+      // Use timestamp index for date filtering
+      let logs = await ctx.db
+        .query("audit_logs")
+        .withIndex("by_timestamp", (q) => q.gte("timestamp", args.startDate!))
+        .order("desc")
+        .take(args.limit || 100)
+
+      // Apply additional filters in memory
+      if (args.action) {
+        logs = logs.filter(log => log.action === args.action)
+      }
+      if (args.target_email) {
+        logs = logs.filter(log => log.target_email === args.target_email)
+      }
+
+      return logs
+    } else if (args.action) {
       const logs = await ctx.db
         .query("audit_logs")
         .withIndex("by_action", (q) => q.eq("action", args.action!))

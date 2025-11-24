@@ -42,24 +42,22 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
     return now - (days * 24 * 60 * 60 * 1000)
   }, [timeFilter])
 
-  // Fetch role change audit logs
+  // Fetch role change audit logs with server-side time filtering
   const auditLogs = useQuery(
     api.audit_logs.getAuditLogs,
     {
       clerkId,
       action: 'user_role_changed',
+      startDate, // Pass time filter to query for efficient server-side filtering
       limit: 100,
     }
   )
 
-  // Filter logs by search query and time
+  // Filter logs by search query only (time filtering now done server-side)
   const filteredLogs = React.useMemo(() => {
     if (!auditLogs) return []
 
     return auditLogs.filter((log) => {
-      // Time filter
-      if (startDate && log.timestamp < startDate) return false
-
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
@@ -72,7 +70,7 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
 
       return true
     })
-  }, [auditLogs, searchQuery, startDate])
+  }, [auditLogs, searchQuery])
 
   // Statistics
   const stats = React.useMemo(() => {
@@ -268,7 +266,7 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
         {/* Pagination info */}
         {auditLogs && auditLogs.length >= 100 && (
           <div className="text-sm text-muted-foreground text-center">
-            Showing the most recent 100 role changes. Export to CSV for complete history.
+            Showing the most recent 100 role changes for the selected time period. Export to CSV for complete history.
           </div>
         )}
       </CardContent>

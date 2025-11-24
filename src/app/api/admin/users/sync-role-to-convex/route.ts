@@ -3,7 +3,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import { ClerkPublicMetadata } from '@/types/clerk'
-import { VALID_USER_ROLES } from '@/lib/constants/roles'
+import { VALID_USER_ROLES, UserRole } from '@/lib/constants/roles'
 import { isValidUserRole } from '@/lib/validation/roleValidation'
 
 export const runtime = 'nodejs'
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     await convex.mutation(api.users.updateUser, {
       clerkId: userId,
       updates: {
-        role: role as 'super_admin' | 'university_admin' | 'advisor' | 'student' | 'individual' | 'staff' | 'user',
+        role: role as UserRole,
       },
     })
 

@@ -6,6 +6,7 @@
 import { v } from "convex/values"
 import { action, internalQuery } from "../_generated/server"
 import { internal } from "../_generated/api"
+import { isValidUserRole } from "../lib/roleValidation"
 
 /**
  * Sync all user roles from Convex to Clerk
@@ -115,6 +116,21 @@ export const syncAllRolesToClerk = action({
     for (let i = 0; i < users.length; i++) {
       const user = users[i]
       try {
+        // Validate role before attempting sync to prevent propagating invalid data
+        if (!isValidUserRole(user.role)) {
+          results.errors++
+          results.details.push({
+            email: user.email,
+            clerkId: user.clerkId,
+            convexRole: user.role,
+            clerkRole: null,
+            action: 'error',
+            message: `Invalid role in Convex: "${user.role}". Skipping sync to prevent data corruption.`,
+          })
+          console.error(`[SyncRolesToClerk] Invalid role for ${user.email}: ${user.role}`)
+          continue
+        }
+
         // Skip users without valid Clerk ID (pending activation, empty, etc.)
         if (!user.clerkId || user.clerkId === '' || user.clerkId.startsWith('pending_')) {
           results.skipped++

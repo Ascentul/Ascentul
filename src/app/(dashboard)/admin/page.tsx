@@ -47,7 +47,7 @@ import {
 function AdminDashboardPage() {
   const router = useRouter()
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
-  const { user: convexUser } = useAuth()
+  const { user: convexUser, isLoading: convexLoading } = useAuth()
   const [activeView, setActiveView] = React.useState<'system' | 'universities' | 'users' | 'revenue'>('system')
   const [activeAnalyticsTab, setActiveAnalyticsTab] = React.useState<'overview' | 'analytics' | 'universities' | 'users' | 'system'>('overview')
 
@@ -164,7 +164,9 @@ function AdminDashboardPage() {
   // Show unauthorized message if user doesn't have access (based on Clerk role)
   if (!canAccess) {
     const convexRole = convexUser?.role
-    const hasMismatch = clerkRole !== convexRole
+    // Only compute mismatch if both Clerk and Convex are done loading
+    // to avoid false positives during initialization
+    const hasMismatch = !convexLoading && clerkRole !== convexRole
 
     return (
       <div className="space-y-4 min-w-0">

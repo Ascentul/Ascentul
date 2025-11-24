@@ -75,49 +75,101 @@ export async function POST(request: NextRequest) {
     const targetUser = await client.users.getUser(userId)
     const oldRole = (targetUser.publicMetadata as ClerkPublicMetadata)?.role
 
-    // Update Clerk publicMetadata
-    await client.users.updateUser(userId, {
-      publicMetadata: {
-        ...targetUser.publicMetadata,
-        role,
-      },
+    // Validate university requirements for roles that need affiliation
+    const requiresUniversity = ['student', 'university_admin', 'advisor'].includes(role)
+    const currentUniversityId = (targetUser.publicMetadata as ClerkPublicMetadata)?.university_id
+
+    if (requiresUniversity && !currentUniversityId) {
+      return NextResponse.json(
+        { error: `${role} role requires a university affiliation. User must have university_id in metadata.` },
+        { status: 400 }
+      )
+    }
+
+    // Critical validation: prevent changing the super_admin role
+    // BUSINESS RULE: There is only ONE super_admin (the founder).
+    if (oldRole === 'super_admin' && role !== 'super_admin') {
+      return NextResponse.json(
+        {
+          error: 'Cannot change super_admin role. This role is reserved for the platform founder and cannot be modified through the admin interface. Use Clerk Dashboard for emergency role changes.'
+        },
+        { status: 403 }
+      )
+    }
+
+    // Get target user's Convex data to sync university_id as well
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!convexUrl) {
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      )
+    }
+
+    const convex = new ConvexHttpClient(convexUrl)
+    const convexUser = await convex.query(api.users.getUserByClerkId, {
+      clerkId: userId,
     })
 
-    console.log(`[API] Synced role to Clerk for user ${targetUser.id}: ${oldRole} → ${role}`)
+    if (!convexUser) {
+      return NextResponse.json(
+        { error: 'User not found in Convex' },
+        { status: 404 }
+      )
+    }
+
+    // Build metadata update - sync both role and university_id from Convex
+    const requiresUniversity = ['student', 'university_admin', 'advisor'].includes(role)
+    const newMetadata: Record<string, any> = {
+      ...targetUser.publicMetadata,
+      role,
+    }
+
+    // Sync university_id from Convex
+    if (requiresUniversity && convexUser.university_id) {
+      newMetadata.university_id = convexUser.university_id
+    } else if (!requiresUniversity) {
+      // Remove university_id for non-university roles
+      delete newMetadata.university_id
+    }
+
+    // Update Clerk publicMetadata
+    await client.users.updateUser(userId, {
+      publicMetadata: newMetadata,
+    })
+
+    console.log(`[API] Synced to Clerk for user ${targetUser.id}: role ${oldRole} → ${role}${convexUser.university_id ? `, university_id: ${convexUser.university_id}` : ''}`)
 
     // Create audit log entry
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (convexUrl) {
-      try {
-        const convex = new ConvexHttpClient(convexUrl)
+    try {
+      // Get caller's Convex user for audit log
+      const callerConvexUser = await convex.query(api.users.getUserByClerkId, {
+        clerkId: callerId,
+      })
 
-        // Get caller's Convex user for audit log
-        const callerConvexUser = await convex.query(api.users.getUserByClerkId, {
-          clerkId: callerId,
+      if (callerConvexUser) {
+        await convex.mutation(api.audit_logs.createAuditLog, {
+          action: 'sync_role_to_clerk',
+          target_type: 'user',
+          target_id: userId,
+          target_email: targetUser.emailAddresses[0]?.emailAddress,
+          target_name: `${targetUser.firstName || ''} ${targetUser.lastName || ''}`.trim(),
+          performed_by_id: callerConvexUser._id,
+          performed_by_email: caller.emailAddresses[0]?.emailAddress,
+          performed_by_name: `${caller.firstName || ''} ${caller.lastName || ''}`.trim(),
+          reason: 'Manual role sync from Convex to Clerk',
+          metadata: {
+            old_role: oldRole,
+            new_role: role,
+            old_university_id: (targetUser.publicMetadata as ClerkPublicMetadata)?.university_id,
+            new_university_id: convexUser.university_id,
+            sync_direction: 'convex_to_clerk',
+          },
         })
-
-        if (callerConvexUser) {
-          await convex.mutation(api.audit_logs.createAuditLog, {
-            action: 'sync_role_to_clerk',
-            target_type: 'user',
-            target_id: userId,
-            target_email: targetUser.emailAddresses[0]?.emailAddress,
-            target_name: `${targetUser.firstName || ''} ${targetUser.lastName || ''}`.trim(),
-            performed_by_id: callerConvexUser._id,
-            performed_by_email: caller.emailAddresses[0]?.emailAddress,
-            performed_by_name: `${caller.firstName || ''} ${caller.lastName || ''}`.trim(),
-            reason: 'Manual role sync from Convex to Clerk',
-            metadata: {
-              old_role: oldRole,
-              new_role: role,
-              sync_direction: 'convex_to_clerk',
-            },
-          })
-        }
-      } catch (auditError) {
-        // Don't fail the operation if audit logging fails
-        console.error('[API] Failed to create audit log:', auditError)
       }
+    } catch (auditError) {
+      // Don't fail the operation if audit logging fails
+      console.error('[API] Failed to create audit log:', auditError)
     }
 
     return NextResponse.json({

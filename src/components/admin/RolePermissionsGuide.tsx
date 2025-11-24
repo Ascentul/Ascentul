@@ -32,6 +32,7 @@ import {
   ChevronDown,
   ChevronRight,
   Info,
+  AlertTriangle,
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -178,6 +179,9 @@ export function RolePermissionsGuide() {
 
   // Fetch route access mappings from backend (single source of truth)
   const roleRoutes = useQuery(api.actions.roleValidation.getAllRoleRoutes)
+
+  // Distinguish between loading (undefined) and error (query failed)
+  const isLoadingRoutes = roleRoutes === undefined
 
   const toggleRole = (role: string) => {
     const newExpanded = new Set(expandedRoles)
@@ -348,8 +352,15 @@ export function RolePermissionsGuide() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {!roleRoutes ? (
+            {isLoadingRoutes ? (
               <div className="text-sm text-muted-foreground">Loading route access data...</div>
+            ) : !roleRoutes ? (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Failed to load route access data. Please refresh the page or contact support if the issue persists.
+                </AlertDescription>
+              </Alert>
             ) : (
               <div className="space-y-4">
                 {roleRoutes.map(({ role, routes }) => {

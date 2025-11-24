@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,10 +19,12 @@ import {
   XCircle,
   ArrowRight,
 } from 'lucide-react'
+import { User } from '@clerk/nextjs/server'
+import { Doc } from 'convex/_generated/dataModel'
 
 interface DiagnosticResult {
-  user: any
-  clerkData: any
+  user: Doc<"users"> | null
+  clerkData: User
   mismatch: boolean
   clerkRole: string | null
   convexRole: string | null
@@ -36,6 +38,16 @@ export function RoleDiagnostics() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [diagnosticResult, setDiagnosticResult] = useState<DiagnosticResult | null>(null)
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Cleanup timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const runDiagnostic = async () => {
     if (!email) {
@@ -102,8 +114,13 @@ export function RoleDiagnostics() {
         description: 'Successfully synced role from Convex to Clerk. Re-checking in 2 seconds...',
       })
 
+      // Clear any existing timeout to prevent stale callbacks
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current)
+      }
+
       // Wait for webhook to process before re-checking (webhook takes ~500ms-1s)
-      setTimeout(async () => {
+      syncTimeoutRef.current = setTimeout(async () => {
         await runDiagnostic()
         setLoading(false)
       }, 2000)
@@ -143,8 +160,13 @@ export function RoleDiagnostics() {
         description: 'Successfully synced role from Clerk to Convex. Re-checking in 2 seconds...',
       })
 
+      // Clear any existing timeout to prevent stale callbacks
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current)
+      }
+
       // Wait for webhook to process before re-checking (webhook takes ~500ms-1s)
-      setTimeout(async () => {
+      syncTimeoutRef.current = setTimeout(async () => {
         await runDiagnostic()
         setLoading(false)
       }, 2000)
