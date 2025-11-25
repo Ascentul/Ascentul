@@ -5,9 +5,10 @@
  * convex/lib/roleValidation.ts so it can be called from API routes.
  */
 
-import { query } from "../_generated/server"
+import { query } from "./_generated/server"
 import { v } from "convex/values"
-import { type UserRole, VALID_ROLES, getRoleRouteAccess, validateRoleTransition as libValidateRoleTransition, isValidUserRole } from "../lib/roleValidation"
+import { type UserRole, VALID_ROLES, getRoleRouteAccess, validateRoleTransition as libValidateRoleTransition, isValidUserRole } from "./lib/roleValidation"
+import { requireSuperAdmin } from "./lib/roles"
 
 /**
  * Validate a role transition
@@ -47,10 +48,15 @@ export const validateRoleTransition = query({
  *
  * Returns the complete mapping of roles to their allowed routes.
  * This is the single source of truth for route access control.
+ *
+ * SECURITY: Requires super admin authentication to prevent exposure of permission structure
  */
 export const getAllRoleRoutes = query({
   args: {},
-  handler: async () => {
+  handler: async (ctx) => {
+    // Verify caller is super admin - permission structure is sensitive information
+    await requireSuperAdmin(ctx)
+
     return VALID_ROLES.map((role) => ({
       role,
       routes: getRoleRouteAccess(role),
