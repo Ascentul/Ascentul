@@ -196,7 +196,7 @@ export function RolePermissionsGuide() {
   const [expandedRoles, setExpandedRoles] = useState<Set<string>>(new Set())
 
   // Fetch route access mappings from backend (single source of truth)
-  const roleRoutes = useQuery(api.actions.roleValidation.getAllRoleRoutes)
+  const roleRoutes = useQuery(api.roleValidation.getAllRoleRoutes)
 
   // Distinguish between loading (undefined) and error (query failed)
   const isLoadingRoutes = roleRoutes === undefined

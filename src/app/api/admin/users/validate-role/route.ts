@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     // Use Convex query to validate (centralizes business logic)
     const convex = new ConvexHttpClient(convexUrl)
 
-    const result = await convex.query(api.actions.roleValidation.validateRoleTransition, {
+    const result = await convex.query(api.roleValidation.validateRoleTransition, {
       userId: targetUserId,
       currentRole,
       newRole,
