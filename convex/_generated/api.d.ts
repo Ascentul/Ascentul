@@ -14,7 +14,6 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as achievements from "../achievements.js";
-import type * as actions_roleValidation from "../actions/roleValidation.js";
 import type * as activity from "../activity.js";
 import type * as admin_syncRolesToClerk from "../admin/syncRolesToClerk.js";
 import type * as admin_users from "../admin_users.js";
@@ -46,6 +45,7 @@ import type * as platform_settings from "../platform_settings.js";
 import type * as projects from "../projects.js";
 import type * as recommendations from "../recommendations.js";
 import type * as resumes from "../resumes.js";
+import type * as roleValidation from "../roleValidation.js";
 import type * as students from "../students.js";
 import type * as support_tickets from "../support_tickets.js";
 import type * as universities from "../universities.js";
@@ -64,7 +64,6 @@ import type * as viewer from "../viewer.js";
  */
 declare const fullApi: ApiFromModules<{
   achievements: typeof achievements;
-  "actions/roleValidation": typeof actions_roleValidation;
   activity: typeof activity;
   "admin/syncRolesToClerk": typeof admin_syncRolesToClerk;
   admin_users: typeof admin_users;
@@ -96,6 +95,7 @@ declare const fullApi: ApiFromModules<{
   projects: typeof projects;
   recommendations: typeof recommendations;
   resumes: typeof resumes;
+  roleValidation: typeof roleValidation;
   students: typeof students;
   support_tickets: typeof support_tickets;
   universities: typeof universities;
