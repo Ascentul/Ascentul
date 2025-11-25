@@ -258,7 +258,7 @@ export function RoleDiagnostics() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>User Not Found in Convex</AlertTitle>
                 <AlertDescription>
-                  This user exists in Clerk ({diagnosticResult.clerkData.emailAddresses?.[0]?.emailAddress || diagnosticResult.clerkData.id}) but has not been synced to the Convex database yet. This may indicate a webhook configuration issue.
+                  This user exists in Clerk ({diagnosticResult.clerkData.email || diagnosticResult.clerkData.id}) but has not been synced to the Convex database yet. This may indicate a webhook configuration issue.
                 </AlertDescription>
               </Alert>
             )}
