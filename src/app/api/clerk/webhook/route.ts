@@ -3,6 +3,7 @@ import { Webhook } from 'svix'
 import { clerkClient } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { validateRoleOrWarn } from '@/lib/validation/roleValidation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -64,8 +65,14 @@ export async function POST(request: NextRequest) {
         const metadata = userData.public_metadata || {}
         const subscriptionPlan = determineSubscriptionPlan(metadata)
         const subscriptionStatus = determineSubscriptionStatus(metadata)
+        const roleInMetadata = metadata.role || null
+
+        // Validate role value before passing to Convex
+        const validatedRole = validateRoleOrWarn(roleInMetadata, 'Clerk Webhook')
 
         const userEmail = userData.email_addresses?.[0]?.email_address || ''
+
+        console.log(`[Clerk Webhook] Creating user: ${userEmail}${validatedRole ? ` with role: ${validatedRole}` : ''}`)
 
         // Create/activate user in Convex
         const userId = await convex.mutation(api.users.createUserFromClerk, {
@@ -75,6 +82,8 @@ export async function POST(request: NextRequest) {
           profile_image: userData.image_url,
           subscription_plan: subscriptionPlan,
           subscription_status: subscriptionStatus,
+          // Pass validated role from Clerk metadata if present
+          role: validatedRole || undefined,
         })
 
         console.log(`[Clerk Webhook] Created/activated user: ${userData.id}`)
@@ -88,16 +97,25 @@ export async function POST(request: NextRequest) {
         if (convexUser && convexUser.university_id && !metadata.university_id) {
           try {
             const client = await clerkClient()
+
+            // Build publicMetadata update
+            const updatedMetadata: Record<string, any> = {
+              ...metadata,
+              university_id: convexUser.university_id,
+            }
+
+            // Only set role if we have a valid one (prefer Convex role, fallback to validated role from webhook)
+            const roleToSync = convexUser.role || validatedRole
+            if (roleToSync) {
+              updatedMetadata.role = roleToSync
+            }
+
             await client.users.updateUser(userData.id, {
-              publicMetadata: {
-                ...metadata,
-                university_id: convexUser.university_id,
-                role: convexUser.role || 'user',
-              },
+              publicMetadata: updatedMetadata,
             })
-            console.log(`[Clerk Webhook] Synced university_id to Clerk for ${userEmail}`)
+            console.log(`[Clerk Webhook] Synced university_id and role to Clerk for ${userEmail}`)
           } catch (syncError) {
-            console.error('[Clerk Webhook] Failed to sync university_id to Clerk:', syncError)
+            console.error('[Clerk Webhook] Failed to sync to Clerk:', syncError)
           }
         }
 
@@ -110,13 +128,26 @@ export async function POST(request: NextRequest) {
         const subscriptionPlan = determineSubscriptionPlan(metadata)
         const subscriptionStatus = determineSubscriptionStatus(metadata)
 
+        // Check if role changed - important for role management logging
+        const roleInMetadata = metadata.role || null
+        const userEmail = userData.email_addresses?.[0]?.email_address
+
+        // Validate role value before syncing to Convex
+        const validatedRole = validateRoleOrWarn(roleInMetadata, `Clerk Webhook - ${userEmail}`)
+
         // Check if user was banned in Clerk - sync to account_status
         const updates: any = {
-          email: userData.email_addresses?.[0]?.email_address,
+          email: userEmail,
           name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
           profile_image: userData.image_url,
           subscription_plan: subscriptionPlan,
           subscription_status: subscriptionStatus,
+        }
+
+        // Sync validated role from Clerk metadata if present
+        if (validatedRole) {
+          updates.role = validatedRole
+          console.log(`[Clerk Webhook] Role update detected for ${userEmail}: ${validatedRole}`)
         }
 
         // If user is banned in Clerk, ensure account_status is suspended
@@ -135,7 +166,7 @@ export async function POST(request: NextRequest) {
           updates,
         })
 
-        console.log(`[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}`)
+        console.log(`[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}${validatedRole ? `, role: ${validatedRole}` : ''}`)
         break
       }
 

@@ -14,7 +14,9 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as achievements from "../achievements.js";
+import type * as actions_roleValidation from "../actions/roleValidation.js";
 import type * as activity from "../activity.js";
+import type * as admin_syncRolesToClerk from "../admin/syncRolesToClerk.js";
 import type * as admin_users from "../admin_users.js";
 import type * as admin_users_actions from "../admin_users_actions.js";
 import type * as ai_coach from "../ai_coach.js";
@@ -34,6 +36,7 @@ import type * as goals from "../goals.js";
 import type * as interviews from "../interviews.js";
 import type * as investor_metrics from "../investor_metrics.js";
 import type * as jobs from "../jobs.js";
+import type * as lib_roleValidation from "../lib/roleValidation.js";
 import type * as lib_roles from "../lib/roles.js";
 import type * as metrics from "../metrics.js";
 import type * as migrations from "../migrations.js";
@@ -61,7 +64,9 @@ import type * as viewer from "../viewer.js";
  */
 declare const fullApi: ApiFromModules<{
   achievements: typeof achievements;
+  "actions/roleValidation": typeof actions_roleValidation;
   activity: typeof activity;
+  "admin/syncRolesToClerk": typeof admin_syncRolesToClerk;
   admin_users: typeof admin_users;
   admin_users_actions: typeof admin_users_actions;
   ai_coach: typeof ai_coach;
@@ -81,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   interviews: typeof interviews;
   investor_metrics: typeof investor_metrics;
   jobs: typeof jobs;
+  "lib/roleValidation": typeof lib_roleValidation;
   "lib/roles": typeof lib_roles;
   metrics: typeof metrics;
   migrations: typeof migrations;

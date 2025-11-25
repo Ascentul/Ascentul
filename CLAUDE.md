@@ -101,6 +101,7 @@ Feature Gating (Access Control)
 
 ### Authentication & Authorization
 - **Clerk** handles authentication via JWT tokens
+- **Clerk `publicMetadata.role`** is the source of truth for all authorization (see [Roles & Permissions](#roles--permissions) for details)
 - Middleware (`src/middleware.ts`) protects routes and enforces role-based redirects:
   - Regular users → `/dashboard`
   - `super_admin`/`admin` → `/admin`
@@ -134,9 +135,114 @@ Feature Gating (Access Control)
 - `src/app/api/`: API routes (Stripe webhooks, file uploads, etc.)
 
 ### Roles & Permissions
-- `user`: Regular free/premium users
-- `university_admin`: Manages students within their university
-- `admin`/`super_admin`: Platform-wide administration
+
+**IMPORTANT: Clerk `publicMetadata.role` is the source of truth for all authorization.**
+
+#### Available Roles
+
+- **`super_admin`**: Full platform access - manage all users, universities, system settings, audit logs
+- **`university_admin`**: University-scoped admin - manage students and settings for assigned university only
+- **`advisor`**: University advisor - view and assist students within assigned university
+- **`student`**: University-affiliated user with career tools access (auto university subscription)
+- **`individual`**: Non-university user with free or premium subscription
+- **`staff`**: Internal staff member with support access
+- **`user`**: Legacy role (being migrated to `individual`)
+
+#### Role Management Architecture
+
+```
+Role Change Flow:
+Admin Action → Clerk publicMetadata.role (Source of Truth)
+                    ↓ webhook (user.updated)
+              Convex users.role (Cached for Display)
+
+Authorization Checks:
+Page Component → Reads clerkUser.publicMetadata.role ✅
+Admin UI Display → Reads convexUser.role (display only) 📊
+```
+
+**Key Principles:**
+- ✅ Set roles in Clerk Dashboard or via Clerk API
+- ✅ Authorization checks use `clerkUser.publicMetadata.role`
+- ✅ Convex `users.role` is cached for display and queries only
+- ❌ Never manually update Convex role without updating Clerk
+- ❌ Never use Convex role for authorization decisions
+
+#### Managing Roles
+
+**Option 1: Via Admin UI (Recommended)**
+1. Go to `/admin/settings` → "User Roles" tab
+2. Find user in role management table
+3. Click "Change Role" and select new role
+4. System updates Clerk and syncs to Convex automatically
+
+**Option 2: Via Clerk Dashboard**
+1. Go to [Clerk Dashboard](https://dashboard.clerk.com)
+2. Users → Find user → Public Metadata
+3. Add/update: `{"role": "super_admin"}`
+4. Webhook automatically syncs to Convex
+
+**Option 3: Programmatically**
+```typescript
+import { clerkClient } from '@clerk/nextjs/server'
+
+const client = await clerkClient()
+await client.users.updateUserMetadata(userId, {
+  publicMetadata: { role: 'super_admin' }
+})
+// Webhook will automatically sync to Convex
+```
+
+#### Making Someone Super Admin
+
+To grant super admin access:
+1. Update Clerk `publicMetadata.role` to `"super_admin"` (via Dashboard or API)
+2. Webhook syncs to Convex automatically
+3. User must log out and back in for changes to take effect
+4. Verify access at `/admin`
+
+#### Role Validation Rules
+
+- `student`, `university_admin`, `advisor`: Require `university_id`
+- `individual`: Should NOT have `university_id`
+- Cannot remove last super admin
+- Role changes logged in audit trail
+
+#### Troubleshooting Role Issues
+
+**User can't access admin pages:**
+→ Check Clerk `publicMetadata.role` (not Convex role)
+→ Go to `/admin/settings` → "User Roles" → "Role Diagnostics"
+→ Enter user email to check role sync status
+
+**Role mismatch between Clerk and Convex:**
+→ Use "Role Diagnostics" tool to detect and fix
+→ Recommended: Sync from Convex to Clerk
+→ Webhook will automatically sync back to Convex
+
+**Bulk role sync needed:**
+→ Run: `npx convex run admin/syncRolesToClerk:syncAllRolesToClerk --clerkId YOUR_CLERK_ID --dryRun true`
+→ Review changes, then run without `--dryRun` flag
+
+#### Role Features & Access
+
+| Feature | super_admin | university_admin | advisor | student | individual |
+|---------|-------------|------------------|---------|---------|------------|
+| Platform Settings | ✅ | ❌ | ❌ | ❌ | ❌ |
+| All Users Management | ✅ | ❌ | ❌ | ❌ | ❌ |
+| University Management | ✅ | ✅ (own) | ❌ | ❌ | ❌ |
+| Student Management | ✅ | ✅ (own) | ✅ (assigned) | ❌ | ❌ |
+| Platform Analytics | ✅ | ❌ | ❌ | ❌ | ❌ |
+| University Analytics | ✅ | ✅ (own) | ✅ (own) | ❌ | ❌ |
+| Audit Logs | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Career Tools | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+#### Protected Routes
+
+- `/admin/*` → `super_admin` only
+- `/university/*` → `university_admin`, `advisor`
+- `/dashboard/*` → All authenticated users
+- `/applications/*`, `/resumes/*`, `/goals/*` → All authenticated users
 
 ### TypeScript Paths
 ```typescript

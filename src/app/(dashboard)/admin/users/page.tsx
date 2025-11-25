@@ -427,7 +427,7 @@ export default function AdminUsersPage() {
                     </div>
                     <div className={`hidden md:block min-w-0 truncate ${isDeleted ? 'line-through text-muted-foreground' : ''}`}>{u.email}</div>
                     <div className="min-w-0">
-                      <Badge variant="outline" className="capitalize text-xs">{u.role.replace('_', ' ')}</Badge>
+                      <Badge variant="outline" className="capitalize text-xs">{u.role.replace(/_/g, ' ')}</Badge>
                     </div>
                     <div className="hidden md:block min-w-0"><Badge variant={u.subscription_plan === 'premium' ? 'default' : 'secondary'} className="capitalize text-xs">{u.subscription_plan}</Badge></div>
                     <div className="min-w-0 truncate">
