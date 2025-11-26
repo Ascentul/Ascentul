@@ -86,6 +86,13 @@ export function RoleSwitcher() {
     return null
   }
 
+  // Helper to get role option by role name (avoids fragile array indices)
+  const getRoleOption = (role: ImpersonatableRole): RoleOption => {
+    const option = roleOptions.find(r => r.role === role)
+    if (!option) throw new Error(`Role option not found: ${role}`)
+    return option
+  }
+
   const handleRoleSelect = (option: RoleOption, universityId?: Id<"universities">) => {
     if (option.requiresUniversity && !universityId) {
       // Don't select if university is required but not provided
@@ -181,7 +188,7 @@ export function RoleSwitcher() {
                 universities.slice(0, 10).map((uni) => (
                   <DropdownMenuItem
                     key={uni._id}
-                    onClick={() => handleRoleSelect(roleOptions[1], uni._id)}
+                    onClick={() => handleRoleSelect(getRoleOption('student'), uni._id)}
                     className={
                       impersonation.role === 'student' && impersonation.universityId === uni._id
                         ? 'bg-neutral-100'
@@ -214,7 +221,7 @@ export function RoleSwitcher() {
                 universities.slice(0, 10).map((uni) => (
                   <DropdownMenuItem
                     key={uni._id}
-                    onClick={() => handleRoleSelect(roleOptions[2], uni._id)}
+                    onClick={() => handleRoleSelect(getRoleOption('advisor'), uni._id)}
                     className={
                       impersonation.role === 'advisor' && impersonation.universityId === uni._id
                         ? 'bg-neutral-100'
@@ -247,7 +254,7 @@ export function RoleSwitcher() {
                 universities.slice(0, 10).map((uni) => (
                   <DropdownMenuItem
                     key={uni._id}
-                    onClick={() => handleRoleSelect(roleOptions[3], uni._id)}
+                    onClick={() => handleRoleSelect(getRoleOption('university_admin'), uni._id)}
                     className={
                       impersonation.role === 'university_admin' && impersonation.universityId === uni._id
                         ? 'bg-neutral-100'
@@ -265,7 +272,7 @@ export function RoleSwitcher() {
 
           {/* Staff */}
           <DropdownMenuItem
-            onClick={() => handleRoleSelect(roleOptions[4])}
+            onClick={() => handleRoleSelect(getRoleOption('staff'))}
             className={impersonation.role === 'staff' ? 'bg-neutral-100' : ''}
           >
             <span className="flex items-center gap-2">
