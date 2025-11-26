@@ -47,11 +47,20 @@ import type * as recommendations from "../recommendations.js";
 import type * as resumes from "../resumes.js";
 import type * as roleValidation from "../roleValidation.js";
 import type * as students from "../students.js";
+import type * as students_all from "../students_all.js";
 import type * as support_tickets from "../support_tickets.js";
 import type * as universities from "../universities.js";
+import type * as universities_admin from "../universities_admin.js";
+import type * as universities_assignments from "../universities_assignments.js";
+import type * as universities_queries from "../universities_queries.js";
 import type * as university_admin from "../university_admin.js";
 import type * as usage from "../usage.js";
 import type * as users from "../users.js";
+import type * as users_core from "../users_core.js";
+import type * as users_onboarding from "../users_onboarding.js";
+import type * as users_profile from "../users_profile.js";
+import type * as users_queries from "../users_queries.js";
+import type * as users_subscriptions from "../users_subscriptions.js";
 import type * as viewer from "../viewer.js";
 
 /**
@@ -97,11 +106,20 @@ declare const fullApi: ApiFromModules<{
   resumes: typeof resumes;
   roleValidation: typeof roleValidation;
   students: typeof students;
+  students_all: typeof students_all;
   support_tickets: typeof support_tickets;
   universities: typeof universities;
+  universities_admin: typeof universities_admin;
+  universities_assignments: typeof universities_assignments;
+  universities_queries: typeof universities_queries;
   university_admin: typeof university_admin;
   usage: typeof usage;
   users: typeof users;
+  users_core: typeof users_core;
+  users_onboarding: typeof users_onboarding;
+  users_profile: typeof users_profile;
+  users_queries: typeof users_queries;
+  users_subscriptions: typeof users_subscriptions;
   viewer: typeof viewer;
 }>;
 export declare const api: FilterApi<

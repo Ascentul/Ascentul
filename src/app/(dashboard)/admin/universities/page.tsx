@@ -51,7 +51,7 @@ export default function AdminUniversitiesPage() {
   // Fetch university admin counts (optimized - no longer fetching all users)
   const adminCounts = useQuery(
     api.universities.getUniversityAdminCounts,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+    {}
   )
 
   // Mutations for creating universities
