@@ -65,14 +65,14 @@ export async function POST(request: NextRequest) {
         const metadata = userData.public_metadata || {}
         const subscriptionPlan = determineSubscriptionPlan(metadata)
         const subscriptionStatus = determineSubscriptionStatus(metadata)
-        const roleInMetadata = metadata.role || null
-
-        // Validate role value before passing to Convex
-        const validatedRole = validateRoleOrWarn(roleInMetadata, 'Clerk Webhook')
 
         const userEmail = userData.email_addresses?.[0]?.email_address || ''
 
-        console.log(`[Clerk Webhook] Creating user: ${userEmail}${validatedRole ? ` with role: ${validatedRole}` : ''}`)
+        // IMPORTANT: Convex is the source of truth for roles
+        // Default role is 'user' - admins must use role management UI to assign other roles
+        const defaultRole = 'user'
+
+        console.log(`[Clerk Webhook] Creating user: ${userEmail} with default role: ${defaultRole}`)
 
         // Create/activate user in Convex
         const userId = await convex.mutation(api.users.createUserFromClerk, {
@@ -82,8 +82,8 @@ export async function POST(request: NextRequest) {
           profile_image: userData.image_url,
           subscription_plan: subscriptionPlan,
           subscription_status: subscriptionStatus,
-          // Pass validated role from Clerk metadata if present
-          role: validatedRole || undefined,
+          // Assign default role (Convex decides, not Clerk)
+          role: defaultRole,
         })
 
         console.log(`[Clerk Webhook] Created/activated user: ${userData.id}`)
@@ -102,18 +102,15 @@ export async function POST(request: NextRequest) {
             const updatedMetadata: Record<string, any> = {
               ...metadata,
               university_id: convexUser.university_id,
-            }
-
-            // Only set role if we have a valid one (prefer Convex role, fallback to validated role from webhook)
-            const roleToSync = convexUser.role || validatedRole
-            if (roleToSync) {
-              updatedMetadata.role = roleToSync
+              // Mirror Convex role to Clerk (Convex is source of truth)
+              role: convexUser.role,
+              _role_source: 'convex', // Migration flag
             }
 
             await client.users.updateUser(userData.id, {
               publicMetadata: updatedMetadata,
             })
-            console.log(`[Clerk Webhook] Synced university_id and role to Clerk for ${userEmail}`)
+            console.log(`[Clerk Webhook] Synced university_id and role FROM Convex TO Clerk for ${userEmail}`)
           } catch (syncError) {
             console.error('[Clerk Webhook] Failed to sync to Clerk:', syncError)
           }
@@ -127,13 +124,10 @@ export async function POST(request: NextRequest) {
         const metadata = userData.public_metadata || {}
         const subscriptionPlan = determineSubscriptionPlan(metadata)
         const subscriptionStatus = determineSubscriptionStatus(metadata)
-
-        // Check if role changed - important for role management logging
-        const roleInMetadata = metadata.role || null
         const userEmail = userData.email_addresses?.[0]?.email_address
 
-        // Validate role value before syncing to Convex
-        const validatedRole = validateRoleOrWarn(roleInMetadata, `Clerk Webhook - ${userEmail}`)
+        // IMPORTANT: Convex is source of truth for roles - DO NOT sync role FROM Clerk TO Convex
+        // Only sync profile data, subscription data, and account status
 
         // Check if user was banned in Clerk - sync to account_status
         const updates: any = {
@@ -142,12 +136,6 @@ export async function POST(request: NextRequest) {
           profile_image: userData.image_url,
           subscription_plan: subscriptionPlan,
           subscription_status: subscriptionStatus,
-        }
-
-        // Sync validated role from Clerk metadata if present
-        if (validatedRole) {
-          updates.role = validatedRole
-          console.log(`[Clerk Webhook] Role update detected for ${userEmail}: ${validatedRole}`)
         }
 
         // If user is banned in Clerk, ensure account_status is suspended
@@ -166,7 +154,49 @@ export async function POST(request: NextRequest) {
           updates,
         })
 
-        console.log(`[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}${validatedRole ? `, role: ${validatedRole}` : ''}`)
+        // Auto-correct role mismatches: Convex is source of truth, sync to Clerk
+        // Skip auto-sync if Clerk already reflects Convex as source (prevents webhook loops)
+        const roleInClerkMetadata = metadata.role
+        if (roleInClerkMetadata && metadata._role_source !== 'convex') {
+          // Get current Convex role to compare
+          const convexUser = await convex.query(api.users.getUserByClerkId, {
+            clerkId: userData.id,
+          })
+          if (convexUser && roleInClerkMetadata !== convexUser.role) {
+            console.warn(
+              `[Clerk Webhook] Role mismatch detected for ${userEmail}: Clerk='${roleInClerkMetadata}', Convex='${convexUser.role}' (source of truth). Auto-syncing Clerk to match Convex.`
+            )
+
+            // Sync Clerk metadata to match Convex (source of truth)
+            try {
+              const clerkSecretKey = process.env.CLERK_SECRET_KEY
+              if (clerkSecretKey) {
+                await fetch(`https://api.clerk.com/v1/users/${userData.id}/metadata`, {
+                  method: 'PATCH',
+                  headers: {
+                    Authorization: `Bearer ${clerkSecretKey}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    public_metadata: {
+                      role: convexUser.role,
+                      university_id: convexUser.university_id || null,
+                      _role_source: 'convex', // Migration flag
+                    },
+                  }),
+                })
+                console.log(`[Clerk Webhook] Successfully synced Clerk metadata to match Convex role: ${convexUser.role}`)
+              } else {
+                console.error('[Clerk Webhook] CLERK_SECRET_KEY not configured, cannot auto-sync role mismatch')
+              }
+            } catch (syncError) {
+              console.error(`[Clerk Webhook] Failed to auto-sync role mismatch: ${syncError}`)
+              // Non-critical error - logged but doesn't block webhook
+            }
+          }
+        }
+
+        console.log(`[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}`)
         break
       }
 

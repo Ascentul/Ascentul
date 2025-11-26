@@ -103,14 +103,14 @@ export const createUserByAdmin = mutation({
           const userRole = args.role || "user"
 
           if (userRole === "university_admin") {
-            await ctx.scheduler.runAfter(0, api.email.sendUniversityAdminInvitationEmail, {
+            await ctx.scheduler.runAfter(0, api.email.sendUniversityAdminInvitationEmail as any, {
               email: args.email,
               name: args.name,
               universityName,
               activationToken,
             })
           } else if (userRole === "advisor") {
-            await ctx.scheduler.runAfter(0, api.email.sendUniversityAdvisorInvitationEmail, {
+            await ctx.scheduler.runAfter(0, api.email.sendUniversityAdvisorInvitationEmail as any, {
               email: args.email,
               name: args.name,
               universityName,
@@ -118,7 +118,7 @@ export const createUserByAdmin = mutation({
             })
           } else {
             // For students and other university users, send student invitation
-            await ctx.scheduler.runAfter(0, api.email.sendUniversityStudentInvitationEmail, {
+            await ctx.scheduler.runAfter(0, api.email.sendUniversityStudentInvitationEmail as any, {
               email: args.email,
               name: args.name,
               universityName,

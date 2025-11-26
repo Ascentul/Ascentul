@@ -859,3 +859,101 @@ export const toggleHideProgressCard = mutation({
     return user._id;
   },
 });
+
+/**
+ * Set user role (Convex is source of truth)
+ * This is the canonical role update mutation - should be called by actions/admin flows
+ * Does NOT update Clerk - that should be done by the action layer
+ */
+export const setRole = mutation({
+  args: {
+    userId: v.id("users"),
+    newRole: v.union(
+      v.literal("super_admin"),
+      v.literal("university_admin"),
+      v.literal("advisor"),
+      v.literal("student"),
+      v.literal("individual"),
+      v.literal("staff"),
+      v.literal("user"),
+    ),
+    universityId: v.optional(v.id("universities")),
+    actorId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Validate university_id constraints based on role requirements
+    const requiresUniversity = ["student", "university_admin", "advisor"].includes(args.newRole);
+    const forbidsUniversity = args.newRole === "individual";
+
+    if (requiresUniversity && !args.universityId) {
+      throw new Error(`Role '${args.newRole}' requires a university_id`);
+    }
+    if (forbidsUniversity && args.universityId) {
+      throw new Error(`Role 'individual' must not have a university_id`);
+    }
+
+    // Critical protection: Prevent demoting the last super_admin
+    // This ensures there is always at least one super_admin to manage the platform
+    if (user.role === "super_admin" && args.newRole !== "super_admin") {
+      // Efficient filtered query - only fetches super_admins, not all users
+      const superAdmins = await ctx.db
+        .query("users")
+        .filter((q) => q.eq(q.field("role"), "super_admin"))
+        .collect();
+
+      if (superAdmins.length <= 1) {
+        throw new Error(
+          "Cannot demote the last super_admin. Platform requires at least one super_admin for administration."
+        );
+      }
+    }
+
+    const oldRole = user.role;
+
+    // Update user role and university_id in Convex
+    // For non-university roles, explicitly set undefined to clear the field
+    await ctx.db.patch(args.userId, {
+      role: args.newRole,
+      university_id: requiresUniversity ? args.universityId : undefined,
+      updated_at: Date.now(),
+    });
+
+    // Log the role change for audit trail
+    await logRoleChange(ctx, user, oldRole, args.newRole);
+
+    // Return the updated user
+    return await ctx.db.get(args.userId);
+  },
+});
+
+/**
+ * Count users by role (efficient for role-based checks)
+ * Uses filtered query instead of fetching all users
+ */
+export const countUsersByRole = query({
+  args: {
+    role: v.union(
+      v.literal("super_admin"),
+      v.literal("university_admin"),
+      v.literal("advisor"),
+      v.literal("student"),
+      v.literal("individual"),
+      v.literal("staff"),
+      v.literal("user"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const users = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("role"), args.role))
+      .collect();
+
+    return users.length;
+  },
+});

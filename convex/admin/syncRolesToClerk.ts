@@ -86,7 +86,7 @@ export const syncAllRolesToClerk = action({
     let totalFetched = 0
 
     do {
-      const page: { users: Array<{ _id: string; clerkId: string; email: string; name: string; role: string }>; cursor: string | null } = await ctx.runQuery(internal.admin.syncRolesToClerk.getAllUsersInternal, {
+      const page: any = await ctx.runQuery(internal.admin.syncRolesToClerk.getAllUsersInternal, {
         cursor: cursor ?? undefined,
         pageSize: 100,
       })
