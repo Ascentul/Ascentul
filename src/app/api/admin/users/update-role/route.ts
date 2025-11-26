@@ -20,7 +20,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from 'convex/_generated/api'
+// Workaround for "Type instantiation is excessively deep" error in Convex
+const api: any = require('convex/_generated/api').api
 import { Id } from 'convex/_generated/dataModel'
 import { ClerkPublicMetadata } from '@/types/clerk'
 import { VALID_USER_ROLES } from '@/lib/constants/roles'
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     // Get caller's role from Clerk
     const client = await clerkClient()
-    const caller = await client.users.getUser(userId)
+    const caller = await client.users.getUser(userId!)
     const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role
 
     // Only super_admin can update roles
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const convex = new ConvexHttpClient(convexUrl)
+      const convex = new ConvexHttpClient(convexUrl!)
       try {
         const university = await convex.query(api.universities.getUniversity, {
           universityId: universityId as Id<"universities">
@@ -242,7 +243,7 @@ export async function POST(request: NextRequest) {
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
     if (convexUrl) {
       try {
-        const convex = new ConvexHttpClient(convexUrl)
+        const convex = new ConvexHttpClient(convexUrl!)
 
         // Get user by clerkId to get their Convex _id
         const convexUser = await convex.query(api.users.getUserByClerkId, {
@@ -279,12 +280,11 @@ export async function POST(request: NextRequest) {
         newRole,
       },
     })
-  } catch (error) {
-    console.error('[API] Role update error:', error)
+  } catch (e) {
+    const err = e as Error | undefined
+    console.error('[API] Role update error:', err)
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to update role',
-      },
+      { error: err?.message || 'Failed to update role' },
       { status: 500 }
     )
   }

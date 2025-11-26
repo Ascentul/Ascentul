@@ -5,8 +5,11 @@
 
 import { v } from "convex/values"
 import { action, internalQuery } from "../_generated/server"
-import { internal } from "../_generated/api"
 import { isValidUserRole } from "../lib/roleValidation"
+
+// Workaround for "Type instantiation is excessively deep" error in Convex
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
+const internalApi: any = require("../_generated/api").internal
 
 /**
  * Sync all user roles from Convex to Clerk
@@ -86,7 +89,7 @@ export const syncAllRolesToClerk = action({
     let totalFetched = 0
 
     do {
-      const page: any = await ctx.runQuery(internal.admin.syncRolesToClerk.getAllUsersInternal, {
+      const page: any = await ctx.runQuery(internalApi.admin.syncRolesToClerk.getAllUsersInternal, {
         cursor: cursor ?? undefined,
         pageSize: 100,
       })

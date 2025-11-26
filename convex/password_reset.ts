@@ -5,7 +5,9 @@
 
 import { v } from "convex/values"
 import { mutation } from "./_generated/server"
-import { api } from "./_generated/api"
+// Workaround for "Type instantiation is excessively deep" error in Convex
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
+const api: any = require("./_generated/api").api
 
 /**
  * Generate a random password reset token

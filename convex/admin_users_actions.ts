@@ -8,7 +8,10 @@
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { api, internal } from "./_generated/api";
+
+// Workaround for "Type instantiation is excessively deep" error in Convex
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
+const { api, internal }: any = require("./_generated/api");
 
 /**
  * Soft delete a user (super_admin only)

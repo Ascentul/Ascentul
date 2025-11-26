@@ -20,7 +20,10 @@
 
 import { action, query } from "../_generated/server";
 import { v } from "convex/values";
-import { api } from "../_generated/api";
+
+// Workaround for "Type instantiation is excessively deep" error in Convex
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
+const api: any = require("../_generated/api").api;
 
 // Helper query to get a super admin Clerk ID for testing
 export const getSuperAdminClerkId = query({

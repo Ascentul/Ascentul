@@ -5,8 +5,11 @@
 
 import { v } from "convex/values"
 import { mutation, query, internalMutation, internalQuery } from "./_generated/server"
-import { api, internal } from "./_generated/api"
 import { requireSuperAdmin } from "./lib/roles"
+
+// Workaround for "Type instantiation is excessively deep" error in Convex
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
+const { api, internal }: any = require("./_generated/api")
 
 /**
  * Generate a random activation token
@@ -26,7 +29,8 @@ export const createUserByAdmin = mutation({
     email: v.string(),
     name: v.string(),
     role: v.optional(v.union(
-      v.literal("user"),
+      v.literal("individual"),
+      v.literal("user"), // Legacy - kept for backward compatibility
       v.literal("student"),
       v.literal("staff"),
       v.literal("university_admin"),

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "convex/_generated/api";
 import Stripe from "stripe";
+
+// Workaround for "Type instantiation is excessively deep" error in Convex
+const api: any = require("convex/_generated/api").api;
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 

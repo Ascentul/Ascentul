@@ -7,8 +7,11 @@
 
 import { v } from "convex/values"
 import { action, query } from "./_generated/server"
-import { api } from "./_generated/api"
 import { Id } from "./_generated/dataModel"
+
+// Workaround for "Type instantiation is excessively deep" error in Convex
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
+const api: any = require("./_generated/api").api
 
 /**
  * Update a user's role (Convex is source of truth)

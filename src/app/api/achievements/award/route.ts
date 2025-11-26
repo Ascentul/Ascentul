@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from 'convex/_generated/api'
+
+// Workaround for "Type instantiation is excessively deep" error in Convex
+const api: any = require('convex/_generated/api').api
 
 // POST /api/achievements/award { achievement_id }
 export async function POST(request: Request) {

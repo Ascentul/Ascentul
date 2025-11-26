@@ -2,8 +2,10 @@
 
 import React, { useState, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useAction } from 'convex/react'
-import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
+
+// Workaround for "Type instantiation is excessively deep" error in Convex
+const api: any = require('convex/_generated/api').api
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -134,7 +136,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
   const filteredUsers = useMemo(() => {
     if (!usersData?.page) return []
 
-    return usersData.page.filter((user) => {
+    return usersData.page.filter((user: any) => {
       // Role filter
       if (roleFilter !== 'all' && user.role !== roleFilter) return false
 
@@ -154,7 +156,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
   const roleStats = useMemo(() => {
     if (!usersData?.page) return {}
 
-    return usersData.page.reduce((acc: Record<string, number>, user) => {
+    return usersData.page.reduce((acc: Record<string, number>, user: any) => {
       acc[user.role] = (acc[user.role] || 0) + 1
       return acc
     }, {})
@@ -184,7 +186,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
       await updateUserRole({
         userId: dialogState.user._id,
         newRole: dialogState.newRole as any,
-        universityId: dialogState.selectedUniversityId,
+        universityId: dialogState.selectedUniversityId as any,
       })
 
       toast({
@@ -296,7 +298,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                     {role.replace(/_/g, ' ')}
                   </span>
                 </div>
-                <div className="text-2xl font-bold">{count}</div>
+                <div className="text-2xl font-bold">{count as number}</div>
               </div>
             ))}
           </div>
@@ -350,7 +352,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map((user) => (
+                  filteredUsers.map((user: any) => (
                     <TableRow key={user._id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">

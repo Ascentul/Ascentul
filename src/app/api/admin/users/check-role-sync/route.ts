@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from 'convex/_generated/api'
+// Workaround for "Type instantiation is excessively deep" error in Convex
+const api: any = require('convex/_generated/api').api
 import { ClerkPublicMetadata } from '@/types/clerk'
 
 export const runtime = 'nodejs'

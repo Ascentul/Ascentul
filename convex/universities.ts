@@ -2,6 +2,10 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireSuperAdmin, getAuthenticatedUser } from "./lib/roles";
 
+// Workaround for "Type instantiation is excessively deep" error in Convex
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
+const convexApi: any = require("./_generated/api").api;
+
 // Create a university if it doesn't exist (by slug), otherwise return existing id
 export const createUniversity = mutation({
   args: {
@@ -120,25 +124,23 @@ export const assignUniversityToUser = mutation({
     // Send invite email if requested and user is pending activation
     if (args.sendInviteEmail && user.account_status === "pending_activation" && user.activation_token) {
       try {
-        const { api } = await import("./_generated/api");
-
         // Determine which email template to use based on role
         if (newRole === "university_admin") {
-          await ctx.scheduler.runAfter(0, api.email.sendUniversityAdminInvitationEmail, {
+          await ctx.scheduler.runAfter(0, convexApi.email.sendUniversityAdminInvitationEmail, {
             email: user.email,
             name: user.name,
             universityName: university.name,
             activationToken: user.activation_token,
           });
         } else if (newRole === "advisor") {
-          await ctx.scheduler.runAfter(0, api.email.sendUniversityAdvisorInvitationEmail, {
+          await ctx.scheduler.runAfter(0, convexApi.email.sendUniversityAdvisorInvitationEmail, {
             email: user.email,
             name: user.name,
             universityName: university.name,
             activationToken: user.activation_token,
           });
         } else if (newRole === "student") {
-          await ctx.scheduler.runAfter(0, api.email.sendUniversityStudentInvitationEmail, {
+          await ctx.scheduler.runAfter(0, convexApi.email.sendUniversityStudentInvitationEmail, {
             email: user.email,
             name: user.name,
             universityName: university.name,

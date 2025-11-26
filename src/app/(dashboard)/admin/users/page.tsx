@@ -27,7 +27,7 @@ interface UserRow {
   email: string
   name: string
   username?: string
-  role: 'user' | 'student' | 'staff' | 'university_admin' | 'advisor' | 'super_admin'
+  role: 'individual' | 'user' | 'student' | 'staff' | 'university_admin' | 'advisor' | 'super_admin'
   subscription_plan: 'free' | 'premium' | 'university' // Cached from Clerk for display (read-only)
   subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due' // Cached from Clerk for display (read-only)
   account_status?: 'pending_activation' | 'active' | 'suspended' | 'deleted'
@@ -308,7 +308,7 @@ export default function AdminUsersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="individual">Individual</SelectItem>
                 <SelectItem value="student">Student</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="university_admin">University Admin</SelectItem>
@@ -529,7 +529,7 @@ export default function AdminUsersPage() {
                     <Select value={form.role} onValueChange={(v: any) => setForm({ ...form, role: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="individual">Individual</SelectItem>
                         <SelectItem value="student">Student</SelectItem>
                         <SelectItem value="staff">Staff</SelectItem>
                         <SelectItem value="university_admin">University Admin</SelectItem>
@@ -689,7 +689,7 @@ export default function AdminUsersPage() {
                 }} disabled={creatingUser}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="individual">Individual</SelectItem>
                     <SelectItem value="student">Student (University)</SelectItem>
                     <SelectItem value="staff">Staff</SelectItem>
                     <SelectItem value="university_admin">University Admin</SelectItem>
