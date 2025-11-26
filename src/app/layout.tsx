@@ -4,9 +4,11 @@ import '../styles/globals.css'
 import { ClerkProvider } from '@clerk/nextjs'
 import ConvexClientProvider from '@/providers/ConvexClientProvider'
 import { ClerkAuthProvider } from '@/contexts/ClerkAuthProvider'
+import { ImpersonationProvider } from '@/contexts/ImpersonationContext'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { AuthWrapper } from '@/components/AuthWrapper'
 import { Toaster } from '@/components/ui/toaster'
+import { ImpersonationBanner } from '@/components/admin/ImpersonationBanner'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -43,24 +45,30 @@ export default function RootLayout({
             >
               <ConvexClientProvider>
                 <ClerkAuthProvider>
-                  <QueryProvider>
-                    <AuthWrapper>
-                      {children}
-                    </AuthWrapper>
-                    <Toaster />
-                  </QueryProvider>
+                  <ImpersonationProvider>
+                    <QueryProvider>
+                      <ImpersonationBanner />
+                      <AuthWrapper>
+                        {children}
+                      </AuthWrapper>
+                      <Toaster />
+                    </QueryProvider>
+                  </ImpersonationProvider>
                 </ClerkAuthProvider>
               </ConvexClientProvider>
             </ClerkProvider>
           ) : (
             <ConvexClientProvider>
               <ClerkAuthProvider>
-                <QueryProvider>
-                  <AuthWrapper>
-                    {children}
-                  </AuthWrapper>
-                  <Toaster />
-                </QueryProvider>
+                <ImpersonationProvider>
+                  <QueryProvider>
+                    <ImpersonationBanner />
+                    <AuthWrapper>
+                      {children}
+                    </AuthWrapper>
+                    <Toaster />
+                  </QueryProvider>
+                </ImpersonationProvider>
               </ClerkAuthProvider>
             </ConvexClientProvider>
           )}

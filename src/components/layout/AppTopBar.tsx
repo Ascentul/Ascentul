@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { QuickActionChips } from "@/components/dashboard/QuickActionChips";
+import { RoleSwitcher } from "@/components/admin/RoleSwitcher";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
@@ -147,6 +148,8 @@ export default function AppTopBar() {
         )}
 
         <div className="flex flex-1 items-center justify-end gap-2.5" ref={panelRef}>
+          {/* Role Switcher for super admins */}
+          {isSuperAdmin && <RoleSwitcher />}
           {openPanel === "search" && (
             <div className="hidden md:flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
               <Search className="h-4 w-4 text-slate-500" />
