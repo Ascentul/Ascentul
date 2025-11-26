@@ -42,7 +42,7 @@ interface UserRow {
 }
 
 export default function AdminUsersPage() {
-  const { user: clerkUser } = useUser()
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
   const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | UserRow['role']>('all')
@@ -51,14 +51,22 @@ export default function AdminUsersPage() {
   const [accountStatusFilter, setAccountStatusFilter] = useState<'all' | 'active' | 'deleted' | 'pending_activation' | 'suspended'>('active') // Default to active only
   const [universityFilter, setUniversityFilter] = useState<'all' | string>('all')
 
+  // Check permissions using CLERK directly (source of truth for roles)
+  const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])
+  const canAccess = useMemo(() => clerkRole === 'super_admin', [clerkRole])
+  const shouldQuery = useMemo(() => !!(clerkLoaded && canAccess && clerkUser?.id), [clerkLoaded, canAccess, clerkUser?.id])
+
   // Fetch users with minimal fields (optimized for bandwidth, reduced limit)
   const usersResult = useQuery(
     api.users.getAllUsersMinimal,
-    clerkUser?.id ? { clerkId: clerkUser.id, limit: 50 } : 'skip'
+    shouldQuery ? { clerkId: clerkUser!.id, limit: 50 } : 'skip'
   )
 
   // Fetch universities for the university column
-  const universities = useQuery(api.universities.getAllUniversities, {})
+  const universities = useQuery(
+    api.universities.getAllUniversities,
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
+  )
 
   const updateUser = useMutation(api.users.updateUser)
   const createUserByAdmin = useMutation(api.admin_users.createUserByAdmin)
@@ -250,9 +258,8 @@ export default function AdminUsersPage() {
     setShowDeleteConfirm(true)
   }
 
-  const role = user?.role
-  const isSuperAdmin = role === 'super_admin'
-  if (!isSuperAdmin) {
+  // Access check: use Clerk's publicMetadata (source of truth)
+  if (!canAccess) {
     return (
       <div className="space-y-4 min-w-0">
         <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useCallback } from 'react'
+import { useUser } from '@clerk/nextjs'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
@@ -106,6 +107,7 @@ const roleColors: Record<string, string> = {
 
 export function RoleManagementTable({ clerkId }: { clerkId: string }) {
   const { toast } = useToast()
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [dialogState, setDialogState] = useState<RoleChangeDialogState>({
@@ -117,14 +119,25 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
     validation: null,
   })
 
+  // Check permissions using CLERK directly (source of truth for roles)
+  const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])
+  const canAccess = useMemo(() => clerkRole === 'super_admin', [clerkRole])
+  const shouldQuery = useMemo(() => !!(clerkLoaded && canAccess && clerkId), [clerkLoaded, canAccess, clerkId])
+
   // Fetch all users (minimal data)
   // NOTE: Hard-coded limit of 1000 users. For larger user bases, implement cursor-based
   // pagination with UI controls. The query already supports pagination via continueCursor.
   // TODO: Add pagination UI when user count exceeds 1000
-  const usersData = useQuery(api.users.getAllUsersMinimal, { clerkId, limit: 1000 })
+  const usersData = useQuery(
+    api.users.getAllUsersMinimal,
+    shouldQuery ? { clerkId, limit: 1000 } : 'skip'
+  )
 
   // Fetch universities for role change dialog
-  const universitiesData = useQuery(api.universities.getAllUniversities, { clerkId })
+  const universitiesData = useQuery(
+    api.universities.getAllUniversities,
+    shouldQuery ? { clerkId } : 'skip'
+  )
 
   // Filter and search users
   const filteredUsers = useMemo(() => {

@@ -195,6 +195,16 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Create/update membership for university-based roles
+    // This ensures the user has the required membership record for authorization checks
+    if (requiresUniversity && universityId) {
+      await convex.mutation(api.users.ensureMembership, {
+        clerkId: targetUserId,
+        role: newRole as "student" | "advisor" | "university_admin",
+        universityId: universityId as Id<"universities">,
+      })
+    }
+
     // Then mirror to Clerk metadata
     try {
       const newMetadata: Record<string, any> = {
