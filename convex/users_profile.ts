@@ -512,3 +512,82 @@ export const deleteUser = mutation({
     );
   },
 });
+
+/**
+ * Ensure a membership record exists for a user with a university-based role.
+ * Creates a new membership if one doesn't exist, or updates the university_id if changed.
+ *
+ * This is called when a super admin assigns a role like student/advisor/university_admin
+ * to ensure the user has the required membership record for authorization checks.
+ */
+export const ensureMembership = mutation({
+  args: {
+    clerkId: v.string(),
+    role: v.union(
+      v.literal("student"),
+      v.literal("advisor"),
+      v.literal("university_admin"),
+    ),
+    universityId: v.id("universities"),
+  },
+  handler: async (ctx, args) => {
+    // Verify caller is super_admin
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: User not authenticated");
+    }
+
+    const callingUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!callingUser || callingUser.role !== "super_admin") {
+      throw new Error("Forbidden: Only super admins can manage memberships");
+    }
+
+    // Get target user by clerkId
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check for existing membership with this role
+    const existingMembership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_role", (q) => q.eq("user_id", user._id).eq("role", args.role))
+      .first();
+
+    const now = Date.now();
+
+    if (existingMembership) {
+      // Update if university changed or status is not active
+      if (existingMembership.university_id !== args.universityId || existingMembership.status !== "active") {
+        await ctx.db.patch(existingMembership._id, {
+          university_id: args.universityId,
+          status: "active",
+          updated_at: now,
+        });
+        console.log(`[ensureMembership] Updated membership for user ${args.clerkId} with role ${args.role}`);
+      }
+      return existingMembership._id;
+    }
+
+    // Create new membership
+    const membershipId = await ctx.db.insert("memberships", {
+      user_id: user._id,
+      university_id: args.universityId,
+      role: args.role,
+      status: "active",
+      created_at: now,
+      updated_at: now,
+    });
+
+    console.log(`[ensureMembership] Created membership for user ${args.clerkId} with role ${args.role}`);
+    return membershipId;
+  },
+});
