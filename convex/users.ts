@@ -126,14 +126,15 @@ export const getUserByClerkId = query({
     if (!user) return null;
 
     if (!isService) {
-      const isSelf = actingUser.clerkId === user.clerkId;
-      const actingRole = actingUser.role;
+      const currentUser = actingUser!;
+      const isSelf = currentUser.clerkId === user.clerkId;
+      const actingRole = currentUser.role;
       if (
         !isSelf &&
         actingRole !== "super_admin"
       ) {
         if (actingRole === "university_admin" || actingRole === "advisor") {
-          assertUniversityAccess(actingUser, user.university_id as any);
+          assertUniversityAccess(currentUser, user.university_id as any);
         } else {
           throw new Error("Unauthorized");
         }

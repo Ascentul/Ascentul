@@ -124,6 +124,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Initialize Convex client early (used for validation and updates)
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!convexUrl) {
+      return NextResponse.json(
+        { error: 'Server configuration error: NEXT_PUBLIC_CONVEX_URL not set' },
+        { status: 500 }
+      )
+    }
+    const convex = new ConvexHttpClient(convexUrl)
+    const convexToken = await authResult.getToken({ template: 'convex' })
+    if (convexToken) {
+      convex.setAuth(convexToken)
+    }
+
     // Validate university exists if provided
     if (universityId) {
       // Validate ID format before querying
@@ -144,19 +158,6 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-      if (!convexUrl) {
-        return NextResponse.json(
-          { error: 'Server configuration error: NEXT_PUBLIC_CONVEX_URL not set' },
-          { status: 500 }
-        )
-      }
-
-      const convex = new ConvexHttpClient(convexUrl)
-      const convexToken = await authResult.getToken({ template: 'convex' })
-      if (convexToken) {
-        convex.setAuth(convexToken)
-      }
       try {
         const university = await convex.query(api.universities.getUniversity, {
           universityId: universityId as Id<"universities">
@@ -185,20 +186,6 @@ export async function POST(request: NextRequest) {
     // Determine if we should remove university_id
     const requiresUniversity = ['student', 'university_admin', 'advisor'].includes(newRole)
 
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!convexUrl) {
-      return NextResponse.json(
-        { error: 'Server configuration error: NEXT_PUBLIC_CONVEX_URL not set' },
-        { status: 500 }
-      )
-    }
-
-    const convex = new ConvexHttpClient(convexUrl)
-    const convexToken = await authResult.getToken({ template: 'convex' })
-    if (convexToken) {
-      convex.setAuth(convexToken)
-    }
-
     // Update Convex first (source of truth)
     await convex.mutation(api.users.updateUser, {
       clerkId: targetUserId,
@@ -209,20 +196,26 @@ export async function POST(request: NextRequest) {
     })
 
     // Then mirror to Clerk metadata
-    const newMetadata: Record<string, any> = {
-      ...targetUser.publicMetadata,
-      role: newRole,
-    }
+    try {
+      const newMetadata: Record<string, any> = {
+        ...targetUser.publicMetadata,
+        role: newRole,
+      }
 
-    if (requiresUniversity && universityId) {
-      newMetadata.university_id = universityId
-    } else if (!requiresUniversity) {
-      delete newMetadata.university_id
-    }
+      if (requiresUniversity && universityId) {
+        newMetadata.university_id = universityId
+      } else if (!requiresUniversity) {
+        delete newMetadata.university_id
+      }
 
-    await client.users.updateUser(targetUserId, {
-      publicMetadata: newMetadata,
-    })
+      await client.users.updateUser(targetUserId, {
+        publicMetadata: newMetadata,
+      })
+    } catch (clerkError) {
+      console.error(`[API] Clerk update failed after Convex success for user ${targetUserId}:`, clerkError)
+      // Consider: revert Convex or mark for retry
+      throw clerkError
+    }
 
     console.log(`[API] Updated role for user ${targetUser.id}: ${currentRole} → ${newRole}`)
 
