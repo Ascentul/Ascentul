@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
+import { useImpersonation } from '@/contexts/ImpersonationContext'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
@@ -55,7 +56,11 @@ const activityTypeColors: Record<string, string> = {
 export default function DashboardPage() {
   const { user: clerkUser, isLoaded } = useUser()
   const { user, hasPremium } = useAuth()
+  const { impersonation, getEffectiveRole } = useImpersonation()
   const router = useRouter()
+
+  // Get effective role (respects impersonation)
+  const effectiveRole = getEffectiveRole()
 
   // Get real dashboard analytics from database - must be called before any returns
   const dashboardData = useQuery(
@@ -70,7 +75,25 @@ export default function DashboardPage() {
   )
 
   // Redirect admin users immediately to prevent flash of dashboard content
+  // Skip redirect if impersonating a non-admin role
   useEffect(() => {
+    // If impersonating, don't redirect based on real role
+    if (impersonation.isImpersonating) {
+      // If impersonating university_admin, redirect to university dashboard
+      if (effectiveRole === 'university_admin') {
+        router.replace('/university')
+        return
+      }
+      // If impersonating super_admin, redirect to admin dashboard
+      if (effectiveRole === 'super_admin') {
+        router.replace('/admin')
+        return
+      }
+      // Otherwise stay on this page (student, individual, staff, advisor)
+      return
+    }
+
+    // Not impersonating - use real role
     if (user?.role === 'university_admin') {
       router.replace('/university')
       return
@@ -79,7 +102,7 @@ export default function DashboardPage() {
       router.replace('/admin')
       return
     }
-  }, [user, router])
+  }, [user, router, impersonation.isImpersonating, effectiveRole])
 
   if (!isLoaded) {
     return (
@@ -97,7 +120,11 @@ export default function DashboardPage() {
   }
 
   // Prevent rendering for admin users while redirect is happening
-  if (user?.role === 'university_admin' || user?.role === 'super_admin') {
+  // But allow rendering if impersonating a non-admin role
+  const shouldRedirectToAdmin = !impersonation.isImpersonating &&
+    (user?.role === 'university_admin' || user?.role === 'super_admin')
+
+  if (shouldRedirectToAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

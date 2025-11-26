@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Eye, ChevronDown, User, GraduationCap, Briefcase, Building2, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -76,13 +76,20 @@ export function RoleSwitcher() {
   const { impersonation, startImpersonating, stopImpersonating, canImpersonate } = useImpersonation()
   const [selectedPlan, setSelectedPlan] = useState<ImpersonatedPlan>('free')
 
+  // Track hydration to avoid SSR/client mismatch
+  const [isHydrated, setIsHydrated] = useState(false)
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
+
   // Fetch universities for roles that require them
   const universities = useQuery(
     api.universities.getAllUniversities,
     canImpersonate && clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
   )
 
-  if (!canImpersonate) {
+  // Don't render until hydrated to avoid mismatch
+  if (!isHydrated || !canImpersonate) {
     return null
   }
 

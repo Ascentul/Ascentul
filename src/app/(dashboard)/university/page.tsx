@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useAuth as useClerkAuth } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import {
@@ -105,11 +106,31 @@ export default function UniversityDashboardPage() {
   const { user: clerkUser } = useUser();
   const { getToken } = useClerkAuth();
   const { user, isAdmin, subscription } = useAuth();
+  const { impersonation, getEffectiveRole } = useImpersonation();
   const [activeTab, setActiveTab] = useState("overview");
   const [analyticsView, setAnalyticsView] = useState<
     "engagement" | "features" | "risk"
   >("engagement");
   const { toast } = useToast();
+
+  // Get effective role (respects impersonation)
+  const effectiveRole = getEffectiveRole();
+
+  // Redirect based on effective role when impersonating
+  useEffect(() => {
+    if (impersonation.isImpersonating) {
+      // Redirect to admin if impersonating super_admin
+      if (effectiveRole === 'super_admin') {
+        router.replace('/admin')
+        return
+      }
+      // Redirect to regular dashboard if impersonating student/individual/staff/advisor
+      if (effectiveRole !== 'university_admin') {
+        router.replace('/dashboard')
+        return
+      }
+    }
+  }, [impersonation.isImpersonating, effectiveRole, router]);
 
   // Filter states
   const [roleFilter, setRoleFilter] = useState<

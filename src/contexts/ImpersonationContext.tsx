@@ -117,11 +117,20 @@ export function ImpersonationProvider({ children }: { children: React.ReactNode 
   // Only super_admin can impersonate
   const canImpersonate = userProfile?.role === 'super_admin'
 
-  // Initialize state from storage or default
-  const [impersonation, setImpersonation] = useState<ImpersonationState>(() => {
+  // Track if we've hydrated (to avoid SSR/client mismatch)
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  // Initialize state with default (same on server and client initially)
+  const [impersonation, setImpersonation] = useState<ImpersonationState>(defaultState)
+
+  // After hydration, load from storage
+  useEffect(() => {
+    setIsHydrated(true)
     const stored = loadFromStorage()
-    return stored || defaultState
-  })
+    if (stored) {
+      setImpersonation(stored)
+    }
+  }, [])
 
   // Fetch universities for the dropdown (only if super_admin)
   const universities = useQuery(
