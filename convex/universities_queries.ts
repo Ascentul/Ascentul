@@ -39,7 +39,7 @@ export const getUniversityBySlug = query({
 });
 
 export const getUniversityAdminCounts = query({
-  args: { clerkId: v.optional(v.string()) },
+  args: {},
   handler: async (ctx) => {
     const admins = await ctx.db
       .query("users")

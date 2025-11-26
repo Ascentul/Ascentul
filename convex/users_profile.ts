@@ -3,6 +3,7 @@ import { mutation } from "./_generated/server";
 import { api } from "./_generated/api";
 import { getActingUser, logRoleChange } from "./users_core";
 import { isServiceRequest } from "./lib/roles";
+import { validateRoleTransition, type UserRole } from "./lib/roleValidation";
 
 // Create or update user from Clerk webhook
 export const createUser = mutation({
@@ -469,6 +470,26 @@ export const updateUserById = mutation({
     const roleChanged = args.updates.role && args.updates.role !== user.role;
     const oldRole = user.role;
     const newRole = args.updates.role;
+
+    // Validate role transition if role is being changed
+    if (roleChanged && newRole) {
+      // Use the university_id from updates if provided, otherwise use existing
+      const targetUniversityId = args.updates.university_id !== undefined
+        ? args.updates.university_id
+        : user.university_id;
+
+      const validation = await validateRoleTransition(
+        ctx,
+        user.clerkId,
+        oldRole as UserRole,
+        newRole as UserRole,
+        targetUniversityId ?? undefined
+      );
+
+      if (!validation.valid) {
+        throw new Error(validation.error || "Invalid role transition");
+      }
+    }
 
     await ctx.db.patch(args.id, {
       ...cleanUpdates,

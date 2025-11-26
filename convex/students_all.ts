@@ -258,7 +258,10 @@ export const createInvite = action({
   },
   handler: async (ctx, args): Promise<{ inviteId: Id<"studentInvites">; token: string; expiresAt: number }> => {
     const identity = await ctx.auth.getUserIdentity();
-    if (identity && identity.subject !== args.createdByClerkId) {
+    if (!identity) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    if (identity.subject !== args.createdByClerkId) {
       throw new Error("Unauthorized: Clerk identity mismatch");
     }
 
@@ -507,8 +510,10 @@ export const acceptInvite = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
     const identity = await ctx.auth.getUserIdentity();
-
-    if (identity && identity.subject !== args.clerkId) {
+    if (!identity) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    if (identity.subject !== args.clerkId) {
       throw new Error("Unauthorized: Clerk identity mismatch");
     }
 

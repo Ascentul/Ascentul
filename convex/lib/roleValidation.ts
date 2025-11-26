@@ -101,12 +101,12 @@ export async function validateRoleTransition(
     }
   }
 
-  // Rule 4: Individual role should NOT have university_id
+  // Rule 4: Individual role must NOT have university_id
   if (newRole === "individual" && universityId) {
-    warnings.push(
-      "Individual users should not be affiliated with a university. Consider removing university affiliation."
-    )
-    requiredActions.push("Remove university_id if transitioning to individual role")
+    return {
+      valid: false,
+      error: "Individual users cannot be assigned to a university. Clear university_id before setting role to individual.",
+    }
   }
 
   // Rule 5: Cannot change super_admin role
