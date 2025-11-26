@@ -68,7 +68,7 @@ describe('Authentication', () => {
 
       // Test component that uses authentication
       const TestComponent = () => {
-        const { user } = useClerkAuth()
+        const { user } = useClerkAuth() as any
         return (
           <div>
             {user ? (

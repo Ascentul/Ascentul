@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Mock dependencies before any imports
 jest.mock('convex/browser', () => ({
   ConvexHttpClient: jest.fn().mockImplementation(() => ({

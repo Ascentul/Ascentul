@@ -10,6 +10,15 @@ type MutationCtx = GenericMutationCtx<DataModel>;
 type Ctx = QueryCtx | MutationCtx;
 
 /**
+ * Internal service token check for server-to-server calls
+ * This is used by trusted backends (e.g., webhooks) when no user identity exists.
+ */
+export function isServiceRequest(token: string | undefined) {
+  const expected = process.env.CONVEX_INTERNAL_SERVICE_TOKEN;
+  return Boolean(expected && token && token === expected);
+}
+
+/**
  * Get the authenticated user from context
  * Throws error if user is not authenticated
  */
@@ -172,4 +181,25 @@ export function checkAccountActive(user: {
 
   // Allow pending_activation and active statuses
   return true;
+}
+
+/**
+ * Assert that the acting user can manage a target university.
+ * Super admins can manage all; university admins/advisors must match their university_id.
+ */
+export function assertUniversityAccess(
+  actingUser: { role?: string; university_id?: string | null },
+  targetUniversityId?: string | null,
+) {
+  if (actingUser.role === "super_admin") {
+    return;
+  }
+
+  if (
+    !actingUser.university_id ||
+    !targetUniversityId ||
+    actingUser.university_id !== targetUniversityId
+  ) {
+    throw new Error("Unauthorized: Tenant access denied");
+  }
 }

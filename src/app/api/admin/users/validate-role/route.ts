@@ -19,7 +19,8 @@ const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const authResult = await auth()
+    const { userId } = authResult
 
     if (!userId) {
       return NextResponse.json(
@@ -78,6 +79,10 @@ export async function POST(request: NextRequest) {
 
     // Use Convex query to validate (centralizes business logic)
     const convex = new ConvexHttpClient(convexUrl)
+    const convexToken = await authResult.getToken({ template: 'convex' })
+    if (convexToken) {
+      convex.setAuth(convexToken)
+    }
 
     const result = await convex.query(api.roleValidation.validateRoleTransition, {
       userId: targetUserId,

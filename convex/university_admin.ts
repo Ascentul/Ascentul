@@ -15,9 +15,16 @@ function requireAdmin(user: any) {
 }
 
 async function getCurrentUser(ctx: any, clerkId: string) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Unauthorized");
+  }
+  if (clerkId && clerkId !== identity.subject) {
+    throw new Error("Unauthorized: Clerk identity mismatch");
+  }
   const user = await ctx.db
     .query("users")
-    .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", clerkId))
+    .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", identity.subject))
     .unique();
   if (!user) throw new Error("User not found");
   return user;

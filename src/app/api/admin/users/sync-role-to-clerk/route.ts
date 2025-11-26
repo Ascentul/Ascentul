@@ -24,7 +24,8 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId: callerId } = await auth()
+    const authResult = await auth()
+    const { userId: callerId } = authResult
 
     if (!callerId) {
       return NextResponse.json(
@@ -107,6 +108,10 @@ export async function POST(request: NextRequest) {
     }
 
     const convex = new ConvexHttpClient(convexUrl)
+    const convexToken = await authResult.getToken({ template: 'convex' })
+    if (convexToken) {
+      convex.setAuth(convexToken)
+    }
     const convexUser = await convex.query(api.users.getUserByClerkId, {
       clerkId: userId,
     })

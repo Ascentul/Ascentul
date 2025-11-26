@@ -6,7 +6,7 @@
 import { v } from "convex/values"
 import { mutation, query, internalMutation, internalQuery } from "./_generated/server"
 import { api, internal } from "./_generated/api"
-import { requireSuperAdmin } from "./lib/roles"
+import { getAuthenticatedUser, requireSuperAdmin, assertUniversityAccess } from "./lib/roles"
 
 /**
  * Generate a random activation token
@@ -36,15 +36,17 @@ export const createUserByAdmin = mutation({
     sendActivationEmail: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // Verify admin permissions
-    const admin = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.adminClerkId))
-      .unique()
-
-    if (!admin) {
-      throw new Error("Admin not found")
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) {
+      throw new Error("Unauthorized")
     }
+
+    if (args.adminClerkId && args.adminClerkId !== identity.subject) {
+      throw new Error("Unauthorized: Clerk identity mismatch")
+    }
+
+    // Verify admin permissions based on authenticated user
+    const admin = await getAuthenticatedUser(ctx)
 
     const isSuperAdmin = admin.role === "super_admin"
     const isUniversityAdmin = (admin.role === "university_admin" || admin.role === "advisor") && admin.university_id === args.university_id
@@ -245,13 +247,19 @@ export const regenerateActivationToken = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    // Verify admin permissions
-    const admin = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.adminClerkId))
-      .unique()
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) {
+      throw new Error("Unauthorized")
+    }
 
-    if (!admin || !["super_admin", "university_admin", "advisor"].includes(admin.role)) {
+    if (args.adminClerkId && args.adminClerkId !== identity.subject) {
+      throw new Error("Unauthorized: Clerk identity mismatch")
+    }
+
+    // Verify admin permissions
+    const admin = await getAuthenticatedUser(ctx)
+
+    if (!["super_admin", "university_admin", "advisor"].includes(admin.role)) {
       throw new Error("Unauthorized: Only admins can regenerate activation tokens")
     }
 
@@ -350,13 +358,19 @@ export const getPendingActivations = mutation({
     adminClerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify admin
-    const admin = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.adminClerkId))
-      .unique()
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) {
+      throw new Error("Unauthorized")
+    }
 
-    if (!admin || !["super_admin", "university_admin", "advisor"].includes(admin.role)) {
+    if (args.adminClerkId && args.adminClerkId !== identity.subject) {
+      throw new Error("Unauthorized: Clerk identity mismatch")
+    }
+
+    // Verify admin
+    const admin = await getAuthenticatedUser(ctx)
+
+    if (!["super_admin", "university_admin", "advisor"].includes(admin.role)) {
       throw new Error("Unauthorized")
     }
 
@@ -393,6 +407,11 @@ export const _softDeleteUserInternal = internalMutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== args.adminClerkId) {
+      throw new Error("Unauthorized");
+    }
+
     // Get admin user
     const admin = await ctx.db
       .query("users")

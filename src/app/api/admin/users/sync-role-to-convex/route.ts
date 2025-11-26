@@ -26,7 +26,8 @@ const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId: callerId } = await auth()
+    const authResult = await auth()
+    const { userId: callerId } = authResult
 
     if (!callerId) {
       return NextResponse.json(
@@ -86,6 +87,10 @@ export async function POST(request: NextRequest) {
     // Update Convex
     // Role is already validated by isValidUserRole above
     const convex = new ConvexHttpClient(convexUrl)
+    const convexToken = await authResult.getToken({ template: 'convex' })
+    if (convexToken) {
+      convex.setAuth(convexToken)
+    }
     await convex.mutation(api.users.updateUser, {
       clerkId: userId,
       updates: {
