@@ -11,6 +11,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Progress } from "@/components/ui/progress";
@@ -106,7 +107,16 @@ const Sidebar = React.memo(function Sidebar({
   const router = useRouter();
   const { user: clerkUser } = useUser();
   const { user, signOut, isAdmin, subscription, hasPremium } = useAuth();
+  const { impersonation, getEffectiveRole, getEffectivePlan } = useImpersonation();
   const { toast } = useToast();
+
+  // Get the effective role (impersonated or real)
+  const effectiveRole = getEffectiveRole();
+  const effectivePlan = getEffectivePlan();
+
+  // Determine admin status based on effective role (for impersonation)
+  const effectiveIsAdmin = effectiveRole === "super_admin";
+  const effectiveIsUniAdmin = effectiveRole === "university_admin";
 
   // Fetch viewer data to get student context (university name)
   const viewer = useQuery(
@@ -115,19 +125,29 @@ const Sidebar = React.memo(function Sidebar({
   );
 
   // Check if user is on free plan and not a university admin or premium user
+  // When impersonating, use the effective plan/role
   const isFreeUser = useMemo(
-    () =>
-      !hasPremium &&
-      user?.role !== "university_admin" &&
-      !isAdmin,
-    [hasPremium, user?.role, isAdmin],
+    () => {
+      if (impersonation.isImpersonating) {
+        // When impersonating, use effective plan
+        return effectivePlan === "free";
+      }
+      return !hasPremium &&
+        user?.role !== "university_admin" &&
+        !isAdmin;
+    },
+    [impersonation.isImpersonating, effectivePlan, hasPremium, user?.role, isAdmin],
   );
 
   const isUniversityUser = useMemo(
-    () =>
-      user?.role === "university_admin" ||
-      subscription.isUniversity,
-    [user?.role, subscription.isUniversity],
+    () => {
+      if (impersonation.isImpersonating) {
+        return effectivePlan === "university" || effectiveRole === "university_admin";
+      }
+      return user?.role === "university_admin" ||
+        subscription.isUniversity;
+    },
+    [impersonation.isImpersonating, effectivePlan, effectiveRole, user?.role, subscription.isUniversity],
   );
 
   // Fetch usage data ONLY for free users (optimization: skip query for premium/university users)
@@ -332,22 +352,16 @@ const Sidebar = React.memo(function Sidebar({
     [],
   );
 
-  // Combine sections based on user role - memoized
-  const isUniAdmin = useMemo(
-    () => user?.role === "university_admin",
-    [user?.role],
-  );
-
-  // Determine which sections to show based on user role - memoized
+  // Determine which sections to show based on effective role (supports impersonation)
   const allSections: SidebarSection[] = useMemo(() => {
-    if (isUniAdmin) {
+    if (effectiveIsUniAdmin) {
       return universitySections;
-    } else if (isAdmin) {
+    } else if (effectiveIsAdmin) {
       return adminSections;
     } else {
       return sidebarSections;
     }
-  }, [isUniAdmin, isAdmin, universitySections, adminSections, sidebarSections]);
+  }, [effectiveIsUniAdmin, effectiveIsAdmin, universitySections, adminSections, sidebarSections]);
 
   // Memoize isActive function
   const isActive = useCallback(
@@ -750,9 +764,11 @@ const Sidebar = React.memo(function Sidebar({
                         )[0] ||
                         "User"}
                     </p>
-                    {!isAdmin && (
+                    {!effectiveIsAdmin && (
                       <span className="inline-flex items-center self-start rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600 truncate max-w-full">
-                        {viewer?.student?.universityName || subscription.planName || "Free plan"}
+                        {impersonation.isImpersonating
+                          ? (impersonation.universityName || effectivePlan || effectiveRole)
+                          : (viewer?.student?.universityName || subscription.planName || "Free plan")}
                       </span>
                     )}
                   </div>

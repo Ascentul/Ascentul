@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
+import { useImpersonation } from '@/contexts/ImpersonationContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
@@ -48,8 +49,24 @@ function AdminDashboardPage() {
   const router = useRouter()
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
   const { user: convexUser, isLoading: convexLoading } = useAuth()
+  const { impersonation, getEffectiveRole } = useImpersonation()
   const [activeView, setActiveView] = React.useState<'system' | 'universities' | 'users' | 'revenue'>('system')
   const [activeAnalyticsTab, setActiveAnalyticsTab] = React.useState<'overview' | 'analytics' | 'universities' | 'users' | 'system'>('overview')
+
+  // Get effective role for impersonation
+  const effectiveRole = getEffectiveRole()
+
+  // Redirect to appropriate dashboard when impersonating a non-admin role
+  useEffect(() => {
+    if (impersonation.isImpersonating) {
+      if (effectiveRole === 'university_admin') {
+        router.push('/university')
+      } else if (effectiveRole !== 'super_admin') {
+        // Student, individual, staff, advisor -> regular dashboard
+        router.push('/dashboard')
+      }
+    }
+  }, [impersonation.isImpersonating, effectiveRole, router])
 
   // Check permissions using CLERK directly (source of truth for roles)
   const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])

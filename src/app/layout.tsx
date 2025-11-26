@@ -4,6 +4,7 @@ import '../styles/globals.css'
 import { ClerkProvider } from '@clerk/nextjs'
 import ConvexClientProvider from '@/providers/ConvexClientProvider'
 import { ClerkAuthProvider } from '@/contexts/ClerkAuthProvider'
+import { ImpersonationProvider } from '@/contexts/ImpersonationContext'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { AuthWrapper } from '@/components/AuthWrapper'
 import { Toaster } from '@/components/ui/toaster'
@@ -43,24 +44,28 @@ export default function RootLayout({
             >
               <ConvexClientProvider>
                 <ClerkAuthProvider>
-                  <QueryProvider>
-                    <AuthWrapper>
-                      {children}
-                    </AuthWrapper>
-                    <Toaster />
-                  </QueryProvider>
+                  <ImpersonationProvider>
+                    <QueryProvider>
+                      <AuthWrapper>
+                        {children}
+                      </AuthWrapper>
+                      <Toaster />
+                    </QueryProvider>
+                  </ImpersonationProvider>
                 </ClerkAuthProvider>
               </ConvexClientProvider>
             </ClerkProvider>
           ) : (
             <ConvexClientProvider>
               <ClerkAuthProvider>
-                <QueryProvider>
-                  <AuthWrapper>
-                    {children}
-                  </AuthWrapper>
-                  <Toaster />
-                </QueryProvider>
+                <ImpersonationProvider>
+                  <QueryProvider>
+                    <AuthWrapper>
+                      {children}
+                    </AuthWrapper>
+                    <Toaster />
+                  </QueryProvider>
+                </ImpersonationProvider>
               </ClerkAuthProvider>
             </ConvexClientProvider>
           )}
