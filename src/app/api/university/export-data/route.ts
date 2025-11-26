@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from 'convex/_generated/api'
+// Workaround for "Type instantiation is excessively deep" error in Convex
+const api: any = require('convex/_generated/api').api
 
 export const dynamic = 'force-dynamic'
 
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     const csvContent = [
       csvHeaders.join(','),
-      ...csvRows.map(row => row.map(escapeCSV).join(','))
+      ...csvRows.map((row: string[]) => row.map(escapeCSV).join(','))
     ].join('\n')
 
     const filename = `university-data-export-${new Date().toISOString().split('T')[0]}.csv`

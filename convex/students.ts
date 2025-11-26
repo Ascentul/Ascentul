@@ -1,8 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery, action, QueryCtx, MutationCtx } from "./_generated/server";
 import { Id, Doc } from "./_generated/dataModel";
-import { internal } from "./_generated/api";
 import { validate as validateEmail } from "email-validator";
+
+// Workaround for "Type instantiation is excessively deep" error in Convex
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
+const internal: any = require("./_generated/api").internal;
 import { requireMembership } from "./lib/roles";
 
 /**

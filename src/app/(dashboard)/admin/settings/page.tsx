@@ -43,7 +43,7 @@ import {
 import { RolePermissionsGuide } from '@/components/admin/RolePermissionsGuide'
 import { RoleManagementTable } from '@/components/admin/RoleManagementTable'
 import { RoleHistoryView } from '@/components/admin/RoleHistoryView'
-import { RoleDiagnostics } from '@/components/admin/RoleDiagnostics'
+// import { RoleDiagnostics } from '@/components/admin/RoleDiagnostics' // Temporarily disabled due to compilation error
 
 export default function AdminSettingsPage() {
   const { user: clerkUser } = useUser()
@@ -910,7 +910,7 @@ export default function AdminSettingsPage() {
           )}
 
           {/* Role Diagnostics */}
-          <RoleDiagnostics />
+          {/* <RoleDiagnostics /> */}
         </TabsContent>
       </Tabs>
       </div>

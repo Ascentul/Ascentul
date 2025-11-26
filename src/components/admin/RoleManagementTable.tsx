@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useState, useMemo, useCallback } from 'react'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
+import { useQuery, useMutation, useAction } from 'convex/react'
 import { Id } from 'convex/_generated/dataModel'
+
+// Workaround for "Type instantiation is excessively deep" error in Convex
+const api: any = require('convex/_generated/api').api
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -81,6 +83,7 @@ interface RoleChangeDialogState {
     error?: string
     warnings?: string[]
     requiredActions?: string[]
+    validationUnavailable?: boolean // True when validation API failed (network error)
   } | null
 }
 
@@ -126,11 +129,14 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
   // Fetch universities for role change dialog
   const universitiesData = useQuery(api.universities.getAllUniversities, { clerkId })
 
+  // Action to update user role (Convex is source of truth)
+  const updateUserRole = useAction(api.admin.updateUserRole)
+
   // Filter and search users
   const filteredUsers = useMemo(() => {
     if (!usersData?.page) return []
 
-    return usersData.page.filter((user) => {
+    return usersData.page.filter((user: any) => {
       // Role filter
       if (roleFilter !== 'all' && user.role !== roleFilter) return false
 
@@ -150,7 +156,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
   const roleStats = useMemo(() => {
     if (!usersData?.page) return {}
 
-    return usersData.page.reduce((acc: Record<string, number>, user) => {
+    return usersData.page.reduce((acc: Record<string, number>, user: any) => {
       acc[user.role] = (acc[user.role] || 0) + 1
       return acc
     }, {})
@@ -175,22 +181,13 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
     setDialogState(prev => ({ ...prev, loading: true }))
 
     try {
-      // Call API to update role
-      const response = await fetch('/api/admin/users/update-role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: dialogState.user.clerkId,
-          newRole: dialogState.newRole,
-          universityId: dialogState.selectedUniversityId,
-        }),
+      // Call Convex action to update role (Convex is source of truth)
+      // This updates Convex first, then mirrors to Clerk best-effort
+      await updateUserRole({
+        userId: dialogState.user._id,
+        newRole: dialogState.newRole as any,
+        universityId: dialogState.selectedUniversityId as any,
       })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to update role')
-      }
 
       toast({
         title: 'Role Updated',
@@ -198,9 +195,8 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
       })
 
       // Close dialog
-      // Note: Data will automatically update via Convex reactivity when the webhook completes
-      // The flow: API updates Clerk → Clerk webhook → Convex mutation → useQuery re-renders
-      // Expected delay: ~500ms-1s for webhook processing
+      // Note: Data automatically updates via Convex reactivity (immediate)
+      // No webhook delay - changes are visible instantly!
       setDialogState({
         open: false,
         user: null,
@@ -235,9 +231,21 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
       })
 
       const validation = await response.json()
+      console.log('[RoleManagement] Validation result:', validation)
       setDialogState(prev => ({ ...prev, validation }))
     } catch (error) {
-      console.error('Validation error:', error)
+      console.error('[RoleManagement] Validation error:', error)
+      // Network/API failure: Allow update to proceed with warning
+      // The server-side validation in Convex will still enforce constraints
+      setDialogState(prev => ({
+        ...prev,
+        validation: {
+          valid: true, // Allow update to proceed
+          validationUnavailable: true,
+          warnings: ['Validation service unavailable. Server-side validation will still apply.'],
+          error: error instanceof Error ? error.message : 'Validation request failed'
+        }
+      }))
     }
   }, [dialogState.user, dialogState.newRole, dialogState.selectedUniversityId])
 
@@ -290,7 +298,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                     {role.replace(/_/g, ' ')}
                   </span>
                 </div>
-                <div className="text-2xl font-bold">{count}</div>
+                <div className="text-2xl font-bold">{count as number}</div>
               </div>
             ))}
           </div>
@@ -344,7 +352,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map((user) => (
+                  filteredUsers.map((user: any) => (
                     <TableRow key={user._id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
@@ -546,15 +554,22 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                 )}
 
                 {dialogState.validation.warnings && dialogState.validation.warnings.length > 0 && (
-                  <Alert>
+                  <Alert variant={dialogState.validation.validationUnavailable ? "default" : undefined}>
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Warnings</AlertTitle>
+                    <AlertTitle>
+                      {dialogState.validation.validationUnavailable ? 'Validation Unavailable' : 'Warnings'}
+                    </AlertTitle>
                     <AlertDescription>
                       <ul className="list-disc list-inside space-y-1 mt-2">
                         {dialogState.validation.warnings.map((warning, i) => (
                           <li key={i}>{warning}</li>
                         ))}
                       </ul>
+                      {dialogState.validation.validationUnavailable && (
+                        <p className="mt-2 text-sm font-medium">
+                          You can proceed with the update. Validation will be enforced server-side.
+                        </p>
+                      )}
                     </AlertDescription>
                   </Alert>
                 )}

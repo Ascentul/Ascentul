@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "convex/_generated/api";
 import OpenAI from "openai";
+
+// Workaround for "Type instantiation is excessively deep" error in Convex
+const api: any = require("convex/_generated/api").api;
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })

@@ -1,7 +1,27 @@
+/**
+ * @deprecated LEGACY API ROUTE - DO NOT USE
+ *
+ * This route implements the OLD architecture where Clerk was the source of truth for roles.
+ *
+ * NEW ARCHITECTURE (as of 2025-01-24):
+ * - Convex is the single source of truth for roles
+ * - Use Convex action instead: `api.admin.updateUserRole`
+ * - Clerk publicMetadata.role is now a mirror only
+ *
+ * This file is kept for backwards compatibility and will be removed in a future version.
+ *
+ * MIGRATION:
+ * - Frontend: Use `useAction(api.admin.updateUserRole)` instead of fetch('/api/admin/users/update-role')
+ * - Backend: Call `ctx.runAction(api.admin.updateUserRole, { ... })` directly
+ *
+ * See: convex/admin.ts for the new implementation
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from 'convex/_generated/api'
+// Workaround for "Type instantiation is excessively deep" error in Convex
+const api: any = require('convex/_generated/api').api
 import { Id } from 'convex/_generated/dataModel'
 import { ClerkPublicMetadata } from '@/types/clerk'
 import { VALID_USER_ROLES } from '@/lib/constants/roles'
@@ -11,18 +31,38 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * Update user role via Clerk (source of truth)
+ * @deprecated Use api.admin.updateUserRole Convex action instead
+ *
+ * OLD: Update user role via Clerk (treated as source of truth)
+ * NEW: Convex is source of truth, this route is legacy
  *
  * This endpoint:
  * 1. Verifies caller is super_admin
  * 2. Validates the role transition
- * 3. Updates Clerk publicMetadata.role
- * 4. Webhook automatically syncs to Convex
+ * 3. Updates Clerk publicMetadata.role (WRONG: Clerk should be mirror)
+ * 4. Updates Convex directly + webhook sync (WRONG: creates dual writes)
  *
  * POST /api/admin/users/update-role
  * Body: { userId: string, newRole: string, universityId?: string }
  */
 export async function POST(request: NextRequest) {
+  // ROUTE DISABLED: Force migration to new Convex-based architecture
+  // This route creates dual-write consistency risks and should not be used
+  return NextResponse.json(
+    {
+      error: 'This API route is deprecated and disabled. Use the new Convex action instead.',
+      migration: {
+        old: 'POST /api/admin/users/update-role',
+        new: 'useAction(api.admin.updateUserRole)',
+        reason: 'Dual-write consistency risk. Convex is now the single source of truth.',
+        docs: 'See convex/admin.ts for the new implementation'
+      }
+    },
+    { status: 410 } // 410 Gone - indicates the resource is no longer available
+  )
+
+  // OLD IMPLEMENTATION PRESERVED BELOW FOR REFERENCE (not executed)
+  // eslint-disable-next-line no-unreachable
   try {
     const { userId } = await auth()
 
@@ -35,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     // Get caller's role from Clerk
     const client = await clerkClient()
-    const caller = await client.users.getUser(userId)
+    const caller = await client.users.getUser(userId!)
     const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role
 
     // Only super_admin can update roles
@@ -151,7 +191,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const convex = new ConvexHttpClient(convexUrl)
+      const convex = new ConvexHttpClient(convexUrl!)
       try {
         const university = await convex.query(api.universities.getUniversity, {
           universityId: universityId as Id<"universities">
@@ -199,23 +239,52 @@ export async function POST(request: NextRequest) {
 
     console.log(`[API] Updated role for user ${targetUser.id}: ${currentRole} → ${newRole}`)
 
-    // The Clerk webhook will automatically sync this change to Convex
+    // Also update Convex directly for immediate UI update (in addition to webhook sync)
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (convexUrl) {
+      try {
+        const convex = new ConvexHttpClient(convexUrl!)
+
+        // Get user by clerkId to get their Convex _id
+        const convexUser = await convex.query(api.users.getUserByClerkId, {
+          clerkId: targetUserId
+        })
+
+        if (convexUser) {
+          // Update role and university_id in Convex
+          const updates: any = { role: newRole }
+          if (requiresUniversity && universityId) {
+            updates.university_id = universityId as Id<"universities">
+          } else if (!requiresUniversity) {
+            updates.university_id = undefined
+          }
+
+          await convex.mutation(api.users.updateUserById, {
+            id: convexUser._id,
+            updates
+          })
+          console.log(`[API] Updated Convex user ${convexUser._id} directly`)
+        }
+      } catch (convexError) {
+        console.error('[API] Failed to update Convex directly:', convexError)
+        // Don't fail the request - webhook will sync eventually
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      message: `Role updated successfully. Webhook will sync to database.`,
+      message: `Role updated successfully.`,
       user: {
         id: targetUser.id,
         email: targetUser.emailAddresses[0]?.emailAddress || 'no-email',
         newRole,
       },
     })
-  } catch (error) {
-    console.error('[API] Role update error:', error)
+  } catch (e) {
+    const err = e as Error | undefined
+    console.error('[API] Role update error:', err)
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to update role',
-      },
+      { error: err?.message || 'Failed to update role' },
       { status: 500 }
     )
   }

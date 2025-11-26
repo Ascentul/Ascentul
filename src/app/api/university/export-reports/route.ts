@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuth } from '@clerk/nextjs/server'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from 'convex/_generated/api'
+// Workaround for "Type instantiation is excessively deep" error in Convex
+const api: any = require('convex/_generated/api').api
 import { Id } from 'convex/_generated/dataModel'
 
 export const dynamic = 'force-dynamic'
@@ -144,11 +145,11 @@ export async function POST(request: NextRequest) {
       'Cover Letters Created'
     ]
 
-    const csvRows = students.map(student => [
+    const csvRows = students.map((student: any) => [
       student.name || '',
       student.email || '',
       student.role || '',
-      student.university_id ? departments.find(d => d._id === student.university_id as any)?.name || '' : '',
+      student.university_id ? departments.find((d: any) => d._id === student.university_id as any)?.name || '' : '',
       student.created_at ? new Date(student.created_at).toLocaleDateString() : '',
       student.updated_at ? new Date(student.updated_at).toLocaleDateString() : '',
       Math.floor(Math.random() * 10), // Mock goals count
@@ -168,7 +169,7 @@ export async function POST(request: NextRequest) {
 
     const csvContent = [
       csvHeaders.join(','),
-      ...csvRows.map(row => row.map(escapeCSV).join(','))
+      ...csvRows.map((row: any[]) => row.map(escapeCSV).join(','))
     ].join('\n')
 
     const filename = `university-report-${new Date().toISOString().split('T')[0]}.csv`
