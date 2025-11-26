@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+const convexServiceToken = process.env.CONVEX_INTERNAL_SERVICE_TOKEN
 
 /**
  * Clerk Webhook Handler
@@ -25,6 +26,11 @@ const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
 
 export async function POST(request: NextRequest) {
   try {
+    if (!convexServiceToken) {
+      console.error('[Clerk Webhook] Missing CONVEX_INTERNAL_SERVICE_TOKEN')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
     const rawBody = await request.text()
     const svixHeaders = {
       'svix-id': request.headers.get('svix-id') || '',
@@ -84,6 +90,7 @@ export async function POST(request: NextRequest) {
           subscription_status: subscriptionStatus,
           // Pass validated role from Clerk metadata if present
           role: validatedRole || undefined,
+          serviceToken: convexServiceToken,
         })
 
         console.log(`[Clerk Webhook] Created/activated user: ${userData.id}`)
@@ -92,6 +99,7 @@ export async function POST(request: NextRequest) {
         // If so, sync university_id to Clerk metadata
         const convexUser = await convex.query(api.users.getUserByClerkId, {
           clerkId: userData.id,
+          serviceToken: convexServiceToken,
         })
 
         if (convexUser && convexUser.university_id && !metadata.university_id) {
@@ -132,7 +140,7 @@ export async function POST(request: NextRequest) {
         const roleInMetadata = metadata.role || null
         const userEmail = userData.email_addresses?.[0]?.email_address
 
-        // Validate role value before syncing to Convex
+        // Validate role value for logging only; Convex is the source of truth so we do not overwrite roles here
         const validatedRole = validateRoleOrWarn(roleInMetadata, `Clerk Webhook - ${userEmail}`)
 
         // Check if user was banned in Clerk - sync to account_status
@@ -142,12 +150,6 @@ export async function POST(request: NextRequest) {
           profile_image: userData.image_url,
           subscription_plan: subscriptionPlan,
           subscription_status: subscriptionStatus,
-        }
-
-        // Sync validated role from Clerk metadata if present
-        if (validatedRole) {
-          updates.role = validatedRole
-          console.log(`[Clerk Webhook] Role update detected for ${userEmail}: ${validatedRole}`)
         }
 
         // If user is banned in Clerk, ensure account_status is suspended
@@ -163,6 +165,7 @@ export async function POST(request: NextRequest) {
 
         await convex.mutation(api.users.updateUser, {
           clerkId: userData.id,
+          serviceToken: convexServiceToken,
           updates,
         })
 
@@ -179,6 +182,7 @@ export async function POST(request: NextRequest) {
         try {
           const convexUser = await convex.query(api.users.getUserByClerkId, {
             clerkId: userData.id,
+            serviceToken: convexServiceToken,
           })
 
           if (convexUser) {

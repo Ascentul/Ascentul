@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { assertUniversityAccess, getAuthenticatedUser } from "./lib/roles";
 
 // ============================================================================
 // Helper Functions for Optimized Analytics
@@ -85,6 +86,17 @@ function calculateActivityData(users: any[], recentApplications: any[], daysBack
   });
 }
 
+async function requireSuperAdminUser(ctx: any, providedClerkId?: string) {
+  const user = await getAuthenticatedUser(ctx);
+  if (providedClerkId && user.clerkId !== providedClerkId) {
+    throw new Error("Unauthorized: Clerk identity mismatch");
+  }
+  if (user.role !== "super_admin") {
+    throw new Error("Unauthorized: Super admin required");
+  }
+  return user;
+}
+
 // ============================================================================
 // Queries
 // ============================================================================
@@ -100,19 +112,7 @@ export const getSystemStatsOptimized = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser) {
-      throw new Error(`User not found with clerkId: ${args.clerkId}`);
-    }
-
-    if (!["super_admin"].includes(currentUser.role)) {
-      throw new Error(`Unauthorized: User has role '${currentUser.role}' but needs 'super_admin'`);
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // Use centralized metrics from metrics module
     // This ensures consistency across all dashboard views
@@ -205,15 +205,7 @@ export const getUserGrowthOptimized = query({
     monthsBack: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const monthsBack = args.monthsBack || 6;
     const users = await ctx.db.query("users").collect();
@@ -228,15 +220,7 @@ export const getActivityDataOptimized = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
@@ -261,15 +245,7 @@ export const getSupportMetricsOptimized = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const supportTickets = await ctx.db.query("support_tickets").collect();
 
@@ -307,15 +283,7 @@ export const getRecentUsersOptimized = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const limit = args.limit || 10;
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
@@ -343,15 +311,7 @@ export const getSubscriptionDistributionOptimized = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const users = await ctx.db.query("users").collect();
 
@@ -375,15 +335,7 @@ export const getTopUniversitiesOptimized = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const universities = await ctx.db.query("universities").take(5);
 
@@ -405,19 +357,7 @@ export const getOverviewAnalytics = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser) {
-      throw new Error(`User not found with clerkId: ${args.clerkId}. The user may still be syncing from Clerk to Convex.`);
-    }
-
-    if (!["super_admin"].includes(currentUser.role)) {
-      throw new Error(`Unauthorized: User has role '${currentUser.role}' but needs 'super_admin'`);
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // Fetch only essential data for Overview tab with strict limits
     const [users, universities, supportTickets] = await Promise.all([
@@ -529,15 +469,7 @@ export const getAdminAnalytics = query({
     subscriptionFilter: v.optional(v.union(v.literal("all"), v.literal("free"), v.literal("premium"), v.literal("university"))),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // Build query with filters
     let usersQuery = ctx.db.query("users");
@@ -1026,6 +958,8 @@ async function getUniversityGrowth(ctx: any) {
 export const getUserDashboardAnalytics = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    const actingUser = await getAuthenticatedUser(ctx);
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -1033,6 +967,17 @@ export const getUserDashboardAnalytics = query({
 
     if (!user) {
       throw new Error("User not found");
+    }
+
+    const isSelf = actingUser.clerkId === user.clerkId;
+    if (!isSelf) {
+      if (actingUser.role === "super_admin") {
+        // allow
+      } else if (actingUser.role === "university_admin" || actingUser.role === "advisor") {
+        assertUniversityAccess(actingUser, user.university_id as any);
+      } else {
+        throw new Error("Unauthorized");
+      }
     }
 
     // Parallelize all user data queries with safety limits to prevent over-fetching for power users
@@ -1423,15 +1368,7 @@ function formatNextInterview(timestamp: number | undefined): string {
 export const getSessionAnalytics = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // This would need actual session tracking implementation
     // For now, return placeholder data
@@ -1449,15 +1386,7 @@ export const getUniversityAnalytics = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // Fetch top 5 universities only (not 10)
     const universities = await ctx.db.query("universities").take(5);
@@ -1599,15 +1528,7 @@ export const getSingleUniversityAnalytics = query({
     universityId: v.id("universities"),
   },
   handler: async (ctx, args) => {
-    // Check if user is super admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || currentUser.role !== "super_admin") {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // Get the university
     const university = await ctx.db.get(args.universityId);
@@ -1763,15 +1684,7 @@ export const getSingleUniversityAnalytics = query({
 export const getRevenueAnalytics = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // Get all successful payments (reduced limit for bandwidth)
     const payments = await ctx.db

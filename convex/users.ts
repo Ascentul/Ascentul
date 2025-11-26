@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, MutationCtx, QueryCtx } from "./_generated/server";
 import { api } from "./_generated/api";
+import { getAuthenticatedUser, assertUniversityAccess, isServiceRequest } from "./lib/roles";
 
 /**
  * Internal helper: Resolve profile_image storage ID to URL
@@ -71,35 +72,73 @@ async function logRoleChange(
   }
 }
 
-async function getActingUser(ctx: MutationCtx) {
+async function getActingUser(ctx: MutationCtx, serviceToken?: string) {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
+  const isService = isServiceRequest(serviceToken);
+
+  if (!identity && !isService) {
     throw new Error("Unauthorized");
+  }
+
+  if (isService) {
+    return { actingUser: null as any, isService: true };
   }
 
   const actingUser = await ctx.db
     .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity!.subject))
     .unique();
 
   if (!actingUser) {
     throw new Error("Unauthorized");
   }
 
-  return actingUser;
+  return { actingUser, isService: false };
 }
 
 // Get user by Clerk ID
 // Automatically resolves profile_image storage ID to URL if it exists
 export const getUserByClerkId = query({
-  args: { clerkId: v.string() },
+  args: { clerkId: v.string(), serviceToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const isService = isServiceRequest(args.serviceToken);
+    if (!identity && !isService) {
+      throw new Error("Unauthorized");
+    }
+
+    const actingUser = !isService
+      ? await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity!.subject))
+        .unique()
+      : null;
+
+    if (!isService && !actingUser) {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
     if (!user) return null;
+
+    if (!isService) {
+      const isSelf = actingUser.clerkId === user.clerkId;
+      const actingRole = actingUser.role;
+      if (
+        !isSelf &&
+        actingRole !== "super_admin"
+      ) {
+        if (actingRole === "university_admin" || actingRole === "advisor") {
+          assertUniversityAccess(actingUser, user.university_id as any);
+        } else {
+          throw new Error("Unauthorized");
+        }
+      }
+    }
 
     // Resolve profile_image storage ID to URL
     const profileImageUrl = await resolveProfileImageUrl(ctx, user.profile_image);
@@ -116,6 +155,21 @@ export const getUserByClerkId = query({
 export const setStripeCustomer = mutation({
   args: { clerkId: v.string(), stripeCustomerId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const actingUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!actingUser) throw new Error("Unauthorized");
+
+    const isSelf = actingUser.clerkId === args.clerkId;
+    if (!isSelf && actingUser.role !== "super_admin") {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -137,6 +191,7 @@ export const updateSubscriptionByIdentifier = mutation({
   args: {
     clerkId: v.optional(v.string()),
     email: v.optional(v.string()),
+    serviceToken: v.optional(v.string()),
     subscription_plan: v.union(
       v.literal("free"),
       v.literal("premium"),
@@ -151,9 +206,26 @@ export const updateSubscriptionByIdentifier = mutation({
     onboarding_completed: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const isService = isServiceRequest(args.serviceToken);
+    if (!identity && !isService) {
+      throw new Error("Unauthorized");
+    }
+
+    let actingUser = null as any;
+    if (!isService) {
+      actingUser = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity!.subject))
+        .unique();
+      if (!actingUser) {
+        throw new Error("Unauthorized");
+      }
+    }
+
     let user = null as any;
 
-    // Prefer Clerk ID (should always be provided by Clerk webhooks)
+    // Prefer Clerk ID (should always be provided by Clerk webhooks or user self)
     if (args.clerkId) {
       user = await ctx.db
         .query("users")
@@ -161,8 +233,8 @@ export const updateSubscriptionByIdentifier = mutation({
         .unique();
     }
 
-    // Fallback to email (indexed) - legacy support
-    if (!user && args.email) {
+    // Fallback to email (indexed) - only service or super_admin should use this
+    if (!user && args.email && (isService || actingUser?.role === "super_admin")) {
       user = await ctx.db
         .query("users")
         .withIndex("by_email", (q) => q.eq("email", args.email!))
@@ -170,6 +242,11 @@ export const updateSubscriptionByIdentifier = mutation({
     }
 
     if (!user) throw new Error("User not found for subscription update");
+
+    const isSelf = !isService && actingUser.clerkId === user.clerkId;
+    if (!isService && !isSelf && actingUser.role !== "super_admin") {
+      throw new Error("Unauthorized");
+    }
 
     await ctx.db.patch(user._id, {
       subscription_plan: args.subscription_plan,
@@ -192,6 +269,7 @@ export const createUser = mutation({
     name: v.string(),
     username: v.optional(v.string()),
     profile_image: v.optional(v.string()),
+    serviceToken: v.optional(v.string()),
     // Allow optionally setting initial role (e.g., from Clerk public metadata)
     role: v.optional(
       v.union(
@@ -218,6 +296,39 @@ export const createUser = mutation({
     )),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const isService = isServiceRequest(args.serviceToken);
+
+    if (!identity && !isService) {
+      throw new Error("Unauthorized");
+    }
+
+    if (!isService && identity!.subject !== args.clerkId) {
+      throw new Error("Unauthorized: Clerk identity mismatch");
+    }
+
+    const actingUser = !isService
+      ? await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity!.subject))
+        .unique()
+      : null;
+
+    const privilegedRoles = new Set([
+      "super_admin",
+      "university_admin",
+      "advisor",
+      "staff",
+    ]);
+
+    const canAssignPrivileged = actingUser?.role === "super_admin";
+    const requestedRole = args.role;
+    const safeRole = requestedRole && (canAssignPrivileged || !privilegedRoles.has(requestedRole))
+      ? requestedRole
+      : undefined;
+
+    const resolvedRole = safeRole ?? "user";
+
     // First, try to find existing user by Clerk ID
     const existingUser = await ctx.db
       .query("users")
@@ -232,7 +343,7 @@ export const createUser = mutation({
         username: args.username,
         profile_image: args.profile_image,
         // If an explicit role is provided (e.g., from Clerk metadata), sync it
-        ...(args.role ? { role: args.role } : {}),
+        ...(safeRole ? { role: safeRole } : {}),
         // Update cached subscription data if provided
         ...(args.subscription_plan ? { subscription_plan: args.subscription_plan } : {}),
         ...(args.subscription_status ? { subscription_status: args.subscription_status } : {}),
@@ -277,7 +388,7 @@ export const createUser = mutation({
       name: args.name,
       username: args.username || `user_${Date.now()}`,
       profile_image: args.profile_image,
-      role: args.role ?? "user",
+      role: resolvedRole,
       subscription_plan: args.subscription_plan ?? "free",
       subscription_status: args.subscription_status ?? "active",
       onboarding_completed: false,
@@ -310,6 +421,7 @@ export const createUserFromClerk = createUser;
 export const updateUser = mutation({
   args: {
     clerkId: v.string(),
+    serviceToken: v.optional(v.string()),
     updates: v.object({
       name: v.optional(v.string()),
       email: v.optional(v.string()),
@@ -416,7 +528,7 @@ export const updateUser = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const actingUser = await getActingUser(ctx);
+    const { actingUser, isService } = await getActingUser(ctx, args.serviceToken);
     const targetUser = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -426,11 +538,14 @@ export const updateUser = mutation({
       throw new Error("User not found");
     }
 
-    const isSelf = actingUser._id === targetUser._id;
+    const isSelf = !isService && actingUser._id === targetUser._id;
     const sameUniversity =
-      actingUser.university_id && targetUser.university_id &&
+      !isService &&
+      actingUser.university_id &&
+      targetUser.university_id &&
       actingUser.university_id === targetUser.university_id;
-    const canManageTenant = actingUser.role === "super_admin" ||
+    const canManageTenant = isService ||
+      actingUser.role === "super_admin" ||
       (actingUser.role === "university_admin" && sameUniversity);
 
     if (!isSelf && !canManageTenant) {
@@ -452,6 +567,7 @@ export const updateUser = mutation({
     );
 
     if (
+      !isService &&
       actingUser.role !== "super_admin" &&
       Object.keys(cleanUpdates).some((key) => protectedFields.has(key))
     ) {
@@ -469,7 +585,7 @@ export const updateUser = mutation({
     });
 
     // Create audit log for role changes (super admin actions)
-    if (roleChanged) {
+    if (roleChanged && !isService) {
       await logRoleChange(ctx, targetUser, oldRole, newRole!);
     }
 
@@ -481,6 +597,7 @@ export const updateUser = mutation({
 export const updateUserById = mutation({
   args: {
     id: v.id("users"),
+    serviceToken: v.optional(v.string()),
     updates: v.object({
       name: v.optional(v.string()),
       email: v.optional(v.string()),
@@ -586,18 +703,20 @@ export const updateUserById = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const actingUser = await getActingUser(ctx);
+    const { actingUser, isService } = await getActingUser(ctx, args.serviceToken);
     const user = await ctx.db.get(args.id);
 
     if (!user) {
       throw new Error("User not found");
     }
 
-    const isSelf = actingUser._id === user._id;
+    const isSelf = !isService && actingUser._id === user._id;
     const sameUniversity =
+      !isService &&
       actingUser.university_id && user.university_id &&
       actingUser.university_id === user.university_id;
-    const canManageTenant = actingUser.role === "super_admin" ||
+    const canManageTenant = isService ||
+      actingUser.role === "super_admin" ||
       (actingUser.role === "university_admin" && sameUniversity);
 
     if (!isSelf && !canManageTenant) {
@@ -619,6 +738,7 @@ export const updateUserById = mutation({
     );
 
     if (
+      !isService &&
       actingUser.role !== "super_admin" &&
       Object.keys(cleanUpdates).some((key) => protectedFields.has(key))
     ) {
@@ -636,7 +756,7 @@ export const updateUserById = mutation({
     });
 
     // Create audit log for role changes (super admin actions)
-    if (roleChanged) {
+    if (roleChanged && !isService) {
       await logRoleChange(ctx, user, oldRole, newRole!);
     }
 
@@ -666,14 +786,10 @@ export const getAllUsers = query({
     offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
+    const currentUser = await getAuthenticatedUser(ctx);
 
     // Only Super Admin can access global user list
-    if (!currentUser || currentUser.role !== "super_admin") {
+    if (currentUser.role !== "super_admin") {
       throw new Error("Unauthorized");
     }
 
@@ -697,14 +813,10 @@ export const getAllUsersMinimal = query({
     offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
+    const currentUser = await getAuthenticatedUser(ctx);
 
     // Only Super Admin can access global user list
-    if (!currentUser || currentUser.role !== "super_admin") {
+    if (currentUser.role !== "super_admin") {
       throw new Error("Unauthorized");
     }
 
@@ -756,22 +868,13 @@ export const getUsersByUniversity = query({
     universityId: v.id("universities"),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin for this university
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
+    const currentUser = await getAuthenticatedUser(ctx);
 
-    if (!currentUser) {
-      throw new Error("User not found");
-    }
+    const isSuperAdmin = currentUser.role === "super_admin";
+    const isUniversityScoped = (currentUser.role === "university_admin" || currentUser.role === "advisor") &&
+      currentUser.university_id === args.universityId;
 
-    const isAuthorized =
-      currentUser.role === "super_admin" ||
-      ((currentUser.role === "university_admin" || currentUser.role === "advisor") &&
-        currentUser.university_id === args.universityId);
-
-    if (!isAuthorized) {
+    if (!isSuperAdmin && !isUniversityScoped) {
       throw new Error("Unauthorized");
     }
 
@@ -790,6 +893,12 @@ export const getUsersByUniversity = query({
 export const getOnboardingProgress = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    const actingUser = await getAuthenticatedUser(ctx);
+    const isSelf = actingUser.clerkId === args.clerkId;
+    if (!isSelf && actingUser.role !== "super_admin") {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -813,6 +922,12 @@ export const updateOnboardingProgress = mutation({
     completed_tasks: v.array(v.string()),
   },
   handler: async (ctx, args) => {
+    const actingUser = await getAuthenticatedUser(ctx);
+    const isSelf = actingUser.clerkId === args.clerkId;
+    if (!isSelf && actingUser.role !== "super_admin") {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -842,6 +957,12 @@ export const toggleHideProgressCard = mutation({
     hide: v.boolean(),
   },
   handler: async (ctx, args) => {
+    const actingUser = await getAuthenticatedUser(ctx);
+    const isSelf = actingUser.clerkId === args.clerkId;
+    if (!isSelf && actingUser.role !== "super_admin") {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
