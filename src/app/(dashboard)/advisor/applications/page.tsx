@@ -43,11 +43,6 @@ export default function AdvisorApplicationsPage() {
   // Data Fetching
   // ============================================================================
 
-  const applicationsByStage = useQuery(
-    api.advisor_applications.getApplicationsByStage,
-    clerkId ? { clerkId } : "skip"
-  );
-
   const applications = useQuery(
     api.advisor_applications.getApplicationsForCaseload,
     clerkId ? { clerkId } : "skip"

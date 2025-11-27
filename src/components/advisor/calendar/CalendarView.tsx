@@ -119,9 +119,9 @@ export function CalendarView({ sessions, followUps, isLoading }: CalendarViewPro
     } else {
       const start = startOfMonth(currentDate);
       const end = endOfMonth(currentDate);
-      // Extend to start from Sunday and end on Saturday
-      const calendarStart = startOfWeek(start);
-      const calendarEnd = endOfWeek(end);
+      // Extend to start from Monday and end on Sunday
+      const calendarStart = startOfWeek(start, { weekStartsOn: 1 });
+      const calendarEnd = endOfWeek(end, { weekStartsOn: 1 });
       return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
     }
   }, [viewMode, currentDate]);

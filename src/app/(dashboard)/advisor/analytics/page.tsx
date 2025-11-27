@@ -1,21 +1,20 @@
 "use client";
 
 import { AdvisorGate } from "@/components/advisor/AdvisorGate";
+import { AppShell } from "@/components/AppShell";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart } from "lucide-react";
 
 export default function AdvisorAnalyticsPage() {
   return (
-    <AdvisorGate requiredFlag="advisor.analytics">
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-            <p className="text-muted-foreground mt-1">
-              Insights into your advising effectiveness
-            </p>
-          </div>
-        </div>
+    <AppShell>
+      <AdvisorGate requiredFlag="advisor.analytics">
+        <div className="container mx-auto p-6 space-y-6">
+          <PageHeader
+            title="Analytics"
+            description="Insights into your advising effectiveness"
+          />
 
         {/* Empty State */}
         <Card>
@@ -37,6 +36,7 @@ export default function AdvisorAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
-    </AdvisorGate>
+      </AdvisorGate>
+    </AppShell>
   );
 }

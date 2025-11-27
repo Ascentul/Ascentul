@@ -21,10 +21,10 @@
 
 import { ConvexHttpClient } from 'convex/browser';
 
-// Validate environment variable at module load time
-const CONVEX_URL = process.env.CONVEX_URL;
+// Validate environment variable at module load time (Convex requires NEXT_PUBLIC_CONVEX_URL)
+const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!CONVEX_URL) {
-  throw new Error('CONVEX_URL environment variable is required for server-side Convex operations');
+  throw new Error('NEXT_PUBLIC_CONVEX_URL environment variable is required for server-side Convex operations');
 }
 
 /**

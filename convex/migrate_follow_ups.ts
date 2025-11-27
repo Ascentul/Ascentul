@@ -224,11 +224,9 @@ export const migrateFollowUps = mutation({
 
             // Task management
             due_at: action.due_date,
-            priority: undefined, // Old table didn't have priority
             status: status as 'open' | 'done',
 
             // Completion tracking
-            completed_at: undefined, // Original table didn't track completion time
             completed_by: action.completed ? action.user_id : undefined,
 
             // Timestamps

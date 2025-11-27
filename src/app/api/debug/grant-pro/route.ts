@@ -136,15 +136,15 @@ async function processUpgrade(params: {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAdminAuth(request)
-    if ('error' in auth) return auth.error
+    const authResult = await requireAdminAuth(request)
+    if ('error' in authResult) return authResult.error
 
     const { searchParams } = new URL(request.url)
     return await processUpgrade({
       convexId: searchParams.get('convexId') || undefined,
       email: searchParams.get('email') || undefined,
       clerkId: searchParams.get('clerkId') || undefined,
-      fallbackUserId: auth.userId,
+      fallbackUserId: authResult.userId,
     })
   } catch (error) {
     console.error('grant-pro GET error:', error instanceof Error ? error.message : 'Unknown error')
@@ -154,15 +154,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAdminAuth(request)
-    if ('error' in auth) return auth.error
+    const authResult = await requireAdminAuth(request)
+    if ('error' in authResult) return authResult.error
 
     const body = await request.json().catch(() => ({})) as { email?: string, clerkId?: string, convexId?: string, id?: string }
     return await processUpgrade({
       convexId: body.convexId || body.id,
       email: body.email,
       clerkId: body.clerkId,
-      fallbackUserId: auth.userId,
+      fallbackUserId: authResult.userId,
     })
   } catch (error) {
     console.error('grant-pro POST error:', error instanceof Error ? error.message : 'Unknown error')
