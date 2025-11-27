@@ -213,14 +213,17 @@ export const updateSession = mutation({
     // Recalculate end_at if either start or duration changed
     if (args.start_at !== undefined || args.duration_minutes !== undefined) {
       const start = args.start_at ?? session.start_at;
-      const duration = args.duration_minutes ?? session.duration_minutes;
+      // Default to 60 minutes if duration_minutes is missing from both args and existing session
+      const DEFAULT_DURATION_MINUTES = 60;
+      const duration = args.duration_minutes ?? session.duration_minutes ?? DEFAULT_DURATION_MINUTES;
       if (!start || start <= 0) {
         throw new Error("Cannot calculate end_at: start_at is missing or invalid");
       }
-      if (!duration || duration <= 0) {
-        throw new Error("Cannot calculate end_at: duration_minutes is missing or invalid");
-      }
       updates.end_at = start + duration * 60 * 1000;
+      // Persist the default duration if it was missing from the session
+      if (!session.duration_minutes && !args.duration_minutes) {
+        updates.duration_minutes = DEFAULT_DURATION_MINUTES;
+      }
     }
 
     if (args.location !== undefined) {

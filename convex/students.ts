@@ -1408,6 +1408,17 @@ export const findStudentsAtInactiveUniversities = query({
  *
  * This query helps detect and recover from partial rollback failures.
  *
+ * ⚠️ MIGRATION PRIORITY: HIGH - This query should be migrated FIRST among diagnostics.
+ * It loads BOTH studentProfiles AND users tables into memory, making it the highest
+ * timeout risk. Expected to fail at ~2,000-3,000 profiles.
+ *
+ * RECOMMENDED MIGRATION PATH:
+ * 1. Convert to internalMutation (5-minute limit instead of 1 second)
+ * 2. Process in batches with cursor pagination
+ * 3. Store results in a diagnostics table
+ * 4. Run on schedule (e.g., nightly) rather than on-demand
+ * 5. Alert on anomalies instead of full scans
+ *
  * USAGE:
  * npx convex run students:detectOrphanedProfiles
  *

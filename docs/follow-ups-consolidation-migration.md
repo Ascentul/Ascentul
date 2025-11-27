@@ -70,7 +70,8 @@ follow_ups: defineTable({
   priority: v.optional(v.union(
     v.literal('low'),
     v.literal('medium'),
-    v.literal('high')
+    v.literal('high'),
+    v.literal('urgent')
   )),
   status: v.union(v.literal('open'), v.literal('done')),
 

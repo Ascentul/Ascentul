@@ -685,10 +685,7 @@ export const updateUserById = mutation({
       throw new Error("Unauthorized");
     }
 
-    const user = await ctx.db.get(args.id);
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const user = targetUser;
 
     // Filter out undefined values from updates
     const cleanUpdates = Object.fromEntries(

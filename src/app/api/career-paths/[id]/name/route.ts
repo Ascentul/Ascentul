@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
-import { convexServer } from '@/lib/convex-server';
+import { fetchMutation } from 'convex/nextjs'
 
 export const runtime = 'nodejs'
 
@@ -14,10 +14,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const name = String(body?.name || '').trim()
     if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 })
 
-    await convexServer.mutation(api.career_paths.updateCareerPathName, { 
-      clerkId: userId, 
-      id: params.id, 
-      name 
+    await fetchMutation(api.career_paths.updateCareerPathName, {
+      clerkId: userId,
+      id: params.id,
+      name
     })
 
     return NextResponse.json({ ok: true })

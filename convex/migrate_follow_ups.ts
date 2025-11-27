@@ -70,7 +70,16 @@ export const migrateFollowUps = mutation({
       }
 
       // Additional check: count records to detect partial migrations
-      // Use collect() instead of pagination - Convex doesn't allow multiple paginated queries
+      //
+      // ⚠️ MEMORY CONCERN: collect() loads entire result sets into memory.
+      // Convex best practices discourage this for large datasets. Alternatives:
+      // - Denormalized counters: Maintain counts in mutations for O(1) reads
+      // - Aggregate component: O(log n) counts with filtering support
+      // - Cursor pagination: Stream results in pages (100-1000 rows)
+      //
+      // RETAINED HERE because: This is a one-time migration check expected to run
+      // on bounded legacy tables before the unified table is in active use.
+      // If tables exceed ~5,000 records, consider using the Aggregate component.
       const [followUps, followupActions, advisorFollowUps] = await Promise.all([
         ctx.db.query('follow_ups').collect(),
         ctx.db.query('followup_actions').collect(),

@@ -386,12 +386,6 @@ export const updateRubric = mutation({
 
     await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
 
-    // Tenant isolation: ensure review belongs to same university
-    const universityId = requireTenant(sessionCtx);
-    if (review.university_id !== universityId) {
-      throw new Error("Unauthorized: Review not in your university");
-    }
-
     // Validate rubric scores (must be numbers between 0-100 and finite)
     const scores = Object.values(args.rubric).filter(
       (s) => s !== undefined,

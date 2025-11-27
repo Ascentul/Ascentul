@@ -96,13 +96,18 @@ export async function GET(request: NextRequest) {
     let user: any = null
     let projects: any[] = []
 
-    try {
-      user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
-    } catch (userError) {
-      console.error('Failed to fetch user profile:', {
-        message: userError instanceof Error ? userError.message : 'Unknown error',
-      })
-      return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 503 })
+  try {
+     user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
+   } catch (userError) {
+     console.error('Failed to fetch user profile:', {
+       message: userError instanceof Error ? userError.message : 'Unknown error',
+     })
+     return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 503 })
+   }
+
+    if (!user) {
+      console.error('User not found in Convex:', { clerkId: userId })
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
     }
 
     try {

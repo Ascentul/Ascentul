@@ -1004,15 +1004,26 @@ export const getUserDashboardAnalytics = query({
       ctx.db.query("career_paths").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
     ]);
 
-    // Calculate stats using stage field (source of truth)
-    // MIGRATION: Using stage instead of status for consistency
+    // Calculate stats using stage with status fallback during migration
     // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
     const applicationStats = {
       total: applications.length,
-      applied: applications.filter(app => app.stage === "Applied").length,
-      interview: applications.filter(app => app.stage === "Interview").length,
-      offer: applications.filter(app => app.stage === "Offer" || app.stage === "Accepted").length,
-      rejected: applications.filter(app => app.stage === "Rejected" || app.stage === "Withdrawn").length,
+      applied: applications.filter(app =>
+        app.stage === "Applied" || (!app.stage && app.status === "applied")
+      ).length,
+      interview: applications.filter(app =>
+        app.stage === "Interview" || (!app.stage && app.status === "interview")
+      ).length,
+      offer: applications.filter(app =>
+        app.stage === "Offer" ||
+        app.stage === "Accepted" ||
+        (!app.stage && app.status === "offer")
+      ).length,
+      rejected: applications.filter(app =>
+        app.stage === "Rejected" ||
+        app.stage === "Withdrawn" ||
+        (!app.stage && app.status === "rejected")
+      ).length,
     };
 
     const activeGoals = goals.filter(goal =>
@@ -1655,15 +1666,33 @@ export const getSingleUniversityAnalytics = query({
     ]);
 
     // Calculate success metrics
-    // MIGRATION: Using stage instead of status for consistency
+    // MIGRATION: Using stage with status fallback for consistency
     // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
+    const stageFromStatus = (status?: string) => {
+      switch (status) {
+        case 'offer':
+          return 'Offer';
+        case 'applied':
+          return 'Applied';
+        case 'interview':
+          return 'Interview';
+        case 'rejected':
+          return 'Rejected';
+        case 'saved':
+          return 'Prospect';
+        default:
+          return undefined;
+      }
+    };
+
     const totalApplications = uniApps.length;
     const interviewsScheduled = uniInterviews.filter(i =>
       i.status === 'scheduled' || i.status === 'completed'
     ).length;
-    const offersReceived = uniApps.filter(a =>
-      a.stage === 'Offer' || a.stage === 'Accepted'
-    ).length;
+    const offersReceived = uniApps.filter(a => {
+      const stage = a.stage || stageFromStatus(a.status as any);
+      return stage === 'Offer' || stage === 'Accepted';
+    }).length;
     const placementRate = students.length > 0
       ? Math.round((offersReceived / students.length) * 100)
       : 0;

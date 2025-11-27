@@ -5,7 +5,7 @@ import { api } from 'convex/_generated/api'
 import { convexServer } from '@/lib/convex-server';
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY
-const stripeApiVersion = process.env.STRIPE_API_VERSION || '2025-11-17'
+const stripeApiVersion = process.env.STRIPE_API_VERSION || '2025-11-17.clover'
 
 export async function POST(request: NextRequest) {
   try {

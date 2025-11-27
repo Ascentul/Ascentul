@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 
 export async function PUT(request: NextRequest, context: { params: { id: string } }) {
   try {
-    const { userId } = getAuth(request)
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const goalIdParam = context.params.id
+    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '') {
+      return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
+    }
     const body = await request.json().catch(() => ({} as any))
 
     const updates: any = {}
@@ -26,7 +30,7 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
 
     await convexServer.mutation(api.goals.updateGoal, {
       clerkId: userId,
-      goalId: context.params.id as Id<'goals'>,
+      goalId: goalIdParam as Id<'goals'>,
       updates,
     })
     return NextResponse.json({ ok: true })
@@ -39,9 +43,13 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
 
 export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
   try {
-    const { userId } = getAuth(request)
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    await convexServer.mutation(api.goals.deleteGoal, { clerkId: userId, goalId: context.params.id as Id<'goals'> })
+    const goalIdParam = context.params.id
+    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '') {
+      return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
+    }
+    await convexServer.mutation(api.goals.deleteGoal, { clerkId: userId, goalId: goalIdParam as Id<'goals'> })
     return NextResponse.json({ ok: true })
   } catch (error: any) {
     console.error('DELETE /api/goals/[id] error:', error)
