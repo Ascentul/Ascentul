@@ -501,6 +501,7 @@ export default function ProfilePage() {
       });
     }
   };
+  const handleDeleteWorkHistory = async (id: string) => {
     if (!isViewingOwnProfile) {
       toast({
         title: "Unauthorized",
@@ -510,11 +511,7 @@ export default function ProfilePage() {
       return;
     }
 
-    if (!clerkUser) {
-      return;
-    }
-      return;
-    }
+    if (!clerkUser) return;
 
     try {
       const currentWorkHistory = userProfile?.work_history || [];

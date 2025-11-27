@@ -253,7 +253,7 @@ export function AdvancedFiltersPanel({
         </div>
         {filters.activeOnly && (
           <span className="text-xs text-muted-foreground">
-            Prospect, Applied, Interview
+            {ACTIVE_STAGES.join(', ')}
           </span>
         )}
       </div>

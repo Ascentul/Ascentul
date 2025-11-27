@@ -25,7 +25,7 @@ import { useMutation } from 'convex/react';
 import { api } from 'convex/_generated/api';
 import type { Id } from 'convex/_generated/dataModel';
 import { toast } from 'sonner';
-import { getNextStages, getStageLabel, getStageColor, TERMINAL_STAGES } from '@/lib/advisor/stages';
+import { getNextStages, getStageLabel, getStageColor, isTerminalStage } from '@/lib/advisor/stages';
 import type { ApplicationStage } from '@/lib/advisor/stages';
 
 interface StageTransitionModalProps {
@@ -59,7 +59,7 @@ export function StageTransitionModal({
   const nextStages = getNextStages(currentStage);
 
   // Determine if reason is required for the selected stage
-  const reasonRequired = selectedStage && TERMINAL_STAGES.includes(selectedStage as ApplicationStage);
+  const reasonRequired = selectedStage && isTerminalStage(selectedStage);
 
   const handleSubmit = async () => {
     if (!selectedStage) {

@@ -71,6 +71,33 @@ export const TERMINAL_STAGES: readonly ApplicationStage[] = [
 ] as const;
 
 /**
+ * Type guard to check if a stage is terminal
+ * Returns true and narrows type if stage is a valid terminal stage
+ */
+export function isTerminalStage(stage: unknown): stage is ApplicationStage {
+  if (typeof stage !== 'string') return false;
+  return (TERMINAL_STAGES as readonly string[]).includes(stage);
+}
+
+/**
+ * Type guard to check if a stage is active
+ * Returns true and narrows type if stage is a valid active stage
+ */
+export function isActiveStage(stage: unknown): stage is ApplicationStage {
+  if (typeof stage !== 'string') return false;
+  return (ACTIVE_STAGES as readonly string[]).includes(stage);
+}
+
+/**
+ * Type guard to check if a stage is final
+ * Returns true and narrows type if stage is a valid final stage
+ */
+export function isFinalStage(stage: unknown): stage is ApplicationStage {
+  if (typeof stage !== 'string') return false;
+  return (FINAL_STAGES as readonly string[]).includes(stage);
+}
+
+/**
  * Valid stage transitions (enforces workflow rules)
  *
  * Allowed transitions:

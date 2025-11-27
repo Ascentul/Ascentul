@@ -16,54 +16,25 @@ import {
   FINAL_STAGES,
   TERMINAL_STAGES,
   STAGE_TRANSITIONS,
+  isTerminalStage,
+  isActiveStage,
+  isFinalStage,
 } from 'convex/advisor_constants';
 
 // Re-export type
 export type ApplicationStage = AppStage;
 
-// Re-export constants
+// Re-export constants and type guards
 export {
   ALL_STAGES,
   ACTIVE_STAGES,
   FINAL_STAGES,
   TERMINAL_STAGES,
   STAGE_TRANSITIONS,
+  isTerminalStage,
+  isActiveStage,
+  isFinalStage,
 };
-
-/**
- * Check if a stage is "active" (requires advisor tracking)
- *
- * Active logic:
- * - Prospect, Applied, Interview, Offer = ACTIVE (ongoing work)
- * - Accepted, Rejected, Withdrawn, Archived = NOT ACTIVE (final states)
- *
- * @param stage - Application stage to check
- * @returns true if stage is active, false otherwise
- */
-export function isActiveStage(stage: string | undefined | null): boolean {
-  if (!stage) return false;
-  // Safe cast: includes() returns false for invalid strings at runtime
-  return ACTIVE_STAGES.includes(stage as ApplicationStage);
-}
-
-/**
- * Check if a stage is a final state (no longer requires tracking)
- */
-export function isFinalStage(stage: string | undefined | null): boolean {
-  if (!stage) return false;
-  // Safe cast: includes() returns false for invalid strings at runtime
-  return FINAL_STAGES.includes(stage as ApplicationStage);
-}
-
-/**
- * Check if a stage is terminal (requires notes when transitioning to it)
- * Terminal stages represent final negative or neutral outcomes where context is important
- */
-export function isTerminalStage(stage: string | undefined | null): boolean {
-  if (!stage) return false;
-  // Safe cast: includes() returns false for invalid strings at runtime
-  return TERMINAL_STAGES.includes(stage as ApplicationStage);
-}
 
 /**
  * Get user-friendly label for stage

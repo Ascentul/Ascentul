@@ -46,7 +46,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ApplicationStage, TERMINAL_STAGES } from '../types';
+import { ApplicationStage } from '../types';
+import { isTerminalStage } from '@/lib/advisor/stages';
 
 // ============================================================================
 // Types
@@ -105,7 +106,7 @@ export function BulkActionBar({
     if (!selectedStage) return;
 
     // Terminal stages require notes - show confirmation dialog
-    if (TERMINAL_STAGES.includes(selectedStage)) {
+    if (isTerminalStage(selectedStage)) {
       setConfirmDialog({
         isOpen: true,
         action: 'change-stage',

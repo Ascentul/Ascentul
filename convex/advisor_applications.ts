@@ -18,7 +18,7 @@ import {
   getOwnedStudentIds,
   createAuditLog,
 } from './advisor_auth';
-import { ALL_STAGES, ACTIVE_STAGES, STAGE_TRANSITIONS, TERMINAL_STAGES } from './advisor_constants';
+import { ALL_STAGES, ACTIVE_STAGES, STAGE_TRANSITIONS, isTerminalStage } from './advisor_constants';
 
 /**
  * Enriched application with student information
@@ -430,7 +430,7 @@ export const updateApplicationStage = mutation({
     }
 
     // Require notes for terminal states
-    if (TERMINAL_STAGES.includes(newStage) && !args.notes) {
+    if (isTerminalStage(newStage) && !args.notes) {
       throw new Error(
         `Notes required when moving to ${newStage} state`,
       );
@@ -608,7 +608,7 @@ export const bulkUpdateApplicationStage = mutation({
         }
 
         // Require notes for terminal states
-        if (TERMINAL_STAGES.includes(newStage) && !args.notes) {
+        if (isTerminalStage(newStage) && !args.notes) {
           results.failed++;
           results.errors.push(
             `Notes required when moving application ${applicationId} to ${newStage}`

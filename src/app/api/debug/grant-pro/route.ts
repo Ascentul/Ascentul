@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, clerkClient } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
@@ -16,8 +16,8 @@ async function requireAdminAuth(_request: NextRequest): Promise<{ userId: string
   }
 
   try {
-    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
-    const userRole = user?.role
+    const user = await clerkClient.users.getUser(userId)
+    const userRole = user?.publicMetadata?.role as string | undefined
     if (userRole !== 'super_admin') {
       return { error: NextResponse.json({ error: 'Admin access required' }, { status: 403 }) }
     }

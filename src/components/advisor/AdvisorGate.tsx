@@ -53,7 +53,7 @@ export function AdvisorGate({
     // Check role authorization
     if (!isAuthorized) {
       // Redirect based on role
-      if (userRole === "admin") {
+      if (userRole === "super_admin") {
         router.push("/admin");
       } else {
         router.push("/dashboard");
