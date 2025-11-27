@@ -65,7 +65,9 @@ async function createOrUpdateClerkUser({ email, password, firstName, lastName, r
     })
     console.log(`✓ Created Clerk user ${email}: ${user.id}`)
   } catch (err) {
-    if (err.status === 409 || err.status === 422 || err.status === 400) {
+    // 409 = Conflict (duplicate), 422 = Unprocessable Entity (validation, possibly duplicate email)
+    // Note: 400 is excluded as it may indicate other validation errors (invalid email format, missing fields)
+    if (err.status === 409 || err.status === 422) {
       user = await findUserByEmail(email)
       if (!user) throw err
       console.log(`✓ Found existing Clerk user ${email}: ${user.id}`)

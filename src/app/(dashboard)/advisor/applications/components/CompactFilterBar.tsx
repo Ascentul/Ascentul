@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Compact Filter Bar Component
  *
@@ -11,8 +13,6 @@
  * - Scope selector (My Students / All Students)
  * - "More filters" button to open advanced panel
  */
-
-'use client';
 
 import React from 'react';
 import { Button } from '@/components/ui/button';

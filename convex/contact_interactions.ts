@@ -73,9 +73,10 @@ export const createContactFollowup = mutation({
     }
 
     // Verify user role for audit trail accuracy
-    // Students can have role 'user' (regular) or 'student' (university)
+    // Individual users can have role 'user' (legacy), 'individual', or 'student' (university)
     const userRole = user.role;
-    if (userRole !== 'user' && userRole !== 'student') {
+    const allowedRoles = ['user', 'individual', 'student'];
+    if (!allowedRoles.includes(userRole)) {
       throw new Error('createContactFollowup is only for student-created follow-ups. Advisors should use advisor-specific mutations.');
     }
 

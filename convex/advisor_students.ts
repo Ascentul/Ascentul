@@ -582,6 +582,22 @@ export const removeStudentAdvisor = mutation({
       throw new Error("Assignment not in your university");
     }
 
+    // Prevent orphaning a student without an owner advisor
+    if (assignment.is_owner) {
+      const otherAdvisors = await ctx.db
+        .query("student_advisors")
+        .withIndex("by_student_owner", (q) =>
+          q.eq("student_id", assignment.student_id).eq("is_owner", false),
+        )
+        .collect();
+
+      if (otherAdvisors.length === 0) {
+        throw new Error(
+          "Cannot remove the only advisor. Assign another advisor as owner first.",
+        );
+      }
+    }
+
     // Audit log before deletion
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,

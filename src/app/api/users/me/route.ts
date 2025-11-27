@@ -12,9 +12,10 @@ export async function GET() {
     if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
 
     const token = await authResult.getToken({ template: 'convex' })
-    if (token) {
-      convexServer.setAuth(token)
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
     }
+    convexServer.setAuth(token)
 
     const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
     return NextResponse.json({ user })

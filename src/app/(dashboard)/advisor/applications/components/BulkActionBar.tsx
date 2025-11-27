@@ -171,13 +171,9 @@ export function BulkActionBar({
         await onUpdateNextStep(nextStep, dueDateTimestamp);
       }
 
-      // Reset state
-      setConfirmDialog({ isOpen: false, action: null });
+      // Reset state on success
+      handleCancelDialog();
       setSelectedStage('');
-      setNotes('');
-      setArchiveReason('');
-      setNextStep('');
-      setDueDate('');
     } finally {
       setIsProcessing(false);
     }

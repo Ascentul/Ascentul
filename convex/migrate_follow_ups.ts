@@ -227,6 +227,7 @@ export const migrateFollowUps = mutation({
             status: status as 'open' | 'done',
 
             // Completion tracking
+            completed_at: action.completed ? (action.updated_at || action.created_at) : undefined,
             completed_by: action.completed ? action.user_id : undefined,
 
             // Timestamps

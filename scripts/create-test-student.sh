@@ -49,7 +49,7 @@ echo "Step 1: Creating Clerk accounts..."
 echo "-----------------------------------"
 
 # Create student account in Clerk
-STUDENT_EMAIL=\"$STUDENT_EMAIL\" ADVISOR_EMAIL=\"$ADVISOR_EMAIL\" PASSWORD=\"$PASSWORD\" node -e "
+STUDENT_EMAIL="$STUDENT_EMAIL" ADVISOR_EMAIL="$ADVISOR_EMAIL" PASSWORD="$PASSWORD" node -e "
 const https = require('https');
 const studentEmail = process.env.STUDENT_EMAIL;
 const advisorEmail = process.env.ADVISOR_EMAIL;

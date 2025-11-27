@@ -45,7 +45,7 @@ export const setAdvisorRole = internalMutation({
 
     if (!user) {
       console.log(`❌ User not found: ${maskEmail(args.email)}`);
-      return { success: false, message: `User not found: ${args.email}. Please sign in first.` };
+      return { success: false, message: `User not found: ${maskEmail(args.email)}. Please sign in first.` };
     }
 
     // Ensure advisor has university_id
@@ -54,7 +54,7 @@ export const setAdvisorRole = internalMutation({
       console.log(`❌ Advisor role requires university_id for ${maskEmail(args.email)}`);
       return {
         success: false,
-        message: `Advisor role requires university_id. Please provide university_id or ensure user already has one.`,
+        message: `Advisor role requires university_id for ${maskEmail(args.email)}. Please provide university_id or ensure user already has one.`,
       };
     }
 
@@ -77,7 +77,7 @@ export const setAdvisorRole = internalMutation({
     console.log(`✓ Set role to '${ADVISOR_ROLE}' for ${maskEmail(args.email)}`);
     return {
       success: true,
-      message: `Successfully set role to '${ADVISOR_ROLE}' for ${args.email}`,
+      message: `Successfully set role to '${ADVISOR_ROLE}' for ${maskEmail(args.email)}`,
       userId: user._id,
     };
   },

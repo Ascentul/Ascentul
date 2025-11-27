@@ -676,19 +676,7 @@ export const acceptInvite = mutation({
       }
     }
 
-    // 9. Update user role AFTER successful profile creation
-    // This ensures we NEVER have a student role without a valid profile (requireStudent invariant)
-    await ctx.db.patch(user._id, {
-      role: "student",
-      university_id: invite.university_id,
-      subscription_plan: "university",
-      subscription_status: "active",
-      updated_at: now,
-    });
-
-    // 10. Mark invite as accepted (with race condition check)
-    // Re-fetch invite to ensure status is still "pending"
-    // This prevents multiple users from accepting the same invite simultaneously
+    // 9. Re-verify invite is still pending before any state changes
     const currentInvite = await ctx.db.get(invite._id);
 
     if (!currentInvite) {
@@ -699,6 +687,17 @@ export const acceptInvite = mutation({
       throw new Error(`Invite was already ${currentInvite.status}. It may have been accepted by another user.`);
     }
 
+    // 10. Update user role AFTER successful profile creation
+    // This ensures we NEVER have a student role without a valid profile (requireStudent invariant)
+    await ctx.db.patch(user._id, {
+      role: "student",
+      university_id: invite.university_id,
+      subscription_plan: "university",
+      subscription_status: "active",
+      updated_at: now,
+    });
+
+    // 11. Mark invite as accepted
     await ctx.db.patch(invite._id, {
       status: "accepted",
       accepted_at: now,
@@ -706,13 +705,13 @@ export const acceptInvite = mutation({
       updated_at: now,
     });
 
-    // 11. Increment university license usage
+    // 12. Increment university license usage
     await ctx.db.patch(university._id, {
       license_used: (university.license_used || 0) + 1,
       updated_at: now,
     });
 
-    // 12. Optimistic concurrency control: verify we didn't exceed capacity
+    // 13. Optimistic concurrency control: verify we didn't exceed capacity
     // This handles race conditions where multiple concurrent acceptances all passed
     // the initial capacity check (step 6a) before any increments occurred
     const updatedUniversity = await ctx.db.get(university._id);
