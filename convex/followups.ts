@@ -187,8 +187,10 @@ export const updateFollowup = mutation({
       updated_at: now,
     };
 
-    // FERPA COMPLIANCE: Optimistic locking for status changes
-    // Status changes affect audit trail and must be tracked accurately
+    // FERPA COMPLIANCE: Version tracking for status changes
+    // Status changes affect audit trail - version increments provide audit history
+    // Note: Convex mutations are serialized at document level, so concurrent
+    // modifications to the same document are handled sequentially by the runtime
     if (statusChangingToDone || statusChangingToOpen) {
       const currentVersion = item.version ?? 0;
       patchData.version = currentVersion + 1;
@@ -204,29 +206,6 @@ export const updateFollowup = mutation({
 
       await ctx.db.patch(args.followupId, patchData);
 
-      // Verify the patch succeeded by checking version
-      const afterPatch = await ctx.db.get(args.followupId);
-
-      if (!afterPatch) {
-        // Follow-up was deleted during the operation - hard failure
-        console.error(`Follow-up ${args.followupId} deleted during update operation`);
-        throw new Error(
-          'Follow-up was deleted during update. This may indicate a concurrent deletion.'
-        );
-      }
-
-      if (afterPatch.version !== currentVersion + 1) {
-        // Version mismatch: concurrent modification occurred
-        console.error(
-          `Follow-up ${args.followupId} version mismatch. ` +
-          `Expected ${currentVersion + 1}, got ${afterPatch.version}. ` +
-          `Concurrent modification detected.`
-        );
-        throw new Error(
-          'Follow-up was modified by another request. Please refresh and try again.'
-        );
-      }
-
       // Return consistent shape with idempotent paths
       return {
         success: true,
@@ -235,12 +214,15 @@ export const updateFollowup = mutation({
         alreadyOpen: false,
         completed_at: statusChangingToDone ? now : undefined,
         completed_by: statusChangingToDone ? user._id : undefined,
-        verified: true,
+        version: currentVersion + 1,
       };
     } else {
       // Non-status updates don't need optimistic locking
       await ctx.db.patch(args.followupId, patchData);
-      return args.followupId;
+      return {
+        success: true,
+        followupId: args.followupId,
+      };
     }
   },
 });

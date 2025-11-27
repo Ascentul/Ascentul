@@ -157,7 +157,9 @@ export function BulkActionBar({
         await onArchive(archiveReason || 'Bulk archived by advisor');
       } else if (confirmDialog.action === 'update-next-step') {
         if (!nextStep.trim()) {
-          return; // Validation
+          // Button should already be disabled via line 433
+          // This is a defensive check
+          return;
         }
         let dueDateTimestamp: number | undefined = undefined;
         if (dueDate) {

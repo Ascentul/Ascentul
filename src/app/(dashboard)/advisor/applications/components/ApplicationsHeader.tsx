@@ -291,12 +291,12 @@ function MetricCard({
   clickable = false,
   valueClassName = '',
 }: MetricCardProps) {
-  const CardComponent = clickable ? 'button' : 'div';
   const cardProps = clickable
     ? {
         onClick,
         className: 'cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
-        type: 'button' as const,
+        role: 'button',
+        tabIndex: 0,
         'aria-label': `Filter by ${title.toLowerCase()}`,
       }
     : {};
@@ -305,7 +305,15 @@ function MetricCard({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Card {...cardProps}>
+          <Card 
+            {...cardProps}
+            onKeyDown={clickable ? (e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick?.();
+              }
+            } : undefined}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{title}</CardTitle>
               {icon}
@@ -360,6 +368,13 @@ function NeedActionMetric({ value, breakdown, onClick, onClickReason }: NeedActi
             }`}
             onClick={onClick}
             role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }}
             aria-label="Filter by applications needing action"
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

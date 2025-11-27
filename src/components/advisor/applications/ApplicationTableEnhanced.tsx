@@ -143,7 +143,10 @@ export function ApplicationTableEnhanced({
       try {
         let dueDateTimestamp: number | undefined = undefined;
         if (editDueDate) {
-          const parsedDate = new Date(editDueDate);
+          // Parse as local date to avoid timezone shifts
+          // (new Date("yyyy-MM-dd") parses as UTC, causing day shifts in some timezones)
+          const [year, month, day] = editDueDate.split('-').map(Number);
+          const parsedDate = new Date(year, month - 1, day);
           if (isNaN(parsedDate.getTime())) {
             console.error("Invalid date format");
             // TODO: Show toast notification
@@ -253,17 +256,21 @@ export function ApplicationTableEnhanced({
                 `}
               >
                 {/* Checkbox */}
-                <TableCell>
+                <TableCell
+                  onPointerDown={(e: React.PointerEvent) => {
+                    // Capture shift state before checkbox events fire to avoid race condition
+                    // between onCheckedChange and onClick. We handle the entire click here
+                    // when shift is pressed.
+                    if (e.shiftKey) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleRowSelect(app._id, true);
+                    }
+                  }}
+                >
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => handleRowSelect(app._id)}
-                    onClick={(e: React.MouseEvent) => {
-                      // Handle shift-click for range selection
-                      if (e.shiftKey) {
-                        e.preventDefault(); // Prevent default checkbox toggle
-                        handleRowSelect(app._id, true);
-                      }
-                    }}
                     aria-label={`Select ${app.company_name} application`}
                   />
                 </TableCell>

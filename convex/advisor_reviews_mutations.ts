@@ -278,11 +278,18 @@ export const returnReviewToQueue = mutation({
       throw new Error('Unauthorized: Not your review');
     }
 
+    // Only allow returning reviews that are in progress
+    if (review.status !== 'in_review') {
+      throw new Error(`Cannot return review with status: ${review.status}`);
+    }
+
     await ctx.db.patch(args.review_id, {
       status: 'waiting',
       reviewed_by: undefined,
       updated_at: Date.now(),
     });
+
+    // TODO: Consider logging the reason for audit purposes
 
     return { success: true };
   },

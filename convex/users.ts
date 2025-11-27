@@ -2,6 +2,24 @@ import { v } from "convex/values";
 import { mutation, query, MutationCtx } from "./_generated/server";
 import { api } from "./_generated/api";
 
+// Roles that require university_id (university-affiliated roles)
+const UNIVERSITY_ROLES = ["student", "university_admin", "advisor", "staff"] as const;
+// Roles that must NOT have university_id (individual/platform-wide users)
+// - individual/user: Regular individual users
+// - super_admin: Platform-wide administrators (manage entire platform, not a specific university)
+const INDIVIDUAL_ROLES = ["individual", "user", "super_admin"] as const;
+
+type UniversityRole = typeof UNIVERSITY_ROLES[number];
+type IndividualRole = typeof INDIVIDUAL_ROLES[number];
+
+function isUniversityRole(role: string): role is UniversityRole {
+  return UNIVERSITY_ROLES.includes(role as UniversityRole);
+}
+
+function isIndividualRole(role: string): role is IndividualRole {
+  return INDIVIDUAL_ROLES.includes(role as IndividualRole);
+}
+
 /**
  * Internal helper: Log role changes to audit_logs
  * Only logs when performed by super_admin
@@ -205,6 +223,41 @@ export const createUser = mutation({
       .first();
 
     if (pendingUser) {
+      // Validate role-university invariant when overriding role
+      // Individual roles (user, individual) must NOT have university_id
+      // University roles (student, advisor, etc.) must have university_id
+      if (args.role && pendingUser.university_id) {
+        if (isIndividualRole(args.role)) {
+          throw new Error(
+            `Cannot set role '${args.role}' for pending user with university assignment. ` +
+            `Individual roles must not have university_id. Remove university_id first or use a university-affiliated role.`
+          );
+        }
+      }
+      if (args.role && !pendingUser.university_id) {
+        if (isUniversityRole(args.role)) {
+          throw new Error(
+            `Cannot set role '${args.role}' for pending user without university assignment. ` +
+            `University-affiliated roles require university_id. Assign a university first.`
+          );
+        }
+      }
+
+      // Validate existing pending user state when no role override is provided
+      const finalRole = args.role || pendingUser.role;
+      if (pendingUser.university_id && isIndividualRole(finalRole)) {
+        throw new Error(
+          `Cannot activate pending user: role '${finalRole}' conflicts with university assignment. ` +
+          `Individual roles must not have university_id.`
+        );
+      }
+      if (!pendingUser.university_id && isUniversityRole(finalRole)) {
+        throw new Error(
+          `Cannot activate pending user: role '${finalRole}' requires university assignment. ` +
+          `University-affiliated roles require university_id.`
+        );
+      }
+
       // Activate the pending user by updating with Clerk ID
       await ctx.db.patch(pendingUser._id, {
         clerkId: args.clerkId,
@@ -331,13 +384,16 @@ export const updateUser = mutation({
       graduation_year: v.optional(v.string()),
       dream_job: v.optional(v.string()),
       onboarding_completed: v.optional(v.boolean()),
+      // Role must match schema - see convex/schema.ts for valid values
       role: v.optional(
         v.union(
+          v.literal("individual"),
           v.literal("user"),
-          v.literal("admin"),
-          v.literal("super_admin"),
-          v.literal("university_admin"),
+          v.literal("student"),
           v.literal("staff"),
+          v.literal("university_admin"),
+          v.literal("advisor"),
+          v.literal("super_admin"),
         ),
       ),
       subscription_plan: v.optional(
@@ -471,13 +527,16 @@ export const updateUserById = mutation({
       graduation_year: v.optional(v.string()),
       dream_job: v.optional(v.string()),
       onboarding_completed: v.optional(v.boolean()),
+      // Role must match schema - see convex/schema.ts for valid values
       role: v.optional(
         v.union(
+          v.literal("individual"),
           v.literal("user"),
-          v.literal("admin"),
-          v.literal("super_admin"),
-          v.literal("university_admin"),
+          v.literal("student"),
           v.literal("staff"),
+          v.literal("university_admin"),
+          v.literal("advisor"),
+          v.literal("super_admin"),
         ),
       ),
       subscription_plan: v.optional(

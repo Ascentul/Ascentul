@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import sgMail from '@sendgrid/mail'
 import { convexServer } from '@/lib/convex-server';
@@ -11,9 +11,9 @@ if (process.env.SENDGRID_API_KEY) {
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { userId } = getAuth(request)
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const tickets = await convexServer.query(api.support_tickets.listTickets, { clerkId: userId })
     return NextResponse.json({ tickets })
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = getAuth(request)
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const body = await request.json()
     const { subject, description, issueType, source } = body

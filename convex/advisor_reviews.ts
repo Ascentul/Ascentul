@@ -334,6 +334,7 @@ export const updateReviewStatus = mutation({
         args.status !== "waiting" ? sessionCtx.userId : review.reviewed_by,
       reviewed_at: args.status !== "waiting" ? now : review.reviewed_at,
       updated_at: now,
+      version: (review.version ?? 0) + 1,
     });
 
     // Audit log
@@ -669,6 +670,7 @@ export const approveReview = mutation({
         overall: v.optional(v.number()),
       }),
     ),
+    expectedVersion: v.optional(v.number()), // For optimistic concurrency control
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -680,6 +682,26 @@ export const approveReview = mutation({
     }
 
     await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
+
+    // Validate current status - can only approve waiting or in_review items
+    const approvableStatuses = ["waiting", "in_review"];
+    if (!approvableStatuses.includes(review.status)) {
+      throw new Error(
+        `Cannot approve review with status '${review.status}'. ` +
+        `Only reviews with status 'waiting' or 'in_review' can be approved.`
+      );
+    }
+
+    // Optimistic concurrency check
+    if (args.expectedVersion !== undefined) {
+      const currentVersion = review.version ?? 0;
+      if (currentVersion !== args.expectedVersion) {
+        throw new Error(
+          `Optimistic lock failed: expected version ${args.expectedVersion}, but current version is ${currentVersion}. ` +
+          `The review was modified by another user. Please refresh and try again.`
+        );
+      }
+    }
 
     // Validate and sanitize approval comment if provided
     let sanitizedComment: string | undefined;
@@ -716,7 +738,7 @@ export const approveReview = mutation({
       ];
     }
 
-    // Update review
+    // Update review with version increment for optimistic concurrency
     await ctx.db.patch(args.reviewId, {
       status: "approved",
       rubric: args.rubric !== undefined ? args.rubric : review.rubric,
@@ -724,6 +746,7 @@ export const approveReview = mutation({
       reviewed_by: sessionCtx.userId,
       reviewed_at: now,
       updated_at: now,
+      version: (review.version ?? 0) + 1,
     });
 
     // Audit log for approval

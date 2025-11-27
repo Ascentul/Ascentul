@@ -86,17 +86,7 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
     });
   }, [students, searchTerm]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading students...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Virtualization: calculate visible range (must be called unconditionally for Rules of Hooks)
   const totalHeight = filteredStudents.length * ROW_HEIGHT;
   const { startIndex, endIndex } = useMemo(() => {
     if (filteredStudents.length === 0) {
@@ -112,6 +102,17 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
     );
     return { startIndex: start, endIndex: end };
   }, [filteredStudents.length, scrollTop]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading students...</p>
+        </div>
+      </div>
+    );
+  }
 
   const visibleStudents = filteredStudents.slice(startIndex, endIndex);
   const translateY = startIndex * ROW_HEIGHT;

@@ -144,23 +144,33 @@ export const getSessions = query({
 
 /**
  * Get sessions happening today for advisor
+ *
+ * @param clientTimezoneOffset - Client's timezone offset in minutes from UTC
+ *   (e.g., -300 for EST/UTC-5, 540 for JST/UTC+9). If not provided, uses server time.
  */
 export const getTodaySessions = query({
   args: {
     clerkId: v.string(),
+    clientTimezoneOffset: v.optional(v.number()), // Minutes offset from UTC
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
-    // Calculate today's boundaries
-    const now = new Date();
-    const startOfDay = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
+    // Calculate today's boundaries in client's timezone
+    // If no offset provided, fall back to server time (legacy behavior)
+    const now = Date.now();
+    const offsetMs = (args.clientTimezoneOffset ?? 0) * 60 * 1000;
+    // Adjust current time to client's local time for day boundary calculation
+    const clientLocalTime = new Date(now - offsetMs);
+    const startOfDayLocal = new Date(
+      clientLocalTime.getFullYear(),
+      clientLocalTime.getMonth(),
+      clientLocalTime.getDate(),
     ).getTime();
+    // Convert back to UTC for database comparison
+    const startOfDay = startOfDayLocal + offsetMs;
     const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
 
     // Use collect() to return all sessions for the day (typically < 20 for most advisors)

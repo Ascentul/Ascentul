@@ -420,6 +420,9 @@ export const assignStudentToAdvisor = mutation({
     }
 
     // If isOwner=true, remove existing owner
+    // Note: Convex serializes concurrent transactions, but to handle edge cases
+    // where two admins simultaneously assign different primary advisors, we
+    // re-verify after the patch to ensure exactly one owner exists.
     if (args.isOwner) {
       const existingOwner = await ctx.db
         .query("student_advisors")
@@ -443,6 +446,7 @@ export const assignStudentToAdvisor = mutation({
       .unique();
 
     const now = Date.now();
+    let resultId: Id<"student_advisors">;
 
     if (existing) {
       // Update existing assignment
@@ -466,7 +470,7 @@ export const assignStudentToAdvisor = mutation({
         ipAddress: "server",
       });
 
-      return existing._id;
+      resultId = existing._id;
     } else {
       // Create new assignment
       const assignmentId = await ctx.db.insert("student_advisors", {
@@ -494,8 +498,56 @@ export const assignStudentToAdvisor = mutation({
         ipAddress: "server",
       });
 
-      return assignmentId;
+      resultId = assignmentId;
     }
+
+    // Post-operation consistency check: verify exactly one owner exists
+    // This catches race conditions where concurrent transactions may have
+    // created multiple owners or removed the owner unexpectedly
+    if (args.isOwner) {
+      const owners = await ctx.db
+        .query("student_advisors")
+        .withIndex("by_student_owner", (q) =>
+          q.eq("student_id", args.studentId).eq("is_owner", true),
+        )
+        .collect();
+
+      if (owners.length !== 1) {
+        console.warn(
+          `[assignStudentToAdvisor] Consistency warning: Found ${owners.length} owners for student ${args.studentId}. Expected exactly 1.`
+        );
+
+        if (owners.length > 1) {
+          // Auto-correct: if multiple owners, keep only the most recently assigned
+          const sortedByTime = owners.sort((a, b) => b.assigned_at - a.assigned_at);
+          for (let i = 1; i < sortedByTime.length; i++) {
+            await ctx.db.patch(sortedByTime[i]._id, { is_owner: false });
+
+            // Audit the auto-correction for compliance
+            await createAuditLog(ctx, {
+              actorId: sessionCtx.userId,
+              universityId,
+              action: "student.owner_auto_corrected",
+              entityType: "student_advisor",
+              entityId: sortedByTime[i]._id,
+              studentId: args.studentId,
+              previousValue: { is_owner: true },
+              newValue: { is_owner: false, reason: "duplicate_owner_correction" },
+              ipAddress: "server",
+            });
+          }
+          console.log(`[assignStudentToAdvisor] Auto-corrected: kept ${sortedByTime[0].advisor_id} as owner`);
+        } else if (owners.length === 0) {
+          // Zero owners after isOwner=true operation indicates a bug - escalate
+          throw new Error(
+            `Consistency error: No owner found for student ${args.studentId} after owner assignment. ` +
+            `This indicates a database integrity issue that requires investigation.`
+          );
+        }
+      }
+    }
+
+    return resultId;
   },
 });
 
