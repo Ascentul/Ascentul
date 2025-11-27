@@ -10,8 +10,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const contacts = await convexServer.query(api.contacts.getUserContacts, { clerkId: userId })
-    const contact = (contacts as any[]).find((c) => String(c._id) === params.id)
+    const contact = await convexServer.query(api.contacts.getContactById, { 
+      clerkId: userId,
+      contactId: params.id as Id<'networking_contacts'>,
+    })
     if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
     return NextResponse.json({ contact })
   } catch (e: any) {

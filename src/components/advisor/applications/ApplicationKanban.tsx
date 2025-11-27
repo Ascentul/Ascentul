@@ -71,6 +71,7 @@ export function ApplicationKanban({
   };
 
   const handleSuccess = (applicationId: string, newStage: string) => {
+    handleModalClose();
     if (onRefresh) {
       onRefresh(applicationId, newStage);
     }

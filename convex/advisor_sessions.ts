@@ -537,6 +537,7 @@ export const completeSession = mutation({
     const now = Date.now();
 
     await ctx.db.patch(args.sessionId, {
+      status: "completed",
       end_at: now,
       notes: args.finalNotes || session.notes,
       outcomes: args.outcomes || session.outcomes,

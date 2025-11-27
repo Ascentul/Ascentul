@@ -110,12 +110,12 @@ export const getSessionAttachmentUrl = query({
 
     const user = await getCurrentUser(ctx);
 
-    // 1. Verify university match (tenant isolation)
+    // 2. Verify university match (tenant isolation)
     if (user.university_id !== session.university_id) {
       throw new Error("Unauthorized: Different university");
     }
 
-    // 2. Check permissions (student, advisor, or admin)
+    // 3. Check permissions (student, advisor, or admin)
     if (
       user._id !== session.student_id &&
       user._id !== session.advisor_id &&
@@ -125,11 +125,11 @@ export const getSessionAttachmentUrl = query({
       throw new Error("Unauthorized");
     }
 
-    // 3. Find attachment
+    // 4. Find attachment
     const attachment = session.attachments?.find(a => a.id === args.attachmentId);
     if (!attachment) throw new Error("Attachment not found");
 
-    // 4. Generate download URL with access control
+    // 5. Generate download URL with access control
     // Note: Access control is enforced by this query function, not by URL expiration
     // Upload URLs (ctx.storage.generateUploadUrl) expire after 1 hour
     const url = await ctx.storage.getUrl(attachment.storage_id);

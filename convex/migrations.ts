@@ -20,6 +20,7 @@ export const migrateAdminToSuperAdmin = internalMutation({
 
     // Use pagination to handle large user tables
     // Convex pagination uses isDone flag, not cursor === null, to indicate completion
+    // Note: Convex paginate() accepts null for initial cursor (continueCursor returns string | null)
     const BATCH_SIZE = 100
     let cursor: string | null = null
     let isDone = false

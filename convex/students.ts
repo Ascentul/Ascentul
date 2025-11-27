@@ -273,6 +273,14 @@ export const createInvite = action({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx, args): Promise<{ inviteId: Id<"studentInvites">; token: string; expiresAt: number }> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    if (identity.subject !== args.createdByClerkId) {
+      throw new Error("Unauthorized: Clerk identity mismatch");
+    }
+
     // Generate cryptographically secure token
     const token = generateSecureToken();
 
@@ -358,8 +366,8 @@ export const createInviteInternal = internalMutation({
       throw new Error("Creator not found");
     }
 
-    if (creator.role !== "university_admin") {
-      throw new Error("Only university admins can create invites");
+    if (!["university_admin", "advisor"].includes(creator.role)) {
+      throw new Error("Only university admins or advisors can create invites");
     }
 
     if (creator.university_id !== args.universityId) {
@@ -696,6 +704,32 @@ export const acceptInvite = mutation({
       subscription_status: "active",
       updated_at: now,
     });
+
+    // 10a. Ensure membership record exists for this student
+    const existingMembership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_role", (q) =>
+        q.eq("user_id", user._id).eq("role", "student"),
+      )
+      .first();
+
+    if (!existingMembership) {
+      await ctx.db.insert("memberships", {
+        user_id: user._id,
+        university_id: invite.university_id,
+        role: "student",
+        status: "active",
+        created_at: now,
+        updated_at: now,
+      });
+    } else if (existingMembership.university_id !== invite.university_id) {
+      throw new Error("Student membership belongs to a different university");
+    } else if (existingMembership.status !== "active") {
+      await ctx.db.patch(existingMembership._id, {
+        status: "active",
+        updated_at: now,
+      });
+    }
 
     // 11. Mark invite as accepted
     await ctx.db.patch(invite._id, {

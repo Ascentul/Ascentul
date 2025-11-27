@@ -28,6 +28,37 @@ export const getUserContacts = query({
   },
 });
 
+// Get a single contact by ID (ownership enforced)
+export const getContactById = query({
+  args: {
+    clerkId: v.string(),
+    contactId: v.id("networking_contacts"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) throw new Error("User not found");
+
+    const membership = user.role === "student"
+      ? (await requireMembership(ctx, { role: "student" })).membership
+      : null;
+
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact || contact.user_id !== user._id) {
+      return null;
+    }
+
+    if (contact.university_id && membership && contact.university_id !== membership.university_id) {
+      throw new Error("Unauthorized: Contact belongs to another university");
+    }
+
+    return contact;
+  },
+});
+
 // Create a contact for the current user
 export const createContact = mutation({
   args: {

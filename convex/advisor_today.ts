@@ -119,6 +119,7 @@ export const getTodayOverview = query({
         duration_minutes: session.duration_minutes,
         notes: session.notes,
         visibility: session.visibility,
+        status: session.status,
       };
     });
 
@@ -140,7 +141,7 @@ export const getTodayOverview = query({
 
     // Calculate stats
     const completedSessions = sessions.filter(
-      (s) => s.end_at && s.end_at < now,
+      (s) => s.status === "completed",
     ).length;
     const upcomingSessions = sessions.filter((s) => s.start_at > now).length;
     const overdueFollowUps = todayFollowUps.filter(

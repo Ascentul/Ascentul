@@ -22,9 +22,10 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
         clerkId: userId,
         id: id as Id<'career_paths'>,
       })
-    } catch (err) {
-      console.error('Invalid career path ID:', err)
-      return NextResponse.json({ error: 'Invalid career path ID' }, { status: 400 })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete career path'
+      console.error('Delete career path error:', err)
+      return NextResponse.json({ error: message }, { status: 400 })
     }
 
     return NextResponse.json({ ok: true })

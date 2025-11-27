@@ -98,6 +98,12 @@ export const getUserByEmail = query({
 export const setStripeCustomer = mutation({
   args: { clerkId: v.string(), stripeCustomerId: v.string() },
   handler: async (ctx, args) => {
+    // Authentication check - prevent unauthenticated access
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
