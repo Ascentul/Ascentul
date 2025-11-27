@@ -2,7 +2,7 @@
  * Set Clerk Advisor Role
  *
  * Updates a user's publicMetadata in Clerk to set role="advisor"
- * Run with: npx ts-node scripts/set-clerk-advisor-role.ts <user-email>
+ * Run with: npx ts-node -r dotenv/config scripts/set-clerk-advisor-role.ts <user-email>
  *
  * IMPORTANT: Advisors also require a university_id in Convex. After running this script,
  * you may need to sync Convex with the university_id:
@@ -11,6 +11,7 @@
  * The Clerk webhook will sync the role automatically, but university_id must be set separately.
  */
 
+import 'dotenv/config';
 import { createClerkClient } from '@clerk/backend';
 
 if (!process.env.CLERK_SECRET_KEY) {
@@ -59,7 +60,7 @@ async function setAdvisorRole(email: string) {
     console.log(`  - User ID: ${user.id}`);
     console.log(`  - Email: ${email}`);
     console.log('  - Role: advisor');
-    console.log('\n⚠️  Important: The user must LOG OUT and LOG BACK IN for changes to take effect!');
+    console.log('\nℹ️  Clerk refreshes tokens automatically (~60s). For immediate effect, trigger a client token refresh (e.g., session.reload or getToken({ skipCache: true })).');
     console.log('\n📋 Next step: Ensure user has university_id in Convex:');
     console.log(`   npx convex run set_advisor_role:setAdvisorRole '{"email": "${email}", "university_id": "<university-id>"}'`);
   } catch (error: unknown) {

@@ -440,14 +440,16 @@ export default function ProfilePage() {
   };
 
   const handleUpdateWorkHistory = async () => {
-    if (!clerkUser || !editingWorkHistoryId || !isViewingOwnProfile) {
-      if (!isViewingOwnProfile) {
-        toast({
-          title: "Unauthorized",
-          description: "Cannot modify another user's profile",
-          variant: "destructive",
-        });
-      }
+    if (!isViewingOwnProfile) {
+      toast({
+        title: "Unauthorized",
+        description: "Cannot modify another user's profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!clerkUser || !editingWorkHistoryId) {
       return;
     }
 
@@ -499,16 +501,18 @@ export default function ProfilePage() {
       });
     }
   };
+    if (!isViewingOwnProfile) {
+      toast({
+        title: "Unauthorized",
+        description: "Cannot modify another user's profile",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const handleDeleteWorkHistory = async (id: string) => {
-    if (!clerkUser || !isViewingOwnProfile) {
-      if (!isViewingOwnProfile) {
-        toast({
-          title: "Unauthorized",
-          description: "Cannot modify another user's profile",
-          variant: "destructive",
-        });
-      }
+    if (!clerkUser) {
+      return;
+    }
       return;
     }
 
@@ -600,7 +604,6 @@ export default function ProfilePage() {
   };
 
   const handleUpdateAchievement = async () => {
-    if (!clerkUser || !editingAchievementId) return;
     if (!isViewingOwnProfile) {
       toast({
         title: "Unauthorized",
@@ -609,6 +612,8 @@ export default function ProfilePage() {
       });
       return;
     }
+
+    if (!clerkUser || !editingAchievementId) return;
 
     try {
       const currentAchievements = (userProfile as any)?.achievements_history || [];
@@ -654,7 +659,6 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAchievement = async (id: string) => {
-    if (!clerkUser) return;
     if (!isViewingOwnProfile) {
       toast({
         title: "Unauthorized",
@@ -663,6 +667,8 @@ export default function ProfilePage() {
       });
       return;
     }
+
+    if (!clerkUser) return;
 
     try {
       const currentAchievements = (userProfile as any)?.achievements_history || [];

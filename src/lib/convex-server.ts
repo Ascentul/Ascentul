@@ -30,10 +30,25 @@ function getConvexClient() {
   return new ConvexHttpClient(CONVEX_URL);
 }
 
+// Lazy singleton to avoid crashing at import time when env vars are missing in build/cold start
+let _client: ConvexHttpClient | null = null;
+
+function getClient() {
+  if (!_client) {
+    _client = getConvexClient();
+  }
+  return _client;
+}
+
 /**
  * @deprecated Use fetchQuery, fetchMutation, fetchAction from 'convex/nextjs' instead
  *
- * Singleton ConvexHttpClient instance for server-side use (LEGACY PATTERN)
+ * Lazy proxy around ConvexHttpClient for server-side use (LEGACY PATTERN)
  * This works but is not the recommended approach for Next.js App Router.
  */
-export const convexServer = getConvexClient();
+export const convexServer = {
+  query: <T>(...args: Parameters<ConvexHttpClient['query']>) => getClient().query<T>(...args),
+  mutation: <T>(...args: Parameters<ConvexHttpClient['mutation']>) => getClient().mutation<T>(...args),
+  action: <T>(...args: Parameters<ConvexHttpClient['action']>) => getClient().action<T>(...args),
+  setAuth: (...args: Parameters<ConvexHttpClient['setAuth']>) => getClient().setAuth(...args),
+};

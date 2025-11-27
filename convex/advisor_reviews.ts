@@ -403,6 +403,7 @@ export const updateRubric = mutation({
     await ctx.db.patch(args.reviewId, {
       rubric: args.rubric,
       updated_at: Date.now(),
+      version: (review.version ?? 0) + 1,
     });
 
     // Audit log for rubric updates (affects student outcomes)

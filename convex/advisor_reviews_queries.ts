@@ -14,6 +14,7 @@ import {
   getCurrentUser,
   requireAdvisorRole,
   requireTenant,
+  getOwnedStudentIds,
 } from './advisor_auth';
 
 /**
@@ -117,6 +118,7 @@ export const getReviews = query({
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
+    const ownedStudentIds = new Set(await getOwnedStudentIds(ctx, sessionCtx));
 
     // Use database-level filtering for better performance
     let reviews;
@@ -158,9 +160,13 @@ export const getReviews = query({
         .collect();
     }
 
-    // Enrich with student data
+    // Filter to advisor caseload and enrich with student data
+    const caseloadReviews = reviews.filter((review) =>
+      ownedStudentIds.has(review.student_id)
+    );
+
     const enrichedReviews = await Promise.all(
-      reviews.map(async (review) => {
+      caseloadReviews.map(async (review) => {
         const student = await ctx.db.get(review.student_id);
         if (!student) {
           console.warn(`Student ${review.student_id} not found for review ${review._id}`);
@@ -219,6 +225,12 @@ export const getReviewById = query({
     // Verify tenant isolation
     if (review.university_id !== universityId) {
       throw new Error("Unauthorized: Review not in your university");
+    }
+
+    // Verify advisor can access this student (caseload)
+    const ownedStudentIds = await getOwnedStudentIds(ctx, sessionCtx);
+    if (!ownedStudentIds.some((id) => id === review.student_id)) {
+      throw new Error("Unauthorized: Student not in your caseload");
     }
 
     const student = await ctx.db.get(review.student_id);

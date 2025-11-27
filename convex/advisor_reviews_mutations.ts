@@ -230,8 +230,12 @@ export const _completeReviewInternal = internalMutation({
     const reviewType = review.asset_type === 'resume' ? 'Resume' : 'Cover Letter';
 
     // Build review URL
-    // Convex environment variables must be configured in Convex dashboard
-    // (not NEXT_PUBLIC_* which are Next.js client-side only)
+    // IMPORTANT: APP_URL must be configured in Convex Dashboard for each environment:
+    // Settings → Deployment Settings → Environment Variables
+    // - Development: http://localhost:3000
+    // - Staging: https://staging.ascentful.io
+    // - Production: https://app.ascentful.io
+    // The fallback only works for production; other envs will get wrong URLs without config
     const appUrl = process.env.APP_URL || 'https://app.ascentful.io';
     let reviewUrl = `${appUrl}/dashboard`;
 

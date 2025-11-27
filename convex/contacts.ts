@@ -48,7 +48,7 @@ export const getContactById = query({
 
     const contact = await ctx.db.get(args.contactId);
     if (!contact || contact.user_id !== user._id) {
-      return null;
+      throw new Error("Contact not found or unauthorized");
     }
 
     if (contact.university_id && membership && contact.university_id !== membership.university_id) {

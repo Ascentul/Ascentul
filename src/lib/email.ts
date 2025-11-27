@@ -235,7 +235,7 @@ The Ascentful Team`
       errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
       errorMessage.includes('SENDGRID_API_KEY')
     ) {
-      console.warn('Email service not configured - review completion email not sent');
+      console.warn('Email service not configured - activation email not sent');
       return {
         id: `email_not_configured_${Date.now()}`,
         message: 'Email service not configured',
@@ -472,6 +472,21 @@ The Ascentful Support Team`
     subject,
     text,
     html,
+  }).catch((error) => {
+    const errorMessage = error?.message || '';
+    if (
+      errorMessage.includes('No email service configured') ||
+      errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
+      errorMessage.includes('SENDGRID_API_KEY')
+    ) {
+      console.warn('Email service not configured - review completion email not sent');
+      return {
+        id: `email_not_configured_${Date.now()}`,
+        message: 'Email service not configured',
+        status: 200,
+      };
+    }
+    throw error;
   })
 }
 
