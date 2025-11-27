@@ -7,8 +7,15 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const { userId } = await auth()
+    const authResult = await auth()
+    const { userId } = authResult
     if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+
+    const token = await authResult.getToken({ template: 'convex' })
+    if (token) {
+      convexServer.setAuth(token)
+    }
+
     const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
     return NextResponse.json({ user })
   } catch (error) {

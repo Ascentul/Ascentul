@@ -21,10 +21,13 @@
 
 import { ConvexHttpClient } from 'convex/browser';
 
-// Validate environment variable at module load time (Convex requires NEXT_PUBLIC_CONVEX_URL)
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL;
-if (!CONVEX_URL) {
-  throw new Error('NEXT_PUBLIC_CONVEX_URL environment variable is required for server-side Convex operations');
+
+function getConvexClient() {
+  if (!CONVEX_URL) {
+    throw new Error('NEXT_PUBLIC_CONVEX_URL environment variable is required for server-side Convex operations');
+  }
+  return new ConvexHttpClient(CONVEX_URL);
 }
 
 /**
@@ -33,4 +36,4 @@ if (!CONVEX_URL) {
  * Singleton ConvexHttpClient instance for server-side use (LEGACY PATTERN)
  * This works but is not the recommended approach for Next.js App Router.
  */
-export const convexServer = new ConvexHttpClient(CONVEX_URL);
+export const convexServer = getConvexClient();

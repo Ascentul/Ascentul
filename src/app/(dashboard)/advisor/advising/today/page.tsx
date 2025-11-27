@@ -78,7 +78,7 @@ function formatOverdueTime(dueAt: number, now: number): string {
 export default function AdvisorTodayPage() {
   const { user } = useUser();
   const clerkId = user?.id;
-  const [completingId, setCompletingId] = useState<Id<"advisor_follow_ups"> | null>(null);
+  const [completingId, setCompletingId] = useState<Id<"follow_ups"> | null>(null);
 
   // Get user's timezone offset for accurate "today" calculation
   const timezoneOffset = new Date().getTimezoneOffset();
@@ -92,7 +92,7 @@ export default function AdvisorTodayPage() {
 
   const now = Date.now();
 
-  const handleCompleteFollowUp = async (followUpId: Id<"advisor_follow_ups">) => {
+  const handleCompleteFollowUp = async (followUpId: Id<"follow_ups">) => {
     if (!clerkId) return;
 
     setCompletingId(followUpId);

@@ -77,29 +77,19 @@ async function processUpgrade(params: {
 
   // Handle convexId path
   if (convexId) {
-    // Validate convexId format before casting
-    // Convex IDs use Crockford's Base32 encoding which excludes i, l, o, u
-    // to avoid confusion with similar-looking characters (1/I/l, 0/O)
-    if (!convexId.match(/^[0-9a-hj-km-np-tv-z]+$/)) {
-      return NextResponse.json({
-        error: 'Invalid convexId format',
-        detail: 'Convex IDs must be Crockford Base32 encoded (0-9, a-h, j-k, m-n, p-z, excluding i, l, o, u)',
-        provided: convexId,
-      }, { status: 400 })
-    }
-
     try {
       await upgradeToPremiumByConvexId(convexId as Id<'users'>)
+      return NextResponse.json({ success: true, convexId, plan: 'premium', status: 'active' }, { status: 200 })
     } catch (error) {
       console.error('Failed to upgrade by convexId:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      // Convex will throw for invalid ID formats - treat as bad request
       return NextResponse.json({
         error: 'Failed to upgrade user by convexId',
         detail: errorMessage,
         convexId,
       }, { status: 400 })
     }
-    return NextResponse.json({ success: true, convexId, plan: 'premium', status: 'active' }, { status: 200 })
   }
 
   // Determine target clerk ID

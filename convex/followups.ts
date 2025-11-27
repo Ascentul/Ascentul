@@ -200,9 +200,9 @@ export const updateFollowup = mutation({
         patchData.completed_at = now;
         patchData.completed_by = user._id;
       } else if (statusChangingToOpen) {
-        // Explicitly clear fields using null (Convex ignores undefined in patch)
-        patchData.completed_at = null;
-        patchData.completed_by = null;
+        // Explicitly clear fields using undefined (Convex removes fields set to undefined)
+        patchData.completed_at = undefined;
+        patchData.completed_by = undefined;
       }
 
       await ctx.db.patch(args.followupId, patchData);

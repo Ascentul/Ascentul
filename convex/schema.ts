@@ -496,7 +496,7 @@ export default defineSchema({
 
     // Task management
     due_at: v.optional(v.number()), // Due date timestamp
-    priority: v.optional(v.union(v.literal('low'), v.literal('medium'), v.literal('high'))),
+    priority: v.optional(v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('urgent'))),
     status: v.union(v.literal('open'), v.literal('done')),
 
     // Completion audit trail
@@ -1100,6 +1100,7 @@ export default defineSchema({
         v.literal('low'),
         v.literal('medium'),
         v.literal('high'),
+        v.literal('urgent'),
       ),
     ),
     owner_id: v.id('users'), // Who is responsible (student or advisor)

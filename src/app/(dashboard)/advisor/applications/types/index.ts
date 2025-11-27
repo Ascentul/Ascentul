@@ -82,6 +82,7 @@ export const ACTIVE_STAGES: ApplicationStage[] = [
   'Prospect',
   'Applied',
   'Interview',
+  'Offer',  // Offers need attention until student accepts/rejects
 ];
 
 /**

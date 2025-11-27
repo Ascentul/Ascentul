@@ -110,6 +110,11 @@ export const getSessionAttachmentUrl = query({
 
     const user = await getCurrentUser(ctx);
 
+    // 1. Verify university match (tenant isolation)
+    if (user.university_id !== session.university_id) {
+      throw new Error("Unauthorized: Different university");
+    }
+
     // 2. Check permissions (student, advisor, or admin)
     if (
       user._id !== session.student_id &&
