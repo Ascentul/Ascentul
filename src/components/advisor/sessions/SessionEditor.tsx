@@ -128,8 +128,8 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
       }
 
       const parsedDuration = parseInt(durationMinutes, 10);
-      if (isNaN(parsedDuration) || parsedDuration < 1) {
-        throw new Error('Duration must be a valid positive number');
+      if (isNaN(parsedDuration) || parsedDuration < 15) {
+        throw new Error('Duration must be at least 15 minutes');
       }
 
       const startTimestamp = new Date(startAt).getTime();

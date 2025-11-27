@@ -13,13 +13,17 @@ The application currently uses `ConvexHttpClient` from `convex/browser` for serv
 
 ### Current Pattern (Legacy)
 
+> **Status**: The `convexServer` wrapper in `src/lib/convex-server.ts` is marked as `@deprecated`.
+> All 36 files currently use this pattern. This is **not** an intermediate abstraction to keep—it
+> should be fully replaced with `fetchQuery`/`fetchMutation`/`fetchAction` from `convex/nextjs`.
+
 ```typescript
 // src/lib/convex-server.ts
 import { ConvexHttpClient } from 'convex/browser';
-// Uses manual URL management (NEXT_PUBLIC_CONVEX_URL)
-export const convexServer = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+// Uses manual URL management (CONVEX_URL)
+export const convexServer = new ConvexHttpClient(process.env.CONVEX_URL!);
 
-// Usage in API routes
+// Usage in API routes (current state - to be migrated)
 import { convexServer } from '@/lib/convex-server';
 const user = await convexServer.query(api.users.getUserByClerkId, { clerkId });
 ```

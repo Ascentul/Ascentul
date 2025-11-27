@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 
 // GET /api/contacts/[id]
 export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const { userId } = getAuth(request as any)
+  const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
@@ -21,7 +21,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 // PUT /api/contacts/[id]
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const { userId } = getAuth(request as any)
+  const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json().catch(() => ({} as any))
@@ -52,7 +52,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
 // DELETE /api/contacts/[id]
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const { userId } = getAuth(request as any)
+  const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {

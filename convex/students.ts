@@ -717,7 +717,7 @@ export const acceptInvite = mutation({
     const updatedUniversity = await ctx.db.get(university._id);
     if (updatedUniversity && updatedUniversity.license_used > updatedUniversity.license_seats) {
       // Over-capacity detected - rollback all changes using helper function
-      await rollbackInviteAcceptance(ctx, {
+      const rollbackResult = await rollbackInviteAcceptance(ctx, {
         userId: user._id,
         studentProfileId,
         inviteId: invite._id,
@@ -730,6 +730,14 @@ export const acceptInvite = mutation({
           capacity: updatedUniversity.license_seats,
         },
       });
+
+      // If rollback failed, log critical error for monitoring/alerting
+      if (!rollbackResult.success) {
+        console.error(
+          `[CRITICAL] Rollback failed for user ${user.email} (${user._id}). ` +
+          `Manual intervention required. Errors: ${rollbackResult.errors.join('; ')}`
+        );
+      }
 
       throw new Error(
         `University has reached maximum capacity (${updatedUniversity.license_seats} licenses). ` +

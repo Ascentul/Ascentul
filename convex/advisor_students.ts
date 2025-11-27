@@ -86,9 +86,10 @@ export const getMyCaseload = query({
       // At-risk filter (engagement-based): students with no activity in 60+ days
       // NOTE: This differs from outcome-based at-risk in advisor_dashboard.ts (>5 apps, no offers)
       // Student list shows engagement risk, dashboard shows outcome risk
+      // Include students with no updated_at (legacy data) as at-risk
       if (filters.atRisk) {
         filteredStudents = filteredStudents.filter(
-          (s) => s.updated_at < sixtyDaysAgo,
+          (s) => !s.updated_at || s.updated_at < sixtyDaysAgo,
         );
       }
     }
@@ -186,7 +187,7 @@ export const getMyCaseload = query({
           active: 0,
           hasOffer: false,
         };
-        const isAtRisk = student.updated_at < sixtyDaysAgo;
+        const isAtRisk = !student.updated_at || student.updated_at < sixtyDaysAgo;
 
         return {
           ...student,

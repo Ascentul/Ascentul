@@ -65,6 +65,7 @@ async function logRoleChange(
 export const getUserByClerkId = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    // WARNING: Public query. Consider restricting to authenticated users or converting to internalQuery if not needed by clients.
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -77,6 +78,7 @@ export const getUserByClerkId = query({
 export const getUserByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
+    // WARNING: Public query. Consider restricting to authenticated users or converting to internalQuery if only used server-side.
     const user = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
@@ -474,6 +476,20 @@ export const updateUser = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const actor = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!actor || (actor.clerkId !== args.clerkId && actor.role !== "super_admin")) {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -638,6 +654,31 @@ export const updateUserById = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const actingUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!actingUser) {
+      throw new Error("Unauthorized");
+    }
+
+    const targetUser = await ctx.db.get(args.id);
+    if (!targetUser) {
+      throw new Error("User not found");
+    }
+
+    const isSelf = actingUser._id === targetUser._id;
+    const isSuperAdmin = actingUser.role === "super_admin";
+    if (!isSelf && !isSuperAdmin) {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db.get(args.id);
     if (!user) {
       throw new Error("User not found");
@@ -709,10 +750,14 @@ export const getAllUsers = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
     const currentUser = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
 
     // Only Super Admin can access global user list
@@ -739,10 +784,14 @@ export const getAllUsersMinimal = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
     const currentUser = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
 
     // Only Super Admin can access global user list
@@ -795,10 +844,15 @@ export const getUsersByUniversity = query({
     universityId: v.id("universities"),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
     // Check if user is admin for this university
     const currentUser = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
 
     if (!currentUser) {
@@ -829,6 +883,11 @@ export const getUsersByUniversity = query({
 export const getOnboardingProgress = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -852,6 +911,11 @@ export const updateOnboardingProgress = mutation({
     completed_tasks: v.array(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -881,6 +945,11 @@ export const toggleHideProgressCard = mutation({
     hide: v.boolean(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))

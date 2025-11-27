@@ -130,7 +130,7 @@ export const getApplicationsForCaseload = query({
         student_graduation_year: student?.graduation_year,
         company_name: app.company,
         position_title: app.job_title,
-        stage: app.stage,
+        stage: app.stage || 'Prospect',
         status: app.status,
         application_url: app.url,
         location: app.location,
@@ -158,7 +158,7 @@ export const getApplicationsByStage = query({
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
-    const universityId = requireTenant(sessionCtx);
+    requireTenant(sessionCtx); // Validates tenant context
 
     // Get owned student IDs (already scoped to universityId via getOwnedStudentIds)
     // Note: applications table doesn't have university_id, so tenant isolation

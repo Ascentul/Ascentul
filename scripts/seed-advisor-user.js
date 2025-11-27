@@ -165,7 +165,7 @@ async function main() {
   console.log(`   - Advisor: ${advisorEmail}`)
   console.log(`   - Student 1: ${studentEmail1}`)
   console.log(`   - Student 2: ${studentEmail2}`)
-  console.log('   Password: Use SEED_TEST_PASSWORD env var or check the script default')
+  console.log('   Password: [value of SEED_TEST_PASSWORD env var]')
   console.log('')
   console.log('2. Run the university assignment script:')
   console.log('   node scripts/assign-advisor-students.js')
