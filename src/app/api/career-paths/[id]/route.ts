@@ -17,7 +17,15 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       return NextResponse.json({ error: 'Invalid career path ID' }, { status: 400 })
     }
 
-    await convexServer.mutation(api.career_paths.deleteCareerPath, { clerkId: userId, id: id as Id<'career_paths'> })
+    try {
+      await convexServer.mutation(api.career_paths.deleteCareerPath, {
+        clerkId: userId,
+        id: id as Id<'career_paths'>,
+      })
+    } catch (err) {
+      console.error('Invalid career path ID:', err)
+      return NextResponse.json({ error: 'Invalid career path ID' }, { status: 400 })
+    }
 
     return NextResponse.json({ ok: true })
   } catch (error: unknown) {

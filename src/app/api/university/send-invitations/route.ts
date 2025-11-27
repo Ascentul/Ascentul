@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       results: results.map((r, i) =>
         r.status === 'fulfilled'
           ? r.value
-          : { email: emails[i], success: false, error: r.reason?.message || 'Unknown error' }
+          : { email: emails[i], success: false, error: getErrorMessage(r.reason, 'Unknown error') }
       ),
     });
   } catch (error: unknown) {

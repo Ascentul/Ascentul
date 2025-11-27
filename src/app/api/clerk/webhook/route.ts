@@ -157,6 +157,9 @@ export async function POST(request: NextRequest) {
 
         if (membershipRole && universityIdInMetadata) {
           updates.university_id = universityIdInMetadata
+        } else if (validatedRole === 'individual') {
+          // Individual users must NOT have university_id per role constraints
+          updates.university_id = undefined
         }
 
         // If user is banned in Clerk, ensure account_status is suspended

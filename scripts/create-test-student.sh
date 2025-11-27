@@ -19,13 +19,21 @@ fi
 # Default values
 STUDENT_EMAIL="${STUDENT_EMAIL:-test.student@ascentful.io}"
 ADVISOR_EMAIL="${ADVISOR_EMAIL:-test.advisor@ascentful.io}"
-PASSWORD="${SEED_TEST_PASSWORD:-TestPassword2025}"
 
 echo "📧 Student Email: $STUDENT_EMAIL"
 echo "📧 Advisor Email: $ADVISOR_EMAIL"
 echo ""
 
 # Validate required environment variables
+if [ -z "$SEED_TEST_PASSWORD" ]; then
+  echo "❌ Error: SEED_TEST_PASSWORD environment variable is not set"
+  echo ""
+  echo "Please set it in your .env.local file or export it:"
+  echo "  export SEED_TEST_PASSWORD='your_strong_password'"
+  exit 1
+fi
+PASSWORD="$SEED_TEST_PASSWORD"
+
 if [ -z "$CLERK_SECRET_KEY" ]; then
   echo "❌ Error: CLERK_SECRET_KEY environment variable is not set"
   echo ""

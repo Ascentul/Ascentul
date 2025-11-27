@@ -60,8 +60,12 @@ export const migrateStatusToStage = internalMutation({
     let skipped = 0;
     const errors: string[] = [];
 
-    // Get all applications at once (Convex doesn't allow multiple paginated queries)
+    // Get all applications - for large datasets (>10k), consider running in batches with pagination
     const applications = await ctx.db.query("applications").collect();
+
+    if (applications.length > 10000) {
+      console.warn(`⚠️ Processing ${applications.length} applications - this may be slow or memory intensive`);
+    }
 
     for (const app of applications) {
         totalProcessed++;

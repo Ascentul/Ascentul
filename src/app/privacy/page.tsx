@@ -65,8 +65,8 @@ export default function PrivacyPage() {
             <h2 className="text-2xl font-semibold text-zinc-800 mb-4">6. Contact</h2>
             <p className="text-zinc-600">
               If you have any questions about this Privacy Policy, please contact us at{' '}
-              <a href="mailto:privacy@ascentul.io" className="text-primary-500 hover:text-primary-700">
-                privacy@ascentul.io
+              <a href="mailto:privacy@ascentful.io" className="text-primary-500 hover:text-primary-700">
+                privacy@ascentful.io
               </a>
             </p>
           </section>
