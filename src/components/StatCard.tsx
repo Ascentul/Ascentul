@@ -2,9 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, ArrowDown, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Card, CardContent } from '@/components/ui/card'
 
 interface StatCardProps {
   icon: ReactNode
@@ -14,6 +12,7 @@ interface StatCardProps {
   value: ReactNode
   fallbackOnOverflow?: ReactNode
   valueClassName?: string
+  variant?: 'default' | 'priority'
   change?: {
     type: 'increase' | 'decrease' | 'no-change'
     text: string
@@ -27,7 +26,8 @@ export default function StatCard({
   label,
   value,
   fallbackOnOverflow,
-  valueClassName = 'text-2xl',
+  valueClassName = 'text-xl',
+  variant = 'default',
   change
 }: StatCardProps) {
   const containerRef = useRef<HTMLParagraphElement>(null)
@@ -39,7 +39,6 @@ export default function StatCard({
       setShowFallback(false)
       return
     }
-
     const container = containerRef.current
     const ghost = ghostRef.current
     if (!container || !ghost) return
@@ -62,17 +61,25 @@ export default function StatCard({
   }, [value, fallbackOnOverflow])
 
   return (
-    <Card className="h-full">
-      <CardContent className="p-4 h-full">
-        <div className="flex items-center h-full">
-          <div className={cn("flex-shrink-0 p-3 rounded-full", iconBgColor, iconColor)}>
+    <div className="h-full">
+      <div className={cn(
+        "flex h-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3",
+        variant === 'priority'
+          ? "bg-white shadow-md"
+          : "bg-slate-50 shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+      )}>
+        <div className="flex items-center gap-3">
+          <span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-full", iconBgColor, iconColor)}>
             {icon}
-          </div>
-          <div className="ml-4 flex-1 min-w-0">
-            <h3 className="text-neutral-500 text-sm">{label}</h3>
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-xs font-medium text-slate-500">{label}</h3>
             <p
               ref={containerRef}
-              className={cn("relative font-semibold leading-tight whitespace-nowrap overflow-hidden text-ellipsis", valueClassName)}
+              className={cn(
+                "relative whitespace-nowrap text-xl font-semibold leading-tight text-slate-900",
+                valueClassName
+              )}
             >
               <span className={showFallback && fallbackOnOverflow ? 'hidden' : 'inline'}>{value}</span>
               {fallbackOnOverflow && (
@@ -82,15 +89,18 @@ export default function StatCard({
                 <span
                   ref={ghostRef}
                   aria-hidden
-                  className="absolute left-0 top-0 invisible pointer-events-none whitespace-nowrap"
+                  className="pointer-events-none absolute left-0 top-0 invisible whitespace-nowrap"
                 >
                   {value}
                 </span>
               )}
             </p>
+            {change?.text && (
+              <p className="mt-1 text-xs text-slate-400">{change.text}</p>
+            )}
           </div>
         </div>
-      </CardContent>
-    </Card>
-  );
+      </div>
+    </div>
+  )
 }

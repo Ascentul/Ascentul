@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
+import { useImpersonation } from '@/contexts/ImpersonationContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
@@ -47,9 +48,25 @@ import {
 function AdminDashboardPage() {
   const router = useRouter()
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
-  const { user: convexUser } = useAuth()
+  const { user: convexUser, isLoading: convexLoading } = useAuth()
+  const { impersonation, getEffectiveRole } = useImpersonation()
   const [activeView, setActiveView] = React.useState<'system' | 'universities' | 'users' | 'revenue'>('system')
   const [activeAnalyticsTab, setActiveAnalyticsTab] = React.useState<'overview' | 'analytics' | 'universities' | 'users' | 'system'>('overview')
+
+  // Get effective role for impersonation
+  const effectiveRole = getEffectiveRole()
+
+  // Redirect to appropriate dashboard when impersonating a non-admin role
+  useEffect(() => {
+    if (impersonation.isImpersonating) {
+      if (effectiveRole === 'university_admin') {
+        router.push('/university')
+      } else if (effectiveRole !== 'super_admin') {
+        // Student, individual, staff, advisor -> regular dashboard
+        router.push('/dashboard')
+      }
+    }
+  }, [impersonation.isImpersonating, effectiveRole, router])
 
   // Check permissions using CLERK directly (source of truth for roles)
   const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])
@@ -151,9 +168,11 @@ function AdminDashboardPage() {
   // Show loading state while Clerk is loading
   if (!clerkLoaded) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         </div>
       </div>
     )
@@ -161,14 +180,97 @@ function AdminDashboardPage() {
 
   // Show unauthorized message if user doesn't have access (based on Clerk role)
   if (!canAccess) {
+    const convexRole = convexUser?.role
+    // Only compute mismatch if both Clerk and Convex are done loading
+    // to avoid false positives during initialization
+    const hasMismatch = !convexLoading && clerkRole !== convexRole
+
     return (
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Unauthorized</h1>
-          <p className="text-gray-600">
-            You do not have permission to access this page.
-            {clerkRole && <span className="block mt-2 text-sm">Your role: {clerkRole}</span>}
-          </p>
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <div className="max-w-2xl mx-auto space-y-6">
+            {/* Main Error */}
+            <div className="text-center">
+              <div className="mx-auto w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                <ShieldCheck className="h-6 w-6 text-red-600" />
+              </div>
+              <h1 className="text-2xl font-bold mb-2">Unauthorized Access</h1>
+              <p className="text-gray-600">
+                You need the <span className="font-semibold text-red-600">super_admin</span> role to access this page.
+              </p>
+            </div>
+
+            {/* Role Information */}
+            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Your Clerk Role (Authorization):</span>
+                <span className="font-mono text-sm px-3 py-1 bg-white rounded border">
+                  {clerkRole || 'None'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Database Role (Display):</span>
+                <span className="font-mono text-sm px-3 py-1 bg-white rounded border">
+                  {convexRole || 'None'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Required Role:</span>
+                <span className="font-mono text-sm px-3 py-1 bg-red-50 rounded border border-red-200 text-red-700">
+                  super_admin
+                </span>
+              </div>
+            </div>
+
+            {/* Mismatch Warning */}
+            {hasMismatch && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex gap-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-yellow-900">Role Mismatch Detected</h3>
+                    <p className="text-sm text-yellow-800">
+                      Your Clerk role ({clerkRole || 'none'}) doesn't match your database role ({convexRole || 'none'}).
+                    </p>
+                    <p className="text-sm text-yellow-800">
+                      Authorization checks always use your <strong>Clerk role</strong>, which is the source of truth.
+                      The database role is only used for display purposes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Help Text */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex gap-3">
+                <AlertTriangle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-blue-900">What to Do</h3>
+                  <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                    <li>Contact your system administrator to update your role</li>
+                    <li>The admin must set your role in <strong>Clerk Dashboard</strong> under your user's Public Metadata</li>
+                    <li>Set: <code className="bg-white px-1 py-0.5 rounded">{"role: \"super_admin\""}</code></li>
+                    <li>Changes take effect immediately after signing out and back in</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Technical Details (Collapsible) */}
+            <details className="border rounded-lg">
+              <summary className="px-4 py-3 cursor-pointer hover:bg-gray-50 text-sm font-medium">
+                Technical Details
+              </summary>
+              <div className="px-4 py-3 bg-gray-50 text-xs font-mono space-y-1">
+                <div>Clerk User ID: {clerkUser?.id}</div>
+                <div>Convex User ID: {convexUser?._id}</div>
+                <div>Clerk publicMetadata.role: {clerkRole || 'undefined'}</div>
+                <div>Convex users.role: {convexRole || 'undefined'}</div>
+                <div>Access Check: clerkRole === 'super_admin' → {canAccess.toString()}</div>
+              </div>
+            </details>
+          </div>
         </div>
       </div>
     )
@@ -178,10 +280,12 @@ function AdminDashboardPage() {
   // Show loading state only if systemStats is undefined (not just checking shouldQuery)
   if (!systemStats && shouldQuery) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex items-center justify-center py-16 flex-col gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-center py-16 flex-col gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+          </div>
         </div>
       </div>
     )
@@ -296,21 +400,22 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
   avgLicenseUtilization: number
 }) {
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#0C29AB' }}>
-            Super Admin Dashboard
-          </h1>
-          <p className="text-muted-foreground">System overview and platform management</p>
+    <div className="space-y-4 min-w-0">
+      <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#0C29AB' }}>
+              Super Admin Dashboard
+            </h1>
+            <p className="text-muted-foreground">System overview and platform management</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="default" className="bg-green-500">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              System Healthy
+            </Badge>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="default" className="bg-green-500">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            System Healthy
-          </Badge>
-        </div>
-      </div>
 
       <Tabs defaultValue="overview" className="space-y-6" onValueChange={(value) => setActiveAnalyticsTab(value as any)}>
         <TabsList className="grid w-full grid-cols-5">
@@ -1283,6 +1388,7 @@ const AdminDashboardContent = React.memo(function AdminDashboardContent({
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   )
 })

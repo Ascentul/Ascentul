@@ -337,3 +337,77 @@ export const backfillAccountStatus = internalMutation({
     };
   },
 })
+
+/**
+ * Backfill memberships for existing users with university_id.
+ *
+ * Creates/updates active memberships for roles: student, advisor, university_admin.
+ * Run via: npx convex run migrations:backfillMemberships
+ */
+export const backfillMemberships = internalMutation({
+  args: {
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    // Note: No auth check - this is an internal mutation meant to be run from CLI
+    const dryRun = args.dryRun ?? false;
+    const now = Date.now();
+    const supportedRoles = new Set(["student", "advisor", "university_admin"]);
+
+    const users = await ctx.db.query("users").collect();
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    for (const user of users) {
+      if (!user.university_id || !supportedRoles.has(user.role)) {
+        skipped++;
+        continue;
+      }
+
+      const existingMembership = await ctx.db
+        .query("memberships")
+        .withIndex("by_user_role", (q) => q.eq("user_id", user._id).eq("role", user.role as any))
+        .first();
+
+      if (!existingMembership) {
+        if (!dryRun) {
+          await ctx.db.insert("memberships", {
+            user_id: user._id,
+            university_id: user.university_id,
+            role: user.role as "student" | "advisor" | "university_admin",
+            status: "active",
+            created_at: now,
+            updated_at: now,
+          });
+        }
+        created++;
+        continue;
+      }
+
+      if (
+        existingMembership.university_id !== user.university_id ||
+        existingMembership.status !== "active"
+      ) {
+        if (!dryRun) {
+          await ctx.db.patch(existingMembership._id, {
+            university_id: user.university_id,
+            status: "active",
+            updated_at: now,
+          });
+        }
+        updated++;
+      } else {
+        skipped++;
+      }
+    }
+
+    return {
+      success: true,
+      created,
+      updated,
+      skipped,
+      message: `Membership backfill complete (dryRun: ${dryRun})`,
+    };
+  },
+})

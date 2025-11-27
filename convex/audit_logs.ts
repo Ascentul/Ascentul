@@ -7,6 +7,7 @@ import { v } from "convex/values"
 import { mutation, query, internalMutation } from "./_generated/server"
 import { requireSuperAdmin } from "./lib/roles"
 import { paginationOptsValidator } from "convex/server"
+import { Id } from "./_generated/dataModel"
 
 /**
  * Internal audit log creation without auth check
@@ -90,6 +91,7 @@ export const getAuditLogs = query({
     clerkId: v.string(),
     action: v.optional(v.string()),
     target_email: v.optional(v.string()),
+    startDate: v.optional(v.number()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -97,7 +99,100 @@ export const getAuditLogs = query({
     await requireSuperAdmin(ctx)
 
     // Apply filters using indexes
-    if (args.action) {
+    // NOTE: When startDate is provided with additional filters, we use iterative fetching
+    // to ensure we return the requested number of results
+    if (args.startDate) {
+      const requestedLimit = args.limit || 100
+      const hasAdditionalFilters = args.action || args.target_email
+
+      // If no additional filters, we can fetch directly
+      if (!hasAdditionalFilters) {
+        return await ctx.db
+          .query("audit_logs")
+          .withIndex("by_timestamp", (q) => q.gte("timestamp", args.startDate!))
+          .order("desc")
+          .take(requestedLimit)
+      }
+
+      // Iterative fetching for filtered queries using proper (timestamp, id) cursor pagination
+      // This approach handles non-unique timestamps correctly and avoids duplicates/gaps
+      const matchingLogs: Array<any> = []
+      const batchSize = 100
+      const maxBatches = 10 // Safety limit to prevent infinite loops (max 1000 records scanned)
+
+      // Cursor tracks both timestamp and ID for proper pagination
+      // Start from the beginning (startDate) with no ID constraint initially
+      let cursorTimestamp = args.startDate
+      let cursorId: Id<"audit_logs"> | null = null
+      let batchCount = 0
+      let isFirstBatch = true
+
+      while (matchingLogs.length < requestedLimit && batchCount < maxBatches) {
+        // Fetch next batch
+        // For descending order with (timestamp, id) cursor:
+        // - First batch: timestamp >= startDate (no ID filter)
+        // - Subsequent batches: timestamp < cursorTimestamp OR (timestamp == cursorTimestamp AND id < cursorId)
+        let batch
+
+        if (isFirstBatch) {
+          // First batch: start from startDate, no ID filtering needed
+          batch = await ctx.db
+            .query("audit_logs")
+            .withIndex("by_timestamp", (q) => q.gte("timestamp", cursorTimestamp))
+            .order("desc")
+            .take(batchSize + 1)
+          isFirstBatch = false
+        } else {
+          // Subsequent batches: use (timestamp, id) cursor with bounded fetch
+          // Over-fetch to account for records we need to skip at the same timestamp
+          const rawBatch = await ctx.db
+            .query("audit_logs")
+            .withIndex("by_timestamp", (q) => q.lte("timestamp", cursorTimestamp))
+            .order("desc")
+            .take(batchSize * 2) // Over-fetch to account for cursor filtering
+
+          // Filter to only records that come after our cursor position
+          // In descending order: (timestamp < cursorTimestamp) OR (timestamp == cursorTimestamp AND id < cursorId)
+          batch = rawBatch.filter(log => {
+            if (log.timestamp < cursorTimestamp) {
+              return true // All records with lower timestamp
+            }
+            if (log.timestamp === cursorTimestamp && cursorId) {
+              return log._id < cursorId // Only IDs less than cursor for same timestamp
+            }
+            return false // Skip records at or after cursor
+          }).slice(0, batchSize + 1)
+        }
+
+        if (batch.length === 0) {
+          break // No more logs to fetch
+        }
+
+        // Apply in-memory filters
+        const filteredBatch = batch.slice(0, batchSize).filter(log => {
+          if (args.action && log.action !== args.action) return false
+          if (args.target_email && log.target_email !== args.target_email) return false
+          return true
+        })
+
+        matchingLogs.push(...filteredBatch)
+
+        // Update cursor for next iteration using the last record we fetched (not filtered)
+        const lastLog = batch[Math.min(batch.length - 1, batchSize - 1)]
+        cursorTimestamp = lastLog.timestamp
+        cursorId = lastLog._id
+
+        // If we got fewer records than requested + 1, we've exhausted the database
+        if (batch.length < batchSize + 1) {
+          break
+        }
+
+        batchCount++
+      }
+
+      // Return up to requested limit
+      return matchingLogs.slice(0, requestedLimit)
+    } else if (args.action) {
       const logs = await ctx.db
         .query("audit_logs")
         .withIndex("by_action", (q) => q.eq("action", args.action!))

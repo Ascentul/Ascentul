@@ -2,6 +2,17 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { requireMembership } from "./lib/roles";
+
+async function getMembershipForUser(ctx: any, user: any) {
+  if (!["student", "advisor", "university_admin"].includes(user.role)) {
+    return null;
+  }
+  return await ctx.db
+    .query("memberships")
+    .withIndex("by_user_role", (q: any) => q.eq("user_id", user._id).eq("role", user.role))
+    .first();
+}
 
 /**
  * SECURITY: Helper function to get user IDs within a university's scope
@@ -46,8 +57,10 @@ async function canAccessTicket(
   );
 
   if (isUniversityScopedAdmin) {
-    if (!currentUser.university_id) {
-      // University admin without a university_id shouldn't have admin access
+    // University admins have university_id directly on their user record
+    const adminUniversityId = currentUser.university_id;
+
+    if (!adminUniversityId) {
       return false;
     }
 
@@ -57,12 +70,26 @@ async function canAccessTicket(
       return false;
     }
 
-    // Check if ticket owner is in the same university
-    return ticketOwner.university_id === currentUser.university_id;
+    // Prefer ticket.university_id if set, otherwise fall back to owner
+    const ticketUniversityId = ticket.university_id || ticketOwner.university_id;
+
+    return ticketUniversityId && adminUniversityId === ticketUniversityId;
   }
 
   // Regular users can only access their own tickets
-  return ticket.user_id === currentUser._id;
+  if (ticket.user_id !== currentUser._id) {
+    return false;
+  }
+
+  // If ticket is scoped to a university, ensure student membership matches
+  if (ticket.university_id && currentUser.role === "student") {
+    const membership = await getMembershipForUser(ctx, currentUser);
+    if (!membership || membership.university_id !== ticket.university_id) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 // List support tickets. Super admins see all; university admins see their university; regular users see their own.
@@ -74,6 +101,11 @@ export const listTickets = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
     if (!currentUser) throw new Error("User not found");
+
+    // Note: We don't require membership for read queries - students can view their own tickets
+    // even without an active membership
+
+    const membership = await getMembershipForUser(ctx, currentUser);
 
     const isSuperAdmin = currentUser.role === "super_admin";
     const isUniversityScopedAdmin = ["university_admin", "advisor"].includes(
@@ -91,25 +123,20 @@ export const listTickets = query({
 
     // University admins/advisors see tickets from their university
     if (isUniversityScopedAdmin) {
-      if (!currentUser.university_id) {
+      // University admins have university_id directly on their user record
+      const universityId = currentUser.university_id;
+
+      if (!universityId) {
         throw new Error("University admin must be associated with a university");
       }
 
-      // Get all users in the same university
-      const universityUserIds = await getUniversityScopedUserIds(
-        ctx,
-        currentUser.university_id
-      );
-
-      // Get all tickets and filter to university users
+      // Get all tickets and filter to university scope
       const allTickets = await ctx.db
         .query("support_tickets")
         .order("desc")
         .collect();
 
-      return allTickets.filter((ticket) =>
-        universityUserIds.includes(ticket.user_id)
-      );
+      return allTickets.filter((ticket) => ticket.university_id === universityId);
     }
 
     // Regular users see only their own tickets
@@ -142,6 +169,9 @@ export const listTicketsWithFilters = query({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
+    // Note: We don't require membership for read queries - students can view their own tickets
+    // even without an active membership
+
     const isSuperAdmin = currentUser.role === "super_admin";
     const isUniversityScopedAdmin = ["university_admin", "advisor"].includes(
       currentUser.role
@@ -149,6 +179,8 @@ export const listTicketsWithFilters = query({
     const isAdmin = isSuperAdmin || isUniversityScopedAdmin;
 
     if (!isAdmin) throw new Error("Unauthorized");
+
+    const membership = await getMembershipForUser(ctx, currentUser);
 
     let query = ctx.db.query("support_tickets");
 
@@ -175,17 +207,15 @@ export const listTicketsWithFilters = query({
     // SECURITY: Filter tickets by university scope for university admins/advisors
     let filteredTickets = tickets;
     if (isUniversityScopedAdmin) {
-      if (!currentUser.university_id) {
+      // University admins have university_id directly on their user record
+      const universityId = currentUser.university_id;
+
+      if (!universityId) {
         throw new Error("University admin must be associated with a university");
       }
 
-      const universityUserIds = await getUniversityScopedUserIds(
-        ctx,
-        currentUser.university_id
-      );
-
       filteredTickets = filteredTickets.filter((ticket) =>
-        universityUserIds.includes(ticket.user_id)
+        ticket.university_id === universityId
       );
     }
 
@@ -240,10 +270,16 @@ export const createTicket = mutation({
       .unique();
     if (!user) throw new Error("User not found");
 
+    const membership = await getMembershipForUser(ctx, user);
+    if (user.role === "student" && (!membership || membership.status !== "active")) {
+      throw new Error("Unauthorized: Active student membership required");
+    }
+
     const now = Date.now();
 
     const id = await ctx.db.insert("support_tickets", {
       user_id: user._id,
+      university_id: membership?.university_id ?? user.university_id,
       subject: args.subject,
       category: args.category || args.issue_type || "general",
       priority: args.priority || "medium",
@@ -260,6 +296,34 @@ export const createTicket = mutation({
     } as any);
 
     const doc = await ctx.db.get(id);
+
+    // Create notifications for all super admins (non-critical)
+    try {
+      const superAdmins = await ctx.db
+        .query("users")
+        .withIndex("by_role", (q) => q.eq("role", "super_admin"))
+        .collect();
+
+      await Promise.all(
+        superAdmins.map(admin =>
+          ctx.db.insert("notifications", {
+            user_id: admin._id,
+            type: "support_ticket",
+            title: "New Support Ticket",
+            message: `${user.name || user.email} submitted: ${args.subject}`,
+            link: `/admin/support`,
+            related_id: String(id),
+            read: false,
+            read_at: undefined,
+            created_at: now,
+          })
+        )
+      );
+    } catch (notificationError) {
+      // Log but don't fail the mutation if notification creation fails
+      console.error("Failed to create notifications for new support ticket:", notificationError);
+    }
+
     return doc;
   },
 });
@@ -278,6 +342,10 @@ export const updateTicketStatus = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
     if (!currentUser) throw new Error("User not found");
+
+    if (currentUser.role === "student") {
+      await requireMembership(ctx, { role: "student" });
+    }
 
     const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
       currentUser.role
@@ -323,6 +391,10 @@ export const assignTicket = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
     if (!currentUser) throw new Error("User not found");
+
+    if (currentUser.role === "student") {
+      await requireMembership(ctx, { role: "student" });
+    }
 
     const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
       currentUser.role

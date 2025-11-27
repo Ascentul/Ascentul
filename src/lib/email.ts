@@ -1,5 +1,5 @@
 /**
- * Email service for Ascentul
+ * Email service for Ascentful
  * Supports both Mailgun and SendGrid
  */
 
@@ -7,7 +7,7 @@ import formData from 'form-data'
 import Mailgun from 'mailgun.js'
 
 const DEFAULT_DOMAIN = 'mail.ascentful.io'
-const DEFAULT_FROM = 'Ascentul <no-reply@mail.ascentful.io>'
+const DEFAULT_FROM = 'Ascentful <no-reply@mail.ascentful.io>'
 
 export interface EmailOptions {
   to: string | string[]
@@ -147,39 +147,42 @@ Best,
 The Ascentful Team`
 
   const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
 
-      <div style="text-align: center; margin-bottom: 30px;">
-        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentul" style="max-width: 100%; height: auto; margin-bottom: 20px;">
-        <h1 style="color: #0C29AB; font-size: 28px; margin: 0;">Welcome to Ascentul!</h1>
+      <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
+        <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
+      </div>
+      <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
+        <h1 style="color: #000000; font-size: 28px; margin: 0;">Welcome to Ascentful!</h1>
       </div>
 
       <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
 
-      <p style="font-size: 16px; margin-bottom: 24px;">Your Ascentul account has been created by your university administrator. To get started, please activate your account and set your password.</p>
+      <p style="font-size: 16px; margin-bottom: 24px;">Your Ascentful account has been created by your university administrator. To get started, please activate your account and set your password.</p>
 
-      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 24px 0; border-radius: 4px;">
-        <p style="margin: 0; font-size: 15px;"><strong>Your login email:</strong></p>
-        <p style="margin: 8px 0 0 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${email}</p>
+      <div style="background-color: #F5F7FF; border-left: 4px solid #5371FF; padding: 20px; margin: 24px 0; border-radius: 8px;">
+        <p style="margin: 0; font-size: 15px; color: #000000;"><strong>Your login email:</strong></p>
+        <p style="margin: 8px 0 0 0; font-size: 16px; color: #5371FF; font-weight: 600;">${email}</p>
       </div>
 
       <div style="text-align: center; margin: 40px 0;">
         <a href="${activationUrl}"
-           style="background-color: #0C29AB;
+           style="background-color: #5371FF;
                   color: white;
                   padding: 14px 32px;
                   text-decoration: none;
-                  border-radius: 6px;
+                  border-radius: 8px;
                   font-weight: 600;
                   font-size: 16px;
                   display: inline-block;
-                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+                  box-shadow: 0 4px 6px rgba(83, 113, 255, 0.2);">
           Activate Account & Set Password
         </a>
       </div>
 
-      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
-        <p style="margin: 0 0 12px 0; font-weight: 600; color: #374151;">What happens next:</p>
+      <div style="background-color: #F9FAFB; padding: 20px; margin: 24px 0; border-radius: 8px;">
+        <p style="margin: 0 0 12px 0; font-weight: 600; color: #000000;">What happens next:</p>
         <ul style="margin: 0; padding-left: 20px; color: #6b7280;">
           <li style="margin-bottom: 8px;">Click the activation button above</li>
           <li style="margin-bottom: 8px;">Create your own secure password</li>
@@ -188,33 +191,33 @@ The Ascentful Team`
         </ul>
       </div>
 
-      <p style="font-size: 14px; color: #6b7280; margin-bottom: 24px; padding: 12px; background-color: #fef3c7; border-radius: 4px; border-left: 3px solid #f59e0b;">
+      <p style="font-size: 14px; color: #6b7280; margin-bottom: 24px; padding: 12px; background-color: #FEF3C7; border-radius: 8px; border-left: 3px solid #F59E0B;">
         ⏰ <strong>Important:</strong> This activation link expires in 24 hours. Please activate your account soon.
       </p>
 
       <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
-        After activation, you can log in anytime at <a href="https://app.ascentful.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">https://app.ascentful.io</a>
+        After activation, you can log in anytime at <a href="https://app.ascentful.io" style="color: #5371FF; text-decoration: none; font-weight: 600;">https://app.ascentful.io</a>
       </p>
 
       <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
-        If you did not expect this email or have questions, please contact your university administrator or our support team at <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none;">support@ascentful.io</a>
+        If you did not expect this email or have questions, please contact your university administrator or our support team at <a href="mailto:support@ascentful.io" style="color: #5371FF; text-decoration: none;">support@ascentful.io</a>
       </p>
 
-      <p style="font-size: 16px; margin-top: 32px; margin-bottom: 8px;">
-        Welcome to Ascentul. We're excited to support your career journey!
+      <p style="font-size: 16px; margin-top: 32px; margin-bottom: 8px; color: #000000;">
+        Welcome to Ascentful. We're excited to support your career journey!
       </p>
 
-      <p style="font-size: 16px; margin-top: 24px;">
+      <p style="font-size: 16px; margin-top: 24px; color: #000000;">
         Best,<br>
-        <strong>The Ascentul Team</strong>
+        <strong>The Ascentful Team</strong>
       </p>
 
-      <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
-        <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
+      <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #E5E7EB; font-size: 12px; color: #6B7280; text-align: center;">
+        <p>© ${new Date().getFullYear()} Ascentful, Inc. All rights reserved.</p>
         <p style="margin-top: 10px;">
-          <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
-          <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
-          <a href="mailto:support@ascentful.io" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Support</a>
+          <a href="https://ascentful.io/privacy" style="color: #5371FF; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
+          <a href="https://ascentful.io/terms" style="color: #5371FF; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
+          <a href="mailto:support@ascentful.io" style="color: #5371FF; text-decoration: none; margin: 0 12px;">Support</a>
         </p>
       </div>
     </div>
@@ -268,39 +271,42 @@ The Ascentful Team
 www.ascentful.io`
 
   const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentful" style="max-width: 100%; height: auto; margin-bottom: 20px;">
-        <h1 style="color: #0C29AB; font-size: 28px; margin: 0;">You're Invited!</h1>
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+      <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
+        <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
+      </div>
+      <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
+        <h1 style="color: #000000; font-size: 28px; margin: 0;">You're Invited!</h1>
       </div>
 
       <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
 
       <p style="font-size: 16px; margin-bottom: 24px;"><strong>${universityName}</strong> has partnered with <strong>Ascentful</strong>, a comprehensive career development platform designed to help you plan your career, track your goals, and land your next opportunity.</p>
 
-      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 24px 0; border-radius: 4px;">
+      <div style="background-color: #F5F7FF; border-left: 4px solid #5371FF; padding: 20px; margin: 24px 0; border-radius: 4px;">
         <p style="margin: 0 0 8px 0; font-size: 15px;">You've been invited to join using this email:</p>
-        <p style="margin: 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${email}</p>
+        <p style="margin: 0; font-size: 16px; color: #5371FF; font-weight: 600;">${email}</p>
         <p style="margin: 12px 0 0 0; font-size: 14px; color: #6b7280;">Your university has provided you with <strong>complimentary access to all premium features</strong>.</p>
       </div>
 
       <div style="text-align: center; margin: 40px 0;">
         <a href="${inviteLink}"
-           style="background-color: #0C29AB;
+           style="background-color: #5371FF;
                   color: white;
                   padding: 14px 32px;
                   text-decoration: none;
-                  border-radius: 6px;
+                  border-radius: 8px;
                   font-weight: 600;
                   font-size: 16px;
                   display: inline-block;
-                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+                  box-shadow: 0 4px 6px rgba(83, 113, 255, 0.2);">
           Activate Your Account →
         </a>
       </div>
 
-      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #374151;">What You'll Have Access To</h3>
+      <div style="background-color: #F9FAFB; padding: 20px; margin: 24px 0; border-radius: 8px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #000000;">What You'll Have Access To</h3>
         <ul style="margin: 0; padding-left: 20px; color: #6b7280; line-height: 1.8;">
           <li style="margin-bottom: 8px;">AI-powered resume and cover letter builder</li>
           <li style="margin-bottom: 8px;">Personalized career path guidance and goal tracking</li>
@@ -312,7 +318,7 @@ www.ascentful.io`
 
       <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
         If you have any questions, please contact <strong>${universityName}</strong>'s Career Services Department or reach out to our team at
-        <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
+        <a href="mailto:support@ascentful.io" style="color: #5371FF; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
       </p>
 
       <p style="font-size: 16px; margin-top: 32px;">
@@ -322,7 +328,7 @@ www.ascentful.io`
       <p style="font-size: 16px; margin-top: 24px;">
         Warm regards,<br>
         <strong>The Ascentful Team</strong><br>
-        <a href="https://www.ascentful.io" style="color: #0C29AB; text-decoration: none;">www.ascentful.io</a>
+        <a href="https://www.ascentful.io" style="color: #5371FF; text-decoration: none;">www.ascentful.io</a>
       </p>
 
       <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
@@ -385,40 +391,43 @@ ${ticketUrl}
 If you have any further questions, please respond through the support portal.
 
 Best regards,
-The Ascentul Support Team`
+The Ascentful Support Team`
 
   const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentul" style="max-width: 100%; height: auto; margin-bottom: 20px;">
-        <h1 style="color: #0C29AB; font-size: 24px; margin: 0;">Support Ticket Update</h1>
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+      <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
+        <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
+      </div>
+      <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
+        <h1 style="color: #000000; font-size: 24px; margin: 0;">Support Ticket Update</h1>
       </div>
 
       <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
 
       <p style="font-size: 16px; margin-bottom: 24px;">You have received a new response to your support ticket:</p>
 
-      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 16px; margin: 24px 0; border-radius: 4px;">
+      <div style="background-color: #F5F7FF; border-left: 4px solid #5371FF; padding: 16px; margin: 24px 0; border-radius: 4px;">
         <p style="margin: 0; font-size: 14px; color: #6b7280;"><strong>Ticket:</strong></p>
-        <p style="margin: 8px 0 0 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${ticketSubject}</p>
+        <p style="margin: 8px 0 0 0; font-size: 16px; color: #5371FF; font-weight: 600;">${ticketSubject}</p>
       </div>
 
-      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
+      <div style="background-color: #F9FAFB; padding: 20px; margin: 24px 0; border-radius: 8px;">
         <p style="margin: 0 0 8px 0; font-size: 14px; color: #6b7280; font-weight: 600;">Response:</p>
         <p style="margin: 0; font-size: 15px; color: #374151; white-space: pre-wrap;">${responseMessage}</p>
       </div>
 
       <div style="text-align: center; margin: 40px 0;">
         <a href="${ticketUrl}"
-           style="background-color: #0C29AB;
+           style="background-color: #5371FF;
                   color: white;
                   padding: 14px 32px;
                   text-decoration: none;
-                  border-radius: 6px;
+                  border-radius: 8px;
                   font-weight: 600;
                   font-size: 16px;
                   display: inline-block;
-                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+                  box-shadow: 0 4px 6px rgba(83, 113, 255, 0.2);">
           View Full Conversation
         </a>
       </div>
@@ -429,11 +438,11 @@ The Ascentul Support Team`
 
       <p style="font-size: 16px; margin-top: 32px;">
         Best regards,<br>
-        <strong>The Ascentul Support Team</strong>
+        <strong>The Ascentful Support Team</strong>
       </p>
 
       <div style="margin-top: 50px; padding-top: 25px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center;">
-        <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
+        <p>© ${new Date().getFullYear()} Ascentful, Inc. All rights reserved.</p>
         <p style="margin-top: 10px;">
           <a href="https://ascentful.io/privacy" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Privacy Policy</a> |
           <a href="https://ascentful.io/terms" style="color: #6b7280; text-decoration: none; margin: 0 12px;">Terms of Service</a> |
@@ -482,38 +491,41 @@ We're thrilled to have you on board,
 The Ascentful Team`
 
   const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentful" style="max-width: 100%; height: auto; margin-bottom: 20px;">
-        <h1 style="color: #0C29AB; font-size: 28px; margin: 0;">Welcome to Ascentful 🚀</h1>
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+      <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
+        <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
+      </div>
+      <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
+        <h1 style="color: #000000; font-size: 28px; margin: 0;">Welcome to Ascentful 🚀</h1>
       </div>
 
       <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
 
       <p style="font-size: 16px; margin-bottom: 24px;">Welcome to <strong>Ascentful</strong>, the Career OS that helps you plan your path, track progress, and move confidently toward your next role.</p>
 
-      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 24px 0; border-radius: 4px;">
+      <div style="background-color: #F5F7FF; border-left: 4px solid #5371FF; padding: 20px; margin: 24px 0; border-radius: 4px;">
         <p style="margin: 0; font-size: 15px;">You've created your account using:</p>
-        <p style="margin: 8px 0 0 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${email}</p>
+        <p style="margin: 8px 0 0 0; font-size: 16px; color: #5371FF; font-weight: 600;">${email}</p>
       </div>
 
       <div style="text-align: center; margin: 40px 0;">
         <a href="${dashboardUrl}"
-           style="background-color: #0C29AB;
+           style="background-color: #5371FF;
                   color: white;
                   padding: 14px 32px;
                   text-decoration: none;
-                  border-radius: 6px;
+                  border-radius: 8px;
                   font-weight: 600;
                   font-size: 16px;
                   display: inline-block;
-                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+                  box-shadow: 0 4px 6px rgba(83, 113, 255, 0.2);">
           Start Building Your Career OS →
         </a>
       </div>
 
-      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #374151;">What You Can Do Today</h3>
+      <div style="background-color: #F9FAFB; padding: 20px; margin: 24px 0; border-radius: 8px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #000000;">What You Can Do Today</h3>
         <ul style="margin: 0; padding-left: 20px; color: #6b7280; line-height: 1.8;">
           <li style="margin-bottom: 12px;">Track your full interview process, from application to offer, and schedule timely follow-ups</li>
           <li style="margin-bottom: 12px;">Set and manage career goals, explore potential paths, compare average salaries, and learn the exact steps to reach your target roles</li>
@@ -525,7 +537,7 @@ The Ascentful Team`
       </div>
 
       <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
-        Need help getting started? Reach out to <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
+        Need help getting started? Reach out to <a href="mailto:support@ascentful.io" style="color: #5371FF; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
       </p>
 
       <p style="font-size: 16px; margin-top: 32px;">
@@ -588,39 +600,42 @@ Welcome aboard,
 The Ascentful Team`
 
   const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentful" style="max-width: 100%; height: auto; margin-bottom: 20px;">
-        <h1 style="color: #0C29AB; font-size: 28px; margin: 0;">You've Been Invited!</h1>
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+      <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
+        <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
+      </div>
+      <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
+        <h1 style="color: #000000; font-size: 28px; margin: 0;">You've Been Invited!</h1>
       </div>
 
       <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
 
       <p style="font-size: 16px; margin-bottom: 24px;"><strong>${universityAdminName}</strong> has invited you to join <strong>Ascentful</strong>, your university's career development and advising platform.</p>
 
-      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 24px 0; border-radius: 4px;">
+      <div style="background-color: #F5F7FF; border-left: 4px solid #5371FF; padding: 20px; margin: 24px 0; border-radius: 4px;">
         <p style="margin: 0 0 8px 0; font-size: 15px;">You've been invited using this email:</p>
-        <p style="margin: 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${email}</p>
+        <p style="margin: 0; font-size: 16px; color: #5371FF; font-weight: 600;">${email}</p>
         <p style="margin: 12px 0 0 0; font-size: 14px; color: #6b7280;">Your account will have <strong>${role}</strong> access, allowing you to collaborate with students and manage university data.</p>
       </div>
 
       <div style="text-align: center; margin: 40px 0;">
         <a href="${inviteLink}"
-           style="background-color: #0C29AB;
+           style="background-color: #5371FF;
                   color: white;
                   padding: 14px 32px;
                   text-decoration: none;
-                  border-radius: 6px;
+                  border-radius: 8px;
                   font-weight: 600;
                   font-size: 16px;
                   display: inline-block;
-                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+                  box-shadow: 0 4px 6px rgba(83, 113, 255, 0.2);">
           Activate Your Account →
         </a>
       </div>
 
-      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #374151;">What You'll Be Able To Do</h3>
+      <div style="background-color: #F9FAFB; padding: 20px; margin: 24px 0; border-radius: 8px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #000000;">What You'll Be Able To Do</h3>
         <ul style="margin: 0; padding-left: 20px; color: #6b7280; line-height: 1.8;">
           <li style="margin-bottom: 8px;">View and track student progress across career goals and applications</li>
           <li style="margin-bottom: 8px;">Leave advising notes and collaborate on student profiles</li>
@@ -631,7 +646,7 @@ The Ascentful Team`
 
       <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
         If you have any questions, please contact <strong>${universityAdminName}</strong> or reach us at
-        <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
+        <a href="mailto:support@ascentful.io" style="color: #5371FF; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
       </p>
 
       <p style="font-size: 16px; margin-top: 32px;">
@@ -693,38 +708,41 @@ Welcome to Ascentful,
 The Ascentful Partnerships Team`
 
   const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <img src="https://xzi7cpcc4c.ufs.sh/f/jgOWCCH530yezbLhC1EM8wQTKjxNoftXCJYv6Emls0pb1qyI" alt="Ascentful" style="max-width: 100%; height: auto; margin-bottom: 20px;">
-        <h1 style="color: #0C29AB; font-size: 28px; margin: 0;">Welcome to Ascentful!</h1>
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
+      <div style="background: linear-gradient(135deg, #5371FF 0%, #4158D0 100%); padding: 40px 20px; margin: -40px -20px 30px -20px; text-align: center; border-radius: 0;">
+        <h1 style="color: #FFFFFF; font-size: 52px; margin: 0; font-weight: 700; letter-spacing: -0.5px; line-height: 1; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Ascentful</h1>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin: 8px 0 0 0; font-weight: 600; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Career development that keeps students enrolled</p>
+      </div>
+      <div style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
+        <h1 style="color: #000000; font-size: 28px; margin: 0;">Welcome to Ascentful!</h1>
       </div>
 
       <p style="font-size: 16px; margin-bottom: 24px;">Hi ${firstName},</p>
 
       <p style="font-size: 16px; margin-bottom: 24px;">You've been invited to create an Admin account for <strong>${universityName}</strong>, giving you full access to your institution's dashboard, student management tools, and analytics.</p>
 
-      <div style="background-color: #f0f4ff; border-left: 4px solid #0C29AB; padding: 20px; margin: 24px 0; border-radius: 4px;">
+      <div style="background-color: #F5F7FF; border-left: 4px solid #5371FF; padding: 20px; margin: 24px 0; border-radius: 4px;">
         <p style="margin: 0 0 8px 0; font-size: 15px;">You've been invited using this email:</p>
-        <p style="margin: 0; font-size: 16px; color: #0C29AB; font-weight: 600;">${email}</p>
+        <p style="margin: 0; font-size: 16px; color: #5371FF; font-weight: 600;">${email}</p>
       </div>
 
       <div style="text-align: center; margin: 40px 0;">
         <a href="${inviteLink}"
-           style="background-color: #0C29AB;
+           style="background-color: #5371FF;
                   color: white;
                   padding: 14px 32px;
                   text-decoration: none;
-                  border-radius: 6px;
+                  border-radius: 8px;
                   font-weight: 600;
                   font-size: 16px;
                   display: inline-block;
-                  box-shadow: 0 2px 4px rgba(12, 41, 171, 0.2);">
+                  box-shadow: 0 4px 6px rgba(83, 113, 255, 0.2);">
           Set Up My Admin Account →
         </a>
       </div>
 
-      <div style="background-color: #f9fafb; padding: 20px; margin: 24px 0; border-radius: 6px;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #374151;">With Your Admin Access, You Can:</h3>
+      <div style="background-color: #F9FAFB; padding: 20px; margin: 24px 0; border-radius: 8px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #000000;">With Your Admin Access, You Can:</h3>
         <ul style="margin: 0; padding-left: 20px; color: #6b7280; line-height: 1.8;">
           <li style="margin-bottom: 8px;">Add students, advisors, and department admins</li>
           <li style="margin-bottom: 8px;">Manage user licenses and invitations</li>
@@ -735,7 +753,7 @@ The Ascentful Partnerships Team`
 
       <p style="font-size: 15px; color: #6b7280; margin-bottom: 24px;">
         If you have any questions or need help getting started, contact your onboarding manager or reach out to
-        <a href="mailto:support@ascentful.io" style="color: #0C29AB; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
+        <a href="mailto:support@ascentful.io" style="color: #5371FF; text-decoration: none; font-weight: 600;">support@ascentful.io</a>.
       </p>
 
       <p style="font-size: 16px; margin-top: 32px;">

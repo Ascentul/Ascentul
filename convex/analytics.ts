@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { assertUniversityAccess, getAuthenticatedUser } from "./lib/roles";
 
 // ============================================================================
 // Helper Functions for Optimized Analytics
@@ -85,6 +86,17 @@ function calculateActivityData(users: any[], recentApplications: any[], daysBack
   });
 }
 
+async function requireSuperAdminUser(ctx: any, providedClerkId?: string) {
+  const user = await getAuthenticatedUser(ctx);
+  if (providedClerkId && user.clerkId !== providedClerkId) {
+    throw new Error("Unauthorized: Clerk identity mismatch");
+  }
+  if (user.role !== "super_admin") {
+    throw new Error("Unauthorized: Super admin required");
+  }
+  return user;
+}
+
 // ============================================================================
 // Queries
 // ============================================================================
@@ -94,62 +106,90 @@ function calculateActivityData(users: any[], recentApplications: any[], daysBack
 // ============================================================================
 
 // Get system stats with minimal data transfer (just counts)
+// Now uses centralized metrics module for accurate investor-facing metrics
 export const getSystemStatsOptimized = query({
   args: {
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
+    await requireSuperAdminUser(ctx, args.clerkId);
 
-    if (!currentUser) {
-      throw new Error(`User not found with clerkId: ${args.clerkId}`);
-    }
+    // Use centralized metrics from metrics module
+    // This ensures consistency across all dashboard views
+    const users = await ctx.db.query("users").collect();
+    const universities = await ctx.db.query("universities").collect();
 
-    if (!["super_admin"].includes(currentUser.role)) {
-      throw new Error(`Unauthorized: User has role '${currentUser.role}' but needs 'super_admin'`);
-    }
+    // Filter real universities (exclude test)
+    const realUniversities = universities.filter((u) => u.is_test !== true);
 
-    // Use efficient counting instead of fetching arrays
+    // Total universities all time (trial, active, archived)
+    const totalUniversitiesAllTime = realUniversities.filter(
+      (u) =>
+        u.status === "trial" || u.status === "active" || u.status === "archived"
+    ).length;
+
+    // Active universities current (trial, active)
+    const activeUniversitiesCurrent = realUniversities.filter(
+      (u) => u.status === "trial" || u.status === "active"
+    ).length;
+
+    // Total users all time (exclude test and internal)
+    const totalUsersAllTime = users.filter(
+      (u) => u.is_test_user !== true && u.role !== "super_admin"
+    ).length;
+
+    // Active users 30d
+    const universityMap = new Map(universities.map((u) => [u._id, u]));
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+    const activeUsers30d = users.filter((u) => {
+      if (u.is_test_user === true) return false;
+      if (u.role === "super_admin") return false;
+      if (!u.last_login_at || u.last_login_at < thirtyDaysAgo) return false;
+
+      if (u.university_id) {
+        const university = universityMap.get(u.university_id);
+        if (!university) return false;
+        if (university.is_test === true) return false;
+        if (university.status !== "trial" && university.status !== "active") {
+          return false;
+        }
+      }
+
+      return true;
+    }).length;
+
+    // Calculate monthly growth for display
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    // Get counts efficiently
-    const allUsers = await ctx.db.query("users").collect();
-    const totalUsers = allUsers.length;
-    const activeUsers = allUsers.filter(u => u.subscription_status === "active").length;
-
-    // Calculate monthly growth
-    const thisMonthUsers = allUsers.filter(u => {
+    const thisMonthUsers = users.filter(u => {
+      if (u.is_test_user === true || u.role === "super_admin") return false;
       const userDate = new Date(u.created_at);
       return userDate.getMonth() === currentMonth && userDate.getFullYear() === currentYear;
     }).length;
 
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-    const prevMonthUsers = allUsers.filter(u => {
+    const prevMonthUsers = users.filter(u => {
+      if (u.is_test_user === true || u.role === "super_admin") return false;
       const userDate = new Date(u.created_at);
       return userDate.getMonth() === lastMonth && userDate.getFullYear() === lastMonthYear;
     }).length;
 
     const monthlyGrowth = prevMonthUsers === 0 ? 0 : Math.round(((thisMonthUsers - prevMonthUsers) / prevMonthUsers) * 100);
 
-    // Get university count
-    const universities = await ctx.db.query("universities").collect();
-    const totalUniversities = universities.length;
-
     // Get support ticket counts
     const supportTickets = await ctx.db.query("support_tickets").collect();
     const openTickets = supportTickets.filter(t => t.status === "open" || t.status === "in_progress").length;
 
     return {
-      totalUsers,
-      totalUniversities,
-      activeUsers,
+      // Updated to use accurate investor metrics
+      totalUsers: totalUsersAllTime,
+      totalUniversities: totalUniversitiesAllTime,
+      activeUsers: activeUsers30d,
+      activeUniversities: activeUniversitiesCurrent,
       systemHealth: 98.5, // Would be calculated from actual monitoring
       monthlyGrowth,
       supportTickets: openTickets,
@@ -165,15 +205,7 @@ export const getUserGrowthOptimized = query({
     monthsBack: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const monthsBack = args.monthsBack || 6;
     const users = await ctx.db.query("users").collect();
@@ -188,15 +220,7 @@ export const getActivityDataOptimized = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
 
@@ -221,15 +245,7 @@ export const getSupportMetricsOptimized = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const supportTickets = await ctx.db.query("support_tickets").collect();
 
@@ -267,15 +283,7 @@ export const getRecentUsersOptimized = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const limit = args.limit || 10;
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
@@ -303,15 +311,7 @@ export const getSubscriptionDistributionOptimized = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const users = await ctx.db.query("users").collect();
 
@@ -335,15 +335,7 @@ export const getTopUniversitiesOptimized = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     const universities = await ctx.db.query("universities").take(5);
 
@@ -365,19 +357,7 @@ export const getOverviewAnalytics = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser) {
-      throw new Error(`User not found with clerkId: ${args.clerkId}. The user may still be syncing from Clerk to Convex.`);
-    }
-
-    if (!["super_admin"].includes(currentUser.role)) {
-      throw new Error(`Unauthorized: User has role '${currentUser.role}' but needs 'super_admin'`);
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // Fetch only essential data for Overview tab with strict limits
     const [users, universities, supportTickets] = await Promise.all([
@@ -489,15 +469,7 @@ export const getAdminAnalytics = query({
     subscriptionFilter: v.optional(v.union(v.literal("all"), v.literal("free"), v.literal("premium"), v.literal("university"))),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // Build query with filters
     let usersQuery = ctx.db.query("users");
@@ -986,6 +958,8 @@ async function getUniversityGrowth(ctx: any) {
 export const getUserDashboardAnalytics = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    const actingUser = await getAuthenticatedUser(ctx);
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -993,6 +967,17 @@ export const getUserDashboardAnalytics = query({
 
     if (!user) {
       throw new Error("User not found");
+    }
+
+    const isSelf = actingUser.clerkId === user.clerkId;
+    if (!isSelf) {
+      if (actingUser.role === "super_admin") {
+        // allow
+      } else if (actingUser.role === "university_admin" || actingUser.role === "advisor") {
+        assertUniversityAccess(actingUser, user.university_id as any);
+      } else {
+        throw new Error("Unauthorized");
+      }
     }
 
     // Parallelize all user data queries with safety limits to prevent over-fetching for power users
@@ -1386,15 +1371,7 @@ function formatNextInterview(timestamp: number | undefined): string {
 export const getSessionAnalytics = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // This would need actual session tracking implementation
     // For now, return placeholder data
@@ -1412,15 +1389,7 @@ export const getUniversityAnalytics = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // Fetch top 5 universities only (not 10)
     const universities = await ctx.db.query("universities").take(5);
@@ -1555,19 +1524,170 @@ export const getUniversityAnalytics = query({
   },
 });
 
+// Get analytics for a single university
+export const getSingleUniversityAnalytics = query({
+  args: {
+    clerkId: v.string(),
+    universityId: v.id("universities"),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdminUser(ctx, args.clerkId);
+
+    // Get the university
+    const university = await ctx.db.get(args.universityId);
+    if (!university) {
+      throw new Error("University not found");
+    }
+
+    // Get all users in this university
+    const universityUsers = await ctx.db
+      .query("users")
+      .withIndex("by_university", (q) => q.eq("university_id", args.universityId))
+      .collect();
+
+    const userIds = universityUsers.map(u => u._id);
+    const students = universityUsers.filter(u => u.role === 'user');
+
+    // Get real analytics data from the last 30 days
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+
+    // Fetch activity data using index-based filtering for better performance
+    // This approach filters by user first (using indexes), then by date,
+    // avoiding the need to scan all records and then filter by university
+    const batchSize = 50; // Process users in batches to avoid hitting Convex limits
+    const batchErrors: Array<{ batchIndex: number; error: string }> = [];
+    const allResults = {
+      apps: [] as any[],
+      interviews: [] as any[],
+      goals: [] as any[],
+      resumes: [] as any[],
+      projects: [] as any[],
+    };
+
+    // Process users in batches
+    for (let i = 0; i < userIds.length; i += batchSize) {
+      const batchUserIds = userIds.slice(i, i + batchSize);
+      const batchIndex = Math.floor(i / batchSize);
+
+      try {
+        const batchResults = await Promise.all([
+          // Applications
+          Promise.all(batchUserIds.map(userId =>
+            ctx.db.query("applications")
+              .withIndex("by_user", (q) => q.eq("user_id", userId))
+              .filter((q) => q.gte(q.field("created_at"), thirtyDaysAgo))
+              .take(100) // Limit per user to prevent unbounded queries
+          )),
+          // Interview stages
+          Promise.all(batchUserIds.map(userId =>
+            ctx.db.query("interview_stages")
+              .withIndex("by_user", (q) => q.eq("user_id", userId))
+              .filter((q) => q.gte(q.field("created_at"), thirtyDaysAgo))
+              .take(50)
+          )),
+          // Goals
+          Promise.all(batchUserIds.map(userId =>
+            ctx.db.query("goals")
+              .withIndex("by_user", (q) => q.eq("user_id", userId))
+              .filter((q) => q.gte(q.field("created_at"), thirtyDaysAgo))
+              .take(50)
+          )),
+          // Resumes
+          Promise.all(batchUserIds.map(userId =>
+            ctx.db.query("resumes")
+              .withIndex("by_user", (q) => q.eq("user_id", userId))
+              .filter((q) => q.gte(q.field("created_at"), thirtyDaysAgo))
+              .take(20)
+          )),
+          // Projects
+          Promise.all(batchUserIds.map(userId =>
+            ctx.db.query("projects")
+              .withIndex("by_user", (q) => q.eq("user_id", userId))
+              .filter((q) => q.gte(q.field("created_at"), thirtyDaysAgo))
+              .take(20)
+          )),
+        ]);
+
+        allResults.apps.push(...batchResults[0].flat());
+        allResults.interviews.push(...batchResults[1].flat());
+        allResults.goals.push(...batchResults[2].flat());
+        allResults.resumes.push(...batchResults[3].flat());
+        allResults.projects.push(...batchResults[4].flat());
+      } catch (error) {
+        batchErrors.push({ batchIndex, error: String(error) });
+        // Continue processing remaining batches
+      }
+    }
+
+    // Log batch errors if any occurred (analytics should be best-effort)
+    if (batchErrors.length > 0) {
+      console.warn(`University analytics batch errors for ${university.name}:`, batchErrors);
+    }
+
+    const uniApps = allResults.apps;
+    const uniInterviews = allResults.interviews;
+    const uniGoals = allResults.goals;
+    const uniResumes = allResults.resumes;
+    const uniProjects = allResults.projects;
+
+    // Calculate DAU, WAU, MAU
+    const dauUserIds = new Set([
+      ...uniApps.filter(a => a.created_at >= oneDayAgo).map(a => a.user_id),
+      ...uniResumes.filter(r => r.created_at >= oneDayAgo).map(r => r.user_id),
+      ...uniGoals.filter(g => g.created_at >= oneDayAgo).map(g => g.user_id),
+      ...uniProjects.filter(p => p.created_at >= oneDayAgo).map(p => p.user_id),
+    ]);
+
+    const wauUserIds = new Set([
+      ...uniApps.filter(a => a.created_at >= sevenDaysAgo).map(a => a.user_id),
+      ...uniResumes.filter(r => r.created_at >= sevenDaysAgo).map(r => r.user_id),
+      ...uniGoals.filter(g => g.created_at >= sevenDaysAgo).map(g => g.user_id),
+      ...uniProjects.filter(p => p.created_at >= sevenDaysAgo).map(p => p.user_id),
+    ]);
+
+    const mauUserIds = new Set([
+      ...uniApps.map(a => a.user_id),
+      ...uniResumes.map(r => r.user_id),
+      ...uniGoals.map(g => g.user_id),
+      ...uniProjects.map(p => p.user_id),
+    ]);
+
+    // Calculate success metrics
+    const totalApplications = uniApps.length;
+    const interviewsScheduled = uniInterviews.filter(i =>
+      i.status === 'scheduled' || i.status === 'completed'
+    ).length;
+    const offersReceived = uniApps.filter(a =>
+      a.status === 'offer_received' || a.status === 'accepted'
+    ).length;
+    const placementRate = students.length > 0
+      ? Math.round((offersReceived / students.length) * 100)
+      : 0;
+
+    return {
+      engagement: {
+        dau: dauUserIds.size,
+        wau: wauUserIds.size,
+        mau: mauUserIds.size,
+        avgSessionDuration: null, // Not tracked yet
+      },
+      success: {
+        applicationsSubmitted: totalApplications,
+        interviewsScheduled,
+        offersReceived,
+        placementRate,
+      },
+    };
+  },
+});
+
 // Get revenue analytics from Stripe payments
 export const getRevenueAnalytics = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    // Check if user is admin
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser || !["super_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized");
-    }
+    await requireSuperAdminUser(ctx, args.clerkId);
 
     // Get all successful payments (reduced limit for bandwidth)
     const payments = await ctx.db

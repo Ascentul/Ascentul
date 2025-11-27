@@ -1730,3 +1730,6 @@ export const updateStudentProfile = mutation({
     return updatedProfile;
   },
 });
+
+// Re-export from students_all for backward compatibility
+export * from "./students_all";

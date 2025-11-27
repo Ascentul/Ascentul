@@ -368,7 +368,7 @@ export default function CoverLettersPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB] mb-2">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
           Cover Letter Coach
         </h1>
         <p className="text-muted-foreground">
@@ -856,7 +856,7 @@ export default function CoverLettersPage() {
                               size="sm"
                               onClick={saveOptimizedLetter}
                               disabled={savingOptimized}
-                              className="bg-[#0C29AB] hover:bg-[#0C29AB]/90"
+                              className="bg-primary-500 hover:bg-primary-700"
                             >
                               {savingOptimized ? (
                                 <>

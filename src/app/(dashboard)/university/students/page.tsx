@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "convex/_generated/api";
 import {
   Card,
@@ -104,7 +104,7 @@ export default function UniversityStudentsPage() {
   const updateUserByIdMutation = useMutation(api.users.updateUserById);
   const assignStudentMutation = useMutation(api.university_admin.assignStudentByEmail);
   const createUserMutation = useMutation(api.admin_users.createUserByAdmin);
-  const deleteUserMutation = useMutation(api.users.deleteUser);
+  const softDeleteUserAction = useAction(api.admin_users_actions.softDeleteUser);
   const regenerateActivationMutation = useMutation(api.admin_users.regenerateActivationToken);
 
   // State
@@ -439,11 +439,14 @@ export default function UniversityStudentsPage() {
 
     setDeletingUser(true);
     try {
-      await deleteUserMutation({ clerkId: selectedStudent.clerkId });
+      await softDeleteUserAction({
+        targetClerkId: selectedStudent.clerkId,
+        reason: "Deleted by university admin"
+      });
 
       toast({
         title: "Student Deleted",
-        description: `${selectedStudent.name} has been permanently removed from the system.`,
+        description: `${selectedStudent.name} has been removed from the system.`,
       });
 
       setDeleteConfirmOpen(false);

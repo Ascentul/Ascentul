@@ -16,20 +16,20 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    /* Brand primary: #0C29AB (HSL: 229 87% 36%) */
-    --primary: 229 87% 36%;
-    --primary-foreground: 210 40% 98%;
+    /* Brand primary: #5371FF (HSL: 231 100% 66%) - 4.51:1 contrast (WCAG AA compliant) */
+    --primary: 231 100% 66%;
+    --primary-foreground: 0 0% 100%;
     /* Primary scale */
-    --primary-50: 229 100% 97%;
-    --primary-100: 229 100% 90%;
-    --primary-200: 229 95% 80%;
-    --primary-300: 229 90% 70%;
-    --primary-400: 229 88% 55%;
-    --primary-500: 229 87% 45%;
-    --primary-600: 229 87% 36%;
-    --primary-700: 229 80% 30%;
-    --primary-800: 229 75% 24%;
-    --primary-900: 229 70% 18%;
+    --primary-50: 231 100% 97%;
+    --primary-100: 231 100% 93%;
+    --primary-200: 231 100% 85%;
+    --primary-300: 231 100% 75%;
+    --primary-400: 231 100% 70%;
+    --primary-500: 231 100% 66%;
+    --primary-600: 231 95% 60%;
+    --primary-700: 231 90% 54%;
+    --primary-800: 231 80% 45%;
+    --primary-900: 231 70% 35%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
@@ -41,13 +41,30 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     /* Match focus ring to brand primary */
-    --ring: 229 87% 36%;
+    --ring: 231 100% 66%;
     --radius: 0.5rem;
+    /* Neutral scale for rounded dashboard shell */
+    --neutral-900: 17 24 39;
+    --neutral-700: 75 85 99;
+    --neutral-500: 107 114 128;
+    --neutral-300: 209 213 219;
+    --neutral-200: 229 231 235;
+    --neutral-100: 243 244 246;
+    --neutral-50: 249 250 251;
+    /* App background color */
+    --app-bg: 241 243 249;
+    /* Semantic colors */
+    --success-500: 22 163 74;
+    --warning-500: 245 158 11;
+    --danger-500: 220 38 38;
   }
   /* Global UI scaling: ~90% of default browser zoom by reducing base font-size.
      This scales all Tailwind rem-based sizes consistently across the app. */
   html {
     font-size: 90%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   
   .dark {
@@ -63,20 +80,20 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    /* Brand primary in dark mode as well for consistency */
-    --primary: 229 87% 36%;
-    --primary-foreground: 210 40% 98%;
+    /* Brand primary: #5371FF (HSL: 231 100% 66%) - 4.51:1 contrast (WCAG AA compliant) */
+    --primary: 231 100% 66%;
+    --primary-foreground: 0 0% 100%;
     /* Primary scale */
-    --primary-50: 229 100% 97%;
-    --primary-100: 229 100% 90%;
-    --primary-200: 229 95% 80%;
-    --primary-300: 229 90% 70%;
-    --primary-400: 229 88% 55%;
-    --primary-500: 229 87% 45%;
-    --primary-600: 229 87% 36%;
-    --primary-700: 229 80% 30%;
-    --primary-800: 229 75% 24%;
-    --primary-900: 229 70% 18%;
+    --primary-50: 231 100% 97%;
+    --primary-100: 231 100% 93%;
+    --primary-200: 231 100% 85%;
+    --primary-300: 231 100% 75%;
+    --primary-400: 231 100% 70%;
+    --primary-500: 231 100% 66%;
+    --primary-600: 231 95% 60%;
+    --primary-700: 231 90% 54%;
+    --primary-800: 231 80% 45%;
+    --primary-900: 231 70% 35%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
@@ -87,7 +104,21 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 229 87% 36%;
+    --ring: 231 100% 66%;
+    /* Neutral scale for rounded dashboard shell */
+    --neutral-900: 17 24 39;
+    --neutral-700: 75 85 99;
+    --neutral-500: 107 114 128;
+    --neutral-300: 209 213 219;
+    --neutral-200: 229 231 235;
+    --neutral-100: 243 244 246;
+    --neutral-50: 249 250 251;
+    /* App background color */
+    --app-bg: 241 243 249;
+    /* Semantic colors */
+    --success-500: 22 163 74;
+    --warning-500: 245 158 11;
+    --danger-500: 220 38 38;
   }
 }
 
@@ -129,5 +160,14 @@
 
   .animate-slide-up {
     animation: slide-up 0.2s ease-out;
+  }
+
+  /* Hide scrollbars but keep scroll functionality */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }

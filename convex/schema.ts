@@ -126,6 +126,8 @@ export default defineSchema({
     university_admin_notes: v.optional(v.string()),
     // User preferences
     hide_progress_card: v.optional(v.boolean()),
+    // Activity tracking for metrics
+    last_login_at: v.optional(v.number()), // Timestamp of last login (for activeUsers30d metric)
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -160,9 +162,14 @@ export default defineSchema({
       v.literal("expired"),
       v.literal("trial"),
       v.literal("suspended"),
+      v.literal("archived"), // Non-destructive way to disable a university
+      v.literal("deleted"), // Only for hard delete with guard
     ),
     admin_email: v.optional(v.string()),
     created_by_id: v.optional(v.id("users")),
+    is_test: v.optional(v.boolean()), // Test universities can be hard deleted
+    archived_at: v.optional(v.number()), // Timestamp when archived (non-destructive disable)
+    deleted_at: v.optional(v.number()), // Timestamp when hard deleted (rare, guarded)
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -199,6 +206,7 @@ export default defineSchema({
   // Projects table for portfolio functionality
   projects: defineTable({
     user_id: v.id("users"),
+    university_id: v.optional(v.id("universities")),
     title: v.string(),
     role: v.optional(v.string()),
     start_date: v.optional(v.number()), // timestamp
@@ -219,6 +227,7 @@ export default defineSchema({
   // Cover letters table
   cover_letters: defineTable({
     user_id: v.id("users"),
+    university_id: v.optional(v.id("universities")),
     name: v.string(),
     job_title: v.string(),
     company_name: v.optional(v.string()),
@@ -242,6 +251,7 @@ export default defineSchema({
   // Support tickets table
   support_tickets: defineTable({
     user_id: v.id("users"),
+    university_id: v.optional(v.id("universities")),
     subject: v.string(),
     category: v.string(), // default: 'general'
     priority: v.union(
@@ -267,6 +277,7 @@ export default defineSchema({
     updated_at: v.number(),
   })
     .index("by_user", ["user_id"])
+    .index("by_university", ["university_id"])
     .index("by_status", ["status"])
     .index("by_created_at", ["created_at"]),
 
@@ -321,6 +332,7 @@ export default defineSchema({
   // Resumes table
   resumes: defineTable({
     user_id: v.id("users"),
+    university_id: v.optional(v.id("universities")),
     title: v.string(),
     content: v.any(), // JSON data
     visibility: v.union(v.literal("private"), v.literal("public")),
@@ -342,6 +354,7 @@ export default defineSchema({
   // Applications table
   applications: defineTable({
     user_id: v.id("users"),
+    university_id: v.optional(v.id("universities")),
     company: v.string(),
     job_title: v.string(),
     status: v.union(
@@ -581,6 +594,7 @@ export default defineSchema({
   // Networking contacts table (referenced in followup_actions)
   networking_contacts: defineTable({
     user_id: v.id("users"),
+    university_id: v.optional(v.id("universities")),
     name: v.string(),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
@@ -613,6 +627,7 @@ export default defineSchema({
   // Goals table (referenced in achievements)
   goals: defineTable({
     user_id: v.id("users"),
+    university_id: v.optional(v.id("universities")),
     title: v.string(),
     description: v.optional(v.string()),
     category: v.optional(v.string()),
@@ -1186,4 +1201,63 @@ export default defineSchema({
   }).index("by_name", ["migration_name"])
     .index("by_status", ["status"])
     .index("by_started_at", ["started_at"]),
+
+  // Advisor-student roster mapping (from main)
+  // Enforces advisor assignments within a university
+  advisorStudents: defineTable({
+    university_id: v.id("universities"),
+    advisor_id: v.id("users"),
+    student_profile_id: v.id("studentProfiles"),
+    assigned_by_id: v.id("users"),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_advisor_student", ["advisor_id", "student_profile_id"])
+    .index("by_advisor", ["advisor_id"])
+    .index("by_student_profile", ["student_profile_id"])
+    .index("by_university", ["university_id"]),
+
+  // Memberships link users to universities with a role
+  memberships: defineTable({
+    user_id: v.id("users"),
+    university_id: v.id("universities"),
+    role: v.union(
+      v.literal("student"),
+      v.literal("advisor"),
+      v.literal("university_admin"),
+    ),
+    status: v.union(
+      v.literal("active"),
+      v.literal("inactive"),
+      v.literal("revoked"),
+    ),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_user", ["user_id"])
+    .index("by_user_role", ["user_id", "role"])
+    .index("by_university_role", ["university_id", "role"])
+    .index("by_university", ["university_id"]),
+
+  // Notifications table for in-app notifications
+  notifications: defineTable({
+    user_id: v.id("users"), // User who should see this notification
+    type: v.union(
+      v.literal("support_ticket"), // New support ticket
+      v.literal("ticket_update"), // Ticket status/assignment changed
+      v.literal("application_update"), // Application status changed
+      v.literal("goal_reminder"), // Goal deadline approaching
+      v.literal("system"), // System announcements
+    ),
+    title: v.string(), // Notification title
+    message: v.string(), // Notification message
+    link: v.optional(v.string()), // Optional link to related resource
+    related_id: v.optional(v.string()), // ID of related entity (ticket, application, etc.)
+    read: v.boolean(), // Whether user has read this notification
+    read_at: v.optional(v.number()), // When notification was read
+    created_at: v.number(), // When notification was created
+  })
+    .index("by_user", ["user_id"])
+    .index("by_user_read", ["user_id", "read"])
+    .index("by_created_at", ["created_at"]),
 });

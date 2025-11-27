@@ -7,6 +7,16 @@ import { DataModel } from "../_generated/dataModel";
 
 type QueryCtx = GenericQueryCtx<DataModel>;
 type MutationCtx = GenericMutationCtx<DataModel>;
+type Ctx = QueryCtx | MutationCtx;
+
+/**
+ * Internal service token check for server-to-server calls
+ * This is used by trusted backends (e.g., webhooks) when no user identity exists.
+ */
+export function isServiceRequest(token: string | undefined) {
+  const expected = process.env.CONVEX_INTERNAL_SERVICE_TOKEN;
+  return Boolean(expected && token && token === expected);
+}
 
 /**
  * Get the authenticated user from context
@@ -29,6 +39,39 @@ export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx) {
   }
 
   return user;
+}
+
+/**
+ * Fetch active membership for the authenticated user and optional role
+ */
+export async function requireMembership(
+  ctx: Ctx,
+  opts: { role?: "student" | "advisor" | "university_admin" }
+) {
+  const user = await getAuthenticatedUser(ctx);
+
+  let membership = null as any;
+
+  if (opts.role) {
+    membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_role", (q) => q.eq("user_id", user._id).eq("role", opts.role!))
+      .first();
+  } else {
+    membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .first();
+  }
+  if (!membership) {
+    throw new Error("Unauthorized: Membership not found");
+  }
+
+  if (membership.status !== "active") {
+    throw new Error("Unauthorized: Inactive membership");
+  }
+
+  return { user, membership };
 }
 
 /**
@@ -138,4 +181,25 @@ export function checkAccountActive(user: {
 
   // Allow pending_activation and active statuses
   return true;
+}
+
+/**
+ * Assert that the acting user can manage a target university.
+ * Super admins can manage all; university admins/advisors must match their university_id.
+ */
+export function assertUniversityAccess(
+  actingUser: { role?: string; university_id?: string | null },
+  targetUniversityId?: string | null,
+) {
+  if (actingUser.role === "super_admin") {
+    return;
+  }
+
+  if (
+    !actingUser.university_id ||
+    !targetUniversityId ||
+    actingUser.university_id !== targetUniversityId
+  ) {
+    throw new Error("Unauthorized: Tenant access denied");
+  }
 }

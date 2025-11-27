@@ -1732,12 +1732,8 @@ const selectTemplate = (jobTitle: string): CareerPathTemplate => {
 }
 
 const fetchUserProfile = async (clerkId: string) => {
-const fetchUserProfile = async (clerkId: string) => {
   try {
     const user = await convexServer.query(api.users.getUserByClerkId, { clerkId })
-    return user
-  try {
-        const user = await convexServer.query(api.users.getUserByClerkId, { clerkId })
     return user
   } catch (error) {
     console.warn('CareerPath failed to fetch user profile', error)

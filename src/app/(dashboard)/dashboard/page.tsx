@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
+import { useImpersonation } from '@/contexts/ImpersonationContext'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
@@ -16,22 +17,9 @@ import { HeatmapCard } from '@/components/streak/HeatmapCard'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog'
-import {
-  Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
-  Briefcase, Mail, Users, Eye, Edit, Calendar, ChevronDown, ChevronUp,
-  Square, CheckSquare, RefreshCw
-} from 'lucide-react'
+import { Target, Clock, Users } from 'lucide-react'
 import { motion } from 'framer-motion'
-import Link from 'next/link'
 
 // Helper function to format time ago
 function formatTimeAgo(timestamp: number): string {
@@ -69,7 +57,11 @@ const activityTypeColors: Record<string, string> = {
 export default function DashboardPage() {
   const { user: clerkUser, isLoaded } = useUser()
   const { user, hasPremium } = useAuth()
+  const { impersonation, getEffectiveRole } = useImpersonation()
   const router = useRouter()
+
+  // Get effective role (respects impersonation)
+  const effectiveRole = getEffectiveRole()
 
   // Get real dashboard analytics from database - must be called before any returns
   const dashboardData = useQuery(
@@ -77,8 +69,37 @@ export default function DashboardPage() {
     clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
   )
 
+  // Get user data to check if progress card is hidden
+  const userData = useQuery(
+    api.users.getUserByClerkId,
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+  )
+
   // Redirect admin users immediately to prevent flash of dashboard content
+  // Skip redirect if impersonating a non-admin role
   useEffect(() => {
+    // If impersonating, don't redirect based on real role
+    if (impersonation.isImpersonating) {
+      // If impersonating university_admin, redirect to university dashboard
+      if (effectiveRole === 'university_admin') {
+        router.replace('/university')
+        return
+      }
+      // If impersonating super_admin, redirect to admin dashboard
+      if (effectiveRole === 'super_admin') {
+        router.replace('/admin')
+        return
+      }
+      // If impersonating advisor, redirect to advisor dashboard
+      if (effectiveRole === 'advisor') {
+        router.replace('/advisor')
+        return
+      }
+      // Otherwise stay on this page (student, individual, staff)
+      return
+    }
+
+    // Not impersonating - use real role
     if (user?.role === 'advisor') {
       router.replace('/advisor')
       return
@@ -91,7 +112,7 @@ export default function DashboardPage() {
       router.replace('/admin')
       return
     }
-  }, [user, router])
+  }, [user, router, impersonation.isImpersonating, effectiveRole])
 
   if (!isLoaded) {
     return <LoadingSpinner />
@@ -102,12 +123,15 @@ export default function DashboardPage() {
   }
 
   // Prevent rendering for admin users while redirect is happening
-  if (user?.role === 'advisor') {
-    return <LoadingSpinner message="Redirecting to advisor dashboard..." />
-  }
+  // But allow rendering if impersonating a non-admin role
+  const shouldRedirectToAdmin = !impersonation.isImpersonating &&
+    (user?.role === 'university_admin' || user?.role === 'super_admin' || user?.role === 'advisor')
 
-  if (user?.role === 'university_admin' || user?.role === 'super_admin') {
-    return <LoadingSpinner message="Redirecting to admin portal..." />
+  if (shouldRedirectToAdmin) {
+    const message = user?.role === 'advisor'
+      ? "Redirecting to advisor dashboard..."
+      : "Redirecting to admin portal..."
+    return <LoadingSpinner message={message} />
   }
 
   // Use real data or fallback to default values
@@ -160,97 +184,21 @@ export default function DashboardPage() {
 
   return (
     <OnboardingGuard>
-      <motion.div 
-          className="container mx-auto"
+      <motion.div
+          className="space-y-6"
           initial="hidden"
           animate="visible"
           variants={fadeIn}
         >
-          <motion.div 
-            className="flex flex-col md:flex-row md:items-center justify-between mb-6"
-            variants={subtleUp}
-          >
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Dashboard</h1>
-              <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="bg-primary hover:bg-primary/90 text-white">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Quick Actions
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className="text-center">Quick Actions</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid grid-cols-1 gap-2 py-4">
-                    <Link href="/goals" className="w-full">
-                      <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
-                          <Target className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Create a Goal</div>
-                          <div className="text-xs text-muted-foreground">Track your career objectives</div>
-                        </div>
-                      </div>
-                    </Link>
-
-                    <Link href="/resumes" className="w-full">
-                      <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                        <div className="h-9 w-9 rounded-full bg-blue-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                          <FileText className="h-5 w-5 text-blue-500" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Create a Resume</div>
-                          <div className="text-xs text-muted-foreground">Build a professional resume</div>
-                        </div>
-                      </div>
-                    </Link>
-
-                    <Link href="/cover-letters" className="w-full">
-                      <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                        <div className="h-9 w-9 rounded-full bg-purple-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                          <Mail className="h-5 w-5 text-purple-500" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Create a Cover Letter</div>
-                          <div className="text-xs text-muted-foreground">Craft a compelling cover letter</div>
-                        </div>
-                      </div>
-                    </Link>
-
-                    <Link href="/applications" className="w-full">
-                      <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                        <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                          <Briefcase className="h-5 w-5 text-green-500" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Track an Application</div>
-                          <div className="text-xs text-muted-foreground">Track your job applications</div>
-                        </div>
-                      </div>
-                    </Link>
-
-                    <Link href="/contacts" className="w-full">
-                      <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                        <div className="h-9 w-9 rounded-full bg-indigo-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                          <Users className="h-5 w-5 text-indigo-500" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Add Contact</div>
-                          <div className="text-xs text-muted-foreground">Add to your Network Hub</div>
-                        </div>
-                      </div>
-                    </Link>
-
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+          <motion.div variants={subtleUp}>
+            <header className="mb-4 flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-semibold text-slate-900">Dashboard</h1>
+                <p className="text-sm text-slate-600">
+                  Welcome back, {user.name}! Here's your career progress.
+                </p>
+              </div>
+            </header>
           </motion.div>
 
           {/* Row 1: Stats Overview - Removed Interview Rate card */}
@@ -260,12 +208,12 @@ export default function DashboardPage() {
           >
             <motion.div variants={cardAnimation}>
               <StatCard
-                icon={<Target className="h-5 w-5 text-primary" />}
-                iconBgColor="bg-primary/20"
-                iconColor="text-primary"
+                variant="priority"
+                icon={<Target className="h-4 w-4" />}
+                iconBgColor="bg-[#EEF1FF]"
+                iconColor="text-[#5371FF]"
                 label="Next Interview"
                 value={stats.nextInterview}
-                valueClassName="text-lg"
                 fallbackOnOverflow={
                   stats.nextInterview === 'No Interviews' || stats.nextInterview === 'No upcoming interviews'
                     ? '-'
@@ -280,9 +228,9 @@ export default function DashboardPage() {
 
             <motion.div variants={cardAnimation}>
               <StatCard
-                icon={<Users className="h-5 w-5 text-blue-500" />}
-                iconBgColor="bg-blue-500/20"
-                iconColor="text-blue-500"
+                icon={<Users className="h-4 w-4" />}
+                iconBgColor="bg-[#EEF1FF]"
+                iconColor="text-[#5371FF]"
                 label="Active Applications"
                 value={stats.activeApplications}
                 change={{
@@ -294,9 +242,9 @@ export default function DashboardPage() {
 
             <motion.div variants={cardAnimation}>
               <StatCard
-                icon={<Clock className="h-5 w-5 text-orange-500" />}
-                iconBgColor="bg-orange-500/20"
-                iconColor="text-orange-500"
+                icon={<Clock className="h-4 w-4" />}
+                iconBgColor="bg-amber-50"
+                iconColor="text-[#F59E0B]"
                 label="Pending Follow ups"
                 value={stats.pendingTasks}
                 change={{
@@ -310,9 +258,9 @@ export default function DashboardPage() {
 
             <motion.div variants={cardAnimation}>
               <StatCard
-                icon={<Target className="h-5 w-5 text-green-500" />}
-                iconBgColor="bg-green-500/20"
-                iconColor="text-green-500"
+                icon={<Target className="h-4 w-4" />}
+                iconBgColor="bg-emerald-50"
+                iconColor="text-[#16A34A]"
                 label="Active Goals"
                 value={stats.activeGoals}
                 change={{
@@ -323,23 +271,9 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
-          {/* Row 2: Usage Progress (Free Users) or Onboarding Checklist */}
-          <motion.div variants={cardAnimation} className="mb-6">
-            {!hasPremium ? (
-              <UsageProgressCard dashboardData={dashboardData} />
-            ) : (
-              <SimpleOnboardingChecklist dashboardData={dashboardData} />
-            )}
-          </motion.div>
-
-          {/* Row 3: Recommendations */}
-          <motion.div variants={cardAnimation} className="mb-6">
-            <TodaysRecommendations />
-          </motion.div>
-
-          {/* Row 4: Active Interviews, Follow-up Actions, Goals */}
+          {/* Row 2: Active Interviews, Follow-up Actions, Goals */}
           <motion.div
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6"
             variants={staggeredContainer}
           >
             <motion.div variants={cardAnimation}>
@@ -355,29 +289,49 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
-          {/* Row 5: Activity Streak Heatmap */}
-          <motion.div variants={cardAnimation} className="mb-8">
+          {/* Row 3: Today's Recommendations - full width */}
+          <motion.div variants={cardAnimation} className="mb-6">
+            <TodaysRecommendations />
+          </motion.div>
+
+          {/* Row 4: Usage Progress / Onboarding Checklist - only show if not hidden */}
+          {!hasPremium && userData && !userData.hide_progress_card && (
+            <motion.div variants={cardAnimation} className="mb-6">
+              <UsageProgressCard dashboardData={dashboardData} />
+            </motion.div>
+          )}
+          {hasPremium && (
+            <motion.div variants={cardAnimation} className="mb-6">
+              <SimpleOnboardingChecklist dashboardData={dashboardData} />
+            </motion.div>
+          )}
+
+          {/* Row 4: Activity Streak Heatmap */}
+          <motion.div variants={cardAnimation} className="mb-6">
             <HeatmapCard />
           </motion.div>
 
           {/* Row 6: Recent Activity */}
           <motion.div variants={cardAnimation}>
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex flex-col space-y-1.5 mb-6">
-                  <h3 className="text-2xl font-semibold leading-none tracking-tight">Recent Activity</h3>
-                  <p className="text-sm text-muted-foreground">Your latest career development actions</p>
+            <Card className="overflow-hidden p-0 shadow-sm">
+              <div className="flex items-center justify-between px-5 py-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Recent Activity</h3>
+                  <p className="text-xs text-slate-500">Your latest career development actions</p>
                 </div>
-                <div className="h-[280px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              </div>
+              <div className="border-t border-slate-100" />
+              <CardContent className="px-5 pb-4 pt-3">
+                <div className="h-[280px] space-y-4 overflow-y-auto pr-2 text-sm text-slate-700 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                   {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 ? (
                     dashboardData.recentActivity.map((activity) => {
                       const colorClass = activityTypeColors[activity.type] ?? 'bg-yellow-500'
                       return (
-                        <div key={activity.id} className="flex items-center space-x-4">
-                          <div className={`w-2 h-2 rounded-full ${colorClass}`}></div>
+                        <div key={activity.id} className="flex items-center gap-3 rounded-lg border border-slate-100 p-3">
+                          <div className={`h-2 w-2 rounded-full ${colorClass}`}></div>
                           <div className="flex-1">
-                            <p className="text-sm font-medium">{activity.description}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm font-medium text-slate-900">{activity.description}</p>
+                            <p className="text-xs text-slate-500">
                               {formatTimeAgo(activity.timestamp)}
                             </p>
                           </div>
@@ -385,9 +339,9 @@ export default function DashboardPage() {
                       )
                     })
                   ) : (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">No recent activity</p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                    <div className="py-8 text-center text-slate-600">
+                      <p className="text-sm">No recent activity</p>
+                      <p className="mt-1 text-xs text-slate-500">
                         Start by creating an application or updating your profile
                       </p>
                     </div>

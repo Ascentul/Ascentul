@@ -16,7 +16,7 @@ interface UserProfile {
   role: string
   // Subscription fields removed - now managed by Clerk Billing via useSubscription hook
   university_id?: string
-  profile_image?: string
+  profile_image?: string | null
   cover_image?: string
   linkedin_url?: string
   github_url?: string
@@ -102,7 +102,6 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
 
   // Create & update user mutations
   const createUser = useMutation(api.users.createUser)
-  const updateUser = useMutation(api.users.updateUser)
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -164,46 +163,17 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
     initializeUser()
   }, [clerkUser, clerkLoaded, userProfile, createUser, toast, clerkSignOut])
 
-  // Keep Convex role in sync with Clerk publicMetadata.role for existing profiles
+  // Convex is the source of truth for roles; if Clerk metadata diverges, log but do not override Convex
   useEffect(() => {
-    const syncRole = async () => {
-      if (!clerkLoaded || !clerkUser || !userProfile) return
-      const allowedRoles = ['user', 'admin', 'super_admin', 'university_admin', 'staff'] as const
-      const metaRole = (clerkUser.publicMetadata as any)?.role as string | undefined
-
-      console.log('[ClerkAuthProvider] Role sync check:', {
-        clerkRole: metaRole,
+    if (!clerkLoaded || !clerkUser || !userProfile) return
+    const metaRole = (clerkUser.publicMetadata as any)?.role as string | undefined
+    if (metaRole && userProfile.role !== metaRole) {
+      console.warn('[ClerkAuthProvider] Role mismatch detected (Convex is authoritative):', {
         convexRole: userProfile.role,
-        needsSync: metaRole && userProfile.role !== metaRole
+        clerkRole: metaRole,
       })
-
-      if (!metaRole || !(allowedRoles as readonly string[]).includes(metaRole)) return
-      if (userProfile.role !== metaRole) {
-        console.log('[ClerkAuthProvider] Syncing role from Clerk to Convex:', metaRole)
-        try {
-          await updateUser({
-            clerkId: clerkUser.id,
-            updates: { role: metaRole as any },
-          })
-          console.log('[ClerkAuthProvider] Role sync successful')
-          toast({
-            title: 'Role Updated',
-            description: `Your role has been updated to ${metaRole}. Refreshing...`,
-          })
-          // Force a page refresh to reload with new role
-          setTimeout(() => window.location.reload(), 1000)
-        } catch (e) {
-          console.error('Failed to sync role from Clerk to Convex:', e)
-          toast({
-            title: 'Role Sync Failed',
-            description: 'Failed to sync your role. Please try signing out and back in.',
-            variant: 'destructive',
-          })
-        }
-      }
     }
-    void syncRole()
-  }, [clerkLoaded, clerkUser, userProfile, updateUser, toast])
+  }, [clerkLoaded, clerkUser, userProfile])
 
   const signOut = useCallback(async () => {
     try {

@@ -277,7 +277,7 @@ export default function SupportPage() {
                 {filteredTickets.map((ticket: any) => (
                   <TableRow key={String(ticket._id)} className="cursor-pointer hover:bg-gray-50">
                     <TableCell className="font-medium">{ticket.subject}</TableCell>
-                    <TableCell className="capitalize">{ticket.category.replace('_', ' ')}</TableCell>
+                    <TableCell className="capitalize">{ticket.category.replaceAll('_', ' ')}</TableCell>
                     <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
                     <TableCell>{getStatusBadge(ticket.status)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -406,7 +406,7 @@ export default function SupportPage() {
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Category</Label>
-                    <div className="mt-1 capitalize">{selectedTicket.category.replace('_', ' ')}</div>
+                    <div className="mt-1 capitalize">{selectedTicket.category.replaceAll('_', ' ')}</div>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Created</Label>

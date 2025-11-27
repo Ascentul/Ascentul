@@ -101,6 +101,7 @@ Feature Gating (Access Control)
 
 ### Authentication & Authorization
 - **Clerk** handles authentication via JWT tokens
+- **Clerk `publicMetadata.role`** is the source of truth for all authorization (see [Roles & Permissions](#roles--permissions) for details)
 - Middleware (`src/middleware.ts`) protects routes and enforces role-based redirects:
   - Regular users → `/dashboard`
   - `super_admin`/`admin` → `/admin`
@@ -134,9 +135,114 @@ Feature Gating (Access Control)
 - `src/app/api/`: API routes (Stripe webhooks, file uploads, etc.)
 
 ### Roles & Permissions
-- `user`: Regular free/premium users
-- `university_admin`: Manages students within their university
-- `admin`/`super_admin`: Platform-wide administration
+
+**IMPORTANT: Clerk `publicMetadata.role` is the source of truth for all authorization.**
+
+#### Available Roles
+
+- **`super_admin`**: Full platform access - manage all users, universities, system settings, audit logs
+- **`university_admin`**: University-scoped admin - manage students and settings for assigned university only
+- **`advisor`**: University advisor - view and assist students within assigned university
+- **`student`**: University-affiliated user with career tools access (auto university subscription)
+- **`individual`**: Non-university user with free or premium subscription
+- **`staff`**: Internal staff member with support access
+- **`user`**: Legacy role (being migrated to `individual`)
+
+#### Role Management Architecture
+
+```
+Role Change Flow:
+Admin Action → Clerk publicMetadata.role (Source of Truth)
+                    ↓ webhook (user.updated)
+              Convex users.role (Cached for Display)
+
+Authorization Checks:
+Page Component → Reads clerkUser.publicMetadata.role ✅
+Admin UI Display → Reads convexUser.role (display only) 📊
+```
+
+**Key Principles:**
+- ✅ Set roles in Clerk Dashboard or via Clerk API
+- ✅ Authorization checks use `clerkUser.publicMetadata.role`
+- ✅ Convex `users.role` is cached for display and queries only
+- ❌ Never manually update Convex role without updating Clerk
+- ❌ Never use Convex role for authorization decisions
+
+#### Managing Roles
+
+**Option 1: Via Admin UI (Recommended)**
+1. Go to `/admin/settings` → "User Roles" tab
+2. Find user in role management table
+3. Click "Change Role" and select new role
+4. System updates Clerk and syncs to Convex automatically
+
+**Option 2: Via Clerk Dashboard**
+1. Go to [Clerk Dashboard](https://dashboard.clerk.com)
+2. Users → Find user → Public Metadata
+3. Add/update: `{"role": "super_admin"}`
+4. Webhook automatically syncs to Convex
+
+**Option 3: Programmatically**
+```typescript
+import { clerkClient } from '@clerk/nextjs/server'
+
+const client = await clerkClient()
+await client.users.updateUserMetadata(userId, {
+  publicMetadata: { role: 'super_admin' }
+})
+// Webhook will automatically sync to Convex
+```
+
+#### Making Someone Super Admin
+
+To grant super admin access:
+1. Update Clerk `publicMetadata.role` to `"super_admin"` (via Dashboard or API)
+2. Webhook syncs to Convex automatically
+3. User must log out and back in for changes to take effect
+4. Verify access at `/admin`
+
+#### Role Validation Rules
+
+- `student`, `university_admin`, `advisor`: Require `university_id`
+- `individual`: Should NOT have `university_id`
+- Cannot remove last super admin
+- Role changes logged in audit trail
+
+#### Troubleshooting Role Issues
+
+**User can't access admin pages:**
+→ Check Clerk `publicMetadata.role` (not Convex role)
+→ Go to `/admin/settings` → "User Roles" → "Role Diagnostics"
+→ Enter user email to check role sync status
+
+**Role mismatch between Clerk and Convex:**
+→ Use "Role Diagnostics" tool to detect and fix
+→ Recommended: Sync from Convex to Clerk
+→ Webhook will automatically sync back to Convex
+
+**Bulk role sync needed:**
+→ Run: `npx convex run admin/syncRolesToClerk:syncAllRolesToClerk --clerkId YOUR_CLERK_ID --dryRun true`
+→ Review changes, then run without `--dryRun` flag
+
+#### Role Features & Access
+
+| Feature | super_admin | university_admin | advisor | student | individual |
+|---------|-------------|------------------|---------|---------|------------|
+| Platform Settings | ✅ | ❌ | ❌ | ❌ | ❌ |
+| All Users Management | ✅ | ❌ | ❌ | ❌ | ❌ |
+| University Management | ✅ | ✅ (own) | ❌ | ❌ | ❌ |
+| Student Management | ✅ | ✅ (own) | ✅ (assigned) | ❌ | ❌ |
+| Platform Analytics | ✅ | ❌ | ❌ | ❌ | ❌ |
+| University Analytics | ✅ | ✅ (own) | ✅ (own) | ❌ | ❌ |
+| Audit Logs | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Career Tools | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+#### Protected Routes
+
+- `/admin/*` → `super_admin` only
+- `/university/*` → `university_admin`, `advisor`
+- `/dashboard/*` → All authenticated users
+- `/applications/*`, `/resumes/*`, `/goals/*` → All authenticated users
 
 ### TypeScript Paths
 ```typescript
@@ -149,10 +255,37 @@ Feature Gating (Access Control)
 convex/*      → ./convex/*
 ```
 
-### Styling
-- Tailwind with custom brand colors: `bg-primary` (base: `#0C29AB`), `bg-primary-700` for hover
-- Component library: Radix UI primitives in `src/components/ui/`
-- Responsive design: Mobile-first approach
+### Styling & Design System
+
+**Modern Rounded Dashboard Shell:**
+The app uses a floating rounded shell design with clean, modern SaaS styling:
+- Light neutral background (`bg-neutral-100`) for entire viewport
+- Content and sidebar inside one large rounded white shell (`rounded-shell`, `shadow-card`)
+- Inner content area with slightly tinted surface (`bg-neutral-100/60`)
+- All cards use `rounded-card` with `shadow-card`
+
+**Brand Colors:**
+- Primary brand: `#5371FF` (use `bg-primary-500`, `text-primary-500`)
+- Primary hover: `bg-primary-700`
+- Neutral grays: `neutral-100/300/500/700/900` for UI elements
+- Semantic colors: `success-500`, `warning-500`, `danger-500`
+
+**Border Radius Tokens:**
+- `rounded-shell`: 24px (outer app shell, main containers)
+- `rounded-card`: 18px (inner cards, panels)
+- `rounded-control`: 999px (pills, buttons, inputs)
+
+**Component Library:**
+- Radix UI primitives in `src/components/ui/`
+- AppShell: `src/components/AppShell.tsx` - wraps all authenticated pages
+- PageHeader: `src/components/ui/page-header.tsx` - standardized page headers
+- Card: Updated with default padding and rounded corners
+- Button: Uses `rounded-control` and new primary colors
+
+**Navigation:**
+- Active nav items: `bg-neutral-900 text-white`
+- Inactive nav items: `text-neutral-700 hover:bg-neutral-100`
+- Responsive design: Mobile-first with drawer navigation on mobile
 
 ## Common Patterns
 
@@ -181,6 +314,89 @@ import { auth } from "@clerk/nextjs/server";
 const { userId } = await auth();
 if (!userId) return new Response("Unauthorized", { status: 401 });
 ```
+
+## University Lifecycle Management
+
+### University Statuses
+Universities can have the following statuses:
+- `trial`: University in trial period
+- `active`: Fully active university with paid license
+- `expired`: License has expired
+- `suspended`: Temporarily suspended by admin
+- `archived`: Non-destructively disabled (preferred for real universities)
+- `deleted`: Hard deleted (only for test universities)
+
+### Safe Lifecycle Operations
+
+**Archive (Preferred for Real Universities):**
+```typescript
+await archiveUniversity({ universityId })
+```
+- **Non-destructive**: Preserves all data (users, applications, goals, metrics)
+- University becomes inactive and stops appearing in active lists
+- Can be restored if needed
+- Counts toward "total universities all time" metric but not "active"
+
+**Hard Delete (Test Universities Only):**
+```typescript
+await hardDeleteUniversity({ universityId })
+```
+- **Destructive**: Permanently removes university and related data
+- Only allowed for universities marked as `is_test: true`
+- Deletes: university record, memberships, student profiles, invitations, departments, courses
+- Unlinks users (sets `university_id` to null, marks as test users)
+- Clears `university_id` from applications/goals but preserves records
+- Real universities are protected by guard - will throw error directing to use archive
+
+**Toggle Test Status:**
+```typescript
+await toggleTestUniversity({ universityId, isTest: boolean })
+```
+- Marks university as test or production
+- Test universities are automatically excluded from investor metrics
+- Use this before hard deleting a university for cleanup
+
+### Investor-Facing Metrics
+
+Centralized metrics in `convex/metrics.ts`:
+
+```typescript
+// Single query for all metrics
+const metrics = await getAllMetrics({})
+
+// Or individual queries
+const totalUniversities = await getTotalUniversitiesAllTime({})
+const activeUniversities = await getActiveUniversitiesCurrent({})
+const archivedUniversities = await getArchivedUniversities({})
+const totalUsers = await getTotalUsersAllTime({})
+const activeUsers = await getActiveUsers30d({})
+```
+
+**Metric Definitions:**
+- `totalUniversitiesAllTime`: Real universities with status in (trial, active, archived)
+- `activeUniversitiesCurrent`: Real universities with status in (trial, active)
+- `archivedUniversities`: Real universities with status = archived
+- `totalUsersAllTime`: All non-test, non-internal users ever created
+- `activeUsers30d`: Non-test users who logged in within 30 days, on active/trial universities
+
+**Automatic Exclusions:**
+- Test universities (`is_test = true`) never appear in metrics
+- Test users (`is_test_user = true`) never appear in metrics
+- Internal users (`role = "super_admin"`) never appear in metrics
+
+### Dev Sanity Check
+
+Verify lifecycle and metrics are working correctly:
+```bash
+npx convex run dev/checkMetrics:runSanityCheck --clerkId YOUR_CLERK_ID
+```
+
+This creates test data, performs operations, and validates that:
+- Test universities are excluded from metrics
+- Real universities count correctly
+- Archive removes from active but keeps in total
+- Hard delete is blocked for real universities
+- Hard delete works for test universities
 
 ## Testing
 

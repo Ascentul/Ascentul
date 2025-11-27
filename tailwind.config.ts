@@ -64,8 +64,31 @@ const config = {
           foreground: "hsl(var(--card-foreground))"
         },
         brand: {
-          blue: "#5371ff"
-        }
+          blue: "#4257FF"
+        },
+        // New design tokens for rounded dashboard shell
+        neutral: {
+          900: 'rgb(var(--neutral-900) / <alpha-value>)',
+          700: 'rgb(var(--neutral-700) / <alpha-value>)',
+          500: 'rgb(var(--neutral-500) / <alpha-value>)',
+          300: 'rgb(var(--neutral-300) / <alpha-value>)',
+          200: 'rgb(var(--neutral-200) / <alpha-value>)',
+          100: 'rgb(var(--neutral-100) / <alpha-value>)',
+          50: 'rgb(var(--neutral-50) / <alpha-value>)',
+        },
+        // App background color - slightly cooler/bluer than neutral-100
+        app: {
+          bg: 'rgb(var(--app-bg) / <alpha-value>)',
+        },
+        success: {
+          500: 'rgb(var(--success-500) / <alpha-value>)'
+        },
+        warning: {
+          500: 'rgb(var(--warning-500) / <alpha-value>)'
+        },
+        danger: {
+          500: 'rgb(var(--danger-500) / <alpha-value>)'
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
@@ -114,7 +137,14 @@ const config = {
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)"
+        sm: "calc(var(--radius) - 4px)",
+        // New rounded dashboard shell tokens
+        shell: '24px',
+        card: '18px',
+        control: '999px',
+      },
+      boxShadow: {
+        card: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
       }
     }
   },

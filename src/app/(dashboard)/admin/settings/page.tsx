@@ -36,8 +36,14 @@ import {
   Activity,
   MessageSquare,
   Loader2,
-  FileText
+  FileText,
+  Eye,
+  UserCog
 } from 'lucide-react'
+import { RolePermissionsGuide } from '@/components/admin/RolePermissionsGuide'
+import { RoleManagementTable } from '@/components/admin/RoleManagementTable'
+import { RoleHistoryView } from '@/components/admin/RoleHistoryView'
+import { RoleDiagnostics } from '@/components/admin/RoleDiagnostics'
 
 export default function AdminSettingsPage() {
   const { user: clerkUser } = useUser()
@@ -151,15 +157,17 @@ export default function AdminSettingsPage() {
 
   if (!isSuperAdmin) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Unauthorized</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Only Super Admin can access System Settings.</p>
-          </CardContent>
-        </Card>
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <Card>
+            <CardHeader>
+              <CardTitle>Unauthorized</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Only Super Admin can access System Settings.</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
@@ -265,11 +273,12 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">
-          System Settings
-        </h1>
+    <div className="space-y-4 min-w-0">
+      <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">
+            System Settings
+          </h1>
         <Button variant="outline" onClick={() => window.location.reload()}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
@@ -277,11 +286,12 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="ai">AI & OpenAI</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="roles">User Roles</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
@@ -718,6 +728,36 @@ export default function AdminSettingsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Email Template Preview Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Templates
+              </CardTitle>
+              <CardDescription>
+                Preview and test email templates sent by the platform
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Email Template Preview</Label>
+                <p className="text-sm text-muted-foreground">
+                  View all email templates including activation emails, invitations, and notifications
+                </p>
+                <Link href="/admin/email-preview">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview Email Templates
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="system" className="space-y-6">
@@ -850,7 +890,30 @@ export default function AdminSettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="roles" className="space-y-6">
+          {/* Role Permissions Guide */}
+          <RolePermissionsGuide />
+
+          {/* Role Management Table */}
+          {clerkUser ? (
+            <>
+              <RoleManagementTable clerkId={clerkUser.id} />
+              <RoleHistoryView clerkId={clerkUser.id} />
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                Loading user data...
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Role Diagnostics */}
+          <RoleDiagnostics />
+        </TabsContent>
       </Tabs>
+      </div>
     </div>
   )
 }

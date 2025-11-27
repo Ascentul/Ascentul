@@ -765,7 +765,7 @@ export default function CareerPathPage() {
     <div className="container mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
         <div>
-          <h1 className="text-3xl font-bold mb-2 text-[#0C29AB]">
+          <h1 className="text-3xl font-bold mb-2 text-slate-900">
             Career Path Explorer
           </h1>
           <p className="text-neutral-500">
@@ -803,7 +803,7 @@ export default function CareerPathPage() {
         </Tabs>
         {explorationMode === "profile" && (
           <Button
-            className="bg-[#1333c2] hover:bg-[#0f2aae] text-white"
+            className="bg-primary-500 hover:bg-primary-700 text-white"
             onClick={generateFromProfile}
             disabled={isSearching}
           >
@@ -999,7 +999,7 @@ export default function CareerPathPage() {
             <Button
               onClick={generateFromJob}
               disabled={isSearching || !jobTitle.trim()}
-              className="min-w-[120px] bg-[#1333c2] hover:bg-[#0f2aae] text-white"
+              className="min-w-[120px] bg-primary-500 hover:bg-primary-700 text-white"
             >
               {isSearching ? (
                 <>
@@ -1071,7 +1071,7 @@ export default function CareerPathPage() {
       {explorationMode === "target" && generatedPath && (
         <div className="flex flex-wrap gap-2 mb-4">
           <Button
-            className="bg-[#1333c2] hover:bg-[#0f2aae] text-white"
+            className="bg-primary-500 hover:bg-primary-700 text-white"
             onClick={() => {
               setActivePath(generatedPath);
               setSelectedNodeId(null);
@@ -1345,7 +1345,7 @@ export default function CareerPathPage() {
                   </div>
                   <div className="pt-4 flex flex-col sm:flex-row gap-2">
                     <Button
-                      className="bg-[#1333c2] hover:bg-[#0f2aae] text-white px-4"
+                      className="bg-primary-500 hover:bg-primary-700 text-white px-4"
                       size="sm"
                       onClick={() =>
                         addRoleAsGoal(

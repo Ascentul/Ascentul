@@ -28,7 +28,7 @@ interface UserRow {
   name: string
   username?: string
   role: 'user' | 'student' | 'staff' | 'university_admin' | 'advisor' | 'super_admin'
-  subscription_plan: 'free' | 'premium' | 'university' // Cached from Clerk for display (read-only)
+  subscription_plan?: 'free' | 'premium' | 'university' | null // Cached from Clerk for display (read-only), null for internal roles like staff
   subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due' // Cached from Clerk for display (read-only)
   account_status?: 'pending_activation' | 'active' | 'suspended' | 'deleted'
   is_test_user?: boolean
@@ -41,24 +41,66 @@ interface UserRow {
   updated_at: number
 }
 
+// Helper to determine the display plan for a user based on their role and subscription
+function getDisplayPlan(user: UserRow): { label: string; variant: 'default' | 'secondary' | 'outline'; className?: string } {
+  // Super admin - distinct styling from staff
+  if (user.role === 'super_admin') {
+    return { label: 'Admin', variant: 'outline', className: 'border-red-300 text-red-700 bg-red-50' }
+  }
+
+  // Staff - internal employees without billing plans
+  if (user.role === 'staff') {
+    return { label: 'Staff', variant: 'outline', className: 'border-purple-300 text-purple-700 bg-purple-50' }
+  }
+
+  // University-affiliated roles get university plan
+  if (user.role === 'student' || user.role === 'university_admin' || user.role === 'advisor') {
+    return { label: 'University', variant: 'default', className: 'bg-blue-600' }
+  }
+
+  // For individual users, show their actual plan
+  if (!user.subscription_plan || user.subscription_plan === 'free') {
+    return { label: 'Free', variant: 'secondary' }
+  }
+
+  if (user.subscription_plan === 'premium') {
+    return { label: 'Premium', variant: 'default' }
+  }
+
+  if (user.subscription_plan === 'university') {
+    return { label: 'University', variant: 'default', className: 'bg-blue-600' }
+  }
+
+  // Fallback
+  return { label: user.subscription_plan || 'None', variant: 'secondary' }
+}
+
 export default function AdminUsersPage() {
-  const { user: clerkUser } = useUser()
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
   const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | UserRow['role']>('all')
-  const [planFilter, setPlanFilter] = useState<'all' | UserRow['subscription_plan']>('all')
+  const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'premium' | 'university' | 'staff'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | UserRow['subscription_status']>('all')
   const [accountStatusFilter, setAccountStatusFilter] = useState<'all' | 'active' | 'deleted' | 'pending_activation' | 'suspended'>('active') // Default to active only
   const [universityFilter, setUniversityFilter] = useState<'all' | string>('all')
 
+  // Check permissions using CLERK directly (source of truth for roles)
+  const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])
+  const canAccess = useMemo(() => clerkRole === 'super_admin', [clerkRole])
+  const shouldQuery = useMemo(() => !!(clerkLoaded && canAccess && clerkUser?.id), [clerkLoaded, canAccess, clerkUser?.id])
+
   // Fetch users with minimal fields (optimized for bandwidth, reduced limit)
   const usersResult = useQuery(
     api.users.getAllUsersMinimal,
-    clerkUser?.id ? { clerkId: clerkUser.id, limit: 50 } : 'skip'
+    shouldQuery ? { clerkId: clerkUser!.id, limit: 50 } : 'skip'
   )
 
   // Fetch universities for the university column
-  const universities = useQuery(api.universities.getAllUniversities, {})
+  const universities = useQuery(
+    api.universities.getAllUniversities,
+    shouldQuery ? { clerkId: clerkUser!.id } : 'skip'
+  )
 
   const updateUser = useMutation(api.users.updateUser)
   const createUserByAdmin = useMutation(api.admin_users.createUserByAdmin)
@@ -87,7 +129,9 @@ export default function AdminUsersPage() {
       const matchesText =
         !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q)
       const matchesRole = roleFilter === 'all' || u.role === roleFilter
-      const matchesPlan = planFilter === 'all' || u.subscription_plan === planFilter
+      // Plan filter: 'staff' matches internal roles (staff, super_admin) which have no billing plan
+      const matchesPlan = planFilter === 'all' ||
+        (planFilter === 'staff' ? (u.role === 'staff' || u.role === 'super_admin') : u.subscription_plan === planFilter)
       const matchesStatus = statusFilter === 'all' || u.subscription_status === statusFilter
       const matchesAccountStatus = accountStatusFilter === 'all' || (u.account_status || 'active') === accountStatusFilter
       const matchesUniversity = universityFilter === 'all' || u.university_id === universityFilter
@@ -97,7 +141,7 @@ export default function AdminUsersPage() {
 
   const [editing, setEditing] = useState<UserRow | null>(null)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState<{ name: string; email: string; role: UserRow['role']; plan: UserRow['subscription_plan']; status: UserRow['subscription_status'] } | null>(null)
+  const [form, setForm] = useState<{ name: string; email: string; role: UserRow['role']; plan: 'free' | 'premium' | 'university'; status: UserRow['subscription_status'] } | null>(null)
 
   // Delete state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -111,7 +155,7 @@ export default function AdminUsersPage() {
     name: '',
     email: '',
     role: 'staff' as UserRow['role'],
-    plan: 'free' as UserRow['subscription_plan'],
+    plan: 'free' as 'free' | 'premium' | 'university',
     sendActivationEmail: true // Default ON for Staff/Super Admin
   })
   const [creatingUser, setCreatingUser] = useState(false)
@@ -157,7 +201,9 @@ export default function AdminUsersPage() {
 
   const openEdit = (u: UserRow) => {
     setEditing(u)
-    setForm({ name: u.name, email: u.email, role: u.role, plan: u.subscription_plan, status: u.subscription_status })
+    // Default to 'free' for internal roles (staff/super_admin) that don't have a billing plan
+    const effectivePlan = u.subscription_plan || 'free'
+    setForm({ name: u.name, email: u.email, role: u.role, plan: effectivePlan, status: u.subscription_status })
   }
 
   const submitEdit = async () => {
@@ -250,35 +296,39 @@ export default function AdminUsersPage() {
     setShowDeleteConfirm(true)
   }
 
-  const role = user?.role
-  const isSuperAdmin = role === 'super_admin'
-  if (!isSuperAdmin) {
+  // Access check: use Clerk's publicMetadata (source of truth)
+  if (!canAccess) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <Card>
-          <CardHeader>
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <Card>
+            <CardHeader>
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">Only Super Admin can access User Management.</p>
           </CardContent>
         </Card>
+        </div>
       </div>
     )
   }
 
   if (!usersResult) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="space-y-4 min-w-0">
+        <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
+    <div className="space-y-4 min-w-0">
+      <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
         <Button onClick={() => setShowAddUser(true)} className="flex items-center gap-2">
@@ -333,6 +383,7 @@ export default function AdminUsersPage() {
                 <SelectItem value="free">Free</SelectItem>
                 <SelectItem value="premium">Premium</SelectItem>
                 <SelectItem value="university">University</SelectItem>
+                <SelectItem value="staff">Staff (Internal)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -422,9 +473,18 @@ export default function AdminUsersPage() {
                     </div>
                     <div className={`hidden md:block min-w-0 truncate ${isDeleted ? 'line-through text-muted-foreground' : ''}`}>{u.email}</div>
                     <div className="min-w-0">
-                      <Badge variant="outline" className="capitalize text-xs">{u.role.replace('_', ' ')}</Badge>
+                      <Badge variant="outline" className="capitalize text-xs">{u.role.replace(/_/g, ' ')}</Badge>
                     </div>
-                    <div className="hidden md:block min-w-0"><Badge variant={u.subscription_plan === 'premium' ? 'default' : 'secondary'} className="capitalize text-xs">{u.subscription_plan}</Badge></div>
+                    <div className="hidden md:block min-w-0">
+                      {(() => {
+                        const planInfo = getDisplayPlan(u)
+                        return (
+                          <Badge variant={planInfo.variant} className={`text-xs ${planInfo.className || ''}`}>
+                            {planInfo.label}
+                          </Badge>
+                        )
+                      })()}
+                    </div>
                     <div className="min-w-0 truncate">
                       <span className="text-xs text-muted-foreground">{getUniversityName(u.university_id)}</span>
                     </div>
@@ -802,6 +862,7 @@ export default function AdminUsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   )
 }

@@ -26,10 +26,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ClerkId mismatch' }, { status: 403 })
     }
 
-
-
     // Get the current user to verify admin access
-      let user
+    let user
+    try {
       user = await convexServer.query(api.users.getUserByClerkId, { clerkId })
     } catch (error) {
       console.error('Error fetching user by clerkId:', error)
