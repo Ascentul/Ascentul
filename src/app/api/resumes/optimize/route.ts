@@ -41,8 +41,15 @@ interface AnalysisResult {
   }>
 }
 
+import { auth } from '@clerk/nextjs/server'
+
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { originalResumeText, analysisRecommendations, jobDescription, userProfile } = await req.json()
 
     if (!originalResumeText) {

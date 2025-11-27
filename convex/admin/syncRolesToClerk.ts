@@ -317,6 +317,7 @@ export const syncAllRolesToClerk = action({
 /**
  * Internal query to get users with pagination
  * Prevents memory issues with large user bases
+ * Uses Convex's built-in paginate() for reliable cursor-based pagination
  */
 export const getAllUsersInternal = internalQuery({
   args: {
@@ -325,26 +326,26 @@ export const getAllUsersInternal = internalQuery({
   },
   handler: async (ctx, args) => {
     const pageSize = args.pageSize ?? 100
-    let query = ctx.db.query("users")
 
-    if (args.cursor) {
-      // Resume from cursor if provided
-      query = query.filter(q => q.gt(q.field("_id"), args.cursor!))
-    }
-
-    const users = await query.take(pageSize + 1) // Take one extra to check if there are more
-    const hasMore = users.length > pageSize
-    const pageUsers = hasMore ? users.slice(0, pageSize) : users
+    // Use Convex's built-in pagination with proper cursor handling
+    // This orders by _creationTime internally and handles cursor correctly
+    const result = await ctx.db
+      .query("users")
+      .order("asc") // Consistent ordering for pagination
+      .paginate({
+        numItems: pageSize,
+        cursor: args.cursor ?? null,
+      })
 
     return {
-      users: pageUsers.map(u => ({
+      users: result.page.map(u => ({
         _id: u._id,
         clerkId: u.clerkId,
         email: u.email,
         name: u.name,
         role: u.role,
       })),
-      cursor: hasMore ? pageUsers[pageUsers.length - 1]._id : null,
+      cursor: result.isDone ? null : result.continueCursor,
     }
   },
 })

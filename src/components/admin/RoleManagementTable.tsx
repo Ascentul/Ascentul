@@ -599,7 +599,12 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
             </Button>
             <Button
               onClick={handleRoleChange}
-              disabled={dialogState.loading || !dialogState.validation?.valid || dialogState.newRole === dialogState.user?.role}
+              disabled={
+                dialogState.loading ||
+                !dialogState.validation?.valid ||
+                dialogState.newRole === dialogState.user?.role ||
+                (['student', 'university_admin', 'advisor'].includes(dialogState.newRole) && !dialogState.selectedUniversityId)
+              }
             >
               {dialogState.loading ? (
                 <>

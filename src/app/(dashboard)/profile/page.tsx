@@ -513,10 +513,10 @@ export default function ProfilePage() {
 
   // Achievements Management Functions
   const handleAddAchievement = async () => {
-    if (!clerkUser || !achievementForm.title) {
+    if (!clerkUser || !isViewingOwnProfile || !achievementForm.title) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in the achievement title",
+        title: !isViewingOwnProfile ? "Unauthorized" : "Missing fields",
+        description: !isViewingOwnProfile ? "Cannot modify another user's profile" : "Please fill in the achievement title",
         variant: "destructive",
       });
       return;
@@ -562,7 +562,7 @@ export default function ProfilePage() {
   };
 
   const handleUpdateAchievement = async () => {
-    if (!clerkUser || !editingAchievementId) return;
+    if (!clerkUser || !isViewingOwnProfile || !editingAchievementId) return;
 
     try {
       const currentAchievements = (userProfile as any)?.achievements_history || [];
@@ -608,7 +608,7 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAchievement = async (id: string) => {
-    if (!clerkUser) return;
+    if (!clerkUser || !isViewingOwnProfile) return;
 
     try {
       const currentAchievements = (userProfile as any)?.achievements_history || [];

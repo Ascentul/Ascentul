@@ -76,16 +76,8 @@ export async function POST(request: NextRequest) {
     const targetUser = await client.users.getUser(userId)
     const oldRole = (targetUser.publicMetadata as ClerkPublicMetadata)?.role
 
-    // Validate university requirements for roles that need affiliation
+    // Determine if role requires university affiliation (validation moved after Convex fetch)
     const requiresUniversity = ['student', 'university_admin', 'advisor'].includes(role)
-    const currentUniversityId = (targetUser.publicMetadata as ClerkPublicMetadata)?.university_id
-
-    if (requiresUniversity && !currentUniversityId) {
-      return NextResponse.json(
-        { error: `${role} role requires a university affiliation. User must have university_id in metadata.` },
-        { status: 400 }
-      )
-    }
 
     // Critical validation: prevent changing the super_admin role
     // BUSINESS RULE: There is only ONE super_admin (the founder).
@@ -120,6 +112,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'User not found in Convex' },
         { status: 404 }
+      )
+    }
+
+    // Validate university requirements using Convex data (source of truth for sync)
+    // Check Convex user's university_id since we're syncing FROM Convex TO Clerk
+    if (requiresUniversity && !convexUser.university_id) {
+      return NextResponse.json(
+        { error: `${role} role requires a university affiliation. User must have university_id in Convex.` },
+        { status: 400 }
       )
     }
 

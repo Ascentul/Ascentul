@@ -1655,12 +1655,14 @@ export const getSingleUniversityAnalytics = query({
     ]);
 
     // Calculate success metrics
+    // MIGRATION: Using stage instead of status for consistency
+    // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
     const totalApplications = uniApps.length;
     const interviewsScheduled = uniInterviews.filter(i =>
       i.status === 'scheduled' || i.status === 'completed'
     ).length;
     const offersReceived = uniApps.filter(a =>
-      a.status === 'offer_received' || a.status === 'accepted'
+      a.stage === 'Offer' || a.stage === 'Accepted'
     ).length;
     const placementRate = students.length > 0
       ? Math.round((offersReceived / students.length) * 100)

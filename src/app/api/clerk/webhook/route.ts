@@ -22,6 +22,8 @@ const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
  * - user.deleted: Mark user as deleted in Convex
  */
 
+const convexServiceToken = process.env.CONVEX_INTERNAL_SERVICE_TOKEN
+
 export async function POST(request: NextRequest) {
   try {
     if (!convexServiceToken) {
@@ -77,7 +79,6 @@ export async function POST(request: NextRequest) {
           email: userEmail,
           name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'User',
           profile_image: userData.image_url,
-          role: metadata.role, // Pass role from Clerk metadata if present
           subscription_plan: subscriptionPlan,
           subscription_status: subscriptionStatus,
           // Pass validated role from Clerk metadata if present

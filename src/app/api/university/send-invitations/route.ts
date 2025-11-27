@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       emails.map(async (email: string) => {
         try {
           // Create stored invite and send secure tokenized link
-          const { token } = await convex.action(api.students.createInvite, {
+          const { token } = await convexServer.action(api.students.createInvite, {
             universityId,
             email,
             createdByClerkId: userId,

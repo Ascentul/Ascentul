@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { requireSuperAdmin } from "./lib/roles";
 
 export const getUniversitySettings = query({
   args: {
@@ -41,6 +42,9 @@ export const getUniversityBySlug = query({
 export const getUniversityAdminCounts = query({
   args: {},
   handler: async (ctx) => {
+    // Only super admins should see admin counts across all universities
+    await requireSuperAdmin(ctx);
+
     const admins = await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("role"), "university_admin"))

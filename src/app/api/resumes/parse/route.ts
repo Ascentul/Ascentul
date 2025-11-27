@@ -99,6 +99,12 @@ function fallbackParser(resumeText: string) {
       const descEnd = nextJobMatch ? nextJobMatch.index! : Math.min(500, remainingExp.length)
       const description = remainingExp.substring(0, descEnd).trim()
 
+      // Parse description into summary and keyContributions to match AI schema
+      const descriptionLines = description ? description.split(/\n/).filter(line => line.trim()) : []
+      const keyContributions = descriptionLines
+        .map(line => line.replace(/^[•\-\*]\s*/, '').trim())
+        .filter(line => line.length > 0)
+
       experience.push({
         title: titleLine.trim(),
         company: companyLine.trim().replace(/^\s*[-–—•]\s*/, ''),
@@ -106,7 +112,8 @@ function fallbackParser(resumeText: string) {
         startDate,
         endDate: current ? 'Present' : endDate,
         current,
-        description: description || ''
+        summary: '',
+        keyContributions
       })
     }
 
@@ -128,7 +135,8 @@ function fallbackParser(resumeText: string) {
               startDate: '',
               endDate: '',
               current: false,
-              description: ''
+              summary: '',
+              keyContributions: []
             })
           }
         }

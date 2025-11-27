@@ -406,7 +406,7 @@ export default function SupportPage() {
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Category</Label>
-                    <div className="mt-1 capitalize">{selectedTicket.category.replaceAll('_', ' ')}</div>
+                    <div className="mt-1 capitalize">{selectedTicket.category?.replaceAll('_', ' ') || 'N/A'}</div>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Created</Label>

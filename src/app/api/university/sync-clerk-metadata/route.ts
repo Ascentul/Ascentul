@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
+import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
 import { getErrorMessage } from '@/lib/errors';
 import { convexServer } from '@/lib/convex-server';

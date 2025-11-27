@@ -1,20 +1,16 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { getAuthenticatedUser } from "./lib/roles";
 
 // Get notifications for a user
 export const getNotifications = query({
   args: {
-    clerkId: v.string(),
     unreadOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+    // Use authenticated user to prevent clerkId spoofing
+    const user = await getAuthenticatedUser(ctx);
 
     // Use database-level sorting and filtering for better performance
     let query = ctx.db
@@ -37,16 +33,10 @@ export const getNotifications = query({
 
 // Get unread notification count
 export const getUnreadCount = query({
-  args: {
-    clerkId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+  args: {},
+  handler: async (ctx) => {
+    // Use authenticated user to prevent clerkId spoofing
+    const user = await getAuthenticatedUser(ctx);
 
     const unreadNotifications = await ctx.db
       .query("notifications")
@@ -60,16 +50,11 @@ export const getUnreadCount = query({
 // Mark notification as read
 export const markAsRead = mutation({
   args: {
-    clerkId: v.string(),
     notificationId: v.id("notifications"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+    // Use authenticated user to prevent clerkId spoofing
+    const user = await getAuthenticatedUser(ctx);
 
     const notification = await ctx.db.get(args.notificationId);
     if (!notification) throw new Error("Notification not found");
@@ -90,16 +75,10 @@ export const markAsRead = mutation({
 
 // Mark all notifications as read
 export const markAllAsRead = mutation({
-  args: {
-    clerkId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+  args: {},
+  handler: async (ctx) => {
+    // Use authenticated user to prevent clerkId spoofing
+    const user = await getAuthenticatedUser(ctx);
 
     const unreadNotifications = await ctx.db
       .query("notifications")
@@ -162,16 +141,11 @@ export const createNotification = internalMutation({
 // Delete a notification
 export const deleteNotification = mutation({
   args: {
-    clerkId: v.string(),
     notificationId: v.id("notifications"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+    // Use authenticated user to prevent clerkId spoofing
+    const user = await getAuthenticatedUser(ctx);
 
     const notification = await ctx.db.get(args.notificationId);
     if (!notification) throw new Error("Notification not found");
@@ -188,16 +162,10 @@ export const deleteNotification = mutation({
 
 // Clear all read notifications
 export const clearReadNotifications = mutation({
-  args: {
-    clerkId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+  args: {},
+  handler: async (ctx) => {
+    // Use authenticated user to ensure the caller can only clear their own notifications
+    const user = await getAuthenticatedUser(ctx);
 
     const readNotifications = await ctx.db
       .query("notifications")

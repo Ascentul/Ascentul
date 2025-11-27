@@ -96,7 +96,6 @@ export const assignUniversityToUser = mutation({
 
 export const updateUniversitySettings = mutation({
   args: {
-    clerkId: v.string(),
     universityId: v.id("universities"),
     settings: v.object({
       name: v.optional(v.string()),
@@ -108,12 +107,7 @@ export const updateUniversitySettings = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!currentUser) throw new Error("User not found");
+    const currentUser = await getAuthenticatedUser(ctx);
 
     const isAuthorized =
       currentUser.role === "super_admin" ||

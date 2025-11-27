@@ -88,9 +88,13 @@ export async function POST(request: NextRequest) {
     // Role is already validated by isValidUserRole above
     const convex = new ConvexHttpClient(convexUrl)
     const convexToken = await authResult.getToken({ template: 'convex' })
-    if (convexToken) {
-      convex.setAuth(convexToken)
+    if (!convexToken) {
+      return NextResponse.json(
+        { error: 'Failed to obtain Convex authentication token' },
+        { status: 500 }
+      )
     }
+    convex.setAuth(convexToken)
     await convex.mutation(api.users.updateUser, {
       clerkId: userId,
       updates: {

@@ -304,6 +304,24 @@ export const updateUser = mutation({
     const oldRole = targetUser.role;
     const newRole = args.updates.role;
 
+    if (roleChanged && newRole) {
+      const targetUniversityId = args.updates.university_id !== undefined
+        ? args.updates.university_id
+        : targetUser.university_id;
+
+      const validation = await validateRoleTransition(
+        ctx,
+        targetUser.clerkId,
+        oldRole as UserRole,
+        newRole as UserRole,
+        targetUniversityId ?? undefined
+      );
+
+      if (!validation.valid) {
+        throw new Error(validation.error || "Invalid role transition");
+      }
+    }
+
     await ctx.db.patch(targetUser._id, {
       ...cleanUpdates,
       updated_at: Date.now(),

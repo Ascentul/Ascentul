@@ -407,10 +407,10 @@ export const _softDeleteUserInternal = internalMutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity || identity.subject !== args.adminClerkId) {
-      throw new Error("Unauthorized");
-    }
+    // Note: Identity check removed - internal mutations may be called from server contexts
+    // (actions, scheduled jobs) where auth identity is not available.
+    // Authorization is enforced by verifying adminClerkId is a super_admin below.
+    // The calling action (softDeleteUser) validates the authenticated user's identity.
 
     // Get admin user
     const admin = await ctx.db

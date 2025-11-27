@@ -11,13 +11,14 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * Update user role via Clerk (source of truth)
+ * Update user role (Convex is source of truth, mirrored to Clerk)
  *
  * This endpoint:
  * 1. Verifies caller is super_admin
- * 2. Validates the role transition
- * 3. Updates Clerk publicMetadata.role
- * 4. Webhook automatically syncs to Convex
+ * 2. Validates the role transition and university requirements
+ * 3. Updates Convex first (source of truth for user data)
+ * 4. Mirrors role to Clerk publicMetadata for auth/middleware
+ * 5. Rolls back Convex if Clerk update fails
  *
  * POST /api/admin/users/update-role
  * Body: { userId: string, newRole: string, universityId?: string }
@@ -186,6 +187,9 @@ export async function POST(request: NextRequest) {
     // Determine if we should remove university_id
     const requiresUniversity = ['student', 'university_admin', 'advisor'].includes(newRole)
 
+    // Capture old values for potential rollback
+    const oldUniversityId = (targetUser.publicMetadata as ClerkPublicMetadata)?.university_id
+
     // Update Convex first (source of truth)
     await convex.mutation(api.users.updateUser, {
       clerkId: targetUserId,
@@ -223,7 +227,21 @@ export async function POST(request: NextRequest) {
       })
     } catch (clerkError) {
       console.error(`[API] Clerk update failed after Convex success for user ${targetUserId}:`, clerkError)
-      // Consider: revert Convex or mark for retry
+
+      // Rollback Convex to maintain consistency
+      try {
+        await convex.mutation(api.users.updateUser, {
+          clerkId: targetUserId,
+          updates: {
+            role: currentRole as any,
+            ...(oldUniversityId ? { university_id: oldUniversityId as Id<"universities"> } : {}),
+          },
+        })
+        console.log(`[API] Rolled back Convex after Clerk failure for user ${targetUserId}`)
+      } catch (rollbackError) {
+        console.error(`[API] CRITICAL: Rollback failed for user ${targetUserId}. Manual intervention required.`, rollbackError)
+      }
+
       throw clerkError
     }
 

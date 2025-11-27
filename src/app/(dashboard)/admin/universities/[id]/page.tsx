@@ -207,24 +207,24 @@ export default function UniversityDetailPage() {
       // FIRST: Stop all queries immediately to prevent race conditions
       setSkipQueries(true)
 
-      // SECOND: Navigate away to unmount component
-      router.replace('/admin/universities')
-
-      // THIRD: Perform the actual deletion
+      // SECOND: Perform the actual deletion
       await hardDeleteUniversity({ universityId })
+
+      // THIRD: Navigate away on success
+      router.replace('/admin/universities')
 
       toast({
         title: 'University permanently deleted',
         description: 'All associated data has been permanently removed.',
       })
     } catch (error) {
+      // Re-enable queries since deletion failed
+      setSkipQueries(false)
       toast({
         title: 'Failed to delete',
         description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       })
-      // If there was an error, we might need to go back
-      // but the navigation already happened, so user is on the list page
     } finally {
       setIsDeleting(false)
     }

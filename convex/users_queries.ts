@@ -40,7 +40,10 @@ export const getUserByClerkId = query({
         actingRole !== "super_admin"
       ) {
         if (actingRole === "university_admin" || actingRole === "advisor") {
-          assertUniversityAccess(currentUser, user.university_id as any);
+          if (!user.university_id) {
+            throw new Error("Unauthorized - target user has no university");
+          }
+          assertUniversityAccess(currentUser, user.university_id);
         } else {
           throw new Error("Unauthorized");
         }
@@ -59,9 +62,7 @@ export const getUserByClerkId = query({
 // Get all users (admin only)
 export const getAllUsers = query({
   args: {
-    clerkId: v.string(),
     limit: v.optional(v.number()),
-    offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
@@ -70,15 +71,14 @@ export const getAllUsers = query({
       throw new Error("Unauthorized");
     }
 
+    const limit = args.limit || 50;
     const users = await ctx.db
       .query("users")
       .order("desc")
-      .paginate({
-        numItems: args.limit || 50,
-        cursor: null,
-      });
+      .take(limit);
 
-    return users;
+    // Return in paginate-compatible format for backwards compatibility
+    return { page: users, isDone: users.length < limit, continueCursor: "" };
   },
 });
 

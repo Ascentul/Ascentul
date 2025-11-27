@@ -536,6 +536,7 @@ export default function EmailPreviewPage() {
 
             {/* Email Preview */}
             <div className="border rounded-lg overflow-hidden bg-white">
+              {/* Safe: HTML comes from hardcoded templates in this file, not user input */}
               <div
                 className="p-4"
                 dangerouslySetInnerHTML={{ __html: selectedTemplate.getHtml() }}

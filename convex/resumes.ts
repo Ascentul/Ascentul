@@ -197,9 +197,8 @@ export const getResumeById = query({
 
     if (!user) throw new Error("User not found");
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    // Note: We don't require membership for read queries - consistent with getUserResumes
+    // Users can always view their own resumes regardless of membership status
 
     const resume = await ctx.db.get(args.resumeId);
     if (!resume || resume.user_id !== user._id) {
@@ -207,8 +206,9 @@ export const getResumeById = query({
       return null;
     }
 
-    if (resume.university_id && membership && resume.university_id !== membership.university_id) {
-      throw new Error("Unauthorized: Resume belongs to another university");
+    // University isolation for reads - use user's university_id directly
+    if (resume.university_id && user.university_id && resume.university_id !== user.university_id) {
+      return null;
     }
 
     return resume;
