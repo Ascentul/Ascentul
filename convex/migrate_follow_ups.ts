@@ -8,6 +8,12 @@
  * 4. Includes idempotency check to prevent duplicate migrations
  * 5. Batches user lookups to avoid N+1 query performance issues
  *
+ * IMPORTANT: Run this migration BEFORE enabling new follow-up creation in the
+ * unified follow_ups table. The partial migration detection assumes follow_ups
+ * contains only migrated records. If new records are created directly in
+ * follow_ups before migration completes, the count check will produce false
+ * positives.
+ *
  * Usage:
  * - Dry run (preview): npx convex run migrate_follow_ups:migrateFollowUps '{"dryRun": true}'
  * - Actual migration: npx convex run migrate_follow_ups:migrateFollowUps

@@ -277,7 +277,13 @@ export default function AdvisorApplicationsPage() {
 
   const isEmpty = enrichedApplications.length === 0;
   const hasNoResults = !isEmpty && filteredApplications.length === 0;
-  const hasNoActionNeeded = filterHook.filters.needsAction && filteredApplications.length === 0;
+  // Only show "no action needed" state when needsAction is the only active filter
+  const hasNoActionNeeded =
+    filterHook.filters.needsAction &&
+    filteredApplications.length === 0 &&
+    filterHook.filters.stages.length === 0 &&
+    filterHook.filters.cohorts.length === 0 &&
+    !filterHook.filters.search;
 
   // ============================================================================
   // Render

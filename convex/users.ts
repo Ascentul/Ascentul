@@ -65,7 +65,10 @@ async function logRoleChange(
 export const getUserByClerkId = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    // WARNING: Public query. Consider restricting to authenticated users or converting to internalQuery if not needed by clients.
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -78,7 +81,10 @@ export const getUserByClerkId = query({
 export const getUserByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    // WARNING: Public query. Consider restricting to authenticated users or converting to internalQuery if only used server-side.
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
     const user = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))

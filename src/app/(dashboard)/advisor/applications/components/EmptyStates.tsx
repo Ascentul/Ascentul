@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { FileText, Filter, CheckCircle2, Users, Plus } from 'lucide-react';
+import { FileText, Filter, CheckCircle2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 

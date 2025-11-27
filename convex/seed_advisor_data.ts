@@ -145,6 +145,7 @@ export const setupAdvisorTestData = internalMutation({
         title: "Initial Career Planning Session",
         scheduled_at: now + 24 * 60 * 60 * 1000, // Tomorrow
         start_at: now + 24 * 60 * 60 * 1000,
+        duration_minutes: 60, // Default duration
         session_type: "career_planning",
         outcomes: [],
         notes: "First session to discuss career goals and create development plan.",

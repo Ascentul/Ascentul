@@ -223,8 +223,12 @@ export function useSelectionKeyboardShortcuts(
 ) {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      // Cmd/Ctrl + A: Select all
+      // Cmd/Ctrl + A: Select all (but allow default in text inputs)
       if ((event.metaKey || event.ctrlKey) && event.key === 'a') {
+        const activeElement = document.activeElement;
+        const isInputFocused = activeElement instanceof HTMLInputElement ||
+                               activeElement instanceof HTMLTextAreaElement;
+        if (isInputFocused) return; // Allow default text selection in inputs
         event.preventDefault();
         selection.toggleAll(allIds);
       }

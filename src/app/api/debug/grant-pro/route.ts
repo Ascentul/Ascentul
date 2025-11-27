@@ -18,7 +18,7 @@ async function requireAdminAuth(_request: NextRequest): Promise<{ userId: string
   try {
     const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
     const userRole = user?.role
-    if (userRole !== 'admin' && userRole !== 'super_admin') {
+    if (userRole !== 'super_admin') {
       return { error: NextResponse.json({ error: 'Admin access required' }, { status: 403 }) }
     }
   } catch (error) {
