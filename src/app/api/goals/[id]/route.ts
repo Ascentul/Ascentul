@@ -4,12 +4,14 @@ import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 
+const isValidId = (id: string) => /^[0-9a-z]+$/i.test(id.trim());
+
 export async function PUT(request: NextRequest, context: { params: { id: string } }) {
   try {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const goalIdParam = context.params.id
-    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '') {
+    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidId(goalIdParam)) {
       return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
     }
     const body = await request.json().catch(() => ({} as any))
@@ -46,7 +48,7 @@ export async function DELETE(request: NextRequest, context: { params: { id: stri
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const goalIdParam = context.params.id
-    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '') {
+    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidId(goalIdParam)) {
       return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
     }
     await convexServer.mutation(api.goals.deleteGoal, { clerkId: userId, goalId: goalIdParam as Id<'goals'> })
