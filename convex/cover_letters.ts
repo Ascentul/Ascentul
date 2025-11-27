@@ -15,9 +15,8 @@ export const getUserCoverLetters = query({
       throw new Error("User not found");
     }
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    // Note: We don't require membership for read queries - users can always view their own cover letters
+    // Membership is only used for write operations and tenant isolation
 
     // OPTIMIZED: Add limit to prevent bandwidth issues
     const coverLetters = await ctx.db

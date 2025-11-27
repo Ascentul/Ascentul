@@ -102,9 +102,8 @@ export const listTickets = query({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    if (currentUser.role === "student") {
-      await requireMembership(ctx, { role: "student" });
-    }
+    // Note: We don't require membership for read queries - students can view their own tickets
+    // even without an active membership
 
     const membership = await getMembershipForUser(ctx, currentUser);
 
@@ -170,9 +169,8 @@ export const listTicketsWithFilters = query({
       .unique();
     if (!currentUser) throw new Error("User not found");
 
-    if (currentUser.role === "student") {
-      await requireMembership(ctx, { role: "student" });
-    }
+    // Note: We don't require membership for read queries - students can view their own tickets
+    // even without an active membership
 
     const isSuperAdmin = currentUser.role === "super_admin";
     const isUniversityScopedAdmin = ["university_admin", "advisor"].includes(
