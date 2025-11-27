@@ -277,9 +277,18 @@ export const getReviewQueueStats = query({
       .collect();
 
     // Single-pass statistics calculation for better performance
+    // Urgent threshold: reviews waiting more than 3 days
+    const urgentThreshold = Date.now() - 3 * 24 * 60 * 60 * 1000;
+
     const stats = allReviews.reduce(
       (acc, r) => {
-        if (r.status === "waiting") acc.waiting++;
+        if (r.status === "waiting") {
+          acc.waiting++;
+          // Check if waiting review is urgent (submitted > 3 days ago)
+          if (r.submitted_at && r.submitted_at < urgentThreshold) {
+            acc.urgent++;
+          }
+        }
         if (r.status === "in_review") acc.inReview++;
         if (r.status === "needs_edits") acc.needsEdits++;
         if (r.status === "approved") acc.approved++;
@@ -287,11 +296,14 @@ export const getReviewQueueStats = query({
         if (r.asset_type === "cover_letter") acc.coverLetters++;
         return acc;
       },
-      { waiting: 0, inReview: 0, needsEdits: 0, approved: 0, resumes: 0, coverLetters: 0 }
+      { waiting: 0, inReview: 0, needsEdits: 0, approved: 0, resumes: 0, coverLetters: 0, urgent: 0 }
     );
 
     return {
       ...stats,
+      // Aliases for UI compatibility
+      inProgress: stats.inReview,
+      completed: stats.approved,
       total: allReviews.length,
     };
   },

@@ -38,7 +38,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         email: body.email,
         phone: body.phone,
         notes: body.notes,
-        last_contact: body.last_contact_date ? Date.parse(body.last_contact_date) || undefined : undefined,
+        last_contact: body.last_contact_date 
+          ? (Number.isNaN(Date.parse(body.last_contact_date)) ? undefined : Date.parse(body.last_contact_date)) 
+          : undefined,
       },
     })
 

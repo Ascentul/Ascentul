@@ -86,14 +86,26 @@ export const createTestStudent = internalMutation({
     }
 
     // Ensure advisor has correct role and university
-    await ctx.db.patch(advisor._id, {
-      university_id: university._id,
-      role: "advisor",
-      subscription_plan: "university",
-      subscription_status: "active",
-      updated_at: now,
-    });
-    console.log(`✓ Updated advisor: ${advisor.email}`);
+    // Only update role if not already properly configured (preserve university_admin role)
+    if (advisor.role !== 'advisor' && advisor.role !== 'university_admin') {
+      await ctx.db.patch(advisor._id, {
+        university_id: university._id,
+        role: "advisor",
+        subscription_plan: "university",
+        subscription_status: "active",
+        updated_at: now,
+      });
+      console.log(`✓ Updated advisor role: ${advisor.email}`);
+    } else {
+      // Just ensure university linkage without overwriting role
+      await ctx.db.patch(advisor._id, {
+        university_id: university._id,
+        subscription_plan: "university",
+        subscription_status: "active",
+        updated_at: now,
+      });
+      console.log(`✓ Linked advisor to university (preserved ${advisor.role} role): ${advisor.email}`);
+    }
 
     // 3. Find or create student
     let student = await ctx.db

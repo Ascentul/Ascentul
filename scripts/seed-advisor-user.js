@@ -110,7 +110,12 @@ async function main() {
 
   // ⚠️ TEST PASSWORD - DEVELOPMENT ONLY
   // Never use this password in production or for real user accounts
-  const PASSWORD = process.env.SEED_TEST_PASSWORD || 'V3ry$Strong!Pa55-2025#'
+  const PASSWORD = process.env.SEED_TEST_PASSWORD
+  if (!PASSWORD) {
+    console.error('❌ Missing SEED_TEST_PASSWORD in environment')
+    console.error('Set SEED_TEST_PASSWORD to a secure test password before running this script.')
+    process.exit(1)
+  }
   const domain = process.env.SEED_TEST_DOMAIN || 'ascentful.io'
   const testUniversityId = process.env.SEED_TEST_UNIVERSITY_ID || 'temp'
 

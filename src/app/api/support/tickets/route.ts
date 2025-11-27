@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user info to send email
-  const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
+    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
 
-  const ticket = await convexServer.mutation(api.support_tickets.createTicket, {
+    const ticket = await convexServer.mutation(api.support_tickets.createTicket, {
       clerkId: userId,
       subject: String(subject),
       description: String(description),

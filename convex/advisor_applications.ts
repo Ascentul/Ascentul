@@ -16,6 +16,7 @@ import {
   requireAdvisorRole,
   requireTenant,
   getOwnedStudentIds,
+  createAuditLog,
 } from './advisor_auth';
 import { ALL_STAGES, ACTIVE_STAGES, STAGE_TRANSITIONS, TERMINAL_STAGES } from './advisor_constants';
 
@@ -538,6 +539,14 @@ export const bulkUpdateApplicationStage = mutation({
       failed: 0,
       errors: [] as string[],
     };
+    const changeRecords: Array<{
+      applicationId: Id<'applications'>;
+      previousStage?: string;
+      newStage: string;
+      success: boolean;
+      error?: string;
+      notesAdded: boolean;
+    }> = [];
 
     // Process each application
     for (let i = 0; i < applications.length; i++) {
@@ -549,6 +558,14 @@ export const bulkUpdateApplicationStage = mutation({
         if (!application) {
           results.failed++;
           results.errors.push(`Application ${applicationId} not found`);
+          changeRecords.push({
+            applicationId,
+            previousStage: undefined,
+            newStage: args.newStage,
+            success: false,
+            error: `Application ${applicationId} not found`,
+            notesAdded: Boolean(args.notes),
+          });
           continue;
         }
 
@@ -558,6 +575,14 @@ export const bulkUpdateApplicationStage = mutation({
           results.errors.push(
             `Unauthorized: Application ${applicationId} does not belong to your student`
           );
+          changeRecords.push({
+            applicationId,
+            previousStage: application.stage,
+            newStage: args.newStage,
+            success: false,
+            error: `Unauthorized: Application ${applicationId} does not belong to your student`,
+            notesAdded: Boolean(args.notes),
+          });
           continue;
         }
 
@@ -571,6 +596,14 @@ export const bulkUpdateApplicationStage = mutation({
           results.errors.push(
             `Invalid transition from ${currentStage} to ${newStage} for application ${applicationId}`
           );
+          changeRecords.push({
+            applicationId,
+            previousStage: currentStage,
+            newStage,
+            success: false,
+            error: `Invalid transition from ${currentStage} to ${newStage} for application ${applicationId}`,
+            notesAdded: Boolean(args.notes),
+          });
           continue;
         }
 
@@ -580,6 +613,14 @@ export const bulkUpdateApplicationStage = mutation({
           results.errors.push(
             `Notes required when moving application ${applicationId} to ${newStage}`
           );
+          changeRecords.push({
+            applicationId,
+            previousStage: currentStage,
+            newStage,
+            success: false,
+            error: `Notes required when moving application ${applicationId} to ${newStage}`,
+            notesAdded: false,
+          });
           continue;
         }
 
@@ -603,30 +644,54 @@ export const bulkUpdateApplicationStage = mutation({
 
         await ctx.db.patch(applicationId, updates);
         results.success++;
+        changeRecords.push({
+          applicationId,
+          previousStage: currentStage,
+          newStage,
+          success: true,
+          notesAdded: Boolean(args.notes),
+        });
       } catch (error) {
         results.failed++;
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
         results.errors.push(
-          `Error updating application ${applicationId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `Error updating application ${applicationId}: ${errorMessage}`
         );
+        changeRecords.push({
+          applicationId,
+          previousStage: application?.stage,
+          newStage: args.newStage,
+          success: false,
+          error: `Error updating application ${applicationId}: ${errorMessage}`,
+          notesAdded: Boolean(args.notes),
+        });
       }
     }
 
-    // TODO: Log bulk operation to audit_logs table
-    /*
-    await ctx.db.insert("audit_logs", {
-      action: "advisor_applications_bulk_stage_change",
-      actor_id: sessionCtx.userId,
-      university_id: universityId,
-      entity_type: "application",
-      metadata: {
-        applicationIds: args.applicationIds,
-        newStage: args.newStage,
-        successCount: results.success,
-        failedCount: results.failed,
+    await createAuditLog(ctx, {
+      actorId: sessionCtx.userId,
+      universityId,
+      action: 'applications.bulk_stage_change',
+      entityType: 'application',
+      entityId: 'bulk',
+      previousValue: {
+        stages: changeRecords
+          .filter((change) => change.previousStage !== undefined)
+          .map((change) => ({
+            applicationId: change.applicationId,
+            previousStage: change.previousStage,
+          })),
       },
-      created_at: now,
+      newValue: {
+        newStage: args.newStage,
+        notes: args.notes,
+        applicationIds: args.applicationIds,
+        results,
+        changes: changeRecords,
+      },
+      ipAddress: 'server',
     });
-    */
 
     return results;
   },

@@ -557,7 +557,8 @@ export const acceptInvite = mutation({
     }
 
     // 5. Verify email matches (optional security check)
-    if (user.email !== invite.email) {
+    // Note: invite.email is normalized to lowercase during creation, so we lowercase user.email for comparison
+    if (user.email.toLowerCase() !== invite.email) {
       throw new Error("Email mismatch. This invite was sent to a different email address.");
     }
 
@@ -860,7 +861,7 @@ export const findDuplicateInviteAcceptances = query({
       orphanedInvites: orphanedAcceptances.map((inv) => ({
         inviteId: inv._id,
         email: inv.email,
-        token: inv.token,
+        // Note: token intentionally omitted - security sensitive
         universityId: inv.university_id,
         acceptedAt: inv.accepted_at,
       })),
@@ -1600,7 +1601,7 @@ export const detectDuplicateInvites = query({
           // First invite is the one to KEEP
           inviteToKeep: {
             id: sortedInvites[0]._id,
-            token: sortedInvites[0].token,
+            // Note: token intentionally omitted - security sensitive
             createdAt: sortedInvites[0].created_at,
             createdAtDate: new Date(sortedInvites[0].created_at).toISOString(),
             expiresAt: sortedInvites[0].expires_at,
@@ -1608,7 +1609,7 @@ export const detectDuplicateInvites = query({
           // Remaining invites should be DELETED
           invitesToDelete: sortedInvites.slice(1).map((inv) => ({
             id: inv._id,
-            token: inv.token,
+            // Note: token intentionally omitted - security sensitive
             createdAt: inv.created_at,
             createdAtDate: new Date(inv.created_at).toISOString(),
             expiresAt: inv.expires_at,

@@ -257,7 +257,9 @@ export const getActivityChart = query({
     // Group by week in client's timezone
     const weeks: Record<string, number> = {};
     for (const session of sessions) {
-      // Convert to client timezone
+      // Convert UTC to client's local timezone
+      // getTimezoneOffset() returns positive for west of UTC (e.g., 480 for PST/UTC-8)
+      // So we subtract: UTC - 8 hours = PST local time
       const clientTime = new Date(session.start_at - tzOffsetMs);
       clientTime.setUTCHours(0, 0, 0, 0);
 

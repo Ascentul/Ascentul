@@ -168,7 +168,9 @@ export const createUser = mutation({
     // Allow optionally setting initial role (e.g., from Clerk public metadata)
     role: v.optional(
       v.union(
+        v.literal("individual"),
         v.literal("user"),
+        v.literal("student"),
         v.literal("staff"),
         v.literal("university_admin"),
         v.literal("advisor"),
@@ -616,7 +618,6 @@ export const getAllUsers = query({
   args: {
     clerkId: v.string(),
     limit: v.optional(v.number()),
-    offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     // Check if user is admin
@@ -647,7 +648,6 @@ export const getAllUsersMinimal = query({
   args: {
     clerkId: v.string(),
     limit: v.optional(v.number()),
-    offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     // Check if user is admin
