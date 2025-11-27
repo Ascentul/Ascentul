@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Bulk Action Bar Component
  *
@@ -16,8 +18,6 @@
  * - Confirmation dialogs for destructive actions
  * - Accessible with keyboard navigation
  */
-
-'use client';
 
 import React, { useState } from 'react';
 import {

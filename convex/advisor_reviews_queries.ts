@@ -285,7 +285,7 @@ export const getReviewQueueStats = query({
         if (r.status === "waiting") {
           acc.waiting++;
           // Check if waiting review is urgent (submitted > 3 days ago)
-          if (r.submitted_at && r.submitted_at < urgentThreshold) {
+          if (r.created_at < urgentThreshold) {
             acc.urgent++;
           }
         }

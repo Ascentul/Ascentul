@@ -124,11 +124,11 @@ export function UpcomingItems({ items, isLoading }: UpcomingItemsProps) {
                     </div>
                   )}
 
-                  <Link href={`/advisor/students/${item.student_id}`}>
-                    <Button variant='ghost' size='sm' className='w-full mt-2'>
+                  <Button variant='ghost' size='sm' className='w-full mt-2' asChild>
+                    <Link href={`/advisor/students/${item.student_id}`}>
                       View Student
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 </div>
               );
             })}
@@ -137,11 +137,11 @@ export function UpcomingItems({ items, isLoading }: UpcomingItemsProps) {
 
         {items && items.length > 0 && (
           <div className='mt-4 pt-4 border-t'>
-            <Link href='/advisor/advising/calendar'>
-              <Button variant='outline' size='sm' className='w-full'>
+            <Button variant='outline' size='sm' className='w-full' asChild>
+              <Link href='/advisor/advising/calendar'>
                 View Full Calendar
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         )}
       </CardContent>

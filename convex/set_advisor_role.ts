@@ -24,6 +24,14 @@ import { v } from "convex/values";
 // Role constant for type safety (matches schema definition)
 const ADVISOR_ROLE = "advisor" as const;
 
+const maskEmail = (email: string) => {
+  const [local, domain] = email.split("@");
+  if (!domain) return "[redacted]";
+  const maskedLocal =
+    local.length <= 2 ? `${local[0] || ""}*` : `${local[0]}***${local.slice(-1)}`;
+  return `${maskedLocal}@${domain}`;
+};
+
 export const setAdvisorRole = internalMutation({
   args: {
     email: v.string(),
@@ -36,14 +44,14 @@ export const setAdvisorRole = internalMutation({
       .first();
 
     if (!user) {
-      console.log(`❌ User not found: ${args.email}`);
+      console.log(`❌ User not found: ${maskEmail(args.email)}`);
       return { success: false, message: `User not found: ${args.email}. Please sign in first.` };
     }
 
     // Ensure advisor has university_id
     const universityId = args.university_id || user.university_id;
     if (!universityId) {
-      console.log(`❌ Advisor role requires university_id for ${args.email}`);
+      console.log(`❌ Advisor role requires university_id for ${maskEmail(args.email)}`);
       return {
         success: false,
         message: `Advisor role requires university_id. Please provide university_id or ensure user already has one.`,
@@ -66,7 +74,7 @@ export const setAdvisorRole = internalMutation({
       updated_at: Date.now(),
     });
 
-    console.log(`✓ Set role to '${ADVISOR_ROLE}' for ${args.email}`);
+    console.log(`✓ Set role to '${ADVISOR_ROLE}' for ${maskEmail(args.email)}`);
     return {
       success: true,
       message: `Successfully set role to '${ADVISOR_ROLE}' for ${args.email}`,

@@ -253,11 +253,11 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
                         {statusBadge}
                       </td>
                       <td className="px-4 py-3 align-middle text-right">
-                        <Link href={`/advisor/students/${student._id}`}>
-                          <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/advisor/students/${student._id}`}>
                             View Profile
-                          </Button>
-                        </Link>
+                          </Link>
+                        </Button>
                       </td>
                     </tr>
                   );

@@ -116,7 +116,12 @@ async function main() {
     process.exit(1)
   }
   const domain = process.env.SEED_TEST_DOMAIN || 'ascentful.io'
-  const testUniversityId = process.env.SEED_TEST_UNIVERSITY_ID || 'temp'
+  const testUniversityId = process.env.SEED_TEST_UNIVERSITY_ID
+  if (!testUniversityId) {
+    console.error('❌ Missing SEED_TEST_UNIVERSITY_ID in environment')
+    console.error('Create a test university first and provide its ID.')
+    process.exit(1)
+  }
 
   console.log('\n🚀 Seeding Advisor Test User (DEVELOPMENT ONLY)\n')
 

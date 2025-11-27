@@ -171,17 +171,20 @@ export default function AdvisorSupportPage() {
   ) => {
     if (!clerkUser?.id) return
 
+    // Store original for rollback
+    const originalStatus = selectedTicket?.status
+
+    // Optimistic update - update UI immediately
+    if (selectedTicket && selectedTicket._id === ticketId) {
+      setSelectedTicket({ ...selectedTicket, status: newStatus })
+    }
+
     try {
       await updateTicketStatus({
         clerkId: clerkUser.id,
         ticketId,
         status: newStatus
       })
-
-      // Update local state to reflect the change immediately
-      if (selectedTicket && selectedTicket._id === ticketId) {
-        setSelectedTicket({ ...selectedTicket, status: newStatus })
-      }
 
       toast({
         title: 'Status updated',
@@ -190,11 +193,8 @@ export default function AdvisorSupportPage() {
       })
     } catch (error: any) {
       // Revert optimistic update on error
-      if (selectedTicket && selectedTicket._id === ticketId) {
-        const original = tickets?.find(t => t._id === ticketId);
-        if (original) {
-          setSelectedTicket({ ...selectedTicket, status: original.status });
-        }
+      if (selectedTicket && selectedTicket._id === ticketId && originalStatus) {
+        setSelectedTicket({ ...selectedTicket, status: originalStatus })
       }
       toast({
         title: 'Error',
