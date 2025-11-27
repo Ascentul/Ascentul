@@ -19,8 +19,10 @@ export const migrateAdminToSuperAdmin = internalMutation({
     const failedUsers: Array<Id<"users">> = []
 
     // Use pagination to handle large user tables
+    // Convex pagination uses isDone flag, not cursor === null, to indicate completion
     const BATCH_SIZE = 100
-    let cursor = null
+    let cursor: string | null = null
+    let isDone = false
     let totalProcessed = 0
 
     do {
@@ -47,8 +49,9 @@ export const migrateAdminToSuperAdmin = internalMutation({
       }
 
       cursor = page.continueCursor
+      isDone = page.isDone
       console.log(`Processed batch: ${totalProcessed} users checked, ${migratedCount} migrated so far`)
-    } while (cursor !== null)
+    } while (!isDone)
 
     console.log(`\nMigration complete: ${totalProcessed} users checked, ${migratedCount} users updated, ${failedCount} failed`)
     if (failedUsers.length > 0) {

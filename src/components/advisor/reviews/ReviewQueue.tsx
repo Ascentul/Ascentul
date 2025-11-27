@@ -93,8 +93,9 @@ export function ReviewQueue({ reviews, isLoading }: ReviewQueueProps) {
           <SelectContent>
             <SelectItem value='all'>All Status</SelectItem>
             <SelectItem value='waiting'>Waiting</SelectItem>
-            <SelectItem value='in_progress'>In Progress</SelectItem>
-            <SelectItem value='completed'>Completed</SelectItem>
+            <SelectItem value='in_review'>In Review</SelectItem>
+            <SelectItem value='needs_edits'>Needs Edits</SelectItem>
+            <SelectItem value='approved'>Approved</SelectItem>
           </SelectContent>
         </Select>
 
@@ -136,13 +137,15 @@ export function ReviewQueue({ reviews, isLoading }: ReviewQueueProps) {
           {filteredReviews.map((review) => {
             const isUrgent = review.priority === 'urgent';
             const isWaiting = review.status === 'waiting';
-            const isInProgress = review.status === 'in_progress';
-            const isCompleted = review.status === 'completed';
+            const isInReview = review.status === 'in_review';
+            const isNeedsEdits = review.status === 'needs_edits';
+            const isApproved = review.status === 'approved';
 
             const statusColors = {
               waiting: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-              in_progress: 'bg-blue-100 text-blue-800 border-blue-200',
-              completed: 'bg-green-100 text-green-800 border-green-200',
+              in_review: 'bg-blue-100 text-blue-800 border-blue-200',
+              needs_edits: 'bg-orange-100 text-orange-800 border-orange-200',
+              approved: 'bg-green-100 text-green-800 border-green-200',
               default: 'bg-gray-100 text-gray-800 border-gray-200',
             };
 
@@ -187,10 +190,12 @@ export function ReviewQueue({ reviews, isLoading }: ReviewQueueProps) {
                           >
                             {review.status === 'waiting'
                               ? 'Waiting'
-                              : review.status === 'in_progress'
-                              ? 'In Progress'
-                              : review.status === 'completed'
-                              ? 'Completed'
+                              : review.status === 'in_review'
+                              ? 'In Review'
+                              : review.status === 'needs_edits'
+                              ? 'Needs Edits'
+                              : review.status === 'approved'
+                              ? 'Approved'
                               : review.status}
                           </Badge>
 
@@ -217,9 +222,9 @@ export function ReviewQueue({ reviews, isLoading }: ReviewQueueProps) {
                       <div className='flex gap-2'>
                         <Link href={`/advisor/advising/reviews/${review._id}`}>
                           <Button variant='default' size='sm'>
-                            {isCompleted
+                            {isApproved || isNeedsEdits
                               ? 'View Review'
-                              : isInProgress
+                              : isInReview
                               ? 'Continue Review'
                               : 'Start Review'}
                           </Button>

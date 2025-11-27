@@ -274,7 +274,6 @@ export const createUser = mutation({
         updated_at: Date.now(),
       });
 
-      const finalRole = args.role || pendingUser.role;
       console.log(`[createUser] Activated pending user: ${pendingUser._id} (role: ${finalRole})`);
       return pendingUser._id;
     }

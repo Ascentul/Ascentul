@@ -20,7 +20,7 @@ export async function GET(
     const conversationId = params.id
 
     // Validate ID format - Convex IDs use Crockford Base32 (excludes i, l, o, u)
-    if (!conversationId || !/^[0-9a-hj-km-np-z]+$/.test(conversationId)) {
+    if (!conversationId || !/^[0-9a-hj-km-np-tv-z]+$/.test(conversationId)) {
       return NextResponse.json({ error: 'Invalid conversation ID format' }, { status: 400 })
     }
 
@@ -63,7 +63,7 @@ export async function POST(
     }
 
     // Validate ID format - Convex IDs use Crockford Base32 (excludes i, l, o, u)
-    if (!conversationId || !/^[0-9a-hj-km-np-z]+$/.test(conversationId)) {
+    if (!conversationId || !/^[0-9a-hj-km-np-tv-z]+$/.test(conversationId)) {
       return NextResponse.json({ error: 'Invalid conversation ID format' }, { status: 400 })
     }
 

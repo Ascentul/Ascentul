@@ -50,6 +50,7 @@ export const createTestStudent = internalMutation({
         name: "Test University - Advisor Demo",
         slug: "test-advisor-demo",
         description: "Test university for advisor feature development",
+        is_test: true,
         license_plan: "Pro",
         license_seats: 100,
         license_used: 0,

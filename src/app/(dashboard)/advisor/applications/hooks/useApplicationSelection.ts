@@ -122,8 +122,11 @@ export function useApplicationSelection(): UseApplicationSelectionResult {
       endId: Id<'applications'>,
       allIds: Id<'applications'>[]
     ) => {
-      const startIdx = allIds.findIndex((id) => id === startId);
-      const endIdx = allIds.findIndex((id) => id === endId);
+      // Compare by string value to avoid object reference mismatch issues
+      const startIdStr = startId.toString();
+      const endIdStr = endId.toString();
+      const startIdx = allIds.findIndex((id) => id.toString() === startIdStr);
+      const endIdx = allIds.findIndex((id) => id.toString() === endIdStr);
 
       if (startIdx === -1 || endIdx === -1) return;
 
@@ -165,6 +168,11 @@ export function useApplicationSelection(): UseApplicationSelectionResult {
   /**
    * Get array of selected application IDs
    * In select-all mode, filters out excluded IDs
+   *
+   * Note: IDs are stored as strings internally (via .toString()) but cast back to
+   * Id<'applications'>[] for type compatibility with Convex mutations. This is safe
+   * because Convex Id types are branded strings - the underlying value is the same.
+   * The mutations validate IDs server-side regardless.
    */
   const getSelectedIds = useCallback((): Id<'applications'>[] => {
     if (selection.selectAll) {

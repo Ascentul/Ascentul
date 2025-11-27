@@ -54,7 +54,8 @@ export const getSessionsInRange = query({
     const studentFetchResults = await Promise.allSettled(
       uniqueStudentIds.map(async (id) => {
         const student = await ctx.db.get(id);
-        return [id, student] as const;
+        // Use String() for consistent Map key type (Id objects may not match as keys)
+        return [String(id), student] as const;
       })
     );
 
@@ -65,7 +66,8 @@ export const getSessionsInRange = query({
     );
 
     const enrichedSessions = sessions.map((session) => {
-      const student = studentsMap.get(session.student_id);
+      // Use String() for consistent lookup (matches key insertion above)
+      const student = studentsMap.get(String(session.student_id));
       return {
         _id: session._id,
         student_id: session.student_id,
@@ -122,7 +124,8 @@ export const getFollowUpsInRange = query({
     const studentFetchResults = await Promise.allSettled(
       uniqueStudentIds.map(async (id) => {
         const student = await ctx.db.get(id);
-        return [id, student] as const;
+        // Use String() for consistent Map key type (Id objects may not match as keys)
+        return [String(id), student] as const;
       })
     );
 
@@ -133,7 +136,8 @@ export const getFollowUpsInRange = query({
     );
 
     const enrichedFollowUps = followUps.map((followUp) => {
-      const student = studentsMap.get(followUp.user_id);
+      // Use String() for consistent lookup (matches key insertion above)
+      const student = studentsMap.get(String(followUp.user_id));
       return {
         _id: followUp._id,
         student_id: followUp.user_id, // Return as student_id for backward compatibility

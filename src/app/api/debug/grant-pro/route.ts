@@ -115,8 +115,8 @@ async function processUpgrade(params: {
   if (!targetClerkId) {
     return NextResponse.json({
       error: 'No target user found',
-      detail: email ? `No Clerk user found with email: ${email}` : 'Unable to resolve user from provided parameters',
-      params: { email, clerkId, fallbackUsed: !email && !clerkId },
+      detail: email ? 'No Clerk user found with provided email' : 'Unable to resolve user from provided parameters',
+      params: { emailProvided: !!email, clerkIdProvided: !!clerkId, fallbackUsed: !email && !clerkId },
     }, { status: 400 })
   }
 

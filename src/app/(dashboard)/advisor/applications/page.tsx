@@ -23,11 +23,13 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Id } from "convex/_generated/dataModel";
 import { AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdvisorApplicationsPage() {
   const { user } = useUser();
   const clerkId = user?.id;
   const userRole = user?.publicMetadata?.role as string | undefined;
+  const { toast } = useToast();
 
   // ============================================================================
   // View State
@@ -138,16 +140,28 @@ export default function AdvisorApplicationsPage() {
 
       // Show success/error feedback
       if (result.success > 0) {
-        console.log(`Successfully updated ${result.success} applications`);
+        toast({
+          title: "Stage updated",
+          description: `Successfully updated ${result.success} application${result.success !== 1 ? 's' : ''}.`,
+        });
       }
       if (result.failed > 0) {
-        console.error(`Failed to update ${result.failed} applications:`, result.errors);
+        toast({
+          title: "Some updates failed",
+          description: `Failed to update ${result.failed} application${result.failed !== 1 ? 's' : ''}.`,
+          variant: "destructive",
+        });
       }
 
       // Clear selection after bulk action
       selectionHook.clearSelection();
     } catch (error) {
       console.error('Bulk update failed:', error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update applications. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -164,15 +178,27 @@ export default function AdvisorApplicationsPage() {
       });
 
       if (result.success > 0) {
-        console.log(`Successfully archived ${result.success} applications`);
+        toast({
+          title: "Applications archived",
+          description: `Successfully archived ${result.success} application${result.success !== 1 ? 's' : ''}.`,
+        });
       }
       if (result.failed > 0) {
-        console.error(`Failed to archive ${result.failed} applications:`, result.errors);
+        toast({
+          title: "Some archives failed",
+          description: `Failed to archive ${result.failed} application${result.failed !== 1 ? 's' : ''}.`,
+          variant: "destructive",
+        });
       }
 
       selectionHook.clearSelection();
     } catch (error) {
       console.error('Bulk archive failed:', error);
+      toast({
+        title: "Archive failed",
+        description: "Failed to archive applications. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -190,15 +216,27 @@ export default function AdvisorApplicationsPage() {
       });
 
       if (result.success > 0) {
-        console.log(`Successfully updated ${result.success} applications`);
+        toast({
+          title: "Next steps updated",
+          description: `Successfully updated ${result.success} application${result.success !== 1 ? 's' : ''}.`,
+        });
       }
       if (result.failed > 0) {
-        console.error(`Failed to update ${result.failed} applications:`, result.errors);
+        toast({
+          title: "Some updates failed",
+          description: `Failed to update ${result.failed} application${result.failed !== 1 ? 's' : ''}.`,
+          variant: "destructive",
+        });
       }
 
       selectionHook.clearSelection();
     } catch (error) {
       console.error('Bulk update next step failed:', error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update next steps. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -214,15 +252,27 @@ export default function AdvisorApplicationsPage() {
       });
 
       if (result.success > 0) {
-        console.log(`Successfully marked ${result.success} applications as reviewed`);
+        toast({
+          title: "Marked as reviewed",
+          description: `Successfully marked ${result.success} application${result.success !== 1 ? 's' : ''} as reviewed.`,
+        });
       }
       if (result.failed > 0) {
-        console.error(`Failed to mark ${result.failed} applications as reviewed:`, result.errors);
+        toast({
+          title: "Some updates failed",
+          description: `Failed to mark ${result.failed} application${result.failed !== 1 ? 's' : ''} as reviewed.`,
+          variant: "destructive",
+        });
       }
 
       selectionHook.clearSelection();
     } catch (error) {
       console.error('Bulk mark reviewed failed:', error);
+      toast({
+        title: "Update failed",
+        description: "Failed to mark applications as reviewed. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
