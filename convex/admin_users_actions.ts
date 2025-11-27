@@ -33,6 +33,16 @@ const TABLES_TO_CASCADE = [
   "daily_recommendations",
 ] as const;
 
+// Type for minimal user data from getAllUsersMinimal query
+type MinimalUser = {
+  _id: string;
+  is_test_user?: boolean;
+  account_status?: string;
+  clerkId: string;
+  email?: string;
+  name?: string;
+};
+
 /**
  * Soft delete a user (super_admin only)
  * Public action that handles both Convex and Clerk
@@ -417,7 +427,7 @@ export const reconcileTestUsers = action({
       limit: maxUsers,
     });
 
-    const candidates = usersPage.page.filter((u) =>
+    const candidates = (usersPage.page as MinimalUser[]).filter((u) =>
       u.is_test_user === true &&
       (u.account_status !== "deleted" || args.includeDeletedStatus === true)
     );

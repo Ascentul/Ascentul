@@ -50,14 +50,15 @@ export const claimReview = mutation({
 
     // Safe to claim - optimistic concurrency control guarantees that if another
     // mutation modified this review concurrently, this transaction will abort and retry
+      const currentVersion = review.version ?? 0;
       await ctx.db.patch(args.review_id, {
         status: 'in_review',
         reviewed_by: sessionCtx.userId,
-        version: review.version + 1,
+        version: currentVersion + 1,
         updated_at: Date.now(),
       });
 
-    return { success: true, version: review.version + 1 };
+    return { success: true, version: currentVersion + 1 };
   },
 });
 
@@ -92,10 +93,12 @@ export const updateReviewFeedback = mutation({
       throw new Error('Unauthorized: Not your review');
     }
 
+    const currentVersion = review.version ?? 0;
+
     // Validate version for optimistic concurrency control
-    if (review.version !== args.version) {
+    if (currentVersion !== args.version) {
       throw new Error(
-        `Version mismatch: Review was updated by another user. Expected version ${review.version}, got ${args.version}. Please refresh and try again.`
+        `Version mismatch: Review was updated by another user. Expected version ${currentVersion}, got ${args.version}. Please refresh and try again.`
       );
     }
 
@@ -109,7 +112,7 @@ export const updateReviewFeedback = mutation({
 
     const updates: UpdateFields = {
       updated_at: Date.now(),
-      version: review.version + 1, // Increment version for optimistic locking
+      version: currentVersion + 1, // Increment version for optimistic locking
     };
 
     if (args.feedback !== undefined) {
@@ -196,10 +199,12 @@ export const _completeReviewInternal = internalMutation({
       throw new Error('Unauthorized: Not your review');
     }
 
+    const currentVersion = review.version ?? 0;
+
     // Validate version for optimistic concurrency control
-    if (review.version !== args.version) {
+    if (currentVersion !== args.version) {
       throw new Error(
-        `Version mismatch: Review was updated by another user. Expected version ${review.version}, got ${args.version}. Please refresh and try again.`
+        `Version mismatch: Review was updated by another user. Expected version ${currentVersion}, got ${args.version}. Please refresh and try again.`
       );
     }
 
@@ -211,7 +216,7 @@ export const _completeReviewInternal = internalMutation({
       updated_at: now,
       feedback: args.feedback,
       suggestions: args.suggestions,
-      version: review.version + 1, // Increment version for optimistic locking
+      version: currentVersion + 1, // Increment version for optimistic locking
     });
 
     // Get student info for email notification

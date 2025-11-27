@@ -40,6 +40,7 @@ export const _createAuditLogInternal = internalMutation({
       reason: args.reason,
       metadata: args.metadata,
       timestamp: Date.now(),
+      created_at: Date.now(),
     })
   },
 })
@@ -78,6 +79,7 @@ export const createAuditLog = mutation({
       reason: args.reason,
       metadata: args.metadata,
       timestamp: Date.now(),
+      created_at: Date.now(),
     })
   },
 })
@@ -154,10 +156,11 @@ export const getAuditLogs = query({
           // Filter to only records that come after our cursor position
           // In descending order: (timestamp < cursorTimestamp) OR (timestamp == cursorTimestamp AND id < cursorId)
           batch = rawBatch.filter(log => {
-            if (log.timestamp < cursorTimestamp) {
+            const logTimestamp = log.timestamp ?? log.created_at ?? 0;
+            if (logTimestamp < cursorTimestamp) {
               return true // All records with lower timestamp
             }
-            if (log.timestamp === cursorTimestamp && cursorId) {
+            if (logTimestamp === cursorTimestamp && cursorId) {
               return log._id < cursorId // Only IDs less than cursor for same timestamp
             }
             return false // Skip records at or after cursor
@@ -179,7 +182,7 @@ export const getAuditLogs = query({
 
         // Update cursor for next iteration using the last record we fetched (not filtered)
         const lastLog = batch[Math.min(batch.length - 1, batchSize - 1)]
-        cursorTimestamp = lastLog.timestamp
+        cursorTimestamp = lastLog.timestamp ?? lastLog.created_at ?? 0
         cursorId = lastLog._id
 
         // If we got fewer records than requested + 1, we've exhausted the database
@@ -324,6 +327,7 @@ export const createSystemAuditLog = mutation({
       reason: args.reason,
       metadata: args.metadata,
       timestamp: Date.now(),
+      created_at: Date.now(),
     })
   },
 })

@@ -147,6 +147,7 @@ export const toggleTestUniversity = mutation({
         is_test: args.isTest,
       },
       timestamp: now,
+      created_at: now,
     });
 
     return {
@@ -198,6 +199,7 @@ export const archiveUniversity = mutation({
         previous_status: university.status,
       },
       timestamp: now,
+      created_at: now,
     });
 
     return {
@@ -252,6 +254,7 @@ export const restoreUniversity = mutation({
         archived_at: university.archived_at,
       },
       timestamp: now,
+      created_at: now,
     });
 
     return {
@@ -436,6 +439,7 @@ export const hardDeleteUniversity = mutation({
             errors: errors.length > 0 ? errors : undefined,
           },
           timestamp: now,
+          created_at: now,
         });
       } catch (error) {
         throw new Error(

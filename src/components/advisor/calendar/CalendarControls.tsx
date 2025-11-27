@@ -12,7 +12,7 @@ interface CalendarControlsProps {
   onPrevious: () => void;
   onNext: () => void;
   onToday: () => void;
-  onViewModeChange: (mode: ViewMode) => void,
+  onViewModeChange: (mode: ViewMode) => void;
 }
 
 export function CalendarControls({

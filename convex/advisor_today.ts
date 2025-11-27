@@ -85,7 +85,7 @@ export const getTodayOverview = query({
     // Filter ensures due_at exists (DB query already filtered by endTimestamp)
     // Type guard refines the type to guarantee due_at is number
     const todayFollowUps = followUps.filter(
-      (f): f is typeof f & { due_at: number } => f.due_at !== null
+      (f): f is typeof f & { due_at: number } => f.due_at !== undefined
     );
 
     // Batch fetch all unique students to avoid N+1 queries

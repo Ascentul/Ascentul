@@ -5,7 +5,7 @@
  * See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md for full context.
  */
 
-import { internalMutation, query } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
@@ -140,7 +140,7 @@ export const migrateStatusToStage = internalMutation({
  *
  * Run via: npx convex run migrate_application_status_to_stage:verifyMigration
  */
-export const verifyMigration = query({
+export const verifyMigration = internalQuery({
   args: {},
   handler: async (ctx) => {
     console.log("🔍 Verifying application status→stage migration...");
@@ -200,7 +200,7 @@ export const verifyMigration = query({
  *
  * Run via: npx convex run migrate_application_status_to_stage:getMigrationStats
  */
-export const getMigrationStats = query({
+export const getMigrationStats = internalQuery({
   args: {},
   handler: async (ctx) => {
     const allApps = await ctx.db.query("applications").collect();

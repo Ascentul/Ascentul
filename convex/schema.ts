@@ -1160,7 +1160,7 @@ export default defineSchema({
     new_value: v.optional(v.any()), // New state (may contain PII - subject to redaction)
     ip_address: v.optional(v.string()), // IP address for security tracking
     user_agent: v.optional(v.string()), // Browser/client info for security tracking
-    created_at: v.optional(v.number()), // Timestamp for retention policy enforcement
+    created_at: v.optional(v.number()), // Timestamp for retention policy enforcement (optional for legacy records)
 
     // Legacy format (backward compatibility - deprecated)
     performed_by_id: v.optional(v.string()), // Legacy: actor_id

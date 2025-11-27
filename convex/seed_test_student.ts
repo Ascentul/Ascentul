@@ -239,7 +239,8 @@ export const createTestStudent = internalMutation({
     }
 
     // 6. Create sample applications
-    const companies = [
+    type Stage = "Prospect" | "Applied" | "Interview" | "Offer" | "Accepted" | "Rejected" | "Withdrawn" | "Archived";
+    const companies: { name: string; position: string; stage: Stage }[] = [
       { name: "Google", position: "Software Engineer Intern", stage: "Applied" },
       { name: "Microsoft", position: "SWE Intern", stage: "Interview" },
       { name: "Amazon", position: "Software Development Engineer Intern", stage: "Prospect" },

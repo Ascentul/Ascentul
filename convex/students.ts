@@ -740,8 +740,13 @@ export const acceptInvite = mutation({
     });
 
     // 12. Increment university license usage
+    const latestUniversity = await ctx.db.get(university._id);
+    if (!latestUniversity) {
+      throw new Error("University not found during license update");
+    }
+
     await ctx.db.patch(university._id, {
-      license_used: (university.license_used || 0) + 1,
+      license_used: (latestUniversity.license_used || 0) + 1,
       updated_at: now,
     });
 

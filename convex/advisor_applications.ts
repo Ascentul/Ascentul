@@ -707,7 +707,7 @@ export const bulkArchiveApplications = mutation({
     applicationIds: v.array(v.id('applications')),
     reason: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: number; failed: number; errors: string[] }> => {
     // Delegate to bulkUpdateApplicationStage with Archived stage
     return await ctx.runMutation(api.advisor_applications.bulkUpdateApplicationStage, {
       clerkId: args.clerkId,

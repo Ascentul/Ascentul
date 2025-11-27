@@ -478,6 +478,7 @@ export const _softDeleteUserInternal = internalMutation({
         targetUniversityId: targetUser.university_id,
       },
       timestamp: Date.now(),
+      created_at: Date.now(),
     });
 
     return {
@@ -549,6 +550,7 @@ export const _restoreUserInternal = internalMutation({
         targetUniversityId: targetUser.university_id,
       },
       timestamp: Date.now(),
+      created_at: Date.now(),
     });
 
     return {

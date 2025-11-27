@@ -78,7 +78,7 @@ export function StageTransitionModal({
         clerkId,
         applicationId: application._id,
         newStage: selectedStage as ApplicationStage,
-        notes: reason || undefined,
+        notes: reason.trim() || undefined,
       });
 
       toast.success(`Application moved to ${selectedStage}`);
