@@ -161,17 +161,39 @@ export const setupAdvisorTestData = internalMutation({
 
     // Create a sample follow-up for student2
     if (student2) {
-      const followUpId = await ctx.db.insert("advisor_follow_ups", {
-        student_id: student2._id,
-        advisor_id: advisorUser._id,
-        university_id: university._id,
-        related_type: "general",
+      const followUpId = await ctx.db.insert("follow_ups", {
+        // Core task fields
         title: "Update resume with latest internship experience",
         description: "Add details about summer 2024 internship at TechCorp",
+        type: "follow_up",
+        notes: undefined,
+
+        // Ownership & creation tracking
+        user_id: student2._id, // student the task relates to
+        owner_id: student2._id, // student is responsible to complete
+        created_by_id: advisorUser._id,
+        created_by_type: "advisor",
+
+        // Multi-tenancy
+        university_id: university._id,
+
+        // Relationships (generic "general" follow-up)
+        related_type: "general",
+        related_id: undefined,
+        application_id: undefined,
+        contact_id: undefined,
+
+        // Task management
         due_at: now + 7 * 24 * 60 * 60 * 1000, // 7 days from now
         priority: "medium",
-        owner_id: student2._id,
         status: "open",
+
+        // Completion audit trail
+        completed_at: undefined,
+        completed_by: undefined,
+        version: 0,
+
+        // Timestamps
         created_at: now,
         updated_at: now,
       });

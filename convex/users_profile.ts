@@ -614,3 +614,155 @@ export const ensureMembership = mutation({
     return membershipId;
   },
 });
+
+/**
+ * Atomically update user and ensure membership in a single transaction.
+ *
+ * This mutation combines updateUser and ensureMembership operations to prevent
+ * partial updates where user role changes but membership creation fails.
+ *
+ * Used by Clerk webhook for user.updated events to ensure data consistency.
+ */
+export const updateUserWithMembership = mutation({
+  args: {
+    clerkId: v.string(),
+    updates: v.object({
+      name: v.optional(v.string()),
+      email: v.optional(v.string()),
+      profile_image: v.optional(v.string()),
+      role: v.optional(
+        v.union(
+          v.literal("individual"),
+          v.literal("user"),
+          v.literal("student"),
+          v.literal("staff"),
+          v.literal("university_admin"),
+          v.literal("advisor"),
+          v.literal("super_admin"),
+        ),
+      ),
+      subscription_plan: v.optional(
+        v.union(
+          v.literal("free"),
+          v.literal("premium"),
+          v.literal("university"),
+        ),
+      ),
+      subscription_status: v.optional(
+        v.union(
+          v.literal("active"),
+          v.literal("inactive"),
+          v.literal("cancelled"),
+          v.literal("past_due"),
+        ),
+      ),
+      university_id: v.optional(v.id("universities")),
+      account_status: v.optional(
+        v.union(
+          v.literal("active"),
+          v.literal("suspended"),
+          v.literal("pending_activation"),
+        ),
+      ),
+    }),
+    // Membership data - only required for university roles
+    membership: v.optional(v.object({
+      role: v.union(
+        v.literal("student"),
+        v.literal("advisor"),
+        v.literal("university_admin"),
+      ),
+      universityId: v.id("universities"),
+    })),
+    serviceToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const isService = isServiceRequest(args.serviceToken);
+
+    // Service token required for webhook calls
+    if (!identity && !isService) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    // Get target user by clerkId
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) {
+      throw new Error(`User not found: ${args.clerkId}`);
+    }
+
+    const now = Date.now();
+
+    // Filter out undefined values from updates
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(args.updates).filter(([_, value]) => value !== undefined)
+    );
+
+    // Track role changes for audit logging
+    const roleChanged = args.updates.role && args.updates.role !== user.role;
+    const oldRole = user.role;
+    const newRole = args.updates.role;
+
+    // Step 1: Update user record
+    await ctx.db.patch(user._id, {
+      ...cleanUpdates,
+      updated_at: now,
+    });
+
+    // Step 2: Ensure membership if university role data provided
+    let membershipId = null;
+    if (args.membership) {
+      // Check for existing membership with this role
+      const existingMembership = await ctx.db
+        .query("memberships")
+        .withIndex("by_user_role", (q) =>
+          q.eq("user_id", user._id).eq("role", args.membership!.role)
+        )
+        .first();
+
+      if (existingMembership) {
+        // Update if university changed or status is not active
+        if (
+          existingMembership.university_id !== args.membership.universityId ||
+          existingMembership.status !== "active"
+        ) {
+          await ctx.db.patch(existingMembership._id, {
+            university_id: args.membership.universityId,
+            status: "active",
+            updated_at: now,
+          });
+          console.log(`[updateUserWithMembership] Updated membership for user ${args.clerkId} with role ${args.membership.role}`);
+        }
+        membershipId = existingMembership._id;
+      } else {
+        // Create new membership
+        membershipId = await ctx.db.insert("memberships", {
+          user_id: user._id,
+          university_id: args.membership.universityId,
+          role: args.membership.role,
+          status: "active",
+          created_at: now,
+          updated_at: now,
+        });
+        console.log(`[updateUserWithMembership] Created membership for user ${args.clerkId} with role ${args.membership.role}`);
+      }
+    }
+
+    // Step 3: Log role change if applicable
+    if (roleChanged) {
+      await logRoleChange(ctx, user, oldRole, newRole!);
+    }
+
+    console.log(`[updateUserWithMembership] Updated user ${args.clerkId}${membershipId ? ` with membership ${membershipId}` : ''}`);
+
+    return {
+      userId: user._id,
+      membershipId,
+      roleChanged,
+    };
+  },
+});

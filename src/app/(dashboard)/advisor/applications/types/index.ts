@@ -112,7 +112,7 @@ export interface EnrichedApplication {
   // Application details
   company_name: string;
   position_title: string;
-  stage: ApplicationStage;
+  stage: ApplicationStage | string;
   application_url?: string;
   location?: string;
 

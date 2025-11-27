@@ -292,7 +292,7 @@ export const returnReviewToQueue = mutation({
       status: 'waiting',
       reviewed_by: undefined,
       updated_at: Date.now(),
-      version: review.version + 1,
+      version: (review.version ?? 0) + 1,
     });
 
     // Log the reason for audit purposes

@@ -18,6 +18,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@clerk/backend": "^2.22.0",
     "@clerk/mcp-tools": "^0.3.1",
     "@clerk/nextjs": "^6.31.10",
     "@hookform/resolvers": "^3.9.1",
@@ -95,8 +96,7 @@
     "uuid": "^11.1.0",
     "vaul": "^1.1.0",
     "zod": "^3.23.8",
-    "zod-validation-error": "^3.4.1",
-    "@clerk/backend": "^2.22.0"
+    "zod-validation-error": "^3.4.1"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",

@@ -2,6 +2,15 @@
 
 # Create Test Student for Advisor Testing
 # This script creates a test student account in Clerk and sets up all necessary data in Convex
+# Requires: STUDENT_EMAIL, ADVISOR_EMAIL, ADVISOR_UNIVERSITY_ID, SEED_TEST_PASSWORD, CLERK_SECRET_KEY, NEXT_PUBLIC_CONVEX_URL
+# Example:
+#   STUDENT_EMAIL="student@example.com" \
+#   ADVISOR_EMAIL="advisor@example.com" \
+#   ADVISOR_UNIVERSITY_ID="university_id_here" \
+#   SEED_TEST_PASSWORD="strongpassword" \
+#   CLERK_SECRET_KEY="sk_test_..." \
+#   NEXT_PUBLIC_CONVEX_URL="https://..." \
+#   ./scripts/create-test-student.sh
 
 set -e
 
@@ -47,6 +56,15 @@ if [ -z "$NEXT_PUBLIC_CONVEX_URL" ]; then
   echo ""
   echo "Please set it in your .env.local file or export it:"
   echo "  export NEXT_PUBLIC_CONVEX_URL='your_convex_url'"
+  exit 1
+fi
+
+if [ -z "$ADVISOR_UNIVERSITY_ID" ]; then
+  echo "❌ Error: ADVISOR_UNIVERSITY_ID environment variable is not set"
+  echo ""
+  echo "Advisor role requires a university_id to be assigned."
+  echo "Please set it in your .env.local file or export it:"
+  echo "  export ADVISOR_UNIVERSITY_ID='your_university_id'"
   exit 1
 fi
 
@@ -124,7 +142,7 @@ echo "Step 2: Setting roles in Clerk..."
 echo "-----------------------------------"
 
 # Get user IDs and set metadata
-node -e "
+STUDENT_EMAIL=\"$STUDENT_EMAIL\" ADVISOR_EMAIL=\"$ADVISOR_EMAIL\" ADVISOR_UNIVERSITY_ID=\"$ADVISOR_UNIVERSITY_ID\" node -e "
 const https = require('https');
 
 async function findUserByEmail(email) {
@@ -154,9 +172,24 @@ async function findUserByEmail(email) {
   });
 }
 
-async function setMetadata(userId, role) {
+/**
+ * Update Clerk metadata with role and university assignment.
+ * Advisor role requires a university_id; student does not.
+ */
+async function setMetadata(userId, metadata) {
+  if (!metadata || !metadata.role) {
+    throw new Error('Metadata with role is required');
+  }
+
+  if (metadata.role === 'advisor' && !metadata.university_id) {
+    throw new Error('Advisor role requires university_id (ADVISOR_UNIVERSITY_ID)');
+  }
+
   const data = JSON.stringify({
-    public_metadata: { role }
+    public_metadata: {
+      role: metadata.role,
+      ...(metadata.university_id ? { university_id: metadata.university_id } : {}),
+    }
   });
 
   return new Promise((resolve, reject) => {
@@ -174,7 +207,7 @@ async function setMetadata(userId, role) {
       res.on('data', chunk => body += chunk);
       res.on('end', () => {
         if (res.statusCode === 200) {
-          console.log('✓ Set role=' + role + ' for user', userId);
+          console.log('✓ Set role=' + metadata.role + ' for user', userId);
           resolve();
         } else if (res.statusCode === 401) {
           reject(new Error('Authentication failed. Check CLERK_SECRET_KEY is correct.'));
@@ -189,18 +222,37 @@ async function setMetadata(userId, role) {
   });
 }
 
+const studentEmail = process.env.STUDENT_EMAIL;
+const advisorEmail = process.env.ADVISOR_EMAIL;
+const advisorUniversityId = process.env.ADVISOR_UNIVERSITY_ID;
+
+if (!studentEmail) {
+  console.error('❌ Missing STUDENT_EMAIL environment variable.');
+  process.exit(1);
+}
+
+if (!advisorEmail) {
+  console.error('❌ Missing ADVISOR_EMAIL environment variable.');
+  process.exit(1);
+}
+
+if (!advisorUniversityId) {
+  console.error('❌ Missing ADVISOR_UNIVERSITY_ID environment variable. Advisor role requires university_id.');
+  process.exit(1);
+}
+
 (async () => {
   try {
-    const student = await findUserByEmail('$STUDENT_EMAIL');
+    const student = await findUserByEmail(studentEmail);
     if (student) {
-      await setMetadata(student.id, 'student');
+      await setMetadata(student.id, { role: 'student' });
     } else {
       console.log('⚠️  Warning: Student not found in Clerk, skipping role assignment');
     }
 
-    const advisor = await findUserByEmail('$ADVISOR_EMAIL');
+    const advisor = await findUserByEmail(advisorEmail);
     if (advisor) {
-      await setMetadata(advisor.id, 'advisor');
+      await setMetadata(advisor.id, { role: 'advisor', university_id: advisorUniversityId });
     } else {
       console.log('⚠️  Warning: Advisor not found in Clerk, skipping role assignment');
     }

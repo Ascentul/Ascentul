@@ -173,24 +173,17 @@ export async function POST(request: NextRequest) {
           updates.account_status = 'active'
         }
 
-        await convexServer.mutation(api.users.updateUser, {
+        // Use atomic mutation to update user and membership in single transaction
+        // This prevents partial updates where user role changes but membership creation fails
+        await convexServer.mutation(api.users_profile.updateUserWithMembership, {
           clerkId: userData.id,
           updates,
+          // Include membership data for university roles
+          membership: membershipRole && universityIdInMetadata
+            ? { role: membershipRole, universityId: universityIdInMetadata }
+            : undefined,
+          serviceToken: convexServiceToken,
         })
-
-        // Ensure membership for university roles when metadata includes university_id
-        if (membershipRole && universityIdInMetadata) {
-          try {
-            await convexServer.mutation(api.users_profile.ensureMembership, {
-              clerkId: userData.id,
-              role: membershipRole,
-              universityId: universityIdInMetadata,
-              serviceToken: convexServiceToken,
-            })
-          } catch (membershipError) {
-            console.error('[Clerk Webhook] Failed to ensure membership from metadata:', membershipError)
-          }
-        }
 
         console.log(`[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}${validatedRole ? `, role: ${validatedRole}` : ''}`)
         break

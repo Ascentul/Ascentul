@@ -12,7 +12,7 @@ interface Session {
   title: string;
   session_type: string;
   start_at: number;
-  end_at: number;
+  end_at?: number;
   duration_minutes: number;
   location?: string;
   meeting_url?: string;
@@ -27,8 +27,10 @@ interface SessionItemProps {
 }
 
 export function SessionItem({ session, now }: SessionItemProps) {
-  const isPast = session.end_at < now;
-  const isCurrent = session.start_at <= now && session.end_at >= now;
+  // Calculate end_at from duration if not provided
+  const endAt = session.end_at ?? (session.start_at + (session.duration_minutes || 60) * 60 * 1000);
+  const isPast = endAt < now;
+  const isCurrent = session.start_at <= now && endAt >= now;
 
   const sessionIcon = {
     "1-on-1": User,
@@ -60,7 +62,7 @@ export function SessionItem({ session, now }: SessionItemProps) {
               </div>
               <div className="text-sm text-muted-foreground">
                 {format(new Date(session.start_at), "h:mm a")} -{" "}
-                {format(new Date(session.end_at), "h:mm a")}
+                {format(new Date(endAt), "h:mm a")}
               </div>
             </div>
             <div className="text-sm text-muted-foreground">{session.student_name}</div>

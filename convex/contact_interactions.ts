@@ -169,6 +169,7 @@ export const updateContactFollowup = mutation({
     }
     // If status changed back to open, clear completion fields
     if (args.updates.status === 'open' && followup.status === 'done') {
+      // Convex removes fields set to undefined in patch; null is not allowed by schema
       patchData.completed_at = undefined;
       patchData.completed_by = undefined;
     }

@@ -44,7 +44,6 @@ export interface AdvancedFiltersPanelProps {
   onToggleStage: (stage: ApplicationStage) => void;
   onSetStages: (stages: ApplicationStage[]) => void;
   onToggleCohort: (cohort: string) => void;
-  onSetCohorts: (cohorts: string[]) => void;
   onSetActiveOnly: (activeOnly: boolean) => void;
   onClearFilters: () => void;
 
@@ -62,7 +61,6 @@ export function AdvancedFiltersPanel({
   onToggleStage,
   onSetStages,
   onToggleCohort,
-  onSetCohorts,
   onSetActiveOnly,
   onClearFilters,
   onSetDateRange,

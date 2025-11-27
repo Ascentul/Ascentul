@@ -380,7 +380,6 @@ export default function AdvisorApplicationsPage() {
                   onToggleStage={filterHook.toggleStage}
                   onSetStages={filterHook.setStages}
                   onToggleCohort={filterHook.toggleCohort}
-                  onSetCohorts={filterHook.setCohorts}
                   onSetActiveOnly={filterHook.setActiveOnly}
                   onClearFilters={filterHook.clearFilters}
                   onSetDateRange={filterHook.setAppliedDateRange}

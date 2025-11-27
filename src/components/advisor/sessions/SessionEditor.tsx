@@ -52,7 +52,10 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   const [title, setTitle] = useState(session.title);
   const [sessionType, setSessionType] = useState(session.session_type);
   const [startAt, setStartAt] = useState(
-    format(new Date(session.start_at), DATETIME_LOCAL_FORMAT)
+    (() => {
+      const date = new Date(session.start_at);
+      return isNaN(date.getTime()) ? '' : format(date, DATETIME_LOCAL_FORMAT);
+    })()
   );
   const [durationMinutes, setDurationMinutes] = useState(
     session.duration_minutes.toString()
@@ -74,7 +77,10 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   useEffect(() => {
     setTitle(session.title);
     setSessionType(session.session_type);
-    setStartAt(format(new Date(session.start_at), DATETIME_LOCAL_FORMAT));
+    {
+      const date = new Date(session.start_at);
+      setStartAt(isNaN(date.getTime()) ? '' : format(date, DATETIME_LOCAL_FORMAT));
+    }
     setDurationMinutes(session.duration_minutes.toString());
     setLocation(session.location || '');
     setMeetingUrl(session.meeting_url || '');
@@ -86,13 +92,17 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   }, [session._id, session.version]);
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const formattedSessionStartAt = useMemo(() => {
+    const date = new Date(session.start_at);
+    return isNaN(date.getTime()) ? '' : format(date, DATETIME_LOCAL_FORMAT);
+  }, [session.start_at]);
 
   // Track if any field has changed
   useEffect(() => {
     const changed =
       title !== session.title ||
       sessionType !== session.session_type ||
-      startAt !== format(new Date(session.start_at), DATETIME_LOCAL_FORMAT) ||
+      startAt !== formattedSessionStartAt ||
       durationMinutes !== session.duration_minutes.toString() ||
       location !== (session.location || '') ||
       meetingUrl !== (session.meeting_url || '') ||
@@ -111,6 +121,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
     notes,
     visibility,
     status,
+    formattedSessionStartAt,
     session,
   ]);
 
