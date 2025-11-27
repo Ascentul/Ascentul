@@ -73,7 +73,8 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   const [saveError, setSaveError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState(session.version);
 
-  // Sync form state when session updates (on ID change, version change, or any field update)
+  // Sync form state when session changes (ID change or version bump from server)
+  // Note: Version is incremented on each save, so this captures external updates
   useEffect(() => {
     setTitle(session.title);
     setSessionType(session.session_type);

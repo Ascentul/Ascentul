@@ -707,6 +707,26 @@ export const updateUserWithMembership = mutation({
     const oldRole = user.role;
     const newRole = args.updates.role;
 
+    // Validate role transition if changing role
+    if (roleChanged && newRole) {
+      const targetUniversityId =
+        args.updates.university_id !== undefined
+          ? args.updates.university_id
+          : args.membership?.universityId ?? user.university_id;
+
+      const validation = await validateRoleTransition(
+        ctx,
+        user.clerkId,
+        oldRole as UserRole,
+        newRole as UserRole,
+        targetUniversityId ?? undefined
+      );
+
+      if (!validation.valid) {
+        throw new Error(validation.error || "Invalid role transition");
+      }
+    }
+
     // Step 1: Update user record
     await ctx.db.patch(user._id, {
       ...cleanUpdates,

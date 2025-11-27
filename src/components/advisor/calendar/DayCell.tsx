@@ -33,10 +33,11 @@ interface DayCellProps {
   currentMonth: Date;
   sessions: Session[];
   followUps: FollowUp[];
+  now: number;
 }
 
-export function DayCell({ day, currentMonth, sessions, followUps }: DayCellProps) {
-  const isToday = isSameDay(day, new Date());
+export function DayCell({ day, currentMonth, sessions, followUps, now }: DayCellProps) {
+  const isToday = isSameDay(day, new Date(now));
   const isCurrentMonth = isSameMonth(day, currentMonth);
 
   const displayedSessions = sessions.slice(0, 2);

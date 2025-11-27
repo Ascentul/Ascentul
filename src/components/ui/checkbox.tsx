@@ -22,6 +22,7 @@ const Checkbox = React.forwardRef<
     <CheckboxPrimitive.Indicator
       className={cn("flex items-center justify-center text-current")}
     >
+      {/* Note: Indeterminate state requires controlled mode (pass `checked` prop) */}
       {checked === "indeterminate" ? (
         <Minus className="h-4 w-4" />
       ) : (

@@ -608,6 +608,18 @@ export const acceptInvite = mutation({
       );
     }
 
+    // 6b. Check for conflicting membership BEFORE creating profile to avoid partial state
+    let existingMembership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_role", (q) =>
+        q.eq("user_id", user._id).eq("role", "student"),
+      )
+      .first();
+
+    if (existingMembership && existingMembership.university_id !== invite.university_id) {
+      throw new Error("Student membership belongs to a different university");
+    }
+
     // 7. Check if user already has a student profile (race condition check)
     const existingProfile = await ctx.db
       .query("studentProfiles")
@@ -706,13 +718,6 @@ export const acceptInvite = mutation({
     });
 
     // 10a. Ensure membership record exists for this student
-    const existingMembership = await ctx.db
-      .query("memberships")
-      .withIndex("by_user_role", (q) =>
-        q.eq("user_id", user._id).eq("role", "student"),
-      )
-      .first();
-
     if (!existingMembership) {
       await ctx.db.insert("memberships", {
         user_id: user._id,

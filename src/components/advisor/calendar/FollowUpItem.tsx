@@ -24,11 +24,11 @@ export function FollowUpItem({ followUp, now }: FollowUpItemProps) {
   return (
     <Link 
       href={`/advisor/students/${followUp.student_id}`}
-      aria-label={isOverdue ? `Overdue follow-up: ${followUp.title}` : undefined}
+      aria-label={isOverdue ? `Overdue follow-up: ${followUp.title}` : `Follow-up: ${followUp.title}`}
     >
       <div
         className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer ${
-          isOverdue ? "border-red-300 bg-red-50" : "bg-orange-50"
+          isOverdue ? "border-red-300 bg-red-50" : "border-orange-300 bg-orange-50"
         }`}
       >
         <div className="flex items-center gap-3">

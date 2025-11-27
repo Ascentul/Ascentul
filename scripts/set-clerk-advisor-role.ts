@@ -57,7 +57,7 @@ async function setAdvisorRole(email: string) {
     console.log(`✅ Successfully set role to 'advisor' for user ${user.id}`);
     console.log('\nUser details:');
     console.log(`  - User ID: ${user.id}`);
-    console.log('  - Email: [redacted for privacy]');
+    console.log(`  - Email: ${email}`);
     console.log('  - Role: advisor');
     console.log('\n⚠️  Important: The user must LOG OUT and LOG BACK IN for changes to take effect!');
     console.log('\n📋 Next step: Ensure user has university_id in Convex:');

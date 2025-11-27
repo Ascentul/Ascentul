@@ -166,7 +166,7 @@ export const deleteCoverLetter = mutation({
     }
 
     // Referential integrity: Check for active reviews before deletion
-    const activeReviews = await ctx.db
+    const activeReview = await ctx.db
       .query("advisor_reviews")
       .withIndex("by_student", (q) => q.eq("student_id", user._id))
       .filter((q) =>
@@ -179,7 +179,7 @@ export const deleteCoverLetter = mutation({
       )
       .first();
 
-    if (activeReviews) {
+    if (activeReview) {
       throw new Error(
         "Cannot delete cover letter: Active review in progress. Please wait for the review to complete or contact your advisor.",
       );
