@@ -136,8 +136,9 @@ The script:
 
 4. **[convex/analytics.ts](../convex/analytics.ts)**
    - Updated analytics queries
-   - Changed `completed` → `status === 'open'`
-   - Changed `completed` && `updated_at` → `status === 'done'` && `completed_at`
+   - Changed `!completed` (pending) → `status === 'open'`
+   - Changed `completed` (done) → `status === 'done'`
+   - Changed `updated_at` (for completed items) → `completed_at`
 
 5. **[convex/contact_interactions.ts](../convex/contact_interactions.ts)**
    - Updated all contact follow-up queries

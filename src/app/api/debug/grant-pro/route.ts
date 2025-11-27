@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 
-async function requireAdminAuth(request: NextRequest): Promise<{ userId: string } | { error: NextResponse }> {
+async function requireAdminAuth(_request: NextRequest): Promise<{ userId: string } | { error: NextResponse }> {
   if (process.env.NODE_ENV === 'production') {
     return { error: NextResponse.json({ error: 'Disabled in production' }, { status: 403 }) }
   }
 
-  const { userId } = getAuth(request)
+  const { userId } = await auth()
 
   if (!userId) {
     return { error: NextResponse.json({ error: 'Authentication required' }, { status: 401 }) }
@@ -143,6 +143,7 @@ export async function GET(request: NextRequest) {
     return await processUpgrade({
       convexId: searchParams.get('convexId') || undefined,
       email: searchParams.get('email') || undefined,
+      clerkId: searchParams.get('clerkId') || undefined,
       fallbackUserId: auth.userId,
     })
   } catch (error) {

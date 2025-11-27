@@ -154,6 +154,7 @@ export const verifyMigration = query({
     }> = [];
 
     for (const app of withStage) {
+      if (!app.status) continue; // Skip apps with no original status
       const expectedStage = mapStatusToStage(app.status);
       if (app.stage !== expectedStage) {
         mismatches.push({

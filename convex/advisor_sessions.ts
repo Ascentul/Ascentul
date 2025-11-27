@@ -323,6 +323,12 @@ export const updateSession = mutation({
       throw new Error("Session not found");
     }
 
+    // Verify tenant isolation
+    const universityId = requireTenant(sessionCtx);
+    if (session.university_id !== universityId) {
+      throw new Error("Unauthorized: Session not in your university");
+    }
+
     // Verify access to student
     await assertCanAccessStudent(ctx, sessionCtx, session.student_id);
 
@@ -512,6 +518,12 @@ export const completeSession = mutation({
     const session = await ctx.db.get(args.sessionId);
     if (!session) {
       throw new Error("Session not found");
+    }
+
+    // Verify tenant isolation
+    const universityId = requireTenant(sessionCtx);
+    if (session.university_id !== universityId) {
+      throw new Error("Unauthorized: Session not in your university");
     }
 
     // Strict ownership check: Only the original advisor can complete their own session.

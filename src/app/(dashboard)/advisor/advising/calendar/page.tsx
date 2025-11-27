@@ -37,10 +37,11 @@ export default function AdvisorCalendarPage() {
 
   const { startDate, endDate } = useMemo(() => {
     // Fetch data for the current month plus adjacent weeks for smooth navigation
+    // Use weekStartsOn: 1 (Monday) to match CalendarControls display
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
-    const start = startOfWeek(monthStart);
-    const end = endOfWeek(monthEnd);
+    const start = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const end = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
     return {
       startDate: start.getTime(),

@@ -224,7 +224,7 @@ export default function AdvisorTodayPage() {
                       session.end_at &&
                       session.end_at >= now;
 
-                    const SessionIcon = SESSION_TYPE_ICONS[session.session_type || '1-on-1'] || User;
+                    const SessionIcon = SESSION_TYPE_ICONS[session.session_type as keyof typeof SESSION_TYPE_ICONS] || User;
 
                     return (
                       <div

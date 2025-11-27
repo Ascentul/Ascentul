@@ -214,6 +214,9 @@ export const updateSession = mutation({
     if (args.start_at !== undefined || args.duration_minutes !== undefined) {
       const start = args.start_at ?? session.start_at;
       const duration = args.duration_minutes ?? session.duration_minutes;
+      if (!start || start <= 0) {
+        throw new Error("Cannot calculate end_at: start_at is missing or invalid");
+      }
       if (!duration || duration <= 0) {
         throw new Error("Cannot calculate end_at: duration_minutes is missing or invalid");
       }

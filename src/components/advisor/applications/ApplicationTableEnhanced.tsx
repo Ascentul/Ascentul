@@ -18,6 +18,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -149,7 +150,7 @@ export function ApplicationTableEnhanced({
           const parsedDate = new Date(year, month - 1, day);
           if (isNaN(parsedDate.getTime())) {
             console.error("Invalid date format");
-            // TODO: Show toast notification
+            toast.error("Invalid date format");
             return;
           }
           dueDateTimestamp = parsedDate.getTime();
@@ -167,7 +168,7 @@ export function ApplicationTableEnhanced({
         setEditDueDate("");
       } catch (error) {
         console.error("Failed to update next step:", error);
-        // TODO: Show toast notification
+        toast.error(error instanceof Error ? error.message : "Failed to update next step");
       }
     },
     [clerkId, editNextStep, editDueDate, updateNextStepMutation]
