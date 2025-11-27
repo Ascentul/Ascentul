@@ -1649,7 +1649,9 @@ export const detectDuplicateInvites = query({
     const duplicates = [];
     for (const [key, invites] of Array.from(invitesByKey.entries())) {
       if (invites.length > 1) {
-        const [universityId, email] = key.split(":");
+        const colonIndex = key.indexOf(":");
+        const universityId = key.substring(0, colonIndex);
+        const email = key.substring(colonIndex + 1);
         const university = await ctx.db.get(universityId as Id<"universities">);
 
         // Sort by created_at to identify oldest (keep) vs newest (delete)

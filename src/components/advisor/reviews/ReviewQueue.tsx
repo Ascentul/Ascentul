@@ -222,21 +222,21 @@ export function ReviewQueue({ reviews, isLoading }: ReviewQueueProps) {
                       </div>
 
                       <div className='flex gap-2'>
-                        <Link href={`/advisor/advising/reviews/${review._id}`}>
-                          <Button variant='default' size='sm'>
+                        <Button variant='default' size='sm' asChild>
+                          <Link href={`/advisor/advising/reviews/${review._id}`}>
                             {isApproved || isNeedsEdits
                               ? 'View Review'
                               : isInReview
                               ? 'Continue Review'
                               : 'Start Review'}
-                          </Button>
-                        </Link>
+                          </Link>
+                        </Button>
 
-                        <Link href={`/advisor/students/${review.student_id}`}>
-                          <Button variant='outline' size='sm'>
+                        <Button variant='outline' size='sm' asChild>
+                          <Link href={`/advisor/students/${review.student_id}`}>
                             View Student
-                          </Button>
-                        </Link>
+                          </Link>
+                        </Button>
                       </div>
                     </div>
                   </div>

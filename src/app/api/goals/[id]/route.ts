@@ -4,7 +4,8 @@ import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 
-const isValidId = (id: string) => /^[0-9a-z]+$/i.test(id.trim());
+// Convex IDs use Crockford base32hex (digits + a-v)
+const isValidId = (id: string) => /^[0-9a-v]+$/.test(id.trim());
 
 export async function PUT(request: NextRequest, context: { params: { id: string } }) {
   try {

@@ -368,7 +368,10 @@ export const getAuditLogStats = query({
 
     // Filter end date in memory if needed (can't use index for upper bound)
     const filteredLogs = args.endDate
-      ? allLogs.filter(log => log.timestamp !== undefined && log.timestamp <= args.endDate!)
+      ? allLogs.filter(log => {
+          const logTimestamp = log.timestamp ?? log.created_at;
+          return logTimestamp !== undefined && logTimestamp <= args.endDate!;
+        })
       : allLogs
 
     // Count by action type

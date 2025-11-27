@@ -254,9 +254,23 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
       }
     };
 
+    // Warn user about unsaved changes before closing/navigating
+    // Note: Modern browsers show a generic message, custom text is ignored
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        // Trigger save attempt (best-effort, may not complete)
+        void saveChanges();
+        // Show browser's "unsaved changes" warning
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [hasUnsavedChanges, isSaving, saveChanges]);
   // Manual save button

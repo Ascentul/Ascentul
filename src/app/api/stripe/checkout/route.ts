@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     const stripe = new Stripe(stripeSecret, {
-      apiVersion: "2025-02-24.acacia",
+      apiVersion: "2025-11-17.clover",
     });
     // Fetch current user record to get/create customer
     const user = await convexServer.query(api.users.getUserByClerkId, {

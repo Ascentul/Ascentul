@@ -262,8 +262,9 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
                             href={app.application_url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            aria-label={`Open application for ${app.company_name} in new tab`}
                           >
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" aria-hidden="true">
                               <ExternalLink className="h-4 w-4" />
                             </Button>
                           </a>

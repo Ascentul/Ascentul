@@ -171,6 +171,34 @@ export function ReviewEditor({
     };
   }, [hasUnsavedChanges, review.status]);
 
+  // Save when tab becomes hidden or window closes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && hasUnsavedChanges && !isSaving) {
+        // Save immediately when tab becomes hidden
+        void saveChangesRef.current();
+      }
+    };
+
+    // Warn user about unsaved changes before closing/navigating
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        // Trigger save attempt (best-effort, may not complete)
+        void saveChangesRef.current();
+        // Show browser's "unsaved changes" warning
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges, isSaving]);
+
   // Manual save
   const handleManualSave = async () => {
     const saved = await saveChanges();

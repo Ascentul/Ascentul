@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import { ClerkPublicMetadata } from '@/types/clerk'
 import { VALID_USER_ROLES, UserRole } from '@/lib/constants/roles'
 import { isValidUserRole } from '@/lib/validation/roleValidation'
+import { convexServer } from '@/lib/convex-server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
 
 /**
  * Update Convex user role (manual sync utility)
@@ -48,13 +46,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!convexUrl) {
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      )
-    }
-
     const body = await request.json()
     const { userId, role } = body
 
@@ -84,18 +75,8 @@ export async function POST(request: NextRequest) {
     // Get target user from Clerk
     const targetUser = await client.users.getUser(userId)
 
-    // Update Convex
-    // Role is already validated by isValidUserRole above
-    const convex = new ConvexHttpClient(convexUrl)
-    const convexToken = await authResult.getToken({ template: 'convex' })
-    if (!convexToken) {
-      return NextResponse.json(
-        { error: 'Failed to obtain Convex authentication token' },
-        { status: 500 }
-      )
-    }
-    convex.setAuth(convexToken)
-    await convex.mutation(api.users.updateUser, {
+    // Update Convex (Clerk-first; Convex sync)
+    await convexServer.mutation(api.users.updateUser, {
       clerkId: userId,
       updates: {
         role: role as UserRole,

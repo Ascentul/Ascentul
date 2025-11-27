@@ -282,17 +282,23 @@ export const getReviewQueueStats = query({
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
+    const ownedStudentIds = new Set(await getOwnedStudentIds(ctx, sessionCtx));
 
     const allReviews = await ctx.db
       .query("advisor_reviews")
       .withIndex("by_university", (q) => q.eq("university_id", universityId))
       .collect();
 
+    // Filter to advisor's caseload for consistent stats
+    const caseloadReviews = allReviews.filter((r) =>
+      ownedStudentIds.has(r.student_id)
+    );
+
     // Single-pass statistics calculation for better performance
     // Urgent threshold: reviews waiting more than 3 days
     const urgentThreshold = Date.now() - 3 * 24 * 60 * 60 * 1000;
 
-    const stats = allReviews.reduce(
+    const stats = caseloadReviews.reduce(
       (acc, r) => {
         if (r.status === "waiting") {
           acc.waiting++;

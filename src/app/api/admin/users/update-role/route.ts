@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
-import { fetchQuery } from 'convex/nextjs'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { ClerkPublicMetadata } from '@/types/clerk'
 import { isValidUserRole } from '@/lib/validation/roleValidation'
+import { convexServer } from '@/lib/convex-server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const university = await fetchQuery(api.universities.getUniversity, {
+        const university = await convexServer.query(api.universities.getUniversity, {
           universityId: universityId as Id<'universities'>
         })
 
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
 
     // Validate transition against backend rules (leverages Convex roleValidation)
     try {
-      const validation = await fetchQuery(api.roleValidation.validateRoleTransition, {
+      const validation = await convexServer.query(api.roleValidation.validateRoleTransition, {
         userId: targetUserId,
         currentRole: currentRole || 'user',
         newRole,

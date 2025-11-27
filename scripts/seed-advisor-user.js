@@ -81,6 +81,7 @@ async function createOrUpdateClerkUser({ email, password, firstName, lastName, r
     method: 'PATCH',
     body: {
       public_metadata: {
+        ...(user.public_metadata || {}),
         role,
         university_id: universityId,
       },
