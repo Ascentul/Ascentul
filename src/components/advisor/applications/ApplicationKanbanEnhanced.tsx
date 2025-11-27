@@ -154,6 +154,7 @@ export function ApplicationKanbanEnhanced({
   };
 
   const handleSuccess = (applicationId: string, newStage: string) => {
+    handleModalClose();
     if (onRefresh) {
       onRefresh(applicationId, newStage);
     }
@@ -385,7 +386,7 @@ function ApplicationCard({
           </span>
           {app.student_graduation_year && (
             <span className="text-muted-foreground">
-              '{app.student_graduation_year.slice(-2)}
+              '{String(app.student_graduation_year).slice(-2)}
             </span>
           )}
         </div>

@@ -163,16 +163,16 @@ export const getTodaySessions = query({
     const now = Date.now();
     const offsetMs = (args.clientTimezoneOffset ?? 0) * 60 * 1000;
     // Adjust current time to client's local time for day boundary calculation
-    // clientTimezoneOffset is minutes from UTC (e.g., -300 for EST/UTC-5)
-    // To get local time: UTC + offset
-    const clientLocalTime = new Date(now + offsetMs);
+    // clientTimezoneOffset matches Date.getTimezoneOffset(): positive west of UTC (e.g., 300 for EST/UTC-5)
+    // To get local time: UTC - offset
+    const clientLocalTime = new Date(now - offsetMs);
     const startOfDayLocal = new Date(
       clientLocalTime.getFullYear(),
       clientLocalTime.getMonth(),
       clientLocalTime.getDate(),
     ).getTime();
     // Convert back to UTC for database comparison
-    const startOfDay = startOfDayLocal - offsetMs;
+    const startOfDay = startOfDayLocal + offsetMs;
     const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
 
     // Use collect() to return all sessions for the day (typically < 20 for most advisors)

@@ -582,18 +582,28 @@ export const removeStudentAdvisor = mutation({
       throw new Error("Assignment not in your university");
     }
 
-    // Prevent orphaning a student without an owner advisor
-    if (assignment.is_owner) {
-      const otherAdvisors = await ctx.db
-        .query("student_advisors")
-        .withIndex("by_student_owner", (q) =>
-          q.eq("student_id", assignment.student_id).eq("is_owner", false),
-        )
-        .collect();
+    // Prevent orphaning a student without any advisor
+    // Get all other advisors for this student (excluding the one being removed)
+    const otherAdvisors = await ctx.db
+      .query("student_advisors")
+      .withIndex("by_student", (q) =>
+        q.eq("student_id", assignment.student_id).eq("university_id", universityId),
+      )
+      .filter((q) => q.neq(q.field("_id"), args.assignmentId))
+      .collect();
 
-      if (otherAdvisors.length === 0) {
+    if (otherAdvisors.length === 0) {
+      throw new Error(
+        "Cannot remove the only advisor. Assign another advisor first.",
+      );
+    }
+
+    // If removing an owner, ensure another owner exists
+    if (assignment.is_owner) {
+      const hasAnotherOwner = otherAdvisors.some((a) => a.is_owner);
+      if (!hasAnotherOwner) {
         throw new Error(
-          "Cannot remove the only advisor. Assign another advisor as owner first.",
+          "Cannot remove the owner advisor. Assign another advisor as owner first.",
         );
       }
     }

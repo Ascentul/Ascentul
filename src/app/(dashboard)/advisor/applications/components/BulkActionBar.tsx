@@ -120,6 +120,9 @@ export function BulkActionBar({
       await onChangeStage(selectedStage);
       setSelectedStage('');
       setNotes('');
+    } catch (error) {
+      console.error('Failed to change stage:', error);
+      // Optional: add toast/notification here
     } finally {
       setIsProcessing(false);
     }
@@ -143,6 +146,9 @@ export function BulkActionBar({
     setIsProcessing(true);
     try {
       await onMarkReviewed();
+    } catch (error) {
+      console.error('Failed to mark as reviewed:', error);
+      // Optional: add toast/notification here
     } finally {
       setIsProcessing(false);
     }
@@ -174,6 +180,9 @@ export function BulkActionBar({
       // Reset state on success
       handleCancelDialog();
       setSelectedStage('');
+    } catch (error) {
+      console.error('Bulk action failed:', error);
+      // Optional: add toast/notification here
     } finally {
       setIsProcessing(false);
     }

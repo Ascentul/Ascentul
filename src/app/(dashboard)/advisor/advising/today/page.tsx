@@ -273,9 +273,24 @@ export default function AdvisorTodayPage() {
                                 In Progress
                               </Badge>
                             )}
-                            {isPast && (
+                            {isPast && session.status === "completed" && (
                               <Badge variant="secondary" className="mt-2">
                                 Completed
+                              </Badge>
+                            )}
+                            {isPast && session.status === "cancelled" && (
+                              <Badge variant="outline" className="mt-2">
+                                Cancelled
+                              </Badge>
+                            )}
+                            {isPast && session.status === "no_show" && (
+                              <Badge variant="destructive" className="mt-2">
+                                No Show
+                              </Badge>
+                            )}
+                            {isPast && (!session.status || session.status === "scheduled") && (
+                              <Badge variant="outline" className="mt-2">
+                                Past
                               </Badge>
                             )}
                             {session.notes && (
