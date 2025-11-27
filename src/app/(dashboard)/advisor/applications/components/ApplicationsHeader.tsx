@@ -363,23 +363,23 @@ function NeedActionMetric({ value, breakdown, onClick, onClickReason }: NeedActi
       <Tooltip>
         <TooltipTrigger asChild>
           <Card
-            className={`cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
-              hasIssues ? 'border-orange-200 bg-orange-50/50' : ''
-            }`}
-            onClick={onClick}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onClick();
-              }
-            }}
-            aria-label="Filter by applications needing action"
+            className={`${hasIssues ? 'border-orange-200 bg-orange-50/50' : ''}`}
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Need Action</CardTitle>
-              <AlertCircle className="h-4 w-4 text-orange-500" aria-hidden="true" />
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-sm font-medium">Need Action</CardTitle>
+                <AlertCircle className="h-4 w-4 text-orange-500" aria-hidden="true" />
+              </div>
+              {onClick && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onClick}
+                  aria-label="Filter all applications needing action"
+                >
+                  View all
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">{value}</div>

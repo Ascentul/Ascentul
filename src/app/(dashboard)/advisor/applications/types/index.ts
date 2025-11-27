@@ -62,38 +62,12 @@ export const URGENCY_LABELS: Record<UrgencyLevel, string> = {
 // Application Data Types
 // ============================================================================
 
-/**
- * Application stages (source of truth for application state)
- */
-export type ApplicationStage =
-  | 'Prospect'
-  | 'Applied'
-  | 'Interview'
-  | 'Offer'
-  | 'Accepted'
-  | 'Rejected'
-  | 'Withdrawn'
-  | 'Archived';
-
-/**
- * Active stages where applications need ongoing advisor attention
- */
-export const ACTIVE_STAGES: ApplicationStage[] = [
-  'Prospect',
-  'Applied',
-  'Interview',
-  'Offer',  // Offers need attention until student accepts/rejects
-];
-
-/**
- * Final/terminal stages where no further action is expected
- */
-export const TERMINAL_STAGES: ApplicationStage[] = [
-  'Accepted',
-  'Rejected',
-  'Withdrawn',
-  'Archived',
-];
+// Re-export stage types/constants from centralized source of truth
+export {
+  ApplicationStage,
+  ACTIVE_STAGES,
+  TERMINAL_STAGES,
+} from '@/lib/advisor/stages';
 
 /**
  * Enriched application with student information and computed fields

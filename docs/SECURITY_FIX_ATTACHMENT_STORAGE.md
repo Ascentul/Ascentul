@@ -129,9 +129,11 @@ export const getSessionAttachmentUrl = query({
     const attachment = session.attachments?.find(a => a.id === args.attachmentId);
     if (!attachment) throw new Error("Attachment not found");
 
-    // 5. Generate download URL with access control
-    // Note: Access control is enforced by this query function, not by URL expiration
-    // Upload URLs (ctx.storage.generateUploadUrl) expire after 1 hour
+    // 5. Generate a temporary download URL
+    // Access is checked here before issuing the URL. After that, the presigned URL
+    // is a bearer-style token: anyone with the link can download until it expires
+    // (default ~15 minutes). There is no re-auth on download. For per-request
+    // authorization, generate the file via an HTTP action instead.
     const url = await ctx.storage.getUrl(attachment.storage_id);
     return url;
   },
@@ -284,12 +286,12 @@ export const getSessionAttachment = query({
 | Before (URL) | After (storage_id) |
 |-------------|-------------------|
 | ❌ No access control | ✅ Permission-based access |
-| ❌ Permanent URLs | ✅ Time-limited upload URLs* |
+| ❌ Permanent URLs | ✅ Time-limited URLs* |
 | ❌ No revocation | ✅ Can revoke access |
 | ❌ No audit trail | ✅ Logged access |
 | ❌ Cross-tenant risk | ✅ Tenant isolation enforced |
 
-*Download URLs via getUrl() do not expire; upload URLs expire after 1 hour.
+*Download URLs from `getUrl()` are presigned bearer tokens that expire by default after ~15 minutes (Convex default 900s). Upload URLs expire after ~1 hour.
 
 ---
 

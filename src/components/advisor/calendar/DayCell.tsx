@@ -10,7 +10,7 @@ interface Session {
   title: string;
   session_type: string;
   start_at: number;
-  end_at: number;
+  end_at?: number; // Optional - calculated from duration_minutes if not provided
   duration_minutes: number;
   location?: string;
   meeting_url?: string;

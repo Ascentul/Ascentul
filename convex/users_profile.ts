@@ -685,6 +685,18 @@ export const updateUserWithMembership = mutation({
       throw new Error("Unauthorized: Authentication required");
     }
 
+    // For non-service calls, ensure caller is authorized (super_admin)
+    if (!isService && identity) {
+      const callingUser = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .unique();
+
+      if (!callingUser || callingUser.role !== "super_admin") {
+        throw new Error("Forbidden: Only super admins can update users with membership");
+      }
+    }
+
     // Get target user by clerkId
     const user = await ctx.db
       .query("users")

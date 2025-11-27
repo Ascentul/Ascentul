@@ -52,7 +52,7 @@ interface Session {
   title: string;
   session_type: string;
   start_at: number;
-  end_at: number;
+  end_at?: number; // Optional - calculated from duration_minutes if not provided
   duration_minutes: number;
   location?: string;
   meeting_url?: string;
@@ -75,12 +75,32 @@ interface CalendarViewProps {
   sessions: Session[];
   followUps: FollowUp[];
   isLoading?: boolean;
+  currentDate?: Date;
+  onDateChange?: (date: Date) => void;
 }
 
-export function CalendarView({ sessions, followUps, isLoading }: CalendarViewProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+export function CalendarView({ sessions, followUps, isLoading, currentDate: controlledDate, onDateChange }: CalendarViewProps) {
+  const [internalDate, setInternalDate] = useState(controlledDate ?? new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [now, setNow] = useState(Date.now());
+
+  // Sync internal date when controlled value changes
+  useEffect(() => {
+    if (controlledDate) {
+      setInternalDate(controlledDate);
+    }
+  }, [controlledDate]);
+
+  const currentDate = controlledDate ?? internalDate;
+
+  const updateDate = (updater: (date: Date) => Date) => {
+    const nextDate = updater(currentDate);
+    if (onDateChange) {
+      onDateChange(nextDate);
+    } else {
+      setInternalDate(nextDate);
+    }
+  };
 
   // Update current time every minute for accurate session status
   useEffect(() => {
@@ -93,19 +113,23 @@ export function CalendarView({ sessions, followUps, isLoading }: CalendarViewPro
 
   // Navigation handlers
   const handlePrevious = () => {
-    if (viewMode === 'day') setCurrentDate(subDays(currentDate, 1));
-    else if (viewMode === 'week') setCurrentDate(subWeeks(currentDate, 1));
-    else setCurrentDate(subMonths(currentDate, 1));
+    updateDate((date) => {
+      if (viewMode === 'day') return subDays(date, 1);
+      if (viewMode === 'week') return subWeeks(date, 1);
+      return subMonths(date, 1);
+    });
   };
 
   const handleNext = () => {
-    if (viewMode === 'day') setCurrentDate(addDays(currentDate, 1));
-    else if (viewMode === 'week') setCurrentDate(addWeeks(currentDate, 1));
-    else setCurrentDate(addMonths(currentDate, 1));
+    updateDate((date) => {
+      if (viewMode === 'day') return addDays(date, 1);
+      if (viewMode === 'week') return addWeeks(date, 1);
+      return addMonths(date, 1);
+    });
   };
 
   const handleToday = () => {
-    setCurrentDate(new Date());
+    updateDate(() => new Date());
   };
 
   // Get days to display based on view mode (memoized to avoid recalculation)
@@ -187,6 +211,7 @@ export function CalendarView({ sessions, followUps, isLoading }: CalendarViewPro
                 currentMonth={currentDate}
                 sessions={getSessionsForDay(day)}
                 followUps={getFollowUpsForDay(day)}
+                now={now}
               />
             ))}
           </div>

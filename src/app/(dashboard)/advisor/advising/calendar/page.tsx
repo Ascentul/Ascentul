@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import { AdvisorGate } from "@/components/advisor/AdvisorGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { CalendarView } from "@/components/advisor/calendar/CalendarView";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
@@ -63,18 +62,6 @@ export default function AdvisorCalendarPage() {
     api.advisor_calendar.getCalendarStats,
     clerkId ? { clerkId, startDate, endDate } : "skip"
   );
-
-  const handlePreviousMonth = () => {
-    setCurrentDate((prev) => subMonths(prev, 1));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentDate((prev) => addMonths(prev, 1));
-  };
-
-  const handleToday = () => {
-    setCurrentDate(new Date());
-  };
 
   const isLoading = sessions === undefined || followUps === undefined || stats === undefined;
 
@@ -168,35 +155,6 @@ export default function AdvisorCalendarPage() {
                 <CalendarIcon className="h-5 w-5" />
                 Advising Calendar
               </CardTitle>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium mr-2">
-                  {format(currentDate, "MMMM yyyy")}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePreviousMonth}
-                  aria-label="Previous month"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleToday}
-                  className="min-w-[100px]"
-                >
-                  Today
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNextMonth}
-                  aria-label="Next month"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -204,6 +162,8 @@ export default function AdvisorCalendarPage() {
               sessions={sessions || []}
               followUps={followUps || []}
               isLoading={isLoading}
+              currentDate={currentDate}
+              onDateChange={setCurrentDate}
             />
           </CardContent>
         </Card>

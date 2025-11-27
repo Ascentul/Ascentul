@@ -12,6 +12,7 @@ import {
   getCurrentUser,
   requireAdvisorRole,
   requireTenant,
+  createAuditLog,
 } from "./advisor_auth";
 
 /**
@@ -295,10 +296,18 @@ export const returnReviewToQueue = mutation({
       version: (review.version ?? 0) + 1,
     });
 
-    // Log the reason for audit purposes
-    if (args.reason) {
-      console.log(`Review ${args.review_id} returned to queue. Reason: ${args.reason}`);
-    }
+    // Audit log for returning to queue
+    await createAuditLog(ctx, {
+      actorId: sessionCtx.userId,
+      universityId: review.university_id,
+      action: "review.returned_to_queue",
+      entityType: "advisor_review",
+      entityId: args.review_id,
+      studentId: review.student_id,
+      previousValue: { status: "in_review", reviewed_by: review.reviewed_by },
+      newValue: { status: "waiting", reason: args.reason },
+      ipAddress: "server",
+    });
 
     return { success: true };
   },
