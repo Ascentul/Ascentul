@@ -16,9 +16,8 @@ export const getUserApplications = query({
       throw new Error("User not found");
     }
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    // Note: We don't require membership for read queries - users can always view their own applications
+    // Membership is only used for write operations and tenant isolation
 
     // OPTIMIZED: Add limit to prevent bandwidth issues for power users
     const applications = await ctx.db
