@@ -93,26 +93,25 @@ export async function GET(request: NextRequest) {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Try to fetch user profile and projects from Convex, but gracefully degrade if unavailable
     let user: any = null
     let projects: any[] = []
 
     try {
       user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
-      // Fetch user's projects
-      try {
-        projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId })
-      } catch (projectError) {
-        console.warn('Failed to fetch user projects:', {
-          message: projectError instanceof Error ? projectError.message : 'Unknown error',
-        })
-        // projects are optional; continue with empty array
-      }
     } catch (userError) {
-      console.warn('Failed to fetch user profile:', {
+      console.error('Failed to fetch user profile:', {
         message: userError instanceof Error ? userError.message : 'Unknown error',
       })
-      // can still return a mock profile
+      return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 503 })
+    }
+
+    try {
+      projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId })
+    } catch (projectError) {
+      console.warn('Failed to fetch user projects:', {
+        message: projectError instanceof Error ? projectError.message : 'Unknown error',
+      })
+      // projects are optional; continue with empty array
     }
 
     // Build a comprehensive profile from actual user data

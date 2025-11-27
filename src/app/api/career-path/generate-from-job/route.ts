@@ -2259,10 +2259,6 @@ const persistCareerPathToConvex = async (
   }
 ): Promise<void> => {
   try {
-): Promise<void> => {
-  try {
-    await convexServer.mutation(api.career_paths.createCareerPath, {
-
     await convexServer.mutation(api.career_paths.createCareerPath, {
       clerkId: userId,
       target_role: targetRole,

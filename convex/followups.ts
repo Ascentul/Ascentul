@@ -102,7 +102,7 @@ export const createFollowup = mutation({
 
       // Relationships (dual-field pattern: populate both generic and typed fields)
       related_type: 'application',
-      related_id: args.applicationId, // String version for composite index queries
+      related_id: args.applicationId, // Generic field for polymorphic queries
       application_id: args.applicationId, // Typed field for referential integrity
 
       // Task management

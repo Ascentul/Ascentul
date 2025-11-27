@@ -405,6 +405,12 @@ export const deleteSession = mutation({
       throw new Error("Session not found");
     }
 
+    // Verify tenant isolation
+    const universityId = requireTenant(sessionCtx);
+    if (session.university_id !== universityId) {
+      throw new Error("Unauthorized: Session not in your university");
+    }
+
     // Only session owner or admin can delete
     if (
       session.advisor_id !== sessionCtx.userId &&
@@ -458,6 +464,12 @@ export const addSessionTask = mutation({
       throw new Error("Session not found");
     }
 
+    // Verify tenant isolation
+    const universityId = requireTenant(sessionCtx);
+    if (session.university_id !== universityId) {
+      throw new Error("Unauthorized: Session not in your university");
+    }
+
     await assertCanAccessStudent(ctx, sessionCtx, session.student_id);
 
     // Note: Unlike completeSession, this intentionally allows any advisor with
@@ -465,6 +477,12 @@ export const addSessionTask = mutation({
     // If strict ownership is needed, add: if (session.advisor_id !== sessionCtx.userId)
 
     const currentTasks = session.tasks || [];
+
+    // Ensure task ID is unique within session
+    if (currentTasks.some(t => t.id === args.task.id)) {
+      throw new Error("Task ID already exists in this session");
+    }
+
     const updatedTasks = [...currentTasks, args.task];
 
     await ctx.db.patch(args.sessionId, {

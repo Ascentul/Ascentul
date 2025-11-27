@@ -50,6 +50,16 @@ export const setAdvisorRole = internalMutation({
       };
     }
 
+    // Verify university exists to prevent orphaned references
+    const university = await ctx.db.get(universityId);
+    if (!university) {
+      console.log(`❌ University not found: ${universityId}`);
+      return {
+        success: false,
+        message: `University with ID ${universityId} not found. Please provide a valid university_id.`,
+      };
+    }
+
     await ctx.db.patch(user._id, {
       role: ADVISOR_ROLE,
       university_id: universityId,

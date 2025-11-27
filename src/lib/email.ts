@@ -820,7 +820,8 @@ export async function sendReviewCompletionEmail(
   reviewType: string,
   reviewUrl: string
 ): Promise<EmailResult> {
-  const firstName = studentName.split(' ')[0] || studentName
+  const trimmedName = studentName?.trim() || ''
+  const firstName = trimmedName.split(' ')[0] || trimmedName || 'there'
   const subject = `Your ${reviewType} Review is Complete`
 
   const text = `Hi ${firstName},

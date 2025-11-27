@@ -168,6 +168,9 @@ export default function AdvisorCalendarPage() {
                 Advising Calendar
               </CardTitle>
               <div className="flex items-center gap-2">
+                <span className="text-sm font-medium mr-2">
+                  {format(currentDate, "MMMM yyyy")}
+                </span>
                 <Button
                   variant="outline"
                   size="sm"

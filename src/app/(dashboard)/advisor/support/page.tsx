@@ -580,7 +580,26 @@ export default function AdvisorSupportPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-xs text-muted-foreground">Status</Label>
-                      <div className="mt-1">{getStatusBadge(selectedTicket.status)}</div>
+                      <div className="mt-1 flex items-center gap-2">
+                        {getStatusBadge(selectedTicket.status)}
+                        <Select
+                          value={selectedTicket.status}
+                          onValueChange={(value) => handleUpdateStatus(
+                            selectedTicket._id,
+                            value as 'open' | 'in_progress' | 'resolved' | 'closed'
+                          )}
+                        >
+                          <SelectTrigger className="w-[140px] h-8 text-xs">
+                            <SelectValue placeholder="Change status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="open">Open</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="resolved">Resolved</SelectItem>
+                            <SelectItem value="closed">Closed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Priority</Label>
@@ -605,7 +624,45 @@ export default function AdvisorSupportPage() {
                       </CardContent>
                     </Card>
                   </div>
+
+                  {/* Add Response */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Add Response</Label>
+                    <div className="mt-2 flex gap-2">
+                      <Textarea
+                        placeholder="Type your response..."
+                        value={responseText}
+                        onChange={(e) => setResponseText(e.target.value)}
+                        rows={3}
+                        className="flex-1"
+                      />
+                    </div>
+                    <Button
+                      onClick={handleAddResponse}
+                      disabled={!responseText.trim()}
+                      className="mt-2"
+                      size="sm"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Send Response
+                    </Button>
+                  </div>
                 </div>
+
+                {/* Dialog Footer with Delete Button */}
+                <DialogFooter className="flex justify-between sm:justify-between">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteTicket(selectedTicket._id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Ticket
+                  </Button>
+                  <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
+                    Close
+                  </Button>
+                </DialogFooter>
               </>
             )}
           </DialogContent>

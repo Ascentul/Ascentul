@@ -277,11 +277,12 @@ export default function Page() {
 
       // Pass university invite data to Clerk for webhook processing
       // This happens when user signs up via university invitation link (URL params)
+      // Always use formData.email since user may have changed the pre-filled email
       if (universityInvite.university) {
         signUpParams.unsafeMetadata = {
           universityInvite: {
             universityName: universityInvite.university,
-            inviteEmail: universityInvite.email || formData.email,
+            inviteEmail: formData.email.trim(),
           }
         }
       }

@@ -5,8 +5,15 @@
  * This ensures consistent rules across Kanban, Table, and Stats components.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { NeedActionReason, UrgencyLevel } from '../types';
+import { ACTIVE_STAGES } from 'convex/advisor_constants';
+
+/**
+ * Interval for time-based cache invalidation (1 minute)
+ * This ensures urgency calculations stay reasonably fresh without excessive re-renders
+ */
+const TIME_BUCKET_INTERVAL_MS = 60 * 1000;
 
 /**
  * Time constants for triage rules (in milliseconds)
@@ -38,11 +45,6 @@ export interface NeedActionResult {
   urgencyLevel: UrgencyLevel;
 }
 
-/**
- * Active stages where applications need ongoing advisor attention
- */
-const ACTIVE_STAGES = ['Prospect', 'Applied', 'Interview'];
-
 // ============================================================================
 // Core Triage Logic (Shared)
 // ============================================================================
@@ -58,7 +60,8 @@ function calculateNeedAction(
   const reasons: NeedActionReason[] = [];
 
   // Only apply triage rules to active stages
-  const isActiveStage = ACTIVE_STAGES.includes(application.stage);
+  // Cast needed because ACTIVE_STAGES is typed as readonly ApplicationStage[]
+  const isActiveStage = (ACTIVE_STAGES as readonly string[]).includes(application.stage);
 
   const daysSinceUpdate = Math.floor((now - application.updated_at) / ONE_DAY);
 
@@ -128,17 +131,41 @@ function calculateNeedAction(
 }
 
 // ============================================================================
-// React Hook
+// React Hooks
 // ============================================================================
 
 /**
+ * Hook that returns current time, updating at regular intervals
+ * Used to invalidate time-sensitive memoizations
+ */
+function useCurrentTimeBucket(): number {
+  const [timeBucket, setTimeBucket] = useState(() =>
+    Math.floor(Date.now() / TIME_BUCKET_INTERVAL_MS)
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeBucket(Math.floor(Date.now() / TIME_BUCKET_INTERVAL_MS));
+    }, TIME_BUCKET_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return timeBucket;
+}
+
+/**
  * Hook for single application triage
- * Uses memoization to prevent unnecessary recalculations
+ * Uses memoization with time-based invalidation to ensure fresh urgency calculations
  */
 export function useNeedActionRules(application: ApplicationForTriage): NeedActionResult {
+  const timeBucket = useCurrentTimeBucket();
+
   return useMemo(
     () => calculateNeedAction(application, Date.now()),
-    [application.next_step, application.next_step_date, application.updated_at, application.stage]
+    // timeBucket changes every minute, ensuring time-sensitive calculations stay fresh
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [application.next_step, application.next_step_date, application.updated_at, application.stage, timeBucket]
   );
 }
 

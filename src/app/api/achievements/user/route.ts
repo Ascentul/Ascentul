@@ -12,6 +12,7 @@ export async function GET() {
     const userAchievements = await convexServer.query(api.achievements.getUserAchievements, { clerkId: userId })
     return NextResponse.json({ userAchievements })
   } catch (e: any) {
+    console.error('Failed to load user achievements:', e)
     return NextResponse.json({ error: 'Failed to load user achievements' }, { status: 500 })
   }
 }

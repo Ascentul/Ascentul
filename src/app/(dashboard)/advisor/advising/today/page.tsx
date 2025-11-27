@@ -16,6 +16,10 @@ import {
   User,
   Video,
   MessageSquare,
+  FileText,
+  Target,
+  Compass,
+  MoreHorizontal,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -25,13 +29,15 @@ import type { Id } from 'convex/_generated/dataModel';
 
 /**
  * Session type icon mapping
+ * Matches session types from convex/advisor_sessions_mutations.ts
  */
 const SESSION_TYPE_ICONS = {
-  '1-on-1': User,
-  'group': User,
-  'workshop': User,
-  'virtual': Video,
-  'phone': MessageSquare,
+  'career_planning': Compass,
+  'resume_review': FileText,
+  'mock_interview': Video,
+  'application_strategy': Target,
+  'general_advising': MessageSquare,
+  'other': MoreHorizontal,
 } as const;
 
 /**
