@@ -80,7 +80,7 @@ async function processUpgrade(params: {
     // Validate convexId format before casting
     // Convex IDs use Crockford's Base32 encoding which excludes i, l, o, u
     // to avoid confusion with similar-looking characters (1/I/l, 0/O)
-    if (!convexId.match(/^[0-9a-hj-km-np-z]+$/)) {
+    if (!convexId.match(/^[0-9a-hj-km-np-tv-z]+$/)) {
       return NextResponse.json({
         error: 'Invalid convexId format',
         detail: 'Convex IDs must be Crockford Base32 encoded (0-9, a-h, j-k, m-n, p-z, excluding i, l, o, u)',

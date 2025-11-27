@@ -238,6 +238,9 @@ export const createReview = mutation({
       }
     }
 
+    // Verify advisor can access this student
+    await assertCanAccessStudent(ctx, sessionCtx, args.studentId);
+
     const now = Date.now();
 
     const reviewId = await ctx.db.insert("advisor_reviews", {
@@ -295,6 +298,15 @@ export const updateReviewStatus = mutation({
     if (!review) {
       throw new Error("Review not found");
     }
+
+    // Verify tenant isolation
+    const universityId = requireTenant(sessionCtx);
+    if (review.university_id !== universityId) {
+      throw new Error("Unauthorized: Review not in your university");
+    }
+
+    // Verify access to student
+    await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
 
     const now = Date.now();
     const previousStatus = review.status;

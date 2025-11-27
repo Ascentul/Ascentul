@@ -34,6 +34,7 @@ export const setupAdvisorTestData = internalMutation({
         max_students: 100,
         license_start: now,
         status: "active",
+        is_test: true,
         created_at: now,
         updated_at: now,
       });

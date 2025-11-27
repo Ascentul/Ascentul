@@ -9,6 +9,13 @@ echo "🚀 Creating Test Student Account for Advisor Testing"
 echo "===================================================="
 echo ""
 
+# Production safety check
+if [ "$NODE_ENV" = "production" ] || [ "$VERCEL_ENV" = "production" ]; then
+  echo "❌ SECURITY ERROR: This script must not be run in production!"
+  echo "This script contains test passwords and is for development only."
+  exit 1
+fi
+
 # Default values
 STUDENT_EMAIL="${STUDENT_EMAIL:-test.student@ascentful.io}"
 ADVISOR_EMAIL="${ADVISOR_EMAIL:-test.advisor@ascentful.io}"

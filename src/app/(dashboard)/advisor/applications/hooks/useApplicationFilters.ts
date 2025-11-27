@@ -49,6 +49,10 @@ export interface UseApplicationFiltersResult {
 
 /**
  * Hook for managing application filters
+ *
+ * Note: Initial state uses INBOX_MODE_FILTERS (needsAction=true) for focused triage.
+ * clearFilters() resets to DEFAULT_FILTERS (all filters off) to show all applications.
+ * This is intentional: clearing filters should reveal everything, not return to inbox mode.
  */
 export function useApplicationFilters(): UseApplicationFiltersResult {
   const [filters, setFilters] = useState<ApplicationFilters>(INBOX_MODE_FILTERS);

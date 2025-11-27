@@ -320,11 +320,12 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value='1-on-1'>1-on-1 Meeting</SelectItem>
-                <SelectItem value='group'>Group Session</SelectItem>
-                <SelectItem value='workshop'>Workshop</SelectItem>
-                <SelectItem value='virtual'>Virtual Meeting</SelectItem>
-                <SelectItem value='phone'>Phone Call</SelectItem>
+                <SelectItem value='career_planning'>Career Planning</SelectItem>
+                <SelectItem value='resume_review'>Resume Review</SelectItem>
+                <SelectItem value='mock_interview'>Mock Interview</SelectItem>
+                <SelectItem value='application_strategy'>Application Strategy</SelectItem>
+                <SelectItem value='general_advising'>General Advising</SelectItem>
+                <SelectItem value='other'>Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -339,7 +340,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
                 <SelectItem value='scheduled'>Scheduled</SelectItem>
                 <SelectItem value='completed'>Completed</SelectItem>
                 <SelectItem value='cancelled'>Cancelled</SelectItem>
-                <SelectItem value='no-show'>No-Show</SelectItem>
+                <SelectItem value='no_show'>No-Show</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -401,14 +402,11 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='private'>
-                Private (Only you can see)
+              <SelectItem value='advisor_only'>
+                Advisor Only (Only you can see)
               </SelectItem>
               <SelectItem value='shared'>
                 Shared (Visible to student)
-              </SelectItem>
-              <SelectItem value='team'>
-                Team (Visible to all advisors)
               </SelectItem>
             </SelectContent>
           </Select>

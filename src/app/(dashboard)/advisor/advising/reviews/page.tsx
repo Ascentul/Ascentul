@@ -13,10 +13,6 @@ export default function AdvisorReviewsPage() {
   const { user, isLoaded } = useUser();
   const clerkId = user?.id;
 
-  if (!isLoaded) {
-    return <div className='container mx-auto p-6'>Loading...</div>;
-  }
-
   const reviews = useQuery(
     api.advisor_reviews_queries.getReviews,
     clerkId ? { clerkId } : 'skip'
@@ -26,6 +22,10 @@ export default function AdvisorReviewsPage() {
     api.advisor_reviews_queries.getReviewQueueStats,
     clerkId ? { clerkId } : 'skip'
   );
+
+  if (!isLoaded) {
+    return <div className='container mx-auto p-6'>Loading...</div>;
+  }
 
   return (
     <ErrorBoundary>

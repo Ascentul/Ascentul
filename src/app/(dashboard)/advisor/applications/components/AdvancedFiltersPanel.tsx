@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 import {
   ApplicationStage,
   ApplicationFilters,
@@ -273,8 +274,6 @@ interface StageCheckboxProps {
   variant: 'active' | 'terminal' | 'success';
 }
 
-import { cn } from '@/lib/utils';
-
 function StageCheckbox({ stage, checked, onToggle, variant }: StageCheckboxProps) {
   const variantStyles = {
     active: 'border-blue-200 bg-blue-50/50 hover:bg-blue-100/50',
@@ -298,7 +297,7 @@ function StageCheckbox({ stage, checked, onToggle, variant }: StageCheckboxProps
       )}
       aria-pressed={checked}
     >
-      <Checkbox checked={checked} readOnly />
+      <Checkbox checked={checked} className="pointer-events-none" />
       <span className={checked ? 'font-semibold' : ''}>{stage}</span>
     </button>
   );
@@ -326,7 +325,7 @@ function CohortCheckbox({ cohort, checked, onToggle }: CohortCheckboxProps) {
       }`}
       aria-pressed={checked}
     >
-      <Checkbox checked={checked} onCheckedChange={() => onToggle(cohort)} />
+      <Checkbox checked={checked} className="pointer-events-none" />
       <span>Class of {cohort}</span>
     </button>
   );

@@ -27,17 +27,20 @@ type EnrichedApplication = {
   user_id: Id<'users'>;
   student_name: string;
   student_email: string;
+  student_graduation_year: string | undefined;
   company_name: string;
   position_title: string;
   stage: string | undefined;
   status: string | undefined;
   application_url: string | undefined;
+  location: string | undefined;
   applied_date: number | undefined;
   next_step: string | undefined;
   next_step_date: number | undefined;
   notes: string | undefined;
   created_at: number;
   updated_at: number;
+  assigned_advisor_id: Id<'users'> | undefined;
 };
 
 /**

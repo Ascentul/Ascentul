@@ -223,8 +223,7 @@ export function ApplicationTableEnhanced({
             {/* Select All Checkbox */}
             <TableHead className="w-12">
               <Checkbox
-                checked={allSelected}
-                indeterminate={someSelected}
+                checked={someSelected ? "indeterminate" : allSelected}
                 onCheckedChange={handleSelectAll}
                 aria-label="Select all applications"
               />

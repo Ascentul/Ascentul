@@ -267,13 +267,12 @@ export default function Page() {
 
     try {
       setSubmitting(true)
-
       // Build signup params with university metadata if applicable
       const signUpParams: SignUpCreateParams = {
-        emailAddress: formData.email,
+        emailAddress: formData.email.trim(),
         password: formData.password,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
       }
 
       // Pass university invite data to Clerk for webhook processing

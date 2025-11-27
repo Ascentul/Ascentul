@@ -586,7 +586,7 @@ export const verifyMigration = query({
       if (!['open', 'done'].includes(followUp.status)) {
         validationErrors.push(`${id}: Invalid status: ${followUp.status}`);
       }
-      if (followUp.priority && !['low', 'medium', 'high'].includes(followUp.priority)) {
+      if (followUp.priority && !['low', 'medium', 'high', 'urgent'].includes(followUp.priority)) {
         validationErrors.push(`${id}: Invalid priority: ${followUp.priority}`);
       }
       if (followUp.related_type && !['application', 'contact', 'session', 'review', 'general'].includes(followUp.related_type)) {
