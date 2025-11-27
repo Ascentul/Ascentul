@@ -16,7 +16,8 @@ The application currently uses `ConvexHttpClient` from `convex/browser` for serv
 ```typescript
 // src/lib/convex-server.ts
 import { ConvexHttpClient } from 'convex/browser';
-export const convexServer = new ConvexHttpClient(process.env.CONVEX_URL!);
+// Uses manual URL management (NEXT_PUBLIC_CONVEX_URL)
+export const convexServer = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 // Usage in API routes
 import { convexServer } from '@/lib/convex-server';

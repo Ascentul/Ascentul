@@ -72,13 +72,16 @@ export const getAllUsers = query({
     }
 
     const limit = args.limit || 50;
-    const users = await ctx.db
+    const result = await ctx.db
       .query("users")
       .order("desc")
-      .take(limit);
+      .paginate({ numItems: limit, cursor: null });
 
-    // Return in paginate-compatible format for backwards compatibility
-    return { page: users, isDone: users.length < limit, continueCursor: "" };
+    return {
+      page: result.page,
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+    };
   },
 });
 

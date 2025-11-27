@@ -289,7 +289,10 @@ export const returnReviewToQueue = mutation({
       updated_at: Date.now(),
     });
 
-    // TODO: Consider logging the reason for audit purposes
+    // Log the reason for audit purposes
+    if (args.reason) {
+      console.log(`Review ${args.review_id} returned to queue. Reason: ${args.reason}`);
+    }
 
     return { success: true };
   },

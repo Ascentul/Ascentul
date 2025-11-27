@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, MutationCtx } from "./_generated/server";
 import { api } from "./_generated/api";
+import { isServiceRequest } from "./lib/roles";
 
 // Roles that require university_id (university-affiliated roles)
 const UNIVERSITY_ROLES = ["student", "university_admin", "advisor", "staff"] as const;
@@ -110,6 +111,7 @@ export const updateSubscriptionByIdentifier = mutation({
   args: {
     clerkId: v.optional(v.string()),
     email: v.optional(v.string()),
+    serviceToken: v.optional(v.string()),
     subscription_plan: v.union(
       v.literal("free"),
       v.literal("premium"),
@@ -124,6 +126,23 @@ export const updateSubscriptionByIdentifier = mutation({
     onboarding_completed: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const isService = isServiceRequest(args.serviceToken);
+    if (!identity && !isService) {
+      throw new Error("Unauthorized");
+    }
+
+    let actingUser = null as any;
+    if (!isService) {
+      actingUser = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity!.subject))
+        .unique();
+      if (!actingUser) {
+        throw new Error("Unauthorized");
+      }
+    }
+
     let user = null as any;
 
     // Prefer Clerk ID (should always be provided by Clerk webhooks)
@@ -135,7 +154,7 @@ export const updateSubscriptionByIdentifier = mutation({
     }
 
     // Fallback to email (indexed) - legacy support
-    if (!user && args.email) {
+    if (!user && args.email && (isService || actingUser?.role === "super_admin")) {
       user = await ctx.db
         .query("users")
         .withIndex("by_email", (q) => q.eq("email", args.email!))
@@ -143,6 +162,11 @@ export const updateSubscriptionByIdentifier = mutation({
     }
 
     if (!user) throw new Error("User not found for subscription update");
+
+    const isSelf = !isService && actingUser.clerkId === user.clerkId;
+    if (!isService && !isSelf && actingUser.role !== "super_admin") {
+      throw new Error("Unauthorized");
+    }
 
     await ctx.db.patch(user._id, {
       subscription_plan: args.subscription_plan,
@@ -197,7 +221,22 @@ export const createUser = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-    if (existingUser) {
+  if (existingUser) {
+      if (args.role) {
+        if (existingUser.university_id && isIndividualRole(args.role)) {
+          throw new Error(
+            `Cannot set role '${args.role}' for user with university assignment. ` +
+            `Individual roles must not have university_id. Remove university_id first or choose a university role.`
+          );
+        }
+        if (!existingUser.university_id && isUniversityRole(args.role)) {
+          throw new Error(
+            `Cannot set role '${args.role}' without university assignment. ` +
+            `University-affiliated roles require university_id.`
+          );
+        }
+      }
+
       // Update existing user
       await ctx.db.patch(existingUser._id, {
         email: args.email,
@@ -281,6 +320,14 @@ export const createUser = mutation({
     }
 
     // Create new user
+    const finalRole = args.role ?? "user";
+    if (isUniversityRole(finalRole)) {
+      throw new Error(
+        `Cannot create user with role '${finalRole}' without university assignment. ` +
+        `University-affiliated roles require university_id.`
+      );
+    }
+
     const userId = await ctx.db.insert("users", {
       clerkId: args.clerkId,
       email: args.email,
@@ -446,6 +493,27 @@ export const updateUser = mutation({
     const oldRole = user.role;
     const newRole = args.updates.role;
 
+    // Validate role-university invariant for role changes
+    if (newRole) {
+      const finalUniversityId =
+        args.updates.university_id !== undefined
+          ? args.updates.university_id
+          : user.university_id;
+
+      if (isUniversityRole(newRole) && !finalUniversityId) {
+        throw new Error(
+          `Cannot set role '${newRole}' without university_id. ` +
+          `University-affiliated roles require university_id.`
+        );
+      }
+      if (isIndividualRole(newRole) && finalUniversityId) {
+        throw new Error(
+          `Cannot set role '${newRole}' with university_id. ` +
+          `Individual roles must not have university_id.`
+        );
+      }
+    }
+
     await ctx.db.patch(user._id, {
       ...cleanUpdates,
       updated_at: Date.now(),
@@ -584,6 +652,27 @@ export const updateUserById = mutation({
     const roleChanged = args.updates.role && args.updates.role !== user.role;
     const oldRole = user.role;
     const newRole = args.updates.role;
+
+    // Validate role-university invariant for role changes
+    if (newRole) {
+      const finalUniversityId =
+        args.updates.university_id !== undefined
+          ? args.updates.university_id
+          : user.university_id;
+
+      if (isUniversityRole(newRole) && !finalUniversityId) {
+        throw new Error(
+          `Cannot set role '${newRole}' without university_id. ` +
+          `University-affiliated roles require university_id.`
+        );
+      }
+      if (isIndividualRole(newRole) && finalUniversityId) {
+        throw new Error(
+          `Cannot set role '${newRole}' with university_id. ` +
+          `Individual roles must not have university_id.`
+        );
+      }
+    }
 
     await ctx.db.patch(args.id, {
       ...cleanUpdates,
@@ -809,4 +898,3 @@ export const toggleHideProgressCard = mutation({
     return user._id;
   },
 });
-

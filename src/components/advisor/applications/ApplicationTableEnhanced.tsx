@@ -139,7 +139,10 @@ export function ApplicationTableEnhanced({
 
   const handleSaveEdit = useCallback(
     async (appId: Id<'applications'>) => {
-      if (!clerkId) return;
+      if (!clerkId) {
+        toast.error("Authentication required");
+        return;
+      }
 
       try {
         let dueDateTimestamp: number | undefined = undefined;

@@ -15,10 +15,9 @@
 
 require('dotenv').config({ path: '.env.local' })
 
-// Polyfill fetch for Node < 18
-if (typeof fetch === 'undefined') {
-  global.fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args))
-}
+// Polyfill fetch for Node < 18 using require to avoid returning a Promise
+const nodeFetch = typeof fetch === 'undefined' ? require('node-fetch') : fetch
+global.fetch = nodeFetch
 
 const CLERK_BASE_URL = 'https://api.clerk.com/v1'
 

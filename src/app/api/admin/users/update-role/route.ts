@@ -1,24 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
+import { fetchQuery } from 'convex/nextjs'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { ClerkPublicMetadata } from '@/types/clerk'
-import { VALID_USER_ROLES } from '@/lib/constants/roles'
 import { isValidUserRole } from '@/lib/validation/roleValidation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * Update user role (Convex is source of truth, mirrored to Clerk)
+ * Update user role (Clerk-first, Convex sync via webhook)
  *
  * This endpoint:
  * 1. Verifies caller is super_admin
  * 2. Validates the role transition and university requirements
- * 3. Updates Convex first (source of truth for user data)
- * 4. Mirrors role to Clerk publicMetadata for auth/middleware
- * 5. Rolls back Convex if Clerk update fails
+ * 3. Updates Clerk publicMetadata first (source of truth)
+ * 4. Relies on Clerk → Convex webhook to sync Convex/memberships
  *
  * POST /api/admin/users/update-role
  * Body: { userId: string, newRole: string, universityId?: string }
@@ -125,20 +123,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Initialize Convex client early (used for validation and updates)
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!convexUrl) {
-      return NextResponse.json(
-        { error: 'Server configuration error: NEXT_PUBLIC_CONVEX_URL not set' },
-        { status: 500 }
-      )
-    }
-    const convex = new ConvexHttpClient(convexUrl)
-    const convexToken = await authResult.getToken({ template: 'convex' })
-    if (convexToken) {
-      convex.setAuth(convexToken)
-    }
-
     // Validate university exists if provided
     if (universityId) {
       // Validate ID format before querying
@@ -160,8 +144,8 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const university = await convex.query(api.universities.getUniversity, {
-          universityId: universityId as Id<"universities">
+        const university = await fetchQuery(api.universities.getUniversity, {
+          universityId: universityId as Id<'universities'>
         })
 
         if (!university) {
@@ -187,69 +171,50 @@ export async function POST(request: NextRequest) {
     // Determine if we should remove university_id
     const requiresUniversity = ['student', 'university_admin', 'advisor'].includes(newRole)
 
-    // Capture old values for potential rollback
-    const oldUniversityId = (targetUser.publicMetadata as ClerkPublicMetadata)?.university_id
+    // Validate transition against backend rules (leverages Convex roleValidation)
+    try {
+      const validation = await fetchQuery(api.roleValidation.validateRoleTransition, {
+        userId: targetUserId,
+        currentRole: currentRole || 'user',
+        newRole,
+        universityId: requiresUniversity && universityId ? (universityId as Id<'universities'>) : undefined,
+      })
 
-    // Update Convex first (source of truth)
-    await convex.mutation(api.users.updateUser, {
-      clerkId: targetUserId,
-      updates: {
-        role: newRole as any,
-        ...(requiresUniversity && universityId ? { university_id: universityId as Id<"universities"> } : {}),
-      },
+      if (!validation?.valid) {
+        return NextResponse.json(
+          { error: validation?.error || 'Invalid role transition' },
+          { status: 400 }
+        )
+      }
+    } catch (validationError) {
+      console.warn('[API] Role transition validation failed:', validationError)
+      return NextResponse.json(
+        { error: validationError instanceof Error ? validationError.message : 'Role validation failed' },
+        { status: 400 }
+      )
+    }
+
+    // Update Clerk metadata first; Convex will sync via webhook
+    const newMetadata: Record<string, any> = {
+      ...targetUser.publicMetadata,
+      role: newRole,
+    }
+
+    if (requiresUniversity && universityId) {
+      newMetadata.university_id = universityId
+    } else if (!requiresUniversity) {
+      delete newMetadata.university_id
+    }
+
+    await client.users.updateUser(targetUserId, {
+      publicMetadata: newMetadata,
     })
 
-    // Create/update membership for university-based roles
-    // This ensures the user has the required membership record for authorization checks
-    if (requiresUniversity && universityId) {
-      await convex.mutation(api.users.ensureMembership, {
-        clerkId: targetUserId,
-        role: newRole as "student" | "advisor" | "university_admin",
-        universityId: universityId as Id<"universities">,
-      })
-    }
-
-    // Then mirror to Clerk metadata
-    try {
-      const newMetadata: Record<string, any> = {
-        ...targetUser.publicMetadata,
-        role: newRole,
-      }
-
-      if (requiresUniversity && universityId) {
-        newMetadata.university_id = universityId
-      } else if (!requiresUniversity) {
-        delete newMetadata.university_id
-      }
-
-      await client.users.updateUser(targetUserId, {
-        publicMetadata: newMetadata,
-      })
-    } catch (clerkError) {
-      console.error(`[API] Clerk update failed after Convex success for user ${targetUserId}:`, clerkError)
-
-      // Rollback Convex to maintain consistency
-      try {
-        await convex.mutation(api.users.updateUser, {
-          clerkId: targetUserId,
-          updates: {
-            role: currentRole as any,
-            ...(oldUniversityId ? { university_id: oldUniversityId as Id<"universities"> } : {}),
-          },
-        })
-        console.log(`[API] Rolled back Convex after Clerk failure for user ${targetUserId}`)
-      } catch (rollbackError) {
-        console.error(`[API] CRITICAL: Rollback failed for user ${targetUserId}. Manual intervention required.`, rollbackError)
-      }
-
-      throw clerkError
-    }
-
-    console.log(`[API] Updated role for user ${targetUser.id}: ${currentRole} → ${newRole}`)
+    console.log(`[API] Updated Clerk role for user ${targetUser.id}: ${currentRole} → ${newRole}`)
 
     return NextResponse.json({
       success: true,
-      message: `Role updated successfully. Convex updated as source of truth.`,
+      message: 'Role updated in Clerk. Convex will sync via webhook.',
       user: {
         id: targetUser.id,
         email: targetUser.emailAddresses[0]?.emailAddress || 'no-email',

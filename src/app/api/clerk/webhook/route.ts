@@ -131,10 +131,16 @@ export async function POST(request: NextRequest) {
 
         // Check if role changed - important for role management logging
         const roleInMetadata = metadata.role || null
+        const universityIdInMetadata = metadata.university_id
         const userEmail = userData.email_addresses?.[0]?.email_address
 
-        // Validate role value for logging only; Convex is the source of truth so we do not overwrite roles here
+        // Validate role value before syncing to Convex
         const validatedRole = validateRoleOrWarn(roleInMetadata, `Clerk Webhook - ${userEmail}`)
+        const isUniversityRole =
+          validatedRole === 'student' ||
+          validatedRole === 'advisor' ||
+          validatedRole === 'university_admin'
+        const membershipRole = isUniversityRole ? validatedRole : null
 
         // Check if user was banned in Clerk - sync to account_status
         const updates: any = {
@@ -143,6 +149,14 @@ export async function POST(request: NextRequest) {
           profile_image: userData.image_url,
           subscription_plan: subscriptionPlan,
           subscription_status: subscriptionStatus,
+        }
+
+        if (validatedRole) {
+          updates.role = validatedRole
+        }
+
+        if (membershipRole && universityIdInMetadata) {
+          updates.university_id = universityIdInMetadata
         }
 
         // If user is banned in Clerk, ensure account_status is suspended
@@ -158,9 +172,22 @@ export async function POST(request: NextRequest) {
 
         await convexServer.mutation(api.users.updateUser, {
           clerkId: userData.id,
-          serviceToken: convexServiceToken,
           updates,
         })
+
+        // Ensure membership for university roles when metadata includes university_id
+        if (membershipRole && universityIdInMetadata) {
+          try {
+            await convexServer.mutation(api.users_profile.ensureMembership, {
+              clerkId: userData.id,
+              role: membershipRole,
+              universityId: universityIdInMetadata,
+              serviceToken: convexServiceToken,
+            })
+          } catch (membershipError) {
+            console.error('[Clerk Webhook] Failed to ensure membership from metadata:', membershipError)
+          }
+        }
 
         console.log(`[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}${validatedRole ? `, role: ${validatedRole}` : ''}`)
         break

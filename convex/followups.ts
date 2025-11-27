@@ -177,8 +177,8 @@ export const updateFollowup = mutation({
     // Build patch data with explicit typing for completion fields
     type PatchData = Partial<typeof item> & {
       updated_at: number;
-      completed_at?: number | undefined;
-      completed_by?: typeof user._id | undefined;
+      completed_at?: number | null | undefined;
+      completed_by?: typeof user._id | null | undefined;
       version?: number;
     };
 
@@ -200,8 +200,9 @@ export const updateFollowup = mutation({
         patchData.completed_at = now;
         patchData.completed_by = user._id;
       } else if (statusChangingToOpen) {
-        patchData.completed_at = undefined;
-        patchData.completed_by = undefined;
+        // Explicitly clear fields using null (Convex ignores undefined in patch)
+        patchData.completed_at = null;
+        patchData.completed_by = null;
       }
 
       await ctx.db.patch(args.followupId, patchData);

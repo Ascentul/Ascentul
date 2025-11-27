@@ -113,8 +113,8 @@ export function CalendarView({ sessions, followUps, isLoading }: CalendarViewPro
     if (viewMode === 'day') {
       return [currentDate];
     } else if (viewMode === 'week') {
-      const start = startOfWeek(currentDate);
-      const end = endOfWeek(currentDate);
+      const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+      const end = endOfWeek(currentDate, { weekStartsOn: 1 });
       return eachDayOfInterval({ start, end });
     } else {
       const start = startOfMonth(currentDate);
@@ -170,7 +170,7 @@ export function CalendarView({ sessions, followUps, isLoading }: CalendarViewPro
         <div className='border rounded-lg overflow-hidden'>
           {/* Month view - grid layout */}
           <div className='grid grid-cols-7 bg-muted'>
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
               <div
                 key={day}
                 className='p-2 text-center text-sm font-medium border-r last:border-r-0'

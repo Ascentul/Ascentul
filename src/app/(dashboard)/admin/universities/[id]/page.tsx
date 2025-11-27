@@ -210,13 +210,13 @@ export default function UniversityDetailPage() {
       // SECOND: Perform the actual deletion
       await hardDeleteUniversity({ universityId })
 
-      // THIRD: Navigate away on success
-      router.replace('/admin/universities')
-
       toast({
         title: 'University permanently deleted',
         description: 'All associated data has been permanently removed.',
       })
+
+      // THIRD: Navigate away on success
+      router.replace('/admin/universities')
     } catch (error) {
       // Re-enable queries since deletion failed
       setSkipQueries(false)

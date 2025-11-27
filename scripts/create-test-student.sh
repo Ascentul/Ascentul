@@ -49,13 +49,16 @@ echo "Step 1: Creating Clerk accounts..."
 echo "-----------------------------------"
 
 # Create student account in Clerk
-node -e "
+STUDENT_EMAIL=\"$STUDENT_EMAIL\" ADVISOR_EMAIL=\"$ADVISOR_EMAIL\" PASSWORD=\"$PASSWORD\" node -e "
 const https = require('https');
+const studentEmail = process.env.STUDENT_EMAIL;
+const advisorEmail = process.env.ADVISOR_EMAIL;
+const password = process.env.PASSWORD;
 
 async function createClerkUser(email, role) {
   const data = JSON.stringify({
     email_address: [email],
-    password: '$PASSWORD',
+    password: password,
     first_name: 'Test',
     last_name: role === 'student' ? 'Student' : 'Advisor',
     skip_password_checks: true,
@@ -97,8 +100,8 @@ async function createClerkUser(email, role) {
 
 (async () => {
   try {
-    await createClerkUser('$STUDENT_EMAIL', 'student');
-    await createClerkUser('$ADVISOR_EMAIL', 'advisor');
+    await createClerkUser(studentEmail, 'student');
+    await createClerkUser(advisorEmail, 'advisor');
   } catch (error) {
     console.error('❌ Error creating Clerk users:', error.message);
     process.exit(1);

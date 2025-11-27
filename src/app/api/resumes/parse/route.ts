@@ -101,9 +101,23 @@ function fallbackParser(resumeText: string) {
 
       // Parse description into summary and keyContributions to match AI schema
       const descriptionLines = description ? description.split(/\n/).filter(line => line.trim()) : []
-      const keyContributions = descriptionLines
-        .map(line => line.replace(/^[•\-\*]\s*/, '').trim())
-        .filter(line => line.length > 0)
+      const summaryLines: string[] = []
+      const contributionLines: string[] = []
+
+      for (const line of descriptionLines) {
+        if (/^[•\-\*]\s*/.test(line)) {
+          contributionLines.push(line.replace(/^[•\-\*]\s*/, '').trim())
+        } else if (contributionLines.length === 0) {
+          // Lines before bullets are considered summary/overview
+          summaryLines.push(line.trim())
+        } else {
+          // Once bulleting starts, treat following lines as contributions
+          contributionLines.push(line.trim())
+        }
+      }
+
+      const summaryText = summaryLines.join(' ').trim()
+      const keyContributions = contributionLines.filter(line => line.length > 0)
 
       experience.push({
         title: titleLine.trim(),
@@ -112,7 +126,7 @@ function fallbackParser(resumeText: string) {
         startDate,
         endDate: current ? 'Present' : endDate,
         current,
-        summary: '',
+        summary: summaryText,
         keyContributions
       })
     }

@@ -547,21 +547,26 @@ export const ensureMembership = mutation({
       v.literal("university_admin"),
     ),
     universityId: v.id("universities"),
+    serviceToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Verify caller is super_admin
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized: User not authenticated");
-    }
+    const isService = isServiceRequest(args.serviceToken);
 
-    const callingUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    // Verify caller is super_admin unless using trusted service token (webhook)
+    if (!isService) {
+      if (!identity) {
+        throw new Error("Unauthorized: User not authenticated");
+      }
 
-    if (!callingUser || callingUser.role !== "super_admin") {
-      throw new Error("Forbidden: Only super admins can manage memberships");
+      const callingUser = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .unique();
+
+      if (!callingUser || callingUser.role !== "super_admin") {
+        throw new Error("Forbidden: Only super admins can manage memberships");
+      }
     }
 
     // Get target user by clerkId
