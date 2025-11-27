@@ -27,8 +27,8 @@ interface SessionItemProps {
 }
 
 export function SessionItem({ session, now }: SessionItemProps) {
-  // Calculate end_at from duration if not provided
-  const endAt = session.end_at ?? (session.start_at + (session.duration_minutes || 60) * 60 * 1000);
+  // Calculate end_at from duration if not provided (default: 60 min standard advising session)
+  const endAt = session.end_at ?? (session.start_at + (session.duration_minutes ?? 60) * 60 * 1000);
   const isPast = endAt < now;
   const isCurrent = session.start_at <= now && endAt >= now;
 

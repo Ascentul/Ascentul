@@ -20,7 +20,6 @@ interface Review {
   _id: string;
   student_id: string;
   student_name: string;
-  student_email: string;
   asset_id: string;
   asset_type: string;
   asset_name: string;

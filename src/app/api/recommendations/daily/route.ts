@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
-import { convexServer } from '@/lib/convex-server';
+import { fetchQuery } from 'convex/nextjs';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch recommendations from Convex
-    const recommendations = await convexServer.query(api.recommendations.getDailyRecommendations, {
+    const recommendations = await fetchQuery(api.recommendations.getDailyRecommendations, {
       clerkId: userId,
     })
 

@@ -5,6 +5,8 @@ import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 
 export const runtime = 'nodejs'
+// Convex IDs use Crockford base32hex (digits + a-v)
+const isValidId = (id: string) => /^[0-9a-v]+$/.test(id.trim());
 
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -13,7 +15,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
 
     // Validate ID format before mutation
     const id = params.id
-    if (!id || typeof id !== 'string' || id.trim() === '') {
+    if (!id || typeof id !== 'string' || id.trim() === '' || !isValidId(id)) {
       return NextResponse.json({ error: 'Invalid career path ID' }, { status: 400 })
     }
 

@@ -322,7 +322,7 @@ export const getReviewQueueStats = query({
       // Aliases for UI compatibility
       inProgress: stats.inReview,
       completed: stats.approved,
-      total: allReviews.length,
+      total: caseloadReviews.length,
     };
   },
 });

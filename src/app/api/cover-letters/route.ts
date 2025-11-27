@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { convexServer } from '@/lib/convex-server';
 
@@ -9,7 +9,7 @@ type CoverLetterSource = 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_uploa
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = getAuth(request)
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const coverLetters = await convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId })
     return NextResponse.json({ coverLetters })
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = getAuth(request)
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const body = await request.json()
     const { title, content, company_name, position, job_description, source } = body as {

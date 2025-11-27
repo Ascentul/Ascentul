@@ -170,7 +170,10 @@ export function BulkActionBar({
         }
         let dueDateTimestamp: number | undefined = undefined;
         if (dueDate) {
-          const parsedDate = new Date(dueDate);
+          // Parse as local date to avoid timezone shifts
+          // new Date("yyyy-MM-dd") parses as UTC midnight, potentially shifting the date
+          const [year, month, day] = dueDate.split('-').map(Number);
+          const parsedDate = new Date(year, month - 1, day);
           if (!isNaN(parsedDate.getTime())) {
             dueDateTimestamp = parsedDate.getTime();
           }

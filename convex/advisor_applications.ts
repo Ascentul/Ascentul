@@ -794,7 +794,7 @@ export const bulkUpdateNextStep = mutation({
 
 /**
  * Bulk mark applications as reviewed
- * Updates the last_reviewed timestamp and optionally clears overdue flag
+ * Updates the updated_at timestamp to clear the "stale" flag
  */
 export const bulkMarkReviewed = mutation({
   args: {

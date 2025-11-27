@@ -804,7 +804,7 @@ export const updateUserWithMembership = mutation({
     }
 
     // Step 3: Log role change if applicable
-    if (roleChanged) {
+    if (roleChanged && !isService) {
       await logRoleChange(ctx, user, oldRole, newRole!);
     }
 

@@ -96,6 +96,9 @@ export function ApplicationTableEnhanced({
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [editNextStep, setEditNextStep] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
+  // Track last selected ID explicitly for shift-click range selection
+  // (Set iteration order is not guaranteed to match insertion order)
+  const [lastSelectedId, setLastSelectedId] = useState<Id<'applications'> | null>(null);
 
   const updateNextStepMutation = useMutation(api.advisor_applications.updateApplicationNextStep);
 
@@ -110,17 +113,16 @@ export function ApplicationTableEnhanced({
 
   const handleRowSelect = useCallback(
     (id: Id<'applications'>, shiftKey: boolean = false) => {
-      if (shiftKey && selectionHook.selectedCount > 0) {
-        // Find the last selected item and select range
-        const selectedIds = selectionHook.getSelectedIds();
-        const lastSelectedId = selectedIds[selectedIds.length - 1];
+      if (shiftKey && lastSelectedId) {
+        // Use explicitly tracked lastSelectedId for range selection
         const allIds = applications.map((app) => app._id);
         selectionHook.selectRange(lastSelectedId, id, allIds);
       } else {
         selectionHook.toggleSelection(id);
+        setLastSelectedId(id);
       }
     },
-    [applications, selectionHook]
+    [applications, selectionHook, lastSelectedId]
   );
 
   // ============================================================================
