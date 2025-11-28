@@ -403,7 +403,7 @@ export default function AdvisorTodayPage() {
                             )}
                             {isOverdue && (
                               <div className="mt-2 text-xs text-red-600 font-medium">
-                                Overdue by {formatOverdueTime(followUp.due_at!, now)}
+                                Overdue by {followUp.due_at ? formatOverdueTime(followUp.due_at, now) : 'unknown'}
                               </div>
                             )}
                             {followUp.due_at && (

@@ -151,7 +151,8 @@ export const getSessions = query({
  * Get sessions happening today for advisor
  *
  * @param clientTimezoneOffset - Client's timezone offset in minutes from UTC
- *   (e.g., -300 for EST/UTC-5, 540 for JST/UTC+9). If not provided, uses server time.
+ *   (e.g., 300 for EST/UTC-5, -540 for JST/UTC+9). Matches Date.getTimezoneOffset().
+ *   If not provided, uses server time (UTC) for boundaries.
  */
 export const getTodaySessions = query({
   args: {

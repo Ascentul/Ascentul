@@ -23,25 +23,41 @@ function isIndividualRole(role: string): role is IndividualRole {
 
 /**
  * Internal helper: Log role changes to audit_logs
- * Only logs when performed by super_admin
+ * Logs changes by super_admin users and service-initiated changes (webhooks, migrations)
  * Gracefully handles errors without failing the parent operation
  */
 async function logRoleChange(
   ctx: MutationCtx,
   targetUser: any,
   oldRole: string,
-  newRole: string
+  newRole: string,
+  isServiceInitiated: boolean = false
 ) {
   try {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return; // No authenticated user
+
+    // Handle service-initiated changes (webhooks, migrations)
+    if (isServiceInitiated || !identity) {
+      await ctx.db.insert("audit_logs", {
+        action: "user.role_changed",
+        actor_id: undefined, // No actor for system changes
+        university_id: targetUser.university_id,
+        entity_type: "user",
+        entity_id: targetUser._id,
+        student_id: newRole === "student" ? targetUser._id : undefined,
+        previous_value: { role: oldRole, source: "system" },
+        new_value: { role: newRole, source: isServiceInitiated ? "webhook" : "system" },
+        created_at: Date.now(),
+      });
+      return;
+    }
 
     const admin = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
 
-    // Only log if performed by super_admin
+    // Log if performed by super_admin
     if (admin && admin.role === "super_admin") {
       await ctx.db.insert("audit_logs", {
         action: "user.role_changed",
@@ -302,6 +318,10 @@ export const createUser = mutation({
         }
       }
 
+      // Track role change for audit (service-initiated via webhook)
+      const roleChanged = args.role && args.role !== existingUser.role;
+      const oldRole = existingUser.role;
+
       // Update existing user
       await ctx.db.patch(existingUser._id, {
         email: args.email,
@@ -315,6 +335,12 @@ export const createUser = mutation({
         ...(args.subscription_status ? { subscription_status: args.subscription_status } : {}),
         updated_at: Date.now(),
       });
+
+      // Audit log service-initiated role changes
+      if (roleChanged && args.role) {
+        await logRoleChange(ctx, existingUser, oldRole, args.role, true);
+      }
+
       return existingUser._id;
     }
 
@@ -364,6 +390,10 @@ export const createUser = mutation({
         );
       }
 
+      // Track role change for audit (service-initiated via webhook)
+      const pendingRoleChanged = args.role && args.role !== pendingUser.role;
+      const pendingOldRole = pendingUser.role;
+
       // Activate the pending user by updating with Clerk ID
       await ctx.db.patch(pendingUser._id, {
         clerkId: args.clerkId,
@@ -379,6 +409,11 @@ export const createUser = mutation({
         subscription_status: args.subscription_status || pendingUser.subscription_status || "active",
         updated_at: Date.now(),
       });
+
+      // Audit log service-initiated role changes during activation
+      if (pendingRoleChanged && args.role) {
+        await logRoleChange(ctx, pendingUser, pendingOldRole, args.role, true);
+      }
 
       console.log(`[createUser] Activated pending user: ${pendingUser._id} (role: ${finalRole})`);
       return pendingUser._id;

@@ -919,6 +919,9 @@ export default defineSchema({
   // ========================================
 
   // Student-Advisor relationship table (many-to-many with ownership)
+  // UNIQUENESS CONSTRAINT: is_owner=true must be unique per student_id
+  // - Enforced in mutations (no database constraint available)
+  // - Diagnostic: Run 'npx convex run advisor_students:findDuplicateOwners' to detect violations
   student_advisors: defineTable({
     student_id: v.id("users"), // Must be a user with role="student"
     advisor_id: v.id("users"), // Must be a user with role="advisor"

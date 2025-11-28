@@ -351,7 +351,7 @@ export function ApplicationTableEnhanced({
                         <div className="text-sm truncate" title={app.next_step}>
                           {app.next_step}
                         </div>
-                      ) : app.needsAction && app.needActionReasons.includes('no_next_step') ? (
+                      ) : app.needsAction && app.needActionReasons?.includes('no_next_step') ? (
                         <Button
                           variant="ghost"
                           size="sm"

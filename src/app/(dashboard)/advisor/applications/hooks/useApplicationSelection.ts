@@ -96,6 +96,11 @@ export function useApplicationSelection(): UseApplicationSelectionResult {
    */
   const toggleAll = useCallback((allIds: Id<'applications'>[]) => {
     setSelection((prev) => {
+      // If no items to select, just clear selection
+      if (allIds.length === 0) {
+        return EMPTY_SELECTION;
+      }
+
       // If currently in select-all mode or all are selected, deselect all
       const allIdsSelected = allIds.every((id) =>
         prev.selectedIds.has(id.toString())

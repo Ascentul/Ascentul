@@ -317,7 +317,10 @@ export const updateReviewStatus = mutation({
     const now = Date.now();
     const previousStatus = review.status;
 
-    // Define valid state transitions
+    // Define valid state transitions for manual status changes.
+    // Note: approveReview() allows direct waiting → approved as a convenience shortcut
+    // for simple cases where advisors want to quickly approve without explicit "in_review" step.
+    // This function enforces the formal workflow: waiting → in_review → approved.
     const validTransitions: Record<string, string[]> = {
       waiting: ["in_review"],
       in_review: ["needs_edits", "approved", "waiting"],
@@ -336,8 +339,7 @@ export const updateReviewStatus = mutation({
 
     await ctx.db.patch(args.reviewId, {
       status: args.status,
-      reviewed_by:
-        args.status !== "waiting" ? sessionCtx.userId : undefined,
+      reviewed_by: args.status !== "waiting" ? sessionCtx.userId : review.reviewed_by,
       reviewed_at: args.status !== "waiting" ? now : review.reviewed_at,
       updated_at: now,
       version: (review.version ?? 0) + 1,
@@ -722,7 +724,10 @@ export const approveReview = mutation({
 
     await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
 
-    // Validate current status - can only approve waiting or in_review items
+    // Validate current status - can only approve waiting or in_review items.
+    // Note: This is a convenience shortcut that allows direct waiting → approved,
+    // bypassing the formal workflow in updateReviewStatus() which requires
+    // waiting → in_review → approved. This is intentional for quick approvals.
     const approvableStatuses = ["waiting", "in_review"];
     if (!approvableStatuses.includes(review.status)) {
       throw new Error(

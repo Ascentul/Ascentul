@@ -214,7 +214,7 @@ export function ApplicationKanban({
                                     View Student
                                   </Button>
                                 </Link>
-                                {app.application_url && (
+                                {app.application_url && isValidHttpUrl(app.application_url) && (
                                   <a
                                     href={app.application_url}
                                     target="_blank"

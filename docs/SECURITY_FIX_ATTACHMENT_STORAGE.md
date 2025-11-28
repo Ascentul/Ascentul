@@ -96,49 +96,8 @@ await ctx.db.patch(sessionId, {
       size: file.size,
     },
   ],
-});
-```
 
-### Accessing Files
 
-```typescript
-// Generate time-limited URL when needed
-export const getSessionAttachmentUrl = query({
-  args: { sessionId: v.id("advisor_sessions"), attachmentId: v.string() },
-  handler: async (ctx, args) => {
-    // 1. Verify user has access to session
-    const session = await ctx.db.get(args.sessionId);
-    if (!session) throw new Error("Session not found");
-
-    const user = await getCurrentUser(ctx);
-
-    // 2. Verify university match (tenant isolation)
-    if (user.university_id !== session.university_id) {
-      throw new Error("Unauthorized: Different university");
-    }
-
-    // 3. Check permissions (student, advisor, or admin)
-    if (
-      user._id !== session.student_id &&
-      user._id !== session.advisor_id &&
-      user.role !== "super_admin" &&
-      user.role !== "university_admin"
-    ) {
-      throw new Error("Unauthorized");
-    }
-
-    // 4. Find attachment
-    const attachment = session.attachments?.find(a => a.id === args.attachmentId);
-    if (!attachment) throw new Error("Attachment not found");
-
-    // 5. Generate a temporary download URL
-    // Access is checked here before issuing the URL. After that, the presigned URL
-    // is a bearer-style token: anyone with the link can download until it expires
-    // (default ~15 minutes). There is no re-auth on download. For per-request
-    // authorization, generate the file via an HTTP action instead.
-    const url = await ctx.storage.getUrl(attachment.storage_id);
-    return url;
-  },
 });
 ```
 
@@ -228,7 +187,11 @@ export const getSessionAttachment = query({
     const attachment = session.attachments?.find(a => a.id === args.attachmentId);
     if (!attachment) throw new Error("Attachment not found");
 
-    return await ctx.storage.getUrl(attachment.storage_id);
+    // 4. Get URL from storage (may return null if file was deleted)
+    const url = await ctx.storage.getUrl(attachment.storage_id);
+    if (!url) throw new Error("Attachment file not found in storage");
+
+    return url;
   },
 });
 ```

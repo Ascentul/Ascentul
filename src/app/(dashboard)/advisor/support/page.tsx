@@ -299,6 +299,19 @@ export default function AdvisorSupportPage() {
     }
   }
 
+  // Handle unauthenticated state (prevents infinite loading)
+  if (!clerkUser?.id) {
+    return (
+      <AdvisorGate requiredFlag='advisor.support'>
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          <div className="flex items-center justify-center h-64">
+            <p className="text-muted-foreground">Please sign in to view support tickets.</p>
+          </div>
+        </div>
+      </AdvisorGate>
+    )
+  }
+
   if (!tickets) {
     return (
       <AdvisorGate requiredFlag='advisor.support'>

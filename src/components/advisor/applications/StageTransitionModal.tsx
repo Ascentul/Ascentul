@@ -60,11 +60,11 @@ export function StageTransitionModal({
   const nextStages = getNextStages(currentStage);
 
   // Determine if reason code is required for the selected stage
-  const reasonCodeRequired = selectedStage && requiresReasonCode(selectedStage);
+  const reasonCodeRequired = Boolean(selectedStage && requiresReasonCode(selectedStage));
   const availableReasonCodes = selectedStage ? getReasonCodesForStage(selectedStage) : null;
 
   // Notes are still required for terminal stages (Rejected, Withdrawn, Archived)
-  const notesRequired = selectedStage && isTerminalStage(selectedStage);
+  const notesRequired = Boolean(selectedStage && isTerminalStage(selectedStage));
 
   const handleSubmit = async () => {
     if (!selectedStage) {
