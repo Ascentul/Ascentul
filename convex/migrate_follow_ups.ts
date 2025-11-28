@@ -7,6 +7,7 @@
  * 3. Maintains all relationships and data integrity
  * 4. Includes idempotency check to prevent duplicate migrations
  * 5. Batches user lookups to avoid N+1 query performance issues
+ * 6. Stores migrated_from_id for duplicate detection on re-runs
  *
  * IMPORTANT: Run this migration BEFORE enabling new follow-up creation in the
  * unified follow_ups table. The partial migration detection assumes follow_ups
@@ -17,7 +18,7 @@
  * Usage:
  * - Dry run (preview): npx convex run migrate_follow_ups:migrateFollowUps '{"dryRun": true}'
  * - Actual migration: npx convex run migrate_follow_ups:migrateFollowUps
- * - Force re-run: npx convex run migrate_follow_ups:migrateFollowUps '{"force": true}' (⚠️ May create duplicates!)
+ * - Force re-run: npx convex run migrate_follow_ups:migrateFollowUps '{"force": true}' (safe - skips already migrated)
  * - Verify (default 100 samples): npx convex query migrate_follow_ups:verifyMigration
  * - Verify (custom sample): npx convex query migrate_follow_ups:verifyMigration '{"sampleSize": 500}'
  */
@@ -45,14 +46,14 @@ export const migrateFollowUps = mutation({
 
       if (existingMigration) {
         if (existingMigration.status === 'completed') {
-          const completedDate = existingMigration.completed_at 
+          const completedDate = existingMigration.completed_at
             ? new Date(existingMigration.completed_at).toISOString()
             : 'unknown time';
           throw new Error(
             `Migration '${MIGRATION_NAME}' has already completed successfully at ${completedDate}. ` +
             `Migrated: ${JSON.stringify(existingMigration.metadata)}. ` +
             'To re-run anyway, use: npx convex run migrate_follow_ups:migrateFollowUps \'{"force": true}\' ' +
-            '(WARNING: This may create duplicate records!)'
+            '(safe - already-migrated records will be skipped via migrated_from_id check)'
           );
         } else if (existingMigration.status === 'in_progress') {
           const elapsed = Date.now() - existingMigration.started_at;
@@ -171,6 +172,16 @@ export const migrateFollowUps = mutation({
 
       for (const action of page.page) {
         try {
+        // Skip if already migrated (idempotent re-run support for force=true)
+        const existingMigrated = await ctx.db
+          .query('follow_ups')
+          .withIndex('by_migrated_from', (q) => q.eq('migrated_from_id', action._id))
+          .first();
+        if (existingMigrated) {
+          console.log(`Skipping followup_actions ${action._id} - already migrated`);
+          continue;
+        }
+
         // Get user from batched lookup
         const user = userMap.get(action.user_id);
         if (!user) {
@@ -244,6 +255,9 @@ export const migrateFollowUps = mutation({
             // Completion tracking
             completed_at: action.completed ? (action.updated_at || action.created_at) : undefined,
             completed_by: action.completed ? action.user_id : undefined,
+
+            // Migration tracking for idempotent re-runs
+            migrated_from_id: action._id,
 
             // Timestamps
             created_at: action.created_at,
@@ -327,6 +341,16 @@ export const migrateFollowUps = mutation({
 
       for (const followUp of page.page) {
         try {
+        // Skip if already migrated (idempotent re-run support for force=true)
+        const existingMigrated = await ctx.db
+          .query('follow_ups')
+          .withIndex('by_migrated_from', (q) => q.eq('migrated_from_id', followUp._id))
+          .first();
+        if (existingMigrated) {
+          console.log(`Skipping advisor_follow_ups ${followUp._id} - already migrated`);
+          continue;
+        }
+
         // Validate users from batched lookup
         if (!userMap.has(followUp.student_id)) {
           results.errors.push(
@@ -418,6 +442,9 @@ export const migrateFollowUps = mutation({
             // Completion tracking
             completed_at: followUp.completed_at,
             completed_by: followUp.completed_by,
+
+            // Migration tracking for idempotent re-runs
+            migrated_from_id: followUp._id,
 
             // Timestamps
             created_at: followUp.created_at,

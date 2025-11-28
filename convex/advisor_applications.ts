@@ -458,6 +458,19 @@ export const updateApplicationStage = mutation({
 
     await ctx.db.patch(args.applicationId, updates);
 
+    // Audit log for FERPA compliance
+    await createAuditLog(ctx, {
+      actorId: sessionCtx.userId,
+      universityId,
+      action: 'application.stage_changed',
+      entityType: 'application',
+      entityId: args.applicationId,
+      studentId: application.user_id,
+      previousValue: { stage: currentStage },
+      newValue: { stage: newStage, notes: args.notes },
+      ipAddress: 'server',
+    });
+
     return {
       success: true,
       previousStage: currentStage,
@@ -749,6 +762,11 @@ export const bulkUpdateNextStep = mutation({
       failed: 0,
       errors: [] as string[],
     };
+    const changeRecords: {
+      applicationId: Id<'applications'>;
+      success: boolean;
+      error?: string;
+    }[] = [];
 
     // Process each application
     for (let i = 0; i < applications.length; i++) {
@@ -780,13 +798,33 @@ export const bulkUpdateNextStep = mutation({
         });
 
         results.success++;
+        changeRecords.push({ applicationId, success: true });
       } catch (error) {
         results.failed++;
+        const message = error instanceof Error ? error.message : 'Unknown error';
         results.errors.push(
-          `Error updating application ${applicationId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `Error updating application ${applicationId}: ${message}`
         );
+        changeRecords.push({ applicationId, success: false, error: message });
       }
     }
+
+    await createAuditLog(ctx, {
+      actorId: sessionCtx.userId,
+      universityId,
+      action: 'applications.bulk_update_next_step',
+      entityType: 'application',
+      entityId: 'bulk',
+      previousValue: null,
+      newValue: {
+        nextStep: args.nextStep,
+        dueDate: args.dueDate,
+        applicationIds: args.applicationIds,
+        results,
+        changes: changeRecords,
+      },
+      ipAddress: 'server',
+    });
 
     return results;
   },
@@ -821,6 +859,11 @@ export const bulkMarkReviewed = mutation({
       failed: 0,
       errors: [] as string[],
     };
+    const changeRecords: {
+      applicationId: Id<'applications'>;
+      success: boolean;
+      error?: string;
+    }[] = [];
 
     // Process each application
     for (let i = 0; i < applications.length; i++) {
@@ -851,13 +894,31 @@ export const bulkMarkReviewed = mutation({
         });
 
         results.success++;
+        changeRecords.push({ applicationId, success: true });
       } catch (error) {
         results.failed++;
+        const message = error instanceof Error ? error.message : 'Unknown error';
         results.errors.push(
-          `Error marking application ${applicationId} as reviewed: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `Error marking application ${applicationId} as reviewed: ${message}`
         );
+        changeRecords.push({ applicationId, success: false, error: message });
       }
     }
+
+    await createAuditLog(ctx, {
+      actorId: sessionCtx.userId,
+      universityId,
+      action: 'applications.bulk_mark_reviewed',
+      entityType: 'application',
+      entityId: 'bulk',
+      previousValue: null,
+      newValue: {
+        applicationIds: args.applicationIds,
+        results,
+        changes: changeRecords,
+      },
+      ipAddress: 'server',
+    });
 
     return results;
   },

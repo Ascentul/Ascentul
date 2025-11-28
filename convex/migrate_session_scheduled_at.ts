@@ -6,7 +6,7 @@
  * See convex/advisor_sessions.ts lines 107-137 for the inconsistency.
  */
 
-import { internalMutation, query } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
@@ -102,7 +102,7 @@ export const backfillScheduledAt = internalMutation({
  *
  * Run via: npx convex run migrate_session_scheduled_at:verifyMigration
  */
-export const verifyMigration = query({
+export const verifyMigration = internalQuery({
   args: {},
   handler: async (ctx) => {
     console.log("🔍 Verifying advisor_sessions scheduled_at migration...");
@@ -163,7 +163,7 @@ export const verifyMigration = query({
  *
  * Run via: npx convex run migrate_session_scheduled_at:getMigrationStats
  */
-export const getMigrationStats = query({
+export const getMigrationStats = internalQuery({
   args: {},
   handler: async (ctx) => {
     const allSessions = await ctx.db.query("advisor_sessions").collect();

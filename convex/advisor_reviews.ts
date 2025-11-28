@@ -151,10 +151,16 @@ export const getReview = query({
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
+    const universityId = requireTenant(sessionCtx);
 
     const review = await ctx.db.get(args.reviewId);
     if (!review) {
       throw new Error("Review not found");
+    }
+
+    // Tenant isolation
+    if (review.university_id !== universityId) {
+      throw new Error("Unauthorized: Review not in your university");
     }
 
     // Verify access to student
@@ -480,6 +486,7 @@ export const addComment = mutation({
     await ctx.db.patch(args.reviewId, {
       comments: updatedComments,
       updated_at: now,
+      version: (review.version ?? 0) + 1,
     });
 
     // Audit log for all comments (FERPA compliance)
@@ -563,10 +570,10 @@ export const updateComment = mutation({
       visibility: args.visibility || comment.visibility,
       updated_at: now,
     };
-
     await ctx.db.patch(args.reviewId, {
       comments,
       updated_at: now,
+      version: (review.version ?? 0) + 1,
     });
 
     // Audit log for body changes (FERPA compliance)
@@ -652,6 +659,7 @@ export const deleteComment = mutation({
     await ctx.db.patch(args.reviewId, {
       comments: updatedComments,
       updated_at: Date.now(),
+      version: (review.version ?? 0) + 1,
     });
 
     // Audit log for comment deletion

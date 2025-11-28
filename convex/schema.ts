@@ -506,6 +506,10 @@ export default defineSchema({
     // Optimistic concurrency control for FERPA audit accuracy
     version: v.optional(v.number()),
 
+    // Migration tracking - enables idempotent re-runs with force=true
+    // Stores the original _id from followup_actions or advisor_follow_ups
+    migrated_from_id: v.optional(v.string()),
+
     // Timestamps
     created_at: v.number(),
     updated_at: v.number(),
@@ -518,7 +522,8 @@ export default defineSchema({
     .index('by_due_at', ['due_at'])
     .index('by_created_by', ['created_by_id'])
     .index('by_user_university', ['user_id', 'university_id'])
-    .index('by_related_entity', ['related_type', 'related_id']),
+    .index('by_related_entity', ['related_type', 'related_id'])
+    .index('by_migrated_from', ['migrated_from_id']),
 
   // =============================================================================
   // DEPRECATED: Legacy followup_actions table

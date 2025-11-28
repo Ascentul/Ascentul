@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
-import { mapStatusToStage, mapStageToStatus } from "./migrate_application_status_to_stage";
+import { mapStatusToStage } from "./migrate_application_status_to_stage";
 import { requireMembership } from "./lib/roles";
 
 // Get applications for a user
