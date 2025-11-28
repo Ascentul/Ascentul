@@ -1,14 +1,10 @@
 /**
  * Set Clerk Advisor Role
  *
- * Updates a user's publicMetadata in Clerk to set role="advisor"
- * Run with: npx ts-node -r dotenv/config scripts/set-clerk-advisor-role.ts <user-email>
+ * Updates a user's publicMetadata in Clerk to set role="advisor" with required university_id
+ * Run with: npx ts-node -r dotenv/config scripts/set-clerk-advisor-role.ts <user-email> <university-id>
  *
- * IMPORTANT: Advisors also require a university_id in Convex. After running this script,
- * you may need to sync Convex with the university_id:
- *   npx convex run set_advisor_role:setAdvisorRole '{"email": "<email>", "university_id": "<id>"}'
- *
- * The Clerk webhook will sync the role automatically, but university_id must be set separately.
+ * Advisors must always have a university_id. This script will refuse to set the role without it.
  */
 
 import 'dotenv/config';
@@ -24,12 +20,18 @@ const clerkClient = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY
 });
 
-async function setAdvisorRole(email: string) {
+async function setAdvisorRole(email: string, universityId: string) {
   try {
     // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       console.error('❌ Invalid email format');
+      process.exit(1);
+    }
+
+    if (!universityId) {
+      console.error('❌ Missing university_id argument. Advisors must have a university assignment.');
+      console.log('\nUsage: npx ts-node -r dotenv/config scripts/set-clerk-advisor-role.ts <email> <university-id>');
       process.exit(1);
     }
 
@@ -52,6 +54,7 @@ async function setAdvisorRole(email: string) {
       publicMetadata: {
         ...(user.publicMetadata || {}),
         role: 'advisor',
+        university_id: universityId,
       },
     });
 
@@ -60,9 +63,8 @@ async function setAdvisorRole(email: string) {
     console.log(`  - User ID: ${user.id}`);
     console.log(`  - Email: ${email}`);
     console.log('  - Role: advisor');
+    console.log(`  - University ID: ${universityId}`);
     console.log('\nℹ️  Clerk refreshes tokens automatically (~60s). For immediate effect, trigger a client token refresh (e.g., session.reload or getToken({ skipCache: true })).');
-    console.log('\n📋 Next step: Ensure user has university_id in Convex:');
-    console.log(`   npx convex run set_advisor_role:setAdvisorRole '{"email": "${email}", "university_id": "<university-id>"}'`);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`❌ Error: ${message}`);
@@ -83,15 +85,16 @@ async function setAdvisorRole(email: string) {
 
 // Get email from command line args
 const email = process.argv[2];
+const universityId = process.argv[3];
 
-if (!email) {
-  console.error('❌ Please provide an email address');
-  console.log('\nUsage: npx ts-node scripts/set-clerk-advisor-role.ts <email>');
-  console.log('Example: npx ts-node scripts/set-clerk-advisor-role.ts test.advisor@ascentful.io');
+if (!email || !universityId) {
+  console.error('❌ Please provide an email address and university_id');
+  console.log('\nUsage: npx ts-node -r dotenv/config scripts/set-clerk-advisor-role.ts <email> <university-id>');
+  console.log('Example: npx ts-node -r dotenv/config scripts/set-clerk-advisor-role.ts test.advisor@ascentful.io <convex-university-id>');
   process.exit(1);
 }
 
-setAdvisorRole(email).catch((error) => {
+setAdvisorRole(email, universityId).catch((error) => {
   console.error('Unhandled error:', error);
   process.exit(1);
 });

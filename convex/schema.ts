@@ -1141,11 +1141,17 @@ export default defineSchema({
   //
   // PII HANDLING:
   // - previous_value/new_value may contain student PII (names, grades, etc.)
+  // - Legacy fields also contain PII that must be redacted:
+  //   - performed_by_name, performed_by_email (actor PII)
+  //   - target_name, target_email (target user PII)
   // - On student data deletion requests (FERPA/GDPR), audit logs should be:
   //   1. Retained for compliance period (do not delete immediately)
   //   2. PII in previous_value/new_value should be redacted/anonymized
-  //   3. Keep student_id as reference but mark as "[REDACTED]" in value fields
-  // - Consider implementing a redaction mutation for right-to-be-forgotten requests
+  //   3. Legacy PII fields should be set to "[REDACTED]"
+  //   4. Keep student_id/actor_id as reference for audit trail integrity
+  // - Redaction mutation should handle BOTH new and legacy formats:
+  //   - New: previous_value, new_value (JSON fields - redact PII keys)
+  //   - Legacy: performed_by_name, performed_by_email, target_name, target_email
   //
   // TODO: Implement scheduled function for automated log retention management
   //
@@ -1169,15 +1175,15 @@ export default defineSchema({
 
     // Legacy format (backward compatibility - deprecated)
     performed_by_id: v.optional(v.string()), // Legacy: actor_id
-    performed_by_name: v.optional(v.string()), // Legacy: actor name
-    performed_by_email: v.optional(v.string()), // Legacy: actor email
+    performed_by_name: v.optional(v.string()), // Legacy: actor name (PII - subject to redaction)
+    performed_by_email: v.optional(v.string()), // Legacy: actor email (PII - subject to redaction)
     target_id: v.optional(v.string()), // Legacy: entity_id
     target_type: v.optional(v.string()), // Legacy: entity_type
-    target_name: v.optional(v.string()), // Legacy: entity name
-    target_email: v.optional(v.string()), // Legacy: entity email
+    target_name: v.optional(v.string()), // Legacy: entity name (PII - subject to redaction)
+    target_email: v.optional(v.string()), // Legacy: entity email (PII - subject to redaction)
     timestamp: v.optional(v.number()), // Legacy: created_at
     reason: v.optional(v.string()), // Legacy: action reason
-    metadata: v.optional(v.any()), // Legacy: additional data
+    metadata: v.optional(v.any()), // Legacy: additional data (may contain PII - subject to redaction)
   })
     .index("by_actor", ["actor_id", "created_at"]) // Find all actions by a user
     .index("by_entity", ["entity_type", "entity_id", "created_at"]) // Find all changes to an entity

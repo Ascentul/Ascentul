@@ -118,7 +118,7 @@ export const createTestStudent = internalMutation({
       console.log(`Creating pending student profile: ${studentEmail}`);
 
       const studentId = await ctx.db.insert("users", {
-        clerkId: "", // Empty clerkId marks this as pending - will be set by webhook
+        clerkId: `pending_${studentEmail}`, // Placeholder - will be replaced by webhook
         email: studentEmail,
         name: "Test Student",
         username: `student_${now}`,
