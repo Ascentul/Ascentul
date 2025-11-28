@@ -5,11 +5,15 @@ import { fetchQuery, fetchMutation } from 'convex/nextjs';
 
 // GET /api/contacts - list current user's contacts
 export async function GET() {
-  const { userId } = await auth()
+  const authResult = await auth()
+  const { userId } = authResult
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const token = await authResult.getToken({ template: 'convex' })
+  if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+
   try {
-    const contacts = await fetchQuery(api.contacts.getUserContacts, { clerkId: userId })
+    const contacts = await fetchQuery(api.contacts.getUserContacts, { clerkId: userId }, { token })
     return NextResponse.json({ contacts })
   } catch (e: any) {
     console.error('GET /api/contacts error', e)
@@ -19,8 +23,12 @@ export async function GET() {
 
 // POST /api/contacts - create a contact
 export async function POST(request: Request) {
-  const { userId } = await auth()
+  const authResult = await auth()
+  const { userId } = authResult
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const token = await authResult.getToken({ template: 'convex' })
+  if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
 
   let body
   try {
@@ -42,7 +50,7 @@ export async function POST(request: Request) {
       notes: body.notes ?? undefined,
       relationship: body.relationship_type ?? undefined,
       last_contact: body.last_contact_date ? Date.parse(body.last_contact_date) || undefined : undefined,
-    })
+    }, { token })
 
     return NextResponse.json({ contact }, { status: 201 })
   } catch (e: any) {
