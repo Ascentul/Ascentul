@@ -567,6 +567,7 @@ export const bulkUpdateApplicationStage = mutation({
     applicationIds: v.array(v.id('applications')),
     newStage: applicationStageValidator,
     notes: v.optional(v.string()),
+    reason_code: v.optional(v.string()), // Required for Rejected/Withdrawn stages
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -673,12 +674,34 @@ export const bulkUpdateApplicationStage = mutation({
           continue;
         }
 
+        // Require reason_code for Rejected/Withdrawn stages
+        if (requiresReasonCode(newStage) && !args.reason_code) {
+          results.failed++;
+          results.errors.push(
+            `Reason code required when moving application ${applicationId} to ${newStage}`
+          );
+          changeRecords.push({
+            applicationId,
+            previousStage: currentStage,
+            newStage,
+            success: false,
+            error: `Reason code required when moving application ${applicationId} to ${newStage}`,
+            notesAdded: Boolean(args.notes),
+          });
+          continue;
+        }
+
         // Build update object
         const updates: any = {
           stage: newStage,
           stage_set_at: now,
           updated_at: now,
         };
+
+        // Set reason_code for Rejected/Withdrawn stages
+        if (args.reason_code) {
+          updates.reason_code = args.reason_code;
+        }
 
         // Append notes if provided
         if (args.notes) {
@@ -735,6 +758,7 @@ export const bulkUpdateApplicationStage = mutation({
       newValue: {
         newStage: args.newStage,
         notes: args.notes,
+        reason_code: args.reason_code,
         applicationIds: args.applicationIds,
         results,
         changes: changeRecords,

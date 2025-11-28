@@ -47,7 +47,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ApplicationStage } from '../types';
-import { isTerminalStage } from '@/lib/advisor/stages';
+import { isTerminalStage, requiresReasonCode, getReasonCodesForStage } from '@/lib/advisor/stages';
 
 // ============================================================================
 // Types
@@ -56,7 +56,7 @@ import { isTerminalStage } from '@/lib/advisor/stages';
 export interface BulkActionBarProps {
   selectedCount: number;
   onClearSelection: () => void;
-  onChangeStage: (newStage: ApplicationStage, notes?: string) => Promise<void>;
+  onChangeStage: (newStage: ApplicationStage, notes?: string, reasonCode?: string) => Promise<void>;
   onArchive: (reason: string) => Promise<void>;
   onUpdateNextStep: (nextStep: string, dueDate?: number) => Promise<void>;
   onMarkReviewed: () => Promise<void>;
@@ -84,6 +84,7 @@ export function BulkActionBar({
 }: BulkActionBarProps) {
   const [selectedStage, setSelectedStage] = useState<ApplicationStage | ''>('');
   const [notes, setNotes] = useState('');
+  const [reasonCode, setReasonCode] = useState('');
   const [archiveReason, setArchiveReason] = useState('');
   const [nextStep, setNextStep] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -92,6 +93,10 @@ export function BulkActionBar({
     isOpen: false,
     action: null,
   });
+
+  // Get available reason codes for current stage
+  const availableReasonCodes = confirmDialog.stage ? getReasonCodesForStage(confirmDialog.stage) : null;
+  const reasonCodeRequired = confirmDialog.stage ? requiresReasonCode(confirmDialog.stage) : false;
 
   // Only render if items are selected
   if (selectedCount === 0) {
@@ -159,7 +164,7 @@ export function BulkActionBar({
     setIsProcessing(true);
     try {
       if (confirmDialog.action === 'change-stage' && confirmDialog.stage) {
-        await onChangeStage(confirmDialog.stage, notes);
+        await onChangeStage(confirmDialog.stage, notes, reasonCode || undefined);
       } else if (confirmDialog.action === 'archive') {
         await onArchive(archiveReason || 'Bulk archived by advisor');
       } else if (confirmDialog.action === 'update-next-step') {
@@ -195,6 +200,7 @@ export function BulkActionBar({
   const handleCancelDialog = () => {
     setConfirmDialog({ isOpen: false, action: null });
     setNotes('');
+    setReasonCode('');
     setArchiveReason('');
     setNextStep('');
     setDueDate('');
@@ -405,27 +411,63 @@ export function BulkActionBar({
                 />
               </div>
             </div>
+          ) : confirmDialog.action === 'change-stage' ? (
+            <div className="space-y-4">
+              {/* Reason Code (for Rejected/Withdrawn) */}
+              {reasonCodeRequired && availableReasonCodes && (
+                <div className="space-y-2">
+                  <label
+                    htmlFor="bulk-reason-code"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Reason (required)
+                  </label>
+                  <Select value={reasonCode} onValueChange={setReasonCode}>
+                    <SelectTrigger id="bulk-reason-code">
+                      <SelectValue placeholder="Select reason..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(availableReasonCodes).map(([code, label]) => (
+                        <SelectItem key={code} value={code}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <label
+                  htmlFor="bulk-action-notes"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Additional Notes (required)
+                </label>
+                <Textarea
+                  id="bulk-action-notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Provide context for this stage change..."
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+            </div>
           ) : (
             <div className="space-y-2">
               <label
-                htmlFor="bulk-action-notes"
+                htmlFor="bulk-archive-reason"
                 className="text-sm font-medium text-gray-700"
               >
-                {confirmDialog.action === 'archive' ? 'Reason (optional)' : 'Notes (required)'}
+                Reason (optional)
               </label>
               <Textarea
-                id="bulk-action-notes"
-                value={confirmDialog.action === 'archive' ? archiveReason : notes}
-                onChange={(e) =>
-                  confirmDialog.action === 'archive'
-                    ? setArchiveReason(e.target.value)
-                    : setNotes(e.target.value)
-                }
-                placeholder={
-                  confirmDialog.action === 'archive'
-                    ? 'Why are you archiving these applications?'
-                    : 'Provide context for this stage change...'
-                }
+                id="bulk-archive-reason"
+                value={archiveReason}
+                onChange={(e) => setArchiveReason(e.target.value)}
+                placeholder="Why are you archiving these applications?"
                 rows={3}
                 className="resize-none"
               />
@@ -441,6 +483,7 @@ export function BulkActionBar({
               disabled={
                 isProcessing ||
                 (confirmDialog.action === 'change-stage' && !notes.trim()) ||
+                (confirmDialog.action === 'change-stage' && reasonCodeRequired && !reasonCode) ||
                 (confirmDialog.action === 'update-next-step' && !nextStep.trim())
               }
               variant={confirmDialog.action === 'archive' ? 'destructive' : 'default'}

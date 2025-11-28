@@ -120,7 +120,7 @@ export default function AdvisorApplicationsPage() {
   // Bulk Actions
   // ============================================================================
 
-  const handleBulkChangeStage = async (newStage: EnrichedApplication['stage'], notes?: string) => {
+  const handleBulkChangeStage = async (newStage: EnrichedApplication['stage'], notes?: string, reasonCode?: string) => {
     if (!clerkId) return;
 
     const selectedIds = selectionHook.getSelectedIds();
@@ -131,6 +131,7 @@ export default function AdvisorApplicationsPage() {
         applicationIds: selectedIds,
         newStage,
         notes,
+        reason_code: reasonCode,
       });
 
       // Show success/error feedback
