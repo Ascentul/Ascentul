@@ -187,8 +187,8 @@ export async function POST(request: NextRequest) {
           clerkId: userData.id,
           updates,
           // Include membership data for university roles
-          membership: membershipRole && universityIdInMetadata
-            ? { role: membershipRole, universityId: universityIdInMetadata }
+          membership: membershipRole && validUniversityId
+            ? { role: membershipRole, universityId: validUniversityId }
             : undefined,
           serviceToken: convexServiceToken,
         })

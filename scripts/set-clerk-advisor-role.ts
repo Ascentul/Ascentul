@@ -82,11 +82,10 @@ async function setAdvisorRole(email: string, universityId: string) {
     console.log(`✓ Found user: ${user.id}`);
 
     // Update publicMetadata
-    await clerkFetch<ClerkUser>(`/users/${user.id}`, {
+    await clerkFetch<ClerkUser>(`/users/${user.id}/metadata`, {
       method: 'PATCH',
       body: JSON.stringify({
         public_metadata: {
-          ...(user.public_metadata || {}),
           role: 'advisor',
           university_id: universityId,
         },
