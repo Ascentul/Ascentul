@@ -171,12 +171,13 @@ export default function AdvisorSupportPage() {
   ) => {
     if (!clerkUser?.id) return
 
-    // Store original for rollback
-    const originalStatus = selectedTicket?.status
+    // Capture current ticket state for rollback
+    const ticketSnapshot = selectedTicket ? { ...selectedTicket } : null
+    const originalStatus = ticketSnapshot?.status
 
     // Optimistic update - update UI immediately
-    if (selectedTicket && selectedTicket._id === ticketId) {
-      setSelectedTicket({ ...selectedTicket, status: newStatus })
+    if (ticketSnapshot && ticketSnapshot._id === ticketId) {
+      setSelectedTicket({ ...ticketSnapshot, status: newStatus })
     }
 
     try {
@@ -193,8 +194,8 @@ export default function AdvisorSupportPage() {
       })
     } catch (error: any) {
       // Revert optimistic update on error
-      if (selectedTicket && selectedTicket._id === ticketId && originalStatus) {
-        setSelectedTicket({ ...selectedTicket, status: originalStatus })
+      if (ticketSnapshot && ticketSnapshot._id === ticketId && originalStatus) {
+        setSelectedTicket({ ...ticketSnapshot, status: originalStatus })
       }
       toast({
         title: 'Error',

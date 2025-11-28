@@ -7,8 +7,14 @@ export const runtime = 'nodejs'
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { userId } = await auth()
+    const authResult = await auth()
+    const { userId } = authResult
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const token = await authResult.getToken({ template: 'convex' })
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+    }
 
     const body = await request.json().catch(() => ({}))
     const name = String(body?.name || '').trim()
@@ -18,7 +24,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       clerkId: userId,
       id: params.id,
       name
-    })
+    }, { token })
 
     return NextResponse.json({ ok: true })
   } catch (error: any) {

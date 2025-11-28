@@ -231,12 +231,6 @@ export const _completeReviewInternal = internalMutation({
       version: currentVersion + 1, // Increment version for optimistic locking
     });
 
-    // Get student info for email notification
-    const student = await ctx.db.get(review.student_id);
-    if (!student) {
-      throw new Error('Student record not found');
-    }
-
     // Determine review type from asset_type
     const reviewType = review.asset_type === 'resume' ? 'Resume' : 'Cover Letter';
 

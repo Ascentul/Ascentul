@@ -722,7 +722,7 @@ The Ascentful Team`
       errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
       errorMessage.includes('SENDGRID_API_KEY')
     ) {
-      console.warn('Email service not configured - review completion email not sent');
+      console.warn('Email service not configured - university advisor invitation email not sent');
       return {
         id: `email_not_configured_${Date.now()}`,
         message: 'Email service not configured',

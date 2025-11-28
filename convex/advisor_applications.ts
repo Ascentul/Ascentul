@@ -514,6 +514,19 @@ export const updateApplicationNextStep = mutation({
       updated_at: now,
     });
 
+    // Audit log for FERPA compliance
+    await createAuditLog(ctx, {
+      actorId: sessionCtx.userId,
+      universityId,
+      action: 'application.next_step_updated',
+      entityType: 'application',
+      entityId: args.applicationId,
+      studentId: application.user_id,
+      previousValue: { next_step: application.next_step, due_date: application.due_date },
+      newValue: { next_step: args.nextStep, due_date: args.dueDate },
+      ipAddress: 'server',
+    });
+
     return {
       success: true,
       applicationId: args.applicationId,

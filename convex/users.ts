@@ -762,6 +762,7 @@ export const getAllUsers = query({
   args: {
     clerkId: v.string(),
     limit: v.optional(v.number()),
+    cursor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -779,12 +780,13 @@ export const getAllUsers = query({
       throw new Error("Unauthorized");
     }
 
+    // Returns { page, isDone, continueCursor } for proper pagination
     const users = await ctx.db
       .query("users")
       .order("desc")
       .paginate({
         numItems: args.limit || 50,
-        cursor: null,
+        cursor: args.cursor ?? null,
       });
 
     return users;
@@ -796,6 +798,7 @@ export const getAllUsersMinimal = query({
   args: {
     clerkId: v.string(),
     limit: v.optional(v.number()),
+    cursor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -813,12 +816,13 @@ export const getAllUsersMinimal = query({
       throw new Error("Unauthorized");
     }
 
+    // Returns { page, isDone, continueCursor } for proper pagination
     const users = await ctx.db
       .query("users")
       .order("desc")
       .paginate({
         numItems: args.limit || 50,
-        cursor: null,
+        cursor: args.cursor ?? null,
       });
 
     // Return only essential fields to reduce bandwidth

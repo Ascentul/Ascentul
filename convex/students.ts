@@ -241,6 +241,16 @@ export async function requireStudent(
     throw new Error("Student profile not found. Student must have a valid profile.");
   }
 
+  // Validate active membership
+  const membership = await ctx.db
+    .query("memberships")
+    .withIndex("by_user_role", (q) => q.eq("user_id", userId).eq("role", "student"))
+    .first();
+
+  if (!membership || membership.status !== "active") {
+    throw new Error("Unauthorized: Active student membership required");
+  }
+
   return { user, studentProfile };
 }
 

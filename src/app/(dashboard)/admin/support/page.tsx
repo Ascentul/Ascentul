@@ -155,6 +155,17 @@ export default function AdminSupportPage() {
   const handleUpdateStatus = async (ticketId: any, newStatus: string) => {
     if (!clerkUser?.id) return
 
+    // Capture snapshot for rollback BEFORE any state changes
+    // This prevents stale reference bugs if selectedTicket changes during the async operation
+    const ticketSnapshot = selectedTicket && selectedTicket._id === ticketId
+      ? { ...selectedTicket }
+      : null
+
+    // Optimistic update - update UI immediately
+    if (ticketSnapshot) {
+      setSelectedTicket({ ...ticketSnapshot, status: newStatus })
+    }
+
     try {
       await updateTicketStatus({
         clerkId: clerkUser.id,
@@ -162,17 +173,17 @@ export default function AdminSupportPage() {
         status: newStatus as any
       })
 
-      // Update local state to reflect the change immediately
-      if (selectedTicket && selectedTicket._id === ticketId) {
-        setSelectedTicket({ ...selectedTicket, status: newStatus })
-      }
-
       toast({
         title: 'Status updated',
         description: `Ticket status changed to ${newStatus}`,
         variant: 'success'
       })
     } catch (error: any) {
+      // Rollback using the captured snapshot, not current selectedTicket
+      if (ticketSnapshot) {
+        setSelectedTicket(ticketSnapshot)
+      }
+
       toast({
         title: 'Error',
         description: error.message || 'Failed to update status',

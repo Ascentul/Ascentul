@@ -180,22 +180,9 @@ export function ReviewEditor({
       }
     };
 
-    // Warn user about unsaved changes before closing/navigating
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        // Trigger save attempt (best-effort, may not complete)
-        void saveChangesRef.current();
-        // Show browser's "unsaved changes" warning
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [hasUnsavedChanges, isSaving]);
 

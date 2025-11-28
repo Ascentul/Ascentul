@@ -4,6 +4,19 @@
  * Problem: scheduled_at is optional but used in date-range index queries.
  * Sessions without scheduled_at are excluded from date-filtered results.
  * See convex/advisor_sessions.ts lines 107-137 for the inconsistency.
+ *
+ * SCALABILITY NOTE:
+ * These migrations use ctx.db.query("advisor_sessions").collect() which loads
+ * all sessions into memory. As internalMutation/internalQuery, they have a
+ * 5-minute timeout (vs 1 second for regular queries), making this acceptable
+ * for moderate datasets (~10k sessions).
+ *
+ * For very large datasets (50k+ sessions), consider refactoring to:
+ * 1. Cursor-based pagination with .paginate({ numItems: 500, cursor })
+ * 2. Process in batches, storing progress in migration_state table
+ * 3. Use scheduled functions for resumable migrations
+ *
+ * Current approach is sufficient for expected advisor session volumes.
  */
 
 import { internalMutation, internalQuery } from "./_generated/server";

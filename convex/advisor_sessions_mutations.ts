@@ -50,7 +50,6 @@ const visibilityValidator = v.union(
  */
 export const createSession = mutation({
   args: {
-    clerkId: v.string(),
     student_id: v.id("users"),
     title: v.string(),
     session_type: sessionTypeValidator,
@@ -62,7 +61,7 @@ export const createSession = mutation({
     visibility: v.optional(visibilityValidator),
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    const sessionCtx = await getCurrentUser(ctx);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
@@ -127,7 +126,6 @@ export const createSession = mutation({
  */
 export const updateSession = mutation({
   args: {
-    clerkId: v.string(),
     session_id: v.id("advisor_sessions"),
     title: v.optional(v.string()),
     session_type: v.optional(sessionTypeValidator),
@@ -141,7 +139,7 @@ export const updateSession = mutation({
     version: v.number(), // For conflict detection
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    const sessionCtx = await getCurrentUser(ctx);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
@@ -299,11 +297,10 @@ export const updateSession = mutation({
  */
 export const deleteSession = mutation({
   args: {
-    clerkId: v.string(),
     session_id: v.id("advisor_sessions"),
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    const sessionCtx = await getCurrentUser(ctx);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
@@ -349,12 +346,11 @@ export const deleteSession = mutation({
  */
 export const cancelSession = mutation({
   args: {
-    clerkId: v.string(),
     session_id: v.id("advisor_sessions"),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    const sessionCtx = await getCurrentUser(ctx);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
