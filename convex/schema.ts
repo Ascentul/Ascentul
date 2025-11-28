@@ -939,7 +939,7 @@ export default defineSchema({
     .index("by_university", ["university_id"])
     .index("by_advisor", ["advisor_id", "university_id"])
     .index("by_student", ["student_id", "university_id"])
-    .index("by_advisor_owner", ["advisor_id", "is_owner"])
+    .index("by_advisor_owner", ["advisor_id", "is_owner", "university_id"])
     .index("by_student_owner", ["student_id", "is_owner"]),
 
   // Advisor session/appointment tracking

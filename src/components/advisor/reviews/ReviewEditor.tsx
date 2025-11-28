@@ -185,9 +185,20 @@ export function ReviewEditor({
       }
     };
 
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges && !isSaving) {
+        // Best-effort save before unload; may not complete
+        void saveChangesRef.current();
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [hasUnsavedChanges, isSaving]);
 
@@ -237,6 +248,19 @@ export function ReviewEditor({
         variant: "destructive",
       });
       return;
+    }
+
+    // Save any unsaved changes first
+    if (hasUnsavedChanges) {
+      const saved = await saveChanges();
+      if (!saved) {
+        toast({
+          title: "Cannot complete",
+          description: "Please save your changes before completing",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsCompleting(true);

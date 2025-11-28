@@ -210,9 +210,8 @@ export async function getOwnedStudentIds(
     const assignments = await ctx.db
       .query("student_advisors")
       .withIndex("by_advisor_owner", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("is_owner", true),
+        q.eq("advisor_id", sessionCtx.userId).eq("is_owner", true).eq("university_id", universityId),
       )
-      .filter((q) => q.eq(q.field("university_id"), universityId))
       .collect();
 
     return assignments.map((a) => a.student_id);
