@@ -119,3 +119,54 @@ export const STAGE_TRANSITIONS: Record<ApplicationStage, ApplicationStage[]> = {
   Withdrawn: ['Archived'],
   Archived: [],
 };
+
+/**
+ * Reason codes for Rejected stage
+ * These provide structured data for analytics and reporting
+ */
+export const REJECTED_REASON_CODES = {
+  not_qualified: 'Not Qualified',
+  experience_mismatch: 'Experience Mismatch',
+  skills_gap: 'Skills Gap',
+  culture_fit: 'Culture Fit',
+  compensation: 'Compensation Mismatch',
+  position_filled: 'Position Filled',
+  no_response: 'No Response from Employer',
+  other: 'Other',
+} as const;
+
+export type RejectedReasonCode = keyof typeof REJECTED_REASON_CODES;
+
+/**
+ * Reason codes for Withdrawn stage
+ * These provide structured data for analytics and reporting
+ */
+export const WITHDRAWN_REASON_CODES = {
+  accepted_other: 'Accepted Another Offer',
+  lost_interest: 'Lost Interest in Role',
+  compensation: 'Compensation Not Competitive',
+  location: 'Location Concerns',
+  company_culture: 'Company Culture Concerns',
+  timeline: 'Timeline Issues',
+  personal: 'Personal Reasons',
+  other: 'Other',
+} as const;
+
+export type WithdrawnReasonCode = keyof typeof WITHDRAWN_REASON_CODES;
+
+/**
+ * Get reason codes for a given stage
+ * Returns null if the stage doesn't require reason codes
+ */
+export function getReasonCodesForStage(stage: string): Record<string, string> | null {
+  if (stage === 'Rejected') return REJECTED_REASON_CODES;
+  if (stage === 'Withdrawn') return WITHDRAWN_REASON_CODES;
+  return null;
+}
+
+/**
+ * Check if a stage requires a reason code
+ */
+export function requiresReasonCode(stage: string): boolean {
+  return stage === 'Rejected' || stage === 'Withdrawn';
+}

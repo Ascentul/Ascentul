@@ -425,8 +425,9 @@ export default defineSchema({
         start_date: v.optional(v.number()), // If accepted
       }),
     ),
-    // IMPORTANT: Mutations must validate reason_code is provided when stage is "Rejected" or "Withdrawn"
-    reason_code: v.optional(v.string()), // e.g., "not_a_fit", "compensation", "location"
+    // Reason code for Rejected/Withdrawn stages (validated by updateApplicationStage mutation)
+    // See convex/advisor_constants.ts for valid codes (REJECTED_REASON_CODES, WITHDRAWN_REASON_CODES)
+    reason_code: v.optional(v.string()),
     // Evidence uploads (for Offer/Accepted stages) - Use Convex storage for proper access control
     evidence_storage_ids: v.optional(v.array(v.id("_storage"))), // Uploaded offer letters, etc.
     created_at: v.number(),

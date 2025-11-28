@@ -170,14 +170,18 @@ export const migrateFollowUps = internalMutation({
           .map(c => [c._id, c] as const)
       );
 
+      // Pre-fetch already migrated IDs for this batch to avoid N+1 queries
+      const migratedFromThisBatch = await ctx.db
+        .query('follow_ups')
+        .withIndex('by_migrated_from')
+        .filter((q) => q.or(...page.page.map(a => q.eq(q.field('migrated_from_id'), a._id))))
+        .collect();
+      const migratedSet = new Set(migratedFromThisBatch.map(m => m.migrated_from_id));
+
       for (const action of page.page) {
         try {
         // Skip if already migrated (idempotent re-run support for force=true)
-        const existingMigrated = await ctx.db
-          .query('follow_ups')
-          .withIndex('by_migrated_from', (q) => q.eq('migrated_from_id', action._id))
-          .first();
-        if (existingMigrated) {
+        if (migratedSet.has(action._id)) {
           console.log(`Skipping followup_actions ${action._id} - already migrated`);
           continue;
         }
@@ -339,14 +343,24 @@ export const migrateFollowUps = internalMutation({
           .map(r => [r._id, r] as const)
       );
 
+      // Batch migrated_from checks to avoid per-record queries
+      const migratedLookup = await Promise.all(
+        page.page.map(async (followUp) => {
+          const existing = await ctx.db
+            .query('follow_ups')
+            .withIndex('by_migrated_from', (q) => q.eq('migrated_from_id', followUp._id))
+            .first();
+          return { id: followUp._id, migrated: Boolean(existing) };
+        })
+      );
+      const alreadyMigratedIds = new Set(
+        migratedLookup.filter((m) => m.migrated).map((m) => m.id)
+      );
+
       for (const followUp of page.page) {
         try {
         // Skip if already migrated (idempotent re-run support for force=true)
-        const existingMigrated = await ctx.db
-          .query('follow_ups')
-          .withIndex('by_migrated_from', (q) => q.eq('migrated_from_id', followUp._id))
-          .first();
-        if (existingMigrated) {
+        if (alreadyMigratedIds.has(followUp._id)) {
           console.log(`Skipping advisor_follow_ups ${followUp._id} - already migrated`);
           continue;
         }

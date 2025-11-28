@@ -25,7 +25,7 @@ import { useMutation } from 'convex/react';
 import { api } from 'convex/_generated/api';
 import type { Id } from 'convex/_generated/dataModel';
 import { toast } from 'sonner';
-import { getNextStages, getStageLabel, getStageColor, isTerminalStage } from '@/lib/advisor/stages';
+import { getNextStages, getStageLabel, getStageColor, isTerminalStage, requiresReasonCode, getReasonCodesForStage } from '@/lib/advisor/stages';
 import type { ApplicationStage } from '@/lib/advisor/stages';
 
 interface StageTransitionModalProps {
@@ -50,7 +50,8 @@ export function StageTransitionModal({
   onSuccess,
 }: StageTransitionModalProps) {
   const [selectedStage, setSelectedStage] = useState<ApplicationStage | ''>('');
-  const [reason, setReason] = useState('');
+  const [reasonCode, setReasonCode] = useState('');
+  const [additionalNotes, setAdditionalNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateStage = useMutation(api.advisor_applications.updateApplicationStage);
@@ -58,8 +59,12 @@ export function StageTransitionModal({
   const currentStage = (application.stage || 'Prospect') as ApplicationStage;
   const nextStages = getNextStages(currentStage);
 
-  // Determine if reason is required for the selected stage
-  const reasonRequired = selectedStage && isTerminalStage(selectedStage);
+  // Determine if reason code is required for the selected stage
+  const reasonCodeRequired = selectedStage && requiresReasonCode(selectedStage);
+  const availableReasonCodes = selectedStage ? getReasonCodesForStage(selectedStage) : null;
+
+  // Notes are still required for terminal stages (Rejected, Withdrawn, Archived)
+  const notesRequired = selectedStage && isTerminalStage(selectedStage);
 
   const handleSubmit = async () => {
     if (!selectedStage) {
@@ -67,8 +72,13 @@ export function StageTransitionModal({
       return;
     }
 
-    if (reasonRequired && !reason.trim()) {
-      toast.error(`Reason required for ${selectedStage} stage`);
+    if (reasonCodeRequired && !reasonCode) {
+      toast.error(`Please select a reason for ${selectedStage}`);
+      return;
+    }
+
+    if (notesRequired && !additionalNotes.trim()) {
+      toast.error(`Notes required for ${selectedStage} stage`);
       return;
     }
 
@@ -78,7 +88,8 @@ export function StageTransitionModal({
         clerkId,
         applicationId: application._id,
         newStage: selectedStage as ApplicationStage,
-        notes: reason.trim() || undefined,
+        notes: additionalNotes.trim() || undefined,
+        reason_code: reasonCode || undefined,
       });
 
       toast.success(`Application moved to ${selectedStage}`);
@@ -88,7 +99,8 @@ export function StageTransitionModal({
 
       // Reset form
       setSelectedStage('');
-      setReason('');
+      setReasonCode('');
+      setAdditionalNotes('');
 
       if (onSuccess) {
         onSuccess(application._id, completedStage);
@@ -105,7 +117,8 @@ export function StageTransitionModal({
   const handleClose = () => {
     if (!isSubmitting) {
       setSelectedStage('');
-      setReason('');
+      setReasonCode('');
+      setAdditionalNotes('');
       onClose();
     }
   };
@@ -150,7 +163,13 @@ export function StageTransitionModal({
                 No transitions available from {currentStage}
               </div>
             ) : (
-              <Select value={selectedStage} onValueChange={(value) => setSelectedStage(value as ApplicationStage)}>
+              <Select
+                value={selectedStage}
+                onValueChange={(value) => {
+                  setSelectedStage(value as ApplicationStage);
+                  setReasonCode(''); // Reset reason code when stage changes
+                }}
+              >
                 <SelectTrigger id='stage'>
                   <SelectValue placeholder='Select new stage...' />
                 </SelectTrigger>
@@ -168,26 +187,45 @@ export function StageTransitionModal({
             )}
           </div>
 
-          {/* Reason/Notes */}
+          {/* Reason Code (for Rejected/Withdrawn) */}
+          {reasonCodeRequired && availableReasonCodes && (
+            <div className='space-y-2'>
+              <Label htmlFor='reason-code'>Reason *</Label>
+              <Select value={reasonCode} onValueChange={setReasonCode}>
+                <SelectTrigger id='reason-code'>
+                  <SelectValue placeholder='Select reason...' />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(availableReasonCodes).map(([code, label]) => (
+                    <SelectItem key={code} value={code}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Additional Notes */}
           <div className='space-y-2'>
-            <Label htmlFor='reason'>
-              {reasonRequired ? 'Reason *' : 'Notes (Optional)'}
+            <Label htmlFor='notes'>
+              {notesRequired ? 'Additional Notes *' : 'Notes (Optional)'}
             </Label>
-            {reasonRequired && (
+            {notesRequired && (
               <div className='flex items-start gap-2 text-xs text-amber-600 bg-amber-50 p-2 rounded-md mb-2'>
                 <AlertCircle className='h-4 w-4 mt-0.5 flex-shrink-0' />
-                <span>A reason is required when moving to {selectedStage} stage</span>
+                <span>Additional context is required when moving to {selectedStage} stage</span>
               </div>
             )}
             <Textarea
-              id='reason'
+              id='notes'
               placeholder={
-                reasonRequired
-                  ? `Explain why this application is being marked as ${selectedStage}...`
+                notesRequired
+                  ? `Provide additional context about this ${selectedStage} decision...`
                   : 'Add optional notes about this stage change...'
               }
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              value={additionalNotes}
+              onChange={(e) => setAdditionalNotes(e.target.value)}
               rows={4}
               disabled={isSubmitting}
             />
@@ -201,7 +239,15 @@ export function StageTransitionModal({
           <Button variant='outline' onClick={handleClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !selectedStage || nextStages.length === 0}>
+          <Button
+            onClick={handleSubmit}
+            disabled={
+              isSubmitting ||
+              !selectedStage ||
+              nextStages.length === 0 ||
+              (reasonCodeRequired && !reasonCode) === true
+            }
+          >
             {isSubmitting ? 'Updating...' : 'Update Stage'}
           </Button>
         </DialogFooter>

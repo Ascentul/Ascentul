@@ -16,9 +16,13 @@ import {
   FINAL_STAGES,
   TERMINAL_STAGES,
   STAGE_TRANSITIONS,
+  REJECTED_REASON_CODES,
+  WITHDRAWN_REASON_CODES,
   isTerminalStage,
   isActiveStage,
   isFinalStage,
+  requiresReasonCode,
+  getReasonCodesForStage,
 } from 'convex/advisor_constants';
 
 // Re-export type
@@ -31,9 +35,13 @@ export {
   FINAL_STAGES,
   TERMINAL_STAGES,
   STAGE_TRANSITIONS,
+  REJECTED_REASON_CODES,
+  WITHDRAWN_REASON_CODES,
   isTerminalStage,
   isActiveStage,
   isFinalStage,
+  requiresReasonCode,
+  getReasonCodesForStage,
 };
 
 /**

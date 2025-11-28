@@ -393,6 +393,16 @@ const applicationStageValidator = v.union(
 );
 
 /**
+ * Stages that require a reason_code when transitioning to them
+ * (Rejected and Withdrawn require structured reason tracking; Archived is administrative)
+ */
+const STAGES_REQUIRING_REASON_CODE = ['Rejected', 'Withdrawn'] as const;
+
+function requiresReasonCode(stage: string): boolean {
+  return (STAGES_REQUIRING_REASON_CODE as readonly string[]).includes(stage);
+}
+
+/**
  * Update application stage (with transition validation)
  */
 export const updateApplicationStage = mutation({
@@ -401,6 +411,7 @@ export const updateApplicationStage = mutation({
     applicationId: v.id('applications'),
     newStage: applicationStageValidator,
     notes: v.optional(v.string()),
+    reason_code: v.optional(v.string()), // Required for Rejected/Withdrawn stages
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -436,6 +447,13 @@ export const updateApplicationStage = mutation({
       );
     }
 
+    // Require reason_code for Rejected/Withdrawn stages
+    if (requiresReasonCode(newStage) && !args.reason_code) {
+      throw new Error(
+        `Reason code required when moving to ${newStage} state`,
+      );
+    }
+
     const now = Date.now();
 
     // Build update object
@@ -444,6 +462,11 @@ export const updateApplicationStage = mutation({
       stage_set_at: now,
       updated_at: now,
     };
+
+    // Set reason_code for Rejected/Withdrawn stages
+    if (args.reason_code) {
+      updates.reason_code = args.reason_code;
+    }
 
     // Append notes if provided
     if (args.notes) {
@@ -467,7 +490,7 @@ export const updateApplicationStage = mutation({
       entityId: args.applicationId,
       studentId: application.user_id,
       previousValue: { stage: currentStage },
-      newValue: { stage: newStage, notes: args.notes },
+      newValue: { stage: newStage, notes: args.notes, reason_code: args.reason_code },
       ipAddress: 'server',
     });
 
