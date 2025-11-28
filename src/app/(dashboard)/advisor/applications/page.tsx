@@ -283,7 +283,9 @@ export default function AdvisorApplicationsPage() {
     filteredApplications.length === 0 &&
     filterHook.filters.stages.length === 0 &&
     filterHook.filters.cohorts.length === 0 &&
-    !filterHook.filters.search;
+    !filterHook.filters.search &&
+    !filterHook.filters.activeOnly &&
+    filterHook.filters.timeWindow === 'all';
 
   // ============================================================================
   // Render

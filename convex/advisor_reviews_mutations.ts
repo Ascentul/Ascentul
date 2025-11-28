@@ -200,6 +200,11 @@ export const _completeReviewInternal = internalMutation({
       throw new Error('Unauthorized: Not your review');
     }
 
+    // Ensure review is in progress before completing
+    if (review.status !== 'in_review') {
+      throw new Error(`Cannot complete review with status: ${review.status}`);
+    }
+
     const currentVersion = review.version ?? 0;
 
     // Validate version for optimistic concurrency control

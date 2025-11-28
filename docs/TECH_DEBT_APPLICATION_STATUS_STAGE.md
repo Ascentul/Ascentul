@@ -430,7 +430,7 @@ After Phase 3 (status field removal):
 - Index Definitions: `convex/schema.ts:418-420`
 - Analytics Usage: `convex/analytics.ts:1025-1098`
 - Advisor Usage: `convex/advisor_applications.ts:249-251`
-- Original Issue: Identified during code review (2024-11-18)
+- Original Issue: Identified during code review (2025-11-18)
 
 ## Notes
 

@@ -16,7 +16,8 @@ async function requireAdminAuth(_request: NextRequest): Promise<{ userId: string
   }
 
   try {
-    const user = await clerkClient.users.getUser(userId)
+    const clerk = await clerkClient()
+    const user = await clerk.users.getUser(userId)
     const userRole = user?.publicMetadata?.role as string | undefined
     if (userRole !== 'super_admin') {
       return { error: NextResponse.json({ error: 'Admin access required' }, { status: 403 }) }

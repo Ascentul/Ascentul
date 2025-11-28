@@ -71,17 +71,31 @@ export const getAllUsers = query({
       throw new Error("Unauthorized");
     }
 
+export const getAllUsers = query({
+  args: {
+    limit: v.optional(v.number()),
+    cursor: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+
+    if (currentUser.role !== "super_admin") {
+      throw new Error("Unauthorized");
+    }
+
     const limit = args.limit || 50;
     const result = await ctx.db
       .query("users")
       .order("desc")
-      .paginate({ numItems: limit, cursor: null });
+      .paginate({ numItems: limit, cursor: args.cursor ?? null });
 
     return {
       page: result.page,
       isDone: result.isDone,
       continueCursor: result.continueCursor,
     };
+  },
+});
   },
 });
 

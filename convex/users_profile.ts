@@ -146,6 +146,20 @@ export const createUser = mutation({
 
 export const createUserFromClerk = createUser;
 
+/**
+ * Update user profile fields.
+ *
+ * ⚠️ IMPORTANT: Role changes should go through Clerk first!
+ * Clerk publicMetadata.role is the source of truth for authorization.
+ * Direct role changes here will create a sync mismatch.
+ *
+ * Preferred flow for role changes:
+ * 1. Update role in Clerk publicMetadata (via Dashboard or API)
+ * 2. Clerk webhook triggers user.updated event
+ * 3. Webhook handler calls this mutation with serviceToken
+ *
+ * See CLAUDE.md "Roles & Permissions" section for details.
+ */
 export const updateUser = mutation({
   args: {
     clerkId: v.string(),
@@ -305,6 +319,15 @@ export const updateUser = mutation({
     const newRole = args.updates.role;
 
     if (roleChanged && newRole) {
+      // ⚠️ Warn if role change is not from webhook (service token)
+      // Clerk publicMetadata.role is the source of truth - direct changes create sync issues
+      if (!isService) {
+        console.warn(
+          `[updateUser] ⚠️ Direct role change for ${args.clerkId}: ${oldRole} → ${newRole}. ` +
+          `Consider updating Clerk publicMetadata.role first to maintain sync.`
+        );
+      }
+
       const targetUniversityId = args.updates.university_id !== undefined
         ? args.updates.university_id
         : targetUser.university_id;
@@ -622,6 +645,18 @@ export const ensureMembership = mutation({
  * partial updates where user role changes but membership creation fails.
  *
  * Used by Clerk webhook for user.updated events to ensure data consistency.
+ *
+ * ⚠️ IMPORTANT: This mutation should primarily be called from the Clerk webhook.
+ * Clerk publicMetadata.role is the source of truth for authorization.
+ * When called directly (not from webhook), role changes will update Convex
+ * but Clerk may still have the old role, causing authorization mismatches.
+ *
+ * Preferred flow:
+ * 1. Update role in Clerk publicMetadata (via Dashboard or API)
+ * 2. Clerk webhook triggers user.updated event
+ * 3. Webhook handler calls this mutation with serviceToken
+ *
+ * See CLAUDE.md "Roles & Permissions" section for details.
  */
 export const updateUserWithMembership = mutation({
   args: {
@@ -740,6 +775,15 @@ export const updateUserWithMembership = mutation({
 
     // Validate role transition if changing role
     if (roleChanged && newRole) {
+      // ⚠️ Warn if role change is not from webhook (service token)
+      // Clerk publicMetadata.role is the source of truth - direct changes create sync issues
+      if (!isService) {
+        console.warn(
+          `[updateUserWithMembership] ⚠️ Direct role change for ${args.clerkId}: ${oldRole} → ${newRole}. ` +
+          `Consider updating Clerk publicMetadata.role first to maintain sync.`
+        );
+      }
+
       const targetUniversityId =
         args.updates.university_id !== undefined
           ? args.updates.university_id

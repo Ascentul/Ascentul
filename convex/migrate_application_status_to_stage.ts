@@ -60,14 +60,17 @@ export const migrateStatusToStage = internalMutation({
     let skipped = 0;
     const errors: string[] = [];
 
-    // Get all applications - for large datasets (>10k), consider running in batches with pagination
-    const applications = await ctx.db.query("applications").collect();
+    // Paginate through applications to avoid loading all records into memory
+    let cursor: string | null = null;
+    let isDone = false;
 
-    if (applications.length > 10000) {
-      console.warn(`⚠️ Processing ${applications.length} applications - this may be slow or memory intensive`);
-    }
+    while (!isDone) {
+      const page = await ctx.db
+        .query("applications")
+        .order("asc")
+        .paginate({ cursor, numItems: 100 });
 
-    for (const app of applications) {
+      for (const app of page.page) {
         totalProcessed++;
         const appLabel = `app:${app._id}`;
 
@@ -107,12 +110,16 @@ export const migrateStatusToStage = internalMutation({
           if (totalProcessed % 50 === 0) {
             console.log(`Progress: ${totalProcessed} processed, ${migrated} migrated`);
           }
-      } catch (error) {
-        const errorMsg = `Error migrating ${appLabel}: ${error}`;
-        console.error(`❌ ${errorMsg}`);
-        errors.push(errorMsg);
-        skipped++;
+        } catch (error) {
+          const errorMsg = `Error migrating ${appLabel}: ${error}`;
+          console.error(`❌ ${errorMsg}`);
+          errors.push(errorMsg);
+          skipped++;
+        }
       }
+
+      cursor = page.continueCursor;
+      isDone = page.isDone;
     }
 
     const summary = {
