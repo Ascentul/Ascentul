@@ -158,7 +158,7 @@ export default function AdvisorSupportPage() {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create ticket',
+        description: 'Failed to create ticket. Please try again.',
         variant: 'destructive'
       })
     }

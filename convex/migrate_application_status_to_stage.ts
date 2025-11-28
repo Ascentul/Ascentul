@@ -213,10 +213,11 @@ export const verifyMigration = internalQuery({
 
 /**
  * Get migration statistics
- *
- * Run via: npx convex run migrate_application_status_to_stage:getMigrationStats
- */
-export const getMigrationStats = internalQuery({
+    const statusCounts: Record<string, number> = {};
+    allApps.forEach(app => {
+      const status = app.status || 'undefined';
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
   args: {},
   handler: async (ctx) => {
     const allApps = await ctx.db.query("applications").collect();

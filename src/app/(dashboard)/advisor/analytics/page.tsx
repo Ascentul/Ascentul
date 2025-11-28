@@ -87,8 +87,8 @@ export default function AdvisorAnalyticsPage() {
 
     // Create 4 week buckets
     for (let i = 0; i < 4; i++) {
-      const weekStartDate = startOfWeek(subWeeks(now, 3 - i), { weekStartsOn: 0 });
-      const weekEndDate = endOfWeek(weekStartDate, { weekStartsOn: 0 });
+      const weekStartDate = startOfWeek(subWeeks(now, 3 - i), { weekStartsOn: 1 });
+      const weekEndDate = endOfWeek(weekStartDate, { weekStartsOn: 1 });
 
       const count = activitySessions.filter((session) => {
         const sessionDate = session.start_at;

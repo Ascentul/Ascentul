@@ -6,15 +6,17 @@ import { convexServer } from '@/lib/convex-server';
 
 // POST /api/achievements/award { achievement_id }
 export async function POST(request: Request) {
-  const { userId } = await auth()
+  const { userId, getToken } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const token = await getToken({ template: 'convex' })
 
   const body = await request.json().catch(() => ({} as any))
   const achievementId = body.achievement_id as string
   if (!achievementId) return NextResponse.json({ error: 'achievement_id is required' }, { status: 400 })
 
   try {
-    const id = await convexServer.mutation(api.achievements.awardAchievement, { clerkId: userId, achievement_id: achievementId as Id<'achievements'> })
+    const id = await convexServer.mutation(api.achievements.awardAchievement, { clerkId: userId, achievement_id: achievementId as Id<'achievements'> }, token)
     return NextResponse.json({ userAchievementId: id }, { status: 201 })
   } catch (e: any) {
     const message = typeof e?.message === 'string' && e.message.includes('Already') ? 'Already earned' : 'Failed to award achievement'

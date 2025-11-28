@@ -15,7 +15,6 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
@@ -63,10 +62,16 @@ export function TodaysRecommendations() {
     [recommendations]
   )
 
+  // Sync local state when server data changes (by comparing IDs to avoid unnecessary updates)
+  const prevRecommendationIds = useRef<string>('')
   useEffect(() => {
-    removalTimeouts.current.forEach(timeout => clearTimeout(timeout))
-    removalTimeouts.current.clear()
-    setLocalRecommendations(recommendationsArray.map(rec => ({ ...rec })))
+    const newIds = recommendationsArray.map(r => r.id).sort().join(',')
+    if (newIds !== prevRecommendationIds.current) {
+      prevRecommendationIds.current = newIds
+      removalTimeouts.current.forEach(timeout => clearTimeout(timeout))
+      removalTimeouts.current.clear()
+      setLocalRecommendations(recommendationsArray.map(rec => ({ ...rec })))
+    }
   }, [recommendationsArray])
 
   useEffect(() => () => {

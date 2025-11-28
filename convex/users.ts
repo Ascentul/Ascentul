@@ -463,6 +463,133 @@ export const createUser = mutation({
 // Alias for Clerk webhook - same as createUser
 export const createUserFromClerk = createUser;
 
+/**
+ * Initialize user profile from client-side (called by ClerkAuthProvider)
+ * This is for users who sign up directly through Clerk and need a Convex profile.
+ * Unlike createUser (webhook-only), this validates the caller is the authenticated user.
+ */
+export const initializeUserProfile = mutation({
+  args: {
+    clerkId: v.string(),
+    email: v.string(),
+    name: v.string(),
+    username: v.optional(v.string()),
+    profile_image: v.optional(v.string()),
+    // Allow setting initial role from Clerk public metadata
+    role: v.optional(
+      v.union(
+        v.literal("individual"),
+        v.literal("user"),
+        v.literal("student"),
+        v.literal("staff"),
+        v.literal("university_admin"),
+        v.literal("advisor"),
+        v.literal("super_admin"),
+      ),
+    ),
+  },
+  handler: async (ctx, args) => {
+    // Verify the caller is the authenticated user
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Not authenticated");
+    }
+    if (identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized: Cannot create profile for another user");
+    }
+
+    // Check if user already exists
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (existingUser) {
+      // User already exists, just return the ID
+      return existingUser._id;
+    }
+
+    // Check for pending user (invited but not yet signed up)
+    const pendingUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .filter((q) => q.or(
+        q.eq(q.field("clerkId"), ""),
+        q.eq(q.field("account_status"), "pending_activation")
+      ))
+      .first();
+
+    if (pendingUser) {
+      // Activate the pending user
+      const finalRole = args.role || pendingUser.role;
+
+      // Validate role-university invariant
+      if (pendingUser.university_id && isIndividualRole(finalRole)) {
+        throw new Error(
+          `Cannot activate with role '${finalRole}' - user has university assignment. ` +
+          `Individual roles must not have university_id.`
+        );
+      }
+      if (!pendingUser.university_id && isUniversityRole(finalRole)) {
+        throw new Error(
+          `Cannot activate with role '${finalRole}' without university assignment.`
+        );
+      }
+
+      await ctx.db.patch(pendingUser._id, {
+        clerkId: args.clerkId,
+        name: args.name,
+        username: args.username || pendingUser.username,
+        profile_image: args.profile_image,
+        account_status: "active",
+        ...(args.role ? { role: args.role } : {}),
+        updated_at: Date.now(),
+      });
+
+      console.log(`[initializeUserProfile] Activated pending user: ${pendingUser._id}`);
+      return pendingUser._id;
+    }
+
+    // Validate role for new user creation
+    const finalRole = args.role ?? "user";
+    if (isUniversityRole(finalRole)) {
+      throw new Error(
+        `Cannot create user with role '${finalRole}' without university assignment.`
+      );
+    }
+
+    // Create new user
+    const userId = await ctx.db.insert("users", {
+      clerkId: args.clerkId,
+      email: args.email,
+      name: args.name,
+      username: args.username || `user_${Date.now()}`,
+      profile_image: args.profile_image,
+      role: finalRole,
+      subscription_plan: "free",
+      subscription_status: "active",
+      onboarding_completed: false,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    });
+
+    // Send welcome email
+    if (finalRole === "user" || finalRole === "individual") {
+      try {
+        await ctx.scheduler.runAfter(0, api.email.sendWelcomeEmail, {
+          email: args.email,
+          name: args.name,
+        });
+      } catch (emailError) {
+        console.warn("Failed to schedule welcome email:", emailError);
+      }
+    }
+
+    console.log(`[initializeUserProfile] Created new user: ${userId}`);
+    return userId;
+  },
+});
+
 // Update user profile
 export const updateUser = mutation({
   args: {

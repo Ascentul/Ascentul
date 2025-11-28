@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { StageTransitionModal } from './StageTransitionModal';
 import type { Id } from 'convex/_generated/dataModel';
-import { cn } from '@/lib/utils';
+import { cn, isValidHttpUrl } from '@/lib/utils';
 import { ACTIVE_STAGES, ALL_STAGES, type ApplicationStage } from '@/lib/advisor/stages';
 
 interface Application {

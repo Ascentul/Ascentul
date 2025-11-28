@@ -100,8 +100,8 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
   )
 
-  // Create & update user mutations
-  const createUser = useMutation(api.users.createUser)
+  // Initialize user profile mutation (client-callable, unlike createUser which is webhook-only)
+  const initializeUserProfile = useMutation(api.users.initializeUserProfile)
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -140,7 +140,7 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
           const metaRole = (clerkUser.publicMetadata as any)?.role as string | undefined
           const initialRole = (metaRole && (allowedRoles as readonly string[]).includes(metaRole)) ? (metaRole as any) : undefined
 
-          await createUser({
+          await initializeUserProfile({
             clerkId: clerkUser.id,
             email: clerkUser.emailAddresses[0]?.emailAddress || '',
             name: clerkUser.fullName || clerkUser.firstName || 'User',
@@ -161,7 +161,7 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     initializeUser()
-  }, [clerkUser, clerkLoaded, userProfile, createUser, toast, clerkSignOut])
+  }, [clerkUser, clerkLoaded, userProfile, initializeUserProfile, toast, clerkSignOut])
 
   // Convex is the source of truth for roles; if Clerk metadata diverges, log but do not override Convex
   useEffect(() => {
