@@ -74,7 +74,9 @@ export const TERMINAL_STAGES: readonly ApplicationStage[] = [
  * Type guard to check if a stage is terminal
  * Returns true and narrows type if stage is a valid terminal stage
  */
-export function isTerminalStage(stage: unknown): stage is ApplicationStage {
+type TerminalStage = 'Rejected' | 'Withdrawn' | 'Archived';
+
+export function isTerminalStage(stage: unknown): stage is TerminalStage {
   if (typeof stage !== 'string') return false;
   return (TERMINAL_STAGES as readonly string[]).includes(stage);
 }

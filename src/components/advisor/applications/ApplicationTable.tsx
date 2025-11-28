@@ -22,6 +22,7 @@ import {
 import { Search, Building2, User, Calendar, ExternalLink, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
+import { isValidHttpUrl } from "@/lib/utils";
 
 interface Application {
   _id: string;
@@ -257,7 +258,7 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
                             View Student
                           </Button>
                         </Link>
-                        {app.application_url && (
+                        {app.application_url && isValidHttpUrl(app.application_url) && (
                           <a
                             href={app.application_url}
                             target="_blank"

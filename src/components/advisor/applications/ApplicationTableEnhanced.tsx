@@ -59,7 +59,7 @@ import { api } from "convex/_generated/api";
 import { Id } from "convex/_generated/dataModel";
 import { EnrichedApplication } from "@/app/(dashboard)/advisor/applications/types";
 import { UseApplicationSelectionResult } from "@/app/(dashboard)/advisor/applications/hooks/useApplicationSelection";
-import { cn } from "@/lib/utils";
+import { cn, isValidHttpUrl } from "@/lib/utils";
 
 // ============================================================================
 // Types
@@ -487,7 +487,7 @@ export function ApplicationTableEnhanced({
                             View Student
                           </Link>
                         </DropdownMenuItem>
-                        {app.application_url && (
+                        {app.application_url && isValidHttpUrl(app.application_url) && (
                           <DropdownMenuItem asChild>
                             <a
                               href={app.application_url}

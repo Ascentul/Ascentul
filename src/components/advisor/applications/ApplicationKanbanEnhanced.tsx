@@ -45,7 +45,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { StageTransitionModal } from './StageTransitionModal';
 import type { Id } from 'convex/_generated/dataModel';
-import { cn } from '@/lib/utils';
+import { cn, isValidHttpUrl } from '@/lib/utils';
 import { EnrichedApplication, ApplicationStage } from '@/app/(dashboard)/advisor/applications/types';
 
 // ============================================================================
@@ -361,7 +361,7 @@ function ApplicationCard({
                     View Student
                   </Link>
                 </DropdownMenuItem>
-                {app.application_url && (
+                {app.application_url && isValidHttpUrl(app.application_url) && (
                   <DropdownMenuItem asChild>
                     <a
                       href={app.application_url}
@@ -452,7 +452,7 @@ function ApplicationCard({
                 View Student
               </Button>
             </Link>
-            {app.application_url && (
+            {app.application_url && isValidHttpUrl(app.application_url) && (
               <a
                 href={app.application_url}
                 target="_blank"

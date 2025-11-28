@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { StageTransitionModal } from './StageTransitionModal';
 import type { Id } from 'convex/_generated/dataModel';
-import { cn } from '@/lib/utils';
+import { cn, isValidHttpUrl } from '@/lib/utils';
 import { ACTIVE_STAGES, ALL_STAGES, type ApplicationStage } from '@/lib/advisor/stages';
 
 interface Application {
@@ -221,7 +221,7 @@ export function ApplicationKanban({
                                     rel="noopener noreferrer"
                                     aria-label={`Open application for ${app.company_name} in new tab`}
                                   >
-                                    <Button variant="ghost" size="sm" aria-hidden="true">
+                                    <Button variant="ghost" size="sm">
                                       <ExternalLink className="h-4 w-4" />
                                     </Button>
                                   </a>
