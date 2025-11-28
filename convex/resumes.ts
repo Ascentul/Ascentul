@@ -159,15 +159,15 @@ export const deleteResume = mutation({
     }
 
     // Referential integrity: Check for active reviews before deletion
+    // Uses by_resume index for O(1) lookup instead of scanning by_student
+    // Active reviews are those awaiting action (waiting/in_review), not finalized ones (approved/needs_edits)
     const activeReview = await ctx.db
       .query("advisor_reviews")
-      .withIndex("by_student", (q) => q.eq("student_id", user._id))
+      .withIndex("by_resume", (q) => q.eq("resume_id", args.resumeId))
       .filter((q) =>
-        q.and(
-          q.eq(q.field("asset_type"), "resume"),
-          q.eq(q.field("resume_id"), args.resumeId),
-          q.neq(q.field("status"), "completed"),
-          q.neq(q.field("status"), "cancelled"),
+        q.or(
+          q.eq(q.field("status"), "waiting"),
+          q.eq(q.field("status"), "in_review"),
         ),
       )
       .first();

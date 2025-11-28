@@ -78,10 +78,8 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   useEffect(() => {
     setTitle(session.title);
     setSessionType(session.session_type);
-    {
-      const date = new Date(session.start_at);
-      setStartAt(isNaN(date.getTime()) ? '' : format(date, DATETIME_LOCAL_FORMAT));
-    }
+    const date = new Date(session.start_at);
+    setStartAt(isNaN(date.getTime()) ? '' : format(date, DATETIME_LOCAL_FORMAT));
     setDurationMinutes(session.duration_minutes.toString());
     setLocation(session.location || '');
     setMeetingUrl(session.meeting_url || '');
@@ -123,7 +121,16 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
     visibility,
     status,
     formattedSessionStartAt,
-    session,
+    // Only include specific session properties used in comparison above
+    // (avoids re-running on unrelated session property changes like version bumps)
+    session.title,
+    session.session_type,
+    session.duration_minutes,
+    session.location,
+    session.meeting_url,
+    session.notes,
+    session.visibility,
+    session.status,
   ]);
 
   // Autosave function
@@ -221,6 +228,12 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
     onSaveSuccess,
   ]);
 
+  // Keep latest save function in a ref for debounced effects
+  const saveChangesRef = useRef(saveChanges);
+  useEffect(() => {
+    saveChangesRef.current = saveChanges;
+  }, [saveChanges]);
+
   // Autosave on change (debounced)
   useEffect(() => {
     if (hasUnsavedChanges) {
@@ -231,7 +244,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
 
       // Set new timer (2 seconds debounce)
       autosaveTimerRef.current = setTimeout(() => {
-        saveChanges();
+        saveChangesRef.current();
       }, 2000);
     }
 
@@ -241,16 +254,19 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
         clearTimeout(autosaveTimerRef.current);
       }
     };
-  }, [hasUnsavedChanges, saveChanges]);
+  }, [hasUnsavedChanges]);
 
   // Save when tab becomes hidden (more reliable than unmount)
   // This catches cases like tab switching, window closing, or navigation
   useEffect(() => {
+    // Note: beforeunload is best-effort; async saves may not complete before close
+    const saveChangesRef = { current: saveChanges };
+
     const handleVisibilityChange = () => {
       if (document.hidden && hasUnsavedChanges && !isSaving) {
         // Save immediately when tab becomes hidden
         // Browser gives more time to complete visibility change operations
-        void saveChanges();
+        void saveChangesRef.current();
       }
     };
 
@@ -259,7 +275,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         // Trigger save attempt (best-effort, may not complete)
-        void saveChanges();
+        void saveChangesRef.current();
         // Show browser's "unsaved changes" warning
         e.preventDefault();
         e.returnValue = '';
@@ -272,7 +288,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [hasUnsavedChanges, isSaving, saveChanges]);
+  }, [hasUnsavedChanges, isSaving]);
   // Manual save button
   const handleManualSave = async () => {
     const success = await saveChanges();

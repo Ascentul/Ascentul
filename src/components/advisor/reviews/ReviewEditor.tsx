@@ -78,6 +78,9 @@ export function ReviewEditor({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [lastSavedFeedback, setLastSavedFeedback] = useState(
+    review.feedback || ""
+  );
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -86,6 +89,7 @@ export function ReviewEditor({
   useEffect(() => {
     setFeedback(review.feedback || "");
     setCurrentVersion(review.version);
+    setLastSavedFeedback(review.feedback || "");
     setHasUnsavedChanges(false);
     setLastSaved(null);
     setSaveError(null);
@@ -93,9 +97,9 @@ export function ReviewEditor({
 
   // Track if feedback has changed
   useEffect(() => {
-    const changed = feedback !== (review.feedback || "");
+    const changed = feedback !== lastSavedFeedback;
     setHasUnsavedChanges(changed);
-  }, [feedback, review.feedback]);
+  }, [feedback, lastSavedFeedback]);
 
   // Autosave function
   const saveChanges = useCallback(async () => {
@@ -114,6 +118,7 @@ export function ReviewEditor({
 
       setCurrentVersion(result.version);
       setLastSaved(new Date());
+      setLastSavedFeedback(feedback);
       setHasUnsavedChanges(false);
 
       if (onSaveSuccess) {

@@ -19,15 +19,15 @@
  * - Dry run (preview): npx convex run migrate_follow_ups:migrateFollowUps '{"dryRun": true}'
  * - Actual migration: npx convex run migrate_follow_ups:migrateFollowUps
  * - Force re-run: npx convex run migrate_follow_ups:migrateFollowUps '{"force": true}' (safe - skips already migrated)
- * - Verify (default 100 samples): npx convex query migrate_follow_ups:verifyMigration
- * - Verify (custom sample): npx convex query migrate_follow_ups:verifyMigration '{"sampleSize": 500}'
+ * - Verify (default 100 samples): npx convex run migrate_follow_ups:verifyMigration
+ * - Verify (custom sample): npx convex run migrate_follow_ups:verifyMigration '{"sampleSize": 500}'
  */
 
-import { mutation, query } from './_generated/server';
+import { internalMutation, internalQuery } from './_generated/server';
 import { v } from 'convex/values';
 import { Id } from './_generated/dataModel';
 
-export const migrateFollowUps = mutation({
+export const migrateFollowUps = internalMutation({
   args: {
     dryRun: v.optional(v.boolean()), // Set to true to preview changes without committing
     force: v.optional(v.boolean()), // Set to true to bypass idempotency check (dangerous!)
@@ -520,7 +520,7 @@ export const migrateFollowUps = mutation({
  * - Dual-field pattern correctness (related_id matches typed IDs)
  * - Status and enum values are valid
  */
-export const verifyMigration = query({
+export const verifyMigration = internalQuery({
   args: {
     sampleSize: v.optional(v.number()), // Number of records to validate (default: 100)
   },

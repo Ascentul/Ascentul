@@ -166,15 +166,15 @@ export const deleteCoverLetter = mutation({
     }
 
     // Referential integrity: Check for active reviews before deletion
+    // Uses by_cover_letter index for O(1) lookup instead of scanning by_student
+    // Active reviews are those awaiting action (waiting/in_review), not finalized ones (approved/needs_edits)
     const activeReview = await ctx.db
       .query("advisor_reviews")
-      .withIndex("by_student", (q) => q.eq("student_id", user._id))
+      .withIndex("by_cover_letter", (q) => q.eq("cover_letter_id", args.coverLetterId))
       .filter((q) =>
-        q.and(
-          q.eq(q.field("asset_type"), "cover_letter"),
-          q.eq(q.field("cover_letter_id"), args.coverLetterId),
-          q.neq(q.field("status"), "completed"),
-          q.neq(q.field("status"), "cancelled"),
+        q.or(
+          q.eq(q.field("status"), "waiting"),
+          q.eq(q.field("status"), "in_review"),
         ),
       )
       .first();
