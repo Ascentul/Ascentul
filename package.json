@@ -18,7 +18,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/backend": "^2.22.0",
+    "@clerk/backend": "^2.4.0",
     "@clerk/mcp-tools": "^0.3.1",
     "@clerk/nextjs": "^6.31.10",
     "@hookform/resolvers": "^3.9.1",

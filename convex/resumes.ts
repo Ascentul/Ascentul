@@ -114,7 +114,7 @@ export const updateResume = mutation({
       throw new Error("Resume not found or access denied");
     }
 
-    if (resume.university_id && membership && resume.university_id !== membership.university_id) {
+    if (resume.university_id && user.university_id && resume.university_id !== user.university_id) {
       throw new Error("Unauthorized: Resume belongs to another university");
     }
 
@@ -154,7 +154,7 @@ export const deleteResume = mutation({
     }
 
     // University isolation check
-    if (resume.university_id && membership && resume.university_id !== membership.university_id) {
+    if (resume.university_id && user.university_id && resume.university_id !== user.university_id) {
       throw new Error("Unauthorized: Resume belongs to another university");
     }
 

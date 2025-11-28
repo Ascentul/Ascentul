@@ -1,11 +1,16 @@
 /**
- * Advisor Sessions Management
+ * Advisor Sessions - Queries & Supplementary Mutations
  *
- * Queries and mutations for advisor session/appointment tracking:
- * - Create/update/delete sessions
- * - Session notes with privacy controls
- * - Task assignment during sessions
- * - Autosave support with version conflict detection
+ * This file contains:
+ * - Queries for fetching session data (getSessionById, getSessions, getTodaySessions)
+ * - Supplementary mutations for session tasks (addSessionTask, updateSessionTask, etc.)
+ *
+ * For CRUD operations (create/update/delete sessions), see:
+ * → convex/advisor_sessions_mutations.ts
+ *
+ * Note: advisor_sessions_mutations.ts is the canonical source for session CRUD,
+ * used by the frontend (SessionEditor.tsx). This file focuses on queries and
+ * task management within sessions.
  */
 
 import { mutation, query } from "./_generated/server";
@@ -193,260 +198,19 @@ export const getTodaySessions = query({
   },
 });
 
-/**
- * Create new advisor session
- */
-export const createSession = mutation({
-  args: {
-    clerkId: v.string(),
-    studentId: v.id("users"),
-    title: v.string(),
-    scheduledAt: v.optional(v.number()),
-    startAt: v.number(),
-    endAt: v.optional(v.number()),
-    durationMinutes: v.optional(v.number()),
-    sessionType: v.optional(
-      v.union(
-        v.literal("career_planning"),
-        v.literal("resume_review"),
-        v.literal("mock_interview"),
-        v.literal("application_strategy"),
-        v.literal("general_advising"),
-        v.literal("other"),
-      ),
-    ),
-    templateId: v.optional(v.string()),
-    outcomes: v.optional(v.array(v.string())),
-    notes: v.optional(v.string()),
-    visibility: v.union(v.literal("shared"), v.literal("advisor_only")),
-  },
-  handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
-    requireAdvisorRole(sessionCtx);
-    const universityId = requireTenant(sessionCtx);
-
-    // Validate timing fields
-    if (args.startAt <= 0) {
-      throw new Error("startAt must be a valid timestamp");
-    }
-    if (args.durationMinutes !== undefined && (args.durationMinutes <= 0 || args.durationMinutes > 1440)) {
-      throw new Error("durationMinutes must be between 1 and 1440 (24 hours)");
-    }
-
-    // Verify access to student
-    await assertCanAccessStudent(ctx, sessionCtx, args.studentId);
-
-    const now = Date.now();
-
-    const sessionId = await ctx.db.insert("advisor_sessions", {
-      student_id: args.studentId,
-      advisor_id: sessionCtx.userId,
-      university_id: universityId,
-      title: args.title,
-      scheduled_at: args.scheduledAt ?? args.startAt, // Fallback to startAt for query consistency
-      start_at: args.startAt,
-      end_at: args.endAt,
-      duration_minutes: args.durationMinutes,
-      session_type: args.sessionType,
-      template_id: args.templateId,
-      outcomes: args.outcomes,
-      notes: args.notes,
-      visibility: args.visibility,
-      tasks: [],
-      attachments: [],
-      version: 1,
-      created_at: now,
-      updated_at: now,
-    });
-
-    // Audit log
-    await createAuditLog(ctx, {
-      actorId: sessionCtx.userId,
-      universityId,
-      action: "session.created",
-      entityType: "advisor_session",
-      entityId: sessionId,
-      studentId: args.studentId,
-      newValue: { title: args.title, visibility: args.visibility },
-      ipAddress: "server",
-    });
-
-    return sessionId;
-  },
-});
-
-/**
- * Update existing session (with version conflict detection)
- */
-export const updateSession = mutation({
-  args: {
-    clerkId: v.string(),
-    sessionId: v.id("advisor_sessions"),
-    updates: v.object({
-      title: v.optional(v.string()),
-      scheduledAt: v.optional(v.number()),
-      endAt: v.optional(v.number()),
-      durationMinutes: v.optional(v.number()),
-      sessionType: v.optional(
-        v.union(
-          v.literal("career_planning"),
-          v.literal("resume_review"),
-          v.literal("mock_interview"),
-          v.literal("application_strategy"),
-          v.literal("general_advising"),
-          v.literal("other"),
-        ),
-      ),
-      outcomes: v.optional(v.array(v.string())),
-      notes: v.optional(v.string()),
-      visibility: v.optional(
-        v.union(v.literal("shared"), v.literal("advisor_only")),
-      ),
-      tasks: v.optional(
-        v.array(
-          v.object({
-            id: v.string(),
-            title: v.string(),
-            due_at: v.optional(v.number()),
-            owner: v.union(v.literal("student"), v.literal("advisor")),
-            status: v.union(v.literal("open"), v.literal("done")),
-          }),
-        ),
-      ),
-    }),
-    expectedVersion: v.optional(v.number()), // For optimistic concurrency control
-  },
-  handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
-    requireAdvisorRole(sessionCtx);
-
-    const session = await ctx.db.get(args.sessionId);
-    if (!session) {
-      throw new Error("Session not found");
-    }
-
-    // Verify tenant isolation
-    const universityId = requireTenant(sessionCtx);
-    if (session.university_id !== universityId) {
-      throw new Error("Unauthorized: Session not in your university");
-    }
-
-    // Verify access to student
-    await assertCanAccessStudent(ctx, sessionCtx, session.student_id);
-
-    // Note: Intentionally allows any advisor with student access to update sessions,
-    // enabling collaborative advising. Only completeSession enforces strict ownership.
-
-    // Version conflict check
-    if (
-      args.expectedVersion !== undefined &&
-      session.version !== args.expectedVersion
-    ) {
-      throw new Error(
-        "Version conflict: Session was modified by another user. Please refresh and try again.",
-      );
-    }
-
-    // Validate timing fields
-    if (args.updates.durationMinutes !== undefined && (args.updates.durationMinutes <= 0 || args.updates.durationMinutes > 1440)) {
-      throw new Error("durationMinutes must be between 1 and 1440 (24 hours)");
-    }
-
-    const previousVisibility = session.visibility;
-    const newVersion = (session.version || 1) + 1;
-
-    // Transform camelCase args to snake_case schema fields
-    const patchData: any = {
-      version: newVersion,
-      updated_at: Date.now(),
-    };
-
-    if (args.updates.title !== undefined) patchData.title = args.updates.title;
-    if (args.updates.scheduledAt !== undefined) patchData.scheduled_at = args.updates.scheduledAt;
-    if (args.updates.endAt !== undefined) patchData.end_at = args.updates.endAt;
-    if (args.updates.durationMinutes !== undefined) patchData.duration_minutes = args.updates.durationMinutes;
-    if (args.updates.sessionType !== undefined) patchData.session_type = args.updates.sessionType;
-    if (args.updates.outcomes !== undefined) patchData.outcomes = args.updates.outcomes;
-    if (args.updates.notes !== undefined) patchData.notes = args.updates.notes;
-    if (args.updates.visibility !== undefined) patchData.visibility = args.updates.visibility;
-    if (args.updates.tasks !== undefined) patchData.tasks = args.updates.tasks;
-
-    await ctx.db.patch(args.sessionId, patchData);
-
-    // Audit log for visibility changes
-    if (
-      args.updates.visibility &&
-      args.updates.visibility !== previousVisibility
-    ) {
-      await createAuditLog(ctx, {
-        actorId: sessionCtx.userId,
-        universityId: session.university_id,
-        action: 'session.visibility_changed',
-        entityType: 'advisor_session',
-        entityId: args.sessionId,
-        studentId: session.student_id,
-        previousValue: previousVisibility,
-        newValue: args.updates.visibility,
-        ipAddress: "server",
-      });
-    }
-
-    return { success: true, newVersion };
-  },
-});
-
-/**
- * Delete session
- */
-export const deleteSession = mutation({
-  args: {
-    clerkId: v.string(),
-    sessionId: v.id("advisor_sessions"),
-    reason: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
-    requireAdvisorRole(sessionCtx);
-
-    const session = await ctx.db.get(args.sessionId);
-    if (!session) {
-      throw new Error("Session not found");
-    }
-
-    // Verify tenant isolation
-    const universityId = requireTenant(sessionCtx);
-    if (session.university_id !== universityId) {
-      throw new Error("Unauthorized: Session not in your university");
-    }
-
-    // Only session owner or admin can delete
-    if (
-      session.advisor_id !== sessionCtx.userId &&
-      sessionCtx.role !== "super_admin" &&
-      sessionCtx.role !== "university_admin"
-    ) {
-      throw new Error(
-        "Unauthorized: Only the session creator or admin can delete it",
-      );
-    }
-
-    // Audit log before deletion
-    await createAuditLog(ctx, {
-      actorId: sessionCtx.userId,
-      universityId: session.university_id,
-      action: "session.deleted",
-      entityType: "advisor_session",
-      entityId: args.sessionId,
-      studentId: session.student_id,
-      previousValue: { title: session.title, notes: session.notes, reason: args.reason },
-      ipAddress: "server",
-    });
-
-    await ctx.db.delete(args.sessionId);
-
-    return { success: true };
-  },
-});
+// ============================================================================
+// CRUD Mutations - See advisor_sessions_mutations.ts
+// ============================================================================
+//
+// Session CRUD operations are in advisor_sessions_mutations.ts:
+// - createSession → api.advisor_sessions_mutations.createSession
+// - updateSession → api.advisor_sessions_mutations.updateSession
+// - deleteSession → api.advisor_sessions_mutations.deleteSession
+// - cancelSession → api.advisor_sessions_mutations.cancelSession
+//
+// That file is the canonical source used by the frontend (SessionEditor.tsx).
+// This file contains queries and supplementary task mutations.
+// ============================================================================
 
 /**
  * Add task to session

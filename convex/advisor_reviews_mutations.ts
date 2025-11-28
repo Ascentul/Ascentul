@@ -214,6 +214,12 @@ export const _completeReviewInternal = internalMutation({
       );
     }
 
+    // Get student info for email notification BEFORE completing review
+    const student = await ctx.db.get(review.student_id);
+    if (!student) {
+      throw new Error('Student record not found');
+    }
+
     const now = Date.now();
 
     await ctx.db.patch(args.review_id, {

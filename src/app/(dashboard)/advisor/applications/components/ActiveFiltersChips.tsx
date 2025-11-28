@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Active Filters Chips Component
  *
@@ -10,8 +12,6 @@
  * - "Clear all" link if 2+ filters active
  * - Compact, wrapping layout
  */
-
-'use client';
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
