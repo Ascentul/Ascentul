@@ -70,16 +70,26 @@ export const getUserByClerkId = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     const isService = isServiceRequest(args.serviceToken);
-
-    // Allow either authenticated user or valid service token
-    if (!identity && !isService) {
-      throw new Error("Unauthorized");
+    // For non-admin users, only allow querying own data
+    if (identity.subject !== args.clerkId) {
+      const actor = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .unique();
+      if (!actor || !["super_admin", "university_admin", "advisor"].includes(actor.role)) {
+        throw new Error("Unauthorized: Cannot query other users");
+      }
+      // For university_admin and advisor, verify tenant isolation
+      if (actor.role !== "super_admin") {
+        const targetUser = await ctx.db
+          .query("users")
+          .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+          .unique();
+        if (targetUser && targetUser.university_id !== actor.university_id) {
+          throw new Error("Unauthorized: Cannot query users from other universities");
+        }
+      }
     }
-
-    // For non-service requests, enforce authorization rules
-    if (!isService) {
-      // For non-admin users, only allow querying own data
-      if (identity!.subject !== args.clerkId) {
         const actor = await ctx.db
           .query("users")
           .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity!.subject))

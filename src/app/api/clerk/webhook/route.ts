@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Webhook } from 'svix'
 import { clerkClient } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 import { validateRoleOrWarn } from '@/lib/validation/roleValidation'
 
@@ -146,28 +147,30 @@ export async function POST(request: NextRequest) {
           validatedRole === 'university_admin'
         const membershipRole = isUniversityRole ? validatedRole : null
 
-        // Check if user was banned in Clerk - sync to account_status
+        // Build updates object
         const updates: any = {
           email: userEmail,
           name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
-          profile_image: userData.image_url,
-          subscription_plan: subscriptionPlan,
-          subscription_status: subscriptionStatus,
         }
 
         if (validatedRole) {
           updates.role = validatedRole
         }
 
-        if (membershipRole && validUniversityId) {
+        // Enforce role constraints per learnings
+        if (validatedRole === 'individual') {
+          // Individual users must NOT have university_id
+          updates.university_id = undefined
+        } else if (membershipRole) {
+          // University roles MUST have university_id
+          if (!validUniversityId) {
+            console.error(`[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`)
+            return NextResponse.json(
+              { error: `${membershipRole} role requires university_id` },
+              { status: 400 }
+            )
+          }
           updates.university_id = validUniversityId
-        } else if (membershipRole && !validUniversityId) {
-          console.error(`[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`)
-          updates.role = 'individual'
-          updates.university_id = undefined
-        } else if (validatedRole === 'individual') {
-          // Individual users must NOT have university_id per role constraints
-          updates.university_id = undefined
         }
 
         // If user is banned in Clerk, ensure account_status is suspended
@@ -188,7 +191,7 @@ export async function POST(request: NextRequest) {
           updates,
           // Include membership data for university roles
           membership: membershipRole && validUniversityId
-            ? { role: membershipRole, universityId: validUniversityId }
+            ? { role: membershipRole, universityId: validUniversityId as Id<'universities'> }
             : undefined,
           serviceToken: convexServiceToken,
         })

@@ -337,7 +337,7 @@ export const updateReviewStatus = mutation({
     await ctx.db.patch(args.reviewId, {
       status: args.status,
       reviewed_by:
-        args.status !== "waiting" ? sessionCtx.userId : undefined,
+        args.status !== "waiting" ? sessionCtx.userId : null,
       reviewed_at: args.status !== "waiting" ? now : review.reviewed_at,
       updated_at: now,
       version: (review.version ?? 0) + 1,

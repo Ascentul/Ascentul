@@ -107,7 +107,7 @@ export default function SessionDetailPage() {
     );
   }
 
-  const sessionDate = session.scheduled_at ?? session.start_at;
+  const sessionDate = session.scheduled_at ?? session.start_at ?? Date.now();
 
   return (
     <ErrorBoundary>

@@ -18,6 +18,7 @@ export function mapStatusToStage(status: string): string {
     interview: "Interview",
     offer: "Offer",
     rejected: "Rejected",
+    accepted: "Accepted",
   };
   return map[status] || "Prospect";
 }
@@ -151,9 +152,18 @@ export const verifyMigration = internalQuery({
   args: {},
   handler: async (ctx) => {
     console.log("🔍 Verifying application status→stage migration...");
-
-    const allApps = await ctx.db.query("applications").collect();
+    // Collect all applications with pagination
+    let allApps: any[] = [];
+    let cursor: string | null = null;
+    let hasMore = true;
+    while (hasMore) {
+      const result = await ctx.db.query("applications").paginate({ cursor, numItems: 1000 });
+      allApps = allApps.concat(result.page);
+      cursor = result.continueCursor;
+      hasMore = cursor !== null;
+    }
     const withoutStage = allApps.filter(app => !app.stage);
+    const withStage = allApps.filter(app => app.stage);
     const withStage = allApps.filter(app => app.stage);
 
     // Check for mismatches

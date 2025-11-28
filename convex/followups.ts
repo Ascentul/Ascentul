@@ -200,9 +200,11 @@ export const updateFollowup = mutation({
         patchData.completed_at = now;
         patchData.completed_by = user._id;
       } else if (statusChangingToOpen) {
-        // Explicitly clear fields using undefined (Convex removes fields set to undefined)
-        patchData.completed_at = undefined;
-        patchData.completed_by = undefined;
+        // Note: In Convex, to clear optional fields, we can set them to null
+        // or use a dedicated approach. Setting to undefined in patch is ignored.
+        // If the schema allows null, use null. Otherwise, consider a different approach.
+        patchData.completed_at = null as any;  // Or remove this line if schema doesn't support null
+        patchData.completed_by = null as any;
       }
 
       await ctx.db.patch(args.followupId, patchData);

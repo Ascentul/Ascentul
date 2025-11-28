@@ -29,6 +29,8 @@ export const getUserContacts = query({
 });
 
 // Get a single contact by ID (ownership enforced)
+// Note: We don't require university membership for read queries - users can always view their own contacts
+// This is consistent with getUserContacts and allows students who change universities to access historical contacts
 export const getContactById = query({
   args: {
     clerkId: v.string(),
@@ -42,17 +44,9 @@ export const getContactById = query({
 
     if (!user) throw new Error("User not found");
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
-
     const contact = await ctx.db.get(args.contactId);
     if (!contact || contact.user_id !== user._id) {
       throw new Error("Contact not found or unauthorized");
-    }
-
-    if (contact.university_id && membership && contact.university_id !== membership.university_id) {
-      throw new Error("Unauthorized: Contact belongs to another university");
     }
 
     return contact;

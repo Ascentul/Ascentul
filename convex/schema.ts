@@ -1065,7 +1065,7 @@ export default defineSchema({
       ),
     ),
     version_id: v.optional(v.string()), // Track which version was reviewed
-    version: v.number(), // Optimistic concurrency control version number
+    version: v.optional(v.number()), // Optimistic concurrency control version number (optional for backward compat)
     reviewed_by: v.optional(v.id("users")), // Advisor who reviewed
     reviewed_at: v.optional(v.number()), // timestamp
     created_at: v.number(),

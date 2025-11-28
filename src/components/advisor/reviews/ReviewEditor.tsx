@@ -87,6 +87,11 @@ export function ReviewEditor({
   // Reset state only when switching to a different review
   // This prevents losing unsaved changes when background syncs update the review prop
   useEffect(() => {
+    // Clear any pending autosave timer when switching reviews
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
     setFeedback(review.feedback || "");
     setCurrentVersion(review.version);
     setLastSavedFeedback(review.feedback || "");

@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Quick Filter Pills Component
  *
@@ -10,8 +12,6 @@
  * - One-click to toggle filter by specific reason
  * - Active state when filter applied
  */
-
-'use client';
 
 import React from 'react';
 import { Button } from '@/components/ui/button';

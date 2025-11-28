@@ -172,9 +172,16 @@ export async function canAccessStudent(
     return true;
   } catch (error) {
     // Expected authorization errors - return false
-    if (error instanceof Error && error.message.startsWith("Unauthorized")) {
+    if (error instanceof Error && (
+      error.message.startsWith("Unauthorized") ||
+      error.message === "Student not found"
+    )) {
       return false;
     }
+    // Unexpected errors - log and rethrow for visibility
+    console.error("Unexpected error in canAccessStudent:", error);
+    throw error;
+  }
     // Unexpected errors - log and rethrow for visibility
     console.error("Unexpected error in canAccessStudent:", error);
     throw error;

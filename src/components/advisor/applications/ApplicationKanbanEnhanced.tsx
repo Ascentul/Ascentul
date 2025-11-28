@@ -392,7 +392,7 @@ function ApplicationCard({
         </div>
 
         {/* Applied Date */}
-        {app.applied_date && (
+        {app.applied_date && !isNaN(new Date(app.applied_date).getTime()) && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" aria-hidden="true" />
             Applied {format(new Date(app.applied_date), "MMM d")}
@@ -429,7 +429,7 @@ function ApplicationCard({
               </div>
             )}
           </div>
-        ) : app.needsAction && app.needActionReasons.includes('no_next_step') && onEditNextStep ? (
+        ) : app.needsAction && app.needActionReasons?.includes('no_next_step') && onEditNextStep ? (
           <Button
             variant="outline"
             size="sm"

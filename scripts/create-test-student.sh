@@ -142,7 +142,7 @@ echo "Step 2: Setting roles in Clerk..."
 echo "-----------------------------------"
 
 # Get user IDs and set metadata
-STUDENT_EMAIL=\"$STUDENT_EMAIL\" ADVISOR_EMAIL=\"$ADVISOR_EMAIL\" ADVISOR_UNIVERSITY_ID=\"$ADVISOR_UNIVERSITY_ID\" node -e "
+STUDENT_EMAIL="$STUDENT_EMAIL" ADVISOR_EMAIL="$ADVISOR_EMAIL" ADVISOR_UNIVERSITY_ID="$ADVISOR_UNIVERSITY_ID" node -e "
 const https = require('https');
 
 async function findUserByEmail(email) {

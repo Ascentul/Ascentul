@@ -33,8 +33,8 @@ export default function AdvisorAnalyticsPage() {
 
   // Calculate date ranges
   const now = new Date();
-  const weekStart = startOfWeek(now, { weekStartsOn: 0 }).getTime();
-  const weekEnd = endOfWeek(now, { weekStartsOn: 0 }).getTime();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 }).getTime();
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 }).getTime();
   const monthStart = startOfMonth(now).getTime();
   const monthEnd = endOfMonth(now).getTime();
 
@@ -81,6 +81,7 @@ export default function AdvisorAnalyticsPage() {
   // Build activity chart data (sessions per week for last 4 weeks)
   const activityData = useMemo(() => {
     if (!activitySessions) return [];
+    const now = new Date();
 
     const weekBuckets: { date: string; count: number }[] = [];
 

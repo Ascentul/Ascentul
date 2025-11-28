@@ -245,7 +245,8 @@ export function StageTransitionModal({
               isSubmitting ||
               !selectedStage ||
               nextStages.length === 0 ||
-              (reasonCodeRequired && !reasonCode) === true
+              (reasonCodeRequired && !reasonCode) ||
+              (notesRequired && !additionalNotes.trim())
             }
           >
             {isSubmitting ? 'Updating...' : 'Update Stage'}

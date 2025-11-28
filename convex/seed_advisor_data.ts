@@ -176,43 +176,149 @@ export const setupAdvisorTestData = internalMutation({
 
     // Create a sample follow-up for student2
     if (student2) {
-      const followUpId = await ctx.db.insert("follow_ups", {
-        // Core task fields
-        title: "Update resume with latest internship experience",
-        description: "Add details about summer 2024 internship at TechCorp",
-        type: "follow_up",
-        notes: undefined,
+      // Check if follow-up already exists
+      const existingFollowUp = await ctx.db
+        .query("follow_ups")
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("user_id"), student2._id),
+            q.eq(q.field("created_by_id"), advisorUser._id),
+            q.eq(q.field("title"), "Update resume with latest internship experience"),
+          ),
+        )
+        .first();
 
-        // Ownership & creation tracking
-        user_id: student2._id, // student the task relates to
-        owner_id: student2._id, // student is responsible to complete
-        created_by_id: advisorUser._id,
-        created_by_type: "advisor",
+      if (existingFollowUp) {
+        console.log(`✓ Sample follow-up already exists`);
+      } else {
+        const followUpId = await ctx.db.insert("follow_ups", {
+          // Core task fields
+          title: "Update resume with latest internship experience",
+          description: "Add details about summer 2024 internship at TechCorp",
+          type: "follow_up",
+          notes: undefined,
 
-        // Multi-tenancy
-        university_id: university._id,
+          // Ownership & creation tracking
+          user_id: student2._id, // student the task relates to
+          owner_id: student2._id, // student is responsible to complete
+          created_by_id: advisorUser._id,
+          created_by_type: "advisor",
 
-        // Relationships (generic "general" follow-up)
-        related_type: "general",
-        related_id: undefined,
-        application_id: undefined,
-        contact_id: undefined,
+          // Multi-tenancy
+          university_id: university._id,
 
-        // Task management
-        due_at: now + 7 * 24 * 60 * 60 * 1000, // 7 days from now
-        priority: "medium",
-        status: "open",
+          // Relationships (generic "general" follow-up)
+          related_type: "general",
+          related_id: undefined,
+          application_id: undefined,
+          contact_id: undefined,
 
-        // Completion audit trail
-        completed_at: undefined,
-        completed_by: undefined,
-        version: 0,
+          // Task management
+          due_at: now + 7 * 24 * 60 * 60 * 1000, // 7 days from now
+          priority: "medium",
+          status: "open",
 
-        // Timestamps
-        created_at: now,
-        updated_at: now,
-      });
-      console.log(`✓ Created sample follow-up: ${followUpId}`);
+          // Completion audit trail
+          completed_at: undefined,
+          completed_by: undefined,
+          version: 0,
+
+          // Timestamps
+          created_at: now,
+          updated_at: now,
+        });
+        console.log(`✓ Created sample follow-up: ${followUpId}`);
+      }
+    }
+          due_at: now + 7 * 24 * 60 * 60 * 1000, // 7 days from now
+          priority: "medium",
+          status: "open",
+
+          // Completion audit trail
+          completed_at: undefined,
+          completed_by: undefined,
+          version: 0,
+
+          // Timestamps
+          created_at: now,
+          updated_at: now,
+        });
+        console.log(`✓ Created sample follow-up: ${followUpId}`);
+      }
+    }
+          status: "open",
+
+          // Completion audit trail
+          completed_at: undefined,
+          completed_by: undefined,
+          version: 0,
+
+          // Timestamps
+          created_at: now,
+          updated_at: now,
+        });
+        console.log(`✓ Created sample follow-up: ${followUpId}`);
+      }
+    }
+          priority: "medium",
+          status: "open",
+
+          // Completion audit trail
+          completed_at: undefined,
+          completed_by: undefined,
+          version: 0,
+
+          // Timestamps
+          created_at: now,
+          updated_at: now,
+        });
+        console.log(`✓ Created sample follow-up: ${followUpId}`);
+      }
+    }
+          status: "open",
+
+          // Completion audit trail
+          completed_at: undefined,
+          completed_by: undefined,
+          version: 0,
+
+          // Timestamps
+          created_at: now,
+          updated_at: now,
+        });
+        console.log(`✓ Created sample follow-up: ${followUpId}`);
+      }
+    }
+          due_at: now + 7 * 24 * 60 * 60 * 1000, // 7 days from now
+          priority: "medium",
+          status: "open",
+
+          // Completion audit trail
+          completed_at: undefined,
+          completed_by: undefined,
+          version: 0,
+
+          // Timestamps
+          created_at: now,
+          updated_at: now,
+        });
+        console.log(`✓ Created sample follow-up: ${followUpId}`);
+      }
+    }
+          priority: "medium",
+          status: "open",
+
+          // Completion audit trail
+          completed_at: undefined,
+          completed_by: undefined,
+          version: 0,
+
+          // Timestamps
+          created_at: now,
+          updated_at: now,
+        });
+        console.log(`✓ Created sample follow-up: ${followUpId}`);
+      }
     }
 
     console.log("\n✅ Advisor test data setup complete!");
