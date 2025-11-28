@@ -40,7 +40,7 @@ export default function AdvisorAnalyticsPage() {
 
   // For the activity chart - last 4 weeks
   const fourWeeksAgo = subWeeks(now, 4);
-  const activityStart = startOfWeek(fourWeeksAgo, { weekStartsOn: 0 }).getTime();
+  const activityStart = startOfWeek(fourWeeksAgo, { weekStartsOn: 1 }).getTime();
 
   // Queries
   const weekStats = useQuery(

@@ -182,10 +182,6 @@ export async function canAccessStudent(
     console.error("Unexpected error in canAccessStudent:", error);
     throw error;
   }
-    // Unexpected errors - log and rethrow for visibility
-    console.error("Unexpected error in canAccessStudent:", error);
-    throw error;
-  }
 }
 
 /**

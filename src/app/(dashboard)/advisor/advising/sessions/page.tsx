@@ -532,15 +532,17 @@ export default function AdvisorSessionsPage() {
                                     </a>
                                   </DropdownMenuItem>
                                 )}
-                                <DropdownMenuSeparator />
                                 {session.status === 'scheduled' && (
-                                  <DropdownMenuItem
-                                    className="text-destructive"
-                                    onClick={() => handleCancelSession(session._id)}
-                                  >
-                                    <XCircle className="h-4 w-4 mr-2" />
-                                    Cancel Session
-                                  </DropdownMenuItem>
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onClick={() => handleCancelSession(session._id)}
+                                    >
+                                      <XCircle className="h-4 w-4 mr-2" />
+                                      Cancel Session
+                                    </DropdownMenuItem>
+                                  </>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>

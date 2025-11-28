@@ -110,6 +110,7 @@ async function setAdvisorRole(email: string, universityId: string) {
     }
     process.exit(1);
   }
+}
 // Get email from command line args
 const email = process.argv[2];
 const universityId = process.argv[3];

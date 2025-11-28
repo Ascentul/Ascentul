@@ -164,7 +164,6 @@ export const verifyMigration = internalQuery({
     }
     const withoutStage = allApps.filter(app => !app.stage);
     const withStage = allApps.filter(app => app.stage);
-    const withStage = allApps.filter(app => app.stage);
 
     // Check for mismatches
     const mismatches: Array<{

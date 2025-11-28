@@ -82,7 +82,11 @@ interface CalendarViewProps {
 export function CalendarView({ sessions, followUps, isLoading, currentDate: controlledDate, onDateChange }: CalendarViewProps) {
   const [internalDate, setInternalDate] = useState(controlledDate ?? new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0);
+
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
 
   // Sync internal date when controlled value changes
   useEffect(() => {

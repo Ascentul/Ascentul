@@ -52,6 +52,7 @@ interface UserContextData {
  */
 // Sanitize user-provided strings before injecting into prompts
 function sanitizeForPrompt(input: string, maxLength = 500): string {
+  if (!input) return '';
   return input
     .replace(/---/g, '—') // Avoid forging section markers
     .replace(/\r?\n/g, ' ')

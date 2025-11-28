@@ -227,7 +227,11 @@ export default function Page() {
     const university = searchParams.get('university')
 
     const isValidEmail = inviteEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim()) : false
-    const sanitizedUniversity = university?.trim().slice(0, 100) || null
+    // Sanitize university name: remove HTML tags and special characters
+    const sanitizedUniversity = university
+      ?.trim()
+      .replace(/[<>\"'&]/g, '') // Remove potentially dangerous characters
+      .slice(0, 100) || null
 
     if (inviteEmail) {
       setFormData(prev => ({ ...prev, email: isValidEmail ? inviteEmail : prev.email }))
