@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
@@ -74,6 +74,17 @@ export default function AdminSupportPage() {
   const updateTicketStatus = useMutation(api.support_tickets.updateTicketStatus)
   const addResponse = useMutation(api.support_tickets.addTicketResponse)
   const deleteTicket = useMutation(api.support_tickets.deleteTicket)
+
+  // Sync selectedTicket with backend data when tickets array updates
+  // This ensures optimistic updates are replaced with actual backend data
+  useEffect(() => {
+    if (selectedTicket && tickets) {
+      const updatedTicket = tickets.find(t => t._id === selectedTicket._id)
+      if (updatedTicket) {
+        setSelectedTicket(updatedTicket)
+      }
+    }
+  }, [tickets, selectedTicket?._id])
 
   // Filter tickets
   const filteredTickets = useMemo(() => {

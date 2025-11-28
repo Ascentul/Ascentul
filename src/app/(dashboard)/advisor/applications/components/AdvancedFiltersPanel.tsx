@@ -156,7 +156,7 @@ export function AdvancedFiltersPanel({
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {/* Active Stages */}
-          {ACTIVE_STAGES.map((stage) => (
+          {ACTIVE_STAGES.filter(s => s !== 'Offer').map((stage) => (
             <StageCheckbox
               key={stage}
               stage={stage}
