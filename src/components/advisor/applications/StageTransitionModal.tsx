@@ -83,12 +83,15 @@ export function StageTransitionModal({
 
       toast.success(`Application moved to ${selectedStage}`);
 
+      // Capture stage before reset for callback
+      const completedStage = selectedStage;
+
       // Reset form
       setSelectedStage('');
       setReason('');
 
       if (onSuccess) {
-        onSuccess(application._id, selectedStage);
+        onSuccess(application._id, completedStage);
       }
 
       onClose();

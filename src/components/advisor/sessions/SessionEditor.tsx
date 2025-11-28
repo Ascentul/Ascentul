@@ -259,9 +259,6 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   // Save when tab becomes hidden (more reliable than unmount)
   // This catches cases like tab switching, window closing, or navigation
   useEffect(() => {
-    // Note: beforeunload is best-effort; async saves may not complete before close
-    const saveChangesRef = { current: saveChanges };
-
     const handleVisibilityChange = () => {
       if (document.hidden && hasUnsavedChanges && !isSaving) {
         // Save immediately when tab becomes hidden

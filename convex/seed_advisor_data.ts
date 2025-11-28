@@ -134,30 +134,44 @@ export const setupAdvisorTestData = internalMutation({
       console.log(`✓ Assigned ${student.email} to advisor (${assignmentId})`);
     }
 
-    // 5. Create sample data for testing
-
     // Create a sample advisor session for student1
     if (student1) {
-      const sessionId = await ctx.db.insert("advisor_sessions", {
-        student_id: student1._id,
-        advisor_id: advisorUser._id,
-        university_id: university._id,
-        title: "Initial Career Planning Session",
-        scheduled_at: now + 24 * 60 * 60 * 1000, // Tomorrow
-        start_at: now + 24 * 60 * 60 * 1000,
-        duration_minutes: 60, // Default duration
-        session_type: "career_planning",
-        status: "scheduled",
-        outcomes: [],
-        notes: "First session to discuss career goals and create development plan.",
-        visibility: "shared",
-        tasks: [],
-        attachments: [],
-        version: 1,
-        created_at: now,
-        updated_at: now,
-      });
-      console.log(`✓ Created sample session: ${sessionId}`);
+      // Check if session already exists
+      const existingSession = await ctx.db
+        .query("advisor_sessions")
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("student_id"), student1._id),
+            q.eq(q.field("advisor_id"), advisorUser._id),
+            q.eq(q.field("title"), "Initial Career Planning Session"),
+          ),
+        )
+        .first();
+
+      if (existingSession) {
+        console.log(`✓ Sample session already exists`);
+      } else {
+        const sessionId = await ctx.db.insert("advisor_sessions", {
+          student_id: student1._id,
+          advisor_id: advisorUser._id,
+          university_id: university._id,
+          title: "Initial Career Planning Session",
+          scheduled_at: now + 24 * 60 * 60 * 1000, // Tomorrow
+          start_at: now + 24 * 60 * 60 * 1000,
+          duration_minutes: 60, // Default duration
+          session_type: "career_planning",
+          status: "scheduled",
+          outcomes: [],
+          notes: "First session to discuss career goals and create development plan.",
+          visibility: "shared",
+          tasks: [],
+          attachments: [],
+          version: 1,
+          created_at: now,
+          updated_at: now,
+        });
+        console.log(`✓ Created sample session: ${sessionId}`);
+      }
     }
 
     // Create a sample follow-up for student2
