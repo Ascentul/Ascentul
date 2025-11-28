@@ -816,6 +816,14 @@ export const getStudentProfile = query({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    if (identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized: Can only view own profile");
+    }
+
     // Get user
     const user = await ctx.db
       .query("users")
@@ -902,6 +910,18 @@ export const validateInviteToken = query({
 export const findDuplicateInviteAcceptances = query({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "super_admin") {
+      throw new Error("Unauthorized: Super admin access required");
+    }
+
     // Get all accepted invites
     const acceptedInvites = await ctx.db
       .query("studentInvites")
@@ -961,6 +981,18 @@ export const findDuplicateInviteAcceptances = query({
 export const findDuplicateProfiles = query({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "super_admin") {
+      throw new Error("Unauthorized: Super admin access required");
+    }
+
     // PERFORMANCE CRITICAL: Loads all profiles into memory
     // Convex query limits: 1-second execution, 64 MiB memory
     // Current approach risks timeout at ~3,000-5,000 profiles depending on data size
@@ -1253,6 +1285,14 @@ export const getMyInvites = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    if (identity.subject !== args.createdByClerkId) {
+      throw new Error("Unauthorized: Can only view your own invites");
+    }
+
     // Get the admin user
     const admin = await ctx.db
       .query("users")
@@ -1369,6 +1409,18 @@ export const expireOldInvites = internalMutation({
 export const findStudentsAtInactiveUniversities = query({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "super_admin") {
+      throw new Error("Unauthorized: Super admin access required");
+    }
+
     // PERFORMANCE CRITICAL: Loads all profiles into memory
     // Convex query limits: 1-second execution, 64 MiB memory
     // Risks timeout at ~3,000-5,000 profiles depending on data size
@@ -1485,6 +1537,18 @@ export const findStudentsAtInactiveUniversities = query({
 export const detectOrphanedProfiles = query({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "super_admin") {
+      throw new Error("Unauthorized: Super admin access required");
+    }
+
     // PERFORMANCE CRITICAL: Loads BOTH all profiles AND all users into memory
     // Convex query limits: 1-second execution, 64 MiB memory
     // HIGHEST RISK - loads TWO full tables, will timeout much sooner than other queries
@@ -1627,6 +1691,18 @@ export const detectOrphanedProfiles = query({
 export const detectDuplicateInvites = query({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "super_admin") {
+      throw new Error("Unauthorized: Super admin access required");
+    }
+
     // PERFORMANCE CRITICAL: Loads all pending invites into memory
     // Convex query limits: 1-second execution, 64 MiB memory
     // Risks timeout at ~3,000-5,000 pending invites depending on invite data size
@@ -1748,6 +1824,15 @@ export const updateStudentProfile = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+
+    // Verify authenticated identity matches the claimed clerkId
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    if (identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized: Identity mismatch");
+    }
 
     // Get the student profile
     const profile = await ctx.db.get(args.studentProfileId);

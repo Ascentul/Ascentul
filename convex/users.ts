@@ -206,6 +206,7 @@ export const createUser = mutation({
     clerkId: v.string(),
     email: v.string(),
     name: v.string(),
+    serviceToken: v.optional(v.string()),
     username: v.optional(v.string()),
     profile_image: v.optional(v.string()),
     // Allow optionally setting initial role (e.g., from Clerk public metadata)
@@ -234,6 +235,11 @@ export const createUser = mutation({
     )),
   },
   handler: async (ctx, args) => {
+    const isService = isServiceRequest(args.serviceToken);
+    if (!isService) {
+      throw new Error("Unauthorized: Service token required");
+    }
+
     // First, try to find existing user by Clerk ID
     const existingUser = await ctx.db
       .query("users")
