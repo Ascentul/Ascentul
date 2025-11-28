@@ -12,6 +12,20 @@ import { v } from "convex/values"
 export const generateAvatarUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
     return await ctx.storage.generateUploadUrl()
   },
 })
@@ -26,6 +40,24 @@ export const updateUserAvatar = mutation({
     storageId: v.string(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const actor = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!actor) {
+      throw new Error("Unauthorized");
+    }
+
+    if (actor.clerkId !== args.clerkId && actor.role !== "super_admin") {
+      throw new Error("Unauthorized");
+    }
+
     // Find user by Clerk ID
     const user = await ctx.db
       .query("users")
@@ -79,6 +111,24 @@ export const deleteUserAvatar = mutation({
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const actor = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!actor) {
+      throw new Error("Unauthorized");
+    }
+
+    if (actor.clerkId !== args.clerkId && actor.role !== "super_admin") {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))

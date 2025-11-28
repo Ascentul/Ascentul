@@ -5,20 +5,50 @@
  * Run with: npx ts-node -r dotenv/config scripts/set-clerk-advisor-role.ts <user-email> <university-id>
  *
  * Advisors must always have a university_id. This script will refuse to set the role without it.
+ *
+ * Note: Uses direct Clerk API calls instead of @clerk/backend to avoid version compatibility issues
+ * with @clerk/nextjs. For Next.js code, use clerkClient from '@clerk/nextjs/server' instead.
  */
 
 import 'dotenv/config';
-import { createClerkClient } from '@clerk/backend';
 
-if (!process.env.CLERK_SECRET_KEY) {
+const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
+const CLERK_API_URL = 'https://api.clerk.com/v1';
+
+if (!CLERK_SECRET_KEY) {
   console.error('❌ CLERK_SECRET_KEY is not set in environment variables');
   console.log('\nPlease ensure CLERK_SECRET_KEY is set in your .env.local file');
   process.exit(1);
 }
 
-const clerkClient = createClerkClient({
-  secretKey: process.env.CLERK_SECRET_KEY
-});
+// Simple Clerk API client using fetch
+async function clerkFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${CLERK_API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Clerk API error (${response.status}): ${errorText}`);
+  }
+
+  return response.json();
+}
+
+interface ClerkUser {
+  id: string;
+  email_addresses: Array<{ email_address: string }>;
+  public_metadata: Record<string, unknown>;
+}
+
+interface ClerkUserList {
+  data: ClerkUser[];
+}
 
 async function setAdvisorRole(email: string, universityId: string) {
   try {
@@ -38,7 +68,9 @@ async function setAdvisorRole(email: string, universityId: string) {
     console.log(`\n🔍 Finding user...`);
 
     // Look up user by email address
-    const users = await clerkClient.users.getUserList({ emailAddress: [email] });
+    const users = await clerkFetch<ClerkUserList>(
+      `/users?email_address=${encodeURIComponent(email)}`
+    );
 
     if (!users.data || users.data.length === 0) {
       console.error('❌ No user found with the provided email');
@@ -50,12 +82,15 @@ async function setAdvisorRole(email: string, universityId: string) {
     console.log(`✓ Found user: ${user.id}`);
 
     // Update publicMetadata
-    await clerkClient.users.updateUser(user.id, {
-      publicMetadata: {
-        ...(user.publicMetadata || {}),
-        role: 'advisor',
-        university_id: universityId,
-      },
+    await clerkFetch<ClerkUser>(`/users/${user.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        public_metadata: {
+          ...(user.public_metadata || {}),
+          role: 'advisor',
+          university_id: universityId,
+        },
+      }),
     });
 
     console.log(`✅ Successfully set role to 'advisor' for user ${user.id}`);
