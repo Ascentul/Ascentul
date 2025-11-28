@@ -132,6 +132,10 @@ export async function POST(request: NextRequest) {
         // Check if role changed - important for role management logging
         const roleInMetadata = metadata.role || null
         const universityIdInMetadata = metadata.university_id
+        const validUniversityId =
+          typeof universityIdInMetadata === 'string' && universityIdInMetadata.trim().length > 0
+            ? universityIdInMetadata
+            : undefined
         const userEmail = userData.email_addresses?.[0]?.email_address
 
         // Validate role value before syncing to Convex
@@ -155,8 +159,12 @@ export async function POST(request: NextRequest) {
           updates.role = validatedRole
         }
 
-        if (membershipRole && universityIdInMetadata) {
-          updates.university_id = universityIdInMetadata
+        if (membershipRole && validUniversityId) {
+          updates.university_id = validUniversityId
+        } else if (membershipRole && !validUniversityId) {
+          console.error(`[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`)
+          updates.role = 'individual'
+          updates.university_id = undefined
         } else if (validatedRole === 'individual') {
           // Individual users must NOT have university_id per role constraints
           updates.university_id = undefined

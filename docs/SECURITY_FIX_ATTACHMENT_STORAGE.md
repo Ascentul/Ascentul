@@ -291,7 +291,7 @@ export const getSessionAttachment = query({
 | ❌ No audit trail | ✅ Logged access |
 | ❌ Cross-tenant risk | ✅ Tenant isolation enforced |
 
-*Download URLs from `getUrl()` are presigned bearer tokens that expire by default after ~15 minutes (Convex default 900s). Upload URLs expire after ~1 hour.
+*Download URLs from `getUrl()` are presigned bearer tokens (no default expiration). Upload URLs expire after ~1 hour.
 
 ---
 

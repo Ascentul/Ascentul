@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
-import { convexServer } from '@/lib/convex-server';
+import { fetchQuery, fetchMutation } from 'convex/nextjs';
 
 // GET /api/contacts - list current user's contacts
 export async function GET() {
@@ -9,7 +9,7 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const contacts = await convexServer.query(api.contacts.getUserContacts, { clerkId: userId })
+    const contacts = await fetchQuery(api.contacts.getUserContacts, { clerkId: userId })
     return NextResponse.json({ contacts })
   } catch (e: any) {
     console.error('GET /api/contacts error', e)
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
   const name: string = body.full_name ?? body.name ?? 'Unnamed'
   try {
-    const contact = await convexServer.mutation(api.contacts.createContact, {
+    const contact = await fetchMutation(api.contacts.createContact, {
       clerkId: userId,
       name,
       company: body.company ?? undefined,

@@ -69,6 +69,18 @@ export const getUserByClerkId = query({
     if (!identity) {
       throw new Error("Unauthorized");
     }
+
+    // For non-admin users, only allow querying own data
+    if (identity.subject !== args.clerkId) {
+      const actor = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .unique();
+      if (!actor || !["super_admin", "university_admin", "advisor"].includes(actor.role)) {
+        throw new Error("Unauthorized: Cannot query other users");
+      }
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -85,6 +97,17 @@ export const getUserByEmail = query({
     if (!identity) {
       throw new Error("Unauthorized");
     }
+
+    // Only super admins can look up arbitrary users by email
+    const requester = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!requester || requester.role !== "super_admin") {
+      throw new Error("Unauthorized");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))

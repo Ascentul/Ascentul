@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
 import { api } from 'convex/_generated/api'
 import { checkPremiumAccess } from '@/lib/subscription-server'
-import { convexServer } from '@/lib/convex-server';
+import { fetchMutation, fetchQuery } from 'convex/nextjs';
 
 export const runtime = 'nodejs'
 
@@ -755,16 +755,22 @@ const buildGuidancePath = (
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const authResult = await auth()
+    const { userId } = authResult
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const token = await authResult.getToken({ template: 'convex' })
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+    }
 
     // Check free plan limit before generating (using Clerk Billing)
     try {
-      const hasPremium = await checkPremiumAccess()
+        const hasPremium = await checkPremiumAccess()
 
-      if (!hasPremium) {
-        // User is on free plan, check limit
-        const existingPaths = await convexServer.query(api.career_paths.getUserCareerPaths, { clerkId: userId })
+        if (!hasPremium) {
+          // User is on free plan, check limit
+          const existingPaths = await fetchQuery(api.career_paths.getUserCareerPaths, { clerkId: userId }, { token })
 
         if (existingPaths && existingPaths.length >= 1) {
           return NextResponse.json(
@@ -840,7 +846,7 @@ export async function POST(request: NextRequest) {
 
             try {
               const mainPath = sanitizedPaths[0]
-              await convexServer.mutation(api.career_paths.createCareerPath, {
+              await fetchMutation(api.career_paths.createCareerPath, {
                 clerkId: userId,
                 target_role: String(mainPath?.name || targetRole),
                 current_level: undefined,
@@ -852,7 +858,7 @@ export async function POST(request: NextRequest) {
                   promptVariant: variant,
                 },
                 status: 'active',
-              })
+              }, { token })
             } catch (convexError) {
               console.error('CareerPath profile persistence failed', convexError)
               return NextResponse.json(
@@ -883,14 +889,14 @@ export async function POST(request: NextRequest) {
 
     const guidancePath = buildGuidancePath(profileData, fallbackDomain, targetRole)
     try {
-      await convexServer.mutation(api.career_paths.createCareerPath, {
+      await fetchMutation(api.career_paths.createCareerPath, {
         clerkId: userId,
         target_role: String(guidancePath?.name || targetRole),
         current_level: undefined,
         estimated_timeframe: undefined,
         steps: { source: 'profile', path: guidancePath, usedModel: 'profile-guidance' },
         status: 'active',
-      })
+      }, { token })
     } catch (persistenceError) {
       console.error('CareerPath guidance persistence failed', persistenceError)
       return NextResponse.json(

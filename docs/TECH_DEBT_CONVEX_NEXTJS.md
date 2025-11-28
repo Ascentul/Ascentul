@@ -3,19 +3,32 @@
 ## Issue
 
 **Priority**: MEDIUM
-**Effort**: Medium (36 files affected)
+**Effort**: Medium (33 files affected)
 **Risk**: LOW - Current implementation works but not following best practices
 **Impact**: Performance, Authentication, Best Practices
+**Status**: Phase 1 COMPLETE - All API routes consolidated to `convexServer`
+
+## Migration Strategy
+
+This is a **two-phase migration**:
+
+### Phase 1: Consolidation (COMPLETE)
+All API routes now use the centralized `convexServer` wrapper in `src/lib/convex-server.ts`.
+This provides a single point of change for Phase 2.
+
+### Phase 2: Final Migration (PENDING)
+Replace `convexServer` calls with `fetchQuery`/`fetchMutation`/`fetchAction` from `convex/nextjs`.
+The `convexServer` wrapper will be deleted after this phase.
 
 ## Problem
 
 The application currently uses `ConvexHttpClient` from `convex/browser` for server-side Convex operations. This is a legacy pattern that works but is not the recommended approach for Next.js App Router applications.
 
-### Current Pattern (Legacy)
+### Current Pattern (Phase 1 - Consolidated)
 
-> **Status**: The `convexServer` wrapper in `src/lib/convex-server.ts` is marked as `@deprecated`.
-> All 36 files currently use this pattern. This is **not** an intermediate abstraction to keep—it
-> should be fully replaced with `fetchQuery`/`fetchMutation`/`fetchAction` from `convex/nextjs`.
+> **Status**: All 33 API routes use `convexServer` wrapper. This is an **intermediate state**
+> before final migration to `convex/nextjs`. The wrapper itself uses deprecated patterns
+> but centralizes the change needed for Phase 2.
 
 ```typescript
 // src/lib/convex-server.ts
@@ -135,9 +148,17 @@ All files currently importing from `@/lib/convex-server`:
 
 ## Migration Steps
 
-### Phase 1: Update Individual Route (Example)
+### Phase 1: Consolidation (COMPLETE)
 
-**Before:**
+All API routes have been consolidated to use `convexServer` from `@/lib/convex-server`.
+This intermediate step ensures all server-side Convex calls go through a single wrapper,
+making Phase 2 a simple find-and-replace operation.
+
+### Phase 2: Final Migration (PENDING)
+
+Replace `convexServer` with `convex/nextjs` utilities.
+
+**Current State (Phase 1):**
 ```typescript
 import { convexServer } from '@/lib/convex-server';
 
@@ -147,7 +168,7 @@ export async function GET(request: Request) {
 }
 ```
 
-**After:**
+**Target State (Phase 2):**
 ```typescript
 import { fetchQuery } from 'convex/nextjs';
 
@@ -157,7 +178,7 @@ export async function GET(request: Request) {
 }
 ```
 
-### Phase 2: Batch Migration
+### Phase 2 Execution: Batch Migration
 
 1. **Find and Replace Pattern**:
    ```bash
@@ -182,12 +203,12 @@ export async function GET(request: Request) {
 
 3. **Test Each Route**: Verify functionality after migration
 
-### Phase 3: Cleanup
+### Phase 2 Cleanup
 
-1. Add deprecation warning to `src/lib/convex-server.ts`
-2. Migrate all 36 files
-3. Delete `src/lib/convex-server.ts`
-4. Update documentation
+After all 33 files are migrated:
+1. Delete `src/lib/convex-server.ts`
+2. Remove any remaining imports
+3. Update this documentation to mark complete
 
 ## Testing Strategy
 

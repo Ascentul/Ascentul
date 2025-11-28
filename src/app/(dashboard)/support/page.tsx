@@ -232,7 +232,7 @@ export default function SupportPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Tabs for status filter */}
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="open">Open</TabsTrigger>

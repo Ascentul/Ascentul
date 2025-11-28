@@ -687,7 +687,7 @@ export default function UniversityDetailPage() {
 
       {/* Tabs for different sections */}
       <Card>
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
           <CardHeader>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>

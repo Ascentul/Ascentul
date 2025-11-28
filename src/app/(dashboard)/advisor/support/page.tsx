@@ -382,7 +382,7 @@ export default function AdvisorSupportPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Tabs for status filter */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="open">Open</TabsTrigger>
@@ -525,7 +525,7 @@ export default function AdvisorSupportPage() {
 
                 <div>
                   <Label htmlFor="priority">Priority *</Label>
-                  <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v as any })}>
+                  <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v as typeof formData.priority })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
