@@ -96,7 +96,7 @@ export const getDailyRecommendations = query({
     // MIGRATION: Using stage instead of status
     const applicationsWithoutFollowup = applications.filter(
       (app) =>
-        app.stage === "APPLIED" &&
+        app.stage === "Applied" &&
         app.applied_at &&
         Date.now() - app.applied_at > 7 * 24 * 60 * 60 * 1000 // 7 days
     );
