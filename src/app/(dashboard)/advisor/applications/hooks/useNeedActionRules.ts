@@ -7,7 +7,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { NeedActionReason, UrgencyLevel } from '../types';
-import { ACTIVE_STAGES } from 'convex/advisor_constants';
+import { ACTIVE_STAGES, type ApplicationStage } from 'convex/advisor_constants';
 
 /**
  * Interval for time-based cache invalidation (1 minute)
@@ -29,7 +29,7 @@ interface ApplicationForTriage {
   next_step?: string;
   next_step_date?: number;  // Due date
   updated_at: number;
-  stage: string;
+  stage: ApplicationStage;
 }
 
 /**

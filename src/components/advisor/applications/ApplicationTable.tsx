@@ -23,6 +23,7 @@ import { Search, Building2, User, Calendar, ExternalLink, AlertCircle } from "lu
 import { format } from "date-fns";
 import Link from "next/link";
 import { isValidHttpUrl } from "@/lib/utils";
+import type { ApplicationStage } from "@/lib/advisor/stages";
 
 interface Application {
   _id: string;
@@ -31,7 +32,7 @@ interface Application {
   student_email: string;
   company_name: string;
   position_title: string;
-  stage: string;
+  stage: ApplicationStage;
   status?: string;
   application_url?: string;
   applied_date?: number;

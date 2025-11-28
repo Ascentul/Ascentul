@@ -19,7 +19,7 @@ interface Application {
   student_email: string;
   company_name: string;
   position_title: string;
-  stage: string;
+  stage: ApplicationStage;
   status?: string;
   application_url?: string;
   applied_date?: number;
@@ -31,10 +31,10 @@ interface Application {
 }
 
 interface ApplicationKanbanProps {
-  applicationsByStage: Record<string, Application[]>;
+  applicationsByStage: Record<ApplicationStage, Application[]>;
   isLoading?: boolean;
   clerkId?: string;
-  onRefresh?: (applicationId?: string, newStage?: string) => void;
+  onRefresh?: (applicationId?: string, newStage?: ApplicationStage) => void;
 }
 
 const STAGE_COLORS: Record<string, string> = {
@@ -70,7 +70,7 @@ export function ApplicationKanban({
     setSelectedApplication(null);
   };
 
-  const handleSuccess = (applicationId: string, newStage: string) => {
+  const handleSuccess = (applicationId: string, newStage: ApplicationStage) => {
     handleModalClose();
     if (onRefresh) {
       onRefresh(applicationId, newStage);

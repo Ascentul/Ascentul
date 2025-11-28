@@ -36,10 +36,10 @@ interface StageTransitionModalProps {
     company_name: string;
     position_title: string;
     student_name: string;
-    stage: string;
+    stage: ApplicationStage;
   };
   clerkId: string;
-  onSuccess?: (applicationId: Id<'applications'>, newStage: string) => void;
+  onSuccess?: (applicationId: Id<'applications'>, newStage: ApplicationStage) => void;
 }
 
 export function StageTransitionModal({
@@ -56,7 +56,7 @@ export function StageTransitionModal({
 
   const updateStage = useMutation(api.advisor_applications.updateApplicationStage);
 
-  const currentStage = (application.stage || 'Prospect') as ApplicationStage;
+  const currentStage = application.stage || 'Prospect';
   const nextStages = getNextStages(currentStage);
 
   // Determine if reason code is required for the selected stage

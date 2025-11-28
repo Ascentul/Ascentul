@@ -6,6 +6,7 @@
  */
 
 import { Id } from 'convex/_generated/dataModel';
+import type { ApplicationStage } from '@/lib/advisor/stages';
 
 // ============================================================================
 // Need Action Triage
@@ -63,11 +64,8 @@ export const URGENCY_LABELS: Record<UrgencyLevel, string> = {
 // ============================================================================
 
 // Re-export stage types/constants from centralized source of truth
-export {
-  ApplicationStage,
-  ACTIVE_STAGES,
-  TERMINAL_STAGES,
-} from '@/lib/advisor/stages';
+export type { ApplicationStage } from '@/lib/advisor/stages';
+export { ACTIVE_STAGES, TERMINAL_STAGES } from '@/lib/advisor/stages';
 
 /**
  * Enriched application with student information and computed fields
@@ -86,7 +84,7 @@ export interface EnrichedApplication {
   // Application details
   company_name: string;
   position_title: string;
-  stage: ApplicationStage | string;
+  stage: ApplicationStage;
   application_url?: string;
   location?: string;
 
@@ -139,7 +137,7 @@ export interface ApplicationFilters {
   search: string;
 
   // Stage filter (empty array = show all stages)
-  stages: ApplicationStage[];
+  stages: readonly ApplicationStage[];
 
   // Cohort/graduation year filter (empty array = show all cohorts)
   cohorts: string[];
@@ -373,5 +371,30 @@ export interface AnalyticsProperties {
   [ANALYTICS_EVENTS.NEED_ACTION_CLICKED]: {
     count: number;
     breakdown: Record<NeedActionReason, number>;
+  };
+
+  [ANALYTICS_EVENTS.SCOPE_CHANGED]: {
+    fromScope: ApplicationScope;
+    toScope: ApplicationScope;
+  };
+
+  [ANALYTICS_EVENTS.FILTER_APPLIED]: {
+    filters: ApplicationFilters;
+  };
+
+  [ANALYTICS_EVENTS.NEXT_STEP_UPDATED]: {
+    applicationId: string;
+    studentId: string;
+    nextStep: string;
+    dueDate?: number;
+  };
+
+  [ANALYTICS_EVENTS.BULK_ARCHIVED]: {
+    count: number;
+  };
+
+  [ANALYTICS_EVENTS.STUDENT_VIEWED]: {
+    studentId: string;
+    applicationId?: string;
   };
 }
