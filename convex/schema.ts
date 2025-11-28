@@ -898,6 +898,24 @@ export default defineSchema({
   // ========================================
   // ADVISOR FEATURE TABLES
   // ========================================
+  //
+  // NOTE: There are TWO advisor-student relationship tables:
+  //
+  // 1. student_advisors (below) - Used by ADVISOR MODULE (convex/advisor_*.ts)
+  //    - References users table directly (student_id, advisor_id)
+  //    - Supports ownership semantics (is_owner, shared_type)
+  //    - Primary advisor can be designated per student
+  //    - Used for: caseload queries, session scheduling, document reviews
+  //
+  // 2. advisorStudents (line ~1219) - Used by UNIVERSITY ADMIN MODULE
+  //    - References studentProfiles table (student_profile_id)
+  //    - Simpler roster management without ownership semantics
+  //    - Used for: bulk assignment via university admin UI
+  //
+  // TODO: Consider consolidating these tables. Current duplication exists
+  // because they were developed in parallel for different features.
+  // Migration path: Align advisorStudents to use student_advisors with is_owner=true
+  // ========================================
 
   // Student-Advisor relationship table (many-to-many with ownership)
   student_advisors: defineTable({
@@ -1214,8 +1232,16 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_started_at", ["started_at"]),
 
-  // Advisor-student roster mapping (from main)
-  // Enforces advisor assignments within a university
+  // Advisor-student roster mapping for UNIVERSITY ADMIN module
+  // Used by: convex/university_admin.ts, convex/universities_admin.ts
+  //
+  // NOTE: This table duplicates functionality with student_advisors (line ~921).
+  // Key differences:
+  // - References studentProfiles instead of users (student_profile_id vs student_id)
+  // - No ownership semantics (no is_owner, shared_type fields)
+  // - Simpler structure for bulk roster management
+  //
+  // See comment at line ~902 for consolidation TODO.
   advisorStudents: defineTable({
     university_id: v.id("universities"),
     advisor_id: v.id("users"),

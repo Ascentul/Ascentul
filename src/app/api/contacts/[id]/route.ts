@@ -30,6 +30,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  if (!params.id || typeof params.id !== 'string' || !params.id.trim()) {
+    return NextResponse.json({ error: 'Invalid contact id' }, { status: 400 })
+  }
+
   const body = await request.json().catch(() => ({} as any))
 
   try {
@@ -60,6 +64,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (!params.id || typeof params.id !== 'string' || !params.id.trim()) {
+    return NextResponse.json({ error: 'Invalid contact id' }, { status: 400 })
+  }
 
   try {
     await convexServer.mutation(api.contacts.deleteContact, { clerkId: userId, contactId: params.id as Id<'networking_contacts'> })

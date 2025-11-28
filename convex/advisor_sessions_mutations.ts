@@ -297,11 +297,10 @@ export const updateSession = mutation({
  */
 export const deleteSession = mutation({
   args: {
-    clerkId: v.string(),
     session_id: v.id("advisor_sessions"),
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    const sessionCtx = await getCurrentUser(ctx);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
@@ -347,12 +346,11 @@ export const deleteSession = mutation({
  */
 export const cancelSession = mutation({
   args: {
-    clerkId: v.string(),
     session_id: v.id("advisor_sessions"),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    const sessionCtx = await getCurrentUser(ctx);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 

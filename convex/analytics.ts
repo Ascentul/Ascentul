@@ -1680,6 +1680,8 @@ export const getSingleUniversityAnalytics = query({
           return 'Rejected';
         case 'saved':
           return 'Prospect';
+        case 'accepted':
+          return 'Accepted';
         default:
           return undefined;
       }
