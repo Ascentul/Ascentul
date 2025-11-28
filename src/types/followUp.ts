@@ -7,4 +7,4 @@ export {
   FOLLOW_UP_STATUSES,
   type FollowUpPriority,
   type FollowUpStatus,
-} from '../../convex/lib/followUpConstants';
+} from 'convex/lib/followUpConstants';

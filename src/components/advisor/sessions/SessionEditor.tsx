@@ -161,7 +161,6 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
       }
 
       const result = await updateSession({
-        clerkId,
         session_id: session._id,
         title: title.trim(),
         session_type: sessionType,
@@ -215,7 +214,6 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   }, [
     hasUnsavedChanges,
     isSaving,
-    clerkId,
     session._id,
     title,
     sessionType,

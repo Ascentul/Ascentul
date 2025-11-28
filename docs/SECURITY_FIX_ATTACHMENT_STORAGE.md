@@ -57,11 +57,13 @@ attachments: v.optional(
 ```
 
 **Benefits**:
-- ✅ Access control enforced via Convex permissions
-- ✅ Secure URLs generated on-demand (with access control enforcement)
-- ✅ Can revoke access by changing permissions
-- ✅ Audit trail for file access
+- ✅ Access control enforced at URL generation time via Convex permissions (note: once a URL is issued, it can be accessed by anyone who possesses it until expiration—no per-request re-validation)
+- ✅ Secure URLs generated on-demand with short expiration
+- ✅ Can revoke future access by changing permissions (existing URLs remain valid until expiration)
+- ✅ Audit trail for file access at URL generation time
 - ✅ Tenant isolation (university-based)
+
+> **Note**: For per-request access control, implement a custom HTTP action that validates permissions on each request before serving file content.
 
 ---
 

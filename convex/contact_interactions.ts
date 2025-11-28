@@ -167,12 +167,8 @@ export const updateContactFollowup = mutation({
       patchData.completed_at = now;
       patchData.completed_by = user._id;
     }
-    // If status changed back to open, clear completion fields
-    if (args.updates.status === 'open' && followup.status === 'done') {
-      // Convex removes fields set to undefined in patch; null is not allowed by schema
-      patchData.completed_at = undefined;
-      patchData.completed_by = undefined;
-    }
+    // Note: completion fields are not cleared when reopening.
+    // Consumers should check status === 'done' before using completed_at/completed_by.
 
     await ctx.db.patch(args.followupId, patchData);
 
