@@ -148,7 +148,7 @@ export default function AdvisorAnalyticsPage() {
   const pendingReviews = useMemo(() => {
     if (!reviews) return [];
     return reviews
-      .filter((r) => r.status === 'waiting' || r.status === 'in_progress')
+      .filter((r) => r.status === 'waiting' || r.status === 'in_review')
       .map((r) => ({
         _id: r._id,
         student_id: r.student_id,
@@ -156,7 +156,7 @@ export default function AdvisorAnalyticsPage() {
         asset_type: r.asset_type,
         asset_id: r.asset_id,
         status: r.status,
-        submitted_at: r.submitted_at || r.created_at || Date.now(),
+        submitted_at: r.requested_at || Date.now(),
       }));
   }, [reviews]);
 

@@ -21,7 +21,7 @@ interface Student {
     nextSession?: {
       id: string;
       scheduledAt?: number;
-      title?: string;
+      title?: string | null;
     } | null;
     lastActivity: number;
   };

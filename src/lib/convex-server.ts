@@ -11,18 +11,28 @@
  */
 
 import { fetchQuery, fetchMutation, fetchAction } from 'convex/nextjs';
+import type { FunctionReference, FunctionReturnType, FunctionArgs } from 'convex/server';
 
 /**
  * Backward-compatible convexServer shim.
  * @deprecated Prefer direct use of fetchQuery/fetchMutation/fetchAction from 'convex/nextjs'.
  */
 export const convexServer = {
-  query: <Result, Args extends Record<string, any>>(fn: any, args: Args) =>
-    fetchQuery<Result>(fn, args),
-  mutation: <Result, Args extends Record<string, any>>(fn: any, args: Args) =>
-    fetchMutation<Result>(fn, args),
-  action: <Result, Args extends Record<string, any>>(fn: any, args: Args) =>
-    fetchAction<Result>(fn, args),
+  query: <Query extends FunctionReference<'query'>>(
+    fn: Query,
+    args: FunctionArgs<Query>
+  ): Promise<FunctionReturnType<Query>> => fetchQuery(fn, args) as Promise<FunctionReturnType<Query>>,
+
+  mutation: <Mutation extends FunctionReference<'mutation'>>(
+    fn: Mutation,
+    args: FunctionArgs<Mutation>
+  ): Promise<FunctionReturnType<Mutation>> => fetchMutation(fn, args) as Promise<FunctionReturnType<Mutation>>,
+
+  action: <Action extends FunctionReference<'action'>>(
+    fn: Action,
+    args: FunctionArgs<Action>
+  ): Promise<FunctionReturnType<Action>> => fetchAction(fn, args) as Promise<FunctionReturnType<Action>>,
+
   // setAuth is a no-op with fetch* helpers (auth handled by convex/nextjs + cookies/JWT)
   setAuth: () => {
     console.warn('convexServer.setAuth is deprecated; auth is handled by convex/nextjs helpers.');

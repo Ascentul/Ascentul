@@ -88,7 +88,7 @@ export default function AdvisorTodayPage() {
     clerkId ? { clerkId, timezoneOffset } : 'skip'
   );
 
-  const completeFollowUp = useMutation(api.advisor_follow_ups.completeFollowUp);
+  const updateFollowup = useMutation(api.followups.updateFollowup);
 
   const now = Date.now();
 
@@ -97,7 +97,7 @@ export default function AdvisorTodayPage() {
 
     setCompletingId(followUpId);
     try {
-      await completeFollowUp({ clerkId, followUpId });
+      await updateFollowup({ clerkId, followupId: followUpId, updates: { status: 'done' } });
       toast.success("Follow-up marked as complete");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to complete follow-up");

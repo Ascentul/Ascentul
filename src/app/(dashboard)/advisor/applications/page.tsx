@@ -77,7 +77,15 @@ export default function AdvisorApplicationsPage() {
   const enrichedApplications = useMemo(() => {
     if (!applications) return [];
 
-    return enrichApplicationsWithNeedAction(applications);
+    // Filter out applications without a valid stage
+    // The Convex query returns stage as string | undefined, but we need ApplicationStage
+    // After filtering, we cast the type since the filter ensures stage exists
+    type QueryApp = NonNullable<typeof applications>[number];
+    const appsWithStage = applications.filter((app: QueryApp) => app.stage !== undefined && app.stage !== null);
+
+    // The generic function accepts any type that extends ApplicationForTriage
+    // We cast here because the query type doesn't match exactly but the data does
+    return enrichApplicationsWithNeedAction(appsWithStage as unknown as EnrichedApplication[]);
   }, [applications]);
 
   // Apply filters

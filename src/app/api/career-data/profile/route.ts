@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId })
+      projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }) as any[]
     } catch (projectError) {
       console.warn('Failed to fetch user projects:', {
         message: projectError instanceof Error ? projectError.message : 'Unknown error',

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 
 // POST /api/achievements/award { achievement_id }
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
   if (!achievementId) return NextResponse.json({ error: 'achievement_id is required' }, { status: 400 })
 
   try {
-    const id = await convexServer.mutation(api.achievements.awardAchievement, { clerkId: userId, achievement_id: achievementId })
+    const id = await convexServer.mutation(api.achievements.awardAchievement, { clerkId: userId, achievement_id: achievementId as Id<'achievements'> })
     return NextResponse.json({ userAchievementId: id }, { status: 201 })
   } catch (e: any) {
     const message = typeof e?.message === 'string' && e.message.includes('Already') ? 'Already earned' : 'Failed to award achievement'

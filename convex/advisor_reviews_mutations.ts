@@ -300,7 +300,7 @@ export const returnReviewToQueue = mutation({
 
     await ctx.db.patch(args.review_id, {
       status: 'waiting',
-      reviewed_by: null,  // Explicitly clear the reviewer
+      reviewed_by: undefined,  // Explicitly clear the reviewer
       updated_at: Date.now(),
       version: (review.version ?? 0) + 1,
     });

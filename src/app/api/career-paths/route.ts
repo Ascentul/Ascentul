@@ -49,7 +49,7 @@ export async function GET(_request: NextRequest) {
     const cursor = searchParams.get('cursor') || undefined
     const sort = (searchParams.get('sort') || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc'
 
-    const page = await convexServer.query(api.career_paths.getUserCareerPathsPaginated, { clerkId: userId, cursor, limit })
+    const page = await convexServer.query(api.career_paths.getUserCareerPathsPaginated, { clerkId: userId, cursor, limit }) as { items?: CareerPathDocument[]; continueCursor?: string } | null
     const items = (page?.items || []) as CareerPathDocument[]
 
     // Map only those entries that contain a structured path we can render
@@ -69,7 +69,7 @@ export async function GET(_request: NextRequest) {
 
     if (sort === 'asc') paths = paths.reverse()
 
-    return NextResponse.json({ paths, nextCursor: page?.nextCursor || null })
+    return NextResponse.json({ paths, nextCursor: page?.continueCursor || null })
   } catch (error: any) {
     console.error('GET /api/career-paths error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

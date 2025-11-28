@@ -12,7 +12,7 @@ interface Review {
   student_id: string;
   student_name: string;
   asset_type: string;
-  asset_id?: string;
+  asset_id?: string | null;
   status: string;
   submitted_at: number;
 }

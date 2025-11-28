@@ -2319,7 +2319,7 @@ export async function POST(request: NextRequest) {
 
         if (!hasPremium) {
           // User is on free plan, check limit (production only)
-          const existingPaths = await convexServer.query(api.career_paths.getUserCareerPaths, { clerkId: userId })
+          const existingPaths = await convexServer.query(api.career_paths.getUserCareerPaths, { clerkId: userId }) as any[]
 
           if (existingPaths && existingPaths.length >= 1) {
             return NextResponse.json(

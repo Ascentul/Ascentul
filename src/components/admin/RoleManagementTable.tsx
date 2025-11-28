@@ -66,7 +66,7 @@ interface MinimalUser {
   deleted_by: string | undefined
   deleted_reason: string | undefined
   university_id: Id<"universities"> | undefined
-  profile_image: string | null
+  profile_image: string | undefined
   created_at: number
   updated_at: number
 }

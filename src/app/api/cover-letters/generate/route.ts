@@ -93,10 +93,9 @@ export async function POST(request: NextRequest) {
         profile.education_history.forEach((edu: NonNullable<UserProfile['education_history']>[number], idx: number) => {
           const eduLines: string[] = []
           eduLines.push(`${idx + 1}. ${edu.degree || 'Degree'} in ${edu.field_of_study || 'Field'}`)
-          eduLines.push(`   Institution: ${edu.institution || 'N/A'}`)
-          eduLines.push(`   Duration: ${edu.start_date || 'N/A'} - ${edu.is_current ? 'Present' : (edu.end_date || edu.graduation_date || 'N/A')}`)
-          if (edu.gpa) eduLines.push(`   GPA: ${edu.gpa}`)
-          if (edu.activities) eduLines.push(`   Activities: ${edu.activities}`)
+          eduLines.push(`   Institution: ${edu.school || 'N/A'}`)
+          eduLines.push(`   Duration: ${edu.start_year || 'N/A'} - ${edu.is_current ? 'Present' : (edu.end_year || 'N/A')}`)
+          if (edu.description) eduLines.push(`   Description: ${edu.description}`)
           profileSummary.push(eduLines.join('\n'))
         })
       }

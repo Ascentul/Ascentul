@@ -427,7 +427,7 @@ export default function ContactsPage() {
         contactId: followupContact._id as any,
         type: followupType,
         description: followupDescription,
-        due_date: new Date(followupDueDate).getTime(),
+        due_at: new Date(followupDueDate).getTime(),
         notes: followupNotes || undefined,
       });
       toast({
@@ -457,7 +457,7 @@ export default function ContactsPage() {
       await updateFollowupMutation({
         clerkId: clerkUser.id,
         followupId: followupId as any,
-        updates: { completed: true },
+        updates: { status: 'done' },
       });
       toast({
         title: "Follow-up completed",

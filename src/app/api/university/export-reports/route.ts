@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
           // COMPLIANCE: Persistent audit log for this security-sensitive auto-assignment
           try {
-            await convex.mutation(api.audit_logs.createSystemAuditLog, {
+            await convexServer.mutation(api.audit_logs.createSystemAuditLog, {
               action: 'university_admin_auto_assigned',
               target_type: 'user',
               target_id: user._id,

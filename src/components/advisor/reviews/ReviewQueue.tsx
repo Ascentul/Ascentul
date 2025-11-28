@@ -20,11 +20,11 @@ interface Review {
   _id: string;
   student_id: string;
   student_name: string;
-  asset_id: string;
+  asset_id: string | null;
   asset_type: string;
   asset_name: string;
   status: string;
-  priority: string;
+  priority?: string;
   requested_at: number;
   reviewer_id?: string | null;
   reviewed_at?: number | null;

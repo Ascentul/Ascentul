@@ -50,7 +50,7 @@ import { cn } from '@/lib/utils';
 export interface CompactFilterBarProps {
   // Filter state
   needsAction: boolean;
-  selectedStages: ApplicationStage[];
+  selectedStages: readonly ApplicationStage[];
   timeWindow: TimeWindow;
   scope: ApplicationScope;
 
@@ -93,8 +93,8 @@ export function CompactFilterBar({
 
   // Quick filter presets
   const handleSelectAllStages = () => onStagesChange([]);
-  const handleSelectActiveStages = () => onStagesChange(ACTIVE_STAGES);
-  const handleSelectTerminalStages = () => onStagesChange(TERMINAL_STAGES.filter(s => s !== 'Archived'));
+  const handleSelectActiveStages = () => onStagesChange([...ACTIVE_STAGES]);
+  const handleSelectTerminalStages = () => onStagesChange([...TERMINAL_STAGES].filter(s => s !== 'Archived'));
 
   const stageFilterLabel =
     selectedStages.length === 0

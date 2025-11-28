@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       try {
         const university = await convexServer.query(api.universities.getUniversity, {
           universityId: universityId as Id<'universities'>
-        })
+        }) as { status?: string } | null
 
         if (!university) {
           return NextResponse.json(
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
         currentRole: currentRole || 'user',
         newRole,
         universityId: requiresUniversity && universityId ? (universityId as Id<'universities'>) : undefined,
-      })
+      }) as { valid: boolean; error?: string } | null
 
       if (!validation?.valid) {
         return NextResponse.json(

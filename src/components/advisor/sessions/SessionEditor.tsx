@@ -23,18 +23,22 @@ import type { Id } from 'convex/_generated/dataModel';
 
 const DATETIME_LOCAL_FORMAT = 'yyyy-MM-dd\'T\'HH:mm';
 
+type SessionType = 'career_planning' | 'resume_review' | 'mock_interview' | 'application_strategy' | 'general_advising' | 'other';
+type Visibility = 'shared' | 'advisor_only';
+type SessionStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+
 interface Session {
   _id: Id<'advisor_sessions'>;
   student_id: Id<'users'>;
   title: string;
-  session_type: string;
+  session_type: SessionType;
   start_at: number;
   duration_minutes: number;
   location?: string | null;
   meeting_url?: string | null;
   notes?: string | null;
-  visibility: string;
-  status?: string;
+  visibility: Visibility;
+  status?: SessionStatus;
   version: number;
 }
 
@@ -354,7 +358,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
         <div className='grid gap-4 md:grid-cols-2'>
           <div className='space-y-2'>
             <Label htmlFor='session_type'>Session Type *</Label>
-            <Select value={sessionType} onValueChange={setSessionType}>
+            <Select value={sessionType} onValueChange={(v) => setSessionType(v as SessionType)}>
               <SelectTrigger id='session_type'>
                 <SelectValue />
               </SelectTrigger>
@@ -371,7 +375,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
 
           <div className='space-y-2'>
             <Label htmlFor='status'>Status</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status} onValueChange={(v) => setStatus(v as SessionStatus)}>
               <SelectTrigger id='status'>
                 <SelectValue />
               </SelectTrigger>
@@ -436,7 +440,7 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
 
         <div className='space-y-2'>
           <Label htmlFor='visibility'>Visibility</Label>
-          <Select value={visibility} onValueChange={setVisibility}>
+          <Select value={visibility} onValueChange={(v) => setVisibility(v as Visibility)}>
             <SelectTrigger id='visibility'>
               <SelectValue />
             </SelectTrigger>

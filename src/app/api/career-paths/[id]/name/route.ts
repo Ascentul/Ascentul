@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
 import { fetchMutation } from 'convex/nextjs'
 
 export const runtime = 'nodejs'
@@ -22,7 +23,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     await fetchMutation(api.career_paths.updateCareerPathName, {
       clerkId: userId,
-      id: params.id,
+      id: params.id as Id<'career_paths'>,
       name
     }, { token })
 

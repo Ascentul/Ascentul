@@ -7,6 +7,7 @@ import { CalendarView } from "@/components/advisor/calendar/CalendarView";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
+import type { FunctionReturnType } from "convex/server";
 import {
   Calendar as CalendarIcon,
   Download,
@@ -65,6 +66,28 @@ export default function AdvisorCalendarPage() {
   );
 
   const isLoading = sessions === undefined || followUps === undefined || stats === undefined;
+
+  // Normalize sessions to ensure required fields have values
+  type SessionData = FunctionReturnType<typeof api.advisor_calendar.getSessionsInRange>[number];
+  const normalizedSessions = useMemo(() => {
+    if (!sessions) return [];
+    return sessions.map((s: SessionData) => ({
+      ...s,
+      session_type: s.session_type ?? 'general_advising',
+      duration_minutes: s.duration_minutes ?? 30,
+      visibility: s.visibility ?? 'shared',
+    }));
+  }, [sessions]);
+
+  // Normalize follow-ups to ensure required fields have values
+  type FollowUpData = FunctionReturnType<typeof api.advisor_calendar.getFollowUpsInRange>[number];
+  const normalizedFollowUps = useMemo(() => {
+    if (!followUps) return [];
+    return followUps.map((f: FollowUpData) => ({
+      ...f,
+      priority: f.priority ?? 'medium',
+    }));
+  }, [followUps]);
 
   return (
     <AdvisorGate requiredFlag="advisor.advising">
@@ -160,8 +183,8 @@ export default function AdvisorCalendarPage() {
           </CardHeader>
           <CardContent>
             <CalendarView
-              sessions={sessions || []}
-              followUps={followUps || []}
+              sessions={normalizedSessions}
+              followUps={normalizedFollowUps}
               isLoading={isLoading}
               currentDate={currentDate}
               onDateChange={setCurrentDate}

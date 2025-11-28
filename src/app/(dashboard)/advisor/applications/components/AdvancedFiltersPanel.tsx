@@ -67,12 +67,12 @@ export function AdvancedFiltersPanel({
 }: AdvancedFiltersPanelProps) {
   // Quick filter presets
   const handleQuickFilterActive = () => {
-    onSetStages(ACTIVE_STAGES);
+    onSetStages([...ACTIVE_STAGES]);
     onSetActiveOnly(false); // Don't use activeOnly when manually selecting active stages
   };
 
   const handleQuickFilterTerminal = () => {
-    onSetStages(TERMINAL_STAGES);
+    onSetStages([...TERMINAL_STAGES]);
     onSetActiveOnly(false);
   };
 

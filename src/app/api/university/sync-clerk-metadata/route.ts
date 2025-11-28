@@ -14,23 +14,9 @@ import { convexServer } from '@/lib/convex-server';
  */
 export async function POST(req: NextRequest) {
   try {
-    const authResult = await auth();
-    const { userId } = authResult;
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) {
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-    const convex = new ConvexHttpClient(convexUrl);
-    const convexToken = await authResult.getToken({ template: 'convex' });
-    if (convexToken) {
-      convex.setAuth(convexToken);
     }
 
     const body = await req.json();

@@ -63,17 +63,6 @@ export const getUserByClerkId = query({
 export const getAllUsers = query({
   args: {
     limit: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const currentUser = await getAuthenticatedUser(ctx);
-
-    if (currentUser.role !== "super_admin") {
-      throw new Error("Unauthorized");
-    }
-
-export const getAllUsers = query({
-  args: {
-    limit: v.optional(v.number()),
     cursor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -94,8 +83,6 @@ export const getAllUsers = query({
       isDone: result.isDone,
       continueCursor: result.continueCursor,
     };
-  },
-});
   },
 });
 

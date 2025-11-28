@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "convex/_generated/api";
 import { getErrorMessage } from "@/lib/errors";
 import {
@@ -65,7 +65,7 @@ export function ReviewEditor({
   const updateReviewFeedback = useMutation(
     api.advisor_reviews_mutations.updateReviewFeedback
   );
-  const completeReview = useMutation(api.advisor_reviews_mutations.completeReview);
+  const completeReview = useAction(api.advisor_reviews_mutations.completeReview);
   const claimReview = useMutation(api.advisor_reviews_mutations.claimReview);
 
   // Form state
