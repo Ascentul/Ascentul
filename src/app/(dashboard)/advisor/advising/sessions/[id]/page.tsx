@@ -25,6 +25,7 @@ import {
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { isValidHttpUrl } from '@/lib/utils';
+import { isValidConvexId } from '@/lib/convex-ids';
 
 // Session type labels
 const SESSION_TYPE_LABELS: Record<string, string> = {
@@ -50,13 +51,13 @@ export default function SessionDetailPage() {
   const { user: clerkUser } = useUser();
 
   const sessionId = Array.isArray(params.id) ? params.id[0] : params.id;
-  const isValidSessionId = /^[0-9a-v]+$/i.test(sessionId?.trim() ?? '');
+  const isValidSessionId = isValidConvexId(sessionId?.trim() ?? '');
 
   // Fetch session details
   const session = useQuery(
     api.advisor_sessions.getSessionById,
     clerkUser?.id && sessionId && isValidSessionId
-      ? { clerkId: clerkUser.id, sessionId: sessionId as Id<'advisor_sessions'> }
+      ? { sessionId: sessionId as Id<'advisor_sessions'> }
       : 'skip'
   );
 
@@ -161,7 +162,6 @@ export default function SessionDetailPage() {
                         status: session.status,
                         version: session.version || 1,
                       }}
-                      clerkId={clerkUser.id}
                     />
                   )}
                 </CardContent>

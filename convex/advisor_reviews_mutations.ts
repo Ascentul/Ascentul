@@ -46,7 +46,7 @@ export const claimReview = mutation({
     // only one commit will succeed. The second will fail serialization check,
     // retry, see status='in_review', and fail this validation.
     if (review.status !== 'waiting') {
-      throw new ConvexError('Review is not available to claim', { code: 'VALIDATION_ERROR' });
+      throw new ConvexError({ message: 'Review is not available to claim', code: 'VALIDATION_ERROR' });
     }
 
     // Safe to claim - optimistic concurrency control guarantees that if another
@@ -81,22 +81,23 @@ export const updateReviewFeedback = mutation({
 
     const review = await ctx.db.get(args.review_id);
     if (!review) {
-      throw new ConvexError('Review not found', { code: 'NOT_FOUND' });
+      throw new ConvexError({ message: 'Review not found', code: 'NOT_FOUND' });
     }
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new ConvexError('Unauthorized: Review not in your university', { code: 'UNAUTHORIZED' });
+      throw new ConvexError({ message: 'Unauthorized: Review not in your university', code: 'UNAUTHORIZED' });
     }
 
     // Only reviewer can update
     if (review.reviewed_by !== sessionCtx.userId) {
-      throw new ConvexError('Unauthorized: Not your review', { code: 'UNAUTHORIZED' });
+      throw new ConvexError({ message: 'Unauthorized: Not your review', code: 'UNAUTHORIZED' });
     }
 
     // Only allow updates to in-progress reviews
     if (review.status !== 'in_review') {
-      throw new ConvexError(`Cannot update feedback for review with status: ${review.status}`, {
+      throw new ConvexError({
+        message: `Cannot update feedback for review with status: ${review.status}`,
         code: 'VALIDATION_ERROR',
       });
     }
@@ -105,10 +106,10 @@ export const updateReviewFeedback = mutation({
 
     // Validate version for optimistic concurrency control
     if (currentVersion !== args.version) {
-      throw new ConvexError(
-        `Version mismatch: Review was updated by another user. Expected version ${currentVersion}, got ${args.version}. Please refresh and try again.`,
-        { code: 'VERSION_CONFLICT' }
-      );
+      throw new ConvexError({
+        message: `Version mismatch: Review was updated by another user. Expected version ${currentVersion}, got ${args.version}. Please refresh and try again.`,
+        code: 'VERSION_CONFLICT'
+      });
     }
 
     // Build updates object with explicit typing
@@ -195,22 +196,23 @@ export const _completeReviewInternal = internalMutation({
 
     const review = await ctx.db.get(args.review_id);
     if (!review) {
-      throw new ConvexError('Review not found', { code: 'NOT_FOUND' });
+      throw new ConvexError({ message: 'Review not found', code: 'NOT_FOUND' });
     }
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new ConvexError('Unauthorized: Review not in your university', { code: 'UNAUTHORIZED' });
+      throw new ConvexError({ message: 'Unauthorized: Review not in your university', code: 'UNAUTHORIZED' });
     }
 
     // Only reviewer can complete
     if (review.reviewed_by !== sessionCtx.userId) {
-      throw new ConvexError('Unauthorized: Not your review', { code: 'UNAUTHORIZED' });
+      throw new ConvexError({ message: 'Unauthorized: Not your review', code: 'UNAUTHORIZED' });
     }
 
     // Ensure review is in progress before completing
     if (review.status !== 'in_review') {
-      throw new ConvexError(`Cannot complete review with status: ${review.status}`, {
+      throw new ConvexError({
+        message: `Cannot complete review with status: ${review.status}`,
         code: 'VALIDATION_ERROR',
       });
     }
@@ -219,19 +221,19 @@ export const _completeReviewInternal = internalMutation({
 
     // Validate version for optimistic concurrency control
     if (currentVersion !== args.version) {
-      throw new ConvexError(
-        `Version mismatch: Review was updated by another user. Expected version ${currentVersion}, got ${args.version}. Please refresh and try again.`,
-        { code: 'VERSION_CONFLICT' }
-      );
+      throw new ConvexError({
+        message: `Version mismatch: Review was updated by another user. Expected version ${currentVersion}, got ${args.version}. Please refresh and try again.`,
+        code: 'VERSION_CONFLICT'
+      });
     }
 
     // Get student info for email notification BEFORE completing review
     const student = await ctx.db.get(review.student_id);
     if (!student) {
-      throw new ConvexError('Student record not found', { code: 'NOT_FOUND' });
+      throw new ConvexError({ message: 'Student record not found', code: 'NOT_FOUND' });
     }
     if (!student.email) {
-      throw new ConvexError('Student email not found - cannot send notification', { code: 'VALIDATION_ERROR' });
+      throw new ConvexError({ message: 'Student email not found - cannot send notification', code: 'VALIDATION_ERROR' });
     }
 
     // Validate configuration BEFORE making changes
@@ -288,12 +290,12 @@ export const returnReviewToQueue = mutation({
 
     const review = await ctx.db.get(args.review_id);
     if (!review) {
-      throw new ConvexError('Review not found', { code: 'NOT_FOUND' });
+      throw new ConvexError({ message: 'Review not found', code: 'NOT_FOUND' });
     }
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new ConvexError('Unauthorized: Review not in your university', { code: 'UNAUTHORIZED' });
+      throw new ConvexError({ message: 'Unauthorized: Review not in your university', code: 'UNAUTHORIZED' });
     }
 
     // Only reviewer or admin can return
@@ -302,12 +304,13 @@ export const returnReviewToQueue = mutation({
       sessionCtx.role !== 'super_admin' &&
       sessionCtx.role !== 'university_admin'
     ) {
-      throw new ConvexError('Unauthorized: Not your review', { code: 'UNAUTHORIZED' });
+      throw new ConvexError({ message: 'Unauthorized: Not your review', code: 'UNAUTHORIZED' });
     }
 
     // Only allow returning reviews that are in progress
     if (review.status !== 'in_review') {
-      throw new ConvexError(`Cannot return review with status: ${review.status}`, {
+      throw new ConvexError({
+        message: `Cannot return review with status: ${review.status}`,
         code: 'VALIDATION_ERROR',
       });
     }

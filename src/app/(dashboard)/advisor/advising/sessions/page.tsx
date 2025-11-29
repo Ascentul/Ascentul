@@ -126,7 +126,7 @@ export default function AdvisorSessionsPage() {
   // Queries
   const sessions = useQuery(
     api.advisor_sessions.getSessions,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+    clerkUser?.id ? {} : 'skip'
   );
 
   const caseload = useQuery(

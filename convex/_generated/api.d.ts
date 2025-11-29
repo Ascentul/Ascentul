@@ -43,6 +43,7 @@ import type * as contact_interactions from "../contact_interactions.js";
 import type * as contacts from "../contacts.js";
 import type * as cover_letters from "../cover_letters.js";
 import type * as crons from "../crons.js";
+import type * as departments from "../departments.js";
 import type * as dev_checkMetrics from "../dev/checkMetrics.js";
 import type * as email from "../email.js";
 import type * as enable_advisor_features from "../enable_advisor_features.js";
@@ -126,6 +127,7 @@ declare const fullApi: ApiFromModules<{
   contacts: typeof contacts;
   cover_letters: typeof cover_letters;
   crons: typeof crons;
+  departments: typeof departments;
   "dev/checkMetrics": typeof dev_checkMetrics;
   email: typeof email;
   enable_advisor_features: typeof enable_advisor_features;

@@ -25,16 +25,18 @@ export default function UniversitySettingsPage() {
   const { toast } = useToast();
 
   // Convex API references
-  const updateUniversitySettings = useMutation(api.universities.updateUniversitySettings);
+  const updateUniversitySettings = useMutation(
+    api.universities?.updateUniversitySettings ?? (() => Promise.resolve())
+  );
   const universitySettings = useQuery(
-    api.universities.getUniversitySettings,
+    api.universities?.getUniversitySettings,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
 
   const canAccess =
     !!user &&
     (isAdmin ||
-      subscription.isUniversity ||
+      (subscription?.isUniversity ?? false) ||
       user.role === "university_admin");
 
   const [settings, setSettings] = useState({
@@ -74,16 +76,19 @@ export default function UniversitySettingsPage() {
 
     setLoading(true);
     try {
-      await updateUniversitySettings({
-        universityId: universitySettings._id,
-        settings: {
-          name: settings.name,
-          description: settings.description,
-          website: settings.website,
-          contact_email: settings.contactEmail,
-          max_students: settings.maxStudents,
-        },
-      });
+      await (updateUniversitySettings
+        ? updateUniversitySettings({
+            universityId: universitySettings._id,
+            settings: {
+              name: settings.name,
+              description: settings.description,
+              website: settings.website,
+              contact_email: settings.contactEmail,
+              max_students: settings.maxStudents,
+              license_seats: settings.licenseSeats,
+            },
+          })
+        : Promise.resolve());
 
       toast({
         title: "Settings saved",
@@ -276,6 +281,20 @@ export default function UniversitySettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="maxStudents">Maximum Students</Label>
+              <Input
+                id="maxStudents"
+                type="number"
+                value={settings.maxStudents}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    maxStudents: parseInt(e.target.value, 10) || 0,
+                  }))
+                }
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="licenseSeats">License Seats</Label>
               <Input

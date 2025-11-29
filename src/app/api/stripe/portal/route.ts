@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import Stripe from 'stripe'
 import { api } from 'convex/_generated/api'
 import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY
 // Default to current stable Stripe API version; override via STRIPE_API_VERSION when needed.
@@ -10,7 +10,7 @@ const stripeApiVersion = (process.env.STRIPE_API_VERSION || '2025-11-17.clover')
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, token } = await requireConvexToken()
     const origin = request.headers.get('origin') || new URL(request.url).origin
 
     if (!userId) {
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const stripe = new Stripe(stripeSecret, { apiVersion: stripeApiVersion })
 
     // Fetch Convex user by Clerk ID
-    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
+    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token)
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
@@ -43,7 +43,11 @@ export async function POST(request: NextRequest) {
         },
       })
       customerId = customer.id
-      await convexServer.mutation(api.users.setStripeCustomer, { clerkId: user.clerkId, stripeCustomerId: customerId })
+      await convexServer.mutation(
+        api.users.setStripeCustomer,
+        { clerkId: user.clerkId, stripeCustomerId: customerId },
+        token
+      )
     }
 
     const session = await stripe.billingPortal.sessions.create({

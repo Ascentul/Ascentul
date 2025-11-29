@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,6 +49,7 @@ interface SessionEditorProps {
 }
 
 export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
+  const { user: clerkUser } = useUser();
   const { toast } = useToast();
   const updateSession = useMutation(api.advisor_sessions_mutations.updateSession);
 
@@ -169,7 +171,12 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
         throw new Error('Invalid date/time format');
       }
 
+      if (!clerkUser?.id) {
+        throw new Error('Not authenticated');
+      }
+
       const result = await updateSession({
+        clerkId: clerkUser.id,
         session_id: session._id,
         title: title.trim(),
         session_type: sessionType,

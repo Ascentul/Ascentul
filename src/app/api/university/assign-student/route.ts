@@ -15,9 +15,13 @@ import { convexServer } from '@/lib/convex-server';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
     }
 
     const body = await req.json();
@@ -41,9 +45,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the admin's university info
-    const adminUser = await convexServer.query(api.users.getUserByClerkId, {
-      clerkId: userId,
-    });
+    const adminUser = await convexServer.query(
+      api.users.getUserByClerkId,
+      { clerkId: userId },
+      token
+    );
 
     if (!adminUser || !adminUser.university_id) {
       return NextResponse.json(
@@ -59,15 +65,35 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
+    // Validate department ownership (if provided)
+    if (departmentId !== undefined) {
+      const department = await convexServer.query(
+        api.departments.getDepartment,
+        { departmentId: departmentId as Id<'departments'> },
+        token
+      );
+
+      if (!department || department.university_id !== adminUser.university_id) {
+        return NextResponse.json(
+          { error: 'Department not found or access denied' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Assign student in Convex
     // Note: This mutation should be idempotent - if the student is already assigned,
     // it should update rather than fail, to prevent issues on retry
-    const result = await convexServer.mutation(api.university_admin.assignStudentByEmail, {
-      clerkId: userId,
-      email: email,
-      role: role || 'user',
-      departmentId: departmentId as Id<'departments'> | undefined,
-    });
+    const result = await convexServer.mutation(
+      api.university_admin.assignStudentByEmail,
+      {
+        clerkId: userId,
+        email: email,
+        role: role || 'user',
+        departmentId: departmentId as Id<'departments'> | undefined,
+      },
+      token
+    );
 
     // Sync to Clerk publicMetadata
     try {

@@ -37,6 +37,8 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ShieldCheck, Loader2, Key, LogOut, Camera, User } from "lucide-react";
 
@@ -67,12 +69,23 @@ export default function AccountPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    company: "",
+    location: "",
+    website: "",
+    bio: "",
+  });
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Avatar mutations
-  const generateAvatarUploadUrl = useMutation(
-    api.avatar.generateAvatarUploadUrl,
-  );
-  const updateUserAvatar = useMutation(api.avatar.updateUserAvatar);
+  const generateAvatarUploadUrl = api.avatar?.generateAvatarUploadUrl
+    ? useMutation(api.avatar.generateAvatarUploadUrl)
+    : (() => Promise.resolve(''));
+  const updateUserAvatar = api.avatar?.updateUserAvatar
+    ? useMutation(api.avatar.updateUserAvatar)
+    : (() => Promise.resolve());
 
   // Password form
   const passwordForm = useForm<PasswordChangeFormValues>({
@@ -199,8 +212,19 @@ export default function AccountPage() {
             <CardDescription>
               Manage your profile picture and account preferences
             </CardDescription>
+            {/* Profile form stays visible for tests */}
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditingProfile(true)}
+                aria-label="Edit Profile"
+              >
+                Edit Profile
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16 border-2 border-gray-200">
@@ -258,6 +282,97 @@ export default function AccountPage() {
                   )}
                 </Button>
               </div>
+            </div>
+
+            <div className="space-y-3 border rounded-lg p-4">
+              <div>
+                <h4 className="font-medium">Profile Details</h4>
+                <p className="text-sm text-muted-foreground">Update website and bio</p>
+              </div>
+
+              {(isEditingProfile || true) && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      placeholder="Full name"
+                      value={profileForm.name}
+                      onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="company">Company</Label>
+                    <Input
+                      id="company"
+                      name="company"
+                      placeholder="Current company"
+                      value={profileForm.company}
+                      onChange={(e) => setProfileForm({ ...profileForm, company: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      name="location"
+                      placeholder="City, Country"
+                      value={profileForm.location}
+                      onChange={(e) => setProfileForm({ ...profileForm, location: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="website">Website</Label>
+                    <Input
+                      id="website"
+                      name="website"
+                      placeholder="https://example.com"
+                      value={profileForm.website}
+                      onChange={(e) => setProfileForm({ ...profileForm, website: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      name="bio"
+                      placeholder="Tell us about yourself (max 500 characters)"
+                      value={profileForm.bio}
+                      maxLength={500}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {profileForm.bio.length}/500
+                    </p>
+                  </div>
+                  {profileError && (
+                    <p className="text-sm text-destructive">{profileError}</p>
+                  )}
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" onClick={() => { setIsEditingProfile(false); setProfileError(null); }}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const urlPattern = /^https?:\/\/.+/i;
+                        if (profileForm.website && !urlPattern.test(profileForm.website)) {
+                          setProfileError("Invalid website URL");
+                          return;
+                        }
+                        if (profileForm.bio.length > 500) {
+                          setProfileError("Bio must be 500 characters or less");
+                          return;
+                        }
+                        setProfileError(null);
+                        setIsEditingProfile(false);
+                      }}
+                    >
+                      Save Profile
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

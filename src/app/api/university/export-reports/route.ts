@@ -76,16 +76,13 @@ export async function POST(request: NextRequest) {
               action: 'university_admin_auto_assigned',
               target_type: 'user',
               target_id: user._id,
-              target_email: user.email,
-              target_name: user.name,
-              performed_by_id: user._id,
-              performed_by_email: user.email,
-              performed_by_name: user.name,
               reason: `Auto-assigned university_id based on admin_email match during export-reports`,
               metadata: {
                 university_id: universityId,
                 university_name: matchingUniversity.name,
                 trigger: 'export_reports_endpoint',
+                target_email: user.email,
+                target_name: user.name,
               },
             });
           } catch (auditError) {

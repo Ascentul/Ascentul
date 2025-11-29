@@ -25,6 +25,9 @@ const customJestConfig = {
     '^.+/convex/react$': '<rootDir>/__mocks__/convex-react.js',
     '^.+/convex/browser$': '<rootDir>/__mocks__/convex-browser.js',
     '^.+/convex/_generated/(.*)$': 'identity-obj-proxy',
+    '^convex/nextjs$': '<rootDir>/__mocks__/convex/nextjs.js',
+    '^\\.\\./\\.\\./convex/nextjs$': '<rootDir>/__mocks__/convex/nextjs.js',
+    '^@/contexts/ImpersonationContext$': '<rootDir>/__mocks__/contexts/ImpersonationContext.tsx',
   },
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',

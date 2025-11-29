@@ -1,6 +1,8 @@
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
+import { getCurrentUser } from "./advisor_auth";
 
 // ============================================================================
 // Audit Log PII Redaction & Retention Helpers
@@ -64,6 +66,46 @@ function redactJsonField(value: any): any {
   }
   return clone;
 }
+
+// ============================================================================
+// Internal Mutation for Creating Audit Logs from Actions
+// ============================================================================
+
+/**
+ * Internal mutation to create an audit log entry.
+ * Used by actions that cannot directly access ctx.db.
+ * This uses the legacy format compatible with admin_users_actions.ts
+ */
+export const _createAuditLogInternal = internalMutation({
+  args: {
+    action: v.string(),
+    target_type: v.string(),
+    target_id: v.optional(v.string()),
+    target_email: v.optional(v.string()),
+    target_name: v.optional(v.string()),
+    performed_by_id: v.optional(v.string()),
+    performed_by_email: v.optional(v.string()),
+    performed_by_name: v.optional(v.string()),
+    reason: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("audit_logs", {
+      action: args.action,
+      target_type: args.target_type,
+      target_id: args.target_id,
+      target_email: args.target_email,
+      target_name: args.target_name,
+      performed_by_id: args.performed_by_id,
+      performed_by_email: args.performed_by_email,
+      performed_by_name: args.performed_by_name,
+      reason: args.reason,
+      metadata: args.metadata,
+      timestamp: Date.now(),
+      created_at: Date.now(),
+    });
+  },
+});
 
 // ============================================================================
 // PII Redaction for a Student
@@ -173,5 +215,130 @@ export const deleteExpiredAuditLogs = internalMutation({
     }
 
     return { deletedCount, cutoff };
+  },
+});
+
+// ============================================================================
+// Public API for Audit Logs
+// ============================================================================
+
+/**
+ * Create an audit log entry (public mutation for API routes)
+ * Used by API routes that need to log admin actions
+ */
+export const createAuditLog = mutation({
+  args: {
+    action: v.string(),
+    target_type: v.string(),
+    target_id: v.optional(v.string()),
+    target_email: v.optional(v.string()),
+    target_name: v.optional(v.string()),
+    performed_by_id: v.optional(v.string()),
+    performed_by_email: v.optional(v.string()),
+    performed_by_name: v.optional(v.string()),
+    reason: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("audit_logs", {
+      action: args.action,
+      target_type: args.target_type,
+      target_id: args.target_id,
+      target_email: args.target_email,
+      target_name: args.target_name,
+      performed_by_id: args.performed_by_id,
+      performed_by_email: args.performed_by_email,
+      performed_by_name: args.performed_by_name,
+      reason: args.reason,
+      metadata: args.metadata,
+      timestamp: Date.now(),
+      created_at: Date.now(),
+    });
+  },
+});
+
+/**
+ * Create a system audit log entry (for automated/system actions)
+ */
+export const createSystemAuditLog = mutation({
+  args: {
+    action: v.string(),
+    target_type: v.string(),
+    target_id: v.optional(v.string()),
+    reason: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("audit_logs", {
+      action: args.action,
+      target_type: args.target_type,
+      target_id: args.target_id,
+      reason: args.reason,
+      metadata: args.metadata,
+      performed_by_name: "System",
+      timestamp: Date.now(),
+      created_at: Date.now(),
+    });
+  },
+});
+
+/**
+ * Get audit logs with pagination (for admin UI)
+ * Requires super_admin role
+ */
+export const getAuditLogsPaginated = query({
+  args: {
+    clerkId: v.string(),
+    action: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+
+    // Only super_admin can view audit logs
+    if (sessionCtx.role !== "super_admin") {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+
+    let logsQuery = ctx.db.query("audit_logs").order("desc");
+
+    // Note: Filtering by action in-memory since we don't have an index for it
+    // For production, consider adding an index if this becomes a performance issue
+    const result = await logsQuery.paginate(args.paginationOpts);
+
+    // Filter by action if specified
+    const filteredPage = args.action
+      ? result.page.filter(log => log.action === args.action)
+      : result.page;
+
+    return {
+      ...result,
+      page: filteredPage,
+    };
+  },
+});
+
+/**
+ * Get audit logs (non-paginated, for simpler views)
+ * Requires super_admin role
+ */
+export const getAuditLogs = query({
+  args: {
+    clerkId: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+
+    // Only super_admin can view audit logs
+    if (sessionCtx.role !== "super_admin") {
+      return [];
+    }
+
+    const limit = args.limit ?? 100;
+    return await ctx.db
+      .query("audit_logs")
+      .order("desc")
+      .take(limit);
   },
 });

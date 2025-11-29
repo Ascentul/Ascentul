@@ -208,6 +208,17 @@ Make `stage` the single source of truth:
      },
    });
 
+   function mapStatusToStage(status: string): string {
+     const map = {
+       saved: "Prospect",
+       applied: "Applied",
+       interview: "Interview",
+       offer: "Offer",
+       rejected: "Rejected",
+     };
+     return map[status] || "Prospect";
+   }
+
    export const verifyMigration = query({
      args: {},
      handler: async (ctx) => {

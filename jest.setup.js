@@ -42,18 +42,22 @@ jest.mock('@clerk/nextjs', () => ({
 }))
 
 // Mock Convex
+const mockUseQuery = jest.fn(() => undefined)
+const mockUseMutation = jest.fn(() => jest.fn(() => Promise.resolve()))
+const mockUseAction = jest.fn(() => jest.fn(() => Promise.resolve()))
+
 jest.mock('convex/react', () => ({
-  useQuery: jest.fn(),
-  useMutation: jest.fn(),
-  useAction: jest.fn(),
+  useQuery: mockUseQuery,
+  useMutation: mockUseMutation,
+  useAction: mockUseAction,
   ConvexProvider: ({ children }) => children,
 }))
 
 // Mock Convex Next.js helpers
 jest.mock('convex/nextjs', () => ({
-  fetchQuery: jest.fn(),
-  fetchMutation: jest.fn(),
-  fetchAction: jest.fn(),
+  fetchQuery: jest.fn(() => Promise.resolve(undefined)),
+  fetchMutation: jest.fn(() => Promise.resolve(undefined)),
+  fetchAction: jest.fn(() => Promise.resolve(undefined)),
 }))
 
 // Mock Convex browser client and API
@@ -67,17 +71,44 @@ jest.mock('convex/browser', () => ({
 // Mock convex/_generated/api globally
 jest.mock('convex/_generated/api', () => ({
   api: {
+    avatar: {
+      generateAvatarUploadUrl: 'avatar:generateAvatarUploadUrl',
+      updateUserAvatar: 'avatar:updateUserAvatar',
+    },
+    universities: {
+      getUniversitySettings: 'universities:getUniversitySettings',
+      updateUniversitySettings: 'universities:updateUniversitySettings',
+    },
+    users: {
+      getUser: 'users:getUser',
+      getUserByClerkId: 'users:getUserByClerkId',
+      setStripeCustomer: 'users:setStripeCustomer',
+    },
+    projects: {
+      getUserProjects: 'projects:getUserProjects',
+    },
     ai_coach: {
       getConversations: 'ai_coach:getConversations',
       getMessages: 'ai_coach:getMessages',
       createConversation: 'ai_coach:createConversation',
       sendMessage: 'ai_coach:sendMessage',
     },
-    users: {
-      getUser: 'users:getUser',
-    },
   },
 }), { virtual: true })
+
+// Mock Impersonation context to avoid provider errors in tests
+jest.mock('@/contexts/ImpersonationContext', () => ({
+  useImpersonation: () => ({
+    isImpersonating: false,
+    impersonatedUser: null,
+    getEffectiveRole: () => 'student',
+    startImpersonation: jest.fn(),
+    stopImpersonation: jest.fn(),
+  }),
+  ImpersonationProvider: ({ children }) => children,
+}))
+
+global.HTMLElement.prototype.scrollIntoView = jest.fn()
 
 
 // Mock API requests

@@ -1,5 +1,5 @@
 module.exports = {
-  fetchQuery: jest.fn(async () => ({})),
-  fetchMutation: jest.fn(async () => ({})),
-  fetchAction: jest.fn(async () => ({})),
+  fetchQuery: jest.fn(() => Promise.resolve(undefined)),
+  fetchMutation: jest.fn(() => Promise.resolve(undefined)),
+  fetchAction: jest.fn(() => Promise.resolve(undefined)),
 };

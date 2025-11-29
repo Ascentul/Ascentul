@@ -303,8 +303,8 @@ export const completeSession = mutation({
     await ctx.db.patch(args.sessionId, {
       status: "completed",
       end_at: now,
-      notes: args.finalNotes || session.notes,
-      outcomes: args.outcomes || session.outcomes,
+      notes: args.finalNotes !== undefined ? args.finalNotes : session.notes,
+      outcomes: args.outcomes !== undefined ? args.outcomes : session.outcomes,
       version: (session.version || 1) + 1,
       updated_at: now,
     });

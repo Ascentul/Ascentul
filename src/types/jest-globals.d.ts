@@ -9,6 +9,7 @@ import type {
   jest as JestJest,
   test as JestTest,
 } from '@jest/globals'
+import '@testing-library/jest-dom'
 
 export {}
 
@@ -22,6 +23,4 @@ declare global {
   const beforeAll: typeof JestBeforeAll
   const afterAll: typeof JestAfterAll
   const jest: typeof JestJest
-
-
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -90,14 +90,13 @@ function formatWorkHistory(workHistory: any[]): any[] {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, token } = await requireConvexToken()
 
     let user: any = null
     let projects: any[] = []
 
     try {
-      user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
+      user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token)
     } catch (userError) {
       console.error('Failed to fetch user profile:', {
         message: userError instanceof Error ? userError.message : 'Unknown error',
@@ -111,7 +110,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }) as any[]
+      projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token) as any[]
     } catch (projectError) {
       console.warn('Failed to fetch user projects:', {
         message: projectError instanceof Error ? projectError.message : 'Unknown error',

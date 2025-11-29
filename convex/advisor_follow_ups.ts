@@ -40,7 +40,7 @@ export const completeFollowUp = mutation({
 
     // Verify tenant isolation
     if (followUp.university_id !== universityId) {
-      throw new ConvexError("Unauthorized: Follow-up belongs to different university", { code: "UNAUTHORIZED" });
+      throw new ConvexError({ message: "Unauthorized: Follow-up belongs to different university", code: "UNAUTHORIZED" });
     }
 
     // Verify advisor can access this student
@@ -52,7 +52,7 @@ export const completeFollowUp = mutation({
       sessionCtx.role !== "university_admin" &&
       sessionCtx.role !== "super_admin"
     ) {
-      throw new ConvexError("Unauthorized: Not the assigned advisor for this follow-up", { code: "UNAUTHORIZED" });
+      throw new ConvexError({ message: "Unauthorized: Not the assigned advisor for this follow-up", code: "UNAUTHORIZED" });
     }
 
     // RACE CONDITION MITIGATION: Make this operation idempotent
@@ -95,10 +95,10 @@ export const completeFollowUp = mutation({
     if (!afterPatch) {
       // Follow-up was deleted during the operation - hard failure
       console.error(`Follow-up ${args.followUpId} deleted during complete operation`);
-      throw new ConvexError(
-        "Follow-up was deleted during completion. This may indicate a concurrent deletion.",
-        { code: "NOT_FOUND" }
-      );
+      throw new ConvexError({
+        message: "Follow-up was deleted during completion. This may indicate a concurrent deletion.",
+        code: "NOT_FOUND"
+      });
     }
 
     if (afterPatch.version !== currentVersion + 1) {
@@ -109,10 +109,10 @@ export const completeFollowUp = mutation({
         `Expected ${currentVersion + 1}, got ${afterPatch.version}. ` +
         `Concurrent modification detected.`
       );
-      throw new ConvexError(
-        "Follow-up was modified by another request. Please refresh and try again.",
-        { code: "VERSION_CONFLICT" }
-      );
+      throw new ConvexError({
+        message: "Follow-up was modified by another request. Please refresh and try again.",
+        code: "VERSION_CONFLICT"
+      });
     }
 
     // Audit log (FERPA compliance - capture all modified fields)
@@ -162,12 +162,12 @@ export const reopenFollowUp = mutation({
 
     const followUp = await ctx.db.get(args.followUpId);
     if (!followUp) {
-      throw new ConvexError("Follow-up not found", { code: "NOT_FOUND" });
+      throw new ConvexError({ message: "Follow-up not found", code: "NOT_FOUND" });
     }
 
     // Verify tenant isolation
     if (followUp.university_id !== universityId) {
-      throw new ConvexError("Unauthorized: Follow-up belongs to different university", { code: "UNAUTHORIZED" });
+      throw new ConvexError({ message: "Unauthorized: Follow-up belongs to different university", code: "UNAUTHORIZED" });
     }
 
     // Verify advisor can access this student
@@ -179,7 +179,7 @@ export const reopenFollowUp = mutation({
       sessionCtx.role !== "university_admin" &&
       sessionCtx.role !== "super_admin"
     ) {
-      throw new ConvexError("Unauthorized: Not the assigned advisor for this follow-up", { code: "UNAUTHORIZED" });
+      throw new ConvexError({ message: "Unauthorized: Not the assigned advisor for this follow-up", code: "UNAUTHORIZED" });
     }
 
     // RACE CONDITION MITIGATION: Make this operation idempotent
@@ -217,10 +217,10 @@ export const reopenFollowUp = mutation({
     if (!afterPatch) {
       // Follow-up was deleted during the operation - hard failure
       console.error(`Follow-up ${args.followUpId} deleted during reopen operation`);
-      throw new ConvexError(
-        "Follow-up was deleted during reopen. This may indicate a concurrent deletion.",
-        { code: "NOT_FOUND" }
-      );
+      throw new ConvexError({
+        message: "Follow-up was deleted during reopen. This may indicate a concurrent deletion.",
+        code: "NOT_FOUND"
+      });
     }
 
     if (afterPatch.version !== currentVersion + 1) {
@@ -230,10 +230,10 @@ export const reopenFollowUp = mutation({
         `Expected ${currentVersion + 1}, got ${afterPatch.version}. ` +
         `Concurrent modification detected.`
       );
-      throw new ConvexError(
-        "Follow-up was modified by another request. Please refresh and try again.",
-        { code: "VERSION_CONFLICT" }
-      );
+      throw new ConvexError({
+        message: "Follow-up was modified by another request. Please refresh and try again.",
+        code: "VERSION_CONFLICT"
+      });
     }
 
     // Audit log (FERPA compliance - capture all modified fields)

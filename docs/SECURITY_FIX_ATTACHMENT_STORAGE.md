@@ -56,8 +56,8 @@ attachments: v.optional(
 
 **Benefits**:
 - ✅ Access control enforced at URL generation time via Convex permissions (note: once a URL is issued, it can be accessed by anyone who possesses it—no per-request re-validation)
-- ✅ Convex built-in storage `getUrl()` returns a persistent bearer URL valid until the file is deleted (no expiration). For time-limited URLs, use a custom HTTP action or the R2 component.
-- ✅ Can revoke access by deleting the file from storage
+- ✅ Convex built-in storage `getUrl()` returns a persistent bearer URL valid until the file is deleted (no automatic expiration). To revoke a leaked URL, delete the file or move to per-request validation via a custom HTTP action.
+- ✅ Can revoke access by deleting the file from storage (no selective URL revocation)
 - ✅ Audit trail for file access at URL generation time
 - ✅ Tenant isolation (university-based)
 
@@ -162,6 +162,7 @@ export const getSessionAttachmentUrl = query({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     const session = await ctx.db.get(args.sessionId);
+    if (!session) throw new Error("Session not found");
 
     // 1. Verify university match (tenant isolation)
     if (user.university_id !== session.university_id) {
@@ -247,7 +248,7 @@ export const getSessionAttachmentUrl = query({
 | Before (URL) | After (storage_id) |
 |-------------|-------------------|
 | ❌ No access control | ✅ Permission-based access |
-| ❌ Permanent URLs | ✅ Revocable URLs (via file deletion or time-limited with R2)* |
+| ❌ Permanent URLs | ✅ Revocable URLs (via file deletion; time-limited only with custom action or R2)* |
 | ❌ No revocation | ✅ Can revoke access by deleting file |
 | ❌ No audit trail | ✅ Logged access |
 | ❌ Cross-tenant risk | ✅ Tenant isolation enforced |

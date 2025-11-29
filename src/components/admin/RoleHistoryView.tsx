@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import type { Doc } from 'convex/_generated/dataModel'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,8 @@ import {
 import { Loader2, Search, Download, ArrowRight, Shield, History } from 'lucide-react'
 import { format } from 'date-fns'
 
+type AuditLog = Doc<'audit_logs'>
+
 interface RoleHistoryViewProps {
   clerkId: string
 }
@@ -33,31 +36,36 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [timeFilter, setTimeFilter] = useState<'all' | '7d' | '30d' | '90d'>('30d')
 
-  // Calculate start date based on time filter
+  // Calculate start date based on time filter (used for client-side filtering)
   const startDate = React.useMemo(() => {
-    if (timeFilter === 'all') return undefined
+    if (timeFilter === 'all') return 0
 
     const now = Date.now()
     const days = timeFilter === '7d' ? 7 : timeFilter === '30d' ? 30 : 90
     return now - (days * 24 * 60 * 60 * 1000)
   }, [timeFilter])
 
-  // Fetch role change audit logs with server-side time filtering
+  // Fetch role change audit logs
   const auditLogs = useQuery(
     api.audit_logs.getAuditLogs,
     {
       clerkId,
-      action: 'user_role_changed',
-      startDate, // Pass time filter to query for efficient server-side filtering
       limit: 100,
     }
   )
 
-  // Filter logs by search query only (time filtering now done server-side)
+  // Filter logs by search query, action type, and time
   const filteredLogs = React.useMemo(() => {
     if (!auditLogs) return []
 
-    return auditLogs.filter((log) => {
+    return auditLogs.filter((log: AuditLog) => {
+      // Filter for role change actions only
+      if (log.action !== 'user_role_changed') return false
+
+      // Time filter
+      const logTime = log.timestamp ?? log.created_at ?? 0
+      if (startDate > 0 && logTime < startDate) return false
+
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
@@ -70,14 +78,14 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
 
       return true
     })
-  }, [auditLogs, searchQuery])
+  }, [auditLogs, searchQuery, startDate])
 
   // Statistics
   const stats = React.useMemo(() => {
     if (!filteredLogs) return { total: 0, uniqueUsers: 0, uniquePerformers: 0 }
 
-    const uniqueUsers = new Set(filteredLogs.map(log => log.target_email).filter(Boolean))
-    const uniquePerformers = new Set(filteredLogs.map(log => log.performed_by_email).filter(Boolean))
+    const uniqueUsers = new Set(filteredLogs.map((log: AuditLog) => log.target_email).filter(Boolean))
+    const uniquePerformers = new Set(filteredLogs.map((log: AuditLog) => log.performed_by_email).filter(Boolean))
 
     return {
       total: filteredLogs.length,
@@ -90,19 +98,19 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
     if (!filteredLogs || filteredLogs.length === 0) return
 
     const headers = ['Timestamp', 'User', 'Email', 'Old Role', 'New Role', 'Changed By', 'Reason']
-    const rows = filteredLogs.map(log => [
-      format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss'),
+    const rows = filteredLogs.map((log: AuditLog) => [
+      format(new Date(log.timestamp ?? log.created_at ?? Date.now()), 'yyyy-MM-dd HH:mm:ss'),
       log.target_name || '',
       log.target_email || '',
-      log.metadata?.old_role || '',
-      log.metadata?.new_role || '',
+      (log.metadata as Record<string, unknown>)?.old_role || '',
+      (log.metadata as Record<string, unknown>)?.new_role || '',
       log.performed_by_name || '',
       log.reason || '',
     ])
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => {
+      ...rows.map((row) => row.map((cell) => {
         // Escape quotes and handle newlines/carriage returns
         const str = String(cell).replace(/"/g, '""').replace(/\r?\n/g, ' ')
         return `"${str}"`
@@ -210,16 +218,18 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredLogs.map((log) => {
-                  const oldRole = log.metadata?.old_role
-                  const newRole = log.metadata?.new_role
+                filteredLogs.map((log: AuditLog) => {
+                  const metadata = log.metadata as Record<string, unknown> | undefined
+                  const oldRole = metadata?.old_role as string | undefined
+                  const newRole = metadata?.new_role as string | undefined
+                  const logTime = log.timestamp ?? log.created_at ?? Date.now()
 
                   return (
                     <TableRow key={log._id}>
                       <TableCell className="text-sm">
-                        <div>{format(new Date(log.timestamp), 'MMM d, yyyy')}</div>
+                        <div>{format(new Date(logTime), 'MMM d, yyyy')}</div>
                         <div className="text-xs text-muted-foreground">
-                          {format(new Date(log.timestamp), 'h:mm a')}
+                          {format(new Date(logTime), 'h:mm a')}
                         </div>
                       </TableCell>
                       <TableCell>

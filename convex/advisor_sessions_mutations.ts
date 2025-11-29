@@ -68,10 +68,11 @@ export const createSession = mutation({
 
     // Validate timing fields
     if (args.start_at <= 0) {
-      throw new ConvexError("start_at must be a valid timestamp", { code: "VALIDATION_ERROR" });
+      throw new ConvexError({ message: "start_at must be a valid timestamp", code: "VALIDATION_ERROR" });
     }
     if (args.duration_minutes <= 0 || args.duration_minutes > 1440) {
-      throw new ConvexError("duration_minutes must be between 1 and 1440 (24 hours)", {
+      throw new ConvexError({
+        message: "duration_minutes must be between 1 and 1440 (24 hours)",
         code: "VALIDATION_ERROR",
       });
     }
@@ -149,33 +150,33 @@ export const updateSession = mutation({
 
     const session = await ctx.db.get(args.session_id);
     if (!session) {
-      throw new ConvexError("Session not found", { code: "NOT_FOUND" });
+      throw new ConvexError({ message: "Session not found", code: "NOT_FOUND" });
     }
 
     // Verify ownership
     if (session.advisor_id !== sessionCtx.userId) {
-      throw new ConvexError("Unauthorized: Not your session", { code: "UNAUTHORIZED" });
+      throw new ConvexError({ message: "Unauthorized: Not your session", code: "UNAUTHORIZED" });
     }
 
     // Verify tenant isolation
     if (session.university_id !== universityId) {
-      throw new ConvexError("Unauthorized: Session not in your university", { code: "UNAUTHORIZED" });
+      throw new ConvexError({ message: "Unauthorized: Session not in your university", code: "UNAUTHORIZED" });
     }
 
     // Version check for conflict detection
     if ((session.version ?? 0) !== args.version) {
-      throw new ConvexError(
-        "Conflict: Session has been modified by another process. Please refresh and try again.",
-        { code: "VERSION_CONFLICT" },
-      );
+      throw new ConvexError({
+        message: "Conflict: Session has been modified by another process. Please refresh and try again.",
+        code: "VERSION_CONFLICT",
+      });
     }
 
     // Validate timing fields if provided
     if (args.start_at !== undefined && args.start_at <= 0) {
-      throw new ConvexError("start_at must be a valid timestamp", { code: "VALIDATION_ERROR" });
+      throw new ConvexError({ message: "start_at must be a valid timestamp", code: "VALIDATION_ERROR" });
     }
     if (args.duration_minutes !== undefined && (args.duration_minutes <= 0 || args.duration_minutes > 1440)) {
-      throw new ConvexError("duration_minutes must be between 1 and 1440 (24 hours)", { code: "VALIDATION_ERROR" });
+      throw new ConvexError({ message: "duration_minutes must be between 1 and 1440 (24 hours)", code: "VALIDATION_ERROR" });
     }
 
     const updates: {
@@ -220,7 +221,8 @@ export const updateSession = mutation({
       const DEFAULT_DURATION_MINUTES = 60;
       const duration = args.duration_minutes ?? session.duration_minutes ?? DEFAULT_DURATION_MINUTES;
       if (!start || start <= 0) {
-        throw new ConvexError("Cannot calculate end_at: start_at is missing or invalid", {
+        throw new ConvexError({
+          message: "Cannot calculate end_at: start_at is missing or invalid",
           code: "VALIDATION_ERROR",
         });
       }
@@ -251,7 +253,8 @@ export const updateSession = mutation({
         // Ensure end_at is set for completed sessions
         const endAt = updates.end_at ?? session.end_at;
         if (!endAt) {
-          throw new ConvexError("Cannot mark session as completed: end_at must be set", {
+          throw new ConvexError({
+            message: "Cannot mark session as completed: end_at must be set",
             code: "VALIDATION_ERROR",
           });
         }
@@ -261,7 +264,8 @@ export const updateSession = mutation({
         // Ensure start_at is set for scheduled sessions
         const startAt = updates.start_at ?? session.start_at;
         if (!startAt) {
-          throw new ConvexError("Cannot mark session as scheduled: start_at must be set", {
+          throw new ConvexError({
+            message: "Cannot mark session as scheduled: start_at must be set",
             code: "VALIDATION_ERROR",
           });
         }
@@ -327,17 +331,17 @@ export const deleteSession = mutation({
 
     const session = await ctx.db.get(args.session_id);
     if (!session) {
-      throw new ConvexError("Session not found", { code: "NOT_FOUND" });
+      throw new ConvexError({ message: "Session not found", code: "NOT_FOUND" });
     }
 
     // Verify ownership
     if (session.advisor_id !== sessionCtx.userId) {
-      throw new ConvexError("Unauthorized: Not your session", { code: "UNAUTHORIZED" });
+      throw new ConvexError({ message: "Unauthorized: Not your session", code: "UNAUTHORIZED" });
     }
 
     // Verify tenant isolation
     if (session.university_id !== universityId) {
-      throw new ConvexError("Unauthorized: Session not in your university", { code: "UNAUTHORIZED" });
+      throw new ConvexError({ message: "Unauthorized: Session not in your university", code: "UNAUTHORIZED" });
     }
 
     await ctx.db.delete(args.session_id);
@@ -378,22 +382,23 @@ export const cancelSession = mutation({
 
     const session = await ctx.db.get(args.session_id);
     if (!session) {
-      throw new ConvexError("Session not found", { code: "NOT_FOUND" });
+      throw new ConvexError({ message: "Session not found", code: "NOT_FOUND" });
     }
 
     // Verify ownership
     if (session.advisor_id !== sessionCtx.userId) {
-      throw new ConvexError("Unauthorized: Not your session", { code: "UNAUTHORIZED" });
+      throw new ConvexError({ message: "Unauthorized: Not your session", code: "UNAUTHORIZED" });
     }
 
     // Verify tenant isolation
     if (session.university_id !== universityId) {
-      throw new ConvexError("Unauthorized: Session not in your university", { code: "UNAUTHORIZED" });
+      throw new ConvexError({ message: "Unauthorized: Session not in your university", code: "UNAUTHORIZED" });
     }
 
     // Only allow cancelling scheduled sessions
     if (session.status !== "scheduled") {
-      throw new ConvexError(`Cannot cancel session with status: ${session.status}`, {
+      throw new ConvexError({
+        message: `Cannot cancel session with status: ${session.status}`,
         code: "VALIDATION_ERROR",
       });
     }

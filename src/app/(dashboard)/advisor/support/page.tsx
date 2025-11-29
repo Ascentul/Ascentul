@@ -82,11 +82,12 @@ export default function AdvisorSupportPage() {
     if (!selectedTicket?.resolution) return [];
     try {
       return selectedTicket.resolution.split(/\n\n+/).map((entry) => {
-        const match = entry.match(/^\s*\[(?<ts>[^\]]+)\]\s*(?<author>[^:]+):\s*(?<msg>[\s\S]*)$/);
-        if (match?.groups) {
-          const ts = match.groups.ts;
-          const author = match.groups.author.trim();
-          const message = match.groups.msg.trim();
+        // Match format: [timestamp] author: message
+        const match = entry.match(/^\s*\[([^\]]+)\]\s*([^:]+):\s*([\s\S]*)$/);
+        if (match) {
+          const ts = match[1];
+          const author = match[2].trim();
+          const message = match[3].trim();
           const parsedDate = new Date(ts);
           const timestamp = isNaN(parsedDate.getTime()) ? ts : parsedDate.toLocaleString();
           return { author, message, timestamp, raw: entry };

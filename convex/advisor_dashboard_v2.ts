@@ -683,6 +683,8 @@ export const getCapacityAndSchedule = query({
 
     return {
       capacity: {
+        booked: activeSessions.length,
+        total: weeklySlots,
         percentage: weeklySlots > 0
           ? Math.round((activeSessions.length / weeklySlots) * 100)
           : 0,

@@ -3,9 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
-
-// Convex IDs use Crockford base32 (0-9, A-H, J-N, P-T, V-Z; excludes I, L, O, U)
-const isValidId = (id: string) => /^[0-9A-HJ-NP-TV-Z]+$/i.test(id.trim());
+import { isValidConvexId } from '@/lib/convex-ids';
 
 // POST /api/achievements/award { achievement_id }
 export async function POST(request: Request) {
@@ -20,7 +18,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({} as any))
   const achievementId = body.achievement_id as string
   if (!achievementId) return NextResponse.json({ error: 'achievement_id is required' }, { status: 400 })
-  if (!isValidId(achievementId)) return NextResponse.json({ error: 'Invalid achievement ID format' }, { status: 400 })
+  if (!isValidConvexId(achievementId)) return NextResponse.json({ error: 'Invalid achievement ID format' }, { status: 400 })
 
   try {
     const id = await convexServer.mutation(api.achievements.awardAchievement, { clerkId: userId, achievement_id: achievementId as Id<'achievements'> }, token)

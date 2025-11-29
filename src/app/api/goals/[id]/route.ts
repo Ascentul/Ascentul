@@ -4,15 +4,13 @@ import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 import { requireConvexToken } from '@/lib/convex-auth';
-
-// Convex IDs use Crockford Base32 (0-9, A-H, J-N, P-T, V-Z; excludes I, L, O, U)
-const isValidId = (id: string) => /^[0-9A-HJ-NP-TV-Z]+$/i.test(id.trim());
+import { isValidConvexId } from '@/lib/convex-ids';
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { userId, token } = await requireConvexToken()
     const { id: goalIdParam } = await context.params
-    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidId(goalIdParam)) {
+    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidConvexId(goalIdParam)) {
       return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
     }
     let body: any;
@@ -57,7 +55,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   try {
     const { userId, token } = await requireConvexToken()
     const { id: goalIdParam } = await context.params
-    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidId(goalIdParam)) {
+    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidConvexId(goalIdParam)) {
       return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
     }
     await convexServer.mutation(

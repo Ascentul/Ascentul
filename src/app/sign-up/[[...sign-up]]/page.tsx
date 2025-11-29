@@ -237,7 +237,7 @@ export default function Page() {
 
     // Prefer server-validated invite data when inviteToken is present
     if (inviteToken) {
-      const controller = new AbortController()
+      const controller = new AbortController();
       (async () => {
         try {
           const res = await fetch(`/api/university/verify-invite?token=${encodeURIComponent(inviteToken)}`, {

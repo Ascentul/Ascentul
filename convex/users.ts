@@ -492,10 +492,11 @@ export const initializeUserProfile = mutation({
     // Verify the caller is the authenticated user
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError("Unauthorized: Not authenticated", { code: "UNAUTHORIZED" });
+      throw new ConvexError({ message: "Unauthorized: Not authenticated", code: "UNAUTHORIZED" });
     }
     if (identity.subject !== args.clerkId) {
-      throw new ConvexError("Unauthorized: Cannot create profile for another user", {
+      throw new ConvexError({
+        message: "Unauthorized: Cannot create profile for another user",
         code: "UNAUTHORIZED",
       });
     }

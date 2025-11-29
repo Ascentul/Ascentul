@@ -14,8 +14,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
 
     const conversationId = params.id
 
@@ -24,19 +26,25 @@ export async function GET(
     }
 
     // Verify conversation exists and belongs to user (prevents unauthorized access)
-    const conversations = await convexServer.query(api.ai_coach.getConversations, {
-      clerkId: userId
-    })
+    const conversations = await convexServer.query(
+      api.ai_coach.getConversations,
+      { clerkId: userId },
+      token
+    )
 
     const conversation = conversations.find((c) => c.id === conversationId)
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found or access denied' }, { status: 404 })
     }
 
-    const messages = await convexServer.query(api.ai_coach.getMessages, {
-      clerkId: userId,
-      conversationId: conversationId as Id<'ai_coach_conversations'>
-    })
+    const messages = await convexServer.query(
+      api.ai_coach.getMessages,
+      {
+        clerkId: userId,
+        conversationId: conversationId as Id<'ai_coach_conversations'>
+      },
+      token
+    )
 
     return NextResponse.json(messages)
   } catch (error) {
@@ -50,8 +58,10 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
 
     const conversationId = params.id
     const body = await request.json()
@@ -66,9 +76,11 @@ export async function POST(
     }
 
     // Verify conversation exists and belongs to user (prevents unauthorized access)
-    const conversations = await convexServer.query(api.ai_coach.getConversations, {
-      clerkId: userId
-    })
+    const conversations = await convexServer.query(
+      api.ai_coach.getConversations,
+      { clerkId: userId },
+      token
+    )
 
     const conversation = conversations.find((c) => c.id === conversationId)
     if (!conversation) {
@@ -76,21 +88,25 @@ export async function POST(
     }
 
     // Get conversation history for context
-    const existingMessages = await convexServer.query(api.ai_coach.getMessages, {
-      clerkId: userId,
-      conversationId: conversationId as Id<'ai_coach_conversations'>
-    }) as Array<{ isUser: boolean; message: string }>
+    const existingMessages = await convexServer.query(
+      api.ai_coach.getMessages,
+      {
+        clerkId: userId,
+        conversationId: conversationId as Id<'ai_coach_conversations'>
+      },
+      token
+    ) as Array<{ isUser: boolean; message: string }>
 
     // Fetch user context data for personalized coaching
     let userContext = ''
     try {
       const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.all([
-        convexServer.query(api.users.getUserByClerkId, { clerkId: userId }) as Promise<Record<string, any> | null>,
-        convexServer.query(api.goals.getUserGoals, { clerkId: userId }) as Promise<any[]>,
-        convexServer.query(api.applications.getUserApplications, { clerkId: userId }) as Promise<any[]>,
-        convexServer.query(api.resumes.getUserResumes, { clerkId: userId }) as Promise<any[]>,
-        convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }) as Promise<any[]>,
-        convexServer.query(api.projects.getUserProjects, { clerkId: userId }) as Promise<any[]>
+        convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token) as Promise<Record<string, any> | null>,
+        convexServer.query(api.goals.getUserGoals, { clerkId: userId }, token) as Promise<any[]>,
+        convexServer.query(api.applications.getUserApplications, { clerkId: userId }, token) as Promise<any[]>,
+        convexServer.query(api.resumes.getUserResumes, { clerkId: userId }, token) as Promise<any[]>,
+        convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }, token) as Promise<any[]>,
+        convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token) as Promise<any[]>
       ])
 
       // Build user context summary
