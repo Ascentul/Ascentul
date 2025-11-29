@@ -768,6 +768,17 @@ export const updateUserWithMembership = mutation({
       Object.entries(args.updates).filter(([_, value]) => value !== undefined)
     );
 
+    // Validate that role and membership role (if provided) are consistent
+    if (
+      args.updates.role &&
+      args.membership &&
+      args.updates.role !== args.membership.role
+    ) {
+      throw new Error(
+        `Role mismatch: updates.role (${args.updates.role}) does not match membership.role (${args.membership.role})`
+      );
+    }
+
     // Track role changes for audit logging
     const roleChanged = args.updates.role && args.updates.role !== user.role;
     const oldRole = user.role;
@@ -827,7 +838,10 @@ export const updateUserWithMembership = mutation({
         ) {
           await ctx.db.patch(existingMembership._id, {
             university_id: args.membership.universityId,
-            status: "active",
+            // Reactivate only when switching universities; otherwise preserve explicit inactive/suspended states
+            ...(existingMembership.university_id !== args.membership.universityId
+              ? { status: "active" }
+              : {}),
             updated_at: now,
           });
           console.log(`[updateUserWithMembership] Updated membership for user ${args.clerkId} with role ${args.membership.role}`);

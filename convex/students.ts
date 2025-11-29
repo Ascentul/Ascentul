@@ -1565,6 +1565,7 @@ export const detectOrphanedProfiles = query({
 
     // Get all users with student role
     const allUsers = await ctx.db.query("users").collect();
+    const userMap = new Map(allUsers.map(u => [u._id.toString(), u]));
 
     if (allUsers.length > 2000) {
       console.warn(
@@ -1578,7 +1579,7 @@ export const detectOrphanedProfiles = query({
 
     // Check 1: Student profiles where user.role !== "student"
     for (const profile of allProfiles) {
-      const user = await ctx.db.get(profile.user_id);
+      const user = userMap.get(profile.user_id.toString());
       if (!user) {
         orphanedStates.push({
           type: "profile_without_user",

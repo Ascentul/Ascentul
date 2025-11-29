@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { isValidHttpUrl } from '@/lib/utils';
 
 // Session type labels
 const SESSION_TYPE_LABELS: Record<string, string> = {
@@ -257,7 +258,7 @@ export default function SessionDetailPage() {
                   )}
 
                   {/* Meeting URL */}
-                  {session.meeting_url && (
+                  {session.meeting_url && isValidHttpUrl(session.meeting_url) && (
                     <div className="flex items-start gap-3">
                       <Video className="h-4 w-4 mt-0.5 text-muted-foreground" />
                       <div>

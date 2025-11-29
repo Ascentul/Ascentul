@@ -101,7 +101,7 @@ export function ActiveFiltersChips({
       {/* Specific Need Action Reason */}
       {filters.needActionReason && (
         <FilterChip
-          label={NEED_ACTION_LABELS[filters.needActionReason]}
+          label={NEED_ACTION_LABELS[filters.needActionReason] ?? filters.needActionReason}
           onRemove={onRemoveNeedActionReason}
           variant="warning"
         />
@@ -118,7 +118,7 @@ export function ActiveFiltersChips({
       {/* Time Window */}
       {filters.timeWindow !== 'all' && (
         <FilterChip
-          label={TIME_WINDOW_LABELS[filters.timeWindow]}
+          label={TIME_WINDOW_LABELS[filters.timeWindow] ?? filters.timeWindow}
           onRemove={onRemoveTimeWindow}
         />
       )}

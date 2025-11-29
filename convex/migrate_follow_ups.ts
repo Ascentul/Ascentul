@@ -189,16 +189,21 @@ export const migrateFollowUps = internalMutation({
           .map(c => [c._id, c] as const)
       );
 
+      // Skip batch lookup if no items to check
+      if (page.page.length === 0) {
+        followupActionsCursor = page.continueCursor;
+        hasMoreFollowupActions = !page.isDone;
+        continue;
+      }
+
       // Pre-fetch already migrated IDs for this batch to avoid N+1 queries
       let migratedSet = new Set<string>();
-      if (page.page.length > 0) {
-        const migratedFromThisBatch = await ctx.db
-          .query('follow_ups')
-          .withIndex('by_migrated_from')
-          .filter((q) => q.or(...page.page.map(a => q.eq(q.field('migrated_from_id'), a._id))))
-          .collect();
-        migratedSet = new Set(migratedFromThisBatch.map(m => m.migrated_from_id));
-      }
+      const migratedFromThisBatch = await ctx.db
+        .query('follow_ups')
+        .withIndex('by_migrated_from')
+        .filter((q) => q.or(...page.page.map(a => q.eq(q.field('migrated_from_id'), a._id))))
+        .collect();
+      migratedSet = new Set(migratedFromThisBatch.map(m => m.migrated_from_id));
 
       for (const action of page.page) {
         try {

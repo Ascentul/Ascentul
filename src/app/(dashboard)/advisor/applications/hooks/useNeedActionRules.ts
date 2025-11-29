@@ -25,7 +25,7 @@ const FOURTEEN_DAYS = 14 * ONE_DAY;
 /**
  * Application data needed for triage calculation
  */
-interface ApplicationForTriage {
+export interface ApplicationForTriage {
   next_step?: string;
   next_step_date?: number;  // Due date
   updated_at: number;

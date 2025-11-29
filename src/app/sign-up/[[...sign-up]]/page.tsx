@@ -224,6 +224,7 @@ export default function Page() {
   // Pre-fill email and university from URL parameters if provided
   useEffect(() => {
     const inviteEmail = searchParams.get('email')
+    const inviteToken = searchParams.get('inviteToken')
     const university = searchParams.get('university')
 
     const isValidEmail = inviteEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim()) : false
@@ -237,7 +238,9 @@ export default function Page() {
       setFormData(prev => ({ ...prev, email: isValidEmail ? inviteEmail : prev.email }))
     }
 
-    if (university || inviteEmail) {
+    // Require invite token before pre-filling university to reduce spoofing risk.
+    // TODO: Validate inviteToken server-side and derive university/email from verified payload.
+    if (inviteToken && (university || inviteEmail)) {
       setUniversityInvite({
         university: sanitizedUniversity,
         email: isValidEmail ? inviteEmail : null,

@@ -98,8 +98,8 @@ const followUpsCount = await countWithPagination(ctx, 'follow_ups');
 ### Fixed Files
 
 1. **`convex/migrate_follow_ups.ts`**:
-   - Function: `verifyMigration`
-   - Lines: 507-509
+   - Helper: `countWithPagination` (defined near top of file)
+   - Function: `verifyMigration` now uses pagination-based counts
    - Impact: Prevents memory issues when verifying migrations on large datasets
 
 ---

@@ -210,7 +210,9 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
       const message = getErrorMessage(error);
 
       // Check if it's a version conflict
-      if (message.includes('version') || message.includes('conflict')) {
+      // TODO: Use structured error codes from the mutation instead of string matching
+      const isVersionConflict = message.includes('version') || message.includes('conflict');
+      if (isVersionConflict) {
         setSaveError('This session was updated elsewhere. Please refresh to see the latest version.');
         toast({
           title: 'Version conflict',

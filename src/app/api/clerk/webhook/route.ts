@@ -137,6 +137,9 @@ export async function POST(request: NextRequest) {
           typeof universityIdInMetadata === 'string' && universityIdInMetadata.trim().length > 0
             ? universityIdInMetadata
             : undefined
+        const membershipUniversityId = validUniversityId
+          ? (validUniversityId as Id<'universities'>)
+          : undefined
         const userEmail = userData.email_addresses?.[0]?.email_address
 
         // Validate role value before syncing to Convex
@@ -190,8 +193,8 @@ export async function POST(request: NextRequest) {
           clerkId: userData.id,
           updates,
           // Include membership data for university roles
-          membership: membershipRole && validUniversityId
-            ? { role: membershipRole, universityId: validUniversityId as Id<'universities'> }
+          membership: membershipRole && membershipUniversityId
+            ? { role: membershipRole, universityId: membershipUniversityId }
             : undefined,
           serviceToken: convexServiceToken,
         })
