@@ -423,20 +423,41 @@ export const assignStudentToAdvisor = mutation({
       throw new Error("Assigned user must have advisor role");
     }
 
-    // If isOwner=true, remove existing owner
-    // Note: Convex serializes concurrent transactions, but to handle edge cases
-    // where two admins simultaneously assign different primary advisors, we
-    // re-verify after the patch to ensure exactly one owner exists.
+    // UNIQUENESS ENFORCEMENT: Exactly one owner per student
+    //
+    // Design: Convex mutations are atomic and serialized. We use a two-phase approach:
+    // 1. Pre-check: Remove any existing owner before setting new one
+    // 2. Post-check: Verify exactly one owner exists after operation (catches edge cases)
+    //
+    // This is sufficient because:
+    // - Convex transactions are serialized (no concurrent writes to same data)
+    // - Post-check with auto-correction handles any unexpected states
+    // - All changes are audit-logged for compliance
+    //
+    // For enterprise deployments needing stronger guarantees, consider:
+    // - Adding a version field to student_advisors for optimistic locking
+    // - Using Convex's scheduled mutations for serialized processing
     if (args.isOwner) {
-      const existingOwner = await ctx.db
+      // Find ALL current owners (handles corrupted state with multiple owners)
+      const existingOwners = await ctx.db
         .query("student_advisors")
         .withIndex("by_student_owner", (q) =>
           q.eq("student_id", args.studentId).eq("is_owner", true),
         )
-        .unique();
+        .collect();
 
-      if (existingOwner) {
-        await ctx.db.patch(existingOwner._id, { is_owner: false });
+      // Demote all existing owners
+      for (const existingOwner of existingOwners) {
+        await ctx.db.patch(existingOwner._id, {
+          is_owner: false,
+          updated_at: Date.now(),
+        });
+      }
+
+      if (existingOwners.length > 1) {
+        console.warn(
+          `[assignStudentToAdvisor] Found ${existingOwners.length} existing owners for student ${args.studentId}. All have been demoted.`,
+        );
       }
     }
 
@@ -631,5 +652,81 @@ export const removeStudentAdvisor = mutation({
     await ctx.db.delete(args.assignmentId);
 
     return { success: true };
+  },
+});
+
+/**
+ * DIAGNOSTIC: Find students with duplicate owners
+ *
+ * This query identifies data integrity issues where a student has
+ * more than one advisor marked as is_owner=true.
+ *
+ * Run: npx convex run advisor_students:findDuplicateOwners
+ */
+export const findDuplicateOwners = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get all ownership records
+    const allOwnerRecords = await ctx.db
+      .query("student_advisors")
+      .filter((q) => q.eq(q.field("is_owner"), true))
+      .collect();
+
+    // Group by student_id
+    const ownersByStudent = new Map<string, typeof allOwnerRecords>();
+    for (const record of allOwnerRecords) {
+      const studentId = record.student_id;
+      if (!ownersByStudent.has(studentId)) {
+        ownersByStudent.set(studentId, []);
+      }
+      ownersByStudent.get(studentId)!.push(record);
+    }
+
+    // Find students with multiple owners
+    const duplicates: Array<{
+      studentId: string;
+      ownerCount: number;
+      owners: Array<{
+        assignmentId: string;
+        advisorId: string;
+        assignedAt: number;
+      }>;
+    }> = [];
+
+    for (const [studentId, records] of ownersByStudent) {
+      if (records.length > 1) {
+        duplicates.push({
+          studentId,
+          ownerCount: records.length,
+          owners: records.map((r) => ({
+            assignmentId: r._id,
+            advisorId: r.advisor_id,
+            assignedAt: r.assigned_at,
+          })),
+        });
+      }
+    }
+
+    // Find students with NO owners
+    const allStudentAssignments = await ctx.db.query("student_advisors").collect();
+    const studentsWithAssignments = new Set(allStudentAssignments.map((a) => a.student_id));
+    const studentsWithOwners = new Set(allOwnerRecords.map((r) => r.student_id));
+
+    const orphanedStudents: string[] = [];
+    for (const studentId of studentsWithAssignments) {
+      if (!studentsWithOwners.has(studentId)) {
+        orphanedStudents.push(studentId);
+      }
+    }
+
+    return {
+      summary: {
+        totalOwnerRecords: allOwnerRecords.length,
+        studentsWithDuplicateOwners: duplicates.length,
+        studentsWithNoOwner: orphanedStudents.length,
+      },
+      duplicates,
+      orphanedStudents,
+    };
   },
 });

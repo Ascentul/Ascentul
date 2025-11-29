@@ -273,6 +273,22 @@ export function getRolePermissions(role: UserRole): {
       supportTickets: "own" as const,
       careerTools: true,
     },
+    // STAFF ROLE ACCESS SCOPE:
+    // Staff members are internal Ascentul employees who provide support.
+    // They have access to ALL support tickets across all universities.
+    // This is intentional - staff need to help any user regardless of institution.
+    //
+    // SECURITY NOTE: Staff cannot:
+    // - Access platform settings or audit logs
+    // - Manage users, universities, or students
+    // - View analytics (platform or university-level)
+    //
+    // Staff CAN:
+    // - View and respond to all support tickets (supportTickets: "all")
+    // - Use career tools (for testing/understanding the product)
+    //
+    // If university-scoped support is needed in the future, add a
+    // "university_support" role with supportTickets: "university".
     staff: {
       platformSettings: false,
       userManagement: "none" as const,
@@ -281,7 +297,7 @@ export function getRolePermissions(role: UserRole): {
       platformAnalytics: false,
       universityAnalytics: "none" as const,
       auditLogs: false,
-      supportTickets: "all" as const,
+      supportTickets: "all" as const, // Cross-university access for internal support team
       careerTools: true,
     },
   }

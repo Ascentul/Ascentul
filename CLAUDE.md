@@ -123,19 +123,20 @@ Feature Gating (Access Control)
 - `support_tickets`: Help desk system
 - `ai_coach_conversations`, `ai_coach_messages`: AI coaching chat history
 
-### Advisor-Student Relationships (TECH DEBT)
+### Advisor-Student Relationships
 
-**WARNING**: There are currently TWO tables for advisor-student relationships. See `docs/TECH_DEBT_ADVISOR_STUDENT_TABLES.md` for full details.
+**CONSOLIDATED**: The `student_advisors` table is now the canonical source for advisor-student relationships.
 
-| Table | Used By | When to Use |
-|-------|---------|-------------|
-| `student_advisors` | Advisor module | New advisor features, caseload, sessions |
-| `advisorStudents` | University admin | Bulk roster management (until consolidated) |
+| Table | Status | Notes |
+|-------|--------|-------|
+| `student_advisors` | **Active** | Use for ALL new code |
+| `advisorStudents` | **Deprecated** | Legacy table, being removed |
 
-**Guidelines until consolidation**:
-- New advisor features should use `student_advisors`
-- University admin bulk operations use `advisorStudents`
-- When querying "all advisors for a student", check both tables
+**Guidelines**:
+- ALL advisor features should use `student_advisors`
+- University admin `assignAdvisorToStudent` now uses `student_advisors`
+- Migration script available: `npx convex run migrations/consolidate_advisor_students:migrate`
+- See `docs/TECH_DEBT_ADVISOR_STUDENT_TABLES.md` for migration status
 
 ### App Structure (Next.js App Router)
 - `src/app/(auth)/`: Sign-in/sign-up flows

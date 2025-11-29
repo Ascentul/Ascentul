@@ -392,6 +392,15 @@ export const assignStudentByEmail = mutation({
   },
 });
 
+/**
+ * Assign an advisor to a student
+ *
+ * CONSOLIDATED: Now uses `student_advisors` table (canonical source).
+ * Previously used `advisorStudents` table which is deprecated.
+ *
+ * Accepts studentProfileId for backward compatibility with existing UI,
+ * but internally resolves to user_id for the student_advisors table.
+ */
 export const assignAdvisorToStudent = mutation({
   args: {
     clerkId: v.string(),
@@ -403,11 +412,14 @@ export const assignAdvisorToStudent = mutation({
     requireAdmin(acting);
     if (!acting.university_id) throw new Error("No university assigned");
 
+    // Get the student profile to find the user_id
     const studentProfile = await ctx.db.get(args.studentProfileId);
     if (!studentProfile) throw new Error("Student profile not found");
     if (studentProfile.university_id !== acting.university_id) {
       throw new Error("Unauthorized: Student not in your university");
     }
+
+    const studentUserId = studentProfile.user_id;
 
     const advisor = await ctx.db.get(args.advisorId);
     if (!advisor) throw new Error("Advisor not found");
@@ -415,36 +427,58 @@ export const assignAdvisorToStudent = mutation({
       throw new Error("Advisor must belong to your university");
     }
 
-    // Prevent duplicate mappings for the same student
+    // Check if assignment already exists in student_advisors (canonical table)
     const existing = await ctx.db
-      .query("advisorStudents")
-      .withIndex("by_student_profile", (q: any) => q.eq("student_profile_id", args.studentProfileId))
-      .first();
+      .query("student_advisors")
+      .withIndex("by_student", (q: any) =>
+        q.eq("student_id", studentUserId).eq("university_id", acting.university_id)
+      )
+      .filter((q: any) => q.eq(q.field("advisor_id"), args.advisorId))
+      .unique();
 
     const now = Date.now();
 
     if (existing) {
       // If already assigned to this advisor, no-op
-      if (existing.advisor_id === args.advisorId) {
-        return { success: true, advisorStudentId: existing._id, updated: false };
-      }
-      // Only super admins or university admins can reassign an existing mapping
-      if (acting.role !== "super_admin" && acting.role !== "university_admin") {
-        throw new Error("Unauthorized: Cannot reassign advisor");
-      }
-      await ctx.db.delete(existing._id);
+      return { success: true, studentAdvisorId: existing._id, updated: false };
     }
 
-    const advisorStudentId = await ctx.db.insert("advisorStudents", {
-      university_id: acting.university_id,
+    // Check if student already has a primary owner
+    const existingOwner = await ctx.db
+      .query("student_advisors")
+      .withIndex("by_student_owner", (q: any) =>
+        q.eq("student_id", studentUserId).eq("is_owner", true)
+      )
+      .unique();
+
+    // Only super admins or university admins can reassign primary ownership
+    if (existingOwner && acting.role !== "super_admin" && acting.role !== "university_admin") {
+      throw new Error("Unauthorized: Cannot reassign primary advisor");
+    }
+
+    // If there's an existing owner and we're assigning a new primary, demote the old one
+    if (existingOwner) {
+      await ctx.db.patch(existingOwner._id, {
+        is_owner: false,
+        updated_at: now,
+      });
+    }
+
+    // Create the new assignment as primary owner
+    const studentAdvisorId = await ctx.db.insert("student_advisors", {
+      student_id: studentUserId,
       advisor_id: args.advisorId,
-      student_profile_id: args.studentProfileId,
-      assigned_by_id: acting._id,
+      university_id: acting.university_id,
+      is_owner: true, // University admin assignments are primary by default
+      shared_type: undefined,
+      assigned_at: now,
+      assigned_by: acting._id,
+      notes: undefined,
       created_at: now,
       updated_at: now,
     });
 
-    return { success: true, advisorStudentId, updated: true };
+    return { success: true, studentAdvisorId, updated: true };
   },
 });
 

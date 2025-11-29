@@ -106,11 +106,21 @@ export const detectInconsistencies = query({
 
 ## Acceptance Criteria
 
-- [ ] Validation query created to detect inconsistencies
-- [ ] Usage guidelines documented
-- [ ] Migration script created and tested
-- [ ] University admin module updated to use `student_advisors`
+- [x] Validation query created to detect inconsistencies
+  - See: `convex/migrations/consolidate_advisor_students.ts:auditInconsistencies`
+- [x] Usage guidelines documented
+  - Updated schema.ts with deprecation notice
+  - Updated CLAUDE.md with usage guidelines
+- [x] Migration script created and tested
+  - See: `convex/migrations/consolidate_advisor_students.ts`
+  - Dry run: `npx convex run migrations/consolidate_advisor_students:dryRun`
+  - Migrate: `npx convex run migrations/consolidate_advisor_students:migrate`
+- [x] University admin module updated to use `student_advisors`
+  - `university_admin.assignAdvisorToStudent` now uses `student_advisors`
+  - `universities_admin.hardDeleteUniversity` deletes from both tables
 - [ ] `advisorStudents` table deprecated and removed
+  - Table is now deprecated (see schema.ts comments)
+  - Will be removed after migration is verified in production
 - [ ] All tests passing
 - [ ] No data loss verified
 

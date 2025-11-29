@@ -1252,13 +1252,23 @@ export default defineSchema({
   // Advisor-student roster mapping for UNIVERSITY ADMIN module
   // Used by: convex/university_admin.ts, convex/universities_admin.ts
   //
-  // NOTE: This table duplicates functionality with student_advisors (line ~921).
-  // Key differences:
+  // ========================================
+  // DEPRECATED: This table is being phased out
+  // ========================================
+  // Use `student_advisors` (line ~938) instead for all new code.
+  //
+  // Migration status:
+  // - [x] university_admin.assignAdvisorToStudent now uses student_advisors
+  // - [x] universities_admin.hardDeleteUniversity deletes from both tables
+  // - [ ] Run migration: npx convex run migrations/consolidate_advisor_students:migrate
+  // - [ ] Remove this table after migration is verified
+  //
+  // Key differences from student_advisors:
   // - References studentProfiles instead of users (student_profile_id vs student_id)
   // - No ownership semantics (no is_owner, shared_type fields)
-  // - Simpler structure for bulk roster management
   //
-  // See comment at line ~902 for consolidation TODO.
+  // See docs/TECH_DEBT_ADVISOR_STUDENT_TABLES.md for full migration plan.
+  // ========================================
   advisorStudents: defineTable({
     university_id: v.id("universities"),
     advisor_id: v.id("users"),

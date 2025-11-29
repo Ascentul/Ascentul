@@ -284,7 +284,8 @@ export const hardDeleteUniversity = mutation({
     if (university.is_test === true) {
       const errors: Array<{ step: string; error: string }> = [];
       const deletedCounts = {
-        advisorStudents: 0,
+        studentAdvisors: 0, // Canonical table
+        advisorStudentsLegacy: 0, // Legacy table (deprecated)
         memberships: 0,
         studentInvites: 0,
         studentProfiles: 0,
@@ -295,6 +296,21 @@ export const hardDeleteUniversity = mutation({
         clearedGoals: 0,
       };
 
+      // Delete from canonical student_advisors table
+      try {
+        const studentAdvisors = await ctx.db
+          .query("student_advisors")
+          .withIndex("by_university", (q) => q.eq("university_id", args.universityId))
+          .collect();
+        for (const record of studentAdvisors) {
+          await ctx.db.delete(record._id);
+          deletedCounts.studentAdvisors++;
+        }
+      } catch (error) {
+        errors.push({ step: "delete student_advisors", error: String(error) });
+      }
+
+      // Delete from legacy advisorStudents table (deprecated, will be removed)
       try {
         const advisorStudents = await ctx.db
           .query("advisorStudents")
@@ -302,10 +318,10 @@ export const hardDeleteUniversity = mutation({
           .collect();
         for (const record of advisorStudents) {
           await ctx.db.delete(record._id);
-          deletedCounts.advisorStudents++;
+          deletedCounts.advisorStudentsLegacy++;
         }
       } catch (error) {
-        errors.push({ step: "delete advisorStudents", error: String(error) });
+        errors.push({ step: "delete advisorStudents (legacy)", error: String(error) });
       }
 
       try {

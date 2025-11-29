@@ -60,6 +60,8 @@ import type * as metrics from "../metrics.js";
 import type * as migrate_application_status_to_stage from "../migrate_application_status_to_stage.js";
 import type * as migrate_follow_ups from "../migrate_follow_ups.js";
 import type * as migrate_session_scheduled_at from "../migrate_session_scheduled_at.js";
+import type * as migrations_consolidate_advisor_students from "../migrations/consolidate_advisor_students.js";
+import type * as migrations_migrate_user_to_individual from "../migrations/migrate_user_to_individual.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
 import type * as password_reset from "../password_reset.js";
@@ -144,6 +146,8 @@ declare const fullApi: ApiFromModules<{
   migrate_application_status_to_stage: typeof migrate_application_status_to_stage;
   migrate_follow_ups: typeof migrate_follow_ups;
   migrate_session_scheduled_at: typeof migrate_session_scheduled_at;
+  "migrations/consolidate_advisor_students": typeof migrations_consolidate_advisor_students;
+  "migrations/migrate_user_to_individual": typeof migrations_migrate_user_to_individual;
   migrations: typeof migrations;
   notifications: typeof notifications;
   password_reset: typeof password_reset;

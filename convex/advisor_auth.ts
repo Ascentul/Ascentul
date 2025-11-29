@@ -189,62 +189,181 @@ export async function canAccessStudent(
 }
 
 /**
- * Get list of all student IDs that the advisor owns
- * Used for bulk filtering in list queries
- *
- * ⚠️ PERFORMANCE WARNING: For super_admin and university_admin roles, this
- * collects ALL students without pagination. This is acceptable for:
- * - Small to medium deployments (<1000 students per university)
- * - Infrequent bulk operations
- *
- * For large-scale deployments, consider:
- * - Adding cursor-based pagination to callers
- * - Implementing streaming/chunked processing
- * - Using Convex's Aggregate component for counts-only use cases
- *
- * Monitor query performance in production dashboards.
+ * Default page size for student queries
+ * Balances between reducing round trips and avoiding timeout issues
  */
-export async function getOwnedStudentIds(
+const DEFAULT_STUDENT_PAGE_SIZE = 100;
+
+/**
+ * Maximum page size to prevent abuse
+ */
+const MAX_STUDENT_PAGE_SIZE = 500;
+
+/**
+ * Paginated result type for student ID queries
+ */
+export interface PaginatedStudentIds {
+  studentIds: Id<"users">[];
+  cursor: string | null; // null means no more results
+  hasMore: boolean;
+  totalEstimate?: number; // Approximate total count (when available)
+}
+
+/**
+ * Get paginated list of student IDs that the advisor owns
+ *
+ * Use this function for large-scale deployments where unbounded queries
+ * may cause performance issues. Supports cursor-based pagination.
+ *
+ * @param limit - Number of students to fetch (default: 100, max: 500)
+ * @param cursor - Cursor from previous page (undefined for first page)
+ */
+export async function getOwnedStudentIdsPaginated(
   ctx: QueryCtx | MutationCtx,
   sessionCtx: AdvisorSessionContext,
-): Promise<Id<"users">[]> {
+  options?: {
+    limit?: number;
+    cursor?: string;
+  },
+): Promise<PaginatedStudentIds> {
+  const limit = Math.min(
+    options?.limit ?? DEFAULT_STUDENT_PAGE_SIZE,
+    MAX_STUDENT_PAGE_SIZE,
+  );
+
   // Super admin can access all students (no tenant restriction)
-  // Note: Unbounded query - see function docs for performance considerations
   if (sessionCtx.role === "super_admin") {
-    const students = await ctx.db
+    let query = ctx.db
       .query("users")
-      .withIndex("by_role", (q) => q.eq("role", "student"))
-      .collect();
-    return students.map((s) => s._id);
+      .withIndex("by_role", (q) => q.eq("role", "student"));
+
+    const result = await query.paginate({
+      numItems: limit,
+      cursor: options?.cursor ?? null,
+    });
+
+    return {
+      studentIds: result.page.map((s) => s._id),
+      cursor: result.continueCursor,
+      hasMore: !result.isDone,
+    };
   }
 
   const universityId = requireTenant(sessionCtx);
 
   // University admin can access all students in their university
-  // Note: Unbounded query - see function docs for performance considerations
   if (sessionCtx.role === "university_admin") {
-    const students = await ctx.db
+    // Note: We can't directly paginate with a filter, so we use a workaround
+    // by fetching more items and filtering client-side
+    const query = ctx.db
       .query("users")
-      .withIndex("by_university", (q) => q.eq("university_id", universityId))
-      .filter((q) => q.eq(q.field("role"), "student"))
-      .collect();
+      .withIndex("by_university", (q) => q.eq("university_id", universityId));
 
-    return students.map((s) => s._id);
+    const result = await query.paginate({
+      numItems: limit * 2, // Fetch extra to account for non-students
+      cursor: options?.cursor ?? null,
+    });
+
+    // Filter to students only
+    const students = result.page.filter((u) => u.role === "student");
+
+    return {
+      studentIds: students.slice(0, limit).map((s) => s._id),
+      cursor: result.continueCursor,
+      hasMore: !result.isDone || students.length > limit,
+    };
   }
 
   // Advisors only get students they own
   if (sessionCtx.role === "advisor") {
+    const query = ctx.db
+      .query("student_advisors")
+      .withIndex("by_advisor_owner", (q) =>
+        q
+          .eq("advisor_id", sessionCtx.userId)
+          .eq("is_owner", true)
+          .eq("university_id", universityId),
+      );
+
+    const result = await query.paginate({
+      numItems: limit,
+      cursor: options?.cursor ?? null,
+    });
+
+    return {
+      studentIds: result.page.map((a) => a.student_id),
+      cursor: result.continueCursor,
+      hasMore: !result.isDone,
+    };
+  }
+
+  return {
+    studentIds: [],
+    cursor: null,
+    hasMore: false,
+  };
+}
+
+/**
+ * Get list of all student IDs that the advisor owns
+ * Used for bulk filtering in list queries
+ *
+ * NOTE: This function now uses pagination internally with a sensible limit.
+ * For very large datasets, use `getOwnedStudentIdsPaginated` directly.
+ *
+ * Default behavior:
+ * - Advisors: Returns all owned students (typically small caseloads)
+ * - University admins: Returns up to 1000 students
+ * - Super admins: Returns up to 1000 students
+ *
+ * If you need ALL students for super_admin/university_admin, use
+ * `getOwnedStudentIdsPaginated` with cursor iteration.
+ */
+export async function getOwnedStudentIds(
+  ctx: QueryCtx | MutationCtx,
+  sessionCtx: AdvisorSessionContext,
+  options?: {
+    limit?: number; // Max students to return (default: 1000)
+  },
+): Promise<Id<"users">[]> {
+  const maxLimit = options?.limit ?? 1000;
+
+  // For advisors, typically small caseloads - collect all
+  if (sessionCtx.role === "advisor") {
+    const universityId = requireTenant(sessionCtx);
     const assignments = await ctx.db
       .query("student_advisors")
       .withIndex("by_advisor_owner", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("is_owner", true).eq("university_id", universityId),
+        q
+          .eq("advisor_id", sessionCtx.userId)
+          .eq("is_owner", true)
+          .eq("university_id", universityId),
       )
-      .collect();
+      .take(maxLimit);
 
     return assignments.map((a) => a.student_id);
   }
 
-  return [];
+  // For super_admin and university_admin, use paginated approach with limit
+  const allStudentIds: Id<"users">[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const result = await getOwnedStudentIdsPaginated(ctx, sessionCtx, {
+      limit: Math.min(DEFAULT_STUDENT_PAGE_SIZE, maxLimit - allStudentIds.length),
+      cursor: cursor ?? undefined,
+    });
+
+    allStudentIds.push(...result.studentIds);
+    cursor = result.cursor;
+
+    // Stop if we've reached the limit
+    if (allStudentIds.length >= maxLimit) {
+      break;
+    }
+  } while (cursor !== null);
+
+  return allStudentIds.slice(0, maxLimit);
 }
 
 /**

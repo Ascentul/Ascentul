@@ -24,7 +24,7 @@
 
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "convex/_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 
 type CreateTestStudentResult =
   | { success: false; message: string }
@@ -276,6 +276,7 @@ export const createTestStudent = internalMutation({
 
         const appId = await ctx.db.insert("applications", {
           user_id: student._id,
+          assigned_advisor_id: advisor._id,
           company: company.name,
           job_title: company.position,
           status: status,
