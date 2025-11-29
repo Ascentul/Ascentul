@@ -220,9 +220,9 @@ export const updateSession = mutation({
       const DEFAULT_DURATION_MINUTES = 60;
       const duration = args.duration_minutes ?? session.duration_minutes ?? DEFAULT_DURATION_MINUTES;
       if (!start || start <= 0) {
-      throw new ConvexError("Cannot calculate end_at: start_at is missing or invalid", {
-        code: "VALIDATION_ERROR",
-      });
+        throw new ConvexError("Cannot calculate end_at: start_at is missing or invalid", {
+          code: "VALIDATION_ERROR",
+        });
       }
       updates.end_at = start + duration * 60 * 1000;
       // Persist the default duration if it was missing from the session

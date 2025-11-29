@@ -113,6 +113,10 @@ function stageFromStatus(status?: string) {
       return 'Prospect';
     case 'accepted':
       return 'Accepted';
+    case 'withdrawn':
+      return 'Withdrawn';
+    case 'archived':
+      return 'Archived';
     default:
       return undefined;
   }

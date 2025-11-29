@@ -6,7 +6,7 @@
  */
 
 import { useMemo, useState, useEffect } from 'react';
-import { NeedActionReason, UrgencyLevel } from '../types';
+import { NeedActionReason, UrgencyLevel, NeedActionFields } from '../types';
 import { ACTIVE_STAGES, type ApplicationStage } from 'convex/advisor_constants';
 
 /**
@@ -183,12 +183,21 @@ export function computeNeedAction(application: ApplicationForTriage): NeedAction
 
 /**
  * Enrich multiple applications with need-action data
+ *
+ * Note: Maps NeedActionResult.reasons → NeedActionFields.needActionReasons
+ * to match the consumer-facing interface in types/index.ts
  */
 export function enrichApplicationsWithNeedAction<T extends ApplicationForTriage>(
   applications: T[]
-): Array<T & NeedActionResult> {
-  return applications.map((app) => ({
-    ...app,
-    ...computeNeedAction(app),
-  }));
+): Array<T & NeedActionFields> {
+  return applications.map((app) => {
+    const result = computeNeedAction(app);
+    // Rename 'reasons' to 'needActionReasons' to match NeedActionFields interface
+    const { reasons, ...rest } = result;
+    return {
+      ...app,
+      ...rest,
+      needActionReasons: reasons,
+    };
+  });
 }

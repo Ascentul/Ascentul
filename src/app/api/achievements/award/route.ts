@@ -4,8 +4,8 @@ import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 
-// Convex IDs use Crockford base32hex (digits + a-v)
-const isValidId = (id: string) => /^[0-9a-v]+$/i.test(id.trim());
+// Convex IDs use Crockford base32 (0-9, A-H, J-N, P-T, V-Z; excludes I, L, O, U)
+const isValidId = (id: string) => /^[0-9A-HJ-NP-TV-Z]+$/i.test(id.trim());
 
 // POST /api/achievements/award { achievement_id }
 export async function POST(request: Request) {

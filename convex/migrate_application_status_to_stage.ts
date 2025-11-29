@@ -151,65 +151,82 @@ export const verifyMigration = internalQuery({
   args: {},
   handler: async (ctx) => {
     console.log("🔍 Verifying application status→stage migration...");
-    // Collect all applications with pagination
-    let allApps: any[] = [];
-    let cursor: string | null = null;
-    let isDone = false;
-    while (!isDone) {
-      const result = await ctx.db.query("applications").paginate({ cursor, numItems: 1000 });
-      allApps = allApps.concat(result.page);
-      cursor = result.continueCursor;
-      isDone = result.isDone;
-    }
-    const withStage = allApps.filter(app => app.stage);
-    const withoutStage = allApps.filter(app => !app.stage);
 
-    // Check for mismatches
-    const mismatches: Array<{
+    // Streaming aggregation - don't accumulate all apps in memory
+    let total = 0;
+    let withStageCount = 0;
+    let withoutStageCount = 0;
+    let mismatchCount = 0;
+    const mismatchSamples: Array<{
       id: string;
       status: string;
       stage: string | undefined;
       expected: string;
     }> = [];
+    const MAX_MISMATCH_SAMPLES = 10;
 
-    for (const app of withStage) {
-      if (!app.status) continue; // Skip apps with no original status
-      const expectedStage = mapStatusToStage(app.status);
-      if (app.stage !== expectedStage) {
-        mismatches.push({
-          id: app._id,
-          status: app.status,
-          stage: app.stage,
-          expected: expectedStage,
-        });
+    let cursor: string | null = null;
+    let isDone = false;
+
+    while (!isDone) {
+      const result = await ctx.db.query("applications").paginate({ cursor, numItems: 1000 });
+
+      for (const app of result.page) {
+        total++;
+
+        if (app.stage) {
+          withStageCount++;
+
+          // Check for mismatches only if has both status and stage
+          if (app.status) {
+            const expectedStage = mapStatusToStage(app.status);
+            if (app.stage !== expectedStage) {
+              mismatchCount++;
+              // Only keep first N samples
+              if (mismatchSamples.length < MAX_MISMATCH_SAMPLES) {
+                mismatchSamples.push({
+                  id: app._id,
+                  status: app.status,
+                  stage: app.stage,
+                  expected: expectedStage,
+                });
+              }
+            }
+          }
+        } else {
+          withoutStageCount++;
+        }
       }
+
+      cursor = result.continueCursor;
+      isDone = result.isDone;
     }
 
-    const result = {
-      total: allApps.length,
-      withStage: withStage.length,
-      withoutStage: withoutStage.length,
-      mismatches: mismatches.length,
-      mismatchDetails: mismatches.slice(0, 10), // Show first 10
-      complete: withoutStage.length === 0 && mismatches.length === 0,
+    const verifyResult = {
+      total,
+      withStage: withStageCount,
+      withoutStage: withoutStageCount,
+      mismatches: mismatchCount,
+      mismatchDetails: mismatchSamples,
+      complete: withoutStageCount === 0 && mismatchCount === 0,
     };
 
-    if (result.complete) {
+    if (verifyResult.complete) {
       console.log("✅ Migration complete and verified!");
-      console.log(JSON.stringify(result, null, 2));
-      return result;
+      console.log(JSON.stringify(verifyResult, null, 2));
+      return verifyResult;
     }
 
-    if (withoutStage.length > 0) {
-      console.error(`❌ ${withoutStage.length} applications missing stage field`);
+    if (withoutStageCount > 0) {
+      console.error(`❌ ${withoutStageCount} applications missing stage field`);
     }
-    if (mismatches.length > 0) {
-      console.error(`⚠️  ${mismatches.length} applications have mismatched status/stage`);
+    if (mismatchCount > 0) {
+      console.error(`⚠️  ${mismatchCount} applications have mismatched status/stage`);
     }
 
-    console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(verifyResult, null, 2));
     throw new Error(
-      `Migration verification failed: ${withoutStage.length} missing stage, ${mismatches.length} mismatches`
+      `Migration verification failed: ${withoutStageCount} missing stage, ${mismatchCount} mismatches`
     );
   },
 });
@@ -220,7 +237,11 @@ export const verifyMigration = internalQuery({
 export const getMigrationStats = internalQuery({
   args: {},
   handler: async (ctx) => {
-    let allApps: any[] = [];
+    // Streaming aggregation - don't accumulate all apps in memory
+    let total = 0;
+    const statusCounts: Record<string, number> = {};
+    const stageCounts: Record<string, number> = {};
+
     let cursor: string | null = null;
     let isDone = false;
 
@@ -229,30 +250,28 @@ export const getMigrationStats = internalQuery({
         .query("applications")
         .order("asc")
         .paginate({ cursor, numItems: 1000 });
-      allApps = allApps.concat(result.page);
+
+      for (const app of result.page) {
+        total++;
+
+        // Count by status
+        const status = app.status || "undefined";
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+
+        // Count by stage
+        const stage = app.stage || "undefined";
+        stageCounts[stage] = (stageCounts[stage] || 0) + 1;
+      }
+
       cursor = result.continueCursor;
       isDone = result.isDone;
     }
 
-    // Count by status
-    const statusCounts: Record<string, number> = {};
-    allApps.forEach(app => {
-      const status = app.status || "undefined";
-      statusCounts[status] = (statusCounts[status] || 0) + 1;
-    });
-
-    // Count by stage
-    const stageCounts: Record<string, number> = { undefined: 0 };
-    allApps.forEach(app => {
-      const stage = app.stage || "undefined";
-      stageCounts[stage] = (stageCounts[stage] || 0) + 1;
-    });
-
     return {
-      total: allApps.length,
+      total,
       byStatus: statusCounts,
       byStage: stageCounts,
-      migrationNeeded: stageCounts.undefined || 0,
+      migrationNeeded: stageCounts["undefined"] || 0,
     };
   },
 });

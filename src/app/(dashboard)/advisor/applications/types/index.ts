@@ -68,11 +68,11 @@ export type { ApplicationStage } from '@/lib/advisor/stages';
 export { ACTIVE_STAGES, TERMINAL_STAGES } from '@/lib/advisor/stages';
 
 /**
- * Enriched application with student information and computed fields
- * This extends the base application data from Convex with additional
- * fields needed for the advisor console UI
+ * Base application data returned from the Convex backend (advisor_applications.ts)
+ * Contains the raw data from the database plus joined student information.
+ * Does NOT include computed triage fields.
  */
-export interface EnrichedApplication {
+export interface BaseEnrichedApplication {
   _id: Id<'applications'>;
   user_id: Id<'users'>;
 
@@ -98,8 +98,17 @@ export interface EnrichedApplication {
   next_step_date?: number;  // Due date
   notes?: string;
   assigned_advisor_id?: Id<'users'>;
+}
 
-  // Computed fields for triage
+/**
+ * Computed triage fields added by enrichApplicationsWithNeedAction()
+ * These are calculated client-side based on dates and rules in useNeedActionRules.ts
+ *
+ * Note: NeedActionResult from useNeedActionRules.ts uses 'reasons',
+ * but this interface uses 'needActionReasons' for clarity in consumer code.
+ * The enrichApplicationsWithNeedAction() function handles the field rename.
+ */
+export interface NeedActionFields {
   needsAction: boolean;
   needActionReasons: NeedActionReason[];
   daysSinceUpdate: number;
@@ -108,6 +117,17 @@ export interface EnrichedApplication {
   isStale: boolean;
   urgencyLevel: UrgencyLevel;
 }
+
+/**
+ * Enriched application with student information and computed fields
+ * This is the fully-enriched type used throughout the advisor applications UI.
+ *
+ * Data flow:
+ * 1. Backend query returns BaseEnrichedApplication (see convex/advisor_applications.ts)
+ * 2. Frontend calls enrichApplicationsWithNeedAction() to add NeedActionFields
+ * 3. Result is EnrichedApplication with all fields populated
+ */
+export interface EnrichedApplication extends BaseEnrichedApplication, NeedActionFields {}
 
 // ============================================================================
 // Filter & Search State
@@ -245,9 +265,9 @@ export const createEmptySelection = (): ApplicationSelection => ({
 // WARNING: Object.freeze is shallow - do not mutate the internal Sets.
 // Use createEmptySelection() to get a mutable instance.
 export const EMPTY_SELECTION: Readonly<ApplicationSelection> = Object.freeze({
-  selectedIds: new Set(),
+  selectedIds: new Set<string>(),
   selectAll: false,
-  excludedIds: new Set(),
+  excludedIds: new Set<string>(),
 });
 
 // ============================================================================
@@ -437,10 +457,12 @@ type AnalyticsSafePayload = {
     // Only include which filters were toggled, not their values
     appliedFilters: string[];
   };
-  [ANALYTICS_EVENTS.NEXT_STEP_UPDATED]: Pick<
-    AnalyticsProperties[typeof ANALYTICS_EVENTS.NEXT_STEP_UPDATED],
-    'nextStep' | 'dueDate'
-  >;
+  [ANALYTICS_EVENTS.NEXT_STEP_UPDATED]: {
+    // Exclude nextStep content to avoid PII (advisors may include student names)
+    // Only track that a next step was set and whether it has a due date
+    hasNextStep: boolean;
+    hasDueDate: boolean;
+  };
   [ANALYTICS_EVENTS.BULK_ARCHIVED]: Pick<
     AnalyticsProperties[typeof ANALYTICS_EVENTS.BULK_ARCHIVED],
     'count'
@@ -497,9 +519,10 @@ export function buildAnalyticsPayload<E extends AnalyticsEventName>(
       return { appliedFilters } as AnalyticsSafePayload[E];
     }
     case ANALYTICS_EVENTS.NEXT_STEP_UPDATED:
+      // Exclude nextStep content to avoid PII - only track boolean flags
       return {
-        nextStep: (props as any).nextStep,
-        dueDate: (props as any).dueDate,
+        hasNextStep: Boolean((props as any).nextStep),
+        hasDueDate: (props as any).dueDate !== undefined,
       } as AnalyticsSafePayload[E];
     case ANALYTICS_EVENTS.BULK_ARCHIVED:
       return {

@@ -77,7 +77,7 @@ export const redactStudentPII = internalMutation({
 
     // Query audit logs by student (new format uses student_id in metadata) if such an index exists
     // Fallback: scan by student_id field if present; otherwise paginate all logs
-    let cursor: string | undefined = undefined;
+    let cursor: string | null = null;
     let isDone = false;
     let redactedCount = 0;
 

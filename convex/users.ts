@@ -302,7 +302,7 @@ export const createUser = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
 
-  if (existingUser) {
+    if (existingUser) {
       if (args.role) {
         if (existingUser.university_id && isIndividualRole(args.role)) {
           throw new Error(

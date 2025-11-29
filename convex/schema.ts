@@ -529,7 +529,6 @@ export default defineSchema({
     .index('by_application', ['application_id'])
     .index('by_contact', ['contact_id'])
     .index('by_due_at', ['due_at'])
-    .index('by_created_by', ['created_by_id'])
     .index('by_owner', ['owner_id'])
     .index('by_related_entity', ['related_type', 'related_id'])
     .index('by_migrated_from', ['migrated_from_id']),

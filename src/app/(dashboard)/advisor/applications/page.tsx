@@ -17,7 +17,7 @@ import { BulkActionBar } from "./components/BulkActionBar";
 import { useApplicationFilters, useAvailableCohorts } from "./hooks/useApplicationFilters";
 import { useApplicationSelection } from "./hooks/useApplicationSelection";
 import { enrichApplicationsWithNeedAction } from "./hooks/useNeedActionRules";
-import { ApplicationViewMode, ApplicationScope, EnrichedApplication } from "./types";
+import { ApplicationViewMode, ApplicationScope, EnrichedApplication, BaseEnrichedApplication } from "./types";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
@@ -74,7 +74,8 @@ export default function AdvisorApplicationsPage() {
   // ============================================================================
 
   // Enrich applications with need-action metadata
-  const enrichedApplications = useMemo(() => {
+  // Data flow: Convex query → BaseEnrichedApplication → enrichApplicationsWithNeedAction → EnrichedApplication
+  const enrichedApplications = useMemo((): EnrichedApplication[] => {
     if (!applications) return [];
 
     // Filter out applications without a valid stage
@@ -85,12 +86,13 @@ export default function AdvisorApplicationsPage() {
       (app: QueryApp) => app.stage !== undefined && app.stage !== null
     );
 
-    // Map to the expected shape to avoid unsafe casts
-    const mappedApps: EnrichedApplication[] = appsWithStage.map((app) => ({
+    // Map to BaseEnrichedApplication (backend data shape without computed fields)
+    const mappedApps: BaseEnrichedApplication[] = appsWithStage.map((app: QueryApp) => ({
       ...app,
-      stage: app.stage as EnrichedApplication['stage'],
+      stage: app.stage as BaseEnrichedApplication['stage'],
     }));
 
+    // Add computed triage fields to produce EnrichedApplication
     return enrichApplicationsWithNeedAction(mappedApps);
   }, [applications]);
 

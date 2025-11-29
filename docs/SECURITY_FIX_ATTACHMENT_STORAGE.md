@@ -55,13 +55,13 @@ attachments: v.optional(
 ```
 
 **Benefits**:
-- ✅ Access control enforced at URL generation time via Convex permissions (note: once a URL is issued, it can be accessed by anyone who possesses it until expiration—no per-request re-validation)
-- ✅ Access is time-limited only if you use expiring URLs (e.g., generateDownloadUrl). `getUrl()` produces bearer URLs that remain valid until the file is removed.
-- ✅ Can revoke future access by changing permissions (existing URLs remain valid until expiration)
+- ✅ Access control enforced at URL generation time via Convex permissions (note: once a URL is issued, it can be accessed by anyone who possesses it—no per-request re-validation)
+- ✅ Convex built-in storage `getUrl()` returns a persistent bearer URL valid until the file is deleted (no expiration). For time-limited URLs, use a custom HTTP action or the R2 component.
+- ✅ Can revoke access by deleting the file from storage
 - ✅ Audit trail for file access at URL generation time
 - ✅ Tenant isolation (university-based)
 
-> **Note**: For per-request access control, implement a custom HTTP action that validates permissions on each request before serving file content. Existing presigned URLs remain valid until they expire (or indefinitely if using `getUrl()`).
+> **Note**: For per-request access control, implement a custom HTTP action that validates permissions on each request before streaming file content. Built-in `getUrl()` URLs remain valid indefinitely until the file is deleted. For time-limited presigned URLs, use the `@convex-dev/r2` component which supports `expiresIn` (default 900 seconds / 15 minutes).
 
 ---
 
@@ -232,7 +232,7 @@ export const getSessionAttachmentUrl = query({
 
 **Client Code Update Required**:
 - Upload handlers must save `storage_id` instead of `url`
-- Display components must call `getSessionAttachmentUrl` query to get time-limited URL
+- Display components must call `getSessionAttachmentUrl` query to get URL (enforces access control at query time)
 - Download handlers must use the query instead of direct URL access
 
 ---
@@ -242,12 +242,15 @@ export const getSessionAttachmentUrl = query({
 | Before (URL) | After (storage_id) |
 |-------------|-------------------|
 | ❌ No access control | ✅ Permission-based access |
-| ❌ Permanent URLs | ✅ Revocable URLs (time-limited when using expiring URLs or R2)* |
-| ❌ No revocation | ✅ Can revoke access |
+| ❌ Permanent URLs | ✅ Revocable URLs (via file deletion or time-limited with R2)* |
+| ❌ No revocation | ✅ Can revoke access by deleting file |
 | ❌ No audit trail | ✅ Logged access |
 | ❌ Cross-tenant risk | ✅ Tenant isolation enforced |
 
-*Download URL behavior depends on the storage backend and method. For Convex built-in storage, `getUrl()` returns a bearer URL that remains valid until the file is deleted; use `generateDownloadUrl` (or an HTTP action) for expiring links. For Convex R2 (Cloudflare R2), the presigned download URL expires after 15 minutes (900 seconds) by default. Upload URLs expire after ~1 hour.
+*URL expiration behavior by storage backend:
+- **Convex built-in storage**: `getUrl()` returns a persistent bearer URL valid until the file is deleted (no automatic expiration). For time-limited access, implement a custom HTTP action that streams file content after validating permissions.
+- **Convex R2 component** (`@convex-dev/r2`): `getUrl()` supports `expiresIn` option (default 900 seconds / 15 minutes) for presigned URLs.
+- **Upload URLs**: `generateUploadUrl()` returns a URL valid for approximately 1 hour.
 
 ---
 
