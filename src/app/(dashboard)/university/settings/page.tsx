@@ -25,9 +25,9 @@ export default function UniversitySettingsPage() {
   const { toast } = useToast();
 
   // Convex API references
-  const updateUniversitySettings = useMutation(
-    api.universities?.updateUniversitySettings ?? (() => Promise.resolve())
-  );
+  const updateUniversitySettings = api.universities?.updateUniversitySettings
+    ? useMutation(api.universities.updateUniversitySettings)
+    : null;
   const universitySettings = useQuery(
     api.universities?.getUniversitySettings,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
@@ -74,32 +74,39 @@ export default function UniversitySettingsPage() {
       return;
     }
 
+    if (!updateUniversitySettings) {
+      toast({
+        title: "Error",
+        description: "Settings update is not available. Please contact support.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      await (updateUniversitySettings
-        ? updateUniversitySettings({
-            universityId: universitySettings._id,
-            settings: {
-              name: settings.name,
-              description: settings.description,
-              website: settings.website,
-              contact_email: settings.contactEmail,
-              max_students: settings.maxStudents,
-              license_seats: settings.licenseSeats,
-            },
-          })
-        : Promise.resolve());
+      await updateUniversitySettings({
+        universityId: universitySettings._id,
+        settings: {
+          name: settings.name,
+          description: settings.description,
+          website: settings.website,
+          contact_email: settings.contactEmail,
+          max_students: settings.maxStudents,
+          license_seats: settings.licenseSeats,
+        },
+      });
 
       toast({
         title: "Settings saved",
         description: "University settings have been updated successfully.",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Settings save error:", error);
       toast({
         title: "Error",
         description:
-          error?.message || "Failed to save settings. Please try again.",
+          error instanceof Error ? error.message : "Failed to save settings. Please try again.",
         variant: "destructive",
       });
     } finally {

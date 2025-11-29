@@ -1,29 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
+import { fetchQuery, fetchMutation } from 'convex/nextjs'
 import { api } from 'convex/_generated/api'
-import { ConvexHttpClient } from 'convex/browser'
-
-function createConvexClient(): ConvexHttpClient | null {
-  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!convexUrl) return null
-  return new ConvexHttpClient(convexUrl)
-}
 
 export async function GET() {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const client = createConvexClient()
-    if (!client) {
-      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+    const token = await getToken({ template: 'convex' })
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
     }
 
-    const conversations = await client.query(api.ai_coach.getConversations, {
-      clerkId: userId
-    })
+    const conversations = await fetchQuery(
+      api.ai_coach.getConversations,
+      { clerkId: userId },
+      { token }
+    )
 
     return NextResponse.json(conversations)
   } catch (error) {
@@ -34,9 +30,14 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const token = await getToken({ template: 'convex' })
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -46,15 +47,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
-    const client = createConvexClient()
-    if (!client) {
-      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    }
-
-    const newConversation = await client.mutation(api.ai_coach.createConversation, {
-      clerkId: userId,
-      title
-    })
+    const newConversation = await fetchMutation(
+      api.ai_coach.createConversation,
+      { clerkId: userId, title },
+      { token }
+    )
 
     return NextResponse.json(newConversation, { status: 201 })
   } catch (error) {

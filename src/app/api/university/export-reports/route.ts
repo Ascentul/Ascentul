@@ -81,8 +81,12 @@ export async function POST(request: NextRequest) {
                 university_id: universityId,
                 university_name: matchingUniversity.name,
                 trigger: 'export_reports_endpoint',
-                target_email: user.email,
-                target_name: user.name,
+              metadata: {
+                university_id: universityId,
+                university_name: matchingUniversity.name,
+                trigger: 'export_reports_endpoint',
+                // PII excluded for GDPR/CCPA/FERPA compliance - user identified by target_id
+              },
               },
             });
           } catch (auditError) {

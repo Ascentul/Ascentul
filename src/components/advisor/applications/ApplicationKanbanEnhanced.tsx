@@ -109,8 +109,12 @@ export function ApplicationKanbanEnhanced({
 
     applications.forEach((app) => {
       if (app.stage !== 'Archived') {
-        // Exclude archived from kanban view
-        grouped[app.stage].push(app);
+        // Exclude archived from kanban view; guard against unknown stages
+        if (grouped[app.stage]) {
+          grouped[app.stage].push(app);
+        } else {
+          console.warn(`Unknown application stage: ${app.stage}`);
+        }
       }
     });
 

@@ -149,7 +149,6 @@ export default function AdminSettingsPage() {
     sessionEncryption: true
   })
 
-  const [activeTab, setActiveTab] = useState('ai')
   const [loading, setLoading] = useState(false)
 
   const role = user?.role
@@ -284,7 +283,7 @@ export default function AdminSettingsPage() {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs defaultValue="ai" className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="ai">AI & OpenAI</TabsTrigger>
@@ -294,7 +293,7 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-6">
+        <TabsContent value="general" className="space-y-6 data-[state=inactive]:block">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -367,11 +366,64 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
               <Separator />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label id="general-maintenance-label" htmlFor="general-maintenance">Maintenance Mode</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enable maintenance mode for all users
+                    </p>
+                  </div>
+                  <label className="sr-only" htmlFor="general-maintenance-checkbox">Maintenance Mode</label>
+                  <input
+                    id="general-maintenance-checkbox"
+                    type="checkbox"
+                    aria-label="Maintenance Mode"
+                    checked={systemSettings.maintenanceMode}
+                    onChange={(e) =>
+                      setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))
+                    }
+                    className="sr-only"
+                  />
+                  <Switch
+                    id="general-maintenance"
+                    aria-label="Maintenance Mode"
+                    aria-labelledby="general-maintenance-label"
+                    checked={systemSettings.maintenanceMode}
+                    onCheckedChange={(checked) =>
+                      setSystemSettings(prev => ({ ...prev, maintenanceMode: checked }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label id="general-registration-label" htmlFor="general-registration">Registration Enabled</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow new user registrations
+                    </p>
+                  </div>
+                  <Switch
+                    id="general-registration"
+                    aria-label="Registration Enabled"
+                    aria-labelledby="general-registration-label"
+                    checked={systemSettings.registrationEnabled}
+                    onCheckedChange={(checked) =>
+                      setSystemSettings(prev => ({ ...prev, registrationEnabled: checked }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button onClick={() => handleSaveSettings('General')} disabled={loading}>
+                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save General Settings
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="ai" className="space-y-6">
+        <TabsContent value="ai" className="space-y-6 data-[state=inactive]:block">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -418,8 +470,9 @@ export default function AdminSettingsPage() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>Model</Label>
+                        <Label htmlFor="ai-model">Model</Label>
                         <Input
+                          id="ai-model"
                           value={aiSettings.model}
                           onChange={(e) => setAiSettings(prev => ({ ...prev, model: e.target.value }))}
                           placeholder="gpt-4o"
@@ -491,6 +544,12 @@ export default function AdminSettingsPage() {
               )}
 
               <Separator />
+              <div className="flex justify-end">
+                <Button onClick={() => handleSaveSettings('AI')} disabled={loading}>
+                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save AI Settings
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -775,12 +834,27 @@ export default function AdminSettingsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label>Maintenance Mode</Label>
+                      <Label id="maintenance-mode-label" htmlFor="maintenance-mode">Maintenance Mode</Label>
                       <p className="text-sm text-muted-foreground">
                         Enable maintenance mode for all users
                       </p>
                     </div>
+                    {/* Hidden checkbox for accessibility/testing labels */}
+                    <label className="sr-only" htmlFor="maintenance-mode-checkbox">Maintenance Mode</label>
+                    <input
+                      id="maintenance-mode-checkbox"
+                      type="checkbox"
+                      aria-label="Maintenance Mode"
+                      checked={systemSettings.maintenanceMode}
+                      onChange={(e) =>
+                        setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))
+                      }
+                      className="sr-only"
+                    />
                     <Switch
+                      id="maintenance-mode"
+                      aria-label="Maintenance Mode"
+                      aria-labelledby="maintenance-mode-label"
                       checked={systemSettings.maintenanceMode}
                       onCheckedChange={(checked) =>
                         setSystemSettings(prev => ({ ...prev, maintenanceMode: checked }))

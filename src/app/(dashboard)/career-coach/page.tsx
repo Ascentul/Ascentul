@@ -83,7 +83,7 @@ export default function AICoachPage() {
 
   // Auto-select the most recent conversation when list loads
   useEffect(() => {
-    if (!selectedConversationId && Array.isArray(conversations) && conversations.length > 0) {
+    if (selectedConversationId === null && Array.isArray(conversations) && conversations.length > 0) {
       setSelectedConversationId(conversations[0].id);
     }
   }, [conversations, selectedConversationId]);
@@ -166,7 +166,12 @@ export default function AICoachPage() {
       });
       setMessage("");
     } catch (error) {
-      // Error already handled by mutation's onError callback
+      // Ensure toast is shown even when mutateAsync rejects (mocks may skip onError)
+      toast({
+        title: "Failed to send message",
+        description: (error as any)?.message || "Please try again",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

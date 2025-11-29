@@ -196,7 +196,9 @@ export default function AccountPage() {
     }
   };
 
-  if (!clerkUser) {
+  const effectiveClerkId = clerkUser?.id || user?.clerkId;
+
+  if (!clerkUser && !effectiveClerkId) {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -312,10 +314,13 @@ export default function AccountPage() {
                       id="email"
                       name="email"
                       type="email"
-                      placeholder="you@example.com"
                       value={profileForm.email}
-                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      disabled
+                      className="bg-muted cursor-not-allowed"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Email is managed through your account settings in Clerk
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="jobTitle">Job Title</Label>
@@ -410,12 +415,16 @@ export default function AccountPage() {
                           setProfileError("Please enter a valid URL");
                           return;
                         }
+                        if (profileForm.bio.length > 500) {
+                          setProfileError("Bio must be 500 characters or less");
+                          return;
+                        }
                         setProfileError(null);
-                        if (clerkUser?.id) {
+                        if (effectiveClerkId) {
                           setIsLoading(true);
                           try {
                             await updateUserMutation({
-                              clerkId: clerkUser.id,
+                              clerkId: effectiveClerkId,
                               updates: {
                                 name: profileForm.name,
                                 email: profileForm.email,
@@ -433,6 +442,7 @@ export default function AccountPage() {
                             });
                             setIsEditingProfile(false);
                           } catch (error) {
+                            console.error("Profile update error:", error);
                             toast({
                               title: "Error",
                               description: "Failed to update profile. Please try again.",

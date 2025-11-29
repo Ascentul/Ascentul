@@ -36,9 +36,9 @@ export async function POST(req: NextRequest) {
 
     // Validate departmentId format if provided
     if (departmentId !== undefined) {
-      if (typeof departmentId !== 'string' || !departmentId.trim()) {
+      if (typeof departmentId !== 'string' || !departmentId.trim() || !departmentId.match(/^[a-z0-9]+$/)) {
         return NextResponse.json(
-          { error: 'Invalid or empty departmentId' },
+          { error: 'Invalid departmentId format' },
           { status: 400 }
         );
       }

@@ -2,5 +2,5 @@
 export const CONVEX_ID_REGEX = /^[0-9A-HJ-NP-TV-Z]+$/i;
 
 export function isValidConvexId(id: string | null | undefined): id is string {
-  return typeof id === 'string' && CONVEX_ID_REGEX.test(id.trim());
+  return typeof id === 'string' && id.length > 0 && CONVEX_ID_REGEX.test(id);
 }

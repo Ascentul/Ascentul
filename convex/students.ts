@@ -124,7 +124,7 @@ async function rollbackInviteAcceptance(
     `[ROLLBACK INITIATED] License capacity exceeded for ${params.context.universityName}: ` +
     `${params.context.currentUsage}/${params.context.capacity}`
   );
-  console.error(`User: ${params.context.userEmail} (${params.userId}), Invite: ${params.inviteId}`);
+  console.error(`User: ${params.userId}, Invite: ${params.inviteId}`);
 
   // Rollback Step 1: Decrement license usage
   try {
@@ -568,7 +568,7 @@ export const acceptInvite = mutation({
       } catch (patchError) {
         // Log error but don't block the user from seeing the expired error
         console.error("Failed to auto-expire invite:", patchError);
-        console.error("Invite ID:", invite._id, "Email:", invite.email);
+        console.error("Invite ID:", invite._id);
       }
       throw new Error("Invite has expired");
     }
@@ -672,7 +672,7 @@ export const acceptInvite = mutation({
 
     if (raceCheckProfile) {
       // Profile was created by concurrent request - this is OK, use existing
-      console.warn(`Race condition detected: studentProfile already exists for user ${user.email}`);
+      console.warn(`Race condition detected: studentProfile already exists for user ${user._id}`);
       studentProfileId = raceCheckProfile._id;
     } else {
       // Safe to create profile
@@ -1147,7 +1147,7 @@ export const cleanupDuplicateProfiles = internalMutation({
     const user = await ctx.db.get(args.userId);
 
     console.log(
-      `🧹 Cleaning up duplicate profiles for user ${user?.email || args.userId}: ` +
+      `🧹 Cleaning up duplicate profiles for user ${args.userId}: ` +
       `${profiles.length} profiles found`
     );
 
@@ -1251,7 +1251,7 @@ export const monitorDuplicateProfiles = internalMutation({
       console.error("\nAffected users:");
 
       for (const dup of duplicates) {
-        console.error(`  - ${dup.email} (${dup.userId}): ${dup.profileCount} profiles`);
+        console.error(`  - User ${dup.userId}: ${dup.profileCount} profiles`);
         console.error(`    Keep: ${dup.oldestProfile}`);
         console.error(`    Delete: ${dup.newerProfiles.join(", ")}`);
       }

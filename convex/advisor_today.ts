@@ -197,8 +197,8 @@ function calculateRiskTags(
   const tags: string[] = [];
   const DAY_MS = 24 * 60 * 60 * 1000;
 
-  // Low engagement: No login in 21+ days
-  if (lastLogin && now - lastLogin > 21 * DAY_MS) {
+  // Low engagement: No login in 21+ days or never logged in
+  if (!lastLogin || now - lastLogin > 21 * DAY_MS) {
     tags.push("low_engagement");
   }
 

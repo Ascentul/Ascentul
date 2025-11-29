@@ -249,8 +249,8 @@ export const reopenFollowUp = mutation({
       previousValue: previousState,
       newValue: {
         status: "open",
-        completed_at: null,
-        completed_by: null,
+        completed_at: undefined,
+        completed_by: undefined,
       },
       ipAddress: "server",
     });
