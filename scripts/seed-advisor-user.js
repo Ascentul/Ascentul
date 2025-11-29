@@ -53,6 +53,9 @@ async function findUserByEmail(email) {
   const res = await fetch(url.toString(), {
     headers: { 'Authorization': `Bearer ${process.env.CLERK_SECRET_KEY}` },
   })
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`Failed to lookup user: ${res.status} ${res.statusText}`)
+  }
   if (!res.ok) return null
   const data = await res.json()
   const items = Array.isArray(data) ? data : (data?.data || [])

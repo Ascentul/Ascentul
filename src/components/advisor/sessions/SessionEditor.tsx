@@ -78,12 +78,19 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState(session.version);
   const prevVersionRef = useRef(session.version);
+  // Track unsaved changes in a ref to access in effect without causing re-runs
+  const hasUnsavedChangesRef = useRef(false);
+
+  // Keep the ref in sync with state
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
 
   // Sync form state when session changes (ID change or version bump from server)
   // Note: Version is incremented on each save, so this captures external updates
-  // Sync form when the session changes externally (id or version bump)
   useEffect(() => {
-    if (hasUnsavedChanges && session.version !== prevVersionRef.current) {
+    // Only show warning if version changed externally AND we had unsaved changes
+    if (session.version !== prevVersionRef.current && hasUnsavedChangesRef.current) {
       toast({
         title: 'External update detected',
         description: 'Your unsaved changes were reset to the latest version.',
@@ -103,8 +110,7 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
     prevVersionRef.current = session.version;
     setCurrentVersion(session.version);
     setHasUnsavedChanges(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only reset state when session._id or version changes, not on every session prop update
-  }, [session._id, session.version, hasUnsavedChanges, toast]);
+  }, [session._id, session.version, toast]);
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const formattedSessionStartAt = useMemo(() => {

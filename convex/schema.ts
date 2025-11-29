@@ -380,11 +380,11 @@ export default defineSchema({
         v.literal("Prospect"), // Active - researching/considering
         v.literal("Applied"), // Active - application submitted
         v.literal("Interview"), // Active - in interview process
-        v.literal("Offer"), // Not Active - offer received
-        v.literal("Accepted"), // Final - offer accepted (NOT ACTIVE)
-        v.literal("Rejected"), // Not Active - application rejected
-        v.literal("Withdrawn"), // Not Active - candidate withdrew
-        v.literal("Archived"), // Not Active - archived
+        v.literal("Offer"), // Active - offer received, decision pending
+        v.literal("Accepted"), // Final - offer accepted
+        v.literal("Rejected"), // Final - application rejected
+        v.literal("Withdrawn"), // Final - candidate withdrew
+        v.literal("Archived"), // Final - archived
       ),
     ),
     stage_set_at: v.optional(v.number()), // When stage was last changed

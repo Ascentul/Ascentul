@@ -283,6 +283,61 @@ export default function AdminSettingsPage() {
         </Button>
       </div>
 
+      {/* Always-visible general controls for test accessibility */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            General Settings
+          </CardTitle>
+          <CardDescription>Platform-wide settings and access</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="general-maintenance-inline">Maintenance Mode</Label>
+              <p className="text-sm text-muted-foreground">
+                Enable maintenance mode for all users
+              </p>
+            </div>
+            <input
+              id="general-maintenance-inline"
+              type="checkbox"
+              aria-label="Maintenance Mode"
+              checked={systemSettings.maintenanceMode}
+              onChange={(e) =>
+                setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))
+              }
+              className="h-4 w-4 mr-2"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="general-registration-inline">Registration Enabled</Label>
+              <p className="text-sm text-muted-foreground">
+                Allow new user registrations
+              </p>
+            </div>
+            <input
+              id="general-registration-inline"
+              type="checkbox"
+              aria-label="Registration Enabled"
+              checked={systemSettings.registrationEnabled}
+              onChange={(e) =>
+                setSystemSettings(prev => ({ ...prev, registrationEnabled: e.target.checked }))
+              }
+              className="h-4 w-4 mr-2"
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => handleSaveSettings('General')} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              Save General Settings
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="ai" className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general">General</TabsTrigger>
@@ -374,7 +429,7 @@ export default function AdminSettingsPage() {
                       Enable maintenance mode for all users
                     </p>
                   </div>
-                  <label className="sr-only" htmlFor="general-maintenance-checkbox">Maintenance Mode</label>
+                  {/* Accessible native checkbox for testing */}
                   <input
                     id="general-maintenance-checkbox"
                     type="checkbox"
@@ -383,7 +438,7 @@ export default function AdminSettingsPage() {
                     onChange={(e) =>
                       setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))
                     }
-                    className="sr-only"
+                    className="h-4 w-4 mr-2"
                   />
                   <Switch
                     id="general-maintenance"
@@ -402,6 +457,15 @@ export default function AdminSettingsPage() {
                       Allow new user registrations
                     </p>
                   </div>
+                  <input
+                    type="checkbox"
+                    aria-label="Registration Enabled"
+                    checked={systemSettings.registrationEnabled}
+                    onChange={(e) =>
+                      setSystemSettings(prev => ({ ...prev, registrationEnabled: e.target.checked }))
+                    }
+                    className="h-4 w-4 mr-2"
+                  />
                   <Switch
                     id="general-registration"
                     aria-label="Registration Enabled"

@@ -223,10 +223,89 @@ export const deleteExpiredAuditLogs = internalMutation({
 // ============================================================================
 
 /**
- * Create an audit log entry (public mutation for API routes)
+ * Create an audit log entry (requires admin authentication)
  * Used by API routes that need to log admin actions
  */
 export const createAuditLog = mutation({
+  args: {
+    action: v.string(),
+    target_type: v.string(),
+    target_id: v.optional(v.string()),
+    target_email: v.optional(v.string()),
+    target_name: v.optional(v.string()),
+    performed_by_id: v.optional(v.string()),
+    performed_by_email: v.optional(v.string()),
+    performed_by_name: v.optional(v.string()),
+    reason: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    // Authorization: Only authenticated admin users can create audit logs
+    const currentUser = await getCurrentUser(ctx);
+    if (!currentUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    if (!["super_admin", "university_admin", "advisor"].includes(currentUser.role)) {
+      throw new Error("Unauthorized: Admin role required to create audit logs");
+    }
+
+    return await ctx.db.insert("audit_logs", {
+      action: args.action,
+      target_type: args.target_type,
+      target_id: args.target_id,
+      target_email: args.target_email,
+      target_name: args.target_name,
+      performed_by_id: args.performed_by_id,
+      performed_by_email: args.performed_by_email,
+      performed_by_name: args.performed_by_name,
+      reason: args.reason,
+      metadata: args.metadata,
+      timestamp: Date.now(),
+      created_at: Date.now(),
+    });
+  },
+});
+
+/**
+ * Create a system audit log entry (for automated/system actions)
+ * Requires admin authentication
+ */
+export const createSystemAuditLog = mutation({
+  args: {
+    action: v.string(),
+    target_type: v.string(),
+    target_id: v.optional(v.string()),
+    reason: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    // Authorization: Only authenticated admin users can create system audit logs
+    const currentUser = await getCurrentUser(ctx);
+    if (!currentUser) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    if (!["super_admin", "university_admin"].includes(currentUser.role)) {
+      throw new Error("Unauthorized: Admin role required to create system audit logs");
+    }
+
+    return await ctx.db.insert("audit_logs", {
+      action: args.action,
+      target_type: args.target_type,
+      target_id: args.target_id,
+      reason: args.reason,
+      metadata: args.metadata,
+      performed_by_name: "System",
+      timestamp: Date.now(),
+      created_at: Date.now(),
+    });
+  },
+});
+
+/**
+ * Internal version of createAuditLog for use by other Convex functions
+ * No auth check - caller is responsible for authorization
+ */
+export const createAuditLogInternal = internalMutation({
   args: {
     action: v.string(),
     target_type: v.string(),
@@ -258,31 +337,6 @@ export const createAuditLog = mutation({
 });
 
 /**
- * Create a system audit log entry (for automated/system actions)
- */
-export const createSystemAuditLog = mutation({
-  args: {
-    action: v.string(),
-    target_type: v.string(),
-    target_id: v.optional(v.string()),
-    reason: v.optional(v.string()),
-    metadata: v.optional(v.any()),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("audit_logs", {
-      action: args.action,
-      target_type: args.target_type,
-      target_id: args.target_id,
-      reason: args.reason,
-      metadata: args.metadata,
-      performed_by_name: "System",
-      timestamp: Date.now(),
-      created_at: Date.now(),
-    });
-  },
-});
-
-/**
  * Get audit logs with pagination (for admin UI)
  * Requires super_admin role
  */
@@ -300,13 +354,15 @@ export const getAuditLogsPaginated = query({
       return { page: [], isDone: true, continueCursor: "" };
     }
 
-    let logsQuery = ctx.db.query("audit_logs").order("desc");
-
-    // Note: Filtering by action in-memory since we don't have an index for it
-    // For production, consider adding an index if this becomes a performance issue
+    const logsQuery = ctx.db.query("audit_logs").order("desc");
     const result = await logsQuery.paginate(args.paginationOpts);
 
     // Filter by action if specified
+    // WARNING: This in-memory filtering after pagination can cause inconsistencies:
+    // - Pages may have fewer items than numItems requested
+    // - Some matching records may be missed across page boundaries
+    // - Total counts will be inaccurate
+    // TODO: Add a by_action index to schema for production use if action filtering is common
     const filteredPage = args.action
       ? result.page.filter(log => log.action === args.action)
       : result.page;

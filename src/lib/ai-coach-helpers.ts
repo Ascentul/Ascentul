@@ -4,6 +4,8 @@
  * Utilities for building user context and formatting data for AI coaching features.
  */
 
+import type { Application, Goal } from '@/types/models';
+
 // Context limits for AI prompt generation
 const MAX_GOALS_IN_CONTEXT = 5;
 const MAX_APPLICATIONS_IN_CONTEXT = 8;
@@ -18,8 +20,6 @@ interface UserProfile {
   skills?: string,
   career_goals?: string,
 }
-
-import type { Application, Goal } from '@/types/models';
 
 interface Project {
   title: string,

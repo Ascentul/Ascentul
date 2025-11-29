@@ -240,8 +240,8 @@ const messageCount = await countWithPagination(ctx, 'messages');
 ## 📦 Files Changed
 
 - ✅ `convex/migrate_follow_ups.ts`:
-  - Added `countWithPagination` helper function (lines 23-48)
-  - Refactored `verifyMigration` to use pagination (lines 507-509)
+  - Added `countWithPagination` helper function (lines 30-47)
+  - Refactored `verifyMigration` to use pagination (lines 588-590)
 - 📝 `docs/PERFORMANCE_FIX_PAGINATION_COUNTING.md` - This documentation
 
 ---

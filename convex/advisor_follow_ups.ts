@@ -72,8 +72,7 @@ export const completeFollowUp = mutation({
 
     const now = Date.now();
 
-    // FERPA COMPLIANCE: Optimistic locking to ensure audit trail accuracy
-    // Version field prevents race conditions and lost updates
+    // Capture previous state for audit trail (FERPA compliance)
     const currentVersion = followUp.version ?? 0;
     const previousState = {
       status: followUp.status,
@@ -81,6 +80,9 @@ export const completeFollowUp = mutation({
       completed_by: followUp.completed_by,
     };
 
+    // Update the follow-up with version increment for tracking
+    // Note: Convex mutations are atomic with serializable isolation,
+    // so concurrent modifications are handled at the transaction level
     await ctx.db.patch(args.followUpId, {
       status: "done",
       completed_at: now,
@@ -89,35 +91,7 @@ export const completeFollowUp = mutation({
       updated_at: now,
     });
 
-    // Verify the patch succeeded by checking version - prevents lost updates
-    const afterPatch = await ctx.db.get(args.followUpId);
-
-    if (!afterPatch) {
-      // Follow-up was deleted during the operation - hard failure
-      console.error(`Follow-up ${args.followUpId} deleted during complete operation`);
-      throw new ConvexError({
-        message: "Follow-up was deleted during completion. This may indicate a concurrent deletion.",
-        code: "NOT_FOUND"
-      });
-    }
-
-    if (afterPatch.version !== currentVersion + 1) {
-      // Version mismatch: concurrent modification occurred
-      // This is the FERPA-critical case - another request modified the follow-up
-      console.error(
-        `Follow-up ${args.followUpId} version mismatch. ` +
-        `Expected ${currentVersion + 1}, got ${afterPatch.version}. ` +
-        `Concurrent modification detected.`
-      );
-      throw new ConvexError({
-        message: "Follow-up was modified by another request. Please refresh and try again.",
-        code: "VERSION_CONFLICT"
-      });
-    }
-
     // Audit log (FERPA compliance - capture all modified fields)
-    // With optimistic locking, previousState is guaranteed accurate because
-    // any concurrent modification would have caused an error above
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: followUp.university_id,
@@ -135,14 +109,14 @@ export const completeFollowUp = mutation({
     });
 
     // Return consistent shape with idempotent path (lines 63-69)
-    // With optimistic locking, if we reach here, the operation definitely succeeded
+    // This is intentionally idempotent and eventually consistent; concurrent completions are acceptable
     return {
       success: true,
       followUpId: args.followUpId,
       alreadyCompleted: false,
       completed_at: now,
       completed_by: sessionCtx.userId,
-      verified: true, // Always true with optimistic locking - errors thrown otherwise
+      verified: true, // State now reflects the completed follow-up
     };
   },
 });
@@ -211,34 +185,12 @@ export const reopenFollowUp = mutation({
       updated_at: now,
     });
 
-    // Verify the patch succeeded by checking version
-    const afterPatch = await ctx.db.get(args.followUpId);
-
-    if (!afterPatch) {
-      // Follow-up was deleted during the operation - hard failure
-      console.error(`Follow-up ${args.followUpId} deleted during reopen operation`);
-      throw new ConvexError({
-        message: "Follow-up was deleted during reopen. This may indicate a concurrent deletion.",
-        code: "NOT_FOUND"
-      });
-    }
-
-    if (afterPatch.version !== currentVersion + 1) {
-      // Version mismatch: concurrent modification occurred
-      console.error(
-        `Follow-up ${args.followUpId} version mismatch. ` +
-        `Expected ${currentVersion + 1}, got ${afterPatch.version}. ` +
-        `Concurrent modification detected.`
-      );
-      throw new ConvexError({
-        message: "Follow-up was modified by another request. Please refresh and try again.",
-        code: "VERSION_CONFLICT"
-      });
-    }
+    // Note: Convex mutations are atomic with serializable isolation.
+    // No post-patch verification needed - concurrent modifications are
+    // handled by Convex's transaction system which will retry the mutation.
 
     // Audit log (FERPA compliance - capture all modified fields)
-    // With optimistic locking, previousState is guaranteed accurate because
-    // any concurrent modification would have caused an error above
+    // previousState is guaranteed accurate due to Convex's serializable isolation
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: followUp.university_id,
@@ -255,13 +207,12 @@ export const reopenFollowUp = mutation({
       ipAddress: "server",
     });
 
-    // Return consistent shape with idempotent path (lines 165-169)
-    // With optimistic locking, if we reach here, the operation definitely succeeded
+    // Return consistent shape with idempotent path
     return {
       success: true,
       followUpId: args.followUpId,
       alreadyOpen: false,
-      verified: true, // Always true with optimistic locking - errors thrown otherwise
+      verified: true,
     };
   },
 });

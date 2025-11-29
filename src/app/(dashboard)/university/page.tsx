@@ -106,7 +106,7 @@ export default function UniversityDashboardPage() {
   const router = useRouter();
   const { user: clerkUser } = useUser();
   const { getToken } = useClerkAuth();
-  const { user, isAdmin, subscription, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
   const { impersonation, getEffectiveRole } = useImpersonation();
   const [activeTab, setActiveTab] = useState("overview");
   const [analyticsView, setAnalyticsView] = useState<
@@ -157,6 +157,25 @@ export default function UniversityDashboardPage() {
   const [studentToDelete, setStudentToDelete] = useState<any>(null);
   const [updatingStudent, setUpdatingStudent] = useState(false);
   const [deletingStudent, setDeletingStudent] = useState(false);
+
+  // Profile load timeout state - prevents infinite spinner if Convex profile fails to load
+  const [profileLoadTimedOut, setProfileLoadTimedOut] = useState(false);
+
+  // Timeout for profile loading - if Clerk is loaded but Convex user is missing for too long
+  useEffect(() => {
+    // Only start timeout if Clerk user exists but Convex profile is missing and not loading
+    if (clerkUser && !user && !authLoading) {
+      const timeout = setTimeout(() => {
+        setProfileLoadTimedOut(true);
+      }, 10000); // 10 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+    // Reset timeout state if user becomes available
+    if (user) {
+      setProfileLoadTimedOut(false);
+    }
+  }, [clerkUser, user, authLoading]);
 
   // Get effective role (respects impersonation)
   const effectiveRole = getEffectiveRole();
@@ -356,13 +375,12 @@ export default function UniversityDashboardPage() {
   // Assign student licenses
   const assignStudent = useMutation(api.university_admin.assignStudentByEmail);
 
+  // Access is role-based only - university_admin or super_admin can access this dashboard
+  // subscription.isUniversity is NOT used for access control here; it determines what
+  // features are available within the dashboard, not whether the user can access it
   const hasAccess =
     !!user &&
-    (
-      effectiveRole === 'university_admin' ||
-      effectiveRole === 'super_admin' ||
-      subscription.isUniversity
-    );
+    (effectiveRole === 'university_admin' || effectiveRole === 'super_admin');
 
   // If we know we'll redirect (advisor or non-university role), avoid flashing unauthorized UI
   const shouldRedirect =
@@ -370,7 +388,35 @@ export default function UniversityDashboardPage() {
     !!user &&
     (user.role === 'advisor' || !isUniversityRole);
 
-  if (authLoading || !clerkUser || !user) {
+  // Show error state if profile failed to load after timeout
+  if (profileLoadTimedOut && !user) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile Load Error</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Unable to load your user profile. This may be due to a network issue or a problem with your account setup.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/dashboard')}>
+                Go to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show loading spinner while auth is loading or redirecting
+  // This prevents flashing the Unauthorized card for roles that will be redirected
+  if (authLoading || !clerkUser || !user || shouldRedirect) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -387,9 +433,7 @@ export default function UniversityDashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              {shouldRedirect 
-                ? "Redirecting..." 
-                : "You do not have access to the University Dashboard."}
+              You do not have access to the University Dashboard.
             </p>
           </CardContent>
         </Card>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
+import { fetchQuery } from 'convex/nextjs'
 import { api } from 'convex/_generated/api'
-import { convexServer } from '@/lib/convex-server';
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -54,10 +54,10 @@ export async function GET(_request: NextRequest) {
     const cursor = searchParams.get('cursor') || undefined
     const sort = (searchParams.get('sort') || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc'
 
-    const page = await convexServer.query(
+    const page = await fetchQuery(
       api.career_paths.getUserCareerPathsPaginated,
       { clerkId: userId, cursor, limit },
-      token
+      { token }
     ) as { items?: CareerPathDocument[]; continueCursor?: string } | null
     const items = (page?.items || []) as CareerPathDocument[]
 

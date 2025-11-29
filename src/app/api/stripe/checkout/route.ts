@@ -128,14 +128,19 @@ export async function POST(request: NextRequest) {
         console.log(`[Stripe Checkout] Found existing Stripe customer ${customerId} for user ${userId}`);
 
         // Update Convex with the existing customer ID
-        await convexServer.mutation(
-          api.users.updateUser,
-          {
-            clerkId: userId,
-            updates: { stripe_customer_id: customerId },
-          },
-          token
-        );
+        try {
+          await convexServer.mutation(
+            api.users.updateUser,
+            {
+              clerkId: userId,
+              updates: { stripe_customer_id: customerId },
+            },
+            token
+          );
+        } catch (convexError) {
+          console.error('Failed to sync existing Stripe customer ID to Convex:', convexError);
+          // Continue with checkout - the customer exists in Stripe and will be found again on retry
+        }
       } else {
         // No existing customer - create new one
         const customer = await stripe.customers.create({

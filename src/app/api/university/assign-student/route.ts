@@ -34,9 +34,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate departmentId format if provided
+    // Validate departmentId format if provided (Convex will enforce ID validity)
     if (departmentId !== undefined) {
-      if (typeof departmentId !== 'string' || !departmentId.trim() || !departmentId.match(/^[a-z0-9]+$/)) {
+      if (typeof departmentId !== 'string' || !departmentId.trim()) {
         return NextResponse.json(
           { error: 'Invalid departmentId format' },
           { status: 400 }
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     const result = await convexServer.mutation(
       api.university_admin.assignStudentByEmail,
       {
-        clerkId: userId,
+        clerkId: clerkId,
         email: email,
         role: role || 'user',
         departmentId: departmentId as Id<'departments'> | undefined,

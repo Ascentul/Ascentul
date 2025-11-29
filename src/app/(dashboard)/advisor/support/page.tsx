@@ -77,6 +77,7 @@ export default function AdvisorSupportPage() {
   const [responseText, setResponseText] = useState('')
   const [isSubmittingResponse, setIsSubmittingResponse] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const responseEntries = useMemo(() => {
     if (!selectedTicket?.resolution) return [];
@@ -275,6 +276,7 @@ export default function AdvisorSupportPage() {
   const confirmDeleteTicket = async () => {
     if (!clerkUser?.id || !ticketToDelete) return
 
+    setIsDeleting(true)
     try {
       await deleteTicket({
         clerkId: clerkUser.id,
@@ -297,6 +299,8 @@ export default function AdvisorSupportPage() {
         description: error.message || 'Failed to delete ticket',
         variant: 'destructive'
       })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -783,9 +787,17 @@ export default function AdvisorSupportPage() {
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDeleteTicket}
+                disabled={isDeleting}
                 className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
               >
-                Delete Ticket
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Ticket'
+                )}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

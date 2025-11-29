@@ -176,7 +176,7 @@ function SignUpForm({
       <Button
         type="submit"
         className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 active:bg-black/95 focus-visible:ring-2 focus-visible:ring-black/20 shadow-md hover:shadow-lg transition-all"
-        disabled={submitting}
+        disabled={submitting || verifyingInvite}
       >
         {submitting ? 'Creating account...' : 'Create Account'}
       </Button>
@@ -211,6 +211,7 @@ export default function Page() {
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resending, setResending] = useState(false)
+  const [verifyingInvite, setVerifyingInvite] = useState(false)
   // Warning for invalid/expired invites (less alarming than error, shown as info banner)
   const [inviteWarning, setInviteWarning] = useState<string | null>(null)
 
@@ -237,10 +238,14 @@ export default function Page() {
 
     // Prefer server-validated invite data when inviteToken is present
     if (inviteToken) {
+      setVerifyingInvite(true)
       const controller = new AbortController();
       (async () => {
         try {
-          const res = await fetch(`/api/university/verify-invite?token=${encodeURIComponent(inviteToken)}`, {
+          const res = await fetch('/api/university/verify-invite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: inviteToken }),
             signal: controller.signal,
           });
           if (!res.ok) {
@@ -266,6 +271,10 @@ export default function Page() {
           console.error('Invite verification failed:', err);
           setUniversityInvite({ university: null, email: null });
           setInviteWarning('Unable to verify invitation. You can still create an account below, or request a new invite link.');
+        } finally {
+          if (!controller.signal.aborted) {
+            setVerifyingInvite(false);
+          }
         }
       })();
       return () => controller.abort();
@@ -321,8 +330,12 @@ export default function Page() {
 
       // Pass university invite data to Clerk for webhook processing
       // This happens when user signs up via university invitation link (URL params)
-      // Always use formData.email since user may have changed the pre-filled email
       if (universityInvite.university) {
+        // Ensure the email matches the verified invite email
+        if (universityInvite.email && formData.email.trim().toLowerCase() !== universityInvite.email.toLowerCase()) {
+          setError('You must use the email address associated with the invitation.')
+          return
+        }
         signUpParams.unsafeMetadata = {
           universityInvite: {
             universityName: universityInvite.university,

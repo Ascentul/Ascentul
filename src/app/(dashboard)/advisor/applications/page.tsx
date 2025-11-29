@@ -99,7 +99,7 @@ export default function AdvisorApplicationsPage() {
   // Apply filters
   const filteredApplications = useMemo(() => {
     return filterHook.applyFilters(enrichedApplications);
-  }, [enrichedApplications, filterHook]);
+  }, [enrichedApplications, filterHook.applyFilters]);
 
   // Get available cohorts for filter UI
   const availableCohorts = useAvailableCohorts(enrichedApplications);

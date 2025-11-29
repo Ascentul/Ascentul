@@ -43,7 +43,7 @@ export async function GET(
     if (!convexUrl) {
       return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
     }
-    const client: any = createConvexClient()
+    const client: any = new (ConvexHttpClient as any)(convexUrl)
 
     const messages = await client.query(
       normalizeRef((api.ai_coach as any).getMessages),

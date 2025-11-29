@@ -334,7 +334,7 @@ describe('AI Coach Functionality', () => {
       render(<AICoachPage />, { wrapper: createWrapper() })
 
       // Should still render the page structure
-      expect(screen.getByText('Select a conversation')).toBeInTheDocument()
+      expect(screen.getByText('Welcome to AI Career Coach')).toBeInTheDocument()
     })
 
     it('handles message sending errors', async () => {

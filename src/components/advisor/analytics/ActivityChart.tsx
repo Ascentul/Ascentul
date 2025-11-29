@@ -26,7 +26,16 @@ export function ActivityChart({ data, isLoading }: ActivityChartProps) {
     );
   }
 
-  if (!data || data.length === 0) {
+  // Filter out entries with invalid dates upfront
+  const validData = (data || []).filter((week) => {
+    const isValid = !isNaN(new Date(week.date).getTime());
+    if (!isValid) {
+      console.error(`Invalid date string for week:`, week.date);
+    }
+    return isValid;
+  });
+
+  if (validData.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -43,7 +52,7 @@ export function ActivityChart({ data, isLoading }: ActivityChartProps) {
     );
   }
 
-  const maxCount = Math.max(...data.map((d) => d.count), 1);
+  const maxCount = Math.max(...validData.map((d) => d.count), 1);
 
   return (
     <Card>
@@ -56,15 +65,8 @@ export function ActivityChart({ data, isLoading }: ActivityChartProps) {
       </CardHeader>
       <CardContent>
         <div className='space-y-3'>
-          {data.map((week) => {
+          {validData.map((week) => {
             const weekDate = new Date(week.date);
-
-            // Validate date string
-            if (isNaN(weekDate.getTime())) {
-              console.error(`Invalid date string for week:`, week.date);
-              return null;
-            }
-
             const percentage = (week.count / maxCount) * 100;
             const weekLabel = weekDate.toLocaleDateString('en-US', {
               month: 'short',
@@ -97,14 +99,12 @@ export function ActivityChart({ data, isLoading }: ActivityChartProps) {
           })}
         </div>
 
-        {data.length > 0 && (
-          <div className='mt-4 pt-4 border-t flex items-center gap-2 text-xs text-muted-foreground'>
-            <TrendingUp className='h-3 w-3' />
-            <span>
-              Total: {data.reduce((sum, week) => sum + week.count, 0)} sessions in {data.length} {data.length === 1 ? 'week' : 'weeks'}
-            </span>
-          </div>
-        )}
+        <div className='mt-4 pt-4 border-t flex items-center gap-2 text-xs text-muted-foreground'>
+          <TrendingUp className='h-3 w-3' />
+          <span>
+            Total: {validData.reduce((sum, week) => sum + week.count, 0)} sessions in {validData.length} {validData.length === 1 ? 'week' : 'weeks'}
+          </span>
+        </div>
       </CardContent>
     </Card>
   );

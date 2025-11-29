@@ -23,11 +23,15 @@ export default function UniversitySettingsPage() {
   const { user: clerkUser } = useUser();
   const { user, isAdmin, subscription } = useAuth();
   const { toast } = useToast();
+  const effectiveClerkId = clerkUser?.id || user?.clerkId;
 
-  // Convex API references
-  const updateUniversitySettings = api.universities?.updateUniversitySettings
-    ? useMutation(api.universities.updateUniversitySettings)
-    : null;
+  // Convex API references - always call the hook unconditionally
+  const updateUniversitySettingsMutation = useMutation(
+    api.universities.updateUniversitySettings
+  );
+  
+  // Check availability separately if needed
+  const isUpdateAvailable = !!api.universities?.updateUniversitySettings;
   const universitySettings = useQuery(
     api.universities?.getUniversitySettings,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
@@ -65,7 +69,7 @@ export default function UniversitySettingsPage() {
   }, [universitySettings]);
 
   const handleSaveSettings = async () => {
-    if (!clerkUser || !universitySettings?._id) {
+    if (!effectiveClerkId || !universitySettings?._id) {
       toast({
         title: "Error",
         description: "Unable to save settings. Please try refreshing the page.",
@@ -74,7 +78,7 @@ export default function UniversitySettingsPage() {
       return;
     }
 
-    if (!updateUniversitySettings) {
+    if (!isUpdateAvailable) {
       toast({
         title: "Error",
         description: "Settings update is not available. Please contact support.",
@@ -85,7 +89,7 @@ export default function UniversitySettingsPage() {
 
     setLoading(true);
     try {
-      await updateUniversitySettings({
+      await updateUniversitySettingsMutation({
         universityId: universitySettings._id,
         settings: {
           name: settings.name,

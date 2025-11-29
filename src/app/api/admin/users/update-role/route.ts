@@ -24,11 +24,19 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const authResult = await auth()
-    const { userId } = authResult
+    const { userId, getToken } = authResult
 
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - Please sign in' },
+        { status: 401 }
+      )
+    }
+
+    const token = await getToken({ template: 'convex' })
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Failed to obtain auth token' },
         { status: 401 }
       )
     }
@@ -146,7 +154,7 @@ export async function POST(request: NextRequest) {
       try {
         const university = await convexServer.query(api.universities.getUniversity, {
           universityId: universityId as Id<'universities'>
-        }) as { status?: string } | null
+        }, token) as { status?: string } | null
 
         if (!university) {
           return NextResponse.json(
@@ -178,7 +186,7 @@ export async function POST(request: NextRequest) {
         currentRole: currentRole || 'user',
         newRole,
         universityId: requiresUniversity && universityId ? (universityId as Id<'universities'>) : undefined,
-      }) as { valid: boolean; error?: string } | null
+      }, token) as { valid: boolean; error?: string } | null
 
       if (!validation?.valid) {
         return NextResponse.json(

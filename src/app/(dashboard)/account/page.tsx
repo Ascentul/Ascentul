@@ -315,12 +315,8 @@ export default function AccountPage() {
                       name="email"
                       type="email"
                       value={profileForm.email}
-                      disabled
-                      className="bg-muted cursor-not-allowed"
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Email is managed through your account settings in Clerk
-                    </p>
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="jobTitle">Job Title</Label>

@@ -419,15 +419,11 @@ export default function AICoachPage() {
                 <h3 className="text-2xl font-semibold mb-3 text-gray-900">
                   Welcome to AI Career Coach
                 </h3>
-                <p className="text-muted-foreground mb-2">
-                  Select an existing conversation from the sidebar or create a
-                  new one to start getting personalized career guidance.
+                <p className="text-muted-foreground mb-6">
+                  Choose a conversation from the sidebar to continue, or create
+                  a new one to start getting personalized career guidance.
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  Select a conversation to get started.
-                </p>
-                <p className="text-sm font-medium mt-3">Select a conversation</p>
-                <Button onClick={handleCreateConversation} size="lg" className="mt-4">
+                <Button onClick={handleCreateConversation} size="lg">
                   <Plus className="h-4 w-4 mr-2" />
                   Start New Conversation
                 </Button>
