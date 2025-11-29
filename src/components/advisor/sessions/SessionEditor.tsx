@@ -207,11 +207,11 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
 
       return true;
     } catch (error: unknown) {
+      const code = (error as any)?.data?.code || (error as any)?.code;
       const message = getErrorMessage(error);
 
       // Check if it's a version conflict
-      // TODO: Use structured error codes from the mutation instead of string matching
-      const isVersionConflict = message.includes('version') || message.includes('conflict');
+      const isVersionConflict = code === 'VERSION_CONFLICT';
       if (isVersionConflict) {
         setSaveError('This session was updated elsewhere. Please refresh to see the latest version.');
         toast({

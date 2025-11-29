@@ -94,6 +94,13 @@ export const updateReviewFeedback = mutation({
       throw new Error('Unauthorized: Not your review');
     }
 
+    // Only allow updates to in-progress reviews
+    if (review.status !== 'in_review') {
+      throw new Error(`Cannot update feedback for review with status: ${review.status}`);
+    }
+
+    const currentVersion = review.version ?? 0;
+
     const currentVersion = review.version ?? 0;
 
     // Validate version for optimistic concurrency control

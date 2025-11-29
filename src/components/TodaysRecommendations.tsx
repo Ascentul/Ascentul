@@ -69,6 +69,7 @@ export function TodaysRecommendations() {
       recommendationsArray.map(r => ({
         id: r.id,
         text: r.text,
+        type: r.type,
         completed: r.completed,
         completedAt: r.completedAt,
         relatedEntityId: r.relatedEntityId,

@@ -95,8 +95,8 @@ interface FollowUp {
   contact_id?: string;
   type: string;
   description?: string;
-  due_date?: number;
-  completed: boolean;
+  due_at?: number;
+  status?: string;
   notes?: string;
   created_at: number;
 }
@@ -547,7 +547,7 @@ export default function ContactsPage() {
     });
 
     return followupContacts.sort(
-      (a, b) => (a.followup.due_date || 0) - (b.followup.due_date || 0),
+      (a, b) => (a.followup.due_at || 0) - (b.followup.due_at || 0),
     );
   }, [followupsData, contactsData]);
 
@@ -1017,9 +1017,9 @@ export default function ContactsPage() {
                               {followup.type.replace("_", " ")}
                             </Badge>
                             <span className="text-sm text-muted-foreground">
-                              Due: {formatDate(followup.due_date)}
+                              Due: {formatDate(followup.due_at)}
                             </span>
-                            {followup.completed && (
+                            {followup.status === "done" && (
                               <Badge variant="secondary" className="text-xs">
                                 Completed
                               </Badge>
@@ -1036,7 +1036,7 @@ export default function ContactsPage() {
                             </p>
                           )}
                         </div>
-                        {!followup.completed && (
+                        {followup.status !== "done" && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -1594,7 +1594,7 @@ export default function ContactsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm">
-                            {formatDate(item.followup.due_date)}
+                            {formatDate(item.followup.due_at)}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {item.followup.description || "—"}

@@ -101,7 +101,14 @@ export async function assertCanAccessStudent(
   sessionCtx: AdvisorSessionContext,
   studentId: Id<"users">,
 ) {
-  // Require tenant first
+  // super_admin can access any student (no tenant requirement)
+  if (sessionCtx.role === "super_admin") {
+    const student = await ctx.db.get(studentId);
+    if (!student) throw new Error("Student not found");
+    return student;
+  }
+
+  // Require tenant first for other roles
   const universityId = requireTenant(sessionCtx);
 
   // Get student record
@@ -192,13 +199,19 @@ export async function getOwnedStudentIds(
   ctx: QueryCtx | MutationCtx,
   sessionCtx: AdvisorSessionContext,
 ): Promise<Id<"users">[]> {
+  // Super admin can access all students (no tenant restriction)
+  if (sessionCtx.role === "super_admin") {
+    const students = await ctx.db
+      .query("users")
+      .withIndex("by_role", (q) => q.eq("role", "student"))
+      .collect();
+    return students.map((s) => s._id);
+  }
+
   const universityId = requireTenant(sessionCtx);
 
-  // Super admin and university admin can access all students
-  if (
-    sessionCtx.role === "super_admin" ||
-    sessionCtx.role === "university_admin"
-  ) {
+  // University admin can access all students in their university
+  if (sessionCtx.role === "university_admin") {
     const students = await ctx.db
       .query("users")
       .withIndex("by_university", (q) => q.eq("university_id", universityId))

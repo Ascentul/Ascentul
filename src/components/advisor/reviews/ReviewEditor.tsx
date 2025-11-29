@@ -107,7 +107,7 @@ export function ReviewEditor({
 
   // Autosave function
   const saveChanges = useCallback(async (): Promise<{ success: boolean; version?: number }> => {
-    if (!hasUnsavedChanges || review.status !== "in_progress") {
+    if (!hasUnsavedChanges || review.status !== "in_review") {
       return { success: false };
     }
 
@@ -170,7 +170,7 @@ export function ReviewEditor({
 
   // Autosave on change (debounced)
   useEffect(() => {
-    if (hasUnsavedChanges && review.status === "in_progress") {
+    if (hasUnsavedChanges && review.status === "in_review") {
       if (autosaveTimerRef.current) {
         clearTimeout(autosaveTimerRef.current);
       }
@@ -320,7 +320,7 @@ export function ReviewEditor({
   };
 
   const isWaiting = review.status === "waiting";
-  const isInProgress = review.status === "in_progress";
+  const isInProgress = review.status === "in_review";
   const isCompleted = review.status === "completed";
 
   return (

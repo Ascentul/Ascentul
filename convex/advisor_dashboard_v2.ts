@@ -648,15 +648,12 @@ export const getCapacityAndSchedule = query({
           ? Math.round((activeSessions.length / weeklySlots) * 100) 
           : 0,
       },
-        percentage: Math.round((activeSessions.length / weeklySlots) * 100),
-      },
       sessionsThisWeek: activeSessions.length,
       upcoming: {
         count: sortedUpcoming.length,
         items: enrichedUpcoming,
       },
     };
-  },
 });
 
 /**

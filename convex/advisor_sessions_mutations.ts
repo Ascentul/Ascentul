@@ -6,7 +6,7 @@
  */
 
 import { mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import {
   getCurrentUser,
   requireAdvisorRole,
@@ -160,8 +160,9 @@ export const updateSession = mutation({
 
     // Version check for conflict detection
     if ((session.version ?? 0) !== args.version) {
-      throw new Error(
-        "Conflict: Session has been modified by another process. Please refresh and try again."
+      throw new ConvexError(
+        "Conflict: Session has been modified by another process. Please refresh and try again.",
+        { code: "VERSION_CONFLICT" },
       );
     }
 

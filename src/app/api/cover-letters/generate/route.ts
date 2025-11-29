@@ -17,8 +17,10 @@ type CoverLetter = Doc<'cover_letters'>
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
     const body = await request.json()
     const { jobDescription, companyName, position } = body as {
       jobDescription?: string
@@ -38,21 +40,21 @@ export async function POST(request: NextRequest) {
     let applications: Application[] = []
 
     try {
-      profile = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
+      profile = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token)
     } catch (error) {
       console.error('Failed to load career profile for letter generation', error)
     }
 
     // Fetch user's projects to demonstrate accomplishments
     try {
-      projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }) || []
+      projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token) || []
     } catch (error) {
       console.error('Failed to load projects for letter generation', error)
     }
 
     // Fetch recent applications to understand career trajectory
     try {
-      applications = await convexServer.query(api.applications.getUserApplications, { clerkId: userId }) || []
+      applications = await convexServer.query(api.applications.getUserApplications, { clerkId: userId }, token) || []
       // Get the 5 most recent applications
       applications = applications.slice(0, 5)
     } catch (error) {
@@ -252,7 +254,7 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
         content: generatedContent,
         closing: 'Sincerely,',
         source: 'ai_generated',
-      })
+      }, token)
     } catch {
       saveWarning = 'Cover letter generated but could not be saved.'
     }

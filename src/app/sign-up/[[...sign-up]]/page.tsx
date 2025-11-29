@@ -235,13 +235,17 @@ export default function Page() {
 
     // Prefer server-validated invite data when inviteToken is present
     if (inviteToken) {
+      const controller = new AbortController()
       (async () => {
         try {
-          const res = await fetch(`/api/university/verify-invite?token=${encodeURIComponent(inviteToken)}`);
+          const res = await fetch(`/api/university/verify-invite?token=${encodeURIComponent(inviteToken)}`, {
+            signal: controller.signal,
+          });
           if (!res.ok) {
             throw new Error('Failed to verify invite');
           }
           const data = await res.json();
+          if (controller.signal.aborted) return;
           if (data.valid) {
             setUniversityInvite({
               university: data.universityName || null,
@@ -253,12 +257,16 @@ export default function Page() {
           } else {
             // Invalid invite: do not prefill
             setUniversityInvite({ university: null, email: null });
+            setError('This invitation link is invalid or has expired.');
           }
         } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') return;
           console.error('Invite verification failed:', err);
           setUniversityInvite({ university: null, email: null });
+          setError('Unable to verify invitation. Please check your link or request a new invite.');
         }
       })();
+      return () => controller.abort();
     } else if (university || inviteEmail) {
       // Legacy path: fall back to sanitized client-side values when no token is provided
       const sanitizedUniversity = university

@@ -693,6 +693,7 @@ export const updateUser = mutation({
           v.literal("active"),
           v.literal("suspended"),
           v.literal("pending_activation"),
+          v.literal("deleted"),
         ),
       ),
       // Allow updating Stripe IDs via this mutation as well
@@ -733,6 +734,11 @@ export const updateUser = mutation({
     const roleChanged = args.updates.role && args.updates.role !== user.role;
     const oldRole = user.role;
     const newRole = args.updates.role;
+
+    // Only super_admin can change roles
+    if (newRole && actor.role !== "super_admin") {
+      throw new Error("Unauthorized: Only super_admin can change user roles");
+    }
 
     // Validate role-university invariant for role changes
     if (newRole) {
@@ -871,6 +877,7 @@ export const updateUserById = mutation({
           v.literal("active"),
           v.literal("suspended"),
           v.literal("pending_activation"),
+          v.literal("deleted"),
         ),
       ),
       university_admin_notes: v.optional(v.string()),
@@ -915,6 +922,11 @@ export const updateUserById = mutation({
     const roleChanged = args.updates.role && args.updates.role !== user.role;
     const oldRole = user.role;
     const newRole = args.updates.role;
+
+    // Only super_admin can change roles
+    if (newRole && !isSuperAdmin) {
+      throw new Error("Unauthorized: Only super_admin can change user roles");
+    }
 
     // Validate role-university invariant for role changes
     if (newRole) {

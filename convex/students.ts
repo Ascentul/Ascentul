@@ -72,7 +72,7 @@ function generateSecureToken(): string {
  * - If provided, must be between 0.0 and 4.0 (inclusive)
  * - Non-numeric values are rejected
  */
-function validateGPA(gpa: number | undefined): void {
+function validateGPA(gpa: number | null | undefined): void {
   if (gpa === undefined || gpa === null) {
     return; // GPA is optional
   }
@@ -738,8 +738,10 @@ export const acceptInvite = mutation({
         updated_at: now,
       });
     } else if (existingMembership.university_id !== invite.university_id) {
+      // Note: This case is already handled at line 629-631
       throw new Error("Student membership belongs to a different university");
-    } else if (existingMembership.status !== "active") {
+    }
+    if (existingMembership.status !== "active") {
       await ctx.db.patch(existingMembership._id, {
         status: "active",
         updated_at: now,
@@ -1537,17 +1539,7 @@ export const findStudentsAtInactiveUniversities = query({
 export const detectOrphanedProfiles = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!caller || caller.role !== "super_admin") {
-      throw new Error("Unauthorized: Super admin access required");
-    }
+    // Internal mutation - invoked via cron/admin flows; no auth check here.
 
     // Paginate users to avoid loading entire table
     const userMap = new Map<string, any>();

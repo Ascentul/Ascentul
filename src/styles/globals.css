@@ -162,6 +162,12 @@
     animation: slide-up 0.2s ease-out;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .animate-slide-up {
+      animation: none;
+    }
+  }
+
   /* Hide scrollbars but keep scroll functionality */
   .no-scrollbar {
     -ms-overflow-style: none;

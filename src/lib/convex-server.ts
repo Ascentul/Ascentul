@@ -54,7 +54,7 @@ export const convexServer = {
     args: FunctionArgs<Mutation>,
     token?: string | null
   ): Promise<FunctionReturnType<Mutation>> =>
-    fetchMutation(fn, args, token ? { token } : undefined) as Promise<FunctionReturnType<Mutation>>,
+    fetchMutation(fn, args, token ? { token } : undefined),
 
   /**
    * Execute a Convex action
@@ -67,7 +67,7 @@ export const convexServer = {
     args: FunctionArgs<Action>,
     token?: string | null
   ): Promise<FunctionReturnType<Action>> =>
-    fetchAction(fn, args, token ? { token } : undefined) as Promise<FunctionReturnType<Action>>,
+    fetchAction(fn, args, token ? { token } : undefined),
 
   /**
    * @deprecated setAuth is no longer used. Pass token directly to query/mutation/action calls.

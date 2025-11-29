@@ -4,8 +4,6 @@
 **Severity**: HIGH - Data exposure vulnerability
 **Status**: ✅ Fixed
 
----
-
 ## 🔒 Security Issue
 
 ### Vulnerability
@@ -87,6 +85,8 @@ const { storageId } = await response.json();
 // 3. Save to session with storage_id
 await ctx.db.patch(sessionId, {
   attachments: [
+await ctx.db.patch(sessionId, {
+  attachments: [
     ...(existingAttachments || []),
     {
       id: generateId(),
@@ -96,13 +96,8 @@ await ctx.db.patch(sessionId, {
       size: file.size,
     },
   ],
-
-
 });
-```
-
----
-
+ });
 ## 🔄 Migration Required
 
 ### For Existing Data

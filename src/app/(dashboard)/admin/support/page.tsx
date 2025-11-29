@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
@@ -42,7 +42,7 @@ export default function AdminSupportPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'open' | 'in_progress' | 'resolved' | 'closed'>('all')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
-  const [selectedTicket, setSelectedTicket] = useState<any>(null)
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -75,16 +75,11 @@ export default function AdminSupportPage() {
   const addResponse = useMutation(api.support_tickets.addTicketResponse)
   const deleteTicket = useMutation(api.support_tickets.deleteTicket)
 
-  // Sync selectedTicket with backend data when tickets array updates
-  // This ensures optimistic updates are replaced with actual backend data
-  useEffect(() => {
-    if (selectedTicket && tickets) {
-      const updatedTicket = tickets.find(t => t._id === selectedTicket._id)
-      if (updatedTicket) {
-        setSelectedTicket(updatedTicket)
-      }
-    }
-  }, [tickets, selectedTicket])
+  // Derive selected ticket from ID to avoid stale references/loops
+  const selectedTicket = useMemo(() => {
+    if (!selectedTicketId || !tickets) return null
+    return tickets.find((t) => t._id === selectedTicketId) ?? null
+  }, [selectedTicketId, tickets])
 
   // Filter tickets
   const filteredTickets = useMemo(() => {
@@ -174,7 +169,7 @@ export default function AdminSupportPage() {
 
     // Optimistic update - update UI immediately
     if (ticketSnapshot) {
-      setSelectedTicket({ ...ticketSnapshot, status: newStatus })
+      setSelectedTicketId(ticketId)
     }
 
     try {
@@ -192,7 +187,7 @@ export default function AdminSupportPage() {
     } catch (error: any) {
       // Rollback using the captured snapshot, not current selectedTicket
       if (ticketSnapshot) {
-        setSelectedTicket(ticketSnapshot)
+        setSelectedTicketId(ticketSnapshot._id)
       }
 
       toast({
@@ -249,7 +244,7 @@ export default function AdminSupportPage() {
       })
 
       setDetailDialogOpen(false)
-      setSelectedTicket(null)
+      setSelectedTicketId(null)
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -472,7 +467,7 @@ export default function AdminSupportPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          setSelectedTicket(ticket)
+                          setSelectedTicketId(ticket._id)
                           setDetailDialogOpen(true)
                         }}
                       >
