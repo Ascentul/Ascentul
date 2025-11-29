@@ -213,7 +213,12 @@ export function EnhancedSessionCard({
               className="h-7 text-xs gap-1"
               asChild
             >
-              <a href={session.meeting_url} target="_blank" rel="noopener noreferrer">
+              <a 
+                href={session.meeting_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                aria-label={`Join meeting with ${session.student_name}`}
+              >
                 <Video className="h-3 w-3" />
                 Join
               </a>

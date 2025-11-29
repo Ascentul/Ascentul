@@ -38,7 +38,7 @@ export const claimReview = mutation({
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new ConvexError('Unauthorized: Review not in your university', { code: 'UNAUTHORIZED' });
+      throw new ConvexError({ message: 'Unauthorized: Review not in your university', code: 'UNAUTHORIZED' });
     }
 
     // CRITICAL: Race condition prevention via optimistic concurrency control.

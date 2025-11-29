@@ -259,7 +259,7 @@ export const addSessionTask = mutation({
 
     await ctx.db.patch(args.sessionId, {
       tasks: updatedTasks,
-      version: (session.version || 1) + 1,
+      version: (session.version ?? 0) + 1,
       updated_at: Date.now(),
     });
 

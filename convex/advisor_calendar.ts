@@ -214,7 +214,7 @@ export const getCalendarStats = query({
       (s) => s.start_at > now
     ).length;
     const inProgressSessions = sessions.filter(
-      (s) => s.start_at <= now && (!s.end_at || s.end_at >= now)
+      (s) => s.status !== 'completed' && s.start_at <= now && (!s.end_at || s.end_at >= now)
     ).length;
     const overdueFollowUps = followUps.filter(
       (f) => f.due_at && f.due_at < now,

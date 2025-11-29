@@ -195,7 +195,11 @@ export async function POST(request: NextRequest) {
             clerkId: userData.id,
             updates,
             // Include membership data for university roles
-            // Type assertion needed for Convex client - server validates actual ID format
+            // Type assertion rationale: universityIdString is validated as non-empty string above (lines 138-141).
+            // The Convex mutation uses v.id("universities") validator which will reject malformed IDs at runtime.
+            // The catch block below (lines 204-216) handles these validation errors gracefully.
+            // This assertion is safe because: 1) we pre-check for non-empty string, 2) server validates format,
+            // 3) we catch and handle format errors with a 400 response.
             membership: membershipRole && universityIdString
               ? { role: membershipRole, universityId: universityIdString as Id<'universities'> }
               : undefined,

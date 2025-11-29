@@ -191,12 +191,25 @@ export async function canAccessStudent(
 /**
  * Get list of all student IDs that the advisor owns
  * Used for bulk filtering in list queries
+ *
+ * ⚠️ PERFORMANCE WARNING: For super_admin and university_admin roles, this
+ * collects ALL students without pagination. This is acceptable for:
+ * - Small to medium deployments (<1000 students per university)
+ * - Infrequent bulk operations
+ *
+ * For large-scale deployments, consider:
+ * - Adding cursor-based pagination to callers
+ * - Implementing streaming/chunked processing
+ * - Using Convex's Aggregate component for counts-only use cases
+ *
+ * Monitor query performance in production dashboards.
  */
 export async function getOwnedStudentIds(
   ctx: QueryCtx | MutationCtx,
   sessionCtx: AdvisorSessionContext,
 ): Promise<Id<"users">[]> {
   // Super admin can access all students (no tenant restriction)
+  // Note: Unbounded query - see function docs for performance considerations
   if (sessionCtx.role === "super_admin") {
     const students = await ctx.db
       .query("users")
@@ -208,6 +221,7 @@ export async function getOwnedStudentIds(
   const universityId = requireTenant(sessionCtx);
 
   // University admin can access all students in their university
+  // Note: Unbounded query - see function docs for performance considerations
   if (sessionCtx.role === "university_admin") {
     const students = await ctx.db
       .query("users")

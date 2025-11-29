@@ -316,24 +316,25 @@ export const getRiskOverview = query({
       days_inactive: number;
     }> = [];
 
+    // Batch load all recent sessions for low engagement check (avoids N+1 queries)
+    const allRecentSessions = await ctx.db
+      .query("advisor_sessions")
+      .withIndex("by_advisor", (q) =>
+        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
+      )
+      .filter((q) => q.gte(q.field("start_at"), lowEngagementCutoff))
+      .collect();
+
+    // Build set of students with recent sessions for O(1) lookup
+    const studentsWithRecentSessions = new Set<string>(
+      allRecentSessions.map((s) => s.student_id as string)
+    );
+
     for (const student of validStudents) {
       const lastLogin = student.last_login_at || 0;
+      const hasRecentSession = studentsWithRecentSessions.has(student._id as string);
 
-      // Check for recent sessions
-      const recentSession = await ctx.db
-        .query("advisor_sessions")
-        .withIndex("by_advisor", (q) =>
-          q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
-        )
-        .filter((q) =>
-          q.and(
-            q.eq(q.field("student_id"), student._id),
-            q.gte(q.field("start_at"), lowEngagementCutoff)
-          )
-        )
-        .first();
-
-      if (!recentSession && lastLogin < lowEngagementCutoff) {
+      if (!hasRecentSession && lastLogin < lowEngagementCutoff) {
         const daysInactive = lastLogin === 0
           ? CONFIG.LOW_ENGAGEMENT_DAYS + 1
           : Math.floor((now - lastLogin) / (24 * 60 * 60 * 1000));

@@ -460,6 +460,7 @@ export default defineSchema({
     // Ownership & creation tracking
     user_id: v.id('users'), // Primary user (student) this task relates to
     owner_id: v.id('users'), // Who is responsible for completing it (can be student or advisor)
+    created_by_id: v.optional(v.id('users')), // User who created this task (may differ from owner)
     created_by_type: v.union(v.literal('student'), v.literal('advisor'), v.literal('system'), v.literal('individual')),
 
     // Multi-tenancy support
@@ -533,7 +534,9 @@ export default defineSchema({
     .index('by_due_at', ['due_at'])
     .index('by_owner', ['owner_id'])
     .index('by_related_entity', ['related_type', 'related_id'])
-    .index('by_migrated_from', ['migrated_from_id']),
+    .index('by_migrated_from', ['migrated_from_id'])
+    .index('by_created_by', ['created_by_id'])
+    .index('by_user_university', ['user_id', 'university_id']),
 
   // =============================================================================
   // DEPRECATED: Legacy followup_actions table

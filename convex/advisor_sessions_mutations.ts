@@ -291,6 +291,15 @@ export const updateSession = mutation({
       studentId: session.student_id,
       previousValue: {
         version: session.version,
+        ...(args.title !== undefined && { title: session.title }),
+        ...(args.session_type !== undefined && { session_type: session.session_type }),
+        ...(args.start_at !== undefined && { start_at: session.start_at }),
+        ...(args.duration_minutes !== undefined && { duration_minutes: session.duration_minutes }),
+        ...(args.location !== undefined && { location: session.location }),
+        ...(args.meeting_url !== undefined && { meeting_url: session.meeting_url }),
+        ...(args.notes !== undefined && { notes: session.notes }),
+        ...(args.visibility !== undefined && { visibility: session.visibility }),
+        ...(args.status !== undefined && { status: session.status }),
       },
       newValue: {
         ...changedFields,

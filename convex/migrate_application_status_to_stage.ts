@@ -9,10 +9,15 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
+ * Application stage type matching the schema definition
+ */
+export type ApplicationStage = "Prospect" | "Applied" | "Interview" | "Offer" | "Accepted" | "Rejected" | "Withdrawn" | "Archived";
+
+/**
  * Map legacy status values to new stage values
  */
-export function mapStatusToStage(status: string): string {
-  const map: Record<string, string> = {
+export function mapStatusToStage(status: string): ApplicationStage {
+  const map: Record<string, ApplicationStage> = {
     saved: "Prospect",
     applied: "Applied",
     interview: "Interview",

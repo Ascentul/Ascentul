@@ -184,6 +184,14 @@ export function AdvancedFiltersPanel({
             onToggle={onToggleStage}
             variant="success"
           />
+
+          {/* Archived stage */}
+          <StageCheckbox
+            stage="Archived"
+            checked={filters.stages.includes('Archived')}
+            onToggle={onToggleStage}
+            variant="terminal"
+          />
         </div>
       </div>
 
