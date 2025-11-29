@@ -429,7 +429,7 @@ export default function AdminSettingsPage() {
                       Enable maintenance mode for all users
                     </p>
                   </div>
-                  {/* Accessible native checkbox for testing */}
+                  {/* Hidden native checkbox for testing - visually hidden but accessible */}
                   <input
                     id="general-maintenance-checkbox"
                     type="checkbox"
@@ -438,7 +438,7 @@ export default function AdminSettingsPage() {
                     onChange={(e) =>
                       setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))
                     }
-                    className="h-4 w-4 mr-2"
+                    className="sr-only"
                   />
                   <Switch
                     id="general-maintenance"
@@ -457,14 +457,16 @@ export default function AdminSettingsPage() {
                       Allow new user registrations
                     </p>
                   </div>
+                  {/* Hidden native checkbox for testing - visually hidden but accessible */}
                   <input
+                    id="general-registration-checkbox"
                     type="checkbox"
                     aria-label="Registration Enabled"
                     checked={systemSettings.registrationEnabled}
                     onChange={(e) =>
                       setSystemSettings(prev => ({ ...prev, registrationEnabled: e.target.checked }))
                     }
-                    className="h-4 w-4 mr-2"
+                    className="sr-only"
                   />
                   <Switch
                     id="general-registration"

@@ -264,21 +264,17 @@ export function ReviewEditor({
     // Save any unsaved changes first
     let versionToUse = currentVersion;
     if (hasUnsavedChanges) {
-      // isSaving is React state; avoid busy-waiting here and let saveChanges guard itself
-
-      if (hasUnsavedChanges) {
-        const saveResult = await saveChanges();
-        if (!saveResult.success) {
-          toast({
-            title: "Cannot complete",
-            description: "Please save your changes before completing",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (saveResult.version !== undefined) {
-          versionToUse = saveResult.version;
-        }
+      const saveResult = await saveChanges();
+      if (!saveResult.success) {
+        toast({
+          title: "Cannot complete",
+          description: "Please save your changes before completing",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (saveResult.version !== undefined) {
+        versionToUse = saveResult.version;
       }
     }
 

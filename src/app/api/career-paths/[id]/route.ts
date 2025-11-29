@@ -7,12 +7,12 @@ import { isValidConvexId } from '@/lib/convex-ids';
 
 export const runtime = 'nodejs'
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const { userId, token } = await requireConvexToken()
 
     // Validate ID format before mutation
-    const id = params.id
     if (!id || typeof id !== 'string' || id.trim() === '' || !isValidConvexId(id)) {
       return NextResponse.json({ error: 'Invalid career path ID' }, { status: 400 })
     }

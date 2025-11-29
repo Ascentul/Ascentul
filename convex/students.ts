@@ -168,7 +168,29 @@ async function rollbackInviteAcceptance(
     rollbackErrors.push(errMsg);
   }
 
-  // Rollback Step 4: Mark invite as pending again
+  // Rollback Step 4: Deactivate student membership (if created)
+  try {
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_role", (q) =>
+        q.eq("user_id", params.userId).eq("role", "student"),
+      )
+      .first();
+
+    if (membership) {
+      await ctx.db.patch(membership._id, {
+        status: "inactive",
+        updated_at: now,
+      });
+      console.log("[ROLLBACK] ✓ Student membership deactivated");
+    }
+  } catch (error) {
+    const errMsg = `Failed to adjust student membership for ${params.userId}: ${error}`;
+    console.error(`[ROLLBACK] ✗ ${errMsg}`);
+    rollbackErrors.push(errMsg);
+  }
+
+  // Rollback Step 5: Mark invite as pending again
   try {
     await ctx.db.patch(params.inviteId, {
       status: "pending",
@@ -753,15 +775,7 @@ export const acceptInvite = mutation({
       });
     }
 
-    // 11. Mark invite as accepted
-    await ctx.db.patch(invite._id, {
-      status: "accepted",
-      accepted_at: now,
-      accepted_by_user_id: user._id,
-      updated_at: now,
-    });
-
-    // 12. Increment university license usage
+    // 11. Increment university license usage
     const latestUniversity = await ctx.db.get(university._id);
     if (!latestUniversity) {
       throw new Error("University not found during license update");
@@ -772,7 +786,7 @@ export const acceptInvite = mutation({
       updated_at: now,
     });
 
-    // 13. Optimistic concurrency control: verify we didn't exceed capacity
+    // 12. Optimistic concurrency control: verify we didn't exceed capacity
     // This handles race conditions where multiple concurrent acceptances all passed
     // the initial capacity check (step 6a) before any increments occurred
     const updatedUniversity = await ctx.db.get(university._id);
@@ -806,6 +820,14 @@ export const acceptInvite = mutation({
         `contact your university administrator to increase capacity.`
       );
     }
+
+    // 13. Mark invite as accepted (after capacity verification)
+    await ctx.db.patch(invite._id, {
+      status: "accepted",
+      accepted_at: now,
+      accepted_by_user_id: user._id,
+      updated_at: now,
+    });
 
     return {
       success: true,

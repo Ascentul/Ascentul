@@ -120,12 +120,17 @@ if (followUpsCount > 0 && followUpsCount !== expectedCount) {
 
 ```
 ┌─────────┐
-│ (start) │
+│ (queue) │ ◄── Migration registered/scheduled
+└────┬────┘
+     │
+     ▼
+┌─────────┐
+│ pending │ ◄── Waiting to run (optional: for queued/scheduled migrations)
 └────┬────┘
      │
      ▼
 ┌────────────────┐
-│  in_progress   │ ◄── Migration starts
+│  in_progress   │ ◄── Migration actively running
 └────┬───────┬───┘
      │       │
      │       ├──► [error] ──► ┌─────────┐
@@ -142,14 +147,39 @@ if (followUpsCount > 0 && followUpsCount !== expectedCount) {
 └───────────┘
 ```
 
+**When to use "pending":**
+- Queued migrations waiting for a scheduled time
+- Migrations waiting for dependencies to complete
+- Batch migrations where multiple are registered but run sequentially
+
+**Immediate execution (skip "pending"):**
+For simple migrations that run immediately, you can skip the "pending" state and start directly with "in_progress".
+
 ### Record Creation (Start)
 
+**Option 1: Immediate execution (skip pending)**
 ```typescript
 const migrationStateId = await ctx.db.insert('migration_state', {
   migration_name: 'migrate_follow_ups_v1',
   status: 'in_progress',
   started_at: Date.now(),
   executed_by: 'manual', // or get from auth context
+});
+```
+
+**Option 2: Queued execution (use pending first)**
+```typescript
+// Step 1: Queue the migration
+const migrationStateId = await ctx.db.insert('migration_state', {
+  migration_name: 'migrate_follow_ups_v1',
+  status: 'pending',
+  started_at: Date.now(),
+  executed_by: 'scheduler',
+});
+
+// Step 2: When ready to execute, transition to in_progress
+await ctx.db.patch(migrationStateId, {
+  status: 'in_progress',
 });
 ```
 

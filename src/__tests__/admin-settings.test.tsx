@@ -125,11 +125,11 @@ describe('AdminSettingsPage - Settings Persistence', () => {
     fireEvent.click(generalTab)
 
     // Toggle maintenance mode
-    const maintenanceToggle = screen.getAllByLabelText(/maintenance mode/i)[0]
+    const maintenanceToggle = screen.getByLabelText(/maintenance mode/i)
     fireEvent.click(maintenanceToggle.closest('input')!)
 
     // Toggle signups
-    const signupsToggle = screen.getAllByLabelText(/registration enabled/i)[0]
+    const signupsToggle = screen.getByLabelText(/registration enabled/i)
     fireEvent.click(signupsToggle.closest('input')!)
 
     // Save settings

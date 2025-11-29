@@ -78,13 +78,6 @@ async function processUpgrade(params: {
 
   // Handle convexId path
   if (convexId) {
-    // Convex IDs are base64-like strings; let the mutation validate
-    if (!convexId || typeof convexId !== 'string' || convexId.trim().length === 0) {
-      return NextResponse.json({
-        error: 'Invalid convexId format',
-        convexId,
-      }, { status: 400 })
-    }
     try {
       await upgradeToPremiumByConvexId(convexId as Id<'users'>)
       return NextResponse.json({ success: true, convexId, plan: 'premium', status: 'active' }, { status: 200 })

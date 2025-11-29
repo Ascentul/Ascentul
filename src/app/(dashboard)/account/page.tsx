@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Link from "next/link";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 
@@ -315,8 +316,15 @@ export default function AccountPage() {
                       name="email"
                       type="email"
                       value={profileForm.email}
-                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      readOnly
+                      aria-readonly="true"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Sign-in email is managed by Clerk.{" "}
+                      <Button asChild variant="link" className="px-0 h-auto font-normal">
+                        <Link href="/user">Change sign-in email in Clerk</Link>
+                      </Button>
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="jobTitle">Job Title</Label>

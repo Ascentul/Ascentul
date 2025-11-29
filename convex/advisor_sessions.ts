@@ -305,7 +305,7 @@ export const completeSession = mutation({
       end_at: now,
       notes: args.finalNotes !== undefined ? args.finalNotes : session.notes,
       outcomes: args.outcomes !== undefined ? args.outcomes : session.outcomes,
-      version: (session.version || 1) + 1,
+      version: (session.version ?? 0) + 1,
       updated_at: now,
     });
 

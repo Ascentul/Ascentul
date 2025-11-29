@@ -81,66 +81,12 @@ echo ""
 echo "Step 1: Creating Clerk accounts..."
 echo "-----------------------------------"
 
-# Create student account in Clerk
-STUDENT_EMAIL="$STUDENT_EMAIL" ADVISOR_EMAIL="$ADVISOR_EMAIL" PASSWORD="$PASSWORD" node -e "
-const https = require('https');
-const studentEmail = process.env.STUDENT_EMAIL;
-const advisorEmail = process.env.ADVISOR_EMAIL;
-const password = process.env.PASSWORD;
-
-async function createClerkUser(email, role) {
-  const data = JSON.stringify({
-    email_address: [email],
-    password: password,
-    first_name: 'Test',
-    last_name: role === 'student' ? 'Student' : 'Advisor',
-    skip_password_checks: true,
-  });
-
-  return new Promise((resolve, reject) => {
-    const req = https.request({
-      hostname: 'api.clerk.com',
-      path: '/v1/users',
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + process.env.CLERK_SECRET_KEY,
-        'Content-Type': 'application/json',
-        'Content-Length': data.length
-      }
-    }, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        if (res.statusCode === 200 || res.statusCode === 201) {
-          const user = JSON.parse(body);
-          console.log('✓ Created Clerk user:', email, '(ID:', user.id + ')');
-          resolve(user);
-        } else if (res.statusCode === 422 || res.statusCode === 409) {
-          console.log('✓ User already exists:', email);
-          resolve(null);
-        } else if (res.statusCode === 401) {
-          reject(new Error('Authentication failed. Check CLERK_SECRET_KEY is correct.'));
-        } else {
-          reject(new Error('Clerk API error (HTTP ' + res.statusCode + '): ' + body));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.write(data);
-    req.end();
-  });
-}
-
-(async () => {
-  try {
-    await createClerkUser(studentEmail, 'student');
-    await createClerkUser(advisorEmail, 'advisor');
-  } catch (error) {
-    console.error('❌ Error creating Clerk users:', error.message);
-    process.exit(1);
-  }
-})();
-"
+# Create student and advisor accounts in Clerk using extracted utility
+STUDENT_EMAIL="$STUDENT_EMAIL" \
+ADVISOR_EMAIL="$ADVISOR_EMAIL" \
+PASSWORD="$PASSWORD" \
+CLERK_SECRET_KEY="$CLERK_SECRET_KEY" \
+node "$(dirname "$0")/utils/create-clerk-users.js"
 
 echo ""
 
@@ -148,127 +94,12 @@ echo ""
 echo "Step 2: Setting roles in Clerk..."
 echo "-----------------------------------"
 
-# Get user IDs and set metadata
-STUDENT_EMAIL="$STUDENT_EMAIL" ADVISOR_EMAIL="$ADVISOR_EMAIL" ADVISOR_UNIVERSITY_ID="$ADVISOR_UNIVERSITY_ID" node -e "
-const https = require('https');
-
-async function findUserByEmail(email) {
-  return new Promise((resolve, reject) => {
-    const req = https.request({
-      hostname: 'api.clerk.com',
-      path: '/v1/users?email_address=' + encodeURIComponent(email),
-      method: 'GET',
-      headers: {
-        'Authorization': 'Bearer ' + process.env.CLERK_SECRET_KEY,
-      }
-    }, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          const data = JSON.parse(body);
-          const users = Array.isArray(data) ? data : (data.data || []);
-          resolve(users[0]);
-        } else {
-          reject(new Error('Failed to find user'));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.end();
-  });
-}
-
-/**
- * Update Clerk metadata with role and university assignment.
- * Advisor role requires a university_id; student does not.
- */
-async function setMetadata(userId, metadata) {
-  if (!metadata || !metadata.role) {
-    throw new Error('Metadata with role is required');
-  }
-
-  if (metadata.role === 'advisor' && !metadata.university_id) {
-    throw new Error('Advisor role requires university_id (ADVISOR_UNIVERSITY_ID)');
-  }
-
-  const data = JSON.stringify({
-    public_metadata: {
-      role: metadata.role,
-      ...(metadata.university_id ? { university_id: metadata.university_id } : {}),
-    }
-  });
-
-  return new Promise((resolve, reject) => {
-    const req = https.request({
-      hostname: 'api.clerk.com',
-      path: '/v1/users/' + userId + '/metadata',
-      method: 'PATCH',
-      headers: {
-        'Authorization': 'Bearer ' + process.env.CLERK_SECRET_KEY,
-        'Content-Type': 'application/json',
-        'Content-Length': data.length
-      }
-    }, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          console.log('✓ Set role=' + metadata.role + ' for user', userId);
-          resolve();
-        } else if (res.statusCode === 401) {
-          reject(new Error('Authentication failed. Check CLERK_SECRET_KEY is correct.'));
-        } else {
-          reject(new Error('Clerk API error (HTTP ' + res.statusCode + '): ' + body));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.write(data);
-    req.end();
-  });
-}
-
-const studentEmail = process.env.STUDENT_EMAIL;
-const advisorEmail = process.env.ADVISOR_EMAIL;
-const advisorUniversityId = process.env.ADVISOR_UNIVERSITY_ID;
-
-if (!studentEmail) {
-  console.error('❌ Missing STUDENT_EMAIL environment variable.');
-  process.exit(1);
-}
-
-if (!advisorEmail) {
-  console.error('❌ Missing ADVISOR_EMAIL environment variable.');
-  process.exit(1);
-}
-
-if (!advisorUniversityId) {
-  console.error('❌ Missing ADVISOR_UNIVERSITY_ID environment variable. Advisor role requires university_id.');
-  process.exit(1);
-}
-
-(async () => {
-  try {
-    const student = await findUserByEmail(studentEmail);
-    if (student) {
-      await setMetadata(student.id, { role: 'student' });
-    } else {
-      console.log('⚠️  Warning: Student not found in Clerk, skipping role assignment');
-    }
-
-    const advisor = await findUserByEmail(advisorEmail);
-    if (advisor) {
-      await setMetadata(advisor.id, { role: 'advisor', university_id: advisorUniversityId });
-    } else {
-      console.log('⚠️  Warning: Advisor not found in Clerk, skipping role assignment');
-    }
-  } catch (error) {
-    console.error('❌ Error setting roles:', error.message);
-    process.exit(1);
-  }
-})();
-"
+# Set roles and metadata using extracted utility
+STUDENT_EMAIL="$STUDENT_EMAIL" \
+ADVISOR_EMAIL="$ADVISOR_EMAIL" \
+ADVISOR_UNIVERSITY_ID="$ADVISOR_UNIVERSITY_ID" \
+CLERK_SECRET_KEY="$CLERK_SECRET_KEY" \
+node "$(dirname "$0")/utils/set-clerk-roles.js"
 
 echo ""
 
@@ -278,15 +109,17 @@ echo "-----------------------------------"
 echo "⏳ Waiting for Clerk webhook to sync users to Convex..."
 
 # Poll for user existence in Convex (max 30 seconds)
+# We check the advisor account as a representative test of webhook functionality.
+# If the advisor syncs successfully, the webhook is working and the student should also sync.
 POLL_COUNT=0
 MAX_POLLS=30
-ADVISOR_SYNCED=false
+USERS_SYNCED=false
 
 while [ $POLL_COUNT -lt $MAX_POLLS ]; do
-  # Check if advisor exists in Convex via query
-  if npx convex run users:getUserByEmail "{\"email\": \"$ADVISOR_EMAIL\"}" 2>/dev/null | grep -q "\"email\""; then
+  # Check if advisor exists in Convex via query using jq for robust JSON parsing
+  if npx convex run users:getUserByEmail "{\"email\": \"$ADVISOR_EMAIL\"}" 2>/dev/null | jq -e '.email' > /dev/null 2>&1; then
     echo "✓ Users synced to Convex"
-    ADVISOR_SYNCED=true
+    USERS_SYNCED=true
     break
   fi
 
@@ -296,7 +129,7 @@ while [ $POLL_COUNT -lt $MAX_POLLS ]; do
 done
 echo ""
 
-if [ "$ADVISOR_SYNCED" = false ]; then
+if [ "$USERS_SYNCED" = false ]; then
   echo ""
   echo "⚠️  Warning: Users may not have synced to Convex yet (waited ${MAX_POLLS}s)"
   echo "   This can happen if:"

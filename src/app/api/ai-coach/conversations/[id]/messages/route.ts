@@ -5,7 +5,11 @@ import { Id } from 'convex/_generated/dataModel'
 import OpenAI from 'openai'
 import { ConvexHttpClient } from 'convex/browser'
 
-const createConvexClient = () => new (ConvexHttpClient as any)(process.env.NEXT_PUBLIC_CONVEX_URL as string)
+const createConvexClient = () => {
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!convexUrl) return null
+  return new (ConvexHttpClient as any)(convexUrl)
+}
 const normalizeRef = (ref: any) => (typeof ref === 'string' ? { _name: ref } : ref)
 const getMockOpenAIInstance = () => {
   const mockApi: any = (OpenAI as any).mock
@@ -39,11 +43,10 @@ export async function GET(
       return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 })
     }
 
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!convexUrl) {
+    const client: any = createConvexClient()
+    if (!client) {
       return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
     }
-    const client: any = new (ConvexHttpClient as any)(convexUrl)
 
     const messages = await client.query(
       normalizeRef((api.ai_coach as any).getMessages),
@@ -80,11 +83,10 @@ export async function POST(
       return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 })
     }
 
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!convexUrl) {
+    const client: any = createConvexClient()
+    if (!client) {
       return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
     }
-    const client: any = createConvexClient()
 
     // Get conversation history for context
     const existingMessages = await client.query(

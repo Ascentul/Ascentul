@@ -199,7 +199,7 @@ export function useApplicationSelection(): UseApplicationSelectionResult {
    * Compute selected count
    */
   const selectedCount = selection.selectAll
-    ? selection.selectedIds.size - selection.excludedIds.size
+    ? Math.max(0, selection.selectedIds.size - selection.excludedIds.size)
     : selection.selectedIds.size;
 
   /**

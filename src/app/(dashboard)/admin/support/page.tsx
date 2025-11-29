@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
@@ -80,6 +80,19 @@ export default function AdminSupportPage() {
     if (!selectedTicketId || !tickets) return null
     return tickets.find((t) => t._id === selectedTicketId) ?? null
   }, [selectedTicketId, tickets])
+
+  // Close dialog if selected ticket becomes unavailable (e.g., deleted by another process)
+  useEffect(() => {
+    if (detailDialogOpen && selectedTicketId && !selectedTicket) {
+      setDetailDialogOpen(false)
+      setSelectedTicketId(null)
+      toast({
+        title: 'Ticket unavailable',
+        description: 'The selected ticket is no longer available',
+        variant: 'destructive'
+      })
+    }
+  }, [detailDialogOpen, selectedTicketId, selectedTicket, toast])
 
   // Filter tickets
   const filteredTickets = useMemo(() => {

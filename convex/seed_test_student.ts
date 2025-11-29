@@ -24,13 +24,26 @@
 
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "convex/_generated/dataModel";
+
+type CreateTestStudentResult =
+  | { success: false; message: string }
+  | {
+      success: true;
+      studentId: Id<"users">;
+      advisorId: Id<"users">;
+      universityId: Id<"universities">;
+      resumeId?: Id<"resumes">;
+      applicationCount: number;
+      followUpCount: number;
+    };
 
 export const createTestStudent = internalMutation({
   args: {
     studentEmail: v.optional(v.string()),
     advisorEmail: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<CreateTestStudentResult> => {
     const now = Date.now();
 
     // Default emails

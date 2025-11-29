@@ -25,15 +25,10 @@ export default function UniversitySettingsPage() {
   const { toast } = useToast();
   const effectiveClerkId = clerkUser?.id || user?.clerkId;
 
-  // Convex API references - always call the hook unconditionally
-  const updateUniversitySettingsMutation = useMutation(
-    api.universities.updateUniversitySettings
-  );
-  
-  // Check availability separately if needed
-  const isUpdateAvailable = !!api.universities?.updateUniversitySettings;
+  // Convex mutations and queries - api is generated code, no optional chaining needed
+  const updateUniversitySettingsMutation = useMutation(api.universities.updateUniversitySettings);
   const universitySettings = useQuery(
-    api.universities?.getUniversitySettings,
+    api.universities.getUniversitySettings,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
 
@@ -73,15 +68,6 @@ export default function UniversitySettingsPage() {
       toast({
         title: "Error",
         description: "Unable to save settings. Please try refreshing the page.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!isUpdateAvailable) {
-      toast({
-        title: "Error",
-        description: "Settings update is not available. Please contact support.",
         variant: "destructive",
       });
       return;

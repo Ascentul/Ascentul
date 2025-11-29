@@ -35,6 +35,7 @@ interface SignUpFormProps {
   setFormUI: React.Dispatch<React.SetStateAction<FormUI>>
   error: string | null
   submitting: boolean
+  verifyingInvite?: boolean
   onSubmit: (e: React.FormEvent) => void
 }
 
@@ -45,6 +46,7 @@ function SignUpForm({
   setFormUI,
   error,
   submitting,
+  verifyingInvite = false,
   onSubmit,
 }: SignUpFormProps) {
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>(0)
@@ -593,6 +595,7 @@ export default function Page() {
                 setFormUI={setFormUI}
                 error={error}
                 submitting={submitting}
+                verifyingInvite={verifyingInvite}
                 onSubmit={onSubmitSignUp}
               />
 

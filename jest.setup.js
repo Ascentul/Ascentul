@@ -178,8 +178,29 @@ global.HTMLElement.prototype.scrollIntoView = jest.fn()
 // Mock Clerk server auth for API route tests
 jest.mock('@clerk/nextjs/server', () => ({
   auth: jest.fn().mockResolvedValue({
+    isAuthenticated: true,
     userId: 'test-user-id',
+    sessionId: 'test-session-id',
+    orgId: null,
+    orgRole: null,
+    orgSlug: null,
     getToken: jest.fn().mockResolvedValue('test-token'),
+    has: jest.fn().mockReturnValue(false),
+    protect: jest.fn().mockResolvedValue(undefined),
+    redirectToSignIn: jest.fn(),
+  }),
+  clerkClient: jest.fn().mockResolvedValue({
+    users: {
+      getUser: jest.fn().mockResolvedValue({ id: 'test-user-id' }),
+      getUserList: jest.fn().mockResolvedValue({ data: [] }),
+      updateUser: jest.fn().mockResolvedValue({}),
+      updateUserMetadata: jest.fn().mockResolvedValue({}),
+    },
+  }),
+  currentUser: jest.fn().mockResolvedValue({
+    id: 'test-user-id',
+    emailAddresses: [{ emailAddress: 'test@example.com' }],
+    publicMetadata: {},
   }),
 }))
 

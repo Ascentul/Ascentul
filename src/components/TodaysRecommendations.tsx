@@ -85,13 +85,20 @@ export function TodaysRecommendations() {
       removalTimeouts.current.forEach(timeout => clearTimeout(timeout))
       removalTimeouts.current.clear()
       setLocalRecommendations(prev => {
-        // Preserve local completions that haven't synced yet
         const prevMap = new Map(prev.map(r => [r.id, r]))
-        return recommendationsArray.map(rec => ({
-          ...rec,
-          completed: rec.completed || (prevMap.get(rec.id)?.completed ?? false),
-          completedAt: rec.completedAt || prevMap.get(rec.id)?.completedAt || null
-        }))
+        return recommendationsArray.map(rec => {
+          const prevRec = prevMap.get(rec.id)
+          const completed = rec.completed ?? prevRec?.completed ?? false
+          const completedAt =
+            rec.completedAt ??
+            (completed ? prevRec?.completedAt ?? null : null)
+
+          return {
+            ...rec,
+            completed,
+            completedAt,
+          }
+        })
       })
     }
   }, [recommendationsArray, recommendationsHash])

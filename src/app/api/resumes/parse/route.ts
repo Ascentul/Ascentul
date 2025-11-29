@@ -100,21 +100,21 @@ function fallbackParser(resumeText: string) {
       const description = remainingExp.substring(0, descEnd).trim()
 
       // Parse description into summary and keyContributions to match AI schema
-      const descriptionLines = description ? description.split(/\n/).filter(line => line.trim()) : []
+      // Trim lines upfront so bullet detection works for indented lines like "  • Contribution"
+      const descriptionLines = description ? description.split(/\n/).map(line => line.trim()).filter(line => line) : []
       const summaryLines: string[] = []
       const contributionLines: string[] = []
 
       for (const line of descriptionLines) {
         if (/^[•*\-]\s*/.test(line)) {
-          contributionLines.push(line.replace(/^[•*\-]\s*/, '').trim())
+          contributionLines.push(line.replace(/^[•*\-]\s*/, ''))
         } else if (contributionLines.length === 0) {
           // Lines before bullets are considered summary/overview
-          summaryLines.push(line.trim())
+          summaryLines.push(line)
         } else {
           // Non-bullet lines after bullets are continuation of previous contribution
-          const trimmed = line.trim()
-          if (trimmed.length > 0 && contributionLines.length > 0) {
-            contributionLines[contributionLines.length - 1] += ' ' + trimmed
+          if (line.length > 0 && contributionLines.length > 0) {
+            contributionLines[contributionLines.length - 1] += ' ' + line
           }
         }
       }

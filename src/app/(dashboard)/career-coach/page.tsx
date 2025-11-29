@@ -146,13 +146,6 @@ export default function AICoachPage() {
         });
       }
     },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to send message",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
   });
 
   const handleSendMessage = async () => {
@@ -166,7 +159,7 @@ export default function AICoachPage() {
       });
       setMessage("");
     } catch (error) {
-      // Ensure toast is shown even when mutateAsync rejects (mocks may skip onError)
+      // Error handling centralized here - no onError callback to avoid duplicate toasts
       toast({
         title: "Failed to send message",
         description: (error as any)?.message || "Please try again",

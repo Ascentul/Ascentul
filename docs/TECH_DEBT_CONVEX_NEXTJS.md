@@ -3,10 +3,10 @@
 ## Issue
 
 **Priority**: MEDIUM
-**Effort**: Medium (36 files affected)
+**Effort**: Medium (27 files remaining, 8 already migrated)
 **Risk**: LOW - Current implementation works but not following best practices
 **Impact**: Performance, Authentication, Best Practices
-**Status**: Phase 1 COMPLETE - All API routes consolidated to `convexServer`
+**Status**: Phase 2 IN PROGRESS - 8/35 routes migrated to `convex/nextjs`
 
 ## Migration Strategy
 
@@ -106,45 +106,51 @@ export function MyClientComponent({ preloadedData }: Props) {
 
 ## Files Requiring Migration
 
-### API Routes (36 files)
-All files currently importing from `@/lib/convex-server`:
+### Already Migrated to `convex/nextjs` ✅ (8 files)
+These files already use `fetchQuery`/`fetchMutation` from `convex/nextjs`:
 
-- `src/app/api/ai-coach/conversations/[id]/messages/route.ts`
-- `src/app/api/ai-coach/conversations/route.ts`
-- `src/app/api/ai-coach/generate-response/route.ts`
-- `src/app/api/debug/grant-pro/route.ts`
-- `src/app/api/clerk/webhook/route.ts`
-- `src/app/api/stripe/checkout/route.ts`
-- `src/app/api/stripe/portal/route.ts`
-- `src/app/api/university/export-reports/route.ts`
-- `src/app/api/university/sync-clerk-metadata/route.ts`
-- `src/app/api/university/assign-student/route.ts`
-- `src/app/api/university/export-data/route.ts`
-- `src/app/api/university/send-invitations/route.ts`
-- `src/app/api/admin/clerk-sync/route.ts`
-- `src/app/api/achievements/route.ts`
-- `src/app/api/achievements/user/route.ts`
+- `src/app/api/achievements/user/route.ts` ✅
+- `src/app/api/ai-coach/conversations/route.ts` ✅
+- `src/app/api/career-paths/generate/route.ts` ✅
+- `src/app/api/career-paths/route.ts` ✅
+- `src/app/api/career-paths/[id]/name/route.ts` ✅
+- `src/app/api/contacts/route.ts` ✅
+- `src/app/api/recommendations/daily/route.ts` ✅
+- `src/app/api/users/me/route.ts` ✅
+
+### Still Using `convexServer` - Pending Migration (27 files)
+These files still import from `@/lib/convex-server`:
+
 - `src/app/api/achievements/award/route.ts`
-- `src/app/api/users/me/route.ts`
-- `src/app/api/support/tickets/route.ts`
-- `src/app/api/recommendations/daily/route.ts`
+- `src/app/api/achievements/route.ts`
+- `src/app/api/admin/users/sync-role-to-convex/route.ts`
+- `src/app/api/admin/users/update-role/route.ts`
+- `src/app/api/ai-coach/generate-response/route.ts`
+- `src/app/api/career-data/profile/route.ts`
+- `src/app/api/career-path/generate-from-job/route.ts`
+- `src/app/api/career-path/generate/route.ts`
+- `src/app/api/career-paths/[id]/route.ts`
+- `src/app/api/clerk/webhook/route.ts`
+- `src/app/api/contacts/[id]/route.ts`
+- `src/app/api/cover-letters/analyze/route.ts`
+- `src/app/api/cover-letters/generate/route.ts`
+- `src/app/api/cover-letters/route.ts`
+- `src/app/api/debug/grant-pro/route.ts`
 - `src/app/api/goals/[id]/route.ts`
 - `src/app/api/goals/route.ts`
 - `src/app/api/projects/route.ts`
-- `src/app/api/cover-letters/route.ts`
-- `src/app/api/cover-letters/analyze/route.ts`
-- `src/app/api/cover-letters/generate/route.ts`
-- `src/app/api/contacts/[id]/route.ts`
-- `src/app/api/contacts/route.ts`
-- `src/app/api/career-paths/generate/route.ts`
-- `src/app/api/career-paths/route.ts`
-- `src/app/api/career-paths/[id]/name/route.ts`
-- `src/app/api/career-paths/[id]/route.ts`
-- `src/app/api/career-path/generate-from-job/route.ts`
-- `src/app/api/career-path/generate/route.ts`
-- `src/app/api/career-data/profile/route.ts`
-- `src/lib/convex-server.ts` (delete after migration)
-- `src/__tests__/ai-coach-api.test.ts`
+- `src/app/api/stripe/checkout/route.ts`
+- `src/app/api/stripe/portal/route.ts`
+- `src/app/api/support/tickets/route.ts`
+- `src/app/api/university/assign-student/route.ts`
+- `src/app/api/university/export-data/route.ts`
+- `src/app/api/university/export-reports/route.ts`
+- `src/app/api/university/send-invitations/route.ts`
+- `src/app/api/university/sync-clerk-metadata/route.ts`
+- `src/app/api/university/verify-invite/route.ts`
+
+### Files to Delete After Migration
+- `src/lib/convex-server.ts` (delete after all routes migrated)
 
 ## Migration Steps
 

@@ -14,9 +14,14 @@ import { convexServer } from '@/lib/convex-server';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
     }
 
     const body = await req.json();
@@ -30,19 +35,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the requester is a university admin
-export async function POST(req: NextRequest) {
-  try {
-    const { userId, getToken } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = await getToken({ template: 'convex' });
-    if (!token) {
-      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
-    }
-
-    // ... earlier code ...
-
     const adminUser = await convexServer.query(api.users.getUserByClerkId, {
       clerkId: userId,
     }, token);
