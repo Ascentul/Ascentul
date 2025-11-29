@@ -23,6 +23,7 @@ import type * as advisor_auth from "../advisor_auth.js";
 import type * as advisor_calendar from "../advisor_calendar.js";
 import type * as advisor_constants from "../advisor_constants.js";
 import type * as advisor_dashboard from "../advisor_dashboard.js";
+import type * as advisor_dashboard_v2 from "../advisor_dashboard_v2.js";
 import type * as advisor_follow_ups from "../advisor_follow_ups.js";
 import type * as advisor_reviews from "../advisor_reviews.js";
 import type * as advisor_reviews_mutations from "../advisor_reviews_mutations.js";
@@ -104,6 +105,7 @@ declare const fullApi: ApiFromModules<{
   advisor_calendar: typeof advisor_calendar;
   advisor_constants: typeof advisor_constants;
   advisor_dashboard: typeof advisor_dashboard;
+  advisor_dashboard_v2: typeof advisor_dashboard_v2;
   advisor_follow_ups: typeof advisor_follow_ups;
   advisor_reviews: typeof advisor_reviews;
   advisor_reviews_mutations: typeof advisor_reviews_mutations;

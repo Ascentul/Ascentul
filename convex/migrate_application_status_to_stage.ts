@@ -213,11 +213,8 @@ export const verifyMigration = internalQuery({
 
 /**
  * Get migration statistics
-    const statusCounts: Record<string, number> = {};
-    allApps.forEach(app => {
-      const status = app.status || 'undefined';
-      statusCounts[status] = (statusCounts[status] || 0) + 1;
-    });
+ */
+export const getMigrationStats = internalQuery({
   args: {},
   handler: async (ctx) => {
     const allApps = await ctx.db.query("applications").collect();
