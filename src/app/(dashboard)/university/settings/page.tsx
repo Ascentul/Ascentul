@@ -84,7 +84,6 @@ export default function UniversitySettingsPage() {
             website: settings.website,
             contact_email: settings.contactEmail,
             max_students: settings.maxStudents,
-            license_seats: settings.licenseSeats,
           },
         },
       );

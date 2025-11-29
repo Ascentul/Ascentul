@@ -375,7 +375,7 @@ export default function AICoachPage() {
                 <div className="max-w-4xl mx-auto">
                   <div className="flex gap-3">
                       <Textarea
-                      placeholder="Ask your AI career coach anything..."
+                      placeholder="Ask your AI career coach anything... (Press Enter to send, Shift+Enter for new line)"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       onKeyPress={handleKeyPress}

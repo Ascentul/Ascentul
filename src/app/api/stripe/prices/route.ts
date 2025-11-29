@@ -13,10 +13,8 @@ interface PricesResult {
 
 export async function GET() {
   try {
-  try {
     const secret = process.env.STRIPE_SECRET_KEY
     const stripeApiVersion = '2025-11-17.clover' as Stripe.StripeConfig['apiVersion']
-    if (!secret) {
     if (!secret) {
       // No Stripe configured; return empty so UI hides amounts gracefully
       return NextResponse.json({}, { status: 200 })

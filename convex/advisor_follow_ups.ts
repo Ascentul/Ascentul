@@ -35,7 +35,7 @@ export const completeFollowUp = mutation({
 
     const followUp = await ctx.db.get(args.followUpId);
     if (!followUp) {
-      throw new ConvexError("Follow-up not found", { code: "NOT_FOUND" });
+      throw new ConvexError({ message: "Follow-up not found", code: "NOT_FOUND" });
     }
 
     // Verify tenant isolation

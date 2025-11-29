@@ -96,7 +96,7 @@ function FollowUpRow({
                 {isToday(followUp.due_at)
                   ? 'Due today'
                   : isOverdue
-                    ? `Overdue ${formatDistanceToNow(followUp.due_at)}`
+                    ? `Overdue by ${formatDistanceToNow(followUp.due_at, { addSuffix: false })}`
                     : format(followUp.due_at, 'MMM d')}
               </span>
             </>

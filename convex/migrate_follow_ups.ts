@@ -207,11 +207,11 @@ export const migrateFollowUps = internalMutation({
 
       for (const action of page.page) {
         try {
-        // Skip if already migrated (idempotent re-run support for force=true)
-        if (migratedSet.has(action._id)) {
-          console.log(`Skipping followup_actions ${action._id} - already migrated`);
-          continue;
-        }
+          // Skip if already migrated (idempotent re-run support for force=true)
+          if (migratedSet.has(action._id)) {
+            console.log(`Skipping followup_actions ${action._id} - already migrated`);
+            continue;
+          }
 
         // Get user from batched lookup
         const user = userMap.get(action.user_id);
@@ -289,6 +289,9 @@ export const migrateFollowUps = internalMutation({
 
             // Migration tracking for idempotent re-runs
             migrated_from_id: action._id,
+
+            // Concurrency control
+            version: 1,
 
             // Timestamps
             created_at: action.created_at,

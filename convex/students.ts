@@ -532,6 +532,16 @@ export const acceptInvite = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    
+    // Verify authenticated identity matches the claimed clerkId
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    if (identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized: Clerk identity mismatch");
+    }
+    const now = Date.now();
 
     // 1. Find the invite by token
     const invite = await ctx.db

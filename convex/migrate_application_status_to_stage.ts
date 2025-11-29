@@ -61,7 +61,7 @@ export const migrateStatusToStage = internalMutation({
     let skipped = 0;
     const errors: string[] = [];
     // Paginate through applications to avoid loading all records into memory
-    let cursor: string | undefined = undefined;
+    let cursor: string | null = null;
     let isDone = false;
 
     while (!isDone) {

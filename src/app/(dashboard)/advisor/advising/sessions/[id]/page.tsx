@@ -111,7 +111,7 @@ export default function SessionDetailPage() {
 
 
 
-  const sessionDate = session.scheduled_at ?? session.start_at ?? Date.now();
+  const sessionDate = session.scheduled_at ?? session.start_at ?? null;
 
   return (
     <ErrorBoundary>
@@ -204,17 +204,21 @@ export default function SessionDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Date & Time */}
-                  <div className="flex items-start gap-3">
-                    <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">
-                        {format(new Date(sessionDate), 'EEEE, MMMM d, yyyy')}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(sessionDate), 'h:mm a')}
-                      </p>
+                  {sessionDate ? (
+                    <div className="flex items-start gap-3">
+                      <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">
+                          {format(new Date(sessionDate), 'EEEE, MMMM d, yyyy')}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(sessionDate), 'h:mm a')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Date not scheduled</p>
+                  )}
 
                   {/* Duration */}
                   <div className="flex items-start gap-3">

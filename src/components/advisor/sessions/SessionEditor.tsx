@@ -81,9 +81,11 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
   // Sync form when the session changes externally (id or version bump)
   useEffect(() => {
     if (hasUnsavedChanges && session.version !== currentVersion) {
-      console.warn(
-        'Session was updated externally while you were editing; local changes were reset.'
-      );
+      toast({
+        title: 'External update detected',
+        description: 'Your unsaved changes were reset to the latest version.',
+        variant: 'destructive',
+      });
     }
     setTitle(session.title);
     setSessionType(session.session_type);
@@ -97,7 +99,7 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
     setStatus(session.status || 'scheduled');
     setCurrentVersion(session.version);
     setHasUnsavedChanges(false);
-  }, [session._id, session.version]);
+  }, [session._id, session.version, hasUnsavedChanges, currentVersion, toast]);
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const formattedSessionStartAt = useMemo(() => {
