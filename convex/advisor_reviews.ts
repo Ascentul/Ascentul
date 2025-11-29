@@ -490,14 +490,18 @@ export const addComment = mutation({
 
     // Check version hasn't changed since we read the review
     const currentReview = await ctx.db.get(args.reviewId);
-    if (currentReview && currentReview.version !== review.version) {
+    if (!currentReview) {
+      throw new Error("Review was deleted. Please refresh and try again.");
+    }
+    // Use currentReview.version for the actual patch to ensure atomicity
+    if (currentReview.version !== review.version) {
       throw new Error("Review was modified by another user. Please refresh and try again.");
     }
 
     await ctx.db.patch(args.reviewId, {
       comments: updatedComments,
       updated_at: now,
-      version: (review.version ?? 0) + 1,
+      version: (currentReview.version ?? 0) + 1,
     });
 
     // Audit log for all comments (FERPA compliance)

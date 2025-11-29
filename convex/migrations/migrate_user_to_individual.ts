@@ -75,6 +75,8 @@ export const migrate = mutation({
           email: user.email,
           reason: "Has university_id but migrated to 'individual' - review if should be 'student'",
         });
+        results.skipped++;
+        continue; // Skip users with university_id - they need manual role assignment
       }
 
       // Update role to individual

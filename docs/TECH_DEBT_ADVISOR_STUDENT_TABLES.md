@@ -117,12 +117,17 @@ export const detectInconsistencies = query({
   - Migrate: `npx convex run migrations/consolidate_advisor_students:migrate`
 - [x] University admin module updated to use `student_advisors`
   - `university_admin.assignAdvisorToStudent` now uses `student_advisors`
-  - `universities_admin.hardDeleteUniversity` deletes from both tables
+  - `universities_admin.hardDeleteUniversity` deletes from both tables (cleanup)
 - [ ] `advisorStudents` table deprecated and removed
   - Table is now deprecated (see schema.ts comments)
   - Will be removed after migration is verified in production
-- [ ] All tests passing
-- [ ] No data loss verified
+- [ ] Run migration in production
+  - Run: `npx convex run migrations/consolidate_advisor_students:migrate`
+  - With deletion: `npx convex run migrations/consolidate_advisor_students:migrate '{"deleteAfterMigration": true}'`
+- [ ] Verify no data inconsistencies
+  - Run: `npx convex run migrations/consolidate_advisor_students:auditInconsistencies`
+  - Ensure `inAdvisorStudentsOnly` and `inStudentAdvisorsOnly` are empty
+- [ ] Remove `advisorStudents` table from schema after production verification
 
 ## References
 

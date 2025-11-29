@@ -19,6 +19,7 @@ import {
   assertCanAccessStudent,
   createAuditLog,
 } from "./advisor_auth";
+import { requireSuperAdmin } from "./lib/roles";
 import { ACTIVE_STAGES } from './advisor_constants';
 
 /**
@@ -661,11 +662,17 @@ export const removeStudentAdvisor = mutation({
  * This query identifies data integrity issues where a student has
  * more than one advisor marked as is_owner=true.
  *
+ * SECURITY: Requires super_admin role - exposes student-advisor relationships
+ *
  * Run: npx convex run advisor_students:findDuplicateOwners
  */
 export const findDuplicateOwners = query({
   args: {},
   handler: async (ctx) => {
+    // SECURITY: Only super_admin can run diagnostic queries
+    // This prevents information disclosure about student-advisor relationships
+    await requireSuperAdmin(ctx);
+
     // Get all ownership records
     const allOwnerRecords = await ctx.db
       .query("student_advisors")

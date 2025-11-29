@@ -1,5 +1,6 @@
 import { ConvexError, v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+import { buildApplicationRelationship } from './lib/followUpValidation';
 
 // Get all follow-ups for a user
 export const getUserFollowups = query({
@@ -108,9 +109,8 @@ export const createFollowup = mutation({
       university_id: user.university_id,
 
       // Relationships (dual-field pattern: populate both generic and typed fields)
-      related_type: 'application',
-      related_id: args.applicationId, // Generic field for polymorphic queries
-      application_id: args.applicationId, // Typed field for referential integrity
+      // Using helper to ensure consistency between generic and typed fields
+      ...buildApplicationRelationship(args.applicationId),
 
       // Task management
       due_at: args.due_at,

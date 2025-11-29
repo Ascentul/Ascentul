@@ -180,7 +180,7 @@ function SignUpForm({
         className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 active:bg-black/95 focus-visible:ring-2 focus-visible:ring-black/20 shadow-md hover:shadow-lg transition-all"
         disabled={submitting || verifyingInvite}
       >
-        {submitting ? 'Creating account...' : 'Create Account'}
+        {verifyingInvite ? 'Verifying invite...' : submitting ? 'Creating account...' : 'Create Account'}
       </Button>
 
       <p className="text-xs text-zinc-500 text-center">
@@ -334,7 +334,7 @@ export default function Page() {
       // This happens when user signs up via university invitation link (URL params)
       if (universityInvite.university) {
         // Ensure the email matches the verified invite email
-        if (universityInvite.email && formData.email.trim().toLowerCase() !== universityInvite.email.toLowerCase()) {
+        if (universityInvite.email && formData.email.trim().toLowerCase() !== universityInvite.email.trim().toLowerCase()) {
           setError('You must use the email address associated with the invitation.')
           return
         }

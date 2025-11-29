@@ -54,6 +54,7 @@ import type * as interviews from "../interviews.js";
 import type * as investor_metrics from "../investor_metrics.js";
 import type * as jobs from "../jobs.js";
 import type * as lib_followUpConstants from "../lib/followUpConstants.js";
+import type * as lib_followUpValidation from "../lib/followUpValidation.js";
 import type * as lib_roleValidation from "../lib/roleValidation.js";
 import type * as lib_roles from "../lib/roles.js";
 import type * as metrics from "../metrics.js";
@@ -140,6 +141,7 @@ declare const fullApi: ApiFromModules<{
   investor_metrics: typeof investor_metrics;
   jobs: typeof jobs;
   "lib/followUpConstants": typeof lib_followUpConstants;
+  "lib/followUpValidation": typeof lib_followUpValidation;
   "lib/roleValidation": typeof lib_roleValidation;
   "lib/roles": typeof lib_roles;
   metrics: typeof metrics;

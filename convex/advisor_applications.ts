@@ -19,6 +19,7 @@ import {
   createAuditLog,
 } from './advisor_auth';
 import { ALL_STAGES, ACTIVE_STAGES, STAGE_TRANSITIONS, isTerminalStage, requiresReasonCode } from './advisor_constants';
+import { mapStageToStatus } from './migrate_application_status_to_stage';
 
 /**
  * Enriched application with student information
@@ -449,9 +450,12 @@ export const updateApplicationStage = mutation({
     const now = Date.now();
 
     // Build update object
+    // MIGRATION FIX: Sync both stage and legacy status fields for data consistency
+    // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
     const updates: any = {
       stage: newStage,
       stage_set_at: now,
+      status: mapStageToStatus(newStage), // Keep legacy field in sync
       updated_at: now,
     };
 
@@ -684,9 +688,12 @@ export const bulkUpdateApplicationStage = mutation({
         }
 
         // Build update object
+        // MIGRATION FIX: Sync both stage and legacy status fields for data consistency
+        // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
         const updates: any = {
           stage: newStage,
           stage_set_at: now,
+          status: mapStageToStatus(newStage), // Keep legacy field in sync
           updated_at: now,
         };
 

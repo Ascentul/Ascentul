@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
+import { buildContactRelationship } from './lib/followUpValidation';
 
 // Get all follow-ups for a specific contact
 export const getContactFollowups = query({
@@ -101,9 +102,8 @@ export const createContactFollowup = mutation({
       university_id: user.university_id,
 
       // Relationships (dual-field pattern: populate both generic and typed fields)
-      related_type: 'contact',
-      related_id: args.contactId, // keep as typed ID for referential integrity
-      contact_id: args.contactId, // Typed field for referential integrity
+      // Using helper to ensure consistency between generic and typed fields
+      ...buildContactRelationship(args.contactId),
 
       // Task management
       due_at: args.due_at,

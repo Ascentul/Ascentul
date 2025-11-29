@@ -137,7 +137,9 @@ export default defineSchema({
     .index("by_department", ["department_id"])
     .index("by_role", ["role"])
     .index("by_account_status", ["account_status"])
-    .index("by_is_test_user", ["is_test_user"]),
+    .index("by_is_test_user", ["is_test_user"])
+    // SECURITY: Index for efficient activation token lookup (avoids full table scan)
+    .index("by_activation_token", ["activation_token"]),
 
   // Universities table for institutional licensing
   universities: defineTable({
@@ -223,7 +225,9 @@ export default defineSchema({
     updated_at: v.number(),
   })
     .index("by_user", ["user_id"])
-    .index("by_created_at", ["created_at"]),
+    .index("by_created_at", ["created_at"])
+    // SECURITY: Tenant-scoped index for university reporting
+    .index("by_university", ["university_id"]),
 
   // Cover letters table
   cover_letters: defineTable({
@@ -247,7 +251,9 @@ export default defineSchema({
     updated_at: v.number(),
   })
     .index("by_user", ["user_id"])
-    .index("by_created_at", ["created_at"]),
+    .index("by_created_at", ["created_at"])
+    // SECURITY: Tenant-scoped index for university reporting
+    .index("by_university", ["university_id"]),
 
   // Support tickets table
   support_tickets: defineTable({
@@ -358,7 +364,10 @@ export default defineSchema({
     ai_suggestions: v.optional(v.any()), // AI-generated suggestions (summary, skills)
     created_at: v.number(),
     updated_at: v.number(),
-  }).index("by_user", ["user_id"]),
+  })
+    .index("by_user", ["user_id"])
+    // SECURITY: Tenant-scoped index for university reporting
+    .index("by_university", ["university_id"]),
 
   // Applications table
   applications: defineTable({
@@ -448,7 +457,11 @@ export default defineSchema({
     .index("by_stage", ["stage"])
     .index("by_advisor", ["assigned_advisor_id"])
     .index("by_due_date", ["due_date"]) // For overdue/upcoming queries
-    .index("by_stage_due_date", ["stage", "due_date"]), // For active + overdue filtering
+    .index("by_stage_due_date", ["stage", "due_date"]) // For active + overdue filtering
+    // SECURITY: Tenant-scoped indexes for university reporting
+    .index("by_university", ["university_id"])
+    .index("by_university_stage", ["university_id", "stage"]) // University pipeline view
+    .index("by_university_status", ["university_id", "status"]), // Legacy university queries
 
   // Unified follow-ups table (replaces followup_actions and advisor_follow_ups)
   follow_ups: defineTable({
@@ -629,7 +642,9 @@ export default defineSchema({
     updated_at: v.number(),
   })
     .index("by_user", ["user_id"])
-    .index("by_company", ["company"]),
+    .index("by_company", ["company"])
+    // SECURITY: Tenant-scoped index for university reporting
+    .index("by_university", ["university_id"]),
 
   // Contact interactions table
   contact_interactions: defineTable({
@@ -675,7 +690,9 @@ export default defineSchema({
   })
     .index("by_user", ["user_id"])
     .index("by_status", ["status"])
-    .index("by_target_date", ["target_date"]),
+    .index("by_target_date", ["target_date"])
+    // SECURITY: Tenant-scoped index for university reporting
+    .index("by_university", ["university_id"]),
 
   // AI Coach conversations table
   ai_coach_conversations: defineTable({

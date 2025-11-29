@@ -160,17 +160,20 @@ export const getUserByActivationToken = query({
     token: v.string(),
   },
   handler: async (ctx, args) => {
-    // Find user by activation token
-    const users = await ctx.db.query("users").collect()
-    const user = users.find(u => u.activation_token === args.token)
+    // SECURITY FIX: Use index instead of full table scan
+    // This prevents O(n) queries as user count grows
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_activation_token", (q) => q.eq("activation_token", args.token))
+      .unique();
 
     if (!user) {
-      return null
+      return null;
     }
 
     // Check if token expired
     if (user.activation_expires_at && user.activation_expires_at < Date.now()) {
-      return null
+      return null;
     }
 
     // Return user data (excluding sensitive information)
@@ -182,7 +185,7 @@ export const getUserByActivationToken = query({
       university_id: user.university_id,
       account_status: user.account_status,
       temp_password: user.temp_password, // Needed for verification
-    }
+    };
   },
 })
 
@@ -480,6 +483,15 @@ export const _softDeleteUserInternal = internalMutation({
       timestamp: Date.now(),
       created_at: Date.now(),
     });
+
+    // FERPA/GDPR COMPLIANCE: Redact student PII from historical audit logs
+    // This ensures personally identifiable information is scrubbed from audit records
+    // when a user exercises their right to deletion while preserving non-PII audit trail
+    if (targetUser.role === "student" || targetUser.role === "individual") {
+      await ctx.scheduler.runAfter(0, internal.audit_logs.redactStudentPII, {
+        studentId: targetUser._id,
+      });
+    }
 
     return {
       success: true,
