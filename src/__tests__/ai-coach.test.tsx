@@ -25,11 +25,10 @@ jest.mock('@/contexts/ClerkAuthProvider', () => ({
   }),
 }))
 
-jest.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({
-    toast: jest.fn(),
-  }),
-}))
+jest.mock('@/hooks/use-toast', () => {
+  const useToast = jest.fn().mockReturnValue({ toast: jest.fn() })
+  return { __esModule: true, useToast }
+})
 
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>
 const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>

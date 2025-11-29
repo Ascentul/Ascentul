@@ -166,7 +166,11 @@ export default function AICoachPage() {
       });
       setMessage("");
     } catch (error) {
-      console.log("Message send error handled by mutation");
+      toast({
+        title: "Failed to send message",
+        description: "Please try again",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

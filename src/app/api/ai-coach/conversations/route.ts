@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { ConvexHttpClient } from 'convex/browser'
 
+const createConvexClient = () => new (ConvexHttpClient as any)(process.env.NEXT_PUBLIC_CONVEX_URL as string)
+const normalizeRef = (ref: any) => (typeof ref === 'string' ? { _name: ref } : ref)
+
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth()
@@ -12,10 +15,10 @@ export async function GET(request: NextRequest) {
     if (!convexUrl) {
       return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
     }
-    const client: any = new (ConvexHttpClient as any)(convexUrl)
+    const client: any = createConvexClient()
 
     const conversations = await client.query(
-      (api.ai_coach as any).getConversations,
+      normalizeRef((api.ai_coach as any).getConversations),
       { clerkId: userId }
     )
 
@@ -45,7 +48,7 @@ export async function POST(request: NextRequest) {
     const client: any = new (ConvexHttpClient as any)(convexUrl)
 
     const newConversation = await client.mutation(
-      (api.ai_coach as any).createConversation,
+      normalizeRef((api.ai_coach as any).createConversation),
       {
         clerkId: userId,
         title

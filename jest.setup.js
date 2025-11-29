@@ -49,8 +49,11 @@ jest.mock('@/hooks/use-toast', () => ({
 }))
 
 // Mock Convex
+const getName = (ref) => (typeof ref === 'string' ? ref : ref?._name || '')
+
 const mockUseQuery = jest.fn((name) => {
-  if (name === 'universities:getUniversitySettings') {
+  const key = getName(name)
+  if (key === 'universities:getUniversitySettings') {
     return {
       _id: 'uni-1',
       name: 'Test University',
@@ -62,32 +65,46 @@ const mockUseQuery = jest.fn((name) => {
       license_used: 10,
     }
   }
-  if (name === 'analytics:getUserDashboardAnalytics') {
+  if (key === 'analytics:getUserDashboardAnalytics') {
     return {
       totalStudents: 0,
       sessionsThisWeek: 0,
       progress: [],
     }
   }
-  if (name === 'ai_coach:getConversations') {
+  if (key === 'ai_coach:getConversations') {
     return [{ id: 'conversation-1', title: 'Test Conversation' }]
   }
-  if (name === 'ai_coach:getMessages') {
+  if (key === 'ai_coach:getMessages') {
     return []
   }
-  if (name === 'users:getUserByClerkId') {
+  if (key === 'users:getUserByClerkId') {
     return { _id: 'user-1', role: 'student', name: 'Test User' }
+  }
+  if (key === 'platform_settings:getPlatformSettings') {
+    return {
+      openai_model: 'gpt-4o-mini',
+      openai_temperature: 0.7,
+      openai_max_tokens: 4000,
+      maintenance_mode: false,
+      allow_signups: true,
+      default_user_role: 'user',
+    }
   }
   return undefined
 })
 const mockUseMutation = jest.fn((name) => {
-  if (name === 'avatar:generateAvatarUploadUrl') {
+  const key = getName(name)
+  if (key === 'avatar:generateAvatarUploadUrl') {
     return jest.fn(() => Promise.resolve('https://upload.example.com'))
   }
-  if (name === 'avatar:updateUserAvatar') {
+  if (key === 'avatar:updateUserAvatar') {
     return jest.fn(() => Promise.resolve({ success: true }))
   }
-  if (name === 'universities:updateUniversitySettings') {
+  if (key === 'universities:updateUniversitySettings') {
+    return jest.fn(() => Promise.resolve({ success: true }))
+  }
+  if (key === 'platform_settings:updatePlatformSettings') {
     return jest.fn(() => Promise.resolve({ success: true }))
   }
   return jest.fn(() => Promise.resolve({ success: true }))
@@ -110,24 +127,26 @@ jest.mock('convex/nextjs', () => ({
 
 // Mock Convex server helper used in API routes
 jest.mock('@/lib/convex-server', () => {
+  const getName = (ref) => (typeof ref === 'string' ? ref : ref?._name || '')
   const query = jest.fn((fn) => {
-    if (fn === 'ai_coach:getConversations') {
+    const key = getName(fn)
+    if (key === 'ai_coach:getConversations') {
       return Promise.resolve([
         { id: 'conversation-1', title: 'Test Conversation' },
         { id: 'test-conversation', title: 'Test Conversation' },
         { id: '123', title: 'Sample Conversation' },
       ])
     }
-    if (fn === 'ai_coach:getMessages') {
+    if (key === 'ai_coach:getMessages') {
       return Promise.resolve([{ id: 'message-1', text: 'Hi there', role: 'user' }])
     }
     if (
-      fn === 'users:getUserByClerkId' ||
-      fn === 'goals:getUserGoals' ||
-      fn === 'applications:getUserApplications' ||
-      fn === 'resumes:getUserResumes' ||
-      fn === 'cover_letters:getUserCoverLetters' ||
-      fn === 'projects:getUserProjects'
+      key === 'users:getUserByClerkId' ||
+      key === 'goals:getUserGoals' ||
+      key === 'applications:getUserApplications' ||
+      key === 'resumes:getUserResumes' ||
+      key === 'cover_letters:getUserCoverLetters' ||
+      key === 'projects:getUserProjects'
     ) {
       return Promise.resolve([])
     }
@@ -143,8 +162,10 @@ jest.mock('@/lib/convex-server', () => {
 // Mock Impersonation context to avoid provider errors in tests
 jest.mock('@/contexts/ImpersonationContext', () => ({
   useImpersonation: () => ({
-    isImpersonating: false,
-    impersonatedUser: null,
+    impersonation: {
+      isImpersonating: false,
+      impersonatedUser: null,
+    },
     getEffectiveRole: () => 'student',
     startImpersonation: jest.fn(),
     stopImpersonation: jest.fn(),

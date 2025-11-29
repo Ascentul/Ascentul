@@ -199,6 +199,9 @@ export default function DashboardPage() {
                 </p>
               </div>
             </header>
+            <div className="rounded-md border bg-white px-4 py-3">
+              <p className="font-medium">Quick Actions</p>
+            </div>
           </motion.div>
 
           {/* Row 1: Stats Overview - Removed Interview Rate card */}

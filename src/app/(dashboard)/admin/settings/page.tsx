@@ -149,7 +149,7 @@ export default function AdminSettingsPage() {
     sessionEncryption: true
   })
 
-  const [activeTab, setActiveTab] = useState('general')
+  const [activeTab, setActiveTab] = useState('ai')
   const [loading, setLoading] = useState(false)
 
   const role = user?.role
@@ -188,6 +188,8 @@ export default function AdminSettingsPage() {
           default_timezone: generalSettings.defaultTimezone,
           university_plan_limit: generalSettings.universityPlanLimit,
           premium_plan_limit: generalSettings.premiumPlanLimit,
+          maintenance_mode: systemSettings.maintenanceMode,
+          allow_signups: systemSettings.registrationEnabled,
         }
       } else if (settingsType === 'AI') {
         settingsToSave = {
@@ -237,11 +239,6 @@ export default function AdminSettingsPage() {
         title: "Settings saved",
         description: `${settingsType} settings have been updated successfully.`,
       })
-
-      // Reload page to fetch updated settings
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
     } catch (error) {
       toast({
         title: "Error",
@@ -274,6 +271,50 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="space-y-4 min-w-0">
+      <div className="rounded-md border p-3 grid gap-4 md:grid-cols-3">
+        <div className="space-y-2">
+          <Label htmlFor="model">Model</Label>
+          <Input
+            id="model"
+            aria-label="Model"
+            value={aiSettings.model}
+            onChange={(e) => setAiSettings((prev) => ({ ...prev, model: e.target.value }))}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
+          <input
+            id="maintenanceMode"
+            type="checkbox"
+            checked={systemSettings.maintenanceMode}
+            onChange={(e) =>
+              setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))
+            }
+            className="h-4 w-4 accent-primary"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="registrationEnabled">Registration Enabled</Label>
+          <input
+            id="registrationEnabled"
+            type="checkbox"
+            checked={systemSettings.registrationEnabled}
+            onChange={(e) =>
+              setSystemSettings(prev => ({ ...prev, registrationEnabled: e.target.checked }))
+            }
+            className="h-4 w-4 accent-primary"
+          />
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={() => handleSaveSettings('General')}>
+          Save General Settings
+        </Button>
+        <Button variant="secondary" onClick={() => handleSaveSettings('AI')}>
+          Save AI Settings
+        </Button>
+      </div>
+
       <div className="w-full min-w-0 rounded-3xl bg-white p-6 shadow-sm space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">
@@ -368,12 +409,6 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-end">
-                <Button onClick={() => handleSaveSettings('General')} disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                  Save Changes
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -435,8 +470,9 @@ export default function AdminSettingsPage() {
                     </div>
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Temperature ({aiSettings.temperature})</Label>
+                        <Label htmlFor="temperature">Temperature ({aiSettings.temperature})</Label>
                         <input
+                          id="temperature"
                           type="range"
                           min="0"
                           max="2"
@@ -486,12 +522,6 @@ export default function AdminSettingsPage() {
               )}
 
               <Separator />
-              <div className="flex justify-end">
-                <Button onClick={() => handleSaveSettings('AI')} disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                  Save AI Settings
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

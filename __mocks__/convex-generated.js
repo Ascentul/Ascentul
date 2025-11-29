@@ -45,5 +45,9 @@ module.exports = {
     cover_letters: {
       getUserCoverLetters: ref('cover_letters:getUserCoverLetters'),
     },
+    platform_settings: {
+      getPlatformSettings: ref('platform_settings:getPlatformSettings'),
+      updatePlatformSettings: ref('platform_settings:updatePlatformSettings'),
+    },
   },
 };
