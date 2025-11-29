@@ -109,29 +109,7 @@ export default function SessionDetailPage() {
     );
   }
 
-  if (!sessionId) {
-    return (
-      <ErrorBoundary>
-        <AdvisorGate requiredFlag="advisor.advising">
-          <div className="container mx-auto p-6">
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-              <Calendar className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h2 className="text-lg font-medium">Session not found</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                The session you're looking for doesn't exist or you don't have access to it.
-              </p>
-              <Button asChild>
-                <Link href="/advisor/advising/sessions">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Sessions
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </AdvisorGate>
-      </ErrorBoundary>
-    );
-  }
+
 
   const sessionDate = session.scheduled_at ?? session.start_at ?? Date.now();
 

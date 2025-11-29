@@ -5,18 +5,19 @@ import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 
 // GET /api/contacts/[id]
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!params.id || typeof params.id !== 'string' || !params.id.trim()) {
+  const { id } = await params
+  if (!id || typeof id !== 'string' || !id.trim()) {
     return NextResponse.json({ error: 'Invalid contact id' }, { status: 400 })
   }
 
   try {
     const contact = await convexServer.query(api.contacts.getContactById, { 
       clerkId: userId,
-      contactId: params.id as Id<'networking_contacts'>,
+      contactId: id as Id<'networking_contacts'>,
     })
     if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
     return NextResponse.json({ contact })
@@ -26,11 +27,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 // PUT /api/contacts/[id]
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!params.id || typeof params.id !== 'string' || !params.id.trim()) {
+  const { id } = await params
+  if (!id || typeof id !== 'string' || !id.trim()) {
     return NextResponse.json({ error: 'Invalid contact id' }, { status: 400 })
   }
 
@@ -40,7 +42,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     // Mutation now returns the updated contact directly - no need to refetch all contacts
     const contact = await convexServer.mutation(api.contacts.updateContact, {
       clerkId: userId,
-      contactId: params.id as Id<'networking_contacts'>,  // Convex will validate
+      contactId: id as Id<'networking_contacts'>,  // Convex will validate
       updates: {
         name: body.full_name ?? body.name,
         company: body.company,
@@ -61,16 +63,17 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 // DELETE /api/contacts/[id]
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!params.id || typeof params.id !== 'string' || !params.id.trim()) {
+  const { id } = await params
+  if (!id || typeof id !== 'string' || !id.trim()) {
     return NextResponse.json({ error: 'Invalid contact id' }, { status: 400 })
   }
 
   try {
-    await convexServer.mutation(api.contacts.deleteContact, { clerkId: userId, contactId: params.id as Id<'networking_contacts'> })
+    await convexServer.mutation(api.contacts.deleteContact, { clerkId: userId, contactId: id as Id<'networking_contacts'> })
     return NextResponse.json({ success: true })
   } catch (e: any) {
     return NextResponse.json({ error: 'Failed to delete contact' }, { status: 500 })

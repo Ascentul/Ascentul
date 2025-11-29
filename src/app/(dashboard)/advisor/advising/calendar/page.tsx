@@ -74,7 +74,7 @@ export default function AdvisorCalendarPage() {
     return sessions.map((s: SessionData) => ({
       ...s,
       session_type: s.session_type ?? 'general_advising',
-      duration_minutes: s.duration_minutes ?? 30,
+      duration_minutes: s.duration_minutes ?? 60,
       visibility: s.visibility ?? 'shared',
     }));
   }, [sessions]);

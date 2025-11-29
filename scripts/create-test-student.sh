@@ -18,6 +18,13 @@ echo "🚀 Creating Test Student Account for Advisor Testing"
 echo "===================================================="
 echo ""
 
+# Check for required commands
+if ! command -v jq &> /dev/null; then
+  echo "❌ Error: 'jq' command is required but not installed"
+  echo "Install with: brew install jq (macOS) or apt-get install jq (Linux)"
+  exit 1
+fi
+
 # Production safety check
 if [ "$NODE_ENV" = "production" ] || [ "$VERCEL_ENV" = "production" ]; then
   echo "❌ SECURITY ERROR: This script must not be run in production!"
