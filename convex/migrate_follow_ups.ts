@@ -370,19 +370,13 @@ export const migrateFollowUps = internalMutation({
           .map(r => [r._id, r] as const)
       );
 
-      // Batch migrated_from checks to avoid per-record queries
-      const migratedLookup = await Promise.all(
-        page.page.map(async (followUp) => {
-          const existing = await ctx.db
-            .query('follow_ups')
-            .withIndex('by_migrated_from', (q) => q.eq('migrated_from_id', followUp._id))
-            .first();
-          return { id: followUp._id, migrated: Boolean(existing) };
-        })
-      );
-      const alreadyMigratedIds = new Set(
-        migratedLookup.filter((m) => m.migrated).map((m) => m.id)
-      );
+      // Pre-fetch already migrated IDs for this batch (same approach as followup_actions)
+      const migratedFromThisBatch = await ctx.db
+        .query('follow_ups')
+        .withIndex('by_migrated_from')
+        .filter((q) => q.or(...page.page.map(f => q.eq(q.field('migrated_from_id'), f._id))))
+        .collect();
+      const alreadyMigratedIds = new Set(migratedFromThisBatch.map(m => m.migrated_from_id));
 
       for (const followUp of page.page) {
         try {

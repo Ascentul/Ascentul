@@ -44,12 +44,6 @@ interface UserContextData {
   projects: Project[],
 }
 
-/**
- * Builds a formatted context string from user data for AI coaching prompts.
- *
- * @param data - User profile and activity data
- * @returns Formatted context string ready for AI prompt injection
- */
 // Sanitize user-provided strings before injecting into prompts
 function sanitizeForPrompt(input: string, maxLength = 500): string {
   if (!input) return '';
@@ -67,6 +61,12 @@ function sanitizeForPrompt(input: string, maxLength = 500): string {
     .slice(0, maxLength);
 }
 
+/**
+ * Builds a formatted context string from user data for AI coaching prompts.
+ *
+ * @param data - User profile and activity data
+ * @returns Formatted context string ready for AI prompt injection
+ */
 export function buildUserContext(data: UserContextData): string {
   const contextParts: string[] = [];
 
@@ -86,7 +86,7 @@ export function buildUserContext(data: UserContextData): string {
   if (data.goals && data.goals.length > 0) {
     contextParts.push('\n--- CAREER GOALS ---');
     data.goals.slice(0, MAX_GOALS_IN_CONTEXT).forEach((goal, idx) => {
-      contextParts.push(`${idx + 1}. ${sanitizeForPrompt(goal.title, 200)} (Status: ${sanitizeForPrompt(goal.status || '', 80)})`);
+      contextParts.push(`${idx + 1}. ${sanitizeForPrompt(goal.title, 200)} (Status: ${sanitizeForPrompt(goal.status, 80)})`);
     });
   }
 
@@ -95,7 +95,7 @@ export function buildUserContext(data: UserContextData): string {
     contextParts.push('\n--- RECENT JOB APPLICATIONS ---');
     data.applications.slice(0, MAX_APPLICATIONS_IN_CONTEXT).forEach((app, idx) => {
       contextParts.push(
-        `${idx + 1}. ${sanitizeForPrompt(app.job_title, 200)} at ${sanitizeForPrompt(app.company, 200)} (Status: ${sanitizeForPrompt(app.status || '', 80)})`
+        `${idx + 1}. ${sanitizeForPrompt(app.job_title, 200)} at ${sanitizeForPrompt(app.company, 200)} (Status: ${sanitizeForPrompt(app.status, 80)})`
       );
     });
   }

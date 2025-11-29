@@ -326,14 +326,20 @@ If immediate migration isn't feasible:
        Applied: "applied",
        Interview: "interview",
        Offer: "offer",
-       Accepted: "offer", // Map to closest legacy value
+       Accepted: "offer", // Loses distinction between received vs accepted offer
        Rejected: "rejected",
-       Withdrawn: "rejected",
-       Archived: "saved",
+       Withdrawn: "rejected", // Loses student-driven withdrawal semantics
+       Archived: "saved", // Archives are indistinguishable from saved in legacy field
      };
      return map[stage] || "saved";
    }
    ```
+
+> ⚠️ Semantic loss: The legacy `status` field cannot represent all `stage` values precisely.  
+> - `Accepted` collapses to `offer` (no accepted vs received distinction)  
+> - `Withdrawn` collapses to `rejected` (student vs employer action is lost)  
+> - `Archived` collapses to `saved` (archives are no longer distinguishable)  
+> If we keep this mapping, document these gaps wherever surfaced, or consider preserving the original stage alongside status for audit/analytics.
 
 ## Migration Steps
 

@@ -11,8 +11,12 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = await getToken({ template: 'convex' })
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+    }
 
     const body = await request.json()
     const { query, conversationHistory = [] } = body
@@ -25,12 +29,12 @@ export async function POST(request: NextRequest) {
     let userContext = ''
     try {
       const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.all([
-        convexServer.query(api.users.getUserByClerkId, { clerkId: userId }) as Promise<any>,
-        convexServer.query(api.goals.getUserGoals, { clerkId: userId }) as Promise<any[]>,
-        convexServer.query(api.applications.getUserApplications, { clerkId: userId }) as Promise<any[]>,
-        convexServer.query(api.resumes.getUserResumes, { clerkId: userId }) as Promise<any[]>,
-        convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }) as Promise<any[]>,
-        convexServer.query(api.projects.getUserProjects, { clerkId: userId }) as Promise<any[]>
+        convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token) as Promise<any>,
+        convexServer.query(api.goals.getUserGoals, { clerkId: userId }, token) as Promise<any[]>,
+        convexServer.query(api.applications.getUserApplications, { clerkId: userId }, token) as Promise<any[]>,
+        convexServer.query(api.resumes.getUserResumes, { clerkId: userId }, token) as Promise<any[]>,
+        convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }, token) as Promise<any[]>,
+        convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token) as Promise<any[]>
       ])
 
       userContext = buildUserContext({

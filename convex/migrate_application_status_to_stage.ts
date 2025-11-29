@@ -68,7 +68,7 @@ export const migrateStatusToStage = internalMutation({
       const page = await ctx.db
         .query("applications")
         .order("asc")
-        .paginate({ cursor: cursor as any, numItems: 100 });
+        .paginate({ cursor, numItems: 100 });
 
       for (const app of page.page) {
         totalProcessed++;

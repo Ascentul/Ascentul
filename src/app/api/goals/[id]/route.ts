@@ -4,8 +4,8 @@ import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 
-// Convex IDs use Crockford base32hex (digits + a-hjkmnpqrstvwxyz; excludes i,l,o,u)
-const isValidId = (id: string) => /^[0-9a-hjkmnpqrstv-z]+$/i.test(id.trim());
+// Convex IDs use RFC 4648 base32hex (A-V, 0-9)
+const isValidId = (id: string) => /^[0-9A-V]+$/i.test(id.trim());
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -15,7 +15,12 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidId(goalIdParam)) {
       return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
     }
-    const body = await request.json().catch(() => ({} as any))
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
 
     const updates: any = {}
     if (typeof body.title === 'string') updates.title = body.title

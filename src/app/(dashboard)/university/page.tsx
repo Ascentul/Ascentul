@@ -153,10 +153,27 @@ export default function UniversityDashboardPage() {
     effectiveRole === 'university_admin' ||
     effectiveRole === 'super_admin';
 
-  if (authLoading || !clerkUser || !user || !hasAccess) {
+  if (authLoading || !clerkUser || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Unauthorized</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              You do not have access to the University Dashboard.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
