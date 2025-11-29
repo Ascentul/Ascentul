@@ -91,12 +91,13 @@ async function processUpgrade(params: {
     } catch (error) {
       console.error('Failed to upgrade by convexId:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      // Convex will throw for invalid ID formats - treat as bad request
+      // Check if it's a validation/not-found error vs server error
+      const isClientError = errorMessage.includes('not found') || errorMessage.includes('Invalid')
       return NextResponse.json({
         error: 'Failed to upgrade user by convexId',
         detail: errorMessage,
         convexId,
-      }, { status: 400 })
+      }, { status: isClientError ? 400 : 500 })
     }
   }
 

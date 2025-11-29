@@ -32,8 +32,10 @@ const CONFIG = {
   LOW_ENGAGEMENT_DAYS: 21, // Days without activity for low engagement risk
   STALLED_SEARCH_DAYS: 14, // Days without application status change
   WEEKLY_SESSION_SLOTS: 10, // Default available session slots per week
-  SENIOR_GRADUATION_YEAR: new Date().getFullYear().toString(), // Current year seniors
 };
+
+// Compute at query time to avoid stale values across year boundaries
+const getCurrentGraduationYear = () => new Date().getFullYear().toString();
 
 /**
  * Get "Needs Attention Today" metrics

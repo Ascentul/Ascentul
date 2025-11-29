@@ -235,11 +235,18 @@ export interface ApplicationSelection {
 /**
  * Empty selection state
  */
-export const EMPTY_SELECTION: ApplicationSelection = {
+export const createEmptySelection = (): ApplicationSelection => ({
   selectedIds: new Set(),
   selectAll: false,
   excludedIds: new Set(),
-};
+});
+
+// Keep for backward compat, but document immutability requirement
+export const EMPTY_SELECTION: Readonly<ApplicationSelection> = Object.freeze({
+  selectedIds: new Set(),
+  selectAll: false,
+  excludedIds: new Set(),
+});
 
 // ============================================================================
 // Statistics & Metrics

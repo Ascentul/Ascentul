@@ -88,7 +88,7 @@ export const createApplication = mutation({
       status: args.status,
       // MIGRATION: Sync stage field from status for data consistency
       // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
-      stage: mapStatusToStage(args.status) as any,
+      stage: mapStatusToStage(args.status),
       stage_set_at: now,
       source: args.source,
       url: args.url,

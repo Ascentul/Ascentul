@@ -32,6 +32,7 @@ export default function AdvisorAnalyticsPage() {
   const clerkId = clerkUser?.id;
 
   // Calculate date ranges
+  const now = new Date();
 
   const weekStart = startOfWeek(now, { weekStartsOn: 1 }).getTime();
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 }).getTime();
@@ -77,8 +78,6 @@ export default function AdvisorAnalyticsPage() {
     api.advisor_reviews_queries.getReviews,
     clerkId ? { clerkId } : 'skip'
   );
-
-  const now = new Date();
 
   // Build activity chart data (sessions per week for last 4 weeks)
   const activityData = useMemo(() => {
