@@ -21,6 +21,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const name = String(body?.name || '').trim()
     if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 })
 
+    // Validate ID format
+    if (!params.id || typeof params.id !== 'string') {
+      return NextResponse.json({ error: 'Invalid career path ID' }, { status: 400 })
+    }
+
     await fetchMutation(api.career_paths.updateCareerPathName, {
       clerkId: userId,
       id: params.id as Id<'career_paths'>,

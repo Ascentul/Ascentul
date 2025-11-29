@@ -129,6 +129,7 @@ export const createSession = mutation({
  */
 export const updateSession = mutation({
   args: {
+    clerkId: v.string(),
     session_id: v.id("advisor_sessions"),
     title: v.optional(v.string()),
     session_type: v.optional(sessionTypeValidator),
@@ -142,7 +143,7 @@ export const updateSession = mutation({
     version: v.number(), // For conflict detection
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx);
+    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 

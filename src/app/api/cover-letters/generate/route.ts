@@ -255,7 +255,8 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
         closing: 'Sincerely,',
         source: 'ai_generated',
       }, token)
-    } catch {
+    } catch (error) {
+      console.error('Failed to save cover letter:', error)
       saveWarning = 'Cover letter generated but could not be saved.'
     }
 

@@ -232,11 +232,7 @@ export const setupAdvisorTestData = internalMutation({
     }
 
     console.log("\n✅ Advisor test data setup complete!");
-    console.log("\nTest credentials:");
-    console.log("  Advisor: test.advisor@ascentful.io");
-    console.log("  Student 1: test.student1@ascentful.io");
-    console.log("  Student 2: test.student2@ascentful.io");
-    console.log("  (Passwords managed via secure configuration)");
+    console.log("\nTest accounts configured - see documentation for credentials.");
     console.log("\nUniversity:", university.name);
     console.log("Students assigned:", students.length);
 

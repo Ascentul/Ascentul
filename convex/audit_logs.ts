@@ -83,7 +83,11 @@ export const redactStudentPII = internalMutation({
           updates.new_value = redactJsonField(log.new_value);
         }
 
-        if (Object.keys(updates).length > 0) {
+        // Check if any field actually changed (not just present)
+        const hasChanges = Object.entries(updates).some(
+          ([key, value]) => value !== (log as any)[key]
+        );
+        if (hasChanges) {
           await ctx.db.patch(log._id, updates);
           redactedCount += 1;
         }
