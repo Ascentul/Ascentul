@@ -53,9 +53,13 @@ interface UserContextData {
 // Sanitize user-provided strings before injecting into prompts
 function sanitizeForPrompt(input: string, maxLength = 500): string {
   if (!input) return '';
-  return input
+  const normalized = input.normalize('NFKC');
+  // Remove control/format characters (incl. bidi/zero-width), then allowlist general text chars
+  const stripped = normalized.replace(/[\p{Cc}\p{Cf}]/gu, '');
+  const safe = stripped.match(/[\p{L}\p{N}\p{P}\p{S}\s]/gu)?.join('') ?? '';
+  return safe
     .replace(/---/g, '—') // Avoid forging section markers
-    .replace(/\r?\n/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength);
 }

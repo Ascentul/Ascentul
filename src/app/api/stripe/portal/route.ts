@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import Stripe from 'stripe'
 import { api } from 'convex/_generated/api'
 import { convexServer } from '@/lib/convex-server';
@@ -9,7 +9,7 @@ const stripeApiVersion = process.env.STRIPE_API_VERSION || '2025-11-17.clover'
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await getAuth(request)
+    const { userId } = await auth()
     const origin = request.headers.get('origin') || new URL(request.url).origin
 
     if (!userId) {
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       const customer = await stripe.customers.create({
         email: user.email,
         name: user.name,
-        metadata: { clerkId: user.clerkId },
+        metadata: { clerk_id: user.clerkId },
       })
       customerId = customer.id
       await convexServer.mutation(api.users.setStripeCustomer, { clerkId: user.clerkId, stripeCustomerId: customerId })

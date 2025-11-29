@@ -62,12 +62,21 @@ export function TodaysRecommendations() {
     [recommendations]
   )
 
-  // Sync local state when server data changes (by comparing IDs to avoid unnecessary updates)
-  const prevRecommendationIds = useRef<string>('')
+  // Sync local state when server data changes (compare hash to catch content updates)
+  const prevRecommendationsHash = useRef<string>('')
   useEffect(() => {
-    const newIds = recommendationsArray.map(r => r.id).sort().join(',')
-    if (newIds !== prevRecommendationIds.current) {
-      prevRecommendationIds.current = newIds
+    const newHash = JSON.stringify(
+      recommendationsArray.map(r => ({
+        id: r.id,
+        text: r.text,
+        completed: r.completed,
+        completedAt: r.completedAt,
+        relatedEntityId: r.relatedEntityId,
+        relatedEntityType: r.relatedEntityType,
+      }))
+    )
+    if (newHash !== prevRecommendationsHash.current) {
+      prevRecommendationsHash.current = newHash
       removalTimeouts.current.forEach(timeout => clearTimeout(timeout))
       removalTimeouts.current.clear()
       setLocalRecommendations(recommendationsArray.map(rec => ({ ...rec })))

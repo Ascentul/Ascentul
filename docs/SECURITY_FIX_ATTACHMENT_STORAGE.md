@@ -1,5 +1,7 @@
-# Security Fix: Attachment Storage Access Control
-
+# Security Fix: Attachment Storage Access Control       size: file.size,
+     },
+   ],
+ });
 **Date**: 2025-11-16
 **Severity**: HIGH - Data exposure vulnerability
 **Status**: ✅ Fixed
@@ -163,6 +165,10 @@ export const migrateAttachmentUrlsToStorage = internalMutation({
 // advisor_sessions already has university_id for tenant isolation
 // Access control pattern:
 export const getSessionAttachment = query({
+  args: {
+    sessionId: v.id("advisor_sessions"),
+    attachmentId: v.string(),
+  },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     const session = await ctx.db.get(args.sessionId);
