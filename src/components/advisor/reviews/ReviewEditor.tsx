@@ -19,7 +19,6 @@ import {
   User,
   Clock,
   CheckCircle,
-  XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Id } from "convex/_generated/dataModel";

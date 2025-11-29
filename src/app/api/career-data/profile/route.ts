@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!user) {
-      console.error('User not found in Convex:', { clerkId: userId })
+      console.error('User not found in Convex for authenticated user')
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
     }
 

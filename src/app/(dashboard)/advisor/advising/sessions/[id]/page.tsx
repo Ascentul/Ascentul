@@ -48,12 +48,36 @@ export default function SessionDetailPage() {
   const router = useRouter();
   const { user: clerkUser } = useUser();
 
-  const sessionId = params.id as string;
+  const sessionId = Array.isArray(params.id) ? params.id[0] : params.id;
+  if (!sessionId) {
+    return (
+      <ErrorBoundary>
+        <AdvisorGate requiredFlag="advisor.advising">
+          <div className="container mx-auto p-6">
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <Calendar className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <h2 className="text-lg font-medium">Session not found</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                The session you're looking for doesn't exist or you don't have access to it.
+              </p>
+              <Button asChild>
+                <Link href="/advisor/advising/sessions">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Sessions
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </AdvisorGate>
+      </ErrorBoundary>
+    );
+  }
+  const isValidSessionId = /^[0-9a-v]+$/i.test(sessionId.trim());
 
   // Fetch session details
   const session = useQuery(
     api.advisor_sessions.getSessionById,
-    clerkUser?.id && sessionId
+    clerkUser?.id && sessionId && isValidSessionId
       ? { clerkId: clerkUser.id, sessionId: sessionId as Id<'advisor_sessions'> }
       : 'skip'
   );
@@ -67,7 +91,7 @@ export default function SessionDetailPage() {
   // Find student in caseload
   const student = caseload?.find((s) => s._id === session?.student_id);
 
-  const isLoading = session === undefined;
+  const isLoading = session === undefined || caseload === undefined;
 
   if (isLoading) {
     return (

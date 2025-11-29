@@ -81,6 +81,13 @@ export default function AICoachPage() {
     enabled: !!selectedConversationId && !!user?.clerkId,
   });
 
+  // Auto-select the most recent conversation when list loads
+  useEffect(() => {
+    if (!selectedConversationId && Array.isArray(conversations) && conversations.length > 0) {
+      setSelectedConversationId(conversations[0].id);
+    }
+  }, [conversations, selectedConversationId]);
+
   // Auto-scroll when messages change
   useEffect(() => {
     scrollToBottom();
@@ -367,8 +374,8 @@ export default function AICoachPage() {
               <div className="p-4 border-t bg-gray-50">
                 <div className="max-w-4xl mx-auto">
                   <div className="flex gap-3">
-                    <Textarea
-                      placeholder="Ask your AI career coach anything... (Press Enter to send, Shift+Enter for new line)"
+                      <Textarea
+                      placeholder="Ask your AI career coach anything..."
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       onKeyPress={handleKeyPress}

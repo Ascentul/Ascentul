@@ -221,8 +221,9 @@ export function ApplicationKanban({
                                     rel="noopener noreferrer"
                                     aria-label={`Open application for ${app.company_name} in new tab`}
                                   >
-                                    <Button variant="ghost" size="sm">
+                                  <Button variant="ghost" size="sm">
                                       <ExternalLink className="h-4 w-4" />
+                                      <span className="sr-only">Open application</span>
                                     </Button>
                                   </a>
                                 )}

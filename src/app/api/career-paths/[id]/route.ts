@@ -27,7 +27,9 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to delete career path'
       console.error('Delete career path error:', err)
-      return NextResponse.json({ error: message }, { status: 400 })
+      const lower = message.toLowerCase()
+      const isClientError = lower.includes('not found') || lower.includes('unauthorized')
+      return NextResponse.json({ error: message }, { status: isClientError ? 400 : 500 })
     }
 
     return NextResponse.json({ ok: true })

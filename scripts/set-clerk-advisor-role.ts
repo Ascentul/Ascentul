@@ -12,6 +12,15 @@
 
 import 'dotenv/config';
 
+class ClerkApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = 'ClerkApiError';
+  }
+}
+
 const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
 const CLERK_API_URL = 'https://api.clerk.com/v1';
 
@@ -34,7 +43,7 @@ async function clerkFetch<T>(endpoint: string, options: RequestInit = {}): Promi
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Clerk API error (${response.status}): ${errorText}`);
+    throw new ClerkApiError(response.status, `Clerk API error (${response.status}): ${errorText}`);
   }
 
   return response.json();
@@ -104,8 +113,7 @@ async function setAdvisorRole(email: string, universityId: string) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`❌ Error: ${message}`);
 
-    // Check if error message indicates 401
-    if (message.includes('(401)')) {
+    if (error instanceof ClerkApiError && error.status === 401) {
       console.log('\nPlease ensure CLERK_SECRET_KEY is set in your .env.local file');
     }
     process.exit(1);

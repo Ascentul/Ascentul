@@ -219,6 +219,9 @@ export const _completeReviewInternal = internalMutation({
     if (!student) {
       throw new Error('Student record not found');
     }
+    if (!student.email) {
+      throw new Error('Student email not found - cannot send notification');
+    }
 
     const now = Date.now();
 

@@ -27,6 +27,25 @@ import { internalMutation, internalQuery } from './_generated/server';
 import { v } from 'convex/values';
 import { Id } from './_generated/dataModel';
 
+async function countWithPagination(ctx: any, tableName: string): Promise<number> {
+  let count = 0;
+  let cursor: string | null = null;
+  let isDone = false;
+
+  while (!isDone) {
+    const page: any = await ctx.db
+      .query(tableName)
+      .order('asc')
+      .paginate({ cursor, numItems: 1000 });
+
+    count += page.page.length;
+    cursor = page.continueCursor;
+    isDone = page.isDone;
+  }
+
+  return count;
+}
+
 export const migrateFollowUps = internalMutation({
   args: {
     dryRun: v.optional(v.boolean()), // Set to true to preview changes without committing
@@ -171,12 +190,15 @@ export const migrateFollowUps = internalMutation({
       );
 
       // Pre-fetch already migrated IDs for this batch to avoid N+1 queries
-      const migratedFromThisBatch = await ctx.db
-        .query('follow_ups')
-        .withIndex('by_migrated_from')
-        .filter((q) => q.or(...page.page.map(a => q.eq(q.field('migrated_from_id'), a._id))))
-        .collect();
-      const migratedSet = new Set(migratedFromThisBatch.map(m => m.migrated_from_id));
+      let migratedSet = new Set<string>();
+      if (page.page.length > 0) {
+        const migratedFromThisBatch = await ctx.db
+          .query('follow_ups')
+          .withIndex('by_migrated_from')
+          .filter((q) => q.or(...page.page.map(a => q.eq(q.field('migrated_from_id'), a._id))))
+          .collect();
+        migratedSet = new Set(migratedFromThisBatch.map(m => m.migrated_from_id));
+      }
 
       for (const action of page.page) {
         try {
@@ -541,16 +563,16 @@ export const verifyMigration = internalQuery({
   handler: async (ctx, args) => {
     const sampleSize = args.sampleSize ?? 100;
 
-    // Count checks using collect() - Convex doesn't allow multiple paginated queries
-    const [followupActions, advisorFollowUps, followUps] = await Promise.all([
-      ctx.db.query('followup_actions').collect(),
-      ctx.db.query('advisor_follow_ups').collect(),
-      ctx.db.query('follow_ups').collect(),
+    // Count checks using pagination to avoid loading full tables into memory
+    const [
+      followupActionsCount,
+      advisorFollowUpsCount,
+      followUpsCount,
+    ] = await Promise.all([
+      countWithPagination(ctx, 'followup_actions'),
+      countWithPagination(ctx, 'advisor_follow_ups'),
+      countWithPagination(ctx, 'follow_ups'),
     ]);
-
-    const followupActionsCount = followupActions.length;
-    const advisorFollowUpsCount = advisorFollowUps.length;
-    const followUpsCount = followUps.length;
 
     const expected = followupActionsCount + advisorFollowUpsCount;
     const actual = followUpsCount;

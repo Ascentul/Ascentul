@@ -97,6 +97,27 @@ async function requireSuperAdminUser(ctx: any, providedClerkId?: string) {
   return user;
 }
 
+// MIGRATION: Using stage with status fallback for consistency
+// See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
+function stageFromStatus(status?: string) {
+  switch (status) {
+    case 'offer':
+      return 'Offer';
+    case 'applied':
+      return 'Applied';
+    case 'interview':
+      return 'Interview';
+    case 'rejected':
+      return 'Rejected';
+    case 'saved':
+      return 'Prospect';
+    case 'accepted':
+      return 'Accepted';
+    default:
+      return undefined;
+  }
+}
+
 // ============================================================================
 // Queries
 // ============================================================================
@@ -1083,18 +1104,20 @@ export const getUserDashboardAnalytics = query({
 
       // MIGRATION: Using stage instead of status
       if (
-        app.stage && app.stage !== "Prospect" &&
+        (app.stage || app.status) &&
+        (app.stage ? app.stage !== "Prospect" : app.status !== "saved") &&
         app.updated_at &&
         app.updated_at !== app.created_at
       ) {
+        const effectiveStage = app.stage || stageFromStatus(app.status as any);
         const stageText =
-          app.stage === "Applied"
+          effectiveStage === "Applied"
             ? "Applied to"
-            : app.stage === "Interview"
+            : effectiveStage === "Interview"
               ? "Moved to interviews for"
-              : app.stage === "Offer" || app.stage === "Accepted"
+              : effectiveStage === "Offer" || effectiveStage === "Accepted"
                 ? "Received an offer from"
-                : app.stage === "Rejected" || app.stage === "Withdrawn"
+                : effectiveStage === "Rejected" || effectiveStage === "Withdrawn"
                   ? "Closed application for"
                   : "Updated application for";
 
@@ -1664,28 +1687,6 @@ export const getSingleUniversityAnalytics = query({
       ...uniGoals.map(g => g.user_id),
       ...uniProjects.map(p => p.user_id),
     ]);
-
-    // Calculate success metrics
-    // MIGRATION: Using stage with status fallback for consistency
-    // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
-    const stageFromStatus = (status?: string) => {
-      switch (status) {
-        case 'offer':
-          return 'Offer';
-        case 'applied':
-          return 'Applied';
-        case 'interview':
-          return 'Interview';
-        case 'rejected':
-          return 'Rejected';
-        case 'saved':
-          return 'Prospect';
-        case 'accepted':
-          return 'Accepted';
-        default:
-          return undefined;
-      }
-    };
 
     const totalApplications = uniApps.length;
     const interviewsScheduled = uniInterviews.filter(i =>

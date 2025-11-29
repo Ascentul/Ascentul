@@ -60,12 +60,12 @@ attachments: v.optional(
 
 **Benefits**:
 - ✅ Access control enforced at URL generation time via Convex permissions (note: once a URL is issued, it can be accessed by anyone who possesses it until expiration—no per-request re-validation)
-- ✅ Secure URLs generated on-demand with short expiration
+- ✅ Access is time-limited only if you use expiring URLs (e.g., generateDownloadUrl). `getUrl()` produces bearer URLs that remain valid until the file is removed.
 - ✅ Can revoke future access by changing permissions (existing URLs remain valid until expiration)
 - ✅ Audit trail for file access at URL generation time
 - ✅ Tenant isolation (university-based)
 
-> **Note**: For per-request access control, implement a custom HTTP action that validates permissions on each request before serving file content.
+> **Note**: For per-request access control, implement a custom HTTP action that validates permissions on each request before serving file content. Existing presigned URLs remain valid until they expire (or indefinitely if using `getUrl()`).
 
 ---
 

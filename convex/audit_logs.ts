@@ -384,8 +384,17 @@ export const getAuditLogStats = query({
       total: filteredLogs.length,
       byAction: actionCounts,
       dateRange: {
-        start: args.startDate || (filteredLogs.length > 0 ? filteredLogs[filteredLogs.length - 1].timestamp : undefined),
-        end: args.endDate || (filteredLogs.length > 0 ? filteredLogs[0].timestamp : undefined),
+        start:
+          args.startDate ||
+          (filteredLogs.length > 0
+            ? filteredLogs[filteredLogs.length - 1].timestamp ??
+              filteredLogs[filteredLogs.length - 1].created_at
+            : undefined),
+        end:
+          args.endDate ||
+          (filteredLogs.length > 0
+            ? filteredLogs[0].timestamp ?? filteredLogs[0].created_at
+            : undefined),
       },
     }
   },

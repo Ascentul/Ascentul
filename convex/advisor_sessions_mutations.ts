@@ -369,6 +369,11 @@ export const cancelSession = mutation({
       throw new Error("Unauthorized: Session not in your university");
     }
 
+    // Only allow cancelling scheduled sessions
+    if (session.status !== "scheduled") {
+      throw new Error(`Cannot cancel session with status: ${session.status}`);
+    }
+
     await ctx.db.patch(args.session_id, {
       status: "cancelled",
       notes: args.reason

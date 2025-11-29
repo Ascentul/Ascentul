@@ -78,10 +78,11 @@ export default function AdvisorAnalyticsPage() {
     clerkId ? { clerkId } : 'skip'
   );
 
+  const now = new Date();
+
   // Build activity chart data (sessions per week for last 4 weeks)
   const activityData = useMemo(() => {
     if (!activitySessions) return [];
-    const now = new Date();
 
     const weekBuckets: { date: string; count: number }[] = [];
 
@@ -102,7 +103,7 @@ export default function AdvisorAnalyticsPage() {
     }
 
     return weekBuckets;
-  }, [activitySessions]);
+  }, [activitySessions, now]);
 
   // Build upcoming items (sessions + follow-ups for this week)
   const upcomingItems: UpcomingItem[] = useMemo(() => {
@@ -144,8 +145,6 @@ export default function AdvisorAnalyticsPage() {
     // Sort by date
     return items.sort((a, b) => a.date - b.date);
   }, [weekSessions, weekFollowUps]);
-
-  // Get pending reviews
   const pendingReviews = useMemo(() => {
     if (!reviews) return [];
     return reviews
@@ -157,7 +156,9 @@ export default function AdvisorAnalyticsPage() {
         asset_type: r.asset_type,
         asset_id: r.asset_id,
         status: r.status,
-        submitted_at: r.requested_at || Date.now(),
+        submitted_at: r.submitted_at || r.created_at || Date.now(),
+      }));
+  }, [reviews]);
       }));
   }, [reviews]);
 

@@ -22,6 +22,7 @@ interface EmailResult {
   id: string
   message: string
   status: number
+  skipped?: boolean
 }
 
 /**
@@ -239,7 +240,8 @@ The Ascentful Team`
       return {
         id: `email_not_configured_${Date.now()}`,
         message: 'Email service not configured',
-        status: 200,
+        status: 202, // Accepted but skipped
+        skipped: true,
       };
     }
     throw error;
@@ -372,7 +374,8 @@ www.ascentful.io`
       return {
         id: `email_not_configured_${Date.now()}`,
         message: "Email service not configured",
-        status: 200, // Return success to not break the flow
+        status: 202, // Accepted but skipped
+        skipped: true,
       }
     }
     // Re-throw other errors
@@ -483,7 +486,8 @@ The Ascentful Support Team`
       return {
         id: `email_not_configured_${Date.now()}`,
         message: 'Email service not configured',
-        status: 200,
+        status: 202, // Accepted but skipped
+        skipped: true,
       };
     }
     throw error;
@@ -602,7 +606,8 @@ The Ascentful Team`
       return {
         id: `email_not_configured_${Date.now()}`,
         message: 'Email service not configured',
-        status: 200,
+        status: 202, // Accepted but skipped
+        skipped: true,
       };
     }
     throw error;
@@ -726,7 +731,8 @@ The Ascentful Team`
       return {
         id: `email_not_configured_${Date.now()}`,
         message: 'Email service not configured',
-        status: 200,
+        status: 202, // Accepted but skipped
+        skipped: true,
       };
     }
     throw error;
@@ -982,7 +988,8 @@ The Ascentful Team`
       return {
         id: `email_not_configured_${Date.now()}`,
         message: 'Email service not configured',
-        status: 200,
+        status: 202, // Accepted but skipped
+        skipped: true,
       };
     }
     throw error;

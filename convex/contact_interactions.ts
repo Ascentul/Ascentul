@@ -95,19 +95,20 @@ export const createContactFollowup = mutation({
       user_id: user._id,
       owner_id: user._id,
       created_by_id: user._id,
-      created_by_type: 'student',
+      created_by_type: userRole === 'student' ? 'student' : 'individual',
 
       // Multi-tenancy (optional for non-university users)
       university_id: user.university_id,
 
       // Relationships (dual-field pattern: populate both generic and typed fields)
       related_type: 'contact',
-      related_id: args.contactId as string, // String version for composite index queries
+      related_id: args.contactId, // keep as typed ID for referential integrity
       contact_id: args.contactId, // Typed field for referential integrity
 
       // Task management
       due_at: args.due_at,
       status: 'open',
+      version: 0, // Initialize for optimistic locking on future updates
 
       // Timestamps
       created_at: now,
@@ -131,7 +132,12 @@ export const updateContactFollowup = mutation({
       status: v.optional(v.union(v.literal('open'), v.literal('done'))),
       notes: v.optional(v.string()),
       priority: v.optional(
-        v.union(v.literal('low'), v.literal('medium'), v.literal('high')),
+        v.union(
+          v.literal('low'),
+          v.literal('medium'),
+          v.literal('high'),
+          v.literal('urgent'),
+        ),
       ),
     }),
   },

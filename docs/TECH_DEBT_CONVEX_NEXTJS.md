@@ -3,7 +3,7 @@
 ## Issue
 
 **Priority**: MEDIUM
-**Effort**: Medium (33 files affected)
+**Effort**: Medium (36 files affected)
 **Risk**: LOW - Current implementation works but not following best practices
 **Impact**: Performance, Authentication, Best Practices
 **Status**: Phase 1 COMPLETE - All API routes consolidated to `convexServer`
@@ -26,7 +26,7 @@ The application currently uses `ConvexHttpClient` from `convex/browser` for serv
 
 ### Current Pattern (Phase 1 - Consolidated)
 
-> **Status**: All 33 API routes use `convexServer` wrapper. This is an **intermediate state**
+> **Status**: All 36 API routes use `convexServer` wrapper. This is an **intermediate state**
 > before final migration to `convex/nextjs`. The wrapper itself uses deprecated patterns
 > but centralizes the change needed for Phase 2.
 
@@ -205,7 +205,7 @@ export async function GET(request: Request) {
 
 ### Phase 2 Cleanup
 
-After all 33 files are migrated:
+After all 36 files are migrated:
 1. Delete `src/lib/convex-server.ts`
 2. Remove any remaining imports
 3. Update this documentation to mark complete

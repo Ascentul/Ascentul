@@ -60,16 +60,15 @@ export const migrateStatusToStage = internalMutation({
     let alreadyMigrated = 0;
     let skipped = 0;
     const errors: string[] = [];
-
     // Paginate through applications to avoid loading all records into memory
-    let cursor: string | null = null;
+    let cursor: string | undefined = undefined;
     let isDone = false;
 
     while (!isDone) {
       const page = await ctx.db
         .query("applications")
         .order("asc")
-        .paginate({ cursor, numItems: 100 });
+        .paginate({ cursor: cursor as any, numItems: 100 });
 
       for (const app of page.page) {
         totalProcessed++;
@@ -217,12 +216,25 @@ export const verifyMigration = internalQuery({
 export const getMigrationStats = internalQuery({
   args: {},
   handler: async (ctx) => {
-    const allApps = await ctx.db.query("applications").collect();
+    let allApps: any[] = [];
+    let cursor: string | null = null;
+    let isDone = false;
+
+    while (!isDone) {
+      const result = await ctx.db
+        .query("applications")
+        .order("asc")
+        .paginate({ cursor, numItems: 1000 });
+      allApps = allApps.concat(result.page);
+      cursor = result.continueCursor;
+      isDone = result.isDone;
+    }
 
     // Count by status
     const statusCounts: Record<string, number> = {};
     allApps.forEach(app => {
-      statusCounts[app.status] = (statusCounts[app.status] || 0) + 1;
+      const status = app.status || "undefined";
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
 
     // Count by stage

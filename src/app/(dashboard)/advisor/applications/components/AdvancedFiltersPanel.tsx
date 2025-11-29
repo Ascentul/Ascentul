@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Advanced Filters Panel Component
  *
@@ -14,8 +16,6 @@
  * - Show active filter count
  * - Easy to reset
  */
-
-'use client';
 
 import React from 'react';
 import { X, Calendar, GraduationCap, Layers, Zap } from 'lucide-react';
@@ -167,7 +167,7 @@ export function AdvancedFiltersPanel({
           ))}
 
           {/* Terminal Stages */}
-          {TERMINAL_STAGES.map((stage) => (
+          {TERMINAL_STAGES.filter(s => s !== 'Archived').map((stage) => (
             <StageCheckbox
               key={stage}
               stage={stage}

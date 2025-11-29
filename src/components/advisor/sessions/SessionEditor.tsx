@@ -80,6 +80,11 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
   // Sync form state when session changes (ID change or version bump from server)
   // Note: Version is incremented on each save, so this captures external updates
   useEffect(() => {
+    if (hasUnsavedChanges && session.version !== currentVersion) {
+      console.warn(
+        'Session was updated externally while you were editing; local changes were reset.'
+      );
+    }
     setTitle(session.title);
     setSessionType(session.session_type);
     const date = new Date(session.start_at);
@@ -104,6 +109,8 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
     session.notes,
     session.visibility,
     session.status,
+    hasUnsavedChanges,
+    currentVersion,
   ]);
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);

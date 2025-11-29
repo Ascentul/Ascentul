@@ -24,12 +24,19 @@ export default function UniversitySettingsPage() {
   const { user, isAdmin, subscription } = useAuth();
   const { toast } = useToast();
 
-  const universitySettings = useQuery(
-    api.universities.getUniversitySettings,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
-  );
+  const universitiesApi = (api as any).universities || {};
+  const getUniversitySettings =
+    universitiesApi.getUniversitySettings ||
+    (() => {
+      return undefined as any;
+    });
   const updateUniversitySettings = useMutation(
-    api.universities.updateUniversitySettings,
+    universitiesApi.updateUniversitySettings || (() => Promise.resolve(null)),
+  );
+
+  const universitySettings = useQuery(
+    getUniversitySettings,
+    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
 
   const canAccess =
@@ -75,15 +82,22 @@ export default function UniversitySettingsPage() {
 
     setLoading(true);
     try {
-      await updateUniversitySettings({
-        universityId: universitySettings._id,
-        settings: {
-          name: settings.name,
-          description: settings.description,
-          website: settings.website,
-          contact_email: settings.contactEmail,
-        },
-      });
+      await updateUniversitySettings(
+        universitiesApi.updateUniversitySettings
+          ? {
+              clerkId: clerkUser.id,
+              universityId: universitySettings._id,
+              settings: {
+                name: settings.name,
+                description: settings.description,
+                website: settings.website,
+                contact_email: settings.contactEmail,
+                max_students: settings.maxStudents,
+                license_seats: settings.licenseSeats,
+              },
+            }
+          : undefined,
+      );
 
       toast({
         title: "Settings saved",

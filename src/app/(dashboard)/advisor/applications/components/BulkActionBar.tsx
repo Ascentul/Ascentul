@@ -238,15 +238,16 @@ export function BulkActionBar({
               <div className="flex items-center gap-2">
                 <Select
                   value={selectedStage}
-                  onValueChange={(value) => setSelectedStage(value as ApplicationStage)}
-                  disabled={isProcessing}
-                >
-                  <SelectTrigger className="w-40" aria-label="Select new stage">
-                    <SelectValue placeholder="Change stage..." />
-                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Prospect">Prospect</SelectItem>
                     <SelectItem value="Applied">Applied</SelectItem>
+                    <SelectItem value="Interview">Interview</SelectItem>
+                    <SelectItem value="Offer">Offer</SelectItem>
+                    <SelectItem value="Accepted">Accepted</SelectItem>
+                    <SelectItem value="Rejected">Rejected</SelectItem>
+                    <SelectItem value="Withdrawn">Withdrawn</SelectItem>
+                    <SelectItem value="Archived">Archived</SelectItem>
+                  </SelectContent>
                     <SelectItem value="Interview">Interview</SelectItem>
                     <SelectItem value="Offer">Offer</SelectItem>
                     <SelectItem value="Accepted">Accepted</SelectItem>

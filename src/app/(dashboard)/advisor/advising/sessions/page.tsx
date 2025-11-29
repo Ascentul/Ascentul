@@ -238,6 +238,7 @@ export default function AdvisorSessionsPage() {
       }
 
       await createSession({
+        clerkId: clerkUser.id,
         student_id: newSession.student_id as Id<'users'>,
         title: newSession.title,
         session_type: newSession.session_type as 'career_planning' | 'resume_review' | 'mock_interview' | 'application_strategy' | 'general_advising' | 'other',
@@ -285,7 +286,7 @@ export default function AdvisorSessionsPage() {
     if (!clerkUser?.id) return;
 
     try {
-      await cancelSession({ session_id: sessionId });
+      await cancelSession({ clerkId: clerkUser.id, session_id: sessionId });
       toast({
         title: 'Session cancelled',
         description: 'The session has been cancelled',

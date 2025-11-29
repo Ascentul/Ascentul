@@ -391,6 +391,7 @@ export const createTestStudent = internalMutation({
         title: "Career Planning Check-in",
         scheduled_at: now + 2 * 24 * 60 * 60 * 1000, // 2 days from now
         start_at: now + 2 * 24 * 60 * 60 * 1000,
+        duration_minutes: 60,
         session_type: "career_planning",
         status: "scheduled",
         notes: "Discuss internship applications and interview preparation strategy",
