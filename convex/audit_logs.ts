@@ -77,7 +77,7 @@ export const redactStudentPII = internalMutation({
 
     // Query audit logs by student (new format uses student_id in metadata) if such an index exists
     // Fallback: scan by student_id field if present; otherwise paginate all logs
-    let cursor: string | null = null;
+    let cursor: string | undefined = undefined;
     let isDone = false;
     let redactedCount = 0;
 
@@ -105,12 +105,18 @@ export const redactStudentPII = internalMutation({
         if (log.previous_value !== undefined) {
           updates.previous_value = redactJsonField(log.previous_value);
         }
-async function exportAuditLogsForArchive(_logs: Doc<"audit_logs">[]) {
-  // TODO: Implement export to long-term storage (S3/R2) before deletion
-  throw new Error(
-    `exportAuditLogsForArchive not implemented - refusing to proceed with deletion of ${_logs.length} log(s)`
-  );
-}
+        if (log.new_value !== undefined) {
+          updates.new_value = redactJsonField(log.new_value);
+        }
+
+        // Check if any field actually changed (not just present)
+        const hasChanges = Object.entries(updates).some(
+          ([key, value]) => value !== (log as any)[key]
+        );
+        if (hasChanges) {
+          await ctx.db.patch(log._id, updates);
+          redactedCount += 1;
+        }
       }
 
       cursor = page.continueCursor;
@@ -154,7 +160,6 @@ export const deleteExpiredAuditLogs = internalMutation({
       if (expired.length > 0) {
         // TODO: Implement export before enabling deletion
         console.warn(`Skipping deletion of ${expired.length} expired logs - export not implemented`);
-        continue;
         // Once export is implemented, remove the continue and perform deletions:
         // await exportAuditLogsForArchive(expired);
         // for (const log of expired) {

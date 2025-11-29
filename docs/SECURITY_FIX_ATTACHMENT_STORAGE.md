@@ -95,12 +95,6 @@ await ctx.db.patch(sessionId, {
     },
   ],
 });
-
-### For Existing Data
-
-If there are existing `advisor_sessions` with URL-based attachments, run this migration:
-
-```typescript
 // convex/migrations.ts
 export const migrateAttachmentUrlsToStorage = internalMutation({
   args: {},

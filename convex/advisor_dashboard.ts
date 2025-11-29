@@ -327,7 +327,9 @@ export const getReviewQueueSnapshot = query({
         // Determine the asset_id based on asset_type
         const asset_id = review.asset_type === "resume"
           ? review.resume_id
-          : review.cover_letter_id;
+          : review.asset_type === "cover_letter"
+            ? review.cover_letter_id
+            : undefined;
 
         return {
           _id: review._id,

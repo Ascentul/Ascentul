@@ -461,7 +461,6 @@ export default defineSchema({
     user_id: v.id('users'), // Primary user (student) this task relates to
     owner_id: v.id('users'), // Who is responsible for completing it (can be student or advisor)
     created_by_type: v.union(v.literal('student'), v.literal('advisor'), v.literal('system'), v.literal('individual')),
-    created_by_type: v.union(v.literal('student'), v.literal('advisor'), v.literal('system')),
 
     // Multi-tenancy support
     university_id: v.optional(v.id('universities')), // Null for non-university users, required for advisor-created tasks
@@ -531,7 +530,7 @@ export default defineSchema({
     .index('by_contact', ['contact_id'])
     .index('by_due_at', ['due_at'])
     .index('by_created_by', ['created_by_id'])
-    .index('by_user_university', ['user_id', 'university_id'])
+    .index('by_owner', ['owner_id'])
     .index('by_related_entity', ['related_type', 'related_id'])
     .index('by_migrated_from', ['migrated_from_id']),
 

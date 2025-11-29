@@ -50,7 +50,7 @@ export default function SessionDetailPage() {
   const { user: clerkUser } = useUser();
 
   const sessionId = Array.isArray(params.id) ? params.id[0] : params.id;
-  const isValidSessionId = /^[0-9a-v]+$/.test(sessionId?.trim() ?? '');
+  const isValidSessionId = /^[0-9a-v]+$/i.test(sessionId?.trim() ?? '');
 
   // Fetch session details
   const session = useQuery(

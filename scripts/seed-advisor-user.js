@@ -16,18 +16,19 @@
 // Load env before anything else
 require('dotenv').config({ path: '.env.local' })
 
-// Polyfill fetch for Node < 18 using a synchronous bootstrap before other code runs.
-// node-fetch v3 is ESM-only, so we resolve it first and assign to global.fetch.
-(async () => {
+const CLERK_BASE_URL = 'https://api.clerk.com/v1'
+
+// Polyfill fetch for Node < 18
+// Called before each fetch usage to ensure polyfill is loaded
+async function ensureFetch() {
   if (typeof fetch === 'undefined') {
     const { default: fetchImpl } = await import('node-fetch');
     global.fetch = fetchImpl;
   }
-})();
-
-const CLERK_BASE_URL = 'https://api.clerk.com/v1'
+}
 
 async function clerkRequest(path, { method = 'GET', body } = {}) {
+  await ensureFetch();
   const res = await fetch(`${CLERK_BASE_URL}${path}`, {
     method,
     headers: {
@@ -46,6 +47,7 @@ async function clerkRequest(path, { method = 'GET', body } = {}) {
 }
 
 async function findUserByEmail(email) {
+  await ensureFetch();
   const url = new URL(`${CLERK_BASE_URL}/users`)
   url.searchParams.set('email_address', email)
   const res = await fetch(url.toString(), {

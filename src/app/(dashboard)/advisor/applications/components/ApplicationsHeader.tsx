@@ -346,7 +346,7 @@ interface NeedActionMetricProps {
     due_soon: number;
     stale: number;
   };
-  onClick: () => void;
+  onClick?: () => void;
   onClickReason?: (reason: NeedActionReason) => void;
 }
 

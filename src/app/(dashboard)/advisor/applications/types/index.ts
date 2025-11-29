@@ -460,10 +460,12 @@ export function buildAnalyticsPayload<E extends AnalyticsEventName>(
 ): AnalyticsSafePayload[E] {
   switch (event) {
     case ANALYTICS_EVENTS.VIEW_CHANGED:
-    case ANALYTICS_EVENTS.SCOPE_CHANGED:
       return {
         fromView: (props as any).fromView,
         toView: (props as any).toView,
+      } as AnalyticsSafePayload[E];
+    case ANALYTICS_EVENTS.SCOPE_CHANGED:
+      return {
         fromScope: (props as any).fromScope,
         toScope: (props as any).toScope,
       } as AnalyticsSafePayload[E];

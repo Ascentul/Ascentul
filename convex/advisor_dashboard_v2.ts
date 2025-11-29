@@ -135,7 +135,47 @@ export const getNeedsAttentionToday = query({
     );
     const validStudents = students.filter((s): s is NonNullable<typeof s> => s !== null);
 
-    // For each student, check recent activity
+    // Batch load all sessions for this advisor to avoid N+1 queries
+    const allSessions = await ctx.db
+      .query("advisor_sessions")
+      .withIndex("by_advisor", (q) =>
+        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
+      )
+      .collect();
+
+    // Group sessions by student and find latest start_at for each
+    const lastSessionByStudent = new Map<string, number>();
+    for (const session of allSessions) {
+      const studentId = session.student_id as string;
+      const current = lastSessionByStudent.get(studentId) || 0;
+      const sessionTime = session.start_at || 0;
+      if (sessionTime > current) {
+        lastSessionByStudent.set(studentId, sessionTime);
+      }
+    }
+
+    // Batch load follow-ups for all students in caseload
+    // Note: We query by user_id which is the student, so we need to check each student
+    const followUpPromises = validStudents.map((student) =>
+      ctx.db
+        .query("follow_ups")
+        .withIndex("by_user", (q) => q.eq("user_id", student._id))
+        .order("desc")
+        .first()
+    );
+    const allLastFollowUps = await Promise.all(followUpPromises);
+
+    // Map student IDs to their last follow-up time
+    const lastFollowUpByStudent = new Map<string, number>();
+    validStudents.forEach((student, index) => {
+      const followUp = allLastFollowUps[index];
+      if (followUp) {
+        const followUpTime = followUp.updated_at || followUp.created_at || 0;
+        lastFollowUpByStudent.set(student._id as string, followUpTime);
+      }
+    });
+
+    // For each student, check recent activity using pre-loaded data
     const studentsNoContact: Array<{
       _id: Id<"users">;
       name: string;
@@ -145,25 +185,9 @@ export const getNeedsAttentionToday = query({
     }> = [];
 
     for (const student of validStudents) {
-      // Check last session
-      const lastSession = await ctx.db
-        .query("advisor_sessions")
-        .withIndex("by_advisor", (q) =>
-          q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
-        )
-        .filter((q) => q.eq(q.field("student_id"), student._id))
-        .order("desc")
-        .first();
-
-      // Check last follow-up activity
-      const lastFollowUp = await ctx.db
-        .query("follow_ups")
-        .withIndex("by_user", (q) => q.eq("user_id", student._id))
-        .order("desc")
-        .first();
-
-      const lastSessionTime = lastSession?.start_at || 0;
-      const lastFollowUpTime = lastFollowUp?.updated_at || lastFollowUp?.created_at || 0;
+      const studentId = student._id as string;
+      const lastSessionTime = lastSessionByStudent.get(studentId) || 0;
+      const lastFollowUpTime = lastFollowUpByStudent.get(studentId) || 0;
       const lastLoginTime = student.last_login_at || 0;
 
       const lastActivity = Math.max(lastSessionTime, lastFollowUpTime, lastLoginTime);
@@ -647,8 +671,8 @@ export const getCapacityAndSchedule = query({
 
     return {
       capacity: {
-        percentage: weeklySlots > 0 
-          ? Math.round((activeSessions.length / weeklySlots) * 100) 
+        percentage: weeklySlots > 0
+          ? Math.round((activeSessions.length / weeklySlots) * 100)
           : 0,
       },
       sessionsThisWeek: activeSessions.length,
@@ -657,6 +681,7 @@ export const getCapacityAndSchedule = query({
         items: enrichedUpcoming,
       },
     };
+  },
 });
 
 /**

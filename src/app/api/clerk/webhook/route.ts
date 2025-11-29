@@ -134,12 +134,11 @@ export async function POST(request: NextRequest) {
         const roleInMetadata = metadata.role || null
         const universityIdInMetadata = metadata.university_id
         // Basic sanity check: must be a non-empty string
-        // Let Convex validate the actual ID format on the server side
-        const validUniversityId =
+        // Convex will validate the actual ID format via v.id("universities") validator
+        const universityIdString =
           typeof universityIdInMetadata === 'string' && universityIdInMetadata.trim().length > 0
-            ? (universityIdInMetadata.trim() as Id<'universities'>)
+            ? universityIdInMetadata.trim()
             : undefined
-        const membershipUniversityId = validUniversityId
         const userEmail = userData.email_addresses?.[0]?.email_address
 
         // Validate role value before syncing to Convex
@@ -163,17 +162,18 @@ export async function POST(request: NextRequest) {
         // Enforce role constraints per learnings
         if (validatedRole === 'individual') {
           // Individual users must NOT have university_id
-          updates.university_id = undefined
+          updates.university_id = null  // Explicitly clear
         } else if (membershipRole) {
           // University roles MUST have university_id
-          if (!validUniversityId) {
+          if (!universityIdString) {
             console.error(`[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`)
             return NextResponse.json(
               { error: `${membershipRole} role requires university_id` },
               { status: 400 }
             )
           }
-          updates.university_id = validUniversityId
+          // Pass as string - Convex validates format with v.id() validator
+          updates.university_id = universityIdString
         }
 
         // If user is banned in Clerk, ensure account_status is suspended
@@ -189,15 +189,31 @@ export async function POST(request: NextRequest) {
 
         // Use atomic mutation to update user and membership in single transaction
         // This prevents partial updates where user role changes but membership creation fails
-        await convexServer.mutation(api.users_profile.updateUserWithMembership, {
-          clerkId: userData.id,
-          updates,
-          // Include membership data for university roles
-          membership: membershipRole && membershipUniversityId
-            ? { role: membershipRole, universityId: membershipUniversityId }
-            : undefined,
-          serviceToken: convexServiceToken,
-        })
+        // Wrap in try-catch to handle invalid university_id format errors gracefully
+        try {
+          await convexServer.mutation(api.users_profile.updateUserWithMembership, {
+            clerkId: userData.id,
+            updates,
+            // Include membership data for university roles
+            // Type assertion needed for Convex client - server validates actual ID format
+            membership: membershipRole && universityIdString
+              ? { role: membershipRole, universityId: universityIdString as Id<'universities'> }
+              : undefined,
+            serviceToken: convexServiceToken,
+          })
+        } catch (mutationError: any) {
+          // Handle Convex validation errors (e.g., malformed university_id)
+          const errorMessage = mutationError?.message || String(mutationError)
+          if (errorMessage.includes('university') || errorMessage.includes('Id')) {
+            console.error(`[Clerk Webhook] Invalid university_id format for user ${userData.id}: ${universityIdString}`)
+            return NextResponse.json(
+              { error: 'Invalid university_id format in metadata' },
+              { status: 400 }
+            )
+          }
+          // Re-throw other errors
+          throw mutationError
+        }
 
         console.log(`[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}${validatedRole ? `, role: ${validatedRole}` : ''}`)
         break
