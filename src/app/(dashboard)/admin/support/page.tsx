@@ -84,7 +84,7 @@ export default function AdminSupportPage() {
         setSelectedTicket(updatedTicket)
       }
     }
-  }, [tickets, selectedTicket?._id])
+  }, [tickets, selectedTicket])
 
   // Filter tickets
   const filteredTickets = useMemo(() => {

@@ -49,6 +49,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { UserRole } from '@/lib/constants/roles'
+import Image from 'next/image'
 
 interface MinimalUser {
   _id: Id<"users">
@@ -262,7 +263,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // Only re-validate when newRole, selectedUniversityId, or user identity changes
     // handleValidateRoleChange is intentionally excluded to prevent unnecessary re-validations
-  }, [dialogState.newRole, dialogState.selectedUniversityId, dialogState.user?.clerkId])
+  }, [dialogState.newRole, dialogState.selectedUniversityId, dialogState.user?.clerkId, handleValidateRoleChange])
 
   if (!usersData) {
     return (
@@ -362,10 +363,13 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {user.profile_image ? (
-                            <img
+                            <Image
                               src={user.profile_image}
                               alt={user.name}
-                              className="h-8 w-8 rounded-full"
+                              width={32}
+                              height={32}
+                              className="h-8 w-8 rounded-full object-cover"
+                              unoptimized
                             />
                           ) : (
                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">

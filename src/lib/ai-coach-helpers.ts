@@ -54,11 +54,14 @@ interface UserContextData {
 function sanitizeForPrompt(input: string, maxLength = 500): string {
   if (!input) return '';
   const normalized = input.normalize('NFKC');
-  // Remove control/format characters (incl. bidi/zero-width), then allowlist general text chars
-  const stripped = normalized.replace(/[\p{Cc}\p{Cf}]/gu, '');
-  const safe = stripped.match(/[\p{L}\p{N}\p{P}\p{S}\s]/gu)?.join('') ?? '';
-  return safe
-    .replace(/---/g, '—') // Avoid forging section markers
+  // Remove control/format characters (incl. bidi/zero-width)
+  const stripped = normalized.replace(
+    /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u206F]/g,
+    ''
+  );
+  // Collapse whitespace, avoid forging section markers, enforce max length
+  return stripped
+    .replace(/---/g, '—')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength);

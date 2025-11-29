@@ -98,7 +98,7 @@ export function ReviewEditor({
     setHasUnsavedChanges(false);
     setLastSaved(null);
     setSaveError(null);
-  }, [review._id]);
+  }, [review._id, review.feedback, review.version]);
 
   // Track if feedback has changed
   useEffect(() => {

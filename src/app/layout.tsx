@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import '../styles/globals.css'
 import { ClerkProvider } from '@clerk/nextjs'
 import ConvexClientProvider from '@/providers/ConvexClientProvider'
@@ -8,8 +7,6 @@ import { ImpersonationProvider } from '@/contexts/ImpersonationContext'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { AuthWrapper } from '@/components/AuthWrapper'
 import { Toaster } from '@/components/ui/toaster'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Ascentful - Career Development Platform',
@@ -31,10 +28,8 @@ export default function RootLayout({
         <head>
           <link rel="icon" href="/favicon.ico" type="image/x-icon" />
           <link rel="apple-touch-icon" href="/logo.png" />
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         </head>
-        <body className={`${inter.className} min-h-screen bg-[#F1F3F9]`}>
+        <body className="min-h-screen bg-[#F1F3F9] font-sans">
           {/* Header removed: SignIn/SignUp bar for signed-out users */}
           {publishableKey ? (
             <ClerkProvider

@@ -92,7 +92,19 @@ export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditor
     setStatus(session.status || 'scheduled');
     setCurrentVersion(session.version);
     setHasUnsavedChanges(false);
-  }, [session._id, session.version]);
+  }, [
+    session._id,
+    session.version,
+    session.title,
+    session.session_type,
+    session.start_at,
+    session.duration_minutes,
+    session.location,
+    session.meeting_url,
+    session.notes,
+    session.visibility,
+    session.status,
+  ]);
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const formattedSessionStartAt = useMemo(() => {
