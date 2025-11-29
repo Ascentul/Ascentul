@@ -7,8 +7,9 @@ import { isValidConvexId } from '@/lib/convex-ids'
 
 export const runtime = 'nodejs'
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const authResult = await auth()
     const { userId } = authResult
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -23,13 +24,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 })
 
     // Validate ID format using Convex ID pattern
-    if (!isValidConvexId(params.id)) {
+    if (!isValidConvexId(id)) {
       return NextResponse.json({ error: 'Invalid career path ID' }, { status: 400 })
     }
 
     await fetchMutation(api.career_paths.updateCareerPathName, {
       clerkId: userId,
-      id: params.id as Id<'career_paths'>,
+      id: id as Id<'career_paths'>,
       name
     }, { token })
 

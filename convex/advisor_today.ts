@@ -191,7 +191,7 @@ interface StudentContext {
  */
 function calculateRiskTags(
   lastLogin: number | undefined,
-  applications: { stage?: string; updated_at?: number }[],
+  applications: { stage?: string; status?: string; updated_at?: number }[],
   now: number
 ): string[] {
   const tags: string[] = [];
@@ -214,8 +214,10 @@ function calculateRiskTags(
 
   // High volume, no offers: >5 applications, no offers
   if (applications.length > 5) {
+    // Check for offers using stage with status fallback during migration
+    // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
     const hasOffer = applications.some(
-      (app) => app.stage === "Offer" || app.stage === "Accepted"
+      (app) => app.stage === "Offer" || app.stage === "Accepted" || (!app.stage && app.status === "offer")
     );
     if (!hasOffer) {
       tags.push("high_volume_no_offers");

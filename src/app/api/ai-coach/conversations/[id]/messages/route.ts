@@ -31,13 +31,14 @@ const createOpenAIClient = () => {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const conversationId = params.id
+    const { id } = await params
+    const conversationId = id
 
     if (!conversationId) {
       return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 })
@@ -65,13 +66,14 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const conversationId = params.id
+    const { id } = await params
+    const conversationId = id
     const body = await request.json()
     const { content } = body
 

@@ -76,7 +76,6 @@ export default function UniversitySettingsPage() {
     setLoading(true);
     try {
       await updateUniversitySettingsMutation({
-        clerkId: effectiveClerkId,
         universityId: universitySettings._id,
         settings: {
           name: settings.name,

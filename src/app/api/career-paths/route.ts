@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { fetchQuery } from 'convex/nextjs'
 import { api } from 'convex/_generated/api'
+import { requireConvexToken } from '@/lib/convex-auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,13 +41,7 @@ interface CareerPathResponse {
 
 export async function GET(_request: NextRequest) {
   try {
-    const { userId, getToken } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    const token = await getToken({ template: 'convex' })
-    if (!token) {
-      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
-    }
+    const { userId, token } = await requireConvexToken()
 
     const { searchParams } = new URL(_request.url)
     const limit = Math.min(Math.max(parseInt(String(searchParams.get('limit') || '10')) || 10, 1), 50)
@@ -58,10 +52,10 @@ export async function GET(_request: NextRequest) {
       api.career_paths.getUserCareerPathsPaginated,
       { clerkId: userId, cursor, limit },
       { token }
-    ) as { items?: CareerPathDocument[]; continueCursor?: string } | null
-    const items = (page?.items || []) as CareerPathDocument[]
+    )
 
     // Map only those entries that contain a structured path we can render
+    const items = (page?.items || []) as CareerPathDocument[]
     let paths = items
       .map((doc): CareerPathResponse | null => {
         const p = doc?.steps?.path
@@ -78,9 +72,11 @@ export async function GET(_request: NextRequest) {
 
     if (sort === 'asc') paths = paths.reverse()
 
-    return NextResponse.json({ paths, nextCursor: page?.continueCursor || null })
-  } catch (error: any) {
+    return NextResponse.json({ paths, nextCursor: page?.nextCursor || null })
+  } catch (error: unknown) {
     console.error('GET /api/career-paths error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

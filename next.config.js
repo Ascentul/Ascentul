@@ -2,14 +2,21 @@
 const nextConfig = {
   images: {
     remotePatterns: [
+      // Supabase storage
       {
         protocol: 'https',
         hostname: 'qyycdduuadsofgabrgip.supabase.co',
       },
       {
         protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+      // UI Avatars (fallback avatars)
+      {
+        protocol: 'https',
         hostname: 'ui-avatars.com',
       },
+      // Clerk profile images
       {
         protocol: 'https',
         hostname: 'img.clerk.com',
@@ -18,14 +25,25 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'images.clerk.com',
       },
+      // OAuth provider profile images (Google, GitHub, etc.)
       {
         protocol: 'https',
-        hostname: '*.supabase.co',
+        hostname: 'lh3.googleusercontent.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.googleusercontent.com',
+      },
+      // Job listings (Adzuna)
       {
         protocol: 'https',
         hostname: '*.adzuna.com',
       },
+      // Convex storage
       {
         protocol: 'https',
         hostname: '*.convex.cloud',

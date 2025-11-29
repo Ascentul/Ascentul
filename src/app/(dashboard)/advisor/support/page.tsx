@@ -183,7 +183,7 @@ export default function AdvisorSupportPage() {
         priority: 'medium',
         description: ''
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
         description: 'Failed to create ticket. Please try again.',
@@ -224,14 +224,14 @@ export default function AdvisorSupportPage() {
         description: `Ticket status changed to ${newStatus}`,
         variant: 'success'
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Revert optimistic update on error
       if (ticketSnapshot && ticketSnapshot._id === ticketId && originalStatus) {
         setSelectedTicket({ ...ticketSnapshot, status: originalStatus })
       }
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update status',
+        description: error instanceof Error ? error.message : 'Failed to update status',
         variant: 'destructive'
       })
     }
@@ -257,10 +257,10 @@ export default function AdvisorSupportPage() {
       })
 
       setResponseText('')
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to add response',
+        description: error instanceof Error ? error.message : 'Failed to add response',
         variant: 'destructive'
       })
     } finally {
@@ -295,10 +295,10 @@ export default function AdvisorSupportPage() {
       setTicketToDelete(null)
       setDetailDialogOpen(false)
       setSelectedTicket(null)
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to delete ticket',
+        description: error instanceof Error ? error.message : 'Failed to delete ticket',
         variant: 'destructive'
       })
     } finally {
@@ -460,22 +460,17 @@ export default function AdvisorSupportPage() {
             <div className="flex flex-wrap gap-3">
               <div className="flex-1 min-w-[200px]">
                 <div className="relative">
+                  <label htmlFor="ticket-search" className="sr-only">
+                    Search tickets
+                  </label>
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <div className="flex-1 min-w-[200px]">
-                    <div className="relative">
-                      <label htmlFor="ticket-search" className="sr-only">
-                        Search tickets
-                      </label>
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="ticket-search"
-                        placeholder="Search tickets..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
+                  <Input
+                    id="ticket-search"
+                    placeholder="Search tickets..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
               </div>
 

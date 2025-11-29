@@ -1,20 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { fetchQuery, fetchMutation } from 'convex/nextjs'
+import { requireConvexToken } from '@/lib/convex-auth'
 
 export async function GET() {
   try {
-    const authResult = await auth()
-    const { userId } = authResult
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = await authResult.getToken({ template: 'convex' })
-    if (!token) {
-      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
-    }
+    const { userId, token } = await requireConvexToken()
 
     const conversations = await fetchQuery(
       api.ai_coach.getConversations,
@@ -25,22 +16,15 @@ export async function GET() {
     return NextResponse.json(conversations)
   } catch (error) {
     console.error('Error fetching conversations:', error)
-    return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to fetch conversations'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await auth()
-    const { userId } = authResult
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = await authResult.getToken({ template: 'convex' })
-    if (!token) {
-      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
-    }
+    const { userId, token } = await requireConvexToken()
 
     const body = await request.json()
     const { title } = body
@@ -58,6 +42,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newConversation, { status: 201 })
   } catch (error) {
     console.error('Error creating conversation:', error)
-    return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to create conversation'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

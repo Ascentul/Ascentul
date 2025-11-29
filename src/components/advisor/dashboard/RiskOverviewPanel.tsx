@@ -19,13 +19,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingDown, Search, Users, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/**
+ * Base item type for risk category items - all items have an ID and name
+ */
+interface RiskCategoryItem {
+  _id: string;
+  name: string;
+}
+
+/**
+ * Risk category data structure returned by the backend
+ * The `items` array is included in the response but not currently displayed -
+ * it provides details for potential drill-down views.
+ */
 interface RiskCategory {
   count: number;
-  items?: Array<{
-    _id: string;
-    name?: string;
-    [key: string]: unknown;
-  }>;
+  items?: RiskCategoryItem[];
   config?: { days?: number };
   subtitle: string;
 }

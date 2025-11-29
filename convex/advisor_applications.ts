@@ -18,7 +18,7 @@ import {
   getOwnedStudentIds,
   createAuditLog,
 } from './advisor_auth';
-import { ALL_STAGES, ACTIVE_STAGES, STAGE_TRANSITIONS, isTerminalStage } from './advisor_constants';
+import { ALL_STAGES, ACTIVE_STAGES, STAGE_TRANSITIONS, isTerminalStage, requiresReasonCode } from './advisor_constants';
 
 /**
  * Enriched application with student information
@@ -392,15 +392,7 @@ const applicationStageValidator = v.union(
   ...ALL_STAGES.map((stage) => v.literal(stage))
 );
 
-/**
- * Stages that require a reason_code when transitioning to them
- * (Rejected and Withdrawn require structured reason tracking; Archived is administrative)
- */
-const STAGES_REQUIRING_REASON_CODE = ['Rejected', 'Withdrawn'] as const;
-
-function requiresReasonCode(stage: string): boolean {
-  return (STAGES_REQUIRING_REASON_CODE as readonly string[]).includes(stage);
-}
+// Note: requiresReasonCode imported from advisor_constants.ts
 
 /**
  * Update application stage (with transition validation)

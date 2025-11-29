@@ -169,9 +169,12 @@ export const getMyCaseload = query({
       if (application.stage && activeStages.has(application.stage)) {
         stats.active += 1;
       }
+      // Check for offers using stage with status fallback during migration
+      // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
       if (
         application.stage === "Offer" ||
-        application.stage === "Accepted"
+        application.stage === "Accepted" ||
+        (!application.stage && application.status === "offer")
       ) {
         stats.hasOffer = true;
       }

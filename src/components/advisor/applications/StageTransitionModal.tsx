@@ -24,7 +24,7 @@ import { AlertCircle, ArrowRight } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from 'convex/_generated/api';
 import type { Id } from 'convex/_generated/dataModel';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { getNextStages, getStageLabel, getStageColor, isTerminalStage, requiresReasonCode, getReasonCodesForStage } from '@/lib/advisor/stages';
 import type { ApplicationStage } from '@/lib/advisor/stages';
 
@@ -53,6 +53,7 @@ export function StageTransitionModal({
   const [reasonCode, setReasonCode] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const updateStage = useMutation(api.advisor_applications.updateApplicationStage);
 
@@ -68,17 +69,17 @@ export function StageTransitionModal({
 
   const handleSubmit = async () => {
     if (!selectedStage) {
-      toast.error('Please select a stage');
+      toast({ title: 'Please select a stage', variant: 'destructive' });
       return;
     }
 
     if (reasonCodeRequired && !reasonCode) {
-      toast.error(`Please select a reason for ${selectedStage}`);
+      toast({ title: `Please select a reason for ${selectedStage}`, variant: 'destructive' });
       return;
     }
 
     if (notesRequired && !additionalNotes.trim()) {
-      toast.error(`Notes required for ${selectedStage} stage`);
+      toast({ title: `Notes required for ${selectedStage} stage`, variant: 'destructive' });
       return;
     }
 
@@ -92,7 +93,7 @@ export function StageTransitionModal({
         reason_code: reasonCode || undefined,
       });
 
-      toast.success(`Application moved to ${selectedStage}`);
+      toast({ title: `Application moved to ${selectedStage}` });
 
       // Capture stage before reset for callback
       const completedStage = selectedStage;
@@ -108,7 +109,11 @@ export function StageTransitionModal({
 
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update stage');
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to update stage',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }

@@ -24,12 +24,14 @@ import { api } from "convex/_generated/api";
 import { Id } from "convex/_generated/dataModel";
 import { AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 export default function AdvisorApplicationsPage() {
   const { user } = useUser();
   const clerkId = user?.id;
   const userRole = user?.publicMetadata?.role as string | undefined;
   const { toast } = useToast();
+  const router = useRouter();
 
   // ============================================================================
   // View State
@@ -416,8 +418,7 @@ export default function AdvisorApplicationsPage() {
                   <EmptyState
                     type="no-apps"
                     onViewAllStudents={() => {
-                      // TODO: Navigate to students page
-                      console.log('Navigate to students');
+                      router.push('/advisor/advising/students');
                     }}
                   />
                 )}

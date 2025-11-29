@@ -30,7 +30,7 @@ import {
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useState, useRef } from 'react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import type { Id } from 'convex/_generated/dataModel';
 import { useRouter } from 'next/navigation';
 
@@ -41,15 +41,22 @@ import {
   FollowUpPanel,
   ComingUpPanel,
   DocumentationPanel,
+  SnoozeDialog,
 } from '@/components/advisor/today';
 
 export default function AdvisorTodayPage() {
   const { user } = useUser();
   const clerkId = user?.id;
   const router = useRouter();
+  const { toast } = useToast();
 
   // State for follow-up tab
   const [followUpTab, setFollowUpTab] = useState<'overdue' | 'today' | 'upcoming'>('today');
+
+  // State for snooze dialog
+  const [snoozeDialogOpen, setSnoozeDialogOpen] = useState(false);
+  const [snoozeFollowUpId, setSnoozeFollowUpId] = useState<Id<"follow_ups"> | null>(null);
+  const [snoozeFollowUpTitle, setSnoozeFollowUpTitle] = useState<string | undefined>(undefined);
 
   // Refs for scroll targets
   const scheduleRef = useRef<HTMLDivElement>(null);
@@ -99,15 +106,40 @@ export default function AdvisorTodayPage() {
 
     try {
       await updateFollowup({ clerkId, followupId: followUpId, updates: { status: 'done' } });
-      toast.success('Follow-up marked as complete');
+      toast({ title: 'Follow-up marked as complete' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to complete follow-up');
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to complete follow-up',
+        variant: 'destructive',
+      });
     }
   };
 
-  const handleSnoozeFollowUp = async (followUpId: Id<"follow_ups">) => {
-    // TODO: Implement snooze modal to pick new date
-    toast.info('Snooze functionality coming soon');
+  const handleSnoozeFollowUp = (followUpId: Id<"follow_ups">) => {
+    // Find the follow-up title for display in the dialog
+    const allFollowUps = [...followUps.overdue, ...followUps.today, ...followUps.upcoming];
+    const followUp = allFollowUps.find((f) => f._id === followUpId);
+
+    setSnoozeFollowUpId(followUpId);
+    setSnoozeFollowUpTitle(followUp?.title);
+    setSnoozeDialogOpen(true);
+  };
+
+  const handleSnoozeConfirm = async (followUpId: Id<"follow_ups">, newDate: number) => {
+    if (!clerkId) return;
+
+    try {
+      await updateFollowup({ clerkId, followupId: followUpId, updates: { due_at: newDate } });
+      toast({ title: 'Follow-up snoozed successfully' });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to snooze follow-up',
+        variant: 'destructive',
+      });
+      throw error; // Re-throw so dialog knows to stay open
+    }
   };
 
   // Session quick actions
@@ -271,6 +303,15 @@ export default function AdvisorTodayPage() {
             />
           </div>
         </div>
+
+        {/* Snooze Dialog */}
+        <SnoozeDialog
+          open={snoozeDialogOpen}
+          onOpenChange={setSnoozeDialogOpen}
+          followUpId={snoozeFollowUpId}
+          followUpTitle={snoozeFollowUpTitle}
+          onSnooze={handleSnoozeConfirm}
+        />
       </div>
     </AdvisorGate>
   );

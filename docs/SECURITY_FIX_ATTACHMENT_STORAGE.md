@@ -121,6 +121,17 @@ export const migrateAttachmentUrlsToStorage = internalMutation({
 
       if (hasStorageIds) continue;
 
+      // Check if partially migrated (some have storage_id, some don't)
+      const isPartiallyMigrated = session.attachments.some(
+        (a: any) => a.storage_id !== undefined
+      );
+
+      if (isPartiallyMigrated) {
+        console.warn(
+          `Session ${session._id} has partially migrated attachments (mixed storage_id and url)`
+        );
+      }
+
       console.warn(
         `Session ${session._id} has URL-based attachments that need manual migration`
       );

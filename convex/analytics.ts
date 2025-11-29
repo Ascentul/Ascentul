@@ -1149,7 +1149,7 @@ export const getUserDashboardAnalytics = query({
         id: `followup-${followup._id}`,
         type: "followup",
         description: `Scheduled follow-up: ${label}`,
-        timestamp: followup.created_at ?? followup.updated_at ?? 0,
+        timestamp: followup.created_at ?? followup.updated_at ?? Date.now(),
       });
 
       if (followup.status === 'done' && followup.completed_at) {

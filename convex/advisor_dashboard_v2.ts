@@ -370,11 +370,14 @@ export const getRiskOverview = query({
       const studentApps = appsByStudent.get(student._id) || [];
       if (studentApps.length === 0) continue;
 
-      // Check for offers/interviews
+      // Check for offers/interviews using stage with status fallback during migration
+      // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
       const hasOffer = studentApps.some(
-        (a) => a.stage === "Offer" || a.stage === "Accepted"
+        (a) => a.stage === "Offer" || a.stage === "Accepted" || (!a.stage && a.status === "offer")
       );
-      const hasInterview = studentApps.some((a) => a.stage === "Interview");
+      const hasInterview = studentApps.some(
+        (a) => a.stage === "Interview" || (!a.stage && a.status === "interview")
+      );
 
       // Check last status change (using stage_set_at or updated_at)
       const lastUpdate = Math.max(
@@ -759,10 +762,12 @@ export const getProgressAndOutcomes = query({
         activeApps: 0,
       };
 
-      if (app.stage === "Interview") {
+      // Check for interviews/offers using stage with status fallback during migration
+      // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
+      if (app.stage === "Interview" || (!app.stage && app.status === "interview")) {
         stats.hasInterview = true;
       }
-      if (app.stage === "Offer" || app.stage === "Accepted") {
+      if (app.stage === "Offer" || app.stage === "Accepted" || (!app.stage && app.status === "offer")) {
         stats.hasOffer = true;
       }
       if (app.stage && activeStages.has(app.stage)) {
@@ -866,10 +871,12 @@ export const getDashboardStatsExtended = query({
       if (application.stage && activeStages.has(application.stage)) {
         activeApplicationsCount += 1;
       }
-      if (application.stage === "Offer" || application.stage === "Accepted") {
+      // Check for offers/interviews using stage with status fallback during migration
+      // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
+      if (application.stage === "Offer" || application.stage === "Accepted" || (!application.stage && application.status === "offer")) {
         stats.hasOffer = true;
       }
-      if (application.stage === "Interview") {
+      if (application.stage === "Interview" || (!application.stage && application.status === "interview")) {
         stats.hasInterview = true;
       }
       perStudentAppStats.set(key, stats);
