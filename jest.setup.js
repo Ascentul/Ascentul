@@ -49,6 +49,13 @@ jest.mock('convex/react', () => ({
   ConvexProvider: ({ children }) => children,
 }))
 
+// Mock Convex Next.js helpers
+jest.mock('convex/nextjs', () => ({
+  fetchQuery: jest.fn(),
+  fetchMutation: jest.fn(),
+  fetchAction: jest.fn(),
+}))
+
 // Mock Convex browser client and API
 jest.mock('convex/browser', () => ({
   ConvexHttpClient: jest.fn().mockImplementation(() => ({

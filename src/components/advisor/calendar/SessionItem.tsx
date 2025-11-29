@@ -13,7 +13,7 @@ interface Session {
   session_type: string;
   start_at: number;
   end_at?: number;
-  duration_minutes: number;
+  duration_minutes?: number;
   location?: string;
   meeting_url?: string;
   notes?: string;

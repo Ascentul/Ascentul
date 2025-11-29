@@ -10,7 +10,7 @@ export const getUserFollowups = query({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new ConvexError('User not found', { code: 'USER_NOT_FOUND' });
+    if (!user) throw new ConvexError({ message: 'User not found', code: 'USER_NOT_FOUND' });
 
     const followups = await ctx.db
       .query('follow_ups')

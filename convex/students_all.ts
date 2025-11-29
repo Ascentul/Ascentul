@@ -1631,6 +1631,10 @@ export const detectDuplicateInvites = query({
     for (const [key, invites] of Array.from(invitesByKey.entries())) {
       if (invites.length > 1) {
         const colonIndex = key.indexOf(":");
+        if (colonIndex === -1) {
+          console.error(`Invalid invite key format (missing colon): ${key}`);
+          continue;
+        }
         const universityId = key.substring(0, colonIndex);
         const email = key.substring(colonIndex + 1);
         const university = await ctx.db.get(universityId as Id<"universities">);

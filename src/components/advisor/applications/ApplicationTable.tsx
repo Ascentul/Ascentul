@@ -23,7 +23,7 @@ import { Search, Building2, User, Calendar, ExternalLink, AlertCircle } from "lu
 import { format } from "date-fns";
 import Link from "next/link";
 import { isValidHttpUrl } from "@/lib/utils";
-import type { ApplicationStage } from "@/lib/advisor/stages";
+import { ACTIVE_STAGES, type ApplicationStage } from "@/lib/advisor/stages";
 
 interface Application {
   _id: string;
@@ -90,7 +90,7 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
   });
 
   const now = Date.now();
-  const activeStages = ["Prospect", "Applied", "Interview"];
+  const activeStages = ACTIVE_STAGES;
 
   if (isLoading) {
     return (

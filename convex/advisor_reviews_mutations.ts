@@ -33,7 +33,7 @@ export const claimReview = mutation({
     // performance, but commits only succeed if the transaction is serializable.
     const review = await ctx.db.get(args.review_id);
     if (!review) {
-      throw new ConvexError('Review not found', { code: 'NOT_FOUND' });
+      throw new ConvexError({ message: 'Review not found', code: 'NOT_FOUND' });
     }
 
     // Verify tenant isolation
@@ -234,6 +234,12 @@ export const _completeReviewInternal = internalMutation({
       throw new ConvexError('Student email not found - cannot send notification', { code: 'VALIDATION_ERROR' });
     }
 
+    // Validate configuration BEFORE making changes
+    const appUrl = process.env.APP_URL;
+    if (!appUrl) {
+      throw new ConvexError({ message: 'APP_URL environment variable not configured', code: 'CONFIG_ERROR' });
+    }
+
     const now = Date.now();
 
     await ctx.db.patch(args.review_id, {
@@ -247,13 +253,6 @@ export const _completeReviewInternal = internalMutation({
 
     // Determine review type from asset_type
     const reviewType = review.asset_type === 'resume' ? 'Resume' : 'Cover Letter';
-
-    // Build review URL
-    // IMPORTANT: APP_URL must be configured per environment.
-    const appUrl = process.env.APP_URL;
-    if (!appUrl) {
-      throw new ConvexError('APP_URL environment variable not configured', { code: 'CONFIG_ERROR' });
-    }
     const baseUrl = appUrl;
     let reviewUrl = `${baseUrl}/dashboard`;
 
