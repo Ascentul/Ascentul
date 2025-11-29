@@ -10,6 +10,9 @@ export async function POST(request: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const token = await getToken({ template: 'convex' })
+  if (!token) {
+    return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+  }
 
   const body = await request.json().catch(() => ({} as any))
   const achievementId = body.achievement_id as string
@@ -24,4 +27,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status })
   }
 }
-

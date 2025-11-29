@@ -334,14 +334,15 @@ export const updateReviewStatus = mutation({
     ) {
       throw new Error(
         `Invalid transition from ${previousStatus} to ${args.status}`
+      );
+    }
+
     await ctx.db.patch(args.reviewId, {
       status: args.status,
       reviewed_by:
         args.status !== "waiting" ? sessionCtx.userId : undefined,
       reviewed_at: args.status !== "waiting" ? now : undefined,
       updated_at: now,
-      version: (review.version ?? 0) + 1,
-    });
       version: (review.version ?? 0) + 1,
     });
 

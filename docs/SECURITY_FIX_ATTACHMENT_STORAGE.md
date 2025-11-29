@@ -1,7 +1,5 @@
-# Security Fix: Attachment Storage Access Control       size: file.size,
-     },
-   ],
- });
+# Security Fix: Attachment Storage Access Control
+
 **Date**: 2025-11-16
 **Severity**: HIGH - Data exposure vulnerability
 **Status**: ✅ Fixed
@@ -262,7 +260,7 @@ export const getSessionAttachment = query({
 | ❌ No audit trail | ✅ Logged access |
 | ❌ Cross-tenant risk | ✅ Tenant isolation enforced |
 
-*Download URLs from `getUrl()` are presigned bearer tokens that expire after 15 minutes (900 seconds) by default. Upload URLs expire after ~1 hour.
+*Download URL behavior depends on the storage backend. For Convex built-in storage, `getUrl()` returns a bearer URL that remains valid until the file is deleted. For Convex R2 (Cloudflare R2) storage, the presigned download URL expires after 15 minutes (900 seconds) by default. Upload URLs expire after ~1 hour.
 
 ---
 

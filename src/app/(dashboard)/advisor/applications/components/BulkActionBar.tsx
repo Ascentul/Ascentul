@@ -238,6 +238,11 @@ export function BulkActionBar({
               <div className="flex items-center gap-2">
                 <Select
                   value={selectedStage}
+                  onValueChange={(value) => setSelectedStage(value as ApplicationStage)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select stage..." />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Prospect">Prospect</SelectItem>
                     <SelectItem value="Applied">Applied</SelectItem>
@@ -247,12 +252,6 @@ export function BulkActionBar({
                     <SelectItem value="Rejected">Rejected</SelectItem>
                     <SelectItem value="Withdrawn">Withdrawn</SelectItem>
                     <SelectItem value="Archived">Archived</SelectItem>
-                  </SelectContent>
-                    <SelectItem value="Interview">Interview</SelectItem>
-                    <SelectItem value="Offer">Offer</SelectItem>
-                    <SelectItem value="Accepted">Accepted</SelectItem>
-                    <SelectItem value="Rejected">Rejected</SelectItem>
-                    <SelectItem value="Withdrawn">Withdrawn</SelectItem>
                   </SelectContent>
                 </Select>
 

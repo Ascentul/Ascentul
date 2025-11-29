@@ -32,7 +32,7 @@ export default function AdvisorAnalyticsPage() {
   const clerkId = clerkUser?.id;
 
   // Calculate date ranges
-  const now = new Date();
+
   const weekStart = startOfWeek(now, { weekStartsOn: 1 }).getTime();
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 }).getTime();
   const monthStart = startOfMonth(now).getTime();
@@ -84,6 +84,7 @@ export default function AdvisorAnalyticsPage() {
   const activityData = useMemo(() => {
     if (!activitySessions) return [];
 
+    const now = new Date();
     const weekBuckets: { date: string; count: number }[] = [];
 
     // Create 4 week buckets
@@ -103,7 +104,7 @@ export default function AdvisorAnalyticsPage() {
     }
 
     return weekBuckets;
-  }, [activitySessions, now]);
+  }, [activitySessions]);
 
   // Build upcoming items (sessions + follow-ups for this week)
   const upcomingItems: UpcomingItem[] = useMemo(() => {
@@ -157,8 +158,6 @@ export default function AdvisorAnalyticsPage() {
         asset_id: r.asset_id,
         status: r.status,
         submitted_at: r.submitted_at || r.created_at || Date.now(),
-      }));
-  }, [reviews]);
       }));
   }, [reviews]);
 

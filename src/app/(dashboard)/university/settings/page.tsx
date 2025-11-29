@@ -30,9 +30,9 @@ export default function UniversitySettingsPage() {
     (() => {
       return undefined as any;
     });
-  const updateUniversitySettings = useMutation(
-    universitiesApi.updateUniversitySettings || (() => Promise.resolve(null)),
-  );
+  const updateUniversitySettings = universitiesApi?.updateUniversitySettings
+    ? useMutation(universitiesApi.updateUniversitySettings)
+    : null;
 
   const universitySettings = useQuery(
     getUniversitySettings,
@@ -80,23 +80,30 @@ export default function UniversitySettingsPage() {
       return;
     }
 
+    if (!updateUniversitySettings) {
+      toast({
+        title: "Feature Unavailable",
+        description: "Settings update is not available. Please contact support.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       await updateUniversitySettings(
-        universitiesApi.updateUniversitySettings
-          ? {
-              clerkId: clerkUser.id,
-              universityId: universitySettings._id,
-              settings: {
-                name: settings.name,
-                description: settings.description,
-                website: settings.website,
-                contact_email: settings.contactEmail,
-                max_students: settings.maxStudents,
-                license_seats: settings.licenseSeats,
-              },
-            }
-          : undefined,
+        {
+          clerkId: clerkUser.id,
+          universityId: universitySettings._id,
+          settings: {
+            name: settings.name,
+            description: settings.description,
+            website: settings.website,
+            contact_email: settings.contactEmail,
+            max_students: settings.maxStudents,
+            license_seats: settings.licenseSeats,
+          },
+        },
       );
 
       toast({
