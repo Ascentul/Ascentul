@@ -242,6 +242,8 @@ export const createEmptySelection = (): ApplicationSelection => ({
 });
 
 // Keep for backward compat, but document immutability requirement
+// WARNING: Object.freeze is shallow - do not mutate the internal Sets.
+// Use createEmptySelection() to get a mutable instance.
 export const EMPTY_SELECTION: Readonly<ApplicationSelection> = Object.freeze({
   selectedIds: new Set(),
   selectAll: false,

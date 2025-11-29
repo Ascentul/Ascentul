@@ -149,7 +149,11 @@ export default function UniversityDashboardPage() {
     }
   }, [user, isUniversityRole, impersonation.isImpersonating, router]);
 
-  if (authLoading || !clerkUser || !user || (!isUniversityRole && !impersonation.isImpersonating)) {
+  const hasAccess =
+    effectiveRole === 'university_admin' ||
+    effectiveRole === 'super_admin';
+
+  if (authLoading || !clerkUser || !user || !hasAccess) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

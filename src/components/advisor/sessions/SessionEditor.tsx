@@ -78,6 +78,7 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
 
   // Sync form state when session changes (ID change or version bump from server)
   // Note: Version is incremented on each save, so this captures external updates
+  // Sync form when the session changes externally (id or version bump)
   useEffect(() => {
     if (hasUnsavedChanges && session.version !== currentVersion) {
       console.warn(
@@ -96,21 +97,7 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
     setStatus(session.status || 'scheduled');
     setCurrentVersion(session.version);
     setHasUnsavedChanges(false);
-  }, [
-    session._id,
-    session.version,
-    session.title,
-    session.session_type,
-    session.start_at,
-    session.duration_minutes,
-    session.location,
-    session.meeting_url,
-    session.notes,
-    session.visibility,
-    session.status,
-    hasUnsavedChanges,
-    currentVersion,
-  ]);
+  }, [session._id, session.version]);
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const formattedSessionStartAt = useMemo(() => {

@@ -62,6 +62,8 @@ function getCapacityLabel(percentage: number): string {
 }
 
 function SessionRow({ session }: { session: UpcomingSession }) {
+  if (!session.start_at) return null;
+
   const sessionDate = new Date(session.start_at);
   let dateLabel = format(sessionDate, 'EEE, MMM d');
   let timeLabel = format(sessionDate, 'h:mm a');

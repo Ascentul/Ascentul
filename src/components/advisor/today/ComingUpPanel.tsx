@@ -48,7 +48,7 @@ function DayRow({ day }: { day: ComingUpDay }) {
   const sessionCount = day.sessions.length;
 
   if (sessionCount === 0) {
-  if (sessionCount === 0) {
+    return (
     return (
       <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50">
         <div className="flex items-center gap-2">

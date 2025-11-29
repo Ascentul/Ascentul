@@ -32,6 +32,7 @@ import Link from 'next/link';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import type { Id } from 'convex/_generated/dataModel';
+import { useRouter } from 'next/navigation';
 
 // New components
 import {
@@ -45,6 +46,7 @@ import {
 export default function AdvisorTodayPage() {
   const { user } = useUser();
   const clerkId = user?.id;
+  const router = useRouter();
 
   // State for follow-up tab
   const [followUpTab, setFollowUpTab] = useState<'overdue' | 'today' | 'upcoming'>('today');
@@ -107,16 +109,6 @@ export default function AdvisorTodayPage() {
     // TODO: Implement snooze modal to pick new date
     toast.info('Snooze functionality coming soon');
   };
-
-  // Session quick actions
-import { useRouter } from 'next/navigation';
-
-export default function AdvisorTodayPage() {
-  const { user } = useUser();
-  const clerkId = user?.id;
-  const router = useRouter();
-
-  // ...
 
   // Session quick actions
   const handleAddNote = (sessionId: Id<"advisor_sessions">) => {

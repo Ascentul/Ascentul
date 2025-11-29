@@ -306,7 +306,7 @@ echo ""
 # Step 4: Run Convex seeding script
 echo "Step 4: Creating test data in Convex..."
 echo "-----------------------------------"
-npx convex run seed_test_student:createTestStudent "{\"studentEmail\": \"$STUDENT_EMAIL\", \"advisorEmail\": \"$ADVISOR_EMAIL\"}"
+npx convex run seed_test_student:createTestStudent "$(jq -n --arg s "$STUDENT_EMAIL" --arg a "$ADVISOR_EMAIL" '{studentEmail: $s, advisorEmail: $a}')"
 
 echo ""
 echo "✅ Test student setup complete!"

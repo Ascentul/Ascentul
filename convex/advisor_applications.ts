@@ -869,13 +869,19 @@ export const bulkUpdateNextStep = mutation({
       }
     }
 
+    const previousValues = applications.map((app, idx) => ({
+      applicationId: args.applicationIds[idx],
+      next_step: app?.next_step,
+      due_date: app?.due_date,
+    }));
+
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId,
       action: 'applications.bulk_update_next_step',
       entityType: 'application',
       entityId: 'bulk',
-      previousValue: null,
+      previousValue: { changes: previousValues },
       newValue: {
         nextStep: args.nextStep,
         dueDate: args.dueDate,

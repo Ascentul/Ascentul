@@ -111,10 +111,10 @@ function fallbackParser(resumeText: string) {
           // Lines before bullets are considered summary/overview
           summaryLines.push(line.trim())
         } else {
-          // Non-bullet lines after bullets start could be continuation text;
-          // keep short lines as part of contributions to preserve context.
-          if (line.trim().length < 100) {
-            contributionLines.push(line.trim())
+          // Non-bullet lines after bullets are continuation of previous contribution
+          const trimmed = line.trim()
+          if (trimmed.length > 0 && contributionLines.length > 0) {
+            contributionLines[contributionLines.length - 1] += ' ' + trimmed
           }
         }
       }

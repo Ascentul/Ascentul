@@ -11,7 +11,7 @@
  */
 
 import { mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import {
   getCurrentUser,
   requireAdvisorRole,
@@ -35,12 +35,12 @@ export const completeFollowUp = mutation({
 
     const followUp = await ctx.db.get(args.followUpId);
     if (!followUp) {
-      throw new Error("Follow-up not found");
+      throw new ConvexError("Follow-up not found", { code: "NOT_FOUND" });
     }
 
     // Verify tenant isolation
     if (followUp.university_id !== universityId) {
-      throw new Error("Unauthorized: Follow-up belongs to different university");
+      throw new ConvexError("Unauthorized: Follow-up belongs to different university", { code: "UNAUTHORIZED" });
     }
 
     // Verify advisor can access this student
@@ -52,7 +52,7 @@ export const completeFollowUp = mutation({
       sessionCtx.role !== "university_admin" &&
       sessionCtx.role !== "super_admin"
     ) {
-      throw new Error("Unauthorized: Not the assigned advisor for this follow-up");
+      throw new ConvexError("Unauthorized: Not the assigned advisor for this follow-up", { code: "UNAUTHORIZED" });
     }
 
     // RACE CONDITION MITIGATION: Make this operation idempotent
@@ -95,8 +95,9 @@ export const completeFollowUp = mutation({
     if (!afterPatch) {
       // Follow-up was deleted during the operation - hard failure
       console.error(`Follow-up ${args.followUpId} deleted during complete operation`);
-      throw new Error(
-        "Follow-up was deleted during completion. This may indicate a concurrent deletion."
+      throw new ConvexError(
+        "Follow-up was deleted during completion. This may indicate a concurrent deletion.",
+        { code: "NOT_FOUND" }
       );
     }
 
@@ -108,8 +109,9 @@ export const completeFollowUp = mutation({
         `Expected ${currentVersion + 1}, got ${afterPatch.version}. ` +
         `Concurrent modification detected.`
       );
-      throw new Error(
-        "Follow-up was modified by another request. Please refresh and try again."
+      throw new ConvexError(
+        "Follow-up was modified by another request. Please refresh and try again.",
+        { code: "VERSION_CONFLICT" }
       );
     }
 
@@ -160,12 +162,12 @@ export const reopenFollowUp = mutation({
 
     const followUp = await ctx.db.get(args.followUpId);
     if (!followUp) {
-      throw new Error("Follow-up not found");
+      throw new ConvexError("Follow-up not found", { code: "NOT_FOUND" });
     }
 
     // Verify tenant isolation
     if (followUp.university_id !== universityId) {
-      throw new Error("Unauthorized: Follow-up belongs to different university");
+      throw new ConvexError("Unauthorized: Follow-up belongs to different university", { code: "UNAUTHORIZED" });
     }
 
     // Verify advisor can access this student
@@ -177,7 +179,7 @@ export const reopenFollowUp = mutation({
       sessionCtx.role !== "university_admin" &&
       sessionCtx.role !== "super_admin"
     ) {
-      throw new Error("Unauthorized: Not the assigned advisor for this follow-up");
+      throw new ConvexError("Unauthorized: Not the assigned advisor for this follow-up", { code: "UNAUTHORIZED" });
     }
 
     // RACE CONDITION MITIGATION: Make this operation idempotent
@@ -203,8 +205,8 @@ export const reopenFollowUp = mutation({
 
     await ctx.db.patch(args.followUpId, {
       status: "open",
-      completed_at: undefined,
-      completed_by: undefined,
+      completed_at: null,
+      completed_by: null,
       version: currentVersion + 1,
       updated_at: now,
     });
@@ -215,8 +217,9 @@ export const reopenFollowUp = mutation({
     if (!afterPatch) {
       // Follow-up was deleted during the operation - hard failure
       console.error(`Follow-up ${args.followUpId} deleted during reopen operation`);
-      throw new Error(
-        "Follow-up was deleted during reopen. This may indicate a concurrent deletion."
+      throw new ConvexError(
+        "Follow-up was deleted during reopen. This may indicate a concurrent deletion.",
+        { code: "NOT_FOUND" }
       );
     }
 
@@ -227,8 +230,9 @@ export const reopenFollowUp = mutation({
         `Expected ${currentVersion + 1}, got ${afterPatch.version}. ` +
         `Concurrent modification detected.`
       );
-      throw new Error(
-        "Follow-up was modified by another request. Please refresh and try again."
+      throw new ConvexError(
+        "Follow-up was modified by another request. Please refresh and try again.",
+        { code: "VERSION_CONFLICT" }
       );
     }
 
@@ -245,8 +249,8 @@ export const reopenFollowUp = mutation({
       previousValue: previousState,
       newValue: {
         status: "open",
-        completed_at: undefined,
-        completed_by: undefined,
+        completed_at: null,
+        completed_by: null,
       },
       ipAddress: "server",
     });

@@ -60,17 +60,25 @@ export const createSession = mutation({
     notes: v.optional(v.string()),
     visibility: v.optional(visibilityValidator),
   },
+export const createSession = mutation({
+  args: {
+    clerkId: v.string(),
+    student_id: v.id("users"),
+    // ... other args
+  },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx);
+    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
     // Validate timing fields
     if (args.start_at <= 0) {
-      throw new Error("start_at must be a valid timestamp");
+      throw new ConvexError("start_at must be a valid timestamp", { code: "VALIDATION_ERROR" });
     }
     if (args.duration_minutes <= 0 || args.duration_minutes > 1440) {
-      throw new Error("duration_minutes must be between 1 and 1440 (24 hours)");
+      throw new ConvexError("duration_minutes must be between 1 and 1440 (24 hours)", {
+        code: "VALIDATION_ERROR",
+      });
     }
 
     // Verify advisor can access this student
@@ -145,17 +153,17 @@ export const updateSession = mutation({
 
     const session = await ctx.db.get(args.session_id);
     if (!session) {
-      throw new Error("Session not found");
+      throw new ConvexError("Session not found", { code: "NOT_FOUND" });
     }
 
     // Verify ownership
     if (session.advisor_id !== sessionCtx.userId) {
-      throw new Error("Unauthorized: Not your session");
+      throw new ConvexError("Unauthorized: Not your session", { code: "UNAUTHORIZED" });
     }
 
     // Verify tenant isolation
     if (session.university_id !== universityId) {
-      throw new Error("Unauthorized: Session not in your university");
+      throw new ConvexError("Unauthorized: Session not in your university", { code: "UNAUTHORIZED" });
     }
 
     // Version check for conflict detection
@@ -168,10 +176,10 @@ export const updateSession = mutation({
 
     // Validate timing fields if provided
     if (args.start_at !== undefined && args.start_at <= 0) {
-      throw new Error("start_at must be a valid timestamp");
+      throw new ConvexError("start_at must be a valid timestamp", { code: "VALIDATION_ERROR" });
     }
     if (args.duration_minutes !== undefined && (args.duration_minutes <= 0 || args.duration_minutes > 1440)) {
-      throw new Error("duration_minutes must be between 1 and 1440 (24 hours)");
+      throw new ConvexError("duration_minutes must be between 1 and 1440 (24 hours)", { code: "VALIDATION_ERROR" });
     }
 
     const updates: {
@@ -216,7 +224,9 @@ export const updateSession = mutation({
       const DEFAULT_DURATION_MINUTES = 60;
       const duration = args.duration_minutes ?? session.duration_minutes ?? DEFAULT_DURATION_MINUTES;
       if (!start || start <= 0) {
-        throw new Error("Cannot calculate end_at: start_at is missing or invalid");
+      throw new ConvexError("Cannot calculate end_at: start_at is missing or invalid", {
+        code: "VALIDATION_ERROR",
+      });
       }
       updates.end_at = start + duration * 60 * 1000;
       // Persist the default duration if it was missing from the session
@@ -245,7 +255,9 @@ export const updateSession = mutation({
         // Ensure end_at is set for completed sessions
         const endAt = updates.end_at ?? session.end_at;
         if (!endAt) {
-          throw new Error("Cannot mark session as completed: end_at must be set");
+          throw new ConvexError("Cannot mark session as completed: end_at must be set", {
+            code: "VALIDATION_ERROR",
+          });
         }
       }
 
@@ -253,7 +265,9 @@ export const updateSession = mutation({
         // Ensure start_at is set for scheduled sessions
         const startAt = updates.start_at ?? session.start_at;
         if (!startAt) {
-          throw new Error("Cannot mark session as scheduled: start_at must be set");
+          throw new ConvexError("Cannot mark session as scheduled: start_at must be set", {
+            code: "VALIDATION_ERROR",
+          });
         }
       }
     }
@@ -307,17 +321,17 @@ export const deleteSession = mutation({
 
     const session = await ctx.db.get(args.session_id);
     if (!session) {
-      throw new Error("Session not found");
+      throw new ConvexError("Session not found", { code: "NOT_FOUND" });
     }
 
     // Verify ownership
     if (session.advisor_id !== sessionCtx.userId) {
-      throw new Error("Unauthorized: Not your session");
+      throw new ConvexError("Unauthorized: Not your session", { code: "UNAUTHORIZED" });
     }
 
     // Verify tenant isolation
     if (session.university_id !== universityId) {
-      throw new Error("Unauthorized: Session not in your university");
+      throw new ConvexError("Unauthorized: Session not in your university", { code: "UNAUTHORIZED" });
     }
 
     await ctx.db.delete(args.session_id);
@@ -357,22 +371,24 @@ export const cancelSession = mutation({
 
     const session = await ctx.db.get(args.session_id);
     if (!session) {
-      throw new Error("Session not found");
+      throw new ConvexError("Session not found", { code: "NOT_FOUND" });
     }
 
     // Verify ownership
     if (session.advisor_id !== sessionCtx.userId) {
-      throw new Error("Unauthorized: Not your session");
+      throw new ConvexError("Unauthorized: Not your session", { code: "UNAUTHORIZED" });
     }
 
     // Verify tenant isolation
     if (session.university_id !== universityId) {
-      throw new Error("Unauthorized: Session not in your university");
+      throw new ConvexError("Unauthorized: Session not in your university", { code: "UNAUTHORIZED" });
     }
 
     // Only allow cancelling scheduled sessions
     if (session.status !== "scheduled") {
-      throw new Error(`Cannot cancel session with status: ${session.status}`);
+      throw new ConvexError(`Cannot cancel session with status: ${session.status}`, {
+        code: "VALIDATION_ERROR",
+      });
     }
 
     await ctx.db.patch(args.session_id, {

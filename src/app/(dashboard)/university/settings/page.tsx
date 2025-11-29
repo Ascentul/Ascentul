@@ -24,14 +24,10 @@ export default function UniversitySettingsPage() {
   const { user, isAdmin, subscription } = useAuth();
   const { toast } = useToast();
 
-  // Always call hooks unconditionally
-  const updateUniversitySettings = useMutation(
-    (api as any).universities?.updateUniversitySettings ?? (() => Promise.resolve())
-  );
-  const isUpdateAvailable = Boolean((api as any).universities?.updateUniversitySettings);
-
+  // Convex API references
+  const updateUniversitySettings = useMutation(api.universities.updateUniversitySettings);
   const universitySettings = useQuery(
-    (api as any).universities?.getUniversitySettings ?? (() => undefined as any),
+    api.universities.getUniversitySettings,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
 
@@ -71,15 +67,6 @@ export default function UniversitySettingsPage() {
       toast({
         title: "Error",
         description: "Unable to save settings. Please try refreshing the page.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!isUpdateAvailable) {
-      toast({
-        title: "Feature Unavailable",
-        description: "Settings update is not available. Please contact support.",
         variant: "destructive",
       });
       return;

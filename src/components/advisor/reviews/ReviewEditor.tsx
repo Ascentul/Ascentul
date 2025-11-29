@@ -86,7 +86,6 @@ export function ReviewEditor({
   // Reset state only when switching to a different review
   // This prevents losing unsaved changes when background syncs update the review prop
   useEffect(() => {
-  useEffect(() => {
     // Clear any pending autosave timer when switching reviews
     if (autosaveTimerRef.current) {
       clearTimeout(autosaveTimerRef.current);
@@ -264,14 +263,7 @@ export function ReviewEditor({
     // Save any unsaved changes first
     let versionToUse = currentVersion;
     if (hasUnsavedChanges) {
-      // Wait for in-flight save to finish if applicable
-      if (isSaving) {
-        const start = Date.now();
-        const timeout = 3000;
-        while (isSaving && Date.now() - start < timeout) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-      }
+      // isSaving is React state; avoid busy-waiting here and let saveChanges guard itself
 
       if (hasUnsavedChanges) {
         const saveResult = await saveChanges();

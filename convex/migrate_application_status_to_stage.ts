@@ -153,7 +153,6 @@ export const verifyMigration = internalQuery({
     console.log("🔍 Verifying application status→stage migration...");
     // Collect all applications with pagination
     let allApps: any[] = [];
-    let allApps: any[] = [];
     let cursor: string | null = null;
     let isDone = false;
     while (!isDone) {
@@ -163,6 +162,7 @@ export const verifyMigration = internalQuery({
       isDone = result.isDone;
     }
     const withStage = allApps.filter(app => app.stage);
+    const withoutStage = allApps.filter(app => !app.stage);
 
     // Check for mismatches
     const mismatches: Array<{
@@ -196,17 +196,21 @@ export const verifyMigration = internalQuery({
 
     if (result.complete) {
       console.log("✅ Migration complete and verified!");
-    } else {
-      if (withoutStage.length > 0) {
-        console.error(`❌ ${withoutStage.length} applications missing stage field`);
-      }
-      if (mismatches.length > 0) {
-        console.error(`⚠️  ${mismatches.length} applications have mismatched status/stage`);
-      }
+      console.log(JSON.stringify(result, null, 2));
+      return result;
+    }
+
+    if (withoutStage.length > 0) {
+      console.error(`❌ ${withoutStage.length} applications missing stage field`);
+    }
+    if (mismatches.length > 0) {
+      console.error(`⚠️  ${mismatches.length} applications have mismatched status/stage`);
     }
 
     console.log(JSON.stringify(result, null, 2));
-    return result;
+    throw new Error(
+      `Migration verification failed: ${withoutStage.length} missing stage, ${mismatches.length} mismatches`
+    );
   },
 });
 

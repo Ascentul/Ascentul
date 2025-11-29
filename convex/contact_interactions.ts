@@ -173,9 +173,11 @@ export const updateContactFollowup = mutation({
       patchData.completed_at = now;
       patchData.completed_by = user._id;
     }
-    // Note: completion fields are not cleared when reopening.
-    // Consumers should check status === 'done' before using completed_at/completed_by.
-
+    // Clear completion fields when reopening (consistent with followups.ts)
+    if (args.updates.status === 'open' && followup.status === 'done') {
+      patchData.completed_at = undefined;
+      patchData.completed_by = undefined;
+    }
     await ctx.db.patch(args.followupId, patchData);
 
     return args.followupId;

@@ -229,8 +229,8 @@ export const getReviewById = query({
 
     // Verify advisor can access this student (caseload)
     const ownedStudentIds = await getOwnedStudentIds(ctx, sessionCtx);
-    const ownedStudentIdSet = new Set(ownedStudentIds.map(String));
-    if (!ownedStudentIdSet.has(String(review.student_id))) {
+    const ownedStudentIdSet = new Set(ownedStudentIds);
+    if (!ownedStudentIdSet.has(review.student_id)) {
       throw new Error("Unauthorized: Student not in your caseload");
     }
 

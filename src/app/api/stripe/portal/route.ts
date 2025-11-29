@@ -37,7 +37,10 @@ export async function POST(request: NextRequest) {
       const customer = await stripe.customers.create({
         email: user.email,
         name: user.name,
-        metadata: { clerk_id: user.clerkId },
+        metadata: { 
+          clerk_id: user.clerkId,
+          clerkId: user.clerkId // Keep for backward compatibility
+        },
       })
       customerId = customer.id
       await convexServer.mutation(api.users.setStripeCustomer, { clerkId: user.clerkId, stripeCustomerId: customerId })

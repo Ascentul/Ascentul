@@ -163,7 +163,8 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
     initializeUser()
   }, [clerkUser, clerkLoaded, userProfile, initializeUserProfile, toast, clerkSignOut])
 
-  // Convex is the source of truth for roles; if Clerk metadata diverges, log but do not override Convex
+  // Clerk publicMetadata.role should be the source of truth; Convex should mirror it.
+  // If they diverge, log for investigation rather than silently overriding either side.
   useEffect(() => {
     if (!clerkLoaded || !clerkUser || !userProfile) return
     const metaRole = (clerkUser.publicMetadata as any)?.role as string | undefined

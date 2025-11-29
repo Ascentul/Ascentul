@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { mutation, query, MutationCtx } from "./_generated/server";
 import { api } from "./_generated/api";
 import { isServiceRequest } from "./lib/roles";
@@ -492,10 +492,12 @@ export const initializeUserProfile = mutation({
     // Verify the caller is the authenticated user
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized: Not authenticated");
+      throw new ConvexError("Unauthorized: Not authenticated", { code: "UNAUTHORIZED" });
     }
     if (identity.subject !== args.clerkId) {
-      throw new Error("Unauthorized: Cannot create profile for another user");
+      throw new ConvexError("Unauthorized: Cannot create profile for another user", {
+        code: "UNAUTHORIZED",
+      });
     }
 
     // Check if user already exists

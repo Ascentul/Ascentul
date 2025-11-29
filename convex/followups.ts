@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 
 // Get all follow-ups for a user
@@ -10,7 +10,7 @@ export const getUserFollowups = query({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error('User not found');
+    if (!user) throw new ConvexError('User not found', { code: 'USER_NOT_FOUND' });
 
     const followups = await ctx.db
       .query('follow_ups')
@@ -48,7 +48,7 @@ export const getFollowupsForApplication = query({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error('User not found');
+    if (!user) throw new ConvexError('User not found', { code: 'USER_NOT_FOUND' });
 
     const items = await ctx.db
       .query('follow_ups')
@@ -77,7 +77,7 @@ export const createFollowup = mutation({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error('User not found');
+    if (!user) throw new ConvexError('User not found', { code: 'USER_NOT_FOUND' });
 
     const now = Date.now();
     const title =
@@ -91,11 +91,22 @@ export const createFollowup = mutation({
       type: args.type ?? 'follow_up',
       notes: args.notes,
 
+    // Determine created_by_type based on user role
+    const userRole = user.role;
+    const createdByType = userRole === 'student' ? 'student' : 'individual';
+
+    const id = await ctx.db.insert('follow_ups', {
+      // Core fields
+      title,
+      description: args.description,
+      type: args.type ?? 'follow_up',
+      notes: args.notes,
+
       // Ownership - student-created
       user_id: user._id,
       owner_id: user._id,
       created_by_id: user._id,
-      created_by_type: 'student',
+      created_by_type: createdByType,
 
       // Multi-tenancy (optional for non-university users)
       university_id: user.university_id,
@@ -141,11 +152,15 @@ export const updateFollowup = mutation({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error('User not found');
+    if (!user) throw new ConvexError('User not found', { code: 'USER_NOT_FOUND' });
 
     const item = await ctx.db.get(args.followupId);
-    if (!item || item.user_id !== user._id)
-      throw new Error('Followup not found or unauthorized');
+    if (!item) {
+      throw new ConvexError('Followup not found', { code: 'NOT_FOUND' });
+    }
+    if (item.user_id !== user._id) {
+      throw new ConvexError('Unauthorized', { code: 'UNAUTHORIZED' });
+    }
 
     const now = Date.now();
 
@@ -236,11 +251,15 @@ export const deleteFollowup = mutation({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error('User not found');
+    if (!user) throw new ConvexError('User not found', { code: 'USER_NOT_FOUND' });
 
     const item = await ctx.db.get(args.followupId);
-    if (!item || item.user_id !== user._id)
-      throw new Error('Followup not found or unauthorized');
+    if (!item) {
+      throw new ConvexError('Followup not found', { code: 'NOT_FOUND' });
+    }
+    if (item.user_id !== user._id) {
+      throw new ConvexError('Unauthorized', { code: 'UNAUTHORIZED' });
+    }
 
     await ctx.db.delete(args.followupId);
     return args.followupId;
