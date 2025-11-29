@@ -106,14 +106,14 @@ export function ReviewEditor({
   }, [feedback, lastSavedFeedback]);
 
   // Autosave function
-  const saveChanges = useCallback(async (): Promise<{ success: boolean; version?: number }> => {
+  const saveChanges = useCallback(async (): Promise<{ success: boolean; version?: number; reason?: string }> => {
     if (!hasUnsavedChanges || review.status !== "in_review") {
       return { success: false };
     }
 
     // Prevent parallel saves; caller should wait for isSaving to clear
     if (isSaving) {
-      return { success: false };
+      return { success: false, reason: 'save_in_progress' };
     }
 
     setIsSaving(true);

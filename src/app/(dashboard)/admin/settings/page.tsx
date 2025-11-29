@@ -180,6 +180,7 @@ export default function AdminSettingsPage() {
 
       // Map settings based on type
       if (settingsType === 'General') {
+        // General tab - includes platform config + maintenance/registration toggles shown in this tab
         settingsToSave = {
           platform_name: generalSettings.platformName,
           support_email: generalSettings.supportEmail,
@@ -187,7 +188,7 @@ export default function AdminSettingsPage() {
           default_timezone: generalSettings.defaultTimezone,
           university_plan_limit: generalSettings.universityPlanLimit,
           premium_plan_limit: generalSettings.premiumPlanLimit,
-          // Note: Including system settings here to support top panel "Save General" button
+          // These toggles appear in both Quick Actions and General tab for convenience
           maintenance_mode: systemSettings.maintenanceMode,
           allow_signups: systemSettings.registrationEnabled,
         }
@@ -283,62 +284,7 @@ export default function AdminSettingsPage() {
         </Button>
       </div>
 
-      {/* Always-visible general controls for test accessibility */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            General Settings
-          </CardTitle>
-          <CardDescription>Platform-wide settings and access</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="general-maintenance-inline">Maintenance Mode</Label>
-              <p className="text-sm text-muted-foreground">
-                Enable maintenance mode for all users
-              </p>
-            </div>
-            <input
-              id="general-maintenance-inline"
-              type="checkbox"
-              aria-label="Maintenance Mode"
-              checked={systemSettings.maintenanceMode}
-              onChange={(e) =>
-                setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))
-              }
-              className="h-4 w-4 mr-2"
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="general-registration-inline">Registration Enabled</Label>
-              <p className="text-sm text-muted-foreground">
-                Allow new user registrations
-              </p>
-            </div>
-            <input
-              id="general-registration-inline"
-              type="checkbox"
-              aria-label="Registration Enabled"
-              checked={systemSettings.registrationEnabled}
-              onChange={(e) =>
-                setSystemSettings(prev => ({ ...prev, registrationEnabled: e.target.checked }))
-              }
-              className="h-4 w-4 mr-2"
-            />
-          </div>
-          <div className="flex justify-end">
-            <Button onClick={() => handleSaveSettings('General')} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-              Save General Settings
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs defaultValue="ai" className="space-y-6">
+      <Tabs defaultValue="general" className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="ai">AI & OpenAI</TabsTrigger>
@@ -429,17 +375,6 @@ export default function AdminSettingsPage() {
                       Enable maintenance mode for all users
                     </p>
                   </div>
-                  {/* Hidden native checkbox for testing - visually hidden but accessible */}
-                  <input
-                    id="general-maintenance-checkbox"
-                    type="checkbox"
-                    aria-label="Maintenance Mode"
-                    checked={systemSettings.maintenanceMode}
-                    onChange={(e) =>
-                      setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))
-                    }
-                    className="sr-only"
-                  />
                   <Switch
                     id="general-maintenance"
                     aria-label="Maintenance Mode"
@@ -457,17 +392,6 @@ export default function AdminSettingsPage() {
                       Allow new user registrations
                     </p>
                   </div>
-                  {/* Hidden native checkbox for testing - visually hidden but accessible */}
-                  <input
-                    id="general-registration-checkbox"
-                    type="checkbox"
-                    aria-label="Registration Enabled"
-                    checked={systemSettings.registrationEnabled}
-                    onChange={(e) =>
-                      setSystemSettings(prev => ({ ...prev, registrationEnabled: e.target.checked }))
-                    }
-                    className="sr-only"
-                  />
                   <Switch
                     id="general-registration"
                     aria-label="Registration Enabled"
@@ -905,18 +829,6 @@ export default function AdminSettingsPage() {
                         Enable maintenance mode for all users
                       </p>
                     </div>
-                    {/* Hidden checkbox for accessibility/testing labels */}
-                    <label className="sr-only" htmlFor="maintenance-mode-checkbox">Maintenance Mode</label>
-                    <input
-                      id="maintenance-mode-checkbox"
-                      type="checkbox"
-                      aria-label="Maintenance Mode"
-                      checked={systemSettings.maintenanceMode}
-                      onChange={(e) =>
-                        setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))
-                      }
-                      className="sr-only"
-                    />
                     <Switch
                       id="maintenance-mode"
                       aria-label="Maintenance Mode"

@@ -65,7 +65,8 @@ async function createClerkUser(email, role) {
         'Authorization': 'Bearer ' + CLERK_SECRET_KEY,
         'Content-Type': 'application/json',
         'Content-Length': data.length
-      }
+      },
+      timeout: 10000  // 10 second timeout
     }, (res) => {
       let body = '';
       res.on('data', chunk => body += chunk);
@@ -85,6 +86,10 @@ async function createClerkUser(email, role) {
       });
     });
     req.on('error', reject);
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Request to Clerk API timed out'));
+    });
     req.write(data);
     req.end();
   });

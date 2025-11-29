@@ -152,6 +152,7 @@ export function BulkActionBar({
     setIsProcessing(true);
     try {
       await onMarkReviewed();
+      onClearSelection();
     } catch (error) {
       console.error('Failed to mark as reviewed:', error);
       // Optional: add toast/notification here

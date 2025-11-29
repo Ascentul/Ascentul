@@ -211,7 +211,7 @@ export async function GET(request: Request) {
 
 ### Phase 2 Cleanup
 
-After all 36 files are migrated:
+After all 35 files are migrated:
 1. Delete `src/lib/convex-server.ts`
 2. Remove any remaining imports
 3. Update this documentation to mark complete
