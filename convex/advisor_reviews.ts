@@ -475,7 +475,7 @@ export const addComment = mutation({
     const now = Date.now();
     const currentComments = review.comments || [];
     // Generate deterministic ID using timestamp + index + user for better uniqueness
-    const commentId = `${now}-${currentComments.length}-${sessionCtx.userId}`;
+    const commentId = `${now}-${currentComments.length}-${sessionCtx.userId}-${Math.random().toString(36).slice(2, 8)}`;
 
     const newComment = {
       id: commentId,
@@ -770,7 +770,7 @@ export const approveReview = mutation({
     let approvalCommentId: string | undefined;
     if (sanitizedComment) {
       // Generate deterministic ID using timestamp + index + user for better uniqueness
-      const commentId = `${now}-${updatedComments.length}-${sessionCtx.userId}`;
+      const commentId = `${now}-${updatedComments.length}-${sessionCtx.userId}-${Math.random().toString(36).slice(2, 8)}`;
       approvalCommentId = commentId;
       updatedComments = [
         ...updatedComments,

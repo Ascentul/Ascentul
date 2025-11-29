@@ -49,7 +49,6 @@ function DayRow({ day }: { day: ComingUpDay }) {
 
   if (sessionCount === 0) {
     return (
-    return (
       <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-slate-400" />

@@ -50,6 +50,7 @@ const visibilityValidator = v.union(
  */
 export const createSession = mutation({
   args: {
+    clerkId: v.string(),
     student_id: v.id("users"),
     title: v.string(),
     session_type: sessionTypeValidator,
@@ -59,12 +60,6 @@ export const createSession = mutation({
     meeting_url: v.optional(v.string()),
     notes: v.optional(v.string()),
     visibility: v.optional(visibilityValidator),
-  },
-export const createSession = mutation({
-  args: {
-    clerkId: v.string(),
-    student_id: v.id("users"),
-    // ... other args
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -312,10 +307,11 @@ export const updateSession = mutation({
  */
 export const deleteSession = mutation({
   args: {
+    clerkId: v.string(),
     session_id: v.id("advisor_sessions"),
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx);
+    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
@@ -361,11 +357,12 @@ export const deleteSession = mutation({
  */
 export const cancelSession = mutation({
   args: {
+    clerkId: v.string(),
     session_id: v.id("advisor_sessions"),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx);
+    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 

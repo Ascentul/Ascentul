@@ -126,10 +126,7 @@ export async function assertCanAccessStudent(
     );
   }
 
-  // Super admin can access any student in their tenant
-  if (sessionCtx.role === "super_admin") {
-    return student;
-  }
+
 
   // University admin can access all students in their university
   if (sessionCtx.role === "university_admin") {

@@ -84,13 +84,6 @@ export const createFollowup = mutation({
       args.description?.trim().substring(0, 100) ||
       `${args.type || 'Follow-up'} task`;
 
-    const id = await ctx.db.insert('follow_ups', {
-      // Core fields
-      title,
-      description: args.description,
-      type: args.type ?? 'follow_up',
-      notes: args.notes,
-
     // Determine created_by_type based on user role
     const userRole = user.role;
     const createdByType = userRole === 'student' ? 'student' : 'individual';

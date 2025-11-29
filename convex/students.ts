@@ -737,11 +737,7 @@ export const acceptInvite = mutation({
         created_at: now,
         updated_at: now,
       });
-    } else if (existingMembership.university_id !== invite.university_id) {
-      // Note: This case is already handled at line 629-631
-      throw new Error("Student membership belongs to a different university");
-    }
-    if (existingMembership.status !== "active") {
+    } else if (existingMembership.status !== "active") {
       await ctx.db.patch(existingMembership._id, {
         status: "active",
         updated_at: now,

@@ -9,10 +9,10 @@ import { Id, Doc } from "./_generated/dataModel";
 // Helper to redact PII from legacy fields
 function redactLegacyFields(log: Doc<"audit_logs">) {
   return {
-    performed_by_name: log.performed_by_name ? "[REDACTED]" : log.performed_by_name,
-    performed_by_email: log.performed_by_email ? "[REDACTED]" : log.performed_by_email,
-    target_name: log.target_name ? "[REDACTED]" : log.target_name,
-    target_email: log.target_email ? "[REDACTED]" : log.target_email,
+    performed_by_name: log.performed_by_name != null ? "[REDACTED]" : log.performed_by_name,
+    performed_by_email: log.performed_by_email != null ? "[REDACTED]" : log.performed_by_email,
+    target_name: log.target_name != null ? "[REDACTED]" : log.target_name,
+    target_email: log.target_email != null ? "[REDACTED]" : log.target_email,
   };
 }
 

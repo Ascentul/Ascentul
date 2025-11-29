@@ -361,14 +361,13 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {user.profile_image ? (
-                            <Image
-                              src={user.profile_image}
-                              alt={user.name}
-                              width={32}
-                              height={32}
-                              className="h-8 w-8 rounded-full object-cover"
-                              unoptimized
-                            />
+            <Image
+              src={user.profile_image}
+              alt={user.name}
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-full object-cover"
+            />
                           ) : (
                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="text-xs font-semibold text-primary">

@@ -252,9 +252,9 @@ export const _completeReviewInternal = internalMutation({
     // IMPORTANT: APP_URL must be configured per environment.
     const appUrl = process.env.APP_URL;
     if (!appUrl) {
-      console.warn('APP_URL not configured - review URLs will be relative and may be incorrect.');
+      throw new ConvexError('APP_URL environment variable not configured', { code: 'CONFIG_ERROR' });
     }
-    const baseUrl = appUrl || '';
+    const baseUrl = appUrl;
     let reviewUrl = `${baseUrl}/dashboard`;
 
     if (review.asset_type === 'resume' && review.resume_id) {
