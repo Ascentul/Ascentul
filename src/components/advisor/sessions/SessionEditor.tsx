@@ -103,6 +103,7 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
     prevVersionRef.current = session.version;
     setCurrentVersion(session.version);
     setHasUnsavedChanges(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only reset state when session._id or version changes, not on every session prop update
   }, [session._id, session.version, hasUnsavedChanges, toast]);
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -246,6 +247,7 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
     updateSession,
     toast,
     onSaveSuccess,
+    clerkUser?.id,
   ]);
 
   // Keep latest save function in a ref for debounced effects

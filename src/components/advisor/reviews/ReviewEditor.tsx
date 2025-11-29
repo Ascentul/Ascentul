@@ -97,6 +97,7 @@ export function ReviewEditor({
     setHasUnsavedChanges(false);
     setLastSaved(null);
     setSaveError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only reset state when review._id changes, not on every review prop update
   }, [review._id]);
   // Track if feedback has changed
   useEffect(() => {

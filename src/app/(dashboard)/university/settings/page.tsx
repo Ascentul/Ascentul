@@ -301,11 +301,15 @@ export default function UniversitySettingsPage() {
                 id="licenseSeats"
                 type="number"
                 value={settings.licenseSeats}
-                disabled
-                className="bg-muted cursor-not-allowed"
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    licenseSeats: parseInt(e.target.value, 10) || 0,
+                  }))
+                }
               />
               <p className="text-xs text-muted-foreground">
-                Total number of licenses available for students (read-only)
+                Total number of licenses available for students
               </p>
             </div>
 

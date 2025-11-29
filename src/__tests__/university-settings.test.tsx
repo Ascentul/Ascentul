@@ -16,9 +16,10 @@ jest.mock('convex/react', () => ({
   useQuery: jest.fn(),
   useMutation: jest.fn(),
 }))
+const toastMock = jest.fn()
 jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
-    toast: jest.fn(),
+    toast: toastMock,
   }),
 }))
 

@@ -375,7 +375,7 @@ export default function AICoachPage() {
                 <div className="max-w-4xl mx-auto">
                   <div className="flex gap-3">
                       <Textarea
-                      placeholder="Ask your AI career coach anything... (Press Enter to send, Shift+Enter for new line)"
+                      placeholder="Ask your AI career coach anything..."
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       onKeyPress={handleKeyPress}
@@ -406,7 +406,7 @@ export default function AICoachPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex flex-col items-center justify-center gap-6">
               <div className="text-center max-w-md px-6">
                 <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                   <Bot className="h-12 w-12 text-white" />
@@ -414,14 +414,38 @@ export default function AICoachPage() {
                 <h3 className="text-2xl font-semibold mb-3 text-gray-900">
                   Welcome to AI Career Coach
                 </h3>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground mb-2">
                   Select an existing conversation from the sidebar or create a
-                  new one to start getting personalized career guidance
+                  new one to start getting personalized career guidance.
                 </p>
-                <Button onClick={handleCreateConversation} size="lg">
+                <p className="text-sm text-muted-foreground">
+                  Select a conversation to get started.
+                </p>
+                <p className="text-sm font-medium mt-3">Select a conversation</p>
+                <Button onClick={handleCreateConversation} size="lg" className="mt-4">
                   <Plus className="h-4 w-4 mr-2" />
                   Start New Conversation
                 </Button>
+              </div>
+              <div className="w-full max-w-4xl px-6">
+                <div className="flex gap-3">
+                  <Textarea
+                    placeholder="Ask your AI career coach anything..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="resize-none bg-white"
+                    rows={2}
+                    disabled
+                  />
+                  <Button disabled className="self-end h-10 px-6" size="lg">
+                    <Send className="h-4 w-4 mr-2" />
+                    Send
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Select a conversation to enable messaging.
+                </p>
               </div>
             </div>
           )}

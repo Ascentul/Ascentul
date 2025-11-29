@@ -72,6 +72,8 @@ export default function AccountPage() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
     name: "",
+    email: "",
+    jobTitle: "",
     company: "",
     location: "",
     website: "",
@@ -79,13 +81,26 @@ export default function AccountPage() {
   });
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  // Avatar mutations
-  const generateAvatarUploadUrl = api.avatar?.generateAvatarUploadUrl
-    ? useMutation(api.avatar.generateAvatarUploadUrl)
-    : (() => Promise.resolve(''));
-  const updateUserAvatar = api.avatar?.updateUserAvatar
-    ? useMutation(api.avatar.updateUserAvatar)
-    : (() => Promise.resolve());
+  // Avatar mutations - always call hooks unconditionally
+  const generateAvatarUploadUrlMutation = useMutation(api.avatar.generateAvatarUploadUrl);
+  const updateUserAvatarMutation = useMutation(api.avatar.updateUserAvatar);
+  const updateUserMutation = useMutation(api.users.updateUser);
+
+  // Prefill profile form from user data
+  React.useEffect(() => {
+    if (user && clerkUser) {
+      setProfileForm((prev) => ({
+        ...prev,
+        name: user.name || clerkUser.fullName || "",
+        email: user.email || clerkUser.emailAddresses?.[0]?.emailAddress || "",
+        jobTitle: user.job_title || "",
+        company: user.company || "",
+        location: user.location || "",
+        website: user.website || "",
+        bio: user.bio || "",
+      }));
+    }
+  }, [user, clerkUser]);
 
   // Password form
   const passwordForm = useForm<PasswordChangeFormValues>({
@@ -148,7 +163,7 @@ export default function AccountPage() {
 
     setIsUploadingImage(true);
     try {
-      const uploadUrl = await generateAvatarUploadUrl();
+      const uploadUrl = await generateAvatarUploadUrlMutation();
       const uploadResult = await fetch(uploadUrl, {
         method: "POST",
         headers: { "Content-Type": file.type },
@@ -160,7 +175,7 @@ export default function AccountPage() {
       const { storageId } = await uploadResult.json();
 
       if (clerkUser?.id) {
-        await updateUserAvatar({
+        await updateUserAvatarMutation({
           clerkId: clerkUser.id,
           storageId,
         });
@@ -284,14 +299,35 @@ export default function AccountPage() {
               </div>
             </div>
 
-            <div className="space-y-3 border rounded-lg p-4">
-              <div>
-                <h4 className="font-medium">Profile Details</h4>
-                <p className="text-sm text-muted-foreground">Update website and bio</p>
-              </div>
+              <div className="space-y-3 border rounded-lg p-4">
+                <div>
+                  <h4 className="font-medium">Profile Details</h4>
+                  <p className="text-sm text-muted-foreground">Update website and bio</p>
+                </div>
 
               {(isEditingProfile || true) && (
                 <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={profileForm.email}
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="jobTitle">Job Title</Label>
+                    <Input
+                      id="jobTitle"
+                      name="jobTitle"
+                      placeholder="Your role"
+                      value={profileForm.jobTitle}
+                      onChange={(e) => setProfileForm({ ...profileForm, jobTitle: e.target.value })}
+                    />
+                  </div>
                   <div className="space-y-1">
                     <Label htmlFor="name">Name</Label>
                     <Input
@@ -357,7 +393,7 @@ export default function AccountPage() {
                       onClick={() => {
                         const urlPattern = /^https?:\/\/.+/i;
                         if (profileForm.website && !urlPattern.test(profileForm.website)) {
-                          setProfileError("Invalid website URL");
+                          setProfileError("Please enter a valid URL");
                           return;
                         }
                         if (profileForm.bio.length > 500) {
@@ -365,10 +401,24 @@ export default function AccountPage() {
                           return;
                         }
                         setProfileError(null);
+                        if (updateUserMutation && clerkUser?.id) {
+                          void updateUserMutation({
+                            clerkId: clerkUser.id,
+                            updates: {
+                              name: profileForm.name,
+                              email: profileForm.email,
+                              bio: profileForm.bio,
+                              job_title: profileForm.jobTitle,
+                              company: profileForm.company,
+                              location: profileForm.location,
+                              website: profileForm.website,
+                            },
+                          });
+                        }
                         setIsEditingProfile(false);
                       }}
                     >
-                      Save Profile
+                      Save Changes
                     </Button>
                   </div>
                 </div>

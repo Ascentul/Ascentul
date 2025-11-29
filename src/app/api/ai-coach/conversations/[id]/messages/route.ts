@@ -3,21 +3,15 @@ import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import OpenAI from 'openai'
-import { convexServer } from '@/lib/convex-server';
-
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-}) : null
+import { ConvexHttpClient } from 'convex/browser'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId, getToken } = await auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const token = await getToken({ template: 'convex' })
-    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
 
     const conversationId = params.id
 
@@ -25,25 +19,18 @@ export async function GET(
       return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 })
     }
 
-    // Verify conversation exists and belongs to user (prevents unauthorized access)
-    const conversations = await convexServer.query(
-      api.ai_coach.getConversations,
-      { clerkId: userId },
-      token
-    )
-
-    const conversation = conversations.find((c) => c.id === conversationId)
-    if (!conversation) {
-      return NextResponse.json({ error: 'Conversation not found or access denied' }, { status: 404 })
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!convexUrl) {
+      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
     }
+    const client: any = new (ConvexHttpClient as any)(convexUrl)
 
-    const messages = await convexServer.query(
-      api.ai_coach.getMessages,
+    const messages = await client.query(
+      (api.ai_coach as any).getMessages,
       {
         clerkId: userId,
         conversationId: conversationId as Id<'ai_coach_conversations'>
-      },
-      token
+      }
     )
 
     return NextResponse.json(messages)
@@ -58,10 +45,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId, getToken } = await auth()
+    const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const token = await getToken({ template: 'convex' })
-    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
 
     const conversationId = params.id
     const body = await request.json()
@@ -75,38 +60,31 @@ export async function POST(
       return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 })
     }
 
-    // Verify conversation exists and belongs to user (prevents unauthorized access)
-    const conversations = await convexServer.query(
-      api.ai_coach.getConversations,
-      { clerkId: userId },
-      token
-    )
-
-    const conversation = conversations.find((c) => c.id === conversationId)
-    if (!conversation) {
-      return NextResponse.json({ error: 'Conversation not found or access denied' }, { status: 404 })
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!convexUrl) {
+      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
     }
+    const client: any = new (ConvexHttpClient as any)(convexUrl)
 
     // Get conversation history for context
-    const existingMessages = await convexServer.query(
-      api.ai_coach.getMessages,
+    const existingMessages = await client.query(
+      (api.ai_coach as any).getMessages,
       {
         clerkId: userId,
         conversationId: conversationId as Id<'ai_coach_conversations'>
-      },
-      token
+      }
     ) as Array<{ isUser: boolean; message: string }>
 
     // Fetch user context data for personalized coaching
     let userContext = ''
     try {
       const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.all([
-        convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token) as Promise<Record<string, any> | null>,
-        convexServer.query(api.goals.getUserGoals, { clerkId: userId }, token) as Promise<any[]>,
-        convexServer.query(api.applications.getUserApplications, { clerkId: userId }, token) as Promise<any[]>,
-        convexServer.query(api.resumes.getUserResumes, { clerkId: userId }, token) as Promise<any[]>,
-        convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }, token) as Promise<any[]>,
-        convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token) as Promise<any[]>
+        client.query((api.users as any).getUserByClerkId, { clerkId: userId }) as Promise<Record<string, any> | null>,
+        client.query((api.goals as any).getUserGoals, { clerkId: userId }) as Promise<any[]>,
+        client.query((api.applications as any).getUserApplications, { clerkId: userId }) as Promise<any[]>,
+        client.query((api.resumes as any).getUserResumes, { clerkId: userId }) as Promise<any[]>,
+        client.query((api.cover_letters as any).getUserCoverLetters, { clerkId: userId }) as Promise<any[]>,
+        client.query((api.projects as any).getUserProjects, { clerkId: userId }) as Promise<any[]>
       ])
 
       // Build user context summary
@@ -180,7 +158,11 @@ export async function POST(
 
     let aiResponse: string
 
-    if (openai) {
+    const openaiClient = process.env.OPENAI_API_KEY
+      ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+      : null
+
+    if (openaiClient) {
       try {
         // Build conversation context for the AI
         const systemPrompt = `You are an expert AI Career Coach. Your role is to provide personalized, actionable career advice based on the user's questions and background.
@@ -220,7 +202,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
           content: content
         })
 
-        const completion = await openai.chat.completions.create({
+        const completion = await openaiClient.chat.completions.create({
           model: 'gpt-4o',
           messages: messages,
           temperature: 0.7,
@@ -239,12 +221,15 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
     }
 
     // Save both messages to the database
-    const newMessages = await convexServer.mutation(api.ai_coach.addMessages, {
-      clerkId: userId,
-      conversationId: conversationId as Id<'ai_coach_conversations'>,
-      userMessage: content,
-      aiMessage: aiResponse
-    })
+    const newMessages = await client.mutation(
+      (api.ai_coach as any).addMessages,
+      {
+        clerkId: userId,
+        conversationId: conversationId as Id<'ai_coach_conversations'>,
+        userMessage: content,
+        aiMessage: aiResponse
+      }
+    )
 
     return NextResponse.json(newMessages, { status: 201 })
   } catch (error) {

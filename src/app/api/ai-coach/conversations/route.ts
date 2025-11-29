@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
-import { convexServer } from '@/lib/convex-server';
+import { ConvexHttpClient } from 'convex/browser'
 
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const conversations = await convexServer.query(api.ai_coach.getConversations, { clerkId: userId })
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!convexUrl) {
+      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+    }
+    const client: any = new (ConvexHttpClient as any)(convexUrl)
+
+    const conversations = await client.query(
+      (api.ai_coach as any).getConversations,
+      { clerkId: userId }
+    )
 
     return NextResponse.json(conversations)
   } catch (error) {
@@ -29,10 +38,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
-    const newConversation = await convexServer.mutation(api.ai_coach.createConversation, {
-      clerkId: userId,
-      title
-    })
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+    if (!convexUrl) {
+      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+    }
+    const client: any = new (ConvexHttpClient as any)(convexUrl)
+
+    const newConversation = await client.mutation(
+      (api.ai_coach as any).createConversation,
+      {
+        clerkId: userId,
+        title
+      }
+    )
 
     return NextResponse.json(newConversation, { status: 201 })
   } catch (error) {

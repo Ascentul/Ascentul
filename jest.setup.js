@@ -41,10 +41,58 @@ jest.mock('@clerk/nextjs', () => ({
   UserButton: () => <div>User Button</div>,
 }))
 
+// Mock toast hook with overridable jest.fn
+const toastFn = jest.fn()
+const useToastMock = jest.fn(() => ({ toast: toastFn }))
+jest.mock('@/hooks/use-toast', () => ({
+  useToast: useToastMock,
+}))
+
 // Mock Convex
-const mockUseQuery = jest.fn(() => undefined)
-const mockUseMutation = jest.fn(() => jest.fn(() => Promise.resolve()))
-const mockUseAction = jest.fn(() => jest.fn(() => Promise.resolve()))
+const mockUseQuery = jest.fn((name) => {
+  if (name === 'universities:getUniversitySettings') {
+    return {
+      _id: 'uni-1',
+      name: 'Test University',
+      description: 'A great place to learn',
+      website: 'https://example.edu',
+      contact_email: 'admin@example.edu',
+      max_students: 123,
+      license_seats: 50,
+      license_used: 10,
+    }
+  }
+  if (name === 'analytics:getUserDashboardAnalytics') {
+    return {
+      totalStudents: 0,
+      sessionsThisWeek: 0,
+      progress: [],
+    }
+  }
+  if (name === 'ai_coach:getConversations') {
+    return [{ id: 'conversation-1', title: 'Test Conversation' }]
+  }
+  if (name === 'ai_coach:getMessages') {
+    return []
+  }
+  if (name === 'users:getUserByClerkId') {
+    return { _id: 'user-1', role: 'student', name: 'Test User' }
+  }
+  return undefined
+})
+const mockUseMutation = jest.fn((name) => {
+  if (name === 'avatar:generateAvatarUploadUrl') {
+    return jest.fn(() => Promise.resolve('https://upload.example.com'))
+  }
+  if (name === 'avatar:updateUserAvatar') {
+    return jest.fn(() => Promise.resolve({ success: true }))
+  }
+  if (name === 'universities:updateUniversitySettings') {
+    return jest.fn(() => Promise.resolve({ success: true }))
+  }
+  return jest.fn(() => Promise.resolve({ success: true }))
+})
+const mockUseAction = jest.fn(() => jest.fn(() => Promise.resolve({ success: true })))
 
 jest.mock('convex/react', () => ({
   useQuery: mockUseQuery,
@@ -60,41 +108,37 @@ jest.mock('convex/nextjs', () => ({
   fetchAction: jest.fn(() => Promise.resolve(undefined)),
 }))
 
-// Mock Convex browser client and API
-jest.mock('convex/browser', () => ({
-  ConvexHttpClient: jest.fn().mockImplementation(() => ({
-    query: jest.fn(),
-    mutation: jest.fn(),
-  })),
-}))
-
-// Mock convex/_generated/api globally
-jest.mock('convex/_generated/api', () => ({
-  api: {
-    avatar: {
-      generateAvatarUploadUrl: 'avatar:generateAvatarUploadUrl',
-      updateUserAvatar: 'avatar:updateUserAvatar',
-    },
-    universities: {
-      getUniversitySettings: 'universities:getUniversitySettings',
-      updateUniversitySettings: 'universities:updateUniversitySettings',
-    },
-    users: {
-      getUser: 'users:getUser',
-      getUserByClerkId: 'users:getUserByClerkId',
-      setStripeCustomer: 'users:setStripeCustomer',
-    },
-    projects: {
-      getUserProjects: 'projects:getUserProjects',
-    },
-    ai_coach: {
-      getConversations: 'ai_coach:getConversations',
-      getMessages: 'ai_coach:getMessages',
-      createConversation: 'ai_coach:createConversation',
-      sendMessage: 'ai_coach:sendMessage',
-    },
-  },
-}), { virtual: true })
+// Mock Convex server helper used in API routes
+jest.mock('@/lib/convex-server', () => {
+  const query = jest.fn((fn) => {
+    if (fn === 'ai_coach:getConversations') {
+      return Promise.resolve([
+        { id: 'conversation-1', title: 'Test Conversation' },
+        { id: 'test-conversation', title: 'Test Conversation' },
+        { id: '123', title: 'Sample Conversation' },
+      ])
+    }
+    if (fn === 'ai_coach:getMessages') {
+      return Promise.resolve([{ id: 'message-1', text: 'Hi there', role: 'user' }])
+    }
+    if (
+      fn === 'users:getUserByClerkId' ||
+      fn === 'goals:getUserGoals' ||
+      fn === 'applications:getUserApplications' ||
+      fn === 'resumes:getUserResumes' ||
+      fn === 'cover_letters:getUserCoverLetters' ||
+      fn === 'projects:getUserProjects'
+    ) {
+      return Promise.resolve([])
+    }
+    return Promise.resolve({})
+  })
+  const mutation = jest.fn(() => Promise.resolve({ success: true }))
+  const action = jest.fn(() => Promise.resolve({ success: true }))
+  return {
+    convexServer: { query, mutation, action },
+  }
+})
 
 // Mock Impersonation context to avoid provider errors in tests
 jest.mock('@/contexts/ImpersonationContext', () => ({
@@ -110,9 +154,24 @@ jest.mock('@/contexts/ImpersonationContext', () => ({
 
 global.HTMLElement.prototype.scrollIntoView = jest.fn()
 
+// Mock Clerk server auth for API route tests
+jest.mock('@clerk/nextjs/server', () => ({
+  auth: jest.fn().mockResolvedValue({
+    userId: 'test-user-id',
+    getToken: jest.fn().mockResolvedValue('test-token'),
+  }),
+}))
 
-// Mock API requests
-global.fetch = jest.fn()
+
+// Mock API requests with a basic resolved response
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: async () => ({ storageId: 'storage-1' }),
+    blob: async () => new Blob(),
+  })
+)
 
 // Mock next/server for API route testing
 jest.mock('next/server', () => ({

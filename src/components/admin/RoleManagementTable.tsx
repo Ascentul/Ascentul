@@ -261,6 +261,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
       handleValidateRoleChange()
     }
     // Re-validate when role, university selection, user identity, or validation function changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dialogState.user is intentionally excluded to prevent re-running on every user object change
   }, [dialogState.newRole, dialogState.selectedUniversityId, dialogState.user?.clerkId, handleValidateRoleChange])
 
   if (!usersData) {
