@@ -156,7 +156,7 @@ export default function AdvisorAnalyticsPage() {
         asset_type: r.asset_type,
         asset_id: r.asset_id,
         status: r.status,
-        submitted_at: r.requested_at ?? 0, // Indicates missing timestamp
+        submitted_at: r.requested_at ?? Date.now(), // Fallback to current time if missing
       }));
   }, [reviews]);
 

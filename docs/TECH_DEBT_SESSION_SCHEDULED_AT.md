@@ -5,7 +5,7 @@
 **Priority**: HIGH (now resolved)
 **Effort**: Medium (3 files affected)
 **Risk**: HIGH - Caused silent data loss in date-filtered queries
-**Status**: ✅ RESOLVED (2025-01-18)
+**Status**: ✅ RESOLVED (2025-11-18)
 
 ## Problem (Historical)
 
@@ -163,7 +163,7 @@ This issue was **similar in nature** to the application `status/stage` dual-fiel
 
 ## References
 
-- Issue Identified: Code review 2025-01-18 (user selection lines 107-137)
+- Issue Identified: Code review 2025-11-18 (user selection lines 107-137)
 - Migration Script: `convex/migrate_session_scheduled_at.ts`
 - Query Logic: `convex/advisor_sessions.ts:107-137`
 - Creation Mutations: `convex/advisor_sessions_mutations.ts:83-100, 178-221`
@@ -173,7 +173,7 @@ This issue was **similar in nature** to the application `status/stage` dual-fiel
 
 ✅ **RESOLVED** - All sessions have `scheduled_at` populated, future sessions will always have both fields set.
 
-**Date Resolved**: 2025-01-18
+**Date Resolved**: 2025-11-18
 **Migration Status**: Complete (1/1 sessions verified)
 **Code Updated**: Yes (3 files)
 **Verified**: Yes (100% coverage)

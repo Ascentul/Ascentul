@@ -275,6 +275,8 @@ export function ReviewEditor({
       }
       if (saveResult.version !== undefined) {
         versionToUse = saveResult.version;
+        // Sync state immediately so currentVersion is correct even if completeReview fails
+        setCurrentVersion(saveResult.version);
       }
     }
 
