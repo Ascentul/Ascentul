@@ -1,17 +1,27 @@
-import type { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest, test } from '@jest/globals'
+import type {
+  afterAll as JestAfterAll,
+  afterEach as JestAfterEach,
+  beforeAll as JestBeforeAll,
+  beforeEach as JestBeforeEach,
+  describe as JestDescribe,
+  expect as JestExpect,
+  it as JestIt,
+  jest as JestJest,
+  test as JestTest,
+} from '@jest/globals'
 
 export {}
 
 declare global {
-  const describe: typeof describe
-  const it: typeof it
-  const test: typeof test
-  const expect: typeof expect
-  const beforeEach: typeof beforeEach
-  const afterEach: typeof afterEach
-  const beforeAll: typeof beforeAll
-  const afterAll: typeof afterAll
-  const jest: typeof jest
+  const describe: typeof JestDescribe
+  const it: typeof JestIt
+  const test: typeof JestTest
+  const expect: typeof JestExpect
+  const beforeEach: typeof JestBeforeEach
+  const afterEach: typeof JestAfterEach
+  const beforeAll: typeof JestBeforeAll
+  const afterAll: typeof JestAfterAll
+  const jest: typeof JestJest
 
   namespace jest {
     type Mock<T = any, Y extends any[] = any[]> = {

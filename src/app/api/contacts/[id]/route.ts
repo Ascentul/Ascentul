@@ -3,11 +3,11 @@ import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 
 // GET /api/contacts/[id]
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { userId, token } = await requireConvexToken()
 
   const { id } = await params
   if (!id || typeof id !== 'string' || !id.trim()) {
@@ -18,6 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const contact = await convexServer.query(api.contacts.getContactById, { 
       clerkId: userId,
       contactId: id as Id<'networking_contacts'>,
+    }, token)
     })
     if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
     return NextResponse.json({ contact })
@@ -28,8 +29,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
 // PUT /api/contacts/[id]
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { userId, token } = await requireConvexToken()
 
   const { id } = await params
   if (!id || typeof id !== 'string' || !id.trim()) {
@@ -54,7 +54,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           ? (Number.isNaN(Date.parse(body.last_contact_date)) ? undefined : Date.parse(body.last_contact_date)) 
           : undefined,
       },
-    })
+    }, token)
 
     return NextResponse.json({ contact })
   } catch (e: any) {
@@ -64,8 +64,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
 // DELETE /api/contacts/[id]
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { userId, token } = await requireConvexToken()
 
   const { id } = await params
   if (!id || typeof id !== 'string' || !id.trim()) {
@@ -73,7 +72,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
 
   try {
-    await convexServer.mutation(api.contacts.deleteContact, { clerkId: userId, contactId: id as Id<'networking_contacts'> })
+    await convexServer.mutation(
+      api.contacts.deleteContact,
+      { clerkId: userId, contactId: id as Id<'networking_contacts'> },
+      token
+    )
     return NextResponse.json({ success: true })
   } catch (e: any) {
     return NextResponse.json({ error: 'Failed to delete contact' }, { status: 500 })

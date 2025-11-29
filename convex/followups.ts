@@ -86,7 +86,10 @@ export const createFollowup = mutation({
 
     // Determine created_by_type based on user role
     const userRole = user.role;
-    const createdByType = userRole === 'student' ? 'student' : 'individual';
+    const createdByType = 
+      userRole === 'student' ? 'student' 
+      : userRole === 'advisor' ? 'advisor' 
+      : 'individual';
 
     const id = await ctx.db.insert('follow_ups', {
       // Core fields

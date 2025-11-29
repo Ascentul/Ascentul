@@ -3,14 +3,14 @@ import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 
 // Convex IDs use RFC 4648 base32hex (A-V, 0-9)
 const isValidId = (id: string) => /^[0-9A-V]+$/i.test(id.trim());
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, token } = await requireConvexToken()
     const { id: goalIdParam } = await context.params
     if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidId(goalIdParam)) {
       return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
@@ -36,11 +36,15 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     // When completedAt is explicitly null, set to undefined so Convex clears the timestamp
     if (body.completedAt === null) updates.completed_at = undefined
 
-    await convexServer.mutation(api.goals.updateGoal, {
-      clerkId: userId,
-      goalId: goalIdParam as Id<'goals'>,
-      updates,
-    })
+    await convexServer.mutation(
+      api.goals.updateGoal,
+      {
+        clerkId: userId,
+        goalId: goalIdParam as Id<'goals'>,
+        updates,
+      },
+      token
+    )
     return NextResponse.json({ ok: true })
   } catch (error: any) {
     console.error('PUT /api/goals/[id] error:', error)
@@ -51,13 +55,16 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
 export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, token } = await requireConvexToken()
     const { id: goalIdParam } = await context.params
     if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidId(goalIdParam)) {
       return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
     }
-    await convexServer.mutation(api.goals.deleteGoal, { clerkId: userId, goalId: goalIdParam as Id<'goals'> })
+    await convexServer.mutation(
+      api.goals.deleteGoal,
+      { clerkId: userId, goalId: goalIdParam as Id<'goals'> },
+      token
+    )
     return NextResponse.json({ ok: true })
   } catch (error: any) {
     console.error('DELETE /api/goals/[id] error:', error)

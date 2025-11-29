@@ -184,7 +184,7 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
               </thead>
               <tbody
                 className="relative"
-                style={{ height: totalHeight || ROW_HEIGHT }}
+                style={{ height: totalHeight }}
               >
                 {/* Spacer row for offset before visible rows */}
                 {translateY > 0 && (

@@ -541,7 +541,6 @@ export const acceptInvite = mutation({
     if (identity.subject !== args.clerkId) {
       throw new Error("Unauthorized: Clerk identity mismatch");
     }
-    const now = Date.now();
 
     // 1. Find the invite by token
     const invite = await ctx.db

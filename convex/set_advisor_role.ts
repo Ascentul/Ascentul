@@ -27,6 +27,7 @@ const ADVISOR_ROLE = "advisor" as const;
 const maskEmail = (email: string) => {
   const [local, domain] = email.split("@");
   if (!domain) return "[redacted]";
+  if (!local) return `[redacted]@${domain}`;
   const maskedLocal =
     local.length <= 2 ? `${local[0] || ""}*` : `${local[0]}***${local.slice(-1)}`;
   return `${maskedLocal}@${domain}`;

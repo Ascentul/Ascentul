@@ -78,8 +78,8 @@ async function processUpgrade(params: {
 
   // Handle convexId path
   if (convexId) {
-    // Basic validation: Convex IDs are typically alphanumeric strings
-    if (typeof convexId !== 'string' || convexId.length === 0) {
+    // Convex IDs are base64-like strings, let the mutation validate the exact format
+    if (typeof convexId !== 'string' || convexId.trim().length === 0) {
       return NextResponse.json({
         error: 'Invalid convexId format',
         convexId,

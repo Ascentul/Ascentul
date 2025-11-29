@@ -104,11 +104,15 @@ export const redactStudentPII = internalMutation({
 // ============================================================================
 // Retention Job: delete audit logs older than 7 years
 // ============================================================================
-
 // Placeholder export hook (stub for future S3/R2 export)
 async function exportAuditLogsForArchive(_logs: Doc<"audit_logs">[]) {
   // TODO: Implement export to long-term storage (S3/R2) before deletion
-  console.log(`[audit_logs] Stub export called for ${_logs.length} log(s)`);
+  throw new Error(
+    `exportAuditLogsForArchive not implemented - refusing to proceed with deletion of ${_logs.length} log(s)`
+  );
+}
+    `exportAuditLogsForArchive not implemented - refusing to proceed with deletion of ${_logs.length} log(s)`
+  );
 }
 
 export const deleteExpiredAuditLogs = internalMutation({

@@ -80,18 +80,23 @@ export default function AdvisorSupportPage() {
 
   const responseEntries = useMemo(() => {
     if (!selectedTicket?.resolution) return [];
-    return selectedTicket.resolution.split(/\n\n+/).map((entry) => {
-      const match = entry.match(/^\s*\[(?<ts>[^\]]+)\]\s*(?<author>[^:]+):\s*(?<msg>[\s\S]*)$/);
-      if (match?.groups) {
-        const ts = match.groups.ts;
-        const author = match.groups.author.trim();
-        const message = match.groups.msg.trim();
-        const parsedDate = new Date(ts);
-        const timestamp = isNaN(parsedDate.getTime()) ? ts : parsedDate.toLocaleString();
-        return { author, message, timestamp, raw: entry };
-      }
-      return { author: 'Response', message: entry.trim(), timestamp: null, raw: entry };
-    });
+    try {
+      return selectedTicket.resolution.split(/\n\n+/).map((entry) => {
+        const match = entry.match(/^\s*\[(?<ts>[^\]]+)\]\s*(?<author>[^:]+):\s*(?<msg>[\s\S]*)$/);
+        if (match?.groups) {
+          const ts = match.groups.ts;
+          const author = match.groups.author.trim();
+          const message = match.groups.msg.trim();
+          const parsedDate = new Date(ts);
+          const timestamp = isNaN(parsedDate.getTime()) ? ts : parsedDate.toLocaleString();
+          return { author, message, timestamp, raw: entry };
+        }
+        return { author: 'Response', message: entry.trim(), timestamp: null, raw: entry };
+      });
+    } catch {
+      // Fallback: treat entire resolution as a single response blob
+      return [{ author: 'Response', message: selectedTicket.resolution, timestamp: null, raw: selectedTicket.resolution }];
+    }
   }, [selectedTicket?.resolution]);
 
   // Queries

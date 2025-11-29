@@ -19,16 +19,7 @@ interface UserProfile {
   career_goals?: string,
 }
 
-interface Goal {
-  title: string,
-  status: string,
-}
-
-interface Application {
-  job_title: string,
-  company: string,
-  status: string,
-}
+import type { Application, Goal } from '@/types/models';
 
 interface Project {
   title: string,

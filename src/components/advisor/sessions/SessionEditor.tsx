@@ -75,12 +75,13 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState(session.version);
+  const prevVersionRef = useRef(session.version);
 
   // Sync form state when session changes (ID change or version bump from server)
   // Note: Version is incremented on each save, so this captures external updates
   // Sync form when the session changes externally (id or version bump)
   useEffect(() => {
-    if (hasUnsavedChanges && session.version !== currentVersion) {
+    if (hasUnsavedChanges && session.version !== prevVersionRef.current) {
       toast({
         title: 'External update detected',
         description: 'Your unsaved changes were reset to the latest version.',
@@ -97,9 +98,10 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
     setNotes(session.notes || '');
     setVisibility(session.visibility);
     setStatus(session.status || 'scheduled');
+    prevVersionRef.current = session.version;
     setCurrentVersion(session.version);
     setHasUnsavedChanges(false);
-  }, [session._id, session.version, hasUnsavedChanges, currentVersion, toast]);
+  }, [session._id, session.version, hasUnsavedChanges, toast]);
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const formattedSessionStartAt = useMemo(() => {
