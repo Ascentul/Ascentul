@@ -205,7 +205,9 @@ export default function AdvisorSupportPage() {
     const ticketSnapshot = selectedTicket ? { ...selectedTicket } : null
     const originalStatus = ticketSnapshot?.status
 
-    // Optimistic update - update UI immediately
+    // Optimistic update for the detail dialog only.
+    // Table rows rely on Convex reactivity (useQuery auto-updates after mutation).
+    // This is intentional: the detail dialog is the primary interaction point.
     if (ticketSnapshot && ticketSnapshot._id === ticketId) {
       setSelectedTicket({ ...ticketSnapshot, status: newStatus })
     }

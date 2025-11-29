@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import OpenAI from 'openai'
 import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 
 export const runtime = 'nodejs'
 
@@ -12,8 +13,7 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, token } = await requireConvexToken()
     const body = await request.json()
     const { currentRole, targetRole, skills, experience, timeframe } = body
 
@@ -76,14 +76,18 @@ Format as a structured plan with clear steps and timelines.`
     let careerPath: unknown = null
     let saveWarning: string | undefined
     try {
-      careerPath = await convexServer.mutation(api.career_paths.createCareerPath, {
-        clerkId: userId,
-        target_role: String(targetRole),
-        current_level: undefined,
-        estimated_timeframe: timeframe ? String(timeframe) : undefined,
-        steps: { planText: generatedPath, inputs: { currentRole, targetRole, skills, experience, timeframe } },
-        status: 'active',
-      })
+      careerPath = await convexServer.mutation(
+        api.career_paths.createCareerPath,
+        {
+          clerkId: userId,
+          target_role: String(targetRole),
+          current_level: undefined,
+          estimated_timeframe: timeframe ? String(timeframe) : undefined,
+          steps: { planText: generatedPath, inputs: { currentRole, targetRole, skills, experience, timeframe } },
+          status: 'active',
+        },
+        token,
+      )
     } catch (error) {
       console.error('Failed to save career path to Convex:', error)
       saveWarning = 'Career path generated but could not be saved.'

@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { fetchQuery, fetchMutation } from 'convex/nextjs'
 import { api } from 'convex/_generated/api'
+import { fetchQuery, fetchMutation } from 'convex/nextjs'
 
 export async function GET() {
   try {
-    const { userId, getToken } = await auth()
+    const authResult = await auth()
+    const { userId } = authResult
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const token = await getToken({ template: 'convex' })
+    const token = await authResult.getToken({ template: 'convex' })
     if (!token) {
       return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
     }
@@ -30,12 +31,13 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, getToken } = await auth()
+    const authResult = await auth()
+    const { userId } = authResult
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const token = await getToken({ template: 'convex' })
+    const token = await authResult.getToken({ template: 'convex' })
     if (!token) {
       return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
     }

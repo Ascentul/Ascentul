@@ -26,7 +26,7 @@ The application currently uses `ConvexHttpClient` from `convex/browser` for serv
 
 ### Current Pattern (Phase 1 - Consolidated)
 
-> **Status**: All 36 API routes use `convexServer` wrapper. This is an **intermediate state**
+> **Status**: All 35 API routes use `convexServer` wrapper. This is an **intermediate state**
 > before final migration to `convex/nextjs`. The wrapper itself uses deprecated patterns
 > but centralizes the change needed for Phase 2.
 

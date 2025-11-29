@@ -20,9 +20,11 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const goals = await convexServer.query(api.goals.getUserGoals, { clerkId: userId })
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+    const goals = await convexServer.query(api.goals.getUserGoals, { clerkId: userId }, token)
     return NextResponse.json({ goals: goals.map(mapGoal) })
   } catch (error: any) {
     console.error('GET /api/goals error:', error)
@@ -33,8 +35,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
 
     let body
     try {
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
       checklist: Array.isArray(body.checklist) ? body.checklist : undefined,
       category: body.category ? String(body.category) : undefined,
     }
-    const id = await convexServer.mutation(api.goals.createGoal, args)
+    const id = await convexServer.mutation(api.goals.createGoal, args, token)
     return NextResponse.json({ id }, { status: 201 })
   } catch (error: any) {
     console.error('POST /api/goals error:', error)

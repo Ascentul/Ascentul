@@ -3,6 +3,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 
 async function requireAdminAuth(_request: NextRequest): Promise<{ userId: string } | { error: NextResponse }> {
   if (process.env.NODE_ENV === 'production') {
@@ -48,24 +49,32 @@ async function findClerkUserIdByEmail(email: string, clerkSecret?: string): Prom
   }
 }
 
-async function upgradeToPremiumByClerkId(clerkId: string) {
-  return convexServer.mutation(api.users.updateUser, {
-    clerkId,
-    updates: {
-      subscription_plan: 'premium',
-      subscription_status: 'active',
+async function upgradeToPremiumByClerkId(clerkId: string, token: string) {
+  return convexServer.mutation(
+    api.users.updateUser,
+    {
+      clerkId,
+      updates: {
+        subscription_plan: 'premium',
+        subscription_status: 'active',
+      },
     },
-  })
+    token,
+  )
 }
 
-async function upgradeToPremiumByConvexId(id: Id<'users'>) {
-  return convexServer.mutation(api.users.updateUserById, {
-    id,
-    updates: {
-      subscription_plan: 'premium',
-      subscription_status: 'active',
+async function upgradeToPremiumByConvexId(id: Id<'users'>, token: string) {
+  return convexServer.mutation(
+    api.users.updateUserById,
+    {
+      id,
+      updates: {
+        subscription_plan: 'premium',
+        subscription_status: 'active',
+      },
     },
-  })
+    token,
+  )
 }
 
 async function processUpgrade(params: {
@@ -75,11 +84,12 @@ async function processUpgrade(params: {
   fallbackUserId: string
 }): Promise<NextResponse> {
   const { convexId, email, clerkId, fallbackUserId } = params
+  const { token } = await requireConvexToken()
 
   // Handle convexId path
   if (convexId) {
     try {
-      await upgradeToPremiumByConvexId(convexId as Id<'users'>)
+      await upgradeToPremiumByConvexId(convexId as Id<'users'>, token)
       return NextResponse.json({ success: true, convexId, plan: 'premium', status: 'active' }, { status: 200 })
     } catch (error) {
       console.error('Failed to upgrade by convexId:', error)
@@ -112,7 +122,7 @@ async function processUpgrade(params: {
   }
 
   try {
-    await upgradeToPremiumByClerkId(targetClerkId)
+    await upgradeToPremiumByClerkId(targetClerkId, token)
     return NextResponse.json({ success: true, clerkId: targetClerkId, plan: 'premium', status: 'active' }, { status: 200 })
   } catch (error) {
     console.error('Failed to upgrade by clerkId:', error)

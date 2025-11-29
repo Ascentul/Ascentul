@@ -84,7 +84,6 @@ describe('AccountPage - Profile Settings Persistence', () => {
 
     // Fill in all fields
     const nameInput = screen.getByLabelText(/name/i)
-    const emailInput = screen.getByLabelText(/email/i)
     const bioInput = screen.getByLabelText(/bio/i)
     const jobTitleInput = screen.getByLabelText(/job title/i)
     const companyInput = screen.getByLabelText(/company/i)
@@ -92,7 +91,6 @@ describe('AccountPage - Profile Settings Persistence', () => {
     const websiteInput = screen.getByLabelText(/website/i)
 
     fireEvent.change(nameInput, { target: { value: 'Updated Name' } })
-    fireEvent.change(emailInput, { target: { value: 'updated@example.com' } })
     fireEvent.change(bioInput, { target: { value: 'Updated bio text' } })
     fireEvent.change(jobTitleInput, { target: { value: 'Senior Engineer' } })
     fireEvent.change(companyInput, { target: { value: 'New Company' } })
@@ -108,7 +106,7 @@ describe('AccountPage - Profile Settings Persistence', () => {
         clerkId: 'test-clerk-id',
         updates: {
           name: 'Updated Name',
-          email: 'updated@example.com',
+          email: 'test@example.com',
           bio: 'Updated bio text',
           job_title: 'Senior Engineer',
           company: 'New Company',
@@ -126,10 +124,8 @@ describe('AccountPage - Profile Settings Persistence', () => {
     fireEvent.click(editButton)
 
     const nameInput = screen.getByLabelText(/name/i)
-    const emailInput = screen.getByLabelText(/email/i)
 
     fireEvent.change(nameInput, { target: { value: 'Name Only' } })
-    fireEvent.change(emailInput, { target: { value: 'email@example.com' } })
 
     // Leave optional fields empty
     const bioInput = screen.getByLabelText(/bio/i)
@@ -143,7 +139,7 @@ describe('AccountPage - Profile Settings Persistence', () => {
         clerkId: 'test-clerk-id',
         updates: expect.objectContaining({
           name: 'Name Only',
-          email: 'email@example.com',
+          email: 'test@example.com',
           bio: '',
         }),
       })

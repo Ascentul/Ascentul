@@ -119,7 +119,7 @@ export const redactStudentPII = internalMutation({
 
     // Query audit logs by student (new format uses student_id in metadata) if such an index exists
     // Fallback: scan by student_id field if present; otherwise paginate all logs
-    let cursor: string | null = null;
+    let cursor: string | undefined = undefined;
     let isDone = false;
     let redactedCount = 0;
 
@@ -197,7 +197,11 @@ export const deleteExpiredAuditLogs = internalMutation({
         .order("asc")
         .paginate({ cursor, numItems: 200 });
 
-      const expired = page.page.filter((log) => (log.created_at ?? log.timestamp ?? 0) < cutoff);
+      const expired = page.page.filter((log) => {
+        const ts = log.created_at ?? log.timestamp;
+        // Exclude logs with no timestamp rather than treating them as ancient
+        return ts !== undefined && ts < cutoff;
+      });
 
       if (expired.length > 0) {
         // TODO: Implement export before enabling deletion

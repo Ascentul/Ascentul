@@ -68,7 +68,8 @@ export default function AccountPage() {
   const { toast } = useToast();
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // For password change
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -412,7 +413,7 @@ export default function AccountPage() {
                       Cancel
                     </Button>
                     <Button
-                      disabled={isLoading}
+                      disabled={isSavingProfile}
                       onClick={async () => {
                         const urlPattern = /^https?:\/\/.+/i;
                         if (profileForm.website && !urlPattern.test(profileForm.website)) {
@@ -425,7 +426,7 @@ export default function AccountPage() {
                         }
                         setProfileError(null);
                         if (effectiveClerkId) {
-                          setIsLoading(true);
+                          setIsSavingProfile(true);
                           try {
                             await updateUserMutation({
                               clerkId: effectiveClerkId,
@@ -453,12 +454,12 @@ export default function AccountPage() {
                               variant: "destructive",
                             });
                           } finally {
-                            setIsLoading(false);
+                            setIsSavingProfile(false);
                           }
                         }
                       }}
                     >
-                      {isLoading ? "Saving..." : "Save Changes"}
+                      {isSavingProfile ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
                 </div>

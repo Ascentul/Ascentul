@@ -46,7 +46,7 @@ export async function GET() {
   } catch (error) {
     console.error('Stripe prices error:', error)
 
-    // Check if this is a Stripe API error vs configuration error
+    // Check if this is a Stripe API error vs other errors (e.g., network issues)
     if (error instanceof Stripe.errors.StripeError) {
       // Actual Stripe API failure - return error status
       return NextResponse.json(

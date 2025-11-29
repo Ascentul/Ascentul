@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   startOfWeek,
   endOfWeek,
@@ -84,9 +84,11 @@ export function CalendarView({ sessions, followUps, isLoading, currentDate: cont
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [now, setNow] = useState<number>(0);
 
+  // Track initial controlledDate to avoid stale reference while keeping mount-only semantics
+  const initialControlledDate = useRef(controlledDate);
   useEffect(() => {
     setNow(Date.now());
-    if (!controlledDate) {
+    if (!initialControlledDate.current) {
       setInternalDate(new Date());
     }
   }, []);

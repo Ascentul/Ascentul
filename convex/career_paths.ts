@@ -35,11 +35,11 @@ export const getUserCareerPathsPaginated = query({
       .query("career_paths")
       .withIndex("by_user", (q) => q.eq("user_id", user._id))
       .order("desc")
-      .paginate({ numItems: args.limit ?? 10, cursor: (args.cursor as any) ?? null });
+      .paginate({ numItems: args.limit ?? 10, cursor: args.cursor ?? null });
 
     return {
       items: result.page,
-      nextCursor: result.isDone ? null : (result.continueCursor as any as string),
+      nextCursor: result.isDone ? null : result.continueCursor,
     };
   },
 });

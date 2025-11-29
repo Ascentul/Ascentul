@@ -584,7 +584,7 @@ export default function AdvisorSessionsPage() {
                   value={newSession.student_id}
                   onValueChange={(v) => setNewSession({ ...newSession, student_id: v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="student">
                     <SelectValue placeholder="Select a student" />
                   </SelectTrigger>
                   <SelectContent>

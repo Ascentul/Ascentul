@@ -2,16 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
     // Get authentication from request
-    const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const { userId, token } = await requireConvexToken()
 
     const body = await request.json()
     const { clerkId } = body
@@ -31,7 +29,7 @@ export async function POST(request: NextRequest) {
     // Get the current user to verify admin access
     let user
     try {
-      user = await convexServer.query(api.users.getUserByClerkId, { clerkId })
+      user = await convexServer.query(api.users.getUserByClerkId, { clerkId }, token)
     } catch (error) {
       console.error('Error fetching user:', error)
       return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 })
@@ -53,8 +51,8 @@ export async function POST(request: NextRequest) {
     let students, departments
     try {
       [students, departments] = await Promise.all([
-        convexServer.query(api.university_admin.listStudents, { clerkId }),
-        convexServer.query(api.university_admin.listDepartments, { clerkId })
+        convexServer.query(api.university_admin.listStudents, { clerkId }, token),
+        convexServer.query(api.university_admin.listDepartments, { clerkId }, token)
       ])
     } catch (error) {
       console.error('Error fetching data:', error)

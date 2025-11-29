@@ -413,8 +413,7 @@ export default function AICoachPage() {
                   Welcome to AI Career Coach
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                  Choose a conversation from the sidebar to continue, or create
-                  a new one to start getting personalized career guidance.
+                  Select an existing conversation from the sidebar or create a new one to start getting personalized career guidance.
                 </p>
                 <Button onClick={handleCreateConversation} size="lg">
                   <Plus className="h-4 w-4 mr-2" />

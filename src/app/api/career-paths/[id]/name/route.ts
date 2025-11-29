@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { fetchMutation } from 'convex/nextjs'
+import { isValidConvexId } from '@/lib/convex-ids'
 
 export const runtime = 'nodejs'
 
@@ -21,8 +22,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const name = String(body?.name || '').trim()
     if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 })
 
-    // Validate ID format
-    if (!params.id || typeof params.id !== 'string') {
+    // Validate ID format using Convex ID pattern
+    if (!isValidConvexId(params.id)) {
       return NextResponse.json({ error: 'Invalid career path ID' }, { status: 400 })
     }
 

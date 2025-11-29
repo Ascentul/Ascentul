@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 
 export const dynamic = 'force-dynamic'
 
@@ -9,9 +10,8 @@ type CoverLetterSource = 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_uploa
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const coverLetters = await convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId })
+    const { userId, token } = await requireConvexToken()
+    const coverLetters = await convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }, token)
     return NextResponse.json({ coverLetters })
   } catch (error) {
     console.error('Error fetching cover letters:', error)
@@ -21,8 +21,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, token } = await requireConvexToken()
     let body;
     try {
       body = await request.json();
@@ -53,7 +52,7 @@ export async function POST(request: NextRequest) {
       content: String(content),
       closing: 'Sincerely,',
       source: allowedSources.has(source as CoverLetterSource) ? (source as CoverLetterSource) : 'manual',
-    })
+    }, token)
 
     return NextResponse.json({ coverLetter }, { status: 201 })
   } catch (error) {

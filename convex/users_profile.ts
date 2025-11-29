@@ -838,10 +838,8 @@ export const updateUserWithMembership = mutation({
         ) {
           await ctx.db.patch(existingMembership._id, {
             university_id: args.membership.universityId,
-            // Reactivate only when switching universities; otherwise preserve explicit inactive/suspended states
-            ...(existingMembership.university_id !== args.membership.universityId
-              ? { status: "active" }
-              : {}),
+            // Reactivate membership when webhook confirms role assignment
+            status: "active",
             updated_at: now,
           });
           console.log(`[updateUserWithMembership] Updated membership for user ${args.clerkId} with role ${args.membership.role}`);

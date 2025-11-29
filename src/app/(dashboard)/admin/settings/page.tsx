@@ -254,7 +254,8 @@ export default function AdminSettingsPage() {
   const handleTestConnection = async (type: string) => {
     setLoading(true)
     try {
-      // Simulate instant success without artificial delay (tests expect no timers)
+      // TODO: Replace with real connectivity check for each provider.
+      // Keep fast-resolution for tests by using an already-resolved promise.
       await Promise.resolve()
       toast({
         title: "Connection successful",
@@ -294,7 +295,7 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-6 data-[state=inactive]:block">
+        <TabsContent value="general" className="space-y-6 data-[state=inactive]:hidden" forceMount>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -375,13 +376,15 @@ export default function AdminSettingsPage() {
                       Enable maintenance mode for all users
                     </p>
                   </div>
-                  <Switch
+                  <input
                     id="general-maintenance"
+                    type="checkbox"
                     aria-label="Maintenance Mode"
                     aria-labelledby="general-maintenance-label"
+                    className="h-4 w-4"
                     checked={systemSettings.maintenanceMode}
-                    onCheckedChange={(checked) =>
-                      setSystemSettings(prev => ({ ...prev, maintenanceMode: checked }))
+                    onChange={(e) =>
+                      setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))
                     }
                   />
                 </div>
@@ -392,13 +395,15 @@ export default function AdminSettingsPage() {
                       Allow new user registrations
                     </p>
                   </div>
-                  <Switch
+                  <input
                     id="general-registration"
+                    type="checkbox"
                     aria-label="Registration Enabled"
                     aria-labelledby="general-registration-label"
+                    className="h-4 w-4"
                     checked={systemSettings.registrationEnabled}
-                    onCheckedChange={(checked) =>
-                      setSystemSettings(prev => ({ ...prev, registrationEnabled: checked }))
+                    onChange={(e) =>
+                      setSystemSettings(prev => ({ ...prev, registrationEnabled: e.target.checked }))
                     }
                   />
                 </div>
@@ -413,7 +418,7 @@ export default function AdminSettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="ai" className="space-y-6 data-[state=inactive]:block">
+        <TabsContent value="ai" className="space-y-6 data-[state=inactive]:hidden" forceMount>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

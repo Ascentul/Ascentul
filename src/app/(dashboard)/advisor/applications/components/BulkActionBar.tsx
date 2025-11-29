@@ -191,6 +191,7 @@ export function BulkActionBar({
       // Reset state on success
       handleCancelDialog();
       setSelectedStage('');
+      onClearSelection();
     } catch (error) {
       console.error('Bulk action failed:', error);
       // Optional: add toast/notification here

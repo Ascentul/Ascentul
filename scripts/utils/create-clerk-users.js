@@ -72,9 +72,13 @@ async function createClerkUser(email, role) {
       res.on('data', chunk => body += chunk);
       res.on('end', () => {
         if (res.statusCode === 200 || res.statusCode === 201) {
-          const user = JSON.parse(body);
-          console.log('✓ Created Clerk user:', email, '(ID:', user.id + ')');
-          resolve(user);
+          try {
+            const user = JSON.parse(body);
+            console.log('✓ Created Clerk user:', email, '(ID:', user.id + ')');
+            resolve(user);
+          } catch (parseError) {
+            reject(new Error('Failed to parse Clerk API response: ' + parseError.message));
+          }
         } else if (res.statusCode === 422 || res.statusCode === 409) {
           console.log('✓ User already exists:', email);
           resolve(null);

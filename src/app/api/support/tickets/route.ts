@@ -13,9 +13,11 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const tickets = await convexServer.query(api.support_tickets.listTickets, { clerkId: userId })
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+    const tickets = await convexServer.query(api.support_tickets.listTickets, { clerkId: userId }, token)
     return NextResponse.json({ tickets })
   } catch (error) {
     console.error('Error fetching support tickets:', error)
@@ -25,8 +27,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
     const body = await request.json()
     const { subject, description, issueType, source } = body
 
@@ -35,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user info to send email
-    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId })
+    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token)
 
     const ticket = await convexServer.mutation(api.support_tickets.createTicket, {
       clerkId: userId,
@@ -43,7 +47,7 @@ export async function POST(request: NextRequest) {
       description: String(description),
       issue_type: issueType ? String(issueType) : undefined,
       source: source ? String(source) : 'in-app',
-    })
+    }, token)
 
     // Send email notification to user
     if (process.env.SENDGRID_API_KEY && user?.email) {

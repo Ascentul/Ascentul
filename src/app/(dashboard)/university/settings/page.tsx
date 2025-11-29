@@ -29,7 +29,7 @@ export default function UniversitySettingsPage() {
   const updateUniversitySettingsMutation = useMutation(api.universities.updateUniversitySettings);
   const universitySettings = useQuery(
     api.universities.getUniversitySettings,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+    effectiveClerkId ? { clerkId: effectiveClerkId } : "skip",
   );
 
   const canAccess =
@@ -76,6 +76,7 @@ export default function UniversitySettingsPage() {
     setLoading(true);
     try {
       await updateUniversitySettingsMutation({
+        clerkId: effectiveClerkId,
         universityId: universitySettings._id,
         settings: {
           name: settings.name,

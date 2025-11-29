@@ -5,6 +5,7 @@ import { ClerkPublicMetadata } from '@/types/clerk'
 import { VALID_USER_ROLES, UserRole } from '@/lib/constants/roles'
 import { isValidUserRole } from '@/lib/validation/roleValidation'
 import { convexServer } from '@/lib/convex-server'
+import { requireConvexToken } from '@/lib/convex-auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -75,13 +76,19 @@ export async function POST(request: NextRequest) {
     // Get target user from Clerk
     const targetUser = await client.users.getUser(userId)
 
+    const { token } = await requireConvexToken()
+
     // Update Convex (Clerk-first; Convex sync)
-    await convexServer.mutation(api.users.updateUser, {
-      clerkId: userId,
-      updates: {
-        role: role as UserRole,
+    await convexServer.mutation(
+      api.users.updateUser,
+      {
+        clerkId: userId,
+        updates: {
+          role: role as UserRole,
+        },
       },
-    })
+      token
+    )
 
     console.log(`[API] Synced role to Convex for ${targetUser.emailAddresses[0]?.emailAddress || targetUser.id}: ${role}`)
 

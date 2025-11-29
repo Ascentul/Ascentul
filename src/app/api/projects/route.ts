@@ -7,9 +7,11 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId })
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+    const projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token)
     return NextResponse.json({ projects })
   } catch (error) {
     console.error('Error fetching projects:', error)
@@ -19,8 +21,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
     const body = await request.json()
     const { title, description, technologies, github_url, live_url, image_url, role, start_date, end_date, company } = body
 
@@ -40,7 +44,7 @@ export async function POST(request: NextRequest) {
       type: 'personal',
       image_url: image_url ? String(image_url) : undefined,
       technologies: Array.isArray(technologies) ? technologies.map(String) : [],
-    })
+    }, token)
 
     return NextResponse.json({ projectId }, { status: 201 })
   } catch (error) {
