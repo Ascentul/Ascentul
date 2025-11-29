@@ -271,7 +271,6 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
                             </Button>
                           </a>
                         )}
-                        )}
                       </div>
                     </TableCell>
                   </TableRow>

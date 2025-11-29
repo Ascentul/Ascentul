@@ -154,12 +154,12 @@ export const verifyMigration = internalQuery({
     // Collect all applications with pagination
     let allApps: any[] = [];
     let cursor: string | null = null;
-    let hasMore = true;
-    while (hasMore) {
+    let isDone = false;
+    while (!isDone) {
       const result = await ctx.db.query("applications").paginate({ cursor, numItems: 1000 });
       allApps = allApps.concat(result.page);
       cursor = result.continueCursor;
-      hasMore = cursor !== null;
+      isDone = result.isDone;
     }
     const withoutStage = allApps.filter(app => !app.stage);
     const withStage = allApps.filter(app => app.stage);

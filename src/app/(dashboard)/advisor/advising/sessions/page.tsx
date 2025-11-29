@@ -285,6 +285,11 @@ export default function AdvisorSessionsPage() {
   const handleCancelSession = async (sessionId: Id<'advisor_sessions'>) => {
     if (!clerkUser?.id) return;
 
+    const confirmCancel = typeof window === 'undefined'
+      ? true
+      : window.confirm('Are you sure you want to cancel this session?');
+    if (!confirmCancel) return;
+
     try {
       await cancelSession({ clerkId: clerkUser.id, session_id: sessionId });
       toast({

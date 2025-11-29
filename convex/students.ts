@@ -1534,7 +1534,7 @@ export const findStudentsAtInactiveUniversities = query({
  * - Update the user role to match the profile
  * - Reset the invite to pending
  */
-export const detectOrphanedProfiles = query({
+export const detectOrphanedProfiles = internalMutation({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -1549,70 +1549,74 @@ export const detectOrphanedProfiles = query({
       throw new Error("Unauthorized: Super admin access required");
     }
 
-    // PERFORMANCE CRITICAL: Loads BOTH all profiles AND all users into memory
-    // Convex query limits: 1-second execution, 64 MiB memory
-    // HIGHEST RISK - loads TWO full tables, will timeout much sooner than other queries
-    // Likely to fail at ~2,000-3,000 profiles depending on user table size
-    const allProfiles = await ctx.db.query("studentProfiles").collect();
+    // Paginate users to avoid loading entire table
+    const userMap = new Map<string, any>();
+    const studentUsers: any[] = [];
+    let userCursor: string | null = null;
+    let usersDone = false;
+    while (!usersDone) {
+      const page = await ctx.db
+        .query("users")
+        .order("asc")
+        .paginate({ cursor: userCursor, numItems: 500 });
 
-    // Early warning - lower threshold due to loading two tables
-    if (allProfiles.length > 2000) {
-      console.warn(
-        `[SCALE WARNING] detectOrphanedProfiles processing ${allProfiles.length} profiles. ` +
-        `This query loads both profiles AND users - very high timeout risk. Pagination critical.`
-      );
+      for (const u of page.page) {
+        if (!u) continue;
+        userMap.set(u._id.toString(), u);
+        if (u.role === "student") studentUsers.push(u);
+      }
+
+      userCursor = page.continueCursor;
+      usersDone = page.isDone;
     }
-
-    // Get all users with student role
-    const allUsers = await ctx.db.query("users").collect();
-    const userMap = new Map(allUsers.map(u => [u._id.toString(), u]));
-
-    if (allUsers.length > 2000) {
-      console.warn(
-        `[SCALE WARNING] detectOrphanedProfiles processing ${allUsers.length} users. ` +
-        `Combined with profiles load, approaching 1-second limit rapidly.`
-      );
-    }
-    const studentUsers = allUsers.filter(u => u.role === "student");
 
     const orphanedStates = [];
+    const profileUserIds = new Set<string>();
 
     // Check 1: Student profiles where user.role !== "student"
-    for (const profile of allProfiles) {
-      const user = userMap.get(profile.user_id.toString());
-      if (!user) {
-        orphanedStates.push({
-          type: "profile_without_user",
-          profileId: profile._id,
-          userId: profile.user_id,
-          universityId: profile.university_id,
-          issue: "Student profile exists but user not found",
-          recommendation: `Delete profile: ctx.db.delete("${profile._id}")`,
-        });
-      } else if (user.role !== "student") {
-        orphanedStates.push({
-          type: "profile_role_mismatch",
-          profileId: profile._id,
-          userId: user._id,
-          userEmail: user.email,
-          userRole: user.role,
-          universityId: profile.university_id,
-          issue: `User has role "${user.role}" but student profile exists`,
-          recommendation: user.university_id === profile.university_id
-            ? `Update user role to "student" OR delete profile`
-            : `Delete profile (user not at this university)`,
-        });
+    let profileCursor: string | null = null;
+    let profilesDone = false;
+    while (!profilesDone) {
+      const page = await ctx.db
+        .query("studentProfiles")
+        .order("asc")
+        .paginate({ cursor: profileCursor, numItems: 500 });
+
+      for (const profile of page.page) {
+        profileUserIds.add(profile.user_id.toString());
+        const user = userMap.get(profile.user_id.toString());
+        if (!user) {
+          orphanedStates.push({
+            type: "profile_without_user",
+            profileId: profile._id,
+            userId: profile.user_id,
+            universityId: profile.university_id,
+            issue: "Student profile exists but user not found",
+            recommendation: `Delete profile: ctx.db.delete("${profile._id}")`,
+          });
+        } else if (user.role !== "student") {
+          orphanedStates.push({
+            type: "profile_role_mismatch",
+            profileId: profile._id,
+            userId: user._id,
+            userEmail: user.email,
+            userRole: user.role,
+            universityId: profile.university_id,
+            issue: `User has role "${user.role}" but student profile exists`,
+            recommendation: user.university_id === profile.university_id
+              ? `Update user role to "student" OR delete profile`
+              : `Delete profile (user not at this university)`,
+          });
+        }
       }
+
+      profileCursor = page.continueCursor;
+      profilesDone = page.isDone;
     }
 
     // Check 2: Users with role="student" but no student profile
     for (const user of studentUsers) {
-      const profile = await ctx.db
-        .query("studentProfiles")
-        .withIndex("by_user_id", (q) => q.eq("user_id", user._id))
-        .first();
-
-      if (!profile) {
+      if (!profileUserIds.has(user._id.toString())) {
         orphanedStates.push({
           type: "student_without_profile",
           userId: user._id,

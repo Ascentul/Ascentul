@@ -52,7 +52,7 @@ interface SupportTicket {
 }
 
 export default function AdvisorSupportPage() {
-  const { user: clerkUser } = useUser()
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
   const { toast } = useToast()
 
   // State
@@ -75,6 +75,23 @@ export default function AdvisorSupportPage() {
   })
 
   const [responseText, setResponseText] = useState('')
+  const [isSubmittingResponse, setIsSubmittingResponse] = useState(false)
+
+  const responseEntries = useMemo(() => {
+    if (!selectedTicket?.resolution) return [];
+    return selectedTicket.resolution.split(/\n\n+/).map((entry) => {
+      const match = entry.match(/^\s*\[(?<ts>[^\]]+)\]\s*(?<author>[^:]+):\s*(?<msg>[\s\S]*)$/);
+      if (match?.groups) {
+        const ts = match.groups.ts;
+        const author = match.groups.author.trim();
+        const message = match.groups.msg.trim();
+        const parsedDate = new Date(ts);
+        const timestamp = isNaN(parsedDate.getTime()) ? ts : parsedDate.toLocaleString();
+        return { author, message, timestamp, raw: entry };
+      }
+      return { author: 'Response', message: entry.trim(), timestamp: null, raw: entry };
+    });
+  }, [selectedTicket?.resolution]);
 
   // Queries
   const tickets = useQuery(
@@ -209,6 +226,8 @@ export default function AdvisorSupportPage() {
   const handleAddResponse = async () => {
     if (!clerkUser?.id || !selectedTicket || !responseText.trim()) return
 
+    if (isSubmittingResponse) return;
+    setIsSubmittingResponse(true);
     try {
       await addResponse({
         clerkId: clerkUser.id,
@@ -229,6 +248,8 @@ export default function AdvisorSupportPage() {
         description: error.message || 'Failed to add response',
         variant: 'destructive'
       })
+    } finally {
+      setIsSubmittingResponse(false);
     }
   }
 
@@ -300,6 +321,18 @@ export default function AdvisorSupportPage() {
   }
 
   // Handle unauthenticated state (prevents infinite loading)
+  if (!clerkLoaded) {
+    return (
+      <AdvisorGate requiredFlag='advisor.support'>
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </div>
+      </AdvisorGate>
+    )
+  }
+
   if (!clerkUser?.id) {
     return (
       <AdvisorGate requiredFlag='advisor.support'>
@@ -640,6 +673,25 @@ export default function AdvisorSupportPage() {
                   </div>
 
                   {/* Add Response */}
+                  {responseEntries.length > 0 && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Responses</Label>
+                      <Card className="mt-2">
+                        <CardContent className="pt-4 space-y-3">
+                          {responseEntries.map((entry, idx) => (
+                            <div key={idx} className="text-sm border-b last:border-b-0 pb-2 last:pb-0 border-gray-200">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                                <span className="font-medium text-gray-900">{entry.author}</span>
+                                {entry.timestamp && <span>{entry.timestamp}</span>}
+                              </div>
+                              <div className="whitespace-pre-wrap text-gray-800">{entry.message}</div>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+
                   <div>
                     <Label className="text-xs text-muted-foreground">Add Response</Label>
                     <div className="mt-2 flex gap-2">
@@ -649,16 +701,26 @@ export default function AdvisorSupportPage() {
                         onChange={(e) => setResponseText(e.target.value)}
                         rows={3}
                         className="flex-1"
+                        disabled={isSubmittingResponse}
                       />
                     </div>
                     <Button
                       onClick={handleAddResponse}
-                      disabled={!responseText.trim()}
+                      disabled={!responseText.trim() || isSubmittingResponse}
                       className="mt-2"
                       size="sm"
                     >
-                      <Send className="h-4 w-4 mr-2" />
-                      Send Response
+                      {isSubmittingResponse ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          Send Response
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>

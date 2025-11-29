@@ -97,7 +97,7 @@ export function ReviewEditor({
     setHasUnsavedChanges(false);
     setLastSaved(null);
     setSaveError(null);
-  }, [review._id, review.feedback, review.version]);
+  }, [review._id]);
 
   // Track if feedback has changed
   useEffect(() => {
@@ -106,8 +106,15 @@ export function ReviewEditor({
   }, [feedback, lastSavedFeedback]);
 
   // Autosave function
-  const saveChanges = useCallback(async () => {
-    if (!hasUnsavedChanges || isSaving || review.status !== "in_progress") return false;
+  const saveChanges = useCallback(async (): Promise<{ success: boolean; version?: number }> => {
+    if (!hasUnsavedChanges || review.status !== "in_progress") {
+      return { success: false };
+    }
+
+    // Prevent parallel saves; caller should wait for isSaving to clear
+    if (isSaving) {
+      return { success: false };
+    }
 
     setIsSaving(true);
     setSaveError(null);
@@ -129,7 +136,7 @@ export function ReviewEditor({
         onSaveSuccess();
       }
 
-      return true;
+      return { success: true, version: result.version };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       setSaveError(message);
@@ -138,7 +145,7 @@ export function ReviewEditor({
         description: message,
         variant: "destructive",
       });
-      return false;
+      return { success: false };
     } finally {
       setIsSaving(false);
     }
@@ -208,8 +215,8 @@ export function ReviewEditor({
 
   // Manual save
   const handleManualSave = async () => {
-    const saved = await saveChanges();
-    if (saved) {
+    const saveResult = await saveChanges();
+    if (saveResult.success) {
       toast({
         title: "Saved",
         description: "Review feedback saved",
@@ -255,15 +262,30 @@ export function ReviewEditor({
     }
 
     // Save any unsaved changes first
+    let versionToUse = currentVersion;
     if (hasUnsavedChanges) {
-      const saved = await saveChanges();
-      if (!saved) {
-        toast({
-          title: "Cannot complete",
-          description: "Please save your changes before completing",
-          variant: "destructive",
-        });
-        return;
+      // Wait for in-flight save to finish if applicable
+      if (isSaving) {
+        const start = Date.now();
+        const timeout = 3000;
+        while (isSaving && Date.now() - start < timeout) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+
+      if (hasUnsavedChanges) {
+        const saveResult = await saveChanges();
+        if (!saveResult.success) {
+          toast({
+            title: "Cannot complete",
+            description: "Please save your changes before completing",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (saveResult.version !== undefined) {
+          versionToUse = saveResult.version;
+        }
       }
     }
 
@@ -274,7 +296,7 @@ export function ReviewEditor({
         clerkId,
         review_id: review._id,
         feedback: feedback,
-        version: currentVersion,
+        version: versionToUse,
       });
 
       toast({

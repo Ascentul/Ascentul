@@ -58,11 +58,11 @@ export const FINAL_STAGES: readonly ApplicationStage[] = [
 ] as const;
 
 /**
- * Terminal stages require notes when transitioning to them
- * These represent final negative or neutral outcomes where context is important
- * - Rejected: Application rejected (reason should be documented)
- * - Withdrawn: Student withdrew (reason should be documented)
- * - Archived: Manually archived (reason should be documented)
+ * Terminal stages require notes when transitioning to them.
+ * Reason codes are only required for Rejected/Withdrawn; Archived requires notes but no reason code.
+ * - Rejected: Application rejected (reason code + notes)
+ * - Withdrawn: Student withdrew (reason code + notes)
+ * - Archived: Manually archived (notes recommended)
  */
 export const TERMINAL_STAGES: readonly ApplicationStage[] = [
   'Rejected',

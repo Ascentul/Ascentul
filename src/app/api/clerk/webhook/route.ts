@@ -161,12 +161,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Enforce role constraints per learnings
-        } else if (membershipRole && !validUniversityId) {
-          console.error(`[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`)
-          return NextResponse.json(
-            { error: `Invalid state: ${membershipRole} role requires university_id` },
-            { status: 400 }
-          )
+        if (validatedRole === 'individual') {
+          // Individual users must NOT have university_id
+          updates.university_id = undefined
+        } else if (membershipRole) {
           // University roles MUST have university_id
           if (!validUniversityId) {
             console.error(`[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`)

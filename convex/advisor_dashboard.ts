@@ -198,6 +198,8 @@ export const getUpcomingItems = query({
 
     const enrichedFollowUps = await Promise.all(
       followUps.map(async (followUp) => {
+        // Skip follow-ups without a due date; they shouldn't appear in "upcoming"
+        if (!followUp.due_at) return null;
         const student = await ctx.db.get(followUp.user_id);
         return {
           _id: followUp._id,
@@ -205,7 +207,7 @@ export const getUpcomingItems = query({
           student_id: followUp.user_id,
           student_name: student?.name || "Unknown",
           title: followUp.title,
-          date: followUp.due_at || now,
+          date: followUp.due_at,
           priority: followUp.priority,
           status: followUp.status,
         };
@@ -213,7 +215,7 @@ export const getUpcomingItems = query({
     );
 
     // Combine and sort by date
-    const allItems = [...enrichedSessions, ...enrichedFollowUps].sort(
+    const allItems = [...enrichedSessions, ...enrichedFollowUps.filter((f): f is NonNullable<typeof f> => f !== null)].sort(
       (a, b) => a.date - b.date,
     );
 

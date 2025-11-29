@@ -269,7 +269,7 @@ export const getSessionAttachmentUrl = query({
 ## 🔗 Related Documentation
 
 - Convex File Storage: https://docs.convex.dev/file-storage
-- Security Best Practices: https://docs.convex.dev/production/best-practices
+- Security Best Practices: https://docs.convex.dev/understanding/best-practices
 
 ---
 

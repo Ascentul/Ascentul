@@ -24,18 +24,14 @@ export default function UniversitySettingsPage() {
   const { user, isAdmin, subscription } = useAuth();
   const { toast } = useToast();
 
-  const universitiesApi = (api as any).universities || {};
-  const getUniversitySettings =
-    universitiesApi.getUniversitySettings ||
-    (() => {
-      return undefined as any;
-    });
-  const updateUniversitySettings = universitiesApi?.updateUniversitySettings
-    ? useMutation(universitiesApi.updateUniversitySettings)
-    : null;
+  // Always call hooks unconditionally
+  const updateUniversitySettings = useMutation(
+    (api as any).universities?.updateUniversitySettings ?? (() => Promise.resolve())
+  );
+  const isUpdateAvailable = Boolean((api as any).universities?.updateUniversitySettings);
 
   const universitySettings = useQuery(
-    getUniversitySettings,
+    (api as any).universities?.getUniversitySettings ?? (() => undefined as any),
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
 
@@ -80,7 +76,7 @@ export default function UniversitySettingsPage() {
       return;
     }
 
-    if (!updateUniversitySettings) {
+    if (!isUpdateAvailable) {
       toast({
         title: "Feature Unavailable",
         description: "Settings update is not available. Please contact support.",
