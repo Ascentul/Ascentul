@@ -49,10 +49,12 @@ export async function POST(request: NextRequest) {
     // If university admin user doesn't have university_id, try to find university by admin_email
     if (!universityId && user.role === 'university_admin' && user.email) {
       try {
-        const universities = await convexServer.query(api.universities.getAllUniversities, {}, token) as any[];
-
-        // Find university where admin_email matches user's email
-        const matchingUniversity = universities.find((uni: any) => uni.admin_email === user.email);
+        // Use indexed query for efficient lookup instead of fetching all universities
+        const matchingUniversity = await convexServer.query(
+          api.universities_queries.getUniversityByAdminEmail,
+          { email: user.email },
+          token
+        ) as any;
 
         if (matchingUniversity) {
           universityId = matchingUniversity._id;
@@ -64,7 +66,11 @@ export async function POST(request: NextRequest) {
             `This indicates the account was not properly configured during creation.`
           );
 
-          // Update user's university_id for future requests
+          // Update user's university_id for future requests.
+          // Note: university_id is supplementary data, not a role. The Clerk-first pattern
+          // (update publicMetadata, then sync via webhook) applies to role changes.
+          // This is a one-time fix for improperly configured accounts. Ideally, university_id
+          // should be set correctly during account creation in Clerk publicMetadata.
           await convexServer.mutation(
             api.users.updateUser,
             {
@@ -114,12 +120,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch all relevant data
-    let students, departments, overview
+    let students, departments
     try {
-      [students, departments, overview] = await Promise.all([
+      [students, departments] = await Promise.all([
         convexServer.query(api.university_admin.listStudents, { clerkId, limit: 1000 }, token),
         convexServer.query(api.university_admin.listDepartments, { clerkId }, token),
-        convexServer.query(api.university_admin.getOverview, { clerkId }, token)
       ])
     } catch (error) {
       console.error('Error fetching university data:', error)

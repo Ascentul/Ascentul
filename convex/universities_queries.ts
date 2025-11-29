@@ -39,6 +39,16 @@ export const getUniversityBySlug = query({
   }
 });
 
+export const getUniversityByAdminEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("universities")
+      .withIndex("by_admin_email", q => q.eq("admin_email", args.email))
+      .unique();
+  }
+});
+
 export const getUniversityAdminCounts = query({
   args: {},
   handler: async (ctx) => {

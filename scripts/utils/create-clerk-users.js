@@ -54,6 +54,7 @@ async function createClerkUser(email, role) {
     first_name: 'Test',
     last_name: role === 'student' ? 'Student' : 'Advisor',
     skip_password_checks: true,
+    public_metadata: { role: role },
   });
 
   return new Promise((resolve, reject) => {
@@ -64,7 +65,7 @@ async function createClerkUser(email, role) {
       headers: {
         'Authorization': 'Bearer ' + CLERK_SECRET_KEY,
         'Content-Type': 'application/json',
-        'Content-Length': data.length
+        'Content-Length': Buffer.byteLength(data)
       },
       timeout: 10000  // 10 second timeout
     }, (res) => {

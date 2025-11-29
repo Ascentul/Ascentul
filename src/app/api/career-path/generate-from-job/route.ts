@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
 import { api } from 'convex/_generated/api'
 import { checkPremiumAccess } from '@/lib/subscription-server'
 import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 import {
   GenerateCareerPathInputSchema,
   OpenAICareerPathOutputSchema,
@@ -1731,9 +1731,9 @@ const selectTemplate = (jobTitle: string): CareerPathTemplate => {
   return defaultTemplate
 }
 
-const fetchUserProfile = async (clerkId: string) => {
+const fetchUserProfile = async (clerkId: string, token: string) => {
   try {
-    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId })
+    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId }, token)
     return user
   } catch (error) {
     console.warn('CareerPath failed to fetch user profile', error)
@@ -2246,6 +2246,7 @@ const buildProfileGuidancePath = (
  */
 const persistCareerPathToConvex = async (
   userId: string,
+  token: string,
   targetRole: string,
   path: any,
   pathType: 'career_path' | 'profile_guidance',
@@ -2255,19 +2256,23 @@ const persistCareerPathToConvex = async (
   }
 ): Promise<void> => {
   try {
-    await convexServer.mutation(api.career_paths.createCareerPath, {
-      clerkId: userId,
-      target_role: targetRole,
-      current_level: undefined,
-      estimated_timeframe: undefined,
-      steps: {
-        type: pathType,
-        source: 'job',
-        path,
-        ...metadata,
+    await convexServer.mutation(
+      api.career_paths.createCareerPath,
+      {
+        clerkId: userId,
+        target_role: targetRole,
+        current_level: undefined,
+        estimated_timeframe: undefined,
+        steps: {
+          type: pathType,
+          source: 'job',
+          path,
+          ...metadata,
+        },
+        status: 'active',
       },
-      status: 'active',
-    })
+      token
+    )
   } catch (convexError) {
     logStructuredError('Convex persistence failed', convexError, {
       userId,
@@ -2281,8 +2286,7 @@ export async function POST(request: NextRequest) {
   const timer = startTimer('career_path_generation_total')
 
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, token } = await requireConvexToken()
 
     // Parse and validate input with Zod
     const body = await request.json().catch((parseError) => {
@@ -2319,7 +2323,11 @@ export async function POST(request: NextRequest) {
 
         if (!hasPremium) {
           // User is on free plan, check limit (production only)
-          const existingPaths = await convexServer.query(api.career_paths.getUserCareerPaths, { clerkId: userId }) as any[]
+          const existingPaths = await convexServer.query(
+            api.career_paths.getUserCareerPaths,
+            { clerkId: userId },
+            token
+          ) as any[]
 
           if (existingPaths && existingPaths.length >= 1) {
             return NextResponse.json(
@@ -2335,7 +2343,7 @@ export async function POST(request: NextRequest) {
 
     const template = selectTemplate(jobTitle)
     const promptContext = createContext(jobTitle, template.domain)
-    const userProfile = await fetchUserProfile(userId)
+    const userProfile = await fetchUserProfile(userId, token)
 
     // Try OpenAI, fall back to mock
     let client: OpenAI | null = null
@@ -2470,6 +2478,7 @@ export async function POST(request: NextRequest) {
             // Save first path to Convex (best-effort)
             await persistCareerPathToConvex(
               userId,
+              token,
               mainPath.target_role,
               mainPath,
               'career_path',
@@ -2519,6 +2528,7 @@ export async function POST(request: NextRequest) {
 
     await persistCareerPathToConvex(
       userId,
+      token,
       guidancePath.target_role,
       guidancePath,
       'profile_guidance',

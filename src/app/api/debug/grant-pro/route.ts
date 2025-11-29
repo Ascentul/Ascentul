@@ -127,12 +127,13 @@ async function processUpgrade(params: {
   } catch (error) {
     console.error('Failed to upgrade by clerkId:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    const isClientError = errorMessage.includes('not found') || errorMessage.includes('Invalid')
+    // Debug endpoint: treat all mutation failures as server errors.
+    // Error details are included in response for debugging.
     return NextResponse.json({
       error: 'Failed to upgrade user by clerkId',
       detail: errorMessage,
       clerkId: targetClerkId,
-    }, { status: isClientError ? 400 : 500 })
+    }, { status: 500 })
   }
 }
 

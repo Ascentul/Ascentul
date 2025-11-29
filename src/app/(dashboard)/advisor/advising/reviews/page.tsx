@@ -28,6 +28,10 @@ export default function AdvisorReviewsPage() {
     return <div className='container mx-auto p-6'>Loading...</div>;
   }
 
+  if (!user) {
+    return <div className='container mx-auto p-6'>Please sign in to view reviews.</div>;
+  }
+
   return (
     <ErrorBoundary>
       <AdvisorGate requiredFlag='advisor.advising'>

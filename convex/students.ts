@@ -191,11 +191,12 @@ async function rollbackInviteAcceptance(
   }
 
   // Rollback Step 5: Mark invite as pending again
+  // Note: Convex patch with undefined does NOT clear fields - it means "don't update".
+  // The accepted_at and accepted_by_user_id fields will retain stale values, but
+  // status: "pending" is the authoritative field for invite state.
   try {
     await ctx.db.patch(params.inviteId, {
       status: "pending",
-      accepted_at: undefined,
-      accepted_by_user_id: undefined,
       updated_at: now,
     });
     console.log("[ROLLBACK] ✓ Invite reset to pending");

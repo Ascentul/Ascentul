@@ -172,7 +172,7 @@ export function ApplicationKanban({
                             </div>
 
                             {/* Applied Date */}
-                            {app.applied_date && (
+                            {app.applied_date && !isNaN(new Date(app.applied_date).getTime()) && (
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Calendar className="h-3 w-3" />
                                 Applied {format(new Date(app.applied_date), "MMM d")}

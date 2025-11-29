@@ -174,7 +174,8 @@ export default defineSchema({
     updated_at: v.number(),
   })
     .index("by_slug", ["slug"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_admin_email", ["admin_email"]),
 
   // University departments
   departments: defineTable({

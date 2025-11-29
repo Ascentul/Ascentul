@@ -60,7 +60,7 @@ export const backfillScheduledAt = internalMutation({
         }
 
         // Validate start_at exists (required field, should always be present)
-        if (!session.start_at) {
+        if (session.start_at === undefined || session.start_at === null) {
           const errorMsg = `${sessionLabel} has no start_at field - cannot backfill`;
           console.error(`❌ ${errorMsg}`);
           errors.push(errorMsg);

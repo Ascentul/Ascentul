@@ -187,7 +187,7 @@ export const deleteExpiredAuditLogs = internalMutation({
     const sevenYearsMs = 7 * 365 * 24 * 60 * 60 * 1000;
     const cutoff = now - sevenYearsMs;
 
-    let cursor: string | null = null;
+    let cursor: string | undefined = undefined;
     let isDone = false;
     let deletedCount = 0;
 

@@ -488,6 +488,12 @@ export const addComment = mutation({
 
     const updatedComments = [...currentComments, newComment];
 
+    // Check version hasn't changed since we read the review
+    const currentReview = await ctx.db.get(args.reviewId);
+    if (currentReview && currentReview.version !== review.version) {
+      throw new Error("Review was modified by another user. Please refresh and try again.");
+    }
+
     await ctx.db.patch(args.reviewId, {
       comments: updatedComments,
       updated_at: now,

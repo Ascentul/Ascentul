@@ -149,9 +149,9 @@ export const getDailyRecommendations = query({
     }
 
     // Recommendation 7: Check on pending applications
-    // MIGRATION: Using stage instead of status
+    // MIGRATION: Support both stage and status during transition
     const pendingApplications = applications.filter(
-      (app) => app.stage === "Interview"
+      (app) => app.stage === "Interview" || (!app.stage && app.status === "interview")
     );
 
     if (pendingApplications.length > 0) {

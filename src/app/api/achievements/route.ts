@@ -11,9 +11,13 @@ export async function GET() {
     try {
       const { token } = await requireConvexToken()
       achievements = await convexServer.query(api.achievements.getAllAchievements, {}, token)
-    } catch {
-      // Fallback to unauthenticated if token not available
-      achievements = await convexServer.query(api.achievements.getAllAchievements, {})
+    } catch (authError) {
+      // Only fall back if token is unavailable, not for other errors
+      if (authError instanceof Error && authError.message.includes('token')) {
+        achievements = await convexServer.query(api.achievements.getAllAchievements, {})
+      } else {
+        throw authError
+      }
     }
     return NextResponse.json({ achievements })
   } catch (e: unknown) {
