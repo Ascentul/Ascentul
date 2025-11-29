@@ -374,6 +374,7 @@ export default defineSchema({
     ),
     // PRIMARY FIELD: stage is the source of truth for application state
     // status field is maintained for backward compatibility only
+    // TODO: Make required after migration backfills existing records
     stage: v.optional(
       v.union(
         v.literal("Prospect"), // Active - researching/considering
@@ -459,7 +460,7 @@ export default defineSchema({
     // Ownership & creation tracking
     user_id: v.id('users'), // Primary user (student) this task relates to
     owner_id: v.id('users'), // Who is responsible for completing it (can be student or advisor)
-    created_by_id: v.optional(v.id('users')), // Who created this task (null for system-generated)
+    created_by_type: v.union(v.literal('student'), v.literal('advisor'), v.literal('system'), v.literal('individual')),
     created_by_type: v.union(v.literal('student'), v.literal('advisor'), v.literal('system')),
 
     // Multi-tenancy support

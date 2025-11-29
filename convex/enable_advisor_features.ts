@@ -6,16 +6,7 @@
  */
 
 import { internalMutation } from './_generated/server';
-
-const ADVISOR_FLAGS = [
-  'advisor.dashboard',
-  'advisor.students',
-  'advisor.advising',
-  'advisor.reviews',
-  'advisor.applications',
-  'advisor.analytics',
-  'advisor.support',
-] as const;
+import { ADVISOR_FLAGS } from './constants/advisor_flags';
 
 type EnableFlagsResult = {
   success: boolean;

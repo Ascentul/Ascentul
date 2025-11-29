@@ -19,8 +19,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       clerkId: userId,
       contactId: id as Id<'networking_contacts'>,
     }, token)
-    })
-    if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
     return NextResponse.json({ contact })
   } catch (e: any) {
     return NextResponse.json({ error: 'Contact not found' }, { status: 404 })

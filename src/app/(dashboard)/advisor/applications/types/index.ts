@@ -365,10 +365,8 @@ export interface AnalyticsProperties {
   };
 
   [ANALYTICS_EVENTS.STAGE_CHANGED]: {
-    applicationId: string;
     fromStage: ApplicationStage;
     toStage: ApplicationStage;
-    studentId: string;
   };
 
   [ANALYTICS_EVENTS.BULK_STAGE_CHANGED]: {
@@ -392,8 +390,6 @@ export interface AnalyticsProperties {
   };
 
   [ANALYTICS_EVENTS.NEXT_STEP_UPDATED]: {
-    applicationId: string;
-    studentId: string;
     nextStep: string;
     dueDate?: number;
   };
@@ -403,7 +399,116 @@ export interface AnalyticsProperties {
   };
 
   [ANALYTICS_EVENTS.STUDENT_VIEWED]: {
-    studentId: string;
-    applicationId?: string;
+    // Deliberately omit student/application IDs from analytics payloads
+    triageContext?: {
+      needsAction?: boolean;
+      reason?: NeedActionReason;
+    };
   };
+}
+
+export type AnalyticsEventName = keyof AnalyticsProperties;
+
+/**
+ * Safe analytics payloads with explicit allowlists (PII-free).
+ */
+type AnalyticsSafePayload = {
+  [ANALYTICS_EVENTS.VIEW_CHANGED]: Pick<
+    AnalyticsProperties[typeof ANALYTICS_EVENTS.VIEW_CHANGED],
+    'fromView' | 'toView'
+  >;
+  [ANALYTICS_EVENTS.STAGE_CHANGED]: Pick<
+    AnalyticsProperties[typeof ANALYTICS_EVENTS.STAGE_CHANGED],
+    'fromStage' | 'toStage'
+  >;
+  [ANALYTICS_EVENTS.BULK_STAGE_CHANGED]: Pick<
+    AnalyticsProperties[typeof ANALYTICS_EVENTS.BULK_STAGE_CHANGED],
+    'count' | 'toStage' | 'fromStages'
+  >;
+  [ANALYTICS_EVENTS.NEED_ACTION_CLICKED]: Pick<
+    AnalyticsProperties[typeof ANALYTICS_EVENTS.NEED_ACTION_CLICKED],
+    'count' | 'breakdown'
+  >;
+  [ANALYTICS_EVENTS.SCOPE_CHANGED]: Pick<
+    AnalyticsProperties[typeof ANALYTICS_EVENTS.SCOPE_CHANGED],
+    'fromScope' | 'toScope'
+  >;
+  [ANALYTICS_EVENTS.FILTER_APPLIED]: {
+    // Only include which filters were toggled, not their values
+    appliedFilters: string[];
+  };
+  [ANALYTICS_EVENTS.NEXT_STEP_UPDATED]: Pick<
+    AnalyticsProperties[typeof ANALYTICS_EVENTS.NEXT_STEP_UPDATED],
+    'nextStep' | 'dueDate'
+  >;
+  [ANALYTICS_EVENTS.BULK_ARCHIVED]: Pick<
+    AnalyticsProperties[typeof ANALYTICS_EVENTS.BULK_ARCHIVED],
+    'count'
+  >;
+  [ANALYTICS_EVENTS.STUDENT_VIEWED]: Pick<
+    AnalyticsProperties[typeof ANALYTICS_EVENTS.STUDENT_VIEWED],
+    'triageContext'
+  >;
+};
+
+/**
+ * Build an analytics-safe payload using allowlists to avoid PII/cohort data.
+ */
+export function buildAnalyticsPayload<E extends AnalyticsEventName>(
+  event: E,
+  props: AnalyticsProperties[E],
+): AnalyticsSafePayload[E] {
+  switch (event) {
+    case ANALYTICS_EVENTS.VIEW_CHANGED:
+    case ANALYTICS_EVENTS.SCOPE_CHANGED:
+      return {
+        fromView: (props as any).fromView,
+        toView: (props as any).toView,
+        fromScope: (props as any).fromScope,
+        toScope: (props as any).toScope,
+      } as AnalyticsSafePayload[E];
+    case ANALYTICS_EVENTS.STAGE_CHANGED:
+      return {
+        fromStage: (props as any).fromStage,
+        toStage: (props as any).toStage,
+      } as AnalyticsSafePayload[E];
+    case ANALYTICS_EVENTS.BULK_STAGE_CHANGED:
+      return {
+        count: (props as any).count,
+        toStage: (props as any).toStage,
+        fromStages: (props as any).fromStages,
+      } as AnalyticsSafePayload[E];
+    case ANALYTICS_EVENTS.NEED_ACTION_CLICKED:
+      return {
+        count: (props as any).count,
+        breakdown: (props as any).breakdown,
+      } as AnalyticsSafePayload[E];
+    case ANALYTICS_EVENTS.FILTER_APPLIED: {
+      const filters = (props as any).filters as ApplicationFilters;
+      const appliedFilters: string[] = [];
+      if (filters.stages?.length) appliedFilters.push('stages');
+      if (filters.needsAction) appliedFilters.push('needsAction');
+      if (filters.needActionReason) appliedFilters.push('needActionReason');
+      if (filters.activeOnly) appliedFilters.push('activeOnly');
+      if (filters.timeWindow && filters.timeWindow !== 'all') appliedFilters.push('timeWindow');
+      // Deliberately omit search, cohorts, assignedAdvisorId, appliedDateRange to avoid PII
+      return { appliedFilters } as AnalyticsSafePayload[E];
+    }
+    case ANALYTICS_EVENTS.NEXT_STEP_UPDATED:
+      return {
+        nextStep: (props as any).nextStep,
+        dueDate: (props as any).dueDate,
+      } as AnalyticsSafePayload[E];
+    case ANALYTICS_EVENTS.BULK_ARCHIVED:
+      return {
+        count: (props as any).count,
+      } as AnalyticsSafePayload[E];
+    case ANALYTICS_EVENTS.STUDENT_VIEWED:
+      return {
+        triageContext: (props as any).triageContext,
+      } as AnalyticsSafePayload[E];
+    default:
+      // Exhaustive fallback to satisfy TypeScript
+      return {} as AnalyticsSafePayload[E];
+  }
 }

@@ -7,6 +7,7 @@
 
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { ADVISOR_FLAGS } from "./constants/advisor_flags";
 
 /**
  * Get feature flag value
@@ -125,16 +126,6 @@ export const initializeAdvisorFlags = internalMutation({
     const now = Date.now();
     let newlyInitialized = 0;
 
-    const defaultFlags = [
-      { key: "advisor.dashboard", value: false },
-      { key: "advisor.students", value: false },
-      { key: "advisor.advising", value: false },
-      { key: "advisor.reviews", value: false },
-      { key: "advisor.applications", value: false },
-      { key: "advisor.analytics", value: false },
-      { key: "advisor.support", value: false },
-    ];
-
     // Batch fetch all existing settings to avoid N+1 queries
     const existingSettings = await ctx.db
       .query("platform_settings")
@@ -144,19 +135,19 @@ export const initializeAdvisorFlags = internalMutation({
       existingSettings.map((s) => [s.setting_key, s.setting_value])
     );
 
-    for (const flag of defaultFlags) {
-      if (!existingMap.has(flag.key)) {
+    for (const flagKey of ADVISOR_FLAGS) {
+      if (!existingMap.has(flagKey)) {
         await ctx.db.insert("platform_settings", {
-          setting_key: flag.key,
-          setting_value: flag.value,
+          setting_key: flagKey,
+          setting_value: false,
           created_at: now,
           updated_at: now,
         });
         newlyInitialized++;
-        console.log(`✓ Initialized flag: ${flag.key} = ${flag.value}`);
+        console.log(`✓ Initialized flag: ${flagKey} = false`);
       } else {
-        const existingValue = existingMap.get(flag.key);
-        console.log(`✓ Flag already exists: ${flag.key} = ${existingValue}`);
+        const existingValue = existingMap.get(flagKey);
+        console.log(`✓ Flag already exists: ${flagKey} = ${existingValue}`);
       }
     }
 

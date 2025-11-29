@@ -484,6 +484,9 @@ export const migrateFollowUps = internalMutation({
             // Migration tracking for idempotent re-runs
             migrated_from_id: followUp._id,
 
+            // Concurrency control
+            version: 1,
+
             // Timestamps
             created_at: followUp.created_at,
             updated_at: followUp.updated_at,

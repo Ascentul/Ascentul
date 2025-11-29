@@ -15,26 +15,25 @@
 
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
 import {
   getCurrentUser,
   requireTenant,
   requireAdvisorRole,
   assertCanAccessStudent,
-  canViewPrivateContent,
   createAuditLog,
 } from "./advisor_auth";
+import { getAuthenticatedUser } from "./lib/roles";
 
 /**
  * Get a single session by ID
  */
 export const getSessionById = query({
   args: {
-    clerkId: v.string(),
     sessionId: v.id("advisor_sessions"),
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    const user = await getAuthenticatedUser(ctx);
+    const sessionCtx = await getCurrentUser(ctx, user.clerkId);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
@@ -83,13 +82,13 @@ export const getSessionById = query({
  */
 export const getSessions = query({
   args: {
-    clerkId: v.string(),
     studentId: v.optional(v.id('users')),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    const user = await getAuthenticatedUser(ctx);
+    const sessionCtx = await getCurrentUser(ctx, user.clerkId);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
@@ -156,11 +155,11 @@ export const getSessions = query({
  */
 export const getTodaySessions = query({
   args: {
-    clerkId: v.string(),
     clientTimezoneOffset: v.optional(v.number()), // Minutes offset from UTC
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    const user = await getAuthenticatedUser(ctx);
+    const sessionCtx = await getCurrentUser(ctx, user.clerkId);
     requireAdvisorRole(sessionCtx);
     const universityId = requireTenant(sessionCtx);
 
@@ -218,7 +217,6 @@ export const getTodaySessions = query({
  */
 export const addSessionTask = mutation({
   args: {
-    clerkId: v.string(),
     sessionId: v.id("advisor_sessions"),
     task: v.object({
       id: v.string(),
@@ -229,7 +227,8 @@ export const addSessionTask = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    const user = await getAuthenticatedUser(ctx);
+    const sessionCtx = await getCurrentUser(ctx, user.clerkId);
     requireAdvisorRole(sessionCtx);
 
     const session = await ctx.db.get(args.sessionId);
@@ -273,13 +272,13 @@ export const addSessionTask = mutation({
  */
 export const completeSession = mutation({
   args: {
-    clerkId: v.string(),
     sessionId: v.id("advisor_sessions"),
     finalNotes: v.optional(v.string()),
     outcomes: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const sessionCtx = await getCurrentUser(ctx, args.clerkId);
+    const user = await getAuthenticatedUser(ctx);
+    const sessionCtx = await getCurrentUser(ctx, user.clerkId);
     requireAdvisorRole(sessionCtx);
 
     const session = await ctx.db.get(args.sessionId);

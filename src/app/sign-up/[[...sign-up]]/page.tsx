@@ -211,6 +211,8 @@ export default function Page() {
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resending, setResending] = useState(false)
+  // Warning for invalid/expired invites (less alarming than error, shown as info banner)
+  const [inviteWarning, setInviteWarning] = useState<string | null>(null)
 
   // University invite data from URL parameters
   const [universityInvite, setUniversityInvite] = useState<{
@@ -255,15 +257,15 @@ export default function Page() {
               setFormData(prev => ({ ...prev, email: data.email }));
             }
           } else {
-            // Invalid invite: do not prefill
+            // Invalid invite: do not prefill, show warning (not error)
             setUniversityInvite({ university: null, email: null });
-            setError('This invitation link is invalid or has expired.');
+            setInviteWarning('This invitation link is invalid or has expired. You can still create an account below.');
           }
         } catch (err) {
           if (err instanceof Error && err.name === 'AbortError') return;
           console.error('Invite verification failed:', err);
           setUniversityInvite({ university: null, email: null });
-          setError('Unable to verify invitation. Please check your link or request a new invite.');
+          setInviteWarning('Unable to verify invitation. You can still create an account below, or request a new invite link.');
         }
       })();
       return () => controller.abort();
@@ -565,6 +567,11 @@ export default function Page() {
               <CardTitle className="text-2xl font-semibold text-zinc-900">Create your account</CardTitle>
               <p className="text-sm text-zinc-600">Start your career journey today</p>
             </CardHeader>
+            {inviteWarning && (
+              <div className="mx-6 mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                <p>{inviteWarning}</p>
+              </div>
+            )}
             <CardContent>
               <SignUpForm
                 formData={formData}

@@ -133,13 +133,13 @@ export async function POST(request: NextRequest) {
         // Check if role changed - important for role management logging
         const roleInMetadata = metadata.role || null
         const universityIdInMetadata = metadata.university_id
+        // Basic sanity check: must be a non-empty string
+        // Let Convex validate the actual ID format on the server side
         const validUniversityId =
           typeof universityIdInMetadata === 'string' && universityIdInMetadata.trim().length > 0
-            ? universityIdInMetadata
+            ? (universityIdInMetadata.trim() as Id<'universities'>)
             : undefined
-        const membershipUniversityId = validUniversityId && /^[0-9a-v]+$/i.test(validUniversityId)
-          ? (validUniversityId as Id<'universities'>)
-          : undefined
+        const membershipUniversityId = validUniversityId
         const userEmail = userData.email_addresses?.[0]?.email_address
 
         // Validate role value before syncing to Convex

@@ -94,9 +94,7 @@ await ctx.db.patch(sessionId, {
       size: file.size,
     },
   ],
-       },
-     ],
-   });
+});
 
 ### For Existing Data
 

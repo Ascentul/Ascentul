@@ -13,13 +13,17 @@
  * Run: node scripts/seed-advisor-user.js
  */
 
+// Load env before anything else
 require('dotenv').config({ path: '.env.local' })
 
-// Polyfill fetch for Node < 18. node-fetch v3 is ESM-only, so use dynamic import.
-if (typeof fetch === 'undefined') {
-  global.fetch = (...args) =>
-    import('node-fetch').then(({ default: f }) => f(...args));
-}
+// Polyfill fetch for Node < 18 using a synchronous bootstrap before other code runs.
+// node-fetch v3 is ESM-only, so we resolve it first and assign to global.fetch.
+(async () => {
+  if (typeof fetch === 'undefined') {
+    const { default: fetchImpl } = await import('node-fetch');
+    global.fetch = fetchImpl;
+  }
+})();
 
 const CLERK_BASE_URL = 'https://api.clerk.com/v1'
 

@@ -16,23 +16,49 @@ function redactLegacyFields(log: Doc<"audit_logs">) {
   };
 }
 
+// Field name patterns that indicate PII content
+// Only redact strings in fields matching these patterns
+const PII_FIELD_PATTERNS = [
+  'name',
+  'email',
+  'phone',
+  'address',
+  'notes',
+  'bio',
+  'description',
+  'comment',
+  'message',
+  'ssn',
+  'social_security',
+  'date_of_birth',
+  'dob',
+];
+
+// Helper to check if a field name likely contains PII
+function isPiiField(fieldName: string): boolean {
+  const lowerName = fieldName.toLowerCase();
+  return PII_FIELD_PATTERNS.some((pattern) => lowerName.includes(pattern));
+}
+
 // Helper to redact PII from new JSON fields
-function redactJsonField(value: any) {
+// Only redacts string values in fields that match PII patterns
+function redactJsonField(value: any): any {
   if (value === null || value === undefined) return value;
-  if (typeof value === "string") return "[REDACTED]";
   if (typeof value !== "object") return value;
 
-  // Recursively replace string values with [REDACTED]
+  // Recursively process objects, only redacting strings in PII-named fields
   const clone: any = Array.isArray(value) ? [] : {};
   for (const key of Object.keys(value)) {
     const val = (value as any)[key];
     if (val === null || val === undefined) {
       clone[key] = val;
-    } else if (typeof val === "string") {
+    } else if (typeof val === "string" && isPiiField(key)) {
+      // Only redact strings in fields that look like PII
       clone[key] = "[REDACTED]";
     } else if (typeof val === "object") {
       clone[key] = redactJsonField(val);
     } else {
+      // Preserve non-PII strings (action types, IDs, statuses, etc.)
       clone[key] = val;
     }
   }
@@ -79,18 +105,12 @@ export const redactStudentPII = internalMutation({
         if (log.previous_value !== undefined) {
           updates.previous_value = redactJsonField(log.previous_value);
         }
-        if (log.new_value !== undefined) {
-          updates.new_value = redactJsonField(log.new_value);
-        }
-
-        // Check if any field actually changed (not just present)
-        const hasChanges = Object.entries(updates).some(
-          ([key, value]) => value !== (log as any)[key]
-        );
-        if (hasChanges) {
-          await ctx.db.patch(log._id, updates);
-          redactedCount += 1;
-        }
+async function exportAuditLogsForArchive(_logs: Doc<"audit_logs">[]) {
+  // TODO: Implement export to long-term storage (S3/R2) before deletion
+  throw new Error(
+    `exportAuditLogsForArchive not implemented - refusing to proceed with deletion of ${_logs.length} log(s)`
+  );
+}
       }
 
       cursor = page.continueCursor;
@@ -108,9 +128,6 @@ export const redactStudentPII = internalMutation({
 async function exportAuditLogsForArchive(_logs: Doc<"audit_logs">[]) {
   // TODO: Implement export to long-term storage (S3/R2) before deletion
   throw new Error(
-    `exportAuditLogsForArchive not implemented - refusing to proceed with deletion of ${_logs.length} log(s)`
-  );
-}
     `exportAuditLogsForArchive not implemented - refusing to proceed with deletion of ${_logs.length} log(s)`
   );
 }
@@ -135,11 +152,15 @@ export const deleteExpiredAuditLogs = internalMutation({
       const expired = page.page.filter((log) => (log.created_at ?? log.timestamp ?? 0) < cutoff);
 
       if (expired.length > 0) {
-        await exportAuditLogsForArchive(expired);
-        for (const log of expired) {
-          await ctx.db.delete(log._id);
-          deletedCount += 1;
-        }
+        // TODO: Implement export before enabling deletion
+        console.warn(`Skipping deletion of ${expired.length} expired logs - export not implemented`);
+        continue;
+        // Once export is implemented, remove the continue and perform deletions:
+        // await exportAuditLogsForArchive(expired);
+        // for (const log of expired) {
+        //   await ctx.db.delete(log._id);
+        //   deletedCount += 1;
+        // }
       }
 
       cursor = page.continueCursor;
@@ -149,4 +170,3 @@ export const deleteExpiredAuditLogs = internalMutation({
     return { deletedCount, cutoff };
   },
 });
-

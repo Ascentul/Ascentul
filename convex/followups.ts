@@ -48,7 +48,7 @@ export const getFollowupsForApplication = query({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new ConvexError('User not found', { code: 'USER_NOT_FOUND' });
+    if (!user) throw new ConvexError({ message: 'User not found', code: 'USER_NOT_FOUND' });
 
     const items = await ctx.db
       .query('follow_ups')
@@ -77,7 +77,7 @@ export const createFollowup = mutation({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new ConvexError('User not found', { code: 'USER_NOT_FOUND' });
+    if (!user) throw new ConvexError({ message: 'User not found', code: 'USER_NOT_FOUND' });
 
     const now = Date.now();
     const title =
@@ -148,14 +148,14 @@ export const updateFollowup = mutation({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new ConvexError('User not found', { code: 'USER_NOT_FOUND' });
+    if (!user) throw new ConvexError({ message: 'User not found', code: 'USER_NOT_FOUND' });
 
     const item = await ctx.db.get(args.followupId);
     if (!item) {
-      throw new ConvexError('Followup not found', { code: 'NOT_FOUND' });
+      throw new ConvexError({ message: 'Followup not found', code: 'NOT_FOUND' });
     }
     if (item.user_id !== user._id) {
-      throw new ConvexError('Unauthorized', { code: 'UNAUTHORIZED' });
+      throw new ConvexError({ message: 'Unauthorized', code: 'UNAUTHORIZED' });
     }
 
     const now = Date.now();
@@ -247,14 +247,14 @@ export const deleteFollowup = mutation({
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new ConvexError('User not found', { code: 'USER_NOT_FOUND' });
+    if (!user) throw new ConvexError({ message: 'User not found', code: 'USER_NOT_FOUND' });
 
     const item = await ctx.db.get(args.followupId);
     if (!item) {
-      throw new ConvexError('Followup not found', { code: 'NOT_FOUND' });
+      throw new ConvexError({ message: 'Followup not found', code: 'NOT_FOUND' });
     }
     if (item.user_id !== user._id) {
-      throw new ConvexError('Unauthorized', { code: 'UNAUTHORIZED' });
+      throw new ConvexError({ message: 'Unauthorized', code: 'UNAUTHORIZED' });
     }
 
     await ctx.db.delete(args.followupId);
