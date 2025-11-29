@@ -315,15 +315,15 @@ function CohortCheckbox({ cohort, checked, onToggle }: CohortCheckboxProps) {
     <button
       type="button"
       onClick={() => onToggle(cohort)}
-      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all ${
+      className={cn(
+        "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all",
         checked
-          ? 'border-purple-500 bg-purple-100 font-semibold'
+          ? 'border-purple-500 bg-purple-100'
           : 'border-purple-200 bg-purple-50/50 hover:bg-purple-100/50'
-      }`}
+      )}
       aria-pressed={checked}
     >
-      <Checkbox checked={checked} className="pointer-events-none" />
-      <span>Class of {cohort}</span>
+      <span className={checked ? 'font-semibold' : ''}>Class of {cohort}</span>
     </button>
   );
 }

@@ -79,7 +79,7 @@ function DayRow({ day }: { day: ComingUpDay }) {
             className="flex items-center gap-2 text-xs text-slate-600"
           >
             <Clock className="h-3 w-3 text-slate-400" />
-            <span className="font-medium">{format(session.start_at, 'h:mm a')}</span>
+            <span className="font-medium">{format(new Date(session.start_at), 'h:mm a')}</span>
             <span className="text-slate-400">-</span>
             <User className="h-3 w-3 text-slate-400" />
             <span className="truncate">{session.student_name}</span>

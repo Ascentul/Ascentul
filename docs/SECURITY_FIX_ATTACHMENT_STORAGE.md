@@ -95,6 +95,11 @@ await ctx.db.patch(sessionId, {
     },
   ],
 });
+```
+
+### Migration Script
+
+```typescript
 // convex/migrations.ts
 export const migrateAttachmentUrlsToStorage = internalMutation({
   args: {},

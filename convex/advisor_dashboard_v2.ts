@@ -592,11 +592,16 @@ export const getCaseloadGaps = query({
 /**
  * Get Capacity and Schedule metrics
  * Returns session capacity utilization and upcoming schedule
+ *
+ * @param clientTimezoneOffset - Client's timezone offset in minutes from UTC
+ *   (e.g., 300 for EST/UTC-5, -540 for JST/UTC+9). Matches Date.getTimezoneOffset().
+ *   If not provided, uses UTC for week boundaries.
  */
 export const getCapacityAndSchedule = query({
   args: {
     clerkId: v.string(),
     weeklySlots: v.optional(v.number()), // Allow override of default
+    clientTimezoneOffset: v.optional(v.number()), // Minutes offset from UTC
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -609,13 +614,19 @@ export const getCapacityAndSchedule = query({
       throw new Error("weeklySlots must be greater than 0");
     }
 
-    // Get current week boundaries (Monday to Sunday)
-    const today = new Date(now);
+    // Get current week boundaries (Monday to Sunday) in client's timezone
+    // If no offset provided, fall back to UTC (legacy behavior)
+    const offsetMs = (args.clientTimezoneOffset ?? 0) * 60 * 1000;
+    // Adjust current time to client's local time for day calculation
+    const localNow = now - offsetMs;
+    const today = new Date(localNow);
     const dayOfWeek = today.getUTCDay();
     const daysToMonday = (dayOfWeek + 6) % 7;
-    const monday = new Date(now - daysToMonday * 24 * 60 * 60 * 1000);
+    const monday = new Date(localNow - daysToMonday * 24 * 60 * 60 * 1000);
     monday.setUTCHours(0, 0, 0, 0);
-    const sunday = new Date(monday.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // Convert back to UTC for database queries
+    const mondayUtc = monday.getTime() + offsetMs;
+    const sundayUtc = mondayUtc + 7 * 24 * 60 * 60 * 1000;
 
     // Get sessions this week
     const sessionsThisWeek = await ctx.db
@@ -625,8 +636,8 @@ export const getCapacityAndSchedule = query({
       )
       .filter((q) =>
         q.and(
-          q.gte(q.field("start_at"), monday.getTime()),
-          q.lt(q.field("start_at"), sunday.getTime())
+          q.gte(q.field("start_at"), mondayUtc),
+          q.lt(q.field("start_at"), sundayUtc)
         )
       )
       .collect();
@@ -806,10 +817,15 @@ export const getProgressAndOutcomes = query({
 /**
  * Get extended dashboard stats (combines original stats with new metrics)
  * This is a unified query that can replace getDashboardStats for efficiency
+ *
+ * @param clientTimezoneOffset - Client's timezone offset in minutes from UTC
+ *   (e.g., 300 for EST/UTC-5, -540 for JST/UTC+9). Matches Date.getTimezoneOffset().
+ *   If not provided, uses UTC for week boundaries.
  */
 export const getDashboardStatsExtended = query({
   args: {
     clerkId: v.string(),
+    clientTimezoneOffset: v.optional(v.number()), // Minutes offset from UTC
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -856,14 +872,29 @@ export const getDashboardStatsExtended = query({
       perStudentAppStats.set(key, stats);
     }
 
-    // Count sessions this week
-    const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    // Count sessions this week (calendar week: Monday-Sunday)
+    // Uses same logic as getCapacityAndSchedule for consistency
+    const offsetMs = (args.clientTimezoneOffset ?? 0) * 60 * 1000;
+    const localNow = now - offsetMs;
+    const today = new Date(localNow);
+    const dayOfWeek = today.getUTCDay();
+    const daysToMonday = (dayOfWeek + 6) % 7;
+    const monday = new Date(localNow - daysToMonday * 24 * 60 * 60 * 1000);
+    monday.setUTCHours(0, 0, 0, 0);
+    const mondayUtc = monday.getTime() + offsetMs;
+    const sundayUtc = mondayUtc + 7 * 24 * 60 * 60 * 1000;
+
     const sessionsThisWeek = await ctx.db
       .query("advisor_sessions")
       .withIndex("by_advisor", (q) =>
         q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
       )
-      .filter((q) => q.gte(q.field("start_at"), oneWeekAgo))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("start_at"), mondayUtc),
+          q.lt(q.field("start_at"), sundayUtc)
+        )
+      )
       .collect();
 
     // Count pending reviews

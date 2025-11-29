@@ -196,14 +196,19 @@ export const migrateFollowUps = internalMutation({
         continue;
       }
 
-      // Pre-fetch already migrated IDs for this batch to avoid N+1 queries
-      let migratedSet = new Set<string>();
-      const migratedFromThisBatch = await ctx.db
-        .query('follow_ups')
-        .withIndex('by_migrated_from')
-        .filter((q) => q.or(...page.page.map(a => q.eq(q.field('migrated_from_id'), a._id))))
-        .collect();
-      migratedSet = new Set(migratedFromThisBatch.map(m => m.migrated_from_id));
+      // Pre-fetch already migrated IDs for this batch using parallel indexed lookups
+      // Note: Using individual indexed queries is more efficient than q.or() with many items,
+      // which causes full table scans. Each lookup uses the index directly.
+      const migratedChecks = await Promise.all(
+        page.page.map(async (a) => {
+          const existing = await ctx.db
+            .query('follow_ups')
+            .withIndex('by_migrated_from', (q) => q.eq('migrated_from_id', a._id))
+            .first();
+          return existing ? a._id : null;
+        })
+      );
+      const migratedSet = new Set(migratedChecks.filter((id): id is NonNullable<typeof id> => id !== null));
 
       for (const action of page.page) {
         try {
@@ -373,13 +378,19 @@ export const migrateFollowUps = internalMutation({
           .map(r => [r._id, r] as const)
       );
 
-      // Pre-fetch already migrated IDs for this batch (same approach as followup_actions)
-      const migratedFromThisBatch = await ctx.db
-        .query('follow_ups')
-        .withIndex('by_migrated_from')
-        .filter((q) => q.or(...page.page.map(f => q.eq(q.field('migrated_from_id'), f._id))))
-        .collect();
-      const alreadyMigratedIds = new Set(migratedFromThisBatch.map(m => m.migrated_from_id));
+      // Pre-fetch already migrated IDs for this batch using parallel indexed lookups
+      // Note: Using individual indexed queries is more efficient than q.or() with many items,
+      // which causes full table scans. Each lookup uses the index directly.
+      const migratedChecks = await Promise.all(
+        page.page.map(async (f) => {
+          const existing = await ctx.db
+            .query('follow_ups')
+            .withIndex('by_migrated_from', (q) => q.eq('migrated_from_id', f._id))
+            .first();
+          return existing ? f._id : null;
+        })
+      );
+      const alreadyMigratedIds = new Set(migratedChecks.filter((id): id is NonNullable<typeof id> => id !== null));
 
       for (const followUp of page.page) {
         try {

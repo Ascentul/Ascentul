@@ -350,17 +350,25 @@ export const getTodayOverviewV2 = query({
     // Batch fetch student data to avoid N+1 queries
     // ========================================================================
 
-    // Collect all unique student IDs
-    const studentIds = new Set<Id<"users">>([
+    // Collect all unique student IDs for basic info (name, email)
+    const allStudentIds = new Set<Id<"users">>([
       ...todaySessions.map((s) => s.student_id),
       ...comingUpSessions.map((s) => s.student_id),
       ...undocumentedSessions.map((s) => s.student_id),
       ...allFollowUps.map((f) => f.user_id),
     ]);
 
-    // Batch fetch students
+    // Only fetch expensive context (session history, resumes, applications) for students
+    // who appear in sessions that will display context - today's and coming up sessions
+    // This significantly reduces queries for advisors with many follow-ups
+    const studentsNeedingContext = new Set<Id<"users">>([
+      ...todaySessions.map((s) => s.student_id),
+      ...comingUpSessions.map((s) => s.student_id),
+    ]);
+
+    // Batch fetch students (all need basic info)
     const students = await Promise.all(
-      Array.from(studentIds).map((id) => ctx.db.get(id))
+      Array.from(allStudentIds).map((id) => ctx.db.get(id))
     );
 
     const studentMap = new Map(
@@ -369,10 +377,10 @@ export const getTodayOverviewV2 = query({
         .map((student) => [student._id, student])
     );
 
-    // Batch fetch session history for all students (to determine first session, total sessions)
+    // Batch fetch session history ONLY for students with sessions (not all follow-up students)
     const sessionHistoryByStudent = new Map<Id<"users">, typeof todaySessions>();
     await Promise.all(
-      Array.from(studentIds).map(async (studentId) => {
+      Array.from(studentsNeedingContext).map(async (studentId) => {
         const history = await ctx.db
           .query("advisor_sessions")
           .withIndex("by_student", (q) =>
@@ -384,10 +392,10 @@ export const getTodayOverviewV2 = query({
       })
     );
 
-    // Batch fetch resume counts
+    // Batch fetch resume counts ONLY for students with sessions
     const resumeCountByStudent = new Map<Id<"users">, number>();
     await Promise.all(
-      Array.from(studentIds).map(async (studentId) => {
+      Array.from(studentsNeedingContext).map(async (studentId) => {
         const resumes = await ctx.db
           .query("resumes")
           .withIndex("by_user", (q) => q.eq("user_id", studentId))
@@ -396,10 +404,10 @@ export const getTodayOverviewV2 = query({
       })
     );
 
-    // Batch fetch applications
+    // Batch fetch applications ONLY for students with sessions
     const applicationsByStudent = new Map<Id<"users">, { stage?: string; updated_at?: number }[]>();
     await Promise.all(
-      Array.from(studentIds).map(async (studentId) => {
+      Array.from(studentsNeedingContext).map(async (studentId) => {
         const apps = await ctx.db
           .query("applications")
           .withIndex("by_user", (q) => q.eq("user_id", studentId))

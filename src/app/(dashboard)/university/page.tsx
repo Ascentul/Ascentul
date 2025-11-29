@@ -378,7 +378,7 @@ export default function UniversityDashboardPage() {
     );
   }
 
-  if (!hasAccess && !shouldRedirect) {
+  if (!hasAccess) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <Card>
@@ -387,7 +387,9 @@ export default function UniversityDashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              You do not have access to the University Dashboard.
+              {shouldRedirect 
+                ? "Redirecting..." 
+                : "You do not have access to the University Dashboard."}
             </p>
           </CardContent>
         </Card>

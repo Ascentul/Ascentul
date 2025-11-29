@@ -54,7 +54,7 @@ applications: defineTable({
 ### Current Usage Analysis
 
 **Files writing to `status` (12 files):**
-- `convex/applications.ts` - Creates applications with only `status`, no `stage`
+- `convex/applications.ts` - ✅ Creates applications with both `status` AND `stage` (migration complete)
 - `convex/followups.ts`
 - `convex/advisor_calendar.ts`
 - `convex/advisor_follow_ups.ts`
@@ -93,25 +93,28 @@ applications: defineTable({
 
 ### Impact
 
-1. **Data Inconsistency**: Applications created via `convex/applications.ts` have `status` but no `stage`
+1. **Data Inconsistency**: ~~Applications created via `convex/applications.ts` have `status` but no `stage`~~ (FIXED - now sets both fields)
 2. **Reporting Discrepancies**: Analytics queries use `status`, advisor queries use `stage`
 3. **Silent Failures**: Advisor features looking for `stage: "Offer"` won't find applications created with `status: "offer"`
 4. **Query Ambiguity**: No clear guidance on which field to query
 5. **Index Waste**: Both fields indexed (lines 418-420 in schema.ts) but inconsistently populated
 
-### Example Data Inconsistency
+### Example Data Inconsistency (Legacy Records Only)
+
+> **Note**: This issue has been fixed for NEW applications. `convex/applications.ts` now sets both fields.
+> However, LEGACY records created before the fix may still have this issue and require migration.
 
 ```typescript
-// Created via convex/applications.ts:72
+// LEGACY record (created before fix)
 {
   _id: "abc123",
   status: "offer",  // ✓ Set by user creation
-  stage: undefined, // ❌ Never set!
+  stage: undefined, // ❌ Never set (legacy record)
   // ... other fields
 }
 
 // Advisor query in convex/advisor_students.ts:172
-const hasOffer = application.stage === "Offer"  // ❌ Returns false!
+const hasOffer = application.stage === "Offer"  // ❌ Returns false for legacy records!
 // Should match, but doesn't because stage is undefined
 ```
 

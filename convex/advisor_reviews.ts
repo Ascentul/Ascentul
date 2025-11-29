@@ -649,11 +649,13 @@ export const deleteComment = mutation({
     }
 
     // Only comment author or admin can delete
-    if (
-      comment.author_id !== sessionCtx.userId &&
-      sessionCtx.role !== "super_admin" &&
-      sessionCtx.role !== "university_admin"
-    ) {
+    // Note: requireAdvisorRole() above allows advisor, university_admin, super_admin
+    // - Advisors can only delete their own comments
+    // - Admins (university_admin, super_admin) can delete any comment
+    const isAuthor = comment.author_id === sessionCtx.userId;
+    const isAdmin = sessionCtx.role === "super_admin" || sessionCtx.role === "university_admin";
+
+    if (!isAuthor && !isAdmin) {
       throw new Error(
         "Unauthorized: Only the comment author or admin can delete it",
       );

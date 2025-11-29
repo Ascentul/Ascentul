@@ -25,6 +25,15 @@ export function mapStatusToStage(status: string): string {
 
 /**
  * Map new stage values back to legacy status (for transition period)
+ *
+ * WARNING: This mapping is lossy and NOT round-trip safe:
+ * - Accepted & Offer both map to "offer"
+ * - Withdrawn & Rejected both map to "rejected"
+ * - Archived & Prospect both map to "saved"
+ *
+ * Use with caution - converting status → stage → status may not preserve
+ * the original value. This function exists only for backward compatibility
+ * with legacy code during the transition period.
  */
 export function mapStageToStatus(stage: string): string {
   const map: Record<string, string> = {
@@ -32,10 +41,10 @@ export function mapStageToStatus(stage: string): string {
     Applied: "applied",
     Interview: "interview",
     Offer: "offer",
-    Accepted: "offer", // Map to closest legacy value
+    Accepted: "offer", // Lossy: maps to same as Offer
     Rejected: "rejected",
-    Withdrawn: "rejected",
-    Archived: "saved",
+    Withdrawn: "rejected", // Lossy: maps to same as Rejected
+    Archived: "saved", // Lossy: maps to same as Prospect
   };
   return map[stage] || "saved";
 }

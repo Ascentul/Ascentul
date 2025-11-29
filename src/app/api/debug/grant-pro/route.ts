@@ -78,8 +78,8 @@ async function processUpgrade(params: {
 
   // Handle convexId path
   if (convexId) {
-    // Convex IDs are base64-like strings, let the mutation validate the exact format
-    if (typeof convexId !== 'string' || convexId.trim().length === 0) {
+    // Convex IDs are base64-like strings; let the mutation validate
+    if (!convexId || typeof convexId !== 'string' || convexId.trim().length === 0) {
       return NextResponse.json({
         error: 'Invalid convexId format',
         convexId,
@@ -91,13 +91,12 @@ async function processUpgrade(params: {
     } catch (error) {
       console.error('Failed to upgrade by convexId:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      // Check if it's a validation/not-found error vs server error
-      const isClientError = errorMessage.includes('not found') || errorMessage.includes('Invalid')
+      // Treat all mutation failures as server errors; Convex validates IDs internally
       return NextResponse.json({
         error: 'Failed to upgrade user by convexId',
         detail: errorMessage,
         convexId,
-      }, { status: isClientError ? 400 : 500 })
+      }, { status: 500 })
     }
   }
 
