@@ -49,7 +49,11 @@ export async function POST(request: Request) {
       linkedin_url: body.linkedin_url ?? undefined,
       notes: body.notes ?? undefined,
       relationship: body.relationship_type ?? undefined,
-      last_contact: body.last_contact_date ? Date.parse(body.last_contact_date) || undefined : undefined,
+      last_contact: (() => {
+        if (!body.last_contact_date) return undefined;
+        const parsed = Date.parse(body.last_contact_date);
+        return Number.isNaN(parsed) ? undefined : parsed;
+      })(),
     }, { token })
 
     return NextResponse.json({ contact }, { status: 201 })

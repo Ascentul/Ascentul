@@ -293,7 +293,7 @@ function MetricCard({
 }: MetricCardProps) {
   const cardProps = clickable
     ? {
-        onClick,
+        onClick: onClick ?? (() => {}),
         className: 'cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
         role: 'button',
         tabIndex: 0,

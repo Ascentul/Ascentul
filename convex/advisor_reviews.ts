@@ -337,11 +337,13 @@ export const updateReviewStatus = mutation({
       );
     }
 
+    const isWaiting = args.status === "waiting";
+
     await ctx.db.patch(args.reviewId, {
       status: args.status,
-      reviewed_by:
-        args.status !== "waiting" ? sessionCtx.userId : undefined,
-      reviewed_at: args.status !== "waiting" ? now : undefined,
+      // Explicitly clear reviewer fields when returning to waiting
+      reviewed_by: isWaiting ? null : sessionCtx.userId,
+      reviewed_at: isWaiting ? null : now,
       updated_at: now,
       version: (review.version ?? 0) + 1,
     });

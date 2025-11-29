@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
           typeof universityIdInMetadata === 'string' && universityIdInMetadata.trim().length > 0
             ? universityIdInMetadata
             : undefined
-        const membershipUniversityId = validUniversityId
+        const membershipUniversityId = validUniversityId && /^[0-9a-v]+$/i.test(validUniversityId)
           ? (validUniversityId as Id<'universities'>)
           : undefined
         const userEmail = userData.email_addresses?.[0]?.email_address
@@ -161,10 +161,12 @@ export async function POST(request: NextRequest) {
         }
 
         // Enforce role constraints per learnings
-        if (validatedRole === 'individual') {
-          // Individual users must NOT have university_id
-          updates.university_id = undefined
-        } else if (membershipRole) {
+        } else if (membershipRole && !validUniversityId) {
+          console.error(`[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`)
+          return NextResponse.json(
+            { error: `Invalid state: ${membershipRole} role requires university_id` },
+            { status: 400 }
+          )
           // University roles MUST have university_id
           if (!validUniversityId) {
             console.error(`[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`)

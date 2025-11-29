@@ -80,6 +80,7 @@ import {
   UserRound,
   Briefcase,
   MoreVertical,
+  Loader2,
 } from "lucide-react";
 import { Id } from "convex/_generated/dataModel";
 import {
@@ -105,7 +106,7 @@ export default function UniversityDashboardPage() {
   const router = useRouter();
   const { user: clerkUser } = useUser();
   const { getToken } = useClerkAuth();
-  const { user, isAdmin, subscription } = useAuth();
+  const { user, isAdmin, subscription, isLoading: authLoading } = useAuth();
   const { impersonation, getEffectiveRole } = useImpersonation();
   const [activeTab, setActiveTab] = useState("overview");
   const [analyticsView, setAnalyticsView] = useState<
@@ -115,6 +116,7 @@ export default function UniversityDashboardPage() {
 
   // Get effective role (respects impersonation)
   const effectiveRole = getEffectiveRole();
+  const isUniversityRole = user?.role === 'university_admin' || user?.role === 'super_admin';
 
   // Redirect based on effective role when impersonating
   useEffect(() => {
@@ -131,6 +133,29 @@ export default function UniversityDashboardPage() {
       }
     }
   }, [impersonation.isImpersonating, effectiveRole, router]);
+
+  // Redirect non-university roles (including advisors) to their dashboards
+  useEffect(() => {
+    if (impersonation.isImpersonating) return; // handled above
+    if (!user) return;
+
+    if (user.role === 'advisor') {
+      router.replace('/advisor');
+      return;
+    }
+
+    if (!isUniversityRole) {
+      router.replace('/dashboard');
+    }
+  }, [user, isUniversityRole, impersonation.isImpersonating, router]);
+
+  if (authLoading || !clerkUser || !user || (!isUniversityRole && !impersonation.isImpersonating)) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   // Filter states
   const [roleFilter, setRoleFilter] = useState<

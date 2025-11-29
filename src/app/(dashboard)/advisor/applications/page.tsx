@@ -81,11 +81,17 @@ export default function AdvisorApplicationsPage() {
     // The Convex query returns stage as string | undefined, but we need ApplicationStage
     // After filtering, we cast the type since the filter ensures stage exists
     type QueryApp = NonNullable<typeof applications>[number];
-    const appsWithStage = applications.filter((app: QueryApp) => app.stage !== undefined && app.stage !== null);
+    const appsWithStage = applications.filter(
+      (app: QueryApp) => app.stage !== undefined && app.stage !== null
+    );
 
-    // The generic function accepts any type that extends ApplicationForTriage
-    // We cast here because the query type doesn't match exactly but the data does
-    return enrichApplicationsWithNeedAction(appsWithStage as unknown as EnrichedApplication[]);
+    // Map to the expected shape to avoid unsafe casts
+    const mappedApps: EnrichedApplication[] = appsWithStage.map((app) => ({
+      ...app,
+      stage: app.stage as EnrichedApplication['stage'],
+    }));
+
+    return enrichApplicationsWithNeedAction(mappedApps);
   }, [applications]);
 
   // Apply filters

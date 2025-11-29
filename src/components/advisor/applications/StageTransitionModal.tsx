@@ -248,6 +248,7 @@ export function StageTransitionModal({
               (reasonCodeRequired && !reasonCode) ||
               (notesRequired && !additionalNotes.trim())
             }
+            }
           >
             {isSubmitting ? 'Updating...' : 'Update Stage'}
           </Button>

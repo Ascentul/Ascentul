@@ -33,12 +33,13 @@ export function SessionItem({ session, now }: SessionItemProps) {
   const isCurrent = session.start_at <= now && endAt >= now;
 
   const sessionIcon = {
-    "1-on-1": User,
-    group: User,
-    workshop: User,
-    virtual: Video,
-    phone: MessageSquare,
-  }[session.session_type || "1-on-1"] || User;
+    career_planning: User,
+    resume_review: User,
+    mock_interview: Video,
+    application_strategy: User,
+    general_advising: MessageSquare,
+    other: User,
+  }[session.session_type || "general_advising"] || User;
 
   const SessionIcon = sessionIcon;
 
