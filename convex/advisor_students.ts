@@ -520,7 +520,7 @@ export const assignStudentToAdvisor = mutation({
 
         if (owners.length > 1) {
           // Auto-correct: if multiple owners, keep only the most recently assigned
-          const sortedByTime = owners.sort((a, b) => b.assigned_at - a.assigned_at);
+          const sortedByTime = owners.sort((a, b) => (b.assigned_at ?? 0) - (a.assigned_at ?? 0));
           for (let i = 1; i < sortedByTime.length; i++) {
             await ctx.db.patch(sortedByTime[i]._id, { is_owner: false });
 

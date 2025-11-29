@@ -12,6 +12,14 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
+// Daily audit log retention (7-year window)
+// TODO: Adjust schedule as needed via Convex dashboard
+crons.daily(
+  "audit log retention",
+  { hourUTC: 3, minuteUTC: 0 },
+  internal.audit_logs.deleteExpiredAuditLogs
+);
+
 /**
  * Monitor for duplicate student profiles
  *

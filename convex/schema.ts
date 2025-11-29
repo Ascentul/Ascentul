@@ -281,6 +281,14 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_created_at", ["created_at"]),
 
+  // Diagnostics table for audit log retention (optional, for export tracking)
+  audit_log_exports: defineTable({
+    exported_count: v.number(),
+    cutoff: v.number(),
+    created_at: v.number(),
+    notes: v.optional(v.string()),
+  }).index("by_created_at", ["created_at"]),
+
   // Career paths table for generated career paths
   career_paths: defineTable({
     user_id: v.id("users"),

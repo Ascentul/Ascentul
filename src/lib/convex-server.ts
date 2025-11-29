@@ -41,7 +41,7 @@ export const convexServer = {
     args: FunctionArgs<Query>,
     token?: string | null
   ): Promise<FunctionReturnType<Query>> =>
-    fetchQuery(fn, args, token ? { token } : undefined) as Promise<FunctionReturnType<Query>>,
+    fetchQuery(fn, args, token ? { token } : undefined),
 
   /**
    * Execute a Convex mutation

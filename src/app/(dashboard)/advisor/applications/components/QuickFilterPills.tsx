@@ -50,6 +50,9 @@ export function QuickFilterPills({
   }
 
   const breakdown = stats.needActionBreakdown;
+  if (!breakdown) {
+    return null;
+  }
 
   // Define pill configurations
   const pills: Array<{

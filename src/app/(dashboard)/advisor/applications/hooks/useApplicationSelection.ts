@@ -113,6 +113,8 @@ export function useApplicationSelection(): UseApplicationSelectionResult {
       }
 
       // Enter select-all mode
+      // Note: selectedIds holds the current page's IDs for materialization (getSelectedIds),
+      // while selection checks rely on excludedIds in select-all mode.
       return {
         selectAll: true,
         selectedIds: new Set(allIds.map((id) => id.toString())),

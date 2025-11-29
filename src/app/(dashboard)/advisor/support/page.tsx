@@ -76,6 +76,7 @@ export default function AdvisorSupportPage() {
 
   const [responseText, setResponseText] = useState('')
   const [isSubmittingResponse, setIsSubmittingResponse] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
 
   const responseEntries = useMemo(() => {
     if (!selectedTicket?.resolution) return [];
@@ -150,6 +151,9 @@ export default function AdvisorSupportPage() {
       return
     }
 
+    if (isCreating) return;
+    setIsCreating(true);
+
     try {
       await createTicket({
         clerkId: clerkUser.id,
@@ -178,6 +182,8 @@ export default function AdvisorSupportPage() {
         description: 'Failed to create ticket. Please try again.',
         variant: 'destructive'
       })
+    } finally {
+      setIsCreating(false);
     }
   }
 
@@ -600,9 +606,18 @@ export default function AdvisorSupportPage() {
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateTicket}>
-                <Send className="h-4 w-4 mr-2" />
-                Submit Ticket
+              <Button onClick={handleCreateTicket} disabled={isCreating}>
+                {isCreating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Submit Ticket
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

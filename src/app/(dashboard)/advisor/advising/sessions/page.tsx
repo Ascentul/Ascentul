@@ -422,7 +422,7 @@ export default function AdvisorSessionsPage() {
                     <SelectItem value="all">All Students</SelectItem>
                     {caseload?.map((student) => (
                       <SelectItem key={student._id} value={student._id}>
-                        {student.name}
+                        {student.name || student.email || 'Unknown Student'}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -587,7 +587,7 @@ export default function AdvisorSessionsPage() {
                   <SelectContent>
                     {caseload?.map((student) => (
                       <SelectItem key={student._id} value={student._id}>
-                        {student.name}
+                        {student.name || student.email || 'Unknown Student'}
                       </SelectItem>
                     ))}
                   </SelectContent>

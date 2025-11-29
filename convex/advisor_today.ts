@@ -215,7 +215,7 @@ function calculateRiskTags(
   // High volume, no offers: >5 applications, no offers
   if (applications.length > 5) {
     const hasOffer = applications.some(
-      (app) => app.stage === "offer" || app.stage === "accepted"
+      (app) => app.stage === "Offer" || app.stage === "Accepted"
     );
     if (!hasOffer) {
       tags.push("high_volume_no_offers");

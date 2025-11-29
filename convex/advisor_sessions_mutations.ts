@@ -159,7 +159,7 @@ export const updateSession = mutation({
     }
 
     // Version check for conflict detection
-    if (session.version !== args.version) {
+    if ((session.version ?? 0) !== args.version) {
       throw new Error(
         "Conflict: Session has been modified by another process. Please refresh and try again."
       );

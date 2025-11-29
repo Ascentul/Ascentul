@@ -238,19 +238,18 @@ export const _completeReviewInternal = internalMutation({
     const reviewType = review.asset_type === 'resume' ? 'Resume' : 'Cover Letter';
 
     // Build review URL
-    // IMPORTANT: APP_URL must be configured in Convex Dashboard for each environment:
-    // Settings → Deployment Settings → Environment Variables
-    // - Development: http://localhost:3000
-    // - Staging: https://staging.ascentful.io
-    // - Production: https://app.ascentful.io
-    // The fallback only works for production; other envs will get wrong URLs without config
-    const appUrl = process.env.APP_URL || 'https://app.ascentful.io';
-    let reviewUrl = `${appUrl}/dashboard`;
+    // IMPORTANT: APP_URL must be configured per environment.
+    const appUrl = process.env.APP_URL;
+    if (!appUrl) {
+      console.warn('APP_URL not configured - review URLs will be relative and may be incorrect.');
+    }
+    const baseUrl = appUrl || '';
+    let reviewUrl = `${baseUrl}/dashboard`;
 
     if (review.asset_type === 'resume' && review.resume_id) {
-      reviewUrl = `${appUrl}/resumes/${review.resume_id}`;
+      reviewUrl = `${baseUrl}/resumes/${review.resume_id}`;
     } else if (review.asset_type === 'cover_letter' && review.cover_letter_id) {
-      reviewUrl = `${appUrl}/cover-letters/${review.cover_letter_id}`;
+      reviewUrl = `${baseUrl}/cover-letters/${review.cover_letter_id}`;
     }
 
     return {

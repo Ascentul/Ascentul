@@ -48,6 +48,9 @@ export const getSessionsInRange = query({
         ),
       )
       .collect();
+        ),
+      )
+      .collect();
 
     // Enrich with student data
     // Optimize by fetching each unique student only once (reduces N database reads to 1 per unique student)
