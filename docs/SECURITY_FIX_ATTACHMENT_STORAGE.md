@@ -94,8 +94,9 @@ await ctx.db.patch(sessionId, {
       size: file.size,
     },
   ],
-});
-## 🔄 Migration Required
+       },
+     ],
+   });
 
 ### For Existing Data
 
