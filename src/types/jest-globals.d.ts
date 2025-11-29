@@ -23,18 +23,5 @@ declare global {
   const afterAll: typeof JestAfterAll
   const jest: typeof JestJest
 
-  namespace jest {
-    type Mock<T = any, Y extends any[] = any[]> = {
-      (...args: Y): T
-      mock: {
-        calls: unknown[]
-        clear(): void
-        reset(): void
-        restore(): void
-      }
-      mockReturnValue(value: T): Mock<T, Y>
-      mockImplementation(fn?: (...args: Y) => T): Mock<T, Y>
-    }
-    type MockedFunction<T extends (...args: any[]) => any> = Mock<ReturnType<T>, Parameters<T>>
-  }
+
 }

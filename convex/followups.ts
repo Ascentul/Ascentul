@@ -212,8 +212,9 @@ export const updateFollowup = mutation({
         patchData.completed_by = user._id;
       } else if (statusChangingToOpen) {
         // Clear completion fields when reopening
-        patchData.completed_at = undefined;
-        patchData.completed_by = undefined;
+        // Use null (not undefined) to actually clear the fields in Convex patch()
+        patchData.completed_at = null;
+        patchData.completed_by = null;
       }
 
       await ctx.db.patch(args.followupId, patchData);

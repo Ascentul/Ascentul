@@ -5,8 +5,8 @@ import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 import { requireConvexToken } from '@/lib/convex-auth';
 
-// Convex IDs use RFC 4648 base32hex (A-V, 0-9)
-const isValidId = (id: string) => /^[0-9A-V]+$/i.test(id.trim());
+// Convex IDs use Crockford Base32 (0-9, A-H, J-N, P-T, V-Z; excludes I, L, O, U)
+const isValidId = (id: string) => /^[0-9A-HJ-NP-TV-Z]+$/i.test(id.trim());
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {

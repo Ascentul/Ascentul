@@ -232,7 +232,10 @@ export default function AdvisorSessionsPage() {
 
     try {
       // Parse date and time
-      const dateTime = new Date(`${newSession.date}T${newSession.time}`);
+      // Parse as local time explicitly (ISO 8601 without timezone treats as local)
+      const [year, month, day] = newSession.date.split('-').map(Number);
+      const [hour, minute] = newSession.time.split(':').map(Number);
+      const dateTime = new Date(year, month - 1, day, hour, minute);
       if (isNaN(dateTime.getTime())) {
         throw new Error('Invalid date or time');
       }

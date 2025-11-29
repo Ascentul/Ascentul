@@ -157,10 +157,11 @@ export const updateContactFollowup = mutation({
     const now = Date.now();
 
     // Build patch data with explicit typing for completion fields
+    // Note: null is allowed to clear these fields via Convex patch()
     type PatchData = Partial<Doc<'follow_ups'>> & {
       updated_at: number;
-      completed_at?: number;
-      completed_by?: Id<'users'>;
+      completed_at?: number | null;
+      completed_by?: Id<'users'> | null;
     };
 
     const patchData: PatchData = {
@@ -174,9 +175,10 @@ export const updateContactFollowup = mutation({
       patchData.completed_by = user._id;
     }
     // Clear completion fields when reopening (consistent with followups.ts)
+    // Use null (not undefined) to actually clear the fields in Convex patch()
     if (args.updates.status === 'open' && followup.status === 'done') {
-      patchData.completed_at = undefined;
-      patchData.completed_by = undefined;
+      patchData.completed_at = null;
+      patchData.completed_by = null;
     }
     await ctx.db.patch(args.followupId, patchData);
 

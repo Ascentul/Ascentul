@@ -95,7 +95,7 @@
     "uuid": "^11.1.0",
     "vaul": "^1.1.0",
     "zod": "^3.25.0",
-    "zod-validation-error": "^4.0.1"
+    "zod-validation-error": "^3.4.1"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",

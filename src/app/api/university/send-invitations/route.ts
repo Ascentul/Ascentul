@@ -25,7 +25,10 @@ export async function POST(req: NextRequest) {
       typeof email !== 'string' || !emailRegex.test(email)
     );
     if (invalidEmails.length > 0) {
-      return NextResponse.json({ error: 'Invalid email format detected' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid email format detected', invalidEmails },
+        { status: 400 }
+      );
     }
 
     // Get the university admin's info to fetch university name

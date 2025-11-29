@@ -64,35 +64,37 @@ export function TodaysRecommendations() {
 
   // Sync local state when server data changes (compare hash to catch content updates)
   const prevRecommendationsHash = useRef<string>('')
+  const recommendationsHash = useMemo(
+    () =>
+      JSON.stringify(
+        recommendationsArray.map(r => ({
+          id: r.id,
+          text: r.text,
+          type: r.type,
+          completed: r.completed,
+          completedAt: r.completedAt,
+          relatedEntityId: r.relatedEntityId,
+          relatedEntityType: r.relatedEntityType,
+        }))
+      ),
+    [recommendationsArray]
+  )
   useEffect(() => {
-    const newHash = JSON.stringify(
-      recommendationsArray.map(r => ({
-        id: r.id,
-        text: r.text,
-        type: r.type,
-        completed: r.completed,
-        completedAt: r.completedAt,
-        relatedEntityId: r.relatedEntityId,
-        relatedEntityType: r.relatedEntityType,
-      }))
-    )
-    if (newHash !== prevRecommendationsHash.current) {
-      prevRecommendationsHash.current = newHash
+    if (recommendationsHash !== prevRecommendationsHash.current) {
+      prevRecommendationsHash.current = recommendationsHash
       removalTimeouts.current.forEach(timeout => clearTimeout(timeout))
       removalTimeouts.current.clear()
       setLocalRecommendations(prev => {
         // Preserve local completions that haven't synced yet
-        const locallyCompleted = new Set(
-          prev.filter(r => r.completed).map(r => r.id)
-        )
+        const prevMap = new Map(prev.map(r => [r.id, r]))
         return recommendationsArray.map(rec => ({
           ...rec,
-          completed: rec.completed || locallyCompleted.has(rec.id),
-          completedAt: rec.completedAt || (locallyCompleted.has(rec.id) ? prev.find(p => p.id === rec.id)?.completedAt : null)
+          completed: rec.completed || (prevMap.get(rec.id)?.completed ?? false),
+          completedAt: rec.completedAt || prevMap.get(rec.id)?.completedAt || null
         }))
       })
     }
-  }, [recommendationsArray])
+  }, [recommendationsArray, recommendationsHash])
 
   useEffect(() => () => {
     removalTimeouts.current.forEach(timeout => clearTimeout(timeout))

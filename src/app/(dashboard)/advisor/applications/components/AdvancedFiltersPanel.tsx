@@ -290,12 +290,11 @@ function StageCheckbox({ stage, checked, onToggle, variant }: StageCheckboxProps
       type="button"
       onClick={() => onToggle(stage)}
       className={cn(
-        "flex items-center gap-2 rounded-lg border p-2.5 text-left text-sm transition-all",
+        "flex items-center gap-2 rounded-lg border p-2.5 text-left text-sm transition-all pl-3",
         checked ? checkedStyles[variant] : variantStyles[variant]
       )}
       aria-pressed={checked}
     >
-      <Checkbox checked={checked} className="pointer-events-none" />
       <span className={checked ? 'font-semibold' : ''}>{stage}</span>
     </button>
   );

@@ -509,8 +509,10 @@ export default defineSchema({
     status: v.union(v.literal('open'), v.literal('done')),
 
     // Completion audit trail
-    completed_at: v.optional(v.number()),
-    completed_by: v.optional(v.id('users')),
+    // Note: These fields use v.union with v.null() to allow clearing via patch()
+    // Setting to null clears the field when reopening a completed follow-up
+    completed_at: v.optional(v.union(v.number(), v.null())),
+    completed_by: v.optional(v.union(v.id('users'), v.null())),
 
     // Optimistic concurrency control for FERPA audit accuracy
     version: v.optional(v.number()),
