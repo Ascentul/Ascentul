@@ -12,6 +12,7 @@ import { CareerGoalsSummary } from '@/components/CareerGoalsSummary'
 import { ActiveInterviewsSummary } from '@/components/ActiveInterviewsSummary'
 import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
 import { TodaysRecommendations } from '@/components/TodaysRecommendations'
+import { AICareerCoach } from '@/components/AICareerCoach'
 import { UsageProgressCard } from '@/components/UsageProgressCard'
 import { HeatmapCard } from '@/components/streak/HeatmapCard'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
@@ -201,6 +202,9 @@ export default function DashboardPage() {
             </header>
             <div className="rounded-md border bg-white px-4 py-3">
               <p className="font-medium">Quick Actions</p>
+            </div>
+            <div className="mt-4">
+              <AICareerCoach />
             </div>
           </motion.div>
 

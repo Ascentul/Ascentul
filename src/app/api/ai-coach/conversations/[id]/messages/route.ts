@@ -181,11 +181,13 @@ export async function POST(
     const openaiClient = createOpenAIClient()
 
     if (openaiClient) {
-      // Ensure mock has a create function to be spied on in tests
+      // Validate that the OpenAI client is properly configured
       if (!openaiClient.chat?.completions?.create) {
-        if (!openaiClient.chat) openaiClient.chat = {} as any
-        if (!openaiClient.chat.completions) openaiClient.chat.completions = {} as any
-        openaiClient.chat.completions.create = jest.fn().mockResolvedValue({ choices: [{ message: { content: '' } }] })
+        console.error('OpenAI client is not properly configured')
+        return NextResponse.json(
+          { error: 'AI service is not available' },
+          { status: 503 }
+        )
       }
       try {
         // Build conversation context for the AI
@@ -226,11 +228,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
           content: content
         })
 
-        const createFn =
-          openaiClient.chat.completions.create ||
-          (openaiClient.chat.completions.create = jest.fn().mockResolvedValue({ choices: [{ message: { content: '' } }] }))
-
-        const completion = await createFn({
+        const completion = await openaiClient.chat.completions.create({
           model: 'gpt-4o',
           messages: messages,
           temperature: 0.7,

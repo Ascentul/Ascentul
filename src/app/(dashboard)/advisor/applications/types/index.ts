@@ -533,7 +533,8 @@ export function buildAnalyticsPayload<E extends AnalyticsEventName>(
         triageContext: (props as any).triageContext,
       } as AnalyticsSafePayload[E];
     default:
-      // Exhaustive fallback to satisfy TypeScript
+      // Log warning for unhandled events - indicates missing case in switch
+      console.warn(`buildAnalyticsPayload: Unhandled event "${event}"`);
       return {} as AnalyticsSafePayload[E];
   }
 }

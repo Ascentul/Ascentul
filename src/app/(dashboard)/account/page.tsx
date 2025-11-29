@@ -86,11 +86,10 @@ export default function AccountPage() {
   const updateUserAvatarMutation = useMutation(api.avatar.updateUserAvatar);
   const updateUserMutation = useMutation(api.users.updateUser);
 
-  // Prefill profile form from user data
+  // Prefill profile form from user data (only when not actively editing)
   React.useEffect(() => {
-    if (user && clerkUser) {
-      setProfileForm((prev) => ({
-        ...prev,
+    if (user && clerkUser && !isEditingProfile) {
+      setProfileForm({
         name: user.name || clerkUser.fullName || "",
         email: user.email || clerkUser.emailAddresses?.[0]?.emailAddress || "",
         jobTitle: user.job_title || "",
@@ -98,9 +97,9 @@ export default function AccountPage() {
         location: user.location || "",
         website: user.website || "",
         bio: user.bio || "",
-      }));
+      });
     }
-  }, [user, clerkUser]);
+  }, [user, clerkUser, isEditingProfile]);
 
   // Password form
   const passwordForm = useForm<PasswordChangeFormValues>({
@@ -305,7 +304,7 @@ export default function AccountPage() {
                   <p className="text-sm text-muted-foreground">Update website and bio</p>
                 </div>
 
-              {(isEditingProfile || true) && (
+              {isEditingProfile && (
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <Label htmlFor="email">Email</Label>
@@ -386,39 +385,66 @@ export default function AccountPage() {
                     <p className="text-sm text-destructive">{profileError}</p>
                   )}
                   <div className="flex gap-2 justify-end">
-                    <Button variant="outline" onClick={() => { setIsEditingProfile(false); setProfileError(null); }}>
+                    <Button variant="outline" onClick={() => {
+                      setIsEditingProfile(false);
+                      setProfileError(null);
+                      if (user && clerkUser) {
+                        setProfileForm({
+                          name: user.name || clerkUser.fullName || "",
+                          email: user.email || clerkUser.emailAddresses?.[0]?.emailAddress || "",
+                          jobTitle: user.job_title || "",
+                          company: user.company || "",
+                          location: user.location || "",
+                          website: user.website || "",
+                          bio: user.bio || "",
+                        });
+                      }
+                    }}>
                       Cancel
                     </Button>
                     <Button
-                      onClick={() => {
+                      disabled={isLoading}
+                      onClick={async () => {
                         const urlPattern = /^https?:\/\/.+/i;
                         if (profileForm.website && !urlPattern.test(profileForm.website)) {
                           setProfileError("Please enter a valid URL");
                           return;
                         }
-                        if (profileForm.bio.length > 500) {
-                          setProfileError("Bio must be 500 characters or less");
-                          return;
-                        }
                         setProfileError(null);
-                        if (updateUserMutation && clerkUser?.id) {
-                          void updateUserMutation({
-                            clerkId: clerkUser.id,
-                            updates: {
-                              name: profileForm.name,
-                              email: profileForm.email,
-                              bio: profileForm.bio,
-                              job_title: profileForm.jobTitle,
-                              company: profileForm.company,
-                              location: profileForm.location,
-                              website: profileForm.website,
-                            },
-                          });
+                        if (clerkUser?.id) {
+                          setIsLoading(true);
+                          try {
+                            await updateUserMutation({
+                              clerkId: clerkUser.id,
+                              updates: {
+                                name: profileForm.name,
+                                email: profileForm.email,
+                                bio: profileForm.bio,
+                                job_title: profileForm.jobTitle,
+                                company: profileForm.company,
+                                location: profileForm.location,
+                                website: profileForm.website,
+                              },
+                            });
+                            toast({
+                              title: "Profile updated",
+                              description: "Your profile has been updated successfully.",
+                              variant: "success",
+                            });
+                            setIsEditingProfile(false);
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to update profile. Please try again.",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsLoading(false);
+                          }
                         }
-                        setIsEditingProfile(false);
                       }}
                     >
-                      Save Changes
+                      {isLoading ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
                 </div>

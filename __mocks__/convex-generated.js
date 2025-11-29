@@ -18,6 +18,7 @@ module.exports = {
       getUserByClerkId: ref('users:getUserByClerkId'),
       setStripeCustomer: ref('users:setStripeCustomer'),
       updateUser: ref('users:updateUser'),
+      toggleHideProgressCard: ref('users:toggleHideProgressCard'),
     },
     avatar: {
       generateAvatarUploadUrl: ref('avatar:generateAvatarUploadUrl'),
@@ -48,6 +49,12 @@ module.exports = {
     platform_settings: {
       getPlatformSettings: ref('platform_settings:getPlatformSettings'),
       updatePlatformSettings: ref('platform_settings:updatePlatformSettings'),
+    },
+    usage: {
+      getUserUsage: ref('usage:getUserUsage'),
+    },
+    activity: {
+      getActivityYear: ref('activity:getActivityYear'),
     },
   },
 };

@@ -11,8 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, Clock, User, CheckCircle2 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
-import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
 import { Id } from 'convex/_generated/dataModel';
 
 interface UndocumentedSession {

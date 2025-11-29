@@ -78,7 +78,6 @@ export default function UniversitySettingsPage() {
     try {
       await (updateUniversitySettings
         ? updateUniversitySettings({
-            clerkId: clerkUser.id,
             universityId: universitySettings._id,
             settings: {
               name: settings.name,

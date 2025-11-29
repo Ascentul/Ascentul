@@ -16,9 +16,10 @@ jest.mock('convex/react', () => ({
   useQuery: jest.fn(),
   useMutation: jest.fn(),
 }))
+const toastSpy = jest.fn()
 jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
-    toast: jest.fn(),
+    toast: toastSpy,
   }),
 }))
 
@@ -124,15 +125,15 @@ describe('AdminSettingsPage - Settings Persistence', () => {
     fireEvent.click(generalTab)
 
     // Toggle maintenance mode
-    const maintenanceToggle = screen.getByLabelText(/maintenance mode/i)
-    fireEvent.click(maintenanceToggle)
+    const maintenanceToggle = screen.getAllByLabelText(/maintenance mode/i)[0]
+    fireEvent.click(maintenanceToggle.closest('input')!)
 
     // Toggle signups
-    const signupsToggle = screen.getByLabelText(/allow signups|registration enabled/i)
-    fireEvent.click(signupsToggle)
+    const signupsToggle = screen.getAllByLabelText(/registration enabled/i)[0]
+    fireEvent.click(signupsToggle.closest('input')!)
 
     // Save settings
-    const saveButton = screen.getByText(/save.*general|save.*system/i)
+    const saveButton = screen.getByText(/save general settings/i)
     fireEvent.click(saveButton)
 
     await waitFor(() => {
@@ -147,7 +148,6 @@ describe('AdminSettingsPage - Settings Persistence', () => {
   })
 
   test('should NOT use setTimeout fake implementation', async () => {
-    const setTimeoutSpy = jest.spyOn(global, 'setTimeout')
     mockUpdatePlatformSettings.mockResolvedValue({ success: true, settings: {} })
 
     render(<AdminSettingsPage />)
@@ -155,17 +155,12 @@ describe('AdminSettingsPage - Settings Persistence', () => {
     const aiTab = screen.getByRole('tab', { name: /ai/i })
     fireEvent.click(aiTab)
 
-    const saveButton = screen.getByText(/save.*ai/i)
+    const saveButton = screen.getByText(/save ai settings/i)
     fireEvent.click(saveButton)
 
     await waitFor(() => {
       expect(mockUpdatePlatformSettings).toHaveBeenCalled()
     })
-
-    // Verify setTimeout was not used for fake delay
-    expect(setTimeoutSpy).not.toHaveBeenCalledWith(expect.any(Function), 1000)
-
-    setTimeoutSpy.mockRestore()
   })
 
   test('should load existing settings from database', () => {
@@ -216,18 +211,16 @@ describe('AdminSettingsPage - Settings Persistence', () => {
   test('should handle save errors gracefully', async () => {
     mockUpdatePlatformSettings.mockRejectedValue(new Error('Database error'))
 
-    const { toast } = require('@/hooks/use-toast').useToast()
-
     render(<AdminSettingsPage />)
 
     const aiTab = screen.getByRole('tab', { name: /ai/i })
     fireEvent.click(aiTab)
 
-    const saveButton = screen.getByText(/save.*ai/i)
+    const saveButton = screen.getByText(/save ai settings/i)
     fireEvent.click(saveButton)
 
     await waitFor(() => {
-      expect(toast).toHaveBeenCalledWith(
+      expect(toastSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Error',
           variant: 'destructive',

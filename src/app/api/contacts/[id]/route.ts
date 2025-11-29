@@ -34,7 +34,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Invalid contact id' }, { status: 400 })
   }
 
-  const body = await request.json().catch(() => ({} as any))
+  let body: any
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
 
   try {
     // Mutation now returns the updated contact directly - no need to refetch all contacts

@@ -153,10 +153,10 @@ export function ApplicationKanbanEnhanced({
     setSelectedApplication(null);
   };
 
-  const handleSuccess = (applicationId: string, newStage: string) => {
+  const handleSuccess = (applicationId: Id<'applications'>, newStage: ApplicationStage) => {
     handleModalClose();
     if (onRefresh) {
-      onRefresh(applicationId, newStage);
+      onRefresh(applicationId as string, newStage as string);
     }
   };
 
