@@ -153,6 +153,8 @@ export const migrateAttachmentUrlsToStorage = internalMutation({
 
 **Note**: If there are existing sessions with attachments, they need manual migration as URLs cannot be automatically converted to storage IDs without re-uploading the files.
 
+> **Breaking change / operator action required**: For any production data with URL-based attachments, you **must** download the existing files, re-upload them to Convex storage, and update the records with `storage_id` before deploying this change in production. The provided migration only detects records that need remediation; it does not move files automatically.
+
 ---
 
 ## 🛡️ Access Control Pattern
@@ -162,7 +164,7 @@ export const migrateAttachmentUrlsToStorage = internalMutation({
 ```typescript
 // advisor_sessions already has university_id for tenant isolation
 // Access control pattern:
-export const getSessionAttachment = query({
+export const getSessionAttachmentUrl = query({
   args: {
     sessionId: v.id("advisor_sessions"),
     attachmentId: v.string(),
@@ -255,12 +257,12 @@ export const getSessionAttachment = query({
 | Before (URL) | After (storage_id) |
 |-------------|-------------------|
 | ❌ No access control | ✅ Permission-based access |
-| ❌ Permanent URLs | ✅ Time-limited URLs* |
+| ❌ Permanent URLs | ✅ Revocable URLs (time-limited when using expiring URLs or R2)* |
 | ❌ No revocation | ✅ Can revoke access |
 | ❌ No audit trail | ✅ Logged access |
 | ❌ Cross-tenant risk | ✅ Tenant isolation enforced |
 
-*Download URL behavior depends on the storage backend. For Convex built-in storage, `getUrl()` returns a bearer URL that remains valid until the file is deleted. For Convex R2 (Cloudflare R2) storage, the presigned download URL expires after 15 minutes (900 seconds) by default. Upload URLs expire after ~1 hour.
+*Download URL behavior depends on the storage backend and method. For Convex built-in storage, `getUrl()` returns a bearer URL that remains valid until the file is deleted; use `generateDownloadUrl` (or an HTTP action) for expiring links. For Convex R2 (Cloudflare R2), the presigned download URL expires after 15 minutes (900 seconds) by default. Upload URLs expire after ~1 hour.
 
 ---
 

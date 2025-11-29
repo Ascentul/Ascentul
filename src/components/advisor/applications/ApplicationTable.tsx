@@ -266,10 +266,11 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
                             rel="noopener noreferrer"
                             aria-label={`Open application for ${app.company_name} in new tab`}
                           >
-                            <Button variant="ghost" size="sm" aria-hidden="true">
+                            <Button variant="ghost" size="sm">
                               <ExternalLink className="h-4 w-4" />
                             </Button>
                           </a>
+                        )}
                         )}
                       </div>
                     </TableCell>

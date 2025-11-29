@@ -41,15 +41,24 @@ interface CareerPathResponse {
 
 export async function GET(_request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const token = await getToken({ template: 'convex' })
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+    }
 
     const { searchParams } = new URL(_request.url)
     const limit = Math.min(Math.max(parseInt(String(searchParams.get('limit') || '10')) || 10, 1), 50)
     const cursor = searchParams.get('cursor') || undefined
     const sort = (searchParams.get('sort') || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc'
 
-    const page = await convexServer.query(api.career_paths.getUserCareerPathsPaginated, { clerkId: userId, cursor, limit }) as { items?: CareerPathDocument[]; continueCursor?: string } | null
+    const page = await convexServer.query(
+      api.career_paths.getUserCareerPathsPaginated,
+      { clerkId: userId, cursor, limit },
+      token
+    ) as { items?: CareerPathDocument[]; continueCursor?: string } | null
     const items = (page?.items || []) as CareerPathDocument[]
 
     // Map only those entries that contain a structured path we can render

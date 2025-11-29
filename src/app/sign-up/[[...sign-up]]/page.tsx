@@ -228,19 +228,43 @@ export default function Page() {
     const university = searchParams.get('university')
 
     const isValidEmail = inviteEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim()) : false
-    // Sanitize university name: remove HTML tags and special characters
-    const sanitizedUniversity = university
-      ?.trim()
-      .replace(/[<>\"'&]/g, '') // Remove potentially dangerous characters
-      .slice(0, 100) || null
 
-    if (inviteEmail) {
-      setFormData(prev => ({ ...prev, email: isValidEmail ? inviteEmail : prev.email }))
+    if (inviteEmail && isValidEmail) {
+      setFormData(prev => ({ ...prev, email: inviteEmail }))
     }
 
-    // Require invite token before pre-filling university to reduce spoofing risk.
-    // TODO: Validate inviteToken server-side and derive university/email from verified payload.
-    if (inviteToken && (university || inviteEmail)) {
+    // Prefer server-validated invite data when inviteToken is present
+    if (inviteToken) {
+      (async () => {
+        try {
+          const res = await fetch(`/api/university/verify-invite?token=${encodeURIComponent(inviteToken)}`);
+          if (!res.ok) {
+            throw new Error('Failed to verify invite');
+          }
+          const data = await res.json();
+          if (data.valid) {
+            setUniversityInvite({
+              university: data.universityName || null,
+              email: data.email || null,
+            });
+            if (data.email) {
+              setFormData(prev => ({ ...prev, email: data.email }));
+            }
+          } else {
+            // Invalid invite: do not prefill
+            setUniversityInvite({ university: null, email: null });
+          }
+        } catch (err) {
+          console.error('Invite verification failed:', err);
+          setUniversityInvite({ university: null, email: null });
+        }
+      })();
+    } else if (university || inviteEmail) {
+      // Legacy path: fall back to sanitized client-side values when no token is provided
+      const sanitizedUniversity = university
+        ?.trim()
+        .replace(/[<>\"'&]/g, '') // Remove potentially dangerous characters
+        .slice(0, 100) || null
       setUniversityInvite({
         university: sanitizedUniversity,
         email: isValidEmail ? inviteEmail : null,
