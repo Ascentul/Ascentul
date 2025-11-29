@@ -46,8 +46,8 @@ const sessionTypeLabels: Record<string, string> = {
 
 function DayRow({ day }: { day: ComingUpDay }) {
   const sessionCount = day.sessions.length;
-  const isToday = new Date(day.date).toDateString() === new Date().toDateString();
 
+  if (sessionCount === 0) {
   if (sessionCount === 0) {
     return (
       <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50">

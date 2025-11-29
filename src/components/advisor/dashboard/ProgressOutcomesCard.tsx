@@ -174,7 +174,7 @@ export function ProgressOutcomesCard({ data, isLoading }: ProgressOutcomesCardPr
           />
           <MetricTile
             icon={<BarChart3 className="h-4 w-4" />}
-            value={data.avgAppsPerStudent.value.toFixed(1)}
+            value={(data.avgAppsPerStudent.value ?? 0).toFixed(1)}
             label="Avg Apps/Student"
             subtitle={data.avgAppsPerStudent.subtitle}
           />

@@ -109,14 +109,22 @@ export default function AdvisorTodayPage() {
   };
 
   // Session quick actions
+import { useRouter } from 'next/navigation';
+
+export default function AdvisorTodayPage() {
+  const { user } = useUser();
+  const clerkId = user?.id;
+  const router = useRouter();
+
+  // ...
+
+  // Session quick actions
   const handleAddNote = (sessionId: Id<"advisor_sessions">) => {
-    // Navigate to session detail page with edit mode
-    window.location.href = `/advisor/advising/sessions/${sessionId}?edit=notes`;
+    router.push(`/advisor/advising/sessions/${sessionId}?edit=notes`);
   };
 
   const handleAddFollowUp = (studentId: Id<"users">) => {
-    // Navigate to student page with follow-up modal open
-    window.location.href = `/advisor/students/${studentId}?action=add-followup`;
+    router.push(`/advisor/students/${studentId}?action=add-followup`);
   };
 
   // Default empty data for loading states

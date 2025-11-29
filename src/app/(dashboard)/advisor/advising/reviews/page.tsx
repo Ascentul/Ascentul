@@ -31,14 +31,10 @@ export default function AdvisorReviewsPage() {
     <ErrorBoundary>
       <AdvisorGate requiredFlag='advisor.advising'>
         <div className='container mx-auto p-6 space-y-6'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <h1 className='text-3xl font-bold tracking-tight'>Reviews</h1>
-              <p className='text-muted-foreground mt-1'>
-                Review student resumes and cover letters
-              </p>
-            </div>
-          </div>
+          <PageHeader
+            title="Reviews"
+            description="Review student resumes and cover letters"
+          />
 
           {/* Stats */}
           <div className='grid gap-4 md:grid-cols-4'>

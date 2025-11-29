@@ -581,6 +581,9 @@ export const getCapacityAndSchedule = query({
 
     const now = Date.now();
     const weeklySlots = args.weeklySlots ?? CONFIG.WEEKLY_SESSION_SLOTS;
+    if (weeklySlots <= 0) {
+      throw new Error("weeklySlots must be greater than 0");
+    }
 
     // Get current week boundaries (Monday to Sunday)
     const today = new Date(now);

@@ -171,6 +171,7 @@ export function BulkActionBar({
         if (!nextStep.trim()) {
           // Button should already be disabled via line 433
           // This is a defensive check
+          setIsProcessing(false);
           return;
         }
         let dueDateTimestamp: number | undefined = undefined;

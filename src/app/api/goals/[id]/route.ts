@@ -7,11 +7,11 @@ import { convexServer } from '@/lib/convex-server';
 // Convex IDs use Crockford base32hex (digits + a-hjkmnpqrstvwxyz)
 const isValidId = (id: string) => /^[0-9a-hjkmnpqrstvwxyz]+$/i.test(id.trim());
 
-export async function PUT(request: NextRequest, context: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const goalIdParam = context.params.id
+    const { id: goalIdParam } = await context.params
     if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidId(goalIdParam)) {
       return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
     }
@@ -44,11 +44,11 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
   }
 }
 
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const goalIdParam = context.params.id
+    const { id: goalIdParam } = await context.params
     if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidId(goalIdParam)) {
       return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
     }

@@ -82,7 +82,7 @@ interface CalendarViewProps {
 export function CalendarView({ sessions, followUps, isLoading, currentDate: controlledDate, onDateChange }: CalendarViewProps) {
   const [internalDate, setInternalDate] = useState(controlledDate ?? new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
-  const [now, setNow] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     setNow(Date.now());

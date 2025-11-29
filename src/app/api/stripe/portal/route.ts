@@ -5,7 +5,8 @@ import { api } from 'convex/_generated/api'
 import { convexServer } from '@/lib/convex-server';
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY
-const stripeApiVersion = (process.env.STRIPE_API_VERSION || '2025-02-24.acacia') as Stripe.StripeConfig['apiVersion']
+// Default to current stable Stripe API version; override via STRIPE_API_VERSION when needed.
+const stripeApiVersion = (process.env.STRIPE_API_VERSION || '2025-11-17.clover') as Stripe.StripeConfig['apiVersion']
 
 export async function POST(request: NextRequest) {
   try {

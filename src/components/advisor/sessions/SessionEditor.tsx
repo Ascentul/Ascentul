@@ -44,11 +44,10 @@ interface Session {
 
 interface SessionEditorProps {
   session: Session;
-  clerkId: string;
   onSaveSuccess?: () => void;
 }
 
-export function SessionEditor({ session, clerkId, onSaveSuccess }: SessionEditorProps) {
+export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
   const { toast } = useToast();
   const updateSession = useMutation(api.advisor_sessions_mutations.updateSession);
 

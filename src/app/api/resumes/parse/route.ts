@@ -105,14 +105,17 @@ function fallbackParser(resumeText: string) {
       const contributionLines: string[] = []
 
       for (const line of descriptionLines) {
-        if (/^[•\-\*]\s*/.test(line)) {
-          contributionLines.push(line.replace(/^[•\-\*]\s*/, '').trim())
+        if (/^[•*\-]\s*/.test(line)) {
+          contributionLines.push(line.replace(/^[•*\-]\s*/, '').trim())
         } else if (contributionLines.length === 0) {
           // Lines before bullets are considered summary/overview
           summaryLines.push(line.trim())
         } else {
-          // Once bulleting starts, treat following lines as contributions
-          contributionLines.push(line.trim())
+          // Non-bullet lines after bullets start could be continuation text;
+          // keep short lines as part of contributions to preserve context.
+          if (line.trim().length < 100) {
+            contributionLines.push(line.trim())
+          }
         }
       }
 

@@ -153,6 +153,7 @@ export const verifyMigration = internalQuery({
     console.log("🔍 Verifying application status→stage migration...");
     // Collect all applications with pagination
     let allApps: any[] = [];
+    let allApps: any[] = [];
     let cursor: string | null = null;
     let isDone = false;
     while (!isDone) {
@@ -161,7 +162,6 @@ export const verifyMigration = internalQuery({
       cursor = result.continueCursor;
       isDone = result.isDone;
     }
-    const withoutStage = allApps.filter(app => !app.stage);
     const withStage = allApps.filter(app => app.stage);
 
     // Check for mismatches
