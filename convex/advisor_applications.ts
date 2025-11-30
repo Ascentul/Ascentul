@@ -116,7 +116,7 @@ export const getApplicationsForCaseload = query({
       uniqueStudentIds.map((id) => ctx.db.get(id))
     );
     const studentMap = new Map(
-      students.map((student) => [student?._id, student])
+      students.filter((student) => student !== null).map((student) => [student._id, student])
     );
 
     // Enrich with student data from map
@@ -179,7 +179,7 @@ export const getApplicationsByStage = query({
       uniqueStudentIds.map((id) => ctx.db.get(id))
     );
     const studentMap = new Map(
-      students.map((student) => [student?._id, student])
+      students.filter((student) => student !== null).map((student) => [student._id, student])
     );
 
     // Enrich with student data from map

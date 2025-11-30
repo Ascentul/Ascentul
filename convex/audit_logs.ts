@@ -430,22 +430,15 @@ export const getAuditLogsPaginated = query({
       return { page: [], isDone: true, continueCursor: "" };
     }
 
-    const logsQuery = ctx.db.query("audit_logs").order("desc");
-    const result = await logsQuery.paginate(args.paginationOpts);
-
-    // Filter by action if specified
-    // WARNING: This in-memory filtering after pagination can cause inconsistencies:
-    // - Pages may have fewer items than numItems requested
-    // - Some matching records may be missed across page boundaries
-    // - Total counts will be inaccurate
-    // TODO: Add a by_action index to schema for production use if action filtering is common
-    const filteredPage = args.action
-      ? result.page.filter(log => log.action === args.action)
-      : result.page;
+    // Use by_action index when filtering by action type for correct pagination
+    const logsQuery = args.action
+      ? ctx.db.query("audit_logs").withIndex("by_action", (q) => q.eq("action", args.action!))
+      : ctx.db.query("audit_logs");
+    const result = await logsQuery.order("desc").paginate(args.paginationOpts);
 
     // Apply PII redaction before returning to client
     // FERPA/GDPR: Audit logs maintain action records but PII is redacted on read
-    const redactedPage = filteredPage.map(redactAuditLogForRead);
+    const redactedPage = result.page.map(redactAuditLogForRead);
 
     return {
       ...result,

@@ -105,10 +105,10 @@ async function rollbackInviteAcceptance(
     inviteId: Id<"studentInvites">;
     universityId: Id<"universities">;
     originalUserState: {
-      role: string;
-      university_id?: Id<"universities">;
-      subscription_plan?: string;
-      subscription_status?: string;
+      role: Doc<"users">["role"];
+      university_id?: Doc<"users">["university_id"];
+      subscription_plan?: Doc<"users">["subscription_plan"];
+      subscription_status?: Doc<"users">["subscription_status"];
     };
     context: {
       userEmail: string;
@@ -156,10 +156,10 @@ async function rollbackInviteAcceptance(
   // Rollback Step 3: Restore user's original state
   try {
     await ctx.db.patch(params.userId, {
-      role: params.originalUserState.role as any,
+      role: params.originalUserState.role,
       university_id: params.originalUserState.university_id,
-      subscription_plan: params.originalUserState.subscription_plan as any,
-      subscription_status: params.originalUserState.subscription_status as any,
+      subscription_plan: params.originalUserState.subscription_plan,
+      subscription_status: params.originalUserState.subscription_status,
       updated_at: now,
     });
     console.log("[ROLLBACK] ✓ User state restored");
@@ -616,7 +616,7 @@ export const acceptInvite = mutation({
 
     // 5. Verify email matches (optional security check)
     // Note: invite.email is normalized to lowercase during creation, so we lowercase user.email for comparison
-    if (user.email.toLowerCase() !== invite.email) {
+    if (!user.email || user.email.toLowerCase() !== invite.email) {
       throw new Error("Email mismatch. This invite was sent to a different email address.");
     }
 

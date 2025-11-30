@@ -488,6 +488,7 @@ export const executeAccountDeletion = internalMutation({
     ];
 
     let deletedCount = 0;
+    const failedTables: string[] = [];
 
     // Delete records from each table
     for (const tableName of tablesToDelete) {
@@ -502,6 +503,7 @@ export const executeAccountDeletion = internalMutation({
         }
       } catch (error) {
         console.error(`Error deleting from ${tableName}:`, error);
+        failedTables.push(tableName);
         // Continue with other tables
       }
     }
@@ -579,6 +581,7 @@ export const executeAccountDeletion = internalMutation({
         deletedRecordsCount: deletedCount,
         completedAt: new Date().toISOString(),
         gdprArticle: "Article 17 - Right to Erasure",
+        ...(failedTables.length > 0 && { failedTables }),
       },
       created_at: Date.now(),
     });
@@ -586,6 +589,7 @@ export const executeAccountDeletion = internalMutation({
     return {
       success: true,
       deletedRecordsCount: deletedCount,
+      ...(failedTables.length > 0 && { failedTables }),
     };
   },
 });

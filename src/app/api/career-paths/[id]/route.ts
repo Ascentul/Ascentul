@@ -42,6 +42,8 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     return NextResponse.json({ ok: true })
   } catch (error: unknown) {
     console.error('DELETE /api/career-paths/[id] error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

@@ -118,11 +118,12 @@ These files already use `fetchQuery`/`fetchMutation` from `convex/nextjs`:
 - `src/app/api/recommendations/daily/route.ts` ✅
 - `src/app/api/users/me/route.ts` ✅
 
-### Still Using `convexServer` - Pending Migration (27 files)
-These files still import from `@/lib/convex-server`:
+### Still Using `convexServer` - Pending Migration (28 files)
+These files still import from `@/lib/convex-server` or use `ConvexHttpClient` directly:
 
 - `src/app/api/achievements/award/route.ts`
 - `src/app/api/achievements/route.ts`
+- `src/app/api/admin/users/sync-role-to-clerk/route.ts`
 - `src/app/api/admin/users/sync-role-to-convex/route.ts`
 - `src/app/api/admin/users/update-role/route.ts`
 - `src/app/api/ai-coach/generate-response/route.ts`

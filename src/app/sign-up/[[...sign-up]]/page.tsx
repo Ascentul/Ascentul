@@ -226,11 +226,10 @@ export default function Page() {
     email: null,
   })
 
-  // Pre-fill email and university from URL parameters if provided
+  // Pre-fill email from URL parameters and validate invite token if provided
   useEffect(() => {
     const inviteEmail = searchParams.get('email')
     const inviteToken = searchParams.get('inviteToken')
-    const university = searchParams.get('university')
 
     const isValidEmail = inviteEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim()) : false
 
@@ -242,6 +241,7 @@ export default function Page() {
     if (inviteToken) {
       setVerifyingInvite(true)
       const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       (async () => {
         try {
           const res = await fetch(`/api/university/verify-invite?token=${encodeURIComponent(inviteToken)}`, {
@@ -271,12 +271,16 @@ export default function Page() {
           setUniversityInvite({ university: null, email: null });
           setInviteWarning('Unable to verify invitation. You can still create an account below, or request a new invite link.');
         } finally {
+          clearTimeout(timeoutId);
           if (!controller.signal.aborted) {
             setVerifyingInvite(false);
           }
         }
       })();
-      return () => controller.abort();
+      return () => {
+        clearTimeout(timeoutId);
+        controller.abort();
+      };
     }
   }, [searchParams])
 

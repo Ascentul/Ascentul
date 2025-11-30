@@ -6,6 +6,9 @@ import { convexServer } from '@/lib/convex-server';
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 
+// Default to current stable Stripe API version; override via STRIPE_API_VERSION when needed.
+const stripeApiVersion = (process.env.STRIPE_API_VERSION || '2025-11-17.clover') as Stripe.StripeConfig['apiVersion'];
+
 // Plan configuration for dynamic price_data
 const PLAN_CONFIG: Record<
   string,
@@ -85,9 +88,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const stripe = new Stripe(stripeSecret, {
-      apiVersion: "2025-02-24.acacia",
-    });
+    const stripe = new Stripe(stripeSecret, { apiVersion: stripeApiVersion });
     // Fetch current user record to get/create customer
     const user = await convexServer.query(
       api.users.getUserByClerkId,
@@ -147,7 +148,11 @@ export async function POST(request: NextRequest) {
         const customer = await stripe.customers.create({
           email: user.email || undefined,
           name: user.name || undefined,
-          metadata: { clerk_id: userId, user_id: user._id },
+          metadata: {
+            clerk_id: userId,
+            clerkId: userId, // Keep for backward compatibility with portal route
+            user_id: user._id,
+          },
         });
         customerId = customer.id;
 

@@ -54,14 +54,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error("GDPR account deletion error:", error);
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        details:
-          process.env.NODE_ENV === "development" ? String(error) : undefined,
-      },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Internal server error";
+    const status = message === "Unauthorized" || message === "Failed to obtain auth token" ? 401 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -96,14 +91,9 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error("GDPR cancel deletion error:", error);
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        details:
-          process.env.NODE_ENV === "development" ? String(error) : undefined,
-      },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Internal server error";
+    const status = message === "Unauthorized" || message === "Failed to obtain auth token" ? 401 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -136,6 +126,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(status || { hasPendingDeletion: false }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    console.error("GDPR deletion status error:", error);
+    const message = error instanceof Error ? error.message : "Failed to check deletion status";
+    const status = message === "Unauthorized" || message === "Failed to obtain auth token" ? 401 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

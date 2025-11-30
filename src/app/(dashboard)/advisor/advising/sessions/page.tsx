@@ -60,6 +60,7 @@ import {
 } from 'lucide-react';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import Link from 'next/link';
+import { isValidHttpUrl } from '@/lib/utils';
 
 // Session type labels
 const SESSION_TYPE_LABELS: Record<string, string> = {
@@ -529,7 +530,7 @@ export default function AdvisorSessionsPage() {
                                     View Details
                                   </Link>
                                 </DropdownMenuItem>
-                                {session.meeting_url && (
+                                {session.meeting_url && isValidHttpUrl(session.meeting_url) && (
                                   <DropdownMenuItem asChild>
                                     <a
                                       href={session.meeting_url}

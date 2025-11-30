@@ -307,19 +307,24 @@ Post-Incident:
 
 ## Audit Trail
 
+**Maintenance**: Security Lead is responsible for updating this table after each compliance event (security audits, DPA signings, major deployments).
+
 | Date | Action | Performed By |
 |------|--------|--------------|
-| 2024-XX-XX | Initial security audit | [Name] |
-| 2024-XX-XX | PII logging fixes deployed | [Name] |
-| 2024-XX-XX | AI prompt data minimization | [Name] |
-| TBD | OpenAI DPA signed | TBD |
-| TBD | Email provider DPAs verified | TBD |
+| _YYYY-MM-DD_ | _Initial security audit_ | _Security Lead_ |
+| _YYYY-MM-DD_ | _PII logging fixes deployed_ | _Engineering_ |
+| _YYYY-MM-DD_ | _AI prompt data minimization_ | _Engineering_ |
+| _TBD_ | _OpenAI DPA signed_ | _Legal/Compliance_ |
+| _TBD_ | _Email provider DPAs verified_ | _DevOps_ |
+
+> **Note**: Rows in italics are template entries. Replace with actual dates and names as actions are completed. Remove this note once the audit trail contains real entries.
 
 ## References
 
 - OpenAI DPA: https://openai.com/policies/data-processing-addendum
 - OpenAI API Data Usage: https://openai.com/policies/api-data-usage-policies
-- Clerk Security: https://clerk.com/security
-- Convex Security: https://docs.convex.dev/production/security
+- Clerk Security: https://clerk.com/features/security
+- Clerk DPA: https://clerk.com/legal/dpa
+- Convex Security: https://www.convex.dev/security
 - FERPA Overview: https://studentprivacy.ed.gov/faq/what-ferpa
 - GDPR Overview: https://gdpr.eu/

@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     const targetUser = await client.users.getUser(userId)
     const oldRole = (targetUser.publicMetadata as ClerkPublicMetadata)?.role
 
-    // Determine if role requires university affiliation (validation moved after Convex fetch)
+    // Determine if role requires university affiliation
     const requiresUniversity = ['student', 'university_admin', 'advisor'].includes(role)
 
     // Critical validation: prevent changing the super_admin role

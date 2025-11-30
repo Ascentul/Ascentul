@@ -156,12 +156,37 @@ export const updateContactFollowup = mutation({
 
     const now = Date.now();
 
+    // RACE CONDITION MITIGATION: Idempotent handling for status changes
+    // (Aligned with followups.ts for consistency)
+    const statusChangingToDone = args.updates.status === 'done' && followup.status !== 'done';
+    const statusChangingToOpen = args.updates.status === 'open' && followup.status === 'done';
+
+    // If status is already in desired state, return success (idempotent)
+    if (args.updates.status === 'done' && followup.status === 'done') {
+      return {
+        success: true,
+        followupId: args.followupId,
+        alreadyCompleted: true,
+        completed_at: followup.completed_at,
+        completed_by: followup.completed_by,
+      };
+    }
+
+    if (args.updates.status === 'open' && followup.status !== 'done') {
+      return {
+        success: true,
+        followupId: args.followupId,
+        alreadyOpen: true,
+      };
+    }
+
     // Build patch data with explicit typing for completion fields
     // Note: null is allowed to clear these fields via Convex patch()
     type PatchData = Partial<Doc<'follow_ups'>> & {
       updated_at: number;
       completed_at?: number | null;
       completed_by?: Id<'users'> | null;
+      version?: number;
     };
 
     const patchData: PatchData = {
@@ -169,20 +194,34 @@ export const updateContactFollowup = mutation({
       updated_at: now,
     };
 
-    // If status changed to done, set completion fields
-    if (args.updates.status === 'done' && followup.status !== 'done') {
-      patchData.completed_at = now;
-      patchData.completed_by = user._id;
+    // FERPA COMPLIANCE: Version tracking for status changes
+    // Status changes affect audit trail - version increments provide audit history
+    if (statusChangingToDone || statusChangingToOpen) {
+      const currentVersion = (followup as { version?: number }).version ?? 0;
+      patchData.version = currentVersion + 1;
+
+      // Set/clear completion fields based on status change
+      if (statusChangingToDone) {
+        patchData.completed_at = now;
+        patchData.completed_by = user._id;
+      } else if (statusChangingToOpen) {
+        // Clear completion fields when reopening
+        // Use null (not undefined) to actually clear the fields in Convex patch()
+        patchData.completed_at = null;
+        patchData.completed_by = null;
+      }
     }
-    // Clear completion fields when reopening (consistent with followups.ts)
-    // Use null (not undefined) to actually clear the fields in Convex patch()
-    if (args.updates.status === 'open' && followup.status === 'done') {
-      patchData.completed_at = null;
-      patchData.completed_by = null;
-    }
+
     await ctx.db.patch(args.followupId, patchData);
 
-    return args.followupId;
+    return {
+      success: true,
+      followupId: args.followupId,
+      alreadyCompleted: false,
+      alreadyOpen: false,
+      completed_at: statusChangingToDone ? now : undefined,
+      completed_by: statusChangingToDone ? user._id : undefined,
+    };
   },
 });
 

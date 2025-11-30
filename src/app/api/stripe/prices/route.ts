@@ -11,10 +11,12 @@ interface PricesResult {
   annual?: PriceInfo
 }
 
+// Default to current stable Stripe API version; override via STRIPE_API_VERSION when needed.
+const stripeApiVersion = (process.env.STRIPE_API_VERSION || '2025-11-17.clover') as Stripe.StripeConfig['apiVersion']
+
 export async function GET() {
   try {
     const secret = process.env.STRIPE_SECRET_KEY
-    const stripeApiVersion = '2025-11-17.clover' as Stripe.StripeConfig['apiVersion']
     if (!secret) {
       // No Stripe configured; return empty so UI hides amounts gracefully
       return NextResponse.json({}, { status: 200 })

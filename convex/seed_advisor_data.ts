@@ -105,6 +105,12 @@ export const setupAdvisorTestData = internalMutation({
           created_at: now,
           updated_at: now,
         });
+        // Increment university license usage (re-fetch to avoid stale value in loop)
+        const currentUniversity = await ctx.db.get(university._id);
+        await ctx.db.patch(university._id, {
+          license_used: (currentUniversity?.license_used || 0) + 1,
+          updated_at: now,
+        });
       }
 
       await ctx.db.patch(student._id, {

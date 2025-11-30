@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
           publicMetadata: {
             ...studentClerkUser.publicMetadata,
             university_id: adminUser.university_id,
-            role: role || 'user',
+            role: assignedRole,
           },
         });
 

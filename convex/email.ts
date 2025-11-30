@@ -207,8 +207,9 @@ The Ascentul Team`
         message: "Password reset email sent successfully",
       }
     } catch (error) {
-      console.error("Failed to send password reset email:", sanitizeError(error))
-      throw new Error("Failed to send password reset email: " + (error as Error).message)
+      const sanitized = sanitizeError(error)
+      console.error("Failed to send password reset email:", sanitized)
+      throw new Error("Failed to send password reset email: " + sanitized.message)
     }
   },
 })

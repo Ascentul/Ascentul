@@ -267,10 +267,13 @@ export async function getOwnedStudentIdsPaginated(
     // Filter to students only
     const students = result.page.filter((u) => u.role === "student");
 
+    // Note: This pagination approach has a known limitation - if the ratio of
+    // students to non-students is low, pages may return fewer than `limit` items.
+    // A composite index (by_university_and_role) would solve this but adds schema complexity.
     return {
       studentIds: students.slice(0, limit).map((s) => s._id),
       cursor: result.continueCursor,
-      hasMore: !result.isDone || students.length > limit,
+      hasMore: !result.isDone,
     };
   }
 

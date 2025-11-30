@@ -100,6 +100,8 @@ Format as a structured plan with clear steps and timelines.`
     }, { status: careerPath ? 201 : 200 })
   } catch (error) {
     console.error('Error generating career path:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

@@ -538,7 +538,7 @@ export default function AccountPage() {
                               clerkId: effectiveClerkId,
                               updates: {
                                 name: profileForm.name,
-                                email: profileForm.email,
+                                // email is managed by Clerk and synced via webhook - not editable here
                                 bio: profileForm.bio,
                                 job_title: profileForm.jobTitle,
                                 company: profileForm.company,

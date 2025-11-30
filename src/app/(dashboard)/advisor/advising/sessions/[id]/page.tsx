@@ -50,8 +50,9 @@ export default function SessionDetailPage() {
   const router = useRouter();
   const { user: clerkUser } = useUser();
 
-  const sessionId = Array.isArray(params.id) ? params.id[0] : params.id;
-  const isValidSessionId = isValidConvexId(sessionId?.trim() ?? '');
+  const rawSessionId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const sessionId = rawSessionId?.trim() ?? '';
+  const isValidSessionId = isValidConvexId(sessionId);
 
   // Fetch session details
   const session = useQuery(

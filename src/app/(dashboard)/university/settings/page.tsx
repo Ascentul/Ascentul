@@ -112,7 +112,7 @@ export default function UniversitySettingsPage() {
   };
 
   const handleExportData = async () => {
-    if (!clerkUser) return;
+    if (!effectiveClerkId) return;
 
     try {
       toast({
@@ -127,7 +127,7 @@ export default function UniversitySettingsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          clerkId: clerkUser.id,
+          clerkId: effectiveClerkId,
         }),
       });
 
@@ -284,13 +284,12 @@ export default function UniversitySettingsPage() {
                 id="maxStudents"
                 type="number"
                 value={settings.maxStudents}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    maxStudents: parseInt(e.target.value, 10) || 0,
-                  }))
-                }
+                disabled
+                className="bg-muted cursor-not-allowed"
               />
+              <p className="text-xs text-muted-foreground">
+                Managed by system administrator
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="licenseSeats">License Seats</Label>
@@ -298,15 +297,11 @@ export default function UniversitySettingsPage() {
                 id="licenseSeats"
                 type="number"
                 value={settings.licenseSeats}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    licenseSeats: parseInt(e.target.value, 10) || 0,
-                  }))
-                }
+                disabled
+                className="bg-muted cursor-not-allowed"
               />
               <p className="text-xs text-muted-foreground">
-                Total number of licenses available for students
+                Total number of licenses available for students (managed by system administrator)
               </p>
             </div>
 

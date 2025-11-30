@@ -6,10 +6,10 @@ import { convexServer } from '@/lib/convex-server';
  * Verify a university invite token before signup.
  * Returns invite metadata (email, universityName, expiresAt) when valid.
  */
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const body = await request.json();
-    const token = body?.token;
+    const { searchParams } = new URL(request.url);
+    const token = searchParams.get('token');
 
     if (!token) {
       return NextResponse.json({ error: 'Missing token' }, { status: 400 });

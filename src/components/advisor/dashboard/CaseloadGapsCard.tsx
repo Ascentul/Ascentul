@@ -212,7 +212,7 @@ export function CaseloadGapsCard({ data, isLoading }: CaseloadGapsCardProps) {
           />
         </div>
 
-        {totalGaps === 0 && (
+        {totalGaps === 0 && data.totalStudents > 0 && (
           <div className="text-center py-4 text-sm text-green-600 bg-green-50 rounded-lg">
             All students have basic readiness items in place
           </div>

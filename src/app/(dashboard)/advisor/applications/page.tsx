@@ -373,7 +373,7 @@ export default function AdvisorApplicationsPage() {
                 onTimeWindowChange={filterHook.setTimeWindow}
                 onScopeChange={setScope}
                 onOpenAdvancedFilters={() => setShowFilters(true)}
-                canViewAllStudents={userRole === 'university_admin'}
+                canViewAllStudents={userRole === 'university_admin' || userRole === 'super_admin'}
                 hasActiveFilters={filterHook.hasActiveFilters}
               />
 

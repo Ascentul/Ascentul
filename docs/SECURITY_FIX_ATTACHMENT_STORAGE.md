@@ -56,12 +56,12 @@ attachments: v.optional(
 
 **Benefits**:
 - ✅ Access control enforced at URL generation time via Convex permissions (note: once a URL is issued, it can be accessed by anyone who possesses it—no per-request re-validation)
-- ✅ Convex built-in storage `getUrl()` returns a persistent bearer URL valid until the file is deleted (no automatic expiration). To revoke a leaked URL, delete the file or move to per-request validation via a custom HTTP action.
+- ✅ Convex built-in storage `getUrl()` returns a URL that should be treated as ephemeral—fetch on-demand rather than caching long-term (Convex does not document a specific TTL, so URL lifetime may change)
 - ✅ Can revoke access by deleting the file from storage (no selective URL revocation)
 - ✅ Audit trail for file access at URL generation time
 - ✅ Tenant isolation (university-based)
 
-> **Note**: For per-request access control, implement a custom HTTP action that validates permissions on each request before streaming file content. Built-in `getUrl()` URLs remain valid indefinitely until the file is deleted. For time-limited presigned URLs, use the `@convex-dev/r2` component which supports `expiresIn` (default 900 seconds / 15 minutes).
+> **Note**: For per-request access control, implement a custom HTTP action that validates permissions on each request before streaming file content. Built-in `getUrl()` URLs should be fetched on-demand; do not cache them long-term as the TTL is undocumented. For time-limited presigned URLs with explicit expiration, use the `@convex-dev/r2` component which supports `expiresIn` (default 900 seconds / 15 minutes).
 
 ---
 
