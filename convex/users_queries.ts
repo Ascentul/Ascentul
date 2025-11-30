@@ -78,8 +78,16 @@ export const getAllUsers = query({
       .order("desc")
       .paginate({ numItems: limit, cursor: args.cursor ?? null });
 
+    // Resolve profile image URLs (storage IDs → usable URLs)
+    const resolvedUsers = await Promise.all(
+      result.page.map(async (user) => ({
+        ...user,
+        profile_image: await resolveProfileImageUrl(ctx, user.profile_image),
+      }))
+    );
+
     return {
-      page: result.page,
+      page: resolvedUsers,
       isDone: result.isDone,
       continueCursor: result.continueCursor,
     };

@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
     let body;
     try {
       body = await request.json();
-    } catch {
+    } catch (e) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Invalid JSON body:', e);
+      }
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
     const { title, content, company_name, position, job_description, source } = body as {

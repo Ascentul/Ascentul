@@ -786,7 +786,7 @@ export const updateUserWithMembership = mutation({
       .unique();
 
     if (!user) {
-      throw new Error(`User not found: ${args.clerkId}`);
+      throw new Error(`User not found: ${maskId(args.clerkId)}`);
     }
 
     const now = Date.now();

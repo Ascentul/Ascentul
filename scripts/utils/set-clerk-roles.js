@@ -60,9 +60,13 @@ async function findUserByEmail(email) {
       res.on('data', chunk => body += chunk);
       res.on('end', () => {
         if (res.statusCode === 200) {
-          const data = JSON.parse(body);
-          const users = Array.isArray(data) ? data : (data.data || []);
-          resolve(users[0]);
+          try {
+            const data = JSON.parse(body);
+            const users = Array.isArray(data) ? data : (data.data || []);
+            resolve(users[0]);
+          } catch (parseError) {
+            reject(new Error('Failed to parse Clerk response: ' + parseError.message));
+          }
         } else if (res.statusCode === 401) {
           reject(new Error('Authentication failed. Check CLERK_SECRET_KEY is correct.'));
         } else {

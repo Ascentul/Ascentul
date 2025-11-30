@@ -353,7 +353,7 @@ export const deleteSession = mutation({
       entityId: args.session_id,
       studentId: session.student_id,
       previousValue: {
-        title: session.title,
+        titleExists: Boolean(session.title),
         session_type: session.session_type,
         status: session.status,
       },

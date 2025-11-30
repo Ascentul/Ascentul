@@ -63,6 +63,8 @@ export function TodaysRecommendations() {
   )
 
   // Sync local state when server data changes (compare hash to catch content updates)
+  // NOTE: Excludes completed/completedAt from hash to preserve local user interactions
+  // during server refreshes - completion state is managed locally
   const prevRecommendationsHash = useRef<string>('')
   const recommendationsHash = useMemo(
     () =>
@@ -71,8 +73,6 @@ export function TodaysRecommendations() {
           id: r.id,
           text: r.text,
           type: r.type,
-          completed: r.completed,
-          completedAt: r.completedAt,
           relatedEntityId: r.relatedEntityId,
           relatedEntityType: r.relatedEntityType,
         }))
@@ -88,10 +88,11 @@ export function TodaysRecommendations() {
         const prevMap = new Map(prev.map(r => [r.id, r]))
         return recommendationsArray.map(rec => {
           const prevRec = prevMap.get(rec.id)
-          const completed = rec.completed ?? prevRec?.completed ?? false
-          const completedAt =
-            rec.completedAt ??
-            (completed ? prevRec?.completedAt ?? null : null)
+          // Prioritize local state over server state for completion tracking
+          // This preserves user interactions during server refreshes
+          const completed = prevRec?.completed ?? rec.completed ?? false
+          const completedAt = prevRec?.completedAt ??
+            (completed ? rec.completedAt ?? null : null)
 
           return {
             ...rec,
@@ -101,7 +102,9 @@ export function TodaysRecommendations() {
         })
       })
     }
-  }, [recommendationsArray, recommendationsHash])
+    // recommendationsHash already captures changes to recommendationsArray content
+    // recommendationsArray is still needed to access the actual data in the callback
+  }, [recommendationsHash, recommendationsArray])
 
   useEffect(() => () => {
     removalTimeouts.current.forEach(timeout => clearTimeout(timeout))

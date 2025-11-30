@@ -126,7 +126,7 @@ For university-affiliated users (students, advisors, university_admin):
 - [x] PII redacted from audit log reads
 - [ ] Verify OpenAI DPA covers educational records
 - [ ] Document data retention policies
-- [ ] Establish breach notification procedures
+- [ ] Establish breach notification procedures (see Action Item #3 - REQUIRED before production)
 
 ## GDPR Compliance Checklist
 
@@ -139,6 +139,7 @@ For EU resident users:
 - [ ] Implement data deletion functionality (right to erasure)
 - [ ] Document lawful basis for processing
 - [ ] Consider EU data residency options
+- [ ] Establish breach notification procedures (see Action Item #3 - REQUIRED before production)
 
 ## Action Items
 
@@ -153,17 +154,21 @@ For EU resident users:
    - Verify SendGrid DPA status
    - Verify Mailgun DPA status
 
+3. **Breach Notification Procedures** (CRITICAL - Required for FERPA & GDPR):
+   - Document notification procedures and timelines
+     - GDPR: 72 hours to supervisory authority
+     - FERPA: Notify affected students/parents without unreasonable delay
+   - Identify responsible parties and escalation chain
+   - Create notification templates for different breach types
+   - Test notification workflow with tabletop exercise
+   - Document contact information for regulatory bodies
+
 ### Short-term (Within 30 days)
 
-3. **Data Retention Policy**:
+4. **Data Retention Policy**:
    - Define retention periods for each data type
    - Implement automated data deletion for expired records
    - Document in privacy policy
-
-4. **Breach Response Plan**:
-   - Document notification procedures
-   - Identify responsible parties
-   - Test notification workflow
 
 ### Long-term
 

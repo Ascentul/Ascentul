@@ -12,19 +12,20 @@ type Ctx = QueryCtx | MutationCtx;
 /**
  * Timing-safe string comparison to prevent timing attacks.
  * Compares two strings in constant time regardless of where they differ.
+ *
+ * NOTE: Uses pure JavaScript (charCodeAt) instead of Buffer because
+ * Convex's default runtime provides a browser-like API environment
+ * and Buffer is not available in queries/mutations.
  */
 function timingSafeEqual(a: string, b: string): boolean {
-  const aBuffer = Buffer.from(a);
-  const bBuffer = Buffer.from(b);
-  
-  // Compare against a fixed length to avoid timing leaks
-  let result = aBuffer.length ^ bBuffer.length;
-  const minLength = Math.min(aBuffer.length, bBuffer.length);
-  
+  // Pure JavaScript timing-safe comparison (no Buffer dependency)
+  let result = a.length ^ b.length;
+  const minLength = Math.min(a.length, b.length);
+
   for (let i = 0; i < minLength; i++) {
-    result |= aBuffer[i] ^ bBuffer[i];
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
-  
+
   return result === 0;
 }
 

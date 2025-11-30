@@ -280,7 +280,7 @@ export default function Page() {
         }
       })();
       return () => controller.abort();
-
+    }
   }, [searchParams])
 
   // If a session already exists, redirect to dashboard

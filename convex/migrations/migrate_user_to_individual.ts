@@ -28,6 +28,9 @@ import { requireSuperAdmin } from "../lib/roles";
 export const dryRun = query({
   args: {},
   handler: async (ctx) => {
+    // Require super_admin - this query exposes user emails, names, and IDs
+    await requireSuperAdmin(ctx);
+
     const usersWithLegacyRole = await ctx.db
       .query("users")
       .withIndex("by_role", (q) => q.eq("role", "user"))
@@ -47,7 +50,7 @@ export const dryRun = query({
         .map((u) => ({
           id: u._id,
           email: u.email,
-          message: "User has university_id but will be migrated to 'individual' - may need manual review",
+          message: "Has university_id - will be skipped (needs manual assignment to student/advisor/university_admin)",
         })),
     };
   },
@@ -78,16 +81,14 @@ export const migrate = mutation({
     for (const user of usersWithLegacyRole) {
       // Skip users with university_id - individual role must not have university_id
       // These users likely need a university-specific role (student/advisor/university_admin)
-      // Skip users with university_id - individual role must not have university_id
-      // These users likely need a university-specific role (student/advisor/university_admin)
       if (user.university_id) {
         results.warnings.push({
           id: user._id,
           email: user.email,
-          reason: "Has university_id but migrated to 'individual' - review if should be 'student'",
+          reason: "Has university_id - skipped (needs manual assignment to student/advisor/university_admin)",
         });
         results.skipped++;
-        continue; // Skip users with university_id - they need manual role assignment
+        continue;
       }
       await ctx.db.patch(user._id, {
         role: "individual",
@@ -159,6 +160,9 @@ export const migrateInternal = internalMutation({
 export const countByRole = query({
   args: {},
   handler: async (ctx) => {
+    // Require super_admin - role distribution data should not be publicly accessible
+    await requireSuperAdmin(ctx);
+
     const allUsers = await ctx.db.query("users").collect();
 
     const counts: Record<string, number> = {};
