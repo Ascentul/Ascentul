@@ -125,7 +125,7 @@ export const sendWelcomeEmail = action({
       }
     } catch (error) {
       console.error("Failed to send welcome email:", sanitizeError(error))
-      throw new Error("Failed to send welcome email: " + (error as Error).message)
+      throw new Error("Failed to send welcome email. Please try again later.")
     }
   },
 })

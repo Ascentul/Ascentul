@@ -168,9 +168,9 @@ export async function POST(request: NextRequest) {
     const authResult = await requireAdminAuth(request)
     if ('error' in authResult) return authResult.error
 
-    const body = await request.json().catch(() => ({})) as { email?: string, clerkId?: string, convexId?: string, id?: string }
+    const body = await request.json().catch(() => ({})) as { email?: string, clerkId?: string, convexId?: string }
     return await processUpgrade({
-      convexId: body.convexId || body.id,
+      convexId: body.convexId,
       email: body.email,
       clerkId: body.clerkId,
       fallbackUserId: authResult.userId,

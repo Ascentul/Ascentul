@@ -305,7 +305,13 @@ export const createInvite = action({
     email: v.string(),
     createdByClerkId: v.string(),
     expiresInDays: v.optional(v.number()),
-    metadata: v.optional(v.any()),
+    metadata: v.optional(
+      v.object({
+        student_id: v.optional(v.string()),
+        major: v.optional(v.string()),
+        year: v.optional(v.string()),
+      })
+    ),
   },
   handler: async (ctx, args): Promise<{ inviteId: Id<"studentInvites">; token: string; expiresAt: number }> => {
     const identity = await ctx.auth.getUserIdentity();

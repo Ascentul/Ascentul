@@ -415,6 +415,7 @@ export const assignAdvisorToStudent = mutation({
     // Get the student profile to find the user_id
     const studentProfile = await ctx.db.get(args.studentProfileId);
     if (!studentProfile) throw new Error("Student profile not found");
+    if (!studentProfile.user_id) throw new Error("Student profile missing user_id");
     if (studentProfile.university_id !== acting.university_id) {
       throw new Error("Unauthorized: Student not in your university");
     }

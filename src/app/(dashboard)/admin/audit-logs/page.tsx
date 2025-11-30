@@ -166,7 +166,11 @@ export default function AuditLogsPage() {
                           {log.action.replace(/_/g, ' ')}
                         </Badge>
                         <span className="text-sm text-muted-foreground">
-                          {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
+                          {(() => {
+                            if (!log.timestamp) return 'N/A'
+                            const date = new Date(log.timestamp)
+                            return isNaN(date.getTime()) ? 'N/A' : date.toLocaleString()
+                          })()}
                         </span>
                       </div>
 

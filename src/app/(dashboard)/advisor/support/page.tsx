@@ -640,7 +640,10 @@ export default function AdvisorSupportPage() {
         </Dialog>
 
         {/* Ticket Detail Dialog */}
-        <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <Dialog open={detailDialogOpen} onOpenChange={(open) => {
+          setDetailDialogOpen(open)
+          if (!open) setResponseText('')
+        }}>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             {selectedTicket && (
               <>

@@ -1,8 +1,10 @@
 import React from 'react';
 
 export const useImpersonation = () => ({
-  isImpersonating: false,
-  impersonatedUser: null,
+  impersonation: {
+    isImpersonating: false,
+    impersonatedUser: null,
+  },
   getEffectiveRole: () => 'student',
   startImpersonation: jest.fn(),
   stopImpersonation: jest.fn(),

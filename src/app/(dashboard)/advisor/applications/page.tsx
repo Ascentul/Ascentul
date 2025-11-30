@@ -342,7 +342,7 @@ export default function AdvisorApplicationsPage() {
                 onViewModeChange={setViewMode}
                 scope={scope}
                 onScopeChange={setScope}
-                canViewAllStudents={userRole === 'university_admin'}
+                canViewAllStudents={userRole === 'university_admin' || userRole === 'super_admin'}
                 searchQuery={filterHook.filters.search}
                 onSearchChange={filterHook.setSearch}
                 showFilters={showFilters}

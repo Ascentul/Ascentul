@@ -2286,7 +2286,15 @@ export async function POST(request: NextRequest) {
   const timer = startTimer('career_path_generation_total')
 
   try {
-    const { userId, token } = await requireConvexToken()
+    let userId: string
+    let token: string
+    try {
+      const auth = await requireConvexToken()
+      userId = auth.userId
+      token = auth.token
+    } catch (authError) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // Parse and validate input with Zod
     const body = await request.json().catch((parseError) => {

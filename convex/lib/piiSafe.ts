@@ -75,7 +75,7 @@ export function maskName(name: string | undefined | null): string {
  *
  * @example
  * maskId("user_abc123xyz789")  // "use...789"
- * maskId("short")              // "sho...ort"
+ * maskId("abcdefgh")           // "abc...fgh"
  */
 export function maskId(id: string | undefined | null): string {
   if (!id) return "[no-id]";

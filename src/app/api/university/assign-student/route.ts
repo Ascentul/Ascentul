@@ -84,12 +84,16 @@ export async function POST(req: NextRequest) {
     // Assign student in Convex
     // Note: This mutation should be idempotent - if the student is already assigned,
     // it should update rather than fail, to prevent issues on retry
+    // Validate role if provided
+    const allowedStudentRoles = ['user', 'student'];
+    const assignedRole = role && allowedStudentRoles.includes(role) ? role : 'user';
+
     const result = await convexServer.mutation(
       api.university_admin.assignStudentByEmail,
       {
         clerkId: clerkId,
         email: email,
-        role: role || 'user',
+        role: assignedRole,
         departmentId: departmentId as Id<'departments'> | undefined,
       },
       token

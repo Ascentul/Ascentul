@@ -339,14 +339,20 @@ export const updateReviewStatus = mutation({
 
     const isWaiting = args.status === "waiting";
 
-    await ctx.db.patch(args.reviewId, {
+    const patchData: Record<string, any> = {
       status: args.status,
-      // Explicitly clear reviewer fields when returning to waiting
-      reviewed_by: isWaiting ? undefined : sessionCtx.userId,
-      reviewed_at: isWaiting ? undefined : now,
       updated_at: now,
       version: (review.version ?? 0) + 1,
-    });
+    };
+    if (isWaiting) {
+      // Note: To clear fields, schema must allow null or use a different approach
+      patchData.reviewed_by = null;
+      patchData.reviewed_at = null;
+    } else {
+      patchData.reviewed_by = sessionCtx.userId;
+      patchData.reviewed_at = now;
+    }
+    await ctx.db.patch(args.reviewId, patchData);
 
     // Audit log
     await createAuditLog(ctx, {
@@ -684,10 +690,19 @@ export const deleteComment = mutation({
 
     const updatedComments = comments.filter((c) => c.id !== args.commentId);
 
+    // Check version hasn't changed since we read the review (optimistic concurrency control)
+    const currentReview = await ctx.db.get(args.reviewId);
+    if (!currentReview) {
+      throw new Error("Review was deleted. Please refresh and try again.");
+    }
+    if (currentReview.version !== review.version) {
+      throw new Error("Review was modified by another user. Please refresh and try again.");
+    }
+
     await ctx.db.patch(args.reviewId, {
       comments: updatedComments,
       updated_at: Date.now(),
-      version: (review.version ?? 0) + 1,
+      version: (currentReview.version ?? 0) + 1,
     });
 
     // Audit log for comment deletion

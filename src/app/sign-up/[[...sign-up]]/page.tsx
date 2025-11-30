@@ -244,10 +244,7 @@ export default function Page() {
       const controller = new AbortController();
       (async () => {
         try {
-          const res = await fetch('/api/university/verify-invite', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: inviteToken }),
+          const res = await fetch(`/api/university/verify-invite?token=${encodeURIComponent(inviteToken)}`, {
             signal: controller.signal,
           });
           if (!res.ok) {

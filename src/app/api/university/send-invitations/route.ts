@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
           await sendUniversityInvitationEmail(email, university.name, inviteLink);
           return { email, success: true };
         } catch (error: unknown) {
-          console.error(`Error sending invitation to ${email}:`, error);
+          console.error(`Error sending invitation to ${email.substring(0, 3)}***:`, error);
           const message = getErrorMessage(error);
           return { email, success: false, error: message };
         }

@@ -32,10 +32,10 @@ const getMockOpenAIInstance = (): OpenAI | null => {
  * Creates an OpenAI client, using mock if available (for testing)
  */
 const createOpenAIClient = (): OpenAI | null => {
-  if (!process.env.OPENAI_API_KEY) return null
-
   const mocked = getMockOpenAIInstance()
   if (mocked) return mocked
+
+  if (!process.env.OPENAI_API_KEY) return null
 
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 }

@@ -43,7 +43,7 @@ export function StudentFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Majors</SelectItem>
-          {majors?.map((major) => (
+          {majors.map((major) => (
             <SelectItem key={major} value={major}>
               {major}
             </SelectItem>

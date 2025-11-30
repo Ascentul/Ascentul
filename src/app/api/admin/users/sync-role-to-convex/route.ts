@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       }
 
       roleToSync = requestedRole
-      console.log(`[API] Updated Clerk role for ${targetUser.emailAddresses[0]?.emailAddress || userId}: ${currentClerkRole} → ${requestedRole}`)
+      console.log(`[API] Updated Clerk role for user ${userId}: ${currentClerkRole} → ${requestedRole}`)
     } else {
       // Mode 2: Sync from Clerk - read current Clerk role and sync to Convex
       if (!currentClerkRole) {

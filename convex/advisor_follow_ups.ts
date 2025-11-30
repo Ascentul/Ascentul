@@ -179,8 +179,8 @@ export const reopenFollowUp = mutation({
 
     await ctx.db.patch(args.followUpId, {
       status: "open",
-      completed_at: undefined,
-      completed_by: undefined,
+      completed_at: null,
+      completed_by: null,
       version: currentVersion + 1,
       updated_at: now,
     });

@@ -63,7 +63,8 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
       if (log.action !== 'user_role_changed') return false
 
       // Time filter
-      const logTime = log.timestamp ?? log.created_at ?? Date.now()
+      const logTime = log.timestamp ?? log.created_at
+      if (logTime === undefined) return false // Skip logs without timestamps
       if (startDate > 0 && logTime < startDate) return false
 
       // Search filter

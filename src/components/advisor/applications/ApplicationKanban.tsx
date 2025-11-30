@@ -194,7 +194,7 @@ export function ApplicationKanban({
                                   <span className="font-medium">Next:</span>
                                 </div>
                                 <div className="truncate">{app.next_step}</div>
-                                {app.next_step_date && (
+                                {app.next_step_date && !isNaN(new Date(app.next_step_date).getTime()) && (
                                   <div className="text-xs mt-1">
                                     {format(new Date(app.next_step_date), "MMM d")}
                                     {isOverdue && " (Overdue)"}

@@ -29,12 +29,12 @@ export async function POST(request: NextRequest) {
     let userContext = ''
     try {
       const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.all([
-        convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token) as Promise<any>,
-        convexServer.query(api.goals.getUserGoals, { clerkId: userId }, token) as Promise<any[]>,
-        convexServer.query(api.applications.getUserApplications, { clerkId: userId }, token) as Promise<any[]>,
-        convexServer.query(api.resumes.getUserResumes, { clerkId: userId }, token) as Promise<any[]>,
-        convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }, token) as Promise<any[]>,
-        convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token) as Promise<any[]>
+        convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token),
+        convexServer.query(api.goals.getUserGoals, { clerkId: userId }, token),
+        convexServer.query(api.applications.getUserApplications, { clerkId: userId }, token),
+        convexServer.query(api.resumes.getUserResumes, { clerkId: userId }, token),
+        convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }, token),
+        convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token)
       ])
 
       userContext = buildUserContext({

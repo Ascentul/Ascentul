@@ -76,6 +76,7 @@ export const createFollowup = mutation({
     const createdByType = 
       userRole === 'student' ? 'student' 
       : userRole === 'advisor' ? 'advisor' 
+      : userRole === 'individual' ? 'individual'
       : 'student'; // Treat other roles as student for follow-up ownership
 
     const id = await ctx.db.insert('follow_ups', {
