@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { NextRequest, NextResponse } from 'next/server'
-import { api } from 'convex/_generated/api'
 import { api } from 'convex/_generated/api'
 import OpenAI from 'openai'
 import { convexServer } from '@/lib/convex-server';

@@ -249,8 +249,6 @@ export async function POST(request: NextRequest) {
     const { jobDescription, coverLetter, optimize, roleTitle, companyName } =
       (await request.json()) as {
         jobDescription?: string;
-      (await request.json()) as {
-        jobDescription?: string;
         coverLetter?: string;
         optimize?: boolean;
         roleTitle?: string;
