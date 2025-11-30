@@ -407,7 +407,8 @@ export const getTodayOverviewV2 = query({
     );
 
     // Batch fetch applications ONLY for students with sessions
-    const applicationsByStudent = new Map<Id<"users">, { stage?: string; updated_at?: number }[]>();
+    // Include status for calculateRiskTags migration fallback (see docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md)
+    const applicationsByStudent = new Map<Id<"users">, { stage?: string; status?: string; updated_at?: number }[]>();
     await Promise.all(
       Array.from(studentsNeedingContext).map(async (studentId) => {
         const apps = await ctx.db
@@ -416,7 +417,7 @@ export const getTodayOverviewV2 = query({
           .collect();
         applicationsByStudent.set(
           studentId,
-          apps.map((a) => ({ stage: a.stage, updated_at: a.updated_at }))
+          apps.map((a) => ({ stage: a.stage, status: a.status, updated_at: a.updated_at }))
         );
       })
     );

@@ -275,7 +275,6 @@ export const createReview = mutation({
         resume_id: args.resumeId,
         cover_letter_id: args.coverLetterId,
       },
-      ipAddress: "server",
     });
 
     return reviewId;
@@ -364,7 +363,6 @@ export const updateReviewStatus = mutation({
       studentId: review.student_id,
       previousValue: previousStatus,
       newValue: args.status,
-      ipAddress: "server",
     });
 
     return { success: true };
@@ -433,7 +431,6 @@ export const updateRubric = mutation({
       studentId: review.student_id,
       previousValue: previousRubric,
       newValue: args.rubric,
-      ipAddress: "server",
     });
 
     return { success: true };
@@ -519,7 +516,6 @@ export const addComment = mutation({
       entityId: args.reviewId,
       studentId: review.student_id,
       newValue: { visibility: args.visibility, comment_id: commentId },
-      ipAddress: "server",
     });
 
     return commentId;
@@ -619,8 +615,7 @@ export const updateComment = mutation({
         studentId: review.student_id,
         previousValue: { bodyLength: previousBody?.length ?? 0 },
         newValue: { bodyLength: sanitizedBody.length, edited: true },
-        ipAddress: "server",
-      });
+        });
     }
 
     // Audit log for visibility changes
@@ -634,8 +629,7 @@ export const updateComment = mutation({
         studentId: review.student_id,
         previousValue: previousVisibility,
         newValue: args.visibility,
-        ipAddress: "server",
-      });
+        });
     }
 
     return { success: true };
@@ -719,7 +713,6 @@ export const deleteComment = mutation({
         visibility: comment.visibility,
         author_id: comment.author_id,
       },
-      ipAddress: "server",
     });
 
     return { success: true };
@@ -843,7 +836,6 @@ export const approveReview = mutation({
       entityId: args.reviewId,
       studentId: review.student_id,
       newValue: { status: "approved", approved_at: now },
-      ipAddress: "server",
     });
 
     // Audit log for approval comment if provided (FERPA compliance)
@@ -860,8 +852,7 @@ export const approveReview = mutation({
           comment_id: approvalCommentId,
           context: "approval"
         },
-        ipAddress: "server",
-      });
+        });
     }
 
     return { success: true };

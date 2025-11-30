@@ -340,7 +340,7 @@ export const requestAccountDeletion = mutation({
 
     // Store deletion request metadata
     await ctx.db.patch(user._id, {
-      account_status: skipGracePeriod ? "deleted" : "pending_activation", // Reuse status for pending deletion
+      account_status: skipGracePeriod ? "deleted" : "pending_deletion",
       deleted_at: skipGracePeriod ? Date.now() : undefined,
       deleted_reason: args.reason || "User requested account deletion (GDPR Article 17)",
       updated_at: Date.now(),
@@ -416,7 +416,7 @@ export const cancelAccountDeletion = mutation({
     }
 
     // Check if there's a pending deletion
-    if (user.account_status !== "pending_activation") {
+    if (user.account_status !== "pending_deletion") {
       throw new Error("No pending deletion request found");
     }
 
@@ -619,7 +619,7 @@ export const sendDeletionReminder = internalMutation({
     //   name: user.name,
     // });
 
-    console.log(`Deletion reminder would be sent to ${user.email}`);
+    console.log(`Deletion reminder would be sent to user ${args.userId}`);
 
     return { success: true };
   },
@@ -645,8 +645,8 @@ export const getDeletionStatus = query({
       return null;
     }
 
-    // Check for pending deletion (using pending_activation status with deleted_reason)
-    if (user.account_status === "pending_activation" && user.deleted_reason) {
+    // Check for pending deletion
+    if (user.account_status === "pending_deletion") {
       return {
         hasPendingDeletion: true,
         reason: user.deleted_reason,

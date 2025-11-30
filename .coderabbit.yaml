@@ -1,0 +1,51 @@
+# CodeRabbit Configuration
+# Reduces false positive suggestions based on project patterns
+
+version: 2
+
+reviews:
+  # Path filters - skip files that don't need code review
+  path_filters:
+    - "!docs/**"
+    - "!**/*.md"
+    - "!scripts/utils/**"
+    - "!__mocks__/**"
+
+  # Focus on actionable issues, reduce speculative suggestions
+  auto_review:
+    enabled: true
+    drafts: false
+
+  # Custom instructions for this codebase
+  instructions: |
+    ## Project Context
+    This is a Next.js 14 + Convex + Clerk application for career development.
+
+    ## Patterns to Accept (Don't Flag)
+
+    ### Convex Patterns
+    - Trust internal Convex data - don't suggest additional type guards for query results
+    - `v.id()` validators handle ID format validation at runtime
+    - Schema uses `v.union(v.number(), v.null())` intentionally for clearable fields
+    - String-based error detection (e.g., `includes('ArgumentValidationError:')`) is acceptable for Convex errors
+    - `getCurrentUser(ctx, args.clerkId)` validates clerkId against JWT - don't flag as insecure
+
+    ### Authentication
+    - Clerk `publicMetadata.role` is the source of truth for authorization
+    - `requireConvexToken()` handles auth validation
+
+    ### Performance
+    - Don't suggest index optimizations without evidence of actual performance issues
+    - Don't flag one-time migration scripts for pagination unless dataset is large
+
+    ### Testing
+    - Mock implementations in `__mocks__/` are intentionally simplified
+    - Don't suggest making test mocks more realistic unless tests are failing
+
+    ### Style
+    - Don't suggest documentation-only changes
+    - Don't flag null vs undefined unless it causes actual bugs
+    - Stage vs status case differences are intentional (title case for new, lowercase for legacy)
+
+chat:
+  auto_reply: true

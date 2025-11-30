@@ -332,7 +332,6 @@ export const returnReviewToQueue = mutation({
       studentId: review.student_id,
       previousValue: { status: "in_review", reviewed_by: review.reviewed_by },
       newValue: { status: "waiting", reason: args.reason },
-      ipAddress: "server",
     });
 
     return { success: true };

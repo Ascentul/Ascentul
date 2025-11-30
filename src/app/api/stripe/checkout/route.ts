@@ -145,6 +145,7 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // No existing customer - create new one
+        // Use idempotency key to prevent duplicate customers on concurrent checkout requests
         const customer = await stripe.customers.create({
           email: user.email || undefined,
           name: user.name || undefined,
@@ -153,6 +154,8 @@ export async function POST(request: NextRequest) {
             clerkId: userId, // Keep for backward compatibility with portal route
             user_id: user._id,
           },
+        }, {
+          idempotencyKey: `create-customer-${userId}`,
         });
         customerId = customer.id;
 

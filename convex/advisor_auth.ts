@@ -146,7 +146,7 @@ export async function assertCanAccessStudent(
           q.eq(q.field("is_owner"), true),
         ),
       )
-      .unique();
+      .first();
 
     if (!ownership) {
       throw new Error(
@@ -427,7 +427,7 @@ export async function createAuditLog(
     studentId?: Id<"users">;
     previousValue?: unknown;
     newValue?: unknown;
-    ipAddress: string;
+    ipAddress?: string; // Optional - Convex backend doesn't have access to client IP
     userAgent?: string;
   },
 ): Promise<Id<"audit_logs">> {

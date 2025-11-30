@@ -105,7 +105,6 @@ export const completeFollowUp = mutation({
         completed_at: now,
         completed_by: sessionCtx.userId,
       },
-      ipAddress: "server",
     });
 
     // Return consistent shape with idempotent path (lines 63-69)
@@ -204,7 +203,6 @@ export const reopenFollowUp = mutation({
         completed_at: null,
         completed_by: null,
       },
-      ipAddress: "server",
     });
 
     // Return consistent shape with idempotent path

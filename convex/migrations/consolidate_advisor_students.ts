@@ -58,6 +58,20 @@ export const dryRun = query({
 
       const userId = studentProfile.user_id;
 
+      // Validate user exists
+      const user = await ctx.db.get(userId);
+      if (!user) {
+        results.willMigrate.push({
+          advisorStudentId: record._id,
+          studentProfileId: record.student_profile_id,
+          advisorId: record.advisor_id,
+          userId,
+          status: "missing_user",
+        });
+        results.missingUsers++;
+        continue;
+      }
+
       // Check if already exists in student_advisors
       const existing = await ctx.db
         .query("student_advisors")
@@ -130,6 +144,16 @@ export const migrate = mutation({
         }
 
         const userId = studentProfile.user_id;
+
+        // Validate user exists
+        const user = await ctx.db.get(userId);
+        if (!user) {
+          results.errors.push({
+            id: record._id,
+            error: `User not found: ${userId}`,
+          });
+          continue;
+        }
 
         // Check if already exists in student_advisors
         const existing = await ctx.db

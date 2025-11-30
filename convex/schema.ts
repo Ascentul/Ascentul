@@ -103,6 +103,7 @@ export default defineSchema({
     account_status: v.optional(
       v.union(
         v.literal("pending_activation"),
+        v.literal("pending_deletion"), // GDPR deletion grace period
         v.literal("active"),
         v.literal("suspended"),
         v.literal("deleted"), // Soft delete status for FERPA compliance

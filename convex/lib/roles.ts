@@ -210,7 +210,7 @@ export async function requireUserAccess(
  * Check if user account is active (not deleted, not suspended)
  */
 export function checkAccountActive(user: {
-  account_status?: "pending_activation" | "active" | "suspended" | "deleted";
+  account_status?: "pending_activation" | "pending_deletion" | "active" | "suspended" | "deleted";
 }) {
   if (user.account_status === "deleted") {
     throw new Error("Forbidden: User account has been deleted");

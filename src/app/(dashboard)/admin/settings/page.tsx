@@ -295,7 +295,7 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-6 data-[state=inactive]:hidden" forceMount>
+        <TabsContent value="general" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -414,7 +414,7 @@ export default function AdminSettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="ai" className="space-y-6 data-[state=inactive]:hidden" forceMount>
+        <TabsContent value="ai" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

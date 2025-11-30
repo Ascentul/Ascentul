@@ -118,7 +118,6 @@ export const createSession = mutation({
         duration_minutes: args.duration_minutes,
         visibility: args.visibility || "advisor_only",
       },
-      ipAddress: "server",
     });
 
     return sessionId;
@@ -307,7 +306,6 @@ export const updateSession = mutation({
         ...changedFields,
         version: updates.version,
       },
-      ipAddress: "server",
     });
 
     return { success: true, version: updates.version };
@@ -357,7 +355,6 @@ export const deleteSession = mutation({
         session_type: session.session_type,
         status: session.status,
       },
-      ipAddress: "server",
     });
 
     return { success: true };
@@ -426,7 +423,6 @@ export const cancelSession = mutation({
         status: "cancelled",
         hasReason: Boolean(args.reason),
       },
-      ipAddress: "server",
     });
 
     return { success: true };

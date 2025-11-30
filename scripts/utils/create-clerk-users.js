@@ -16,6 +16,12 @@
 
 const https = require('https');
 
+// Safety check: Prevent running in production
+if (process.env.NODE_ENV === 'production') {
+  console.error('❌ This script should not be used in production');
+  process.exit(1);
+}
+
 const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
 const studentEmail = process.env.STUDENT_EMAIL;
 const advisorEmail = process.env.ADVISOR_EMAIL;

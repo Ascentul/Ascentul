@@ -207,8 +207,9 @@ export async function POST(request: NextRequest) {
           })
         } catch (mutationError: any) {
           // Handle Convex validation errors (e.g., malformed university_id)
+          // Convex v.id() validator throws ArgumentValidationError with message prefix
           const errorMessage = mutationError?.message || String(mutationError)
-          if (errorMessage.includes('university') || errorMessage.includes('Id')) {
+          if (errorMessage.includes('ArgumentValidationError:')) {
             console.error(`[Clerk Webhook] Invalid university_id format for user ${userData.id}: ${universityIdString}`)
             return NextResponse.json(
               { error: 'Invalid university_id format in metadata' },

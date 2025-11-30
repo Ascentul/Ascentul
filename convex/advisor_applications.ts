@@ -493,7 +493,6 @@ export const updateApplicationStage = mutation({
         notesLength: args.notes?.length ?? 0,
         reason_code: args.reason_code,
       },
-      ipAddress: 'server',
     });
 
     return {
@@ -549,7 +548,6 @@ export const updateApplicationNextStep = mutation({
       studentId: application.user_id,
       previousValue: { next_step: application.next_step, due_date: application.due_date },
       newValue: { next_step: args.nextStep, due_date: args.dueDate },
-      ipAddress: 'server',
     });
 
     return {
@@ -768,7 +766,6 @@ export const bulkUpdateApplicationStage = mutation({
         results,
         changes: changeRecords,
       },
-      ipAddress: 'server',
     });
 
     return results;
@@ -894,7 +891,6 @@ export const bulkUpdateNextStep = mutation({
         results,
         changes: changeRecords,
       },
-      ipAddress: 'server',
     });
 
     return results;
@@ -988,7 +984,6 @@ export const bulkMarkReviewed = mutation({
         results,
         changes: changeRecords,
       },
-      ipAddress: 'server',
     });
 
     return results;

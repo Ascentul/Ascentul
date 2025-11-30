@@ -318,7 +318,6 @@ export const completeSession = mutation({
       entityId: args.sessionId,
       studentId: session.student_id,
       newValue: { completed_at: now },
-      ipAddress: "server",
     });
 
     return { success: true };

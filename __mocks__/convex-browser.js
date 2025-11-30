@@ -3,6 +3,7 @@ const createMockClient = () => ({
   query: jest.fn().mockResolvedValue([]),
   mutation: jest.fn().mockResolvedValue({}),
   action: jest.fn(),
+  setAuth: jest.fn(),
 })
 
 const ConvexHttpClient = jest.fn(() => {

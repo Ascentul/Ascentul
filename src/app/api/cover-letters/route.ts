@@ -7,6 +7,7 @@ import { requireConvexToken } from '@/lib/convex-auth';
 export const dynamic = 'force-dynamic'
 
 type CoverLetterSource = 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload'
+const ALLOWED_SOURCES = new Set<CoverLetterSource>(['manual', 'ai_generated', 'ai_optimized', 'pdf_upload'])
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,8 +45,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title and content are required' }, { status: 400 })
     }
 
-    const allowedSources = new Set<CoverLetterSource>(['manual', 'ai_generated', 'ai_optimized', 'pdf_upload'])
-
     const coverLetter = await convexServer.mutation(api.cover_letters.createCoverLetter, {
       clerkId: userId,
       name: title,
@@ -54,7 +53,7 @@ export async function POST(request: NextRequest) {
       template: 'standard',
       content: String(content),
       closing: 'Sincerely,',
-      source: allowedSources.has(source as CoverLetterSource) ? (source as CoverLetterSource) : 'manual',
+      source: ALLOWED_SOURCES.has(source as CoverLetterSource) ? (source as CoverLetterSource) : 'manual',
     }, token)
 
     return NextResponse.json({ coverLetter }, { status: 201 })

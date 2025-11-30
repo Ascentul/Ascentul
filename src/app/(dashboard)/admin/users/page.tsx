@@ -30,7 +30,7 @@ interface UserRow {
   role: 'user' | 'student' | 'staff' | 'university_admin' | 'advisor' | 'super_admin'
   subscription_plan?: 'free' | 'premium' | 'university' | null // Cached from Clerk for display (read-only), null for internal roles like staff
   subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due' // Cached from Clerk for display (read-only)
-  account_status?: 'pending_activation' | 'active' | 'suspended' | 'deleted'
+  account_status?: 'pending_activation' | 'pending_deletion' | 'active' | 'suspended' | 'deleted'
   is_test_user?: boolean
   deleted_at?: number
   deleted_by?: string

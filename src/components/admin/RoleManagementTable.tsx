@@ -61,7 +61,7 @@ interface MinimalUser {
   role: UserRole
   subscription_plan: 'free' | 'premium' | 'university' | undefined
   subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due' | undefined
-  account_status: 'active' | 'suspended' | 'pending_activation' | 'deleted' | undefined
+  account_status: 'active' | 'suspended' | 'pending_activation' | 'pending_deletion' | 'deleted' | undefined
   is_test_user: boolean | undefined
   deleted_at: number | undefined
   deleted_by: string | undefined

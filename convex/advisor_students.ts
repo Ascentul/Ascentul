@@ -375,7 +375,6 @@ export const addAdvisorNote = mutation({
         noteLength: args.note.length,
         timestamp: Date.now(),
       },
-      ipAddress: "server",
     });
 
     return { success: true };
@@ -504,8 +503,7 @@ export const assignStudentToAdvisor = mutation({
         studentId: args.studentId,
         previousValue: { is_owner: existing.is_owner },
         newValue: { is_owner: args.isOwner },
-        ipAddress: "server",
-      });
+        });
 
       resultId = existing._id;
     } else {
@@ -532,8 +530,7 @@ export const assignStudentToAdvisor = mutation({
         entityId: assignmentId,
         studentId: args.studentId,
         newValue: { advisor_id: args.advisorId, is_owner: args.isOwner },
-        ipAddress: "server",
-      });
+        });
 
       resultId = assignmentId;
     }
@@ -570,8 +567,7 @@ export const assignStudentToAdvisor = mutation({
               studentId: args.studentId,
               previousValue: { is_owner: true },
               newValue: { is_owner: false, reason: "duplicate_owner_correction" },
-              ipAddress: "server",
-            });
+                    });
           }
           console.log(`[assignStudentToAdvisor] Auto-corrected: kept ${sortedByTime[0].advisor_id} as owner`);
         } else if (owners.length === 0) {
@@ -658,7 +654,6 @@ export const removeStudentAdvisor = mutation({
         is_owner: assignment.is_owner,
         reason: args.reason,
       },
-      ipAddress: "server",
     });
 
     await ctx.db.delete(args.assignmentId);
