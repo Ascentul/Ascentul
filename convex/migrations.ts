@@ -5,37 +5,73 @@
 import { internalMutation, query } from "./_generated/server"
 import { v } from "convex/values"
 import { requireSuperAdmin } from "./lib/roles"
+import type { Id } from "./_generated/dataModel"
+import { maskId } from "./lib/piiSafe"
 
 /**
  * Migrate users with role "admin" to "super_admin"
  * This is needed after removing "admin" role from the schema
+ *
+ * IMPORTANT - Clerk Sync Required:
+ * This is a ONE-TIME legacy data migration. After running, sync roles to Clerk:
+ *   npx convex run admin/syncRolesToClerk:syncAllRolesToClerk --dryRun true
+ *   npx convex run admin/syncRolesToClerk:syncAllRolesToClerk --dryRun false
  */
 export const migrateAdminToSuperAdmin = internalMutation({
   args: {},
   handler: async (ctx) => {
-    // Get all users
-    const allUsers = await ctx.db.query("users").collect()
-
     let migratedCount = 0
+    let failedCount = 0
+    const failedUsers: Array<Id<"users">> = []
 
-    for (const user of allUsers) {
-      // @ts-ignore - temporarily ignore type error for old "admin" role
-      if (user.role === "admin") {
-        await ctx.db.patch(user._id, {
-          role: "super_admin",
-          updated_at: Date.now(),
-        })
-        migratedCount++
-        console.log(`Migrated user ${user.email} from admin to super_admin`)
+    // Use pagination to handle large user tables
+    // Convex pagination uses isDone flag, not cursor === null, to indicate completion
+    // Note: Convex paginate() accepts null for initial cursor (continueCursor returns string | null)
+    const BATCH_SIZE = 100
+    let cursor: string | null = null
+    let isDone = false
+    let totalProcessed = 0
+
+    do {
+      const page = await ctx.db.query('users')
+        .paginate({ cursor, numItems: BATCH_SIZE })
+
+      for (const user of page.page) {
+        totalProcessed++
+        // @ts-ignore - temporarily ignore type error for old "admin" role
+        if (user.role === 'admin') {
+          try {
+            await ctx.db.patch(user._id, {
+              role: 'super_admin',
+              updated_at: Date.now(),
+            })
+            migratedCount++
+            console.log(`✓ Migrated user ${maskId(user._id)} from admin to super_admin`)
+          } catch (error) {
+            failedCount++
+            failedUsers.push(user._id)
+            console.error(`✗ Failed to migrate user ${maskId(user._id)}:`, error)
+          }
+        }
       }
+
+      cursor = page.continueCursor
+      isDone = page.isDone
+      console.log(`Processed batch: ${totalProcessed} users checked, ${migratedCount} migrated so far`)
+    } while (!isDone)
+
+    console.log(`\nMigration complete: ${totalProcessed} users checked, ${migratedCount} users updated, ${failedCount} failed`)
+    if (failedUsers.length > 0) {
+      console.log(`Failed user IDs: ${failedUsers.map(id => maskId(id)).join(', ')}`)
     }
 
-    console.log(`Migration complete: ${migratedCount} users updated`)
-
     return {
-      success: true,
+      success: failedCount === 0,
       migratedCount,
-      message: `Successfully migrated ${migratedCount} users from 'admin' to 'super_admin'`,
+      failedCount,
+      failedUsers,
+      totalProcessed,
+      message: `Migrated ${migratedCount} users from 'admin' to 'super_admin' (checked ${totalProcessed} total users)${failedCount > 0 ? ` (${failedCount} failed)` : ''}`,
     }
   },
 })
@@ -47,6 +83,20 @@ export const migrateAdminToSuperAdmin = internalMutation({
  * 1. Migrates legacy "user" role to "individual" or "student" based on university_id
  * 2. Creates studentProfiles for users who should be students
  * 3. Ensures all students have proper studentProfile records
+ *
+ * IMPORTANT - Clerk Sync Required:
+ * This is a ONE-TIME legacy data migration that updates Convex roles directly.
+ * Per the Clerk-first role update pattern, Clerk publicMetadata.role is the source
+ * of truth for authorization. After running this migration, you MUST sync the
+ * updated roles to Clerk:
+ *
+ *   npx convex run admin/syncRolesToClerk:syncAllRolesToClerk --dryRun true
+ *   npx convex run admin/syncRolesToClerk:syncAllRolesToClerk --dryRun false
+ *
+ * This migration updates Convex first (instead of Clerk-first) because:
+ * - It's a bulk backfill of pre-existing users who already have data in Convex
+ * - The "user" role being migrated was never in Clerk (legacy role)
+ * - Convex is the source of university_id which determines student vs individual
  *
  * Run via: npx convex run migrations:backfillStudentRoles
  */

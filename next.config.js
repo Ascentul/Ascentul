@@ -2,30 +2,36 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'qyycdduuadsofgabrgip.supabase.co',
-      },
-      {
-        protocol: 'https',
-        hostname: 'ui-avatars.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'img.clerk.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.clerk.com',
-      },
+      // Supabase storage (wildcard covers all Supabase instances - trusted CDN)
       {
         protocol: 'https',
         hostname: '*.supabase.co',
       },
+      // UI Avatars (fallback avatars)
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+      },
+      // Clerk profile images (img.clerk.com is the only official Clerk image CDN)
+      {
+        protocol: 'https',
+        hostname: 'img.clerk.com',
+      },
+      // OAuth provider profile images (Google, GitHub, etc.)
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.googleusercontent.com',
+      },
+      // Job listings (Adzuna)
       {
         protocol: 'https',
         hostname: '*.adzuna.com',
       },
+      // Convex storage
       {
         protocol: 'https',
         hostname: '*.convex.cloud',

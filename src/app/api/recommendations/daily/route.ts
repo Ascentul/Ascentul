@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+import { fetchQuery } from 'convex/nextjs';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const authResult = await auth()
+    const { userId } = authResult
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const token = await authResult.getToken({ template: 'convex' })
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+    }
+
     // Fetch recommendations from Convex
-    const recommendations = await convex.query(api.recommendations.getDailyRecommendations, {
+    const recommendations = await fetchQuery(api.recommendations.getDailyRecommendations, {
       clerkId: userId,
-    })
+    }, { token })
 
     return NextResponse.json(recommendations)
   } catch (error) {

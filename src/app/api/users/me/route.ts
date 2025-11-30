@@ -1,18 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
+import { NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
+import { fetchQuery } from 'convex/nextjs'
 import { api } from 'convex/_generated/api'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { userId } = getAuth(request)
+    const authResult = await auth()
+    const { userId } = authResult
     if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    const client = new ConvexHttpClient(url)
-    const user = await client.query(api.users.getUserByClerkId, { clerkId: userId })
+
+    const token = await authResult.getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+
+    const user = await fetchQuery(api.users.getUserByClerkId, { clerkId: userId }, { token })
     return NextResponse.json({ user })
   } catch (error) {
     console.error('Error fetching user:', error)

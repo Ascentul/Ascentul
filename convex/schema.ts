@@ -103,6 +103,7 @@ export default defineSchema({
     account_status: v.optional(
       v.union(
         v.literal("pending_activation"),
+        v.literal("pending_deletion"), // GDPR deletion grace period
         v.literal("active"),
         v.literal("suspended"),
         v.literal("deleted"), // Soft delete status for FERPA compliance
@@ -114,6 +115,7 @@ export default defineSchema({
     created_by_admin: v.optional(v.boolean()),
     // Test user and deletion tracking
     is_test_user: v.optional(v.boolean()), // Flag for test users (can be hard deleted)
+    deletion_scheduled_at: v.optional(v.number()), // When account will be permanently deleted (GDPR grace period)
     deleted_at: v.optional(v.number()), // Timestamp when soft deleted
     deleted_by: v.optional(v.id("users")), // Admin who deleted the user
     deleted_reason: v.optional(v.string()), // Reason for deletion
@@ -137,7 +139,9 @@ export default defineSchema({
     .index("by_department", ["department_id"])
     .index("by_role", ["role"])
     .index("by_account_status", ["account_status"])
-    .index("by_is_test_user", ["is_test_user"]),
+    .index("by_is_test_user", ["is_test_user"])
+    // SECURITY: Index for efficient activation token lookup (avoids full table scan)
+    .index("by_activation_token", ["activation_token"]),
 
   // Universities table for institutional licensing
   universities: defineTable({
@@ -174,7 +178,8 @@ export default defineSchema({
     updated_at: v.number(),
   })
     .index("by_slug", ["slug"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_admin_email", ["admin_email"]),
 
   // University departments
   departments: defineTable({
@@ -222,7 +227,9 @@ export default defineSchema({
     updated_at: v.number(),
   })
     .index("by_user", ["user_id"])
-    .index("by_created_at", ["created_at"]),
+    .index("by_created_at", ["created_at"])
+    // SECURITY: Tenant-scoped index for university reporting
+    .index("by_university", ["university_id"]),
 
   // Cover letters table
   cover_letters: defineTable({
@@ -246,7 +253,9 @@ export default defineSchema({
     updated_at: v.number(),
   })
     .index("by_user", ["user_id"])
-    .index("by_created_at", ["created_at"]),
+    .index("by_created_at", ["created_at"])
+    // SECURITY: Tenant-scoped index for university reporting
+    .index("by_university", ["university_id"]),
 
   // Support tickets table
   support_tickets: defineTable({
@@ -280,6 +289,14 @@ export default defineSchema({
     .index("by_university", ["university_id"])
     .index("by_status", ["status"])
     .index("by_created_at", ["created_at"]),
+
+  // Diagnostics table for audit log retention (optional, for export tracking)
+  audit_log_exports: defineTable({
+    exported_count: v.number(),
+    cutoff: v.number(),
+    created_at: v.number(),
+    notes: v.optional(v.string()),
+  }).index("by_created_at", ["created_at"]),
 
   // Career paths table for generated career paths
   career_paths: defineTable({
@@ -349,7 +366,10 @@ export default defineSchema({
     ai_suggestions: v.optional(v.any()), // AI-generated suggestions (summary, skills)
     created_at: v.number(),
     updated_at: v.number(),
-  }).index("by_user", ["user_id"]),
+  })
+    .index("by_user", ["user_id"])
+    // SECURITY: Tenant-scoped index for university reporting
+    .index("by_university", ["university_id"]),
 
   // Applications table
   applications: defineTable({
@@ -358,31 +378,200 @@ export default defineSchema({
     company: v.string(),
     job_title: v.string(),
     status: v.union(
-      v.literal("saved"),
-      v.literal("applied"),
-      v.literal("interview"),
-      v.literal("offer"),
-      v.literal("rejected"),
+      v.literal("saved"), // DEPRECATED: Use stage field instead
+      v.literal("applied"), // DEPRECATED: Use stage field instead
+      v.literal("interview"), // DEPRECATED: Use stage field instead
+      v.literal("offer"), // DEPRECATED: Use stage field instead
+      v.literal("rejected"), // DEPRECATED: Use stage field instead
     ),
-    stage: v.optional(v.string()), // Legacy field - keeping for backward compatibility
-    stage_set_at: v.optional(v.number()), // Legacy field - keeping for backward compatibility
+    // PRIMARY FIELD: stage is the source of truth for application state
+    // status field is maintained for backward compatibility only
+    // MIGRATION: Run `npx convex run migrations/backfill_application_stages` then change to v.required()
+    stage: v.optional(
+      v.union(
+        v.literal("Prospect"), // Active - researching/considering
+        v.literal("Applied"), // Active - application submitted
+        v.literal("Interview"), // Active - in interview process
+        v.literal("Offer"), // Active - offer received, decision pending
+        v.literal("Accepted"), // Final - offer accepted
+        v.literal("Rejected"), // Final - application rejected
+        v.literal("Withdrawn"), // Final - candidate withdrew
+        v.literal("Archived"), // Final - archived
+      ),
+    ),
+    stage_set_at: v.optional(v.number()), // When stage was last changed
+    location: v.optional(v.string()),
     source: v.optional(v.string()),
     url: v.optional(v.string()),
     notes: v.optional(v.string()),
     applied_at: v.optional(v.number()),
     resume_id: v.optional(v.id("resumes")),
     cover_letter_id: v.optional(v.id("cover_letters")),
+    // Advisor workflow fields
+    assigned_advisor_id: v.optional(v.id("users")), // Primary advisor for this application
+    next_step: v.optional(v.string()), // Next action to take
+    due_date: v.optional(v.number()), // Deadline for next step
+    sla_status: v.optional(
+      v.union(
+        v.literal("ok"), // Within SLA
+        v.literal("warning"), // Approaching SLA breach
+        v.literal("breach"), // Past SLA
+      ),
+    ),
+    // Interview details
+    interviews: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          date: v.number(), // timestamp
+          interviewer: v.optional(v.string()),
+          interview_type: v.optional(v.string()), // phone, technical, behavioral, etc.
+          notes: v.optional(v.string()),
+        }),
+      ),
+    ),
+    // Offer details
+    offer: v.optional(
+      v.object({
+        received_date: v.optional(v.number()),
+        deadline: v.optional(v.number()), // Decision deadline
+        compensation_summary: v.optional(v.string()),
+        decision: v.optional(
+          v.union(
+            v.literal("pending"),
+            v.literal("accept"),
+            v.literal("decline"),
+          ),
+        ),
+        start_date: v.optional(v.number()), // If accepted
+      }),
+    ),
+    // Reason code for Rejected/Withdrawn stages (validated by updateApplicationStage mutation)
+    // See convex/advisor_constants.ts for valid codes (REJECTED_REASON_CODES, WITHDRAWN_REASON_CODES)
+    reason_code: v.optional(v.string()),
+    // Evidence uploads (for Offer/Accepted stages) - Use Convex storage for proper access control
+    evidence_storage_ids: v.optional(v.array(v.id("_storage"))), // Uploaded offer letters, etc.
     created_at: v.number(),
     updated_at: v.number(),
   })
     .index("by_user", ["user_id"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_stage", ["stage"])
+    .index("by_advisor", ["assigned_advisor_id"])
+    .index("by_due_date", ["due_date"]) // For overdue/upcoming queries
+    .index("by_stage_due_date", ["stage", "due_date"]) // For active + overdue filtering
+    // SECURITY: Tenant-scoped indexes for university reporting
+    .index("by_university", ["university_id"])
+    .index("by_university_stage", ["university_id", "stage"]) // University pipeline view
+    .index("by_university_status", ["university_id", "status"]), // Legacy university queries
 
-  // Followup actions table
+  // Unified follow-ups table (replaces followup_actions and advisor_follow_ups)
+  follow_ups: defineTable({
+    // Core task fields
+    title: v.string(),
+    description: v.optional(v.string()),
+    type: v.optional(v.string()), // For backwards compatibility: 'follow_up', 'reminder', etc.
+    notes: v.optional(v.string()), // Additional notes
+
+    // Ownership & creation tracking
+    user_id: v.id('users'), // Primary user (student) this task relates to
+    owner_id: v.id('users'), // Who is responsible for completing it (can be student or advisor)
+    created_by_id: v.optional(v.id('users')), // User who created this task (may differ from owner)
+    created_by_type: v.union(v.literal('student'), v.literal('advisor'), v.literal('system'), v.literal('individual')),
+
+    // Multi-tenancy support
+    university_id: v.optional(v.id('universities')), // Null for non-university users, required for advisor-created tasks
+
+    // Flexible relationship tracking
+    // DUAL-FIELD PATTERN: This table uses both generic and typed relationship fields.
+    //
+    // Generic fields (used for all entity types):
+    // - related_type: Indicates which entity type this follow-up relates to
+    // - related_id: String version of the entity ID (enables composite index queries)
+    //
+    // Typed fields (used for known entity types with referential integrity):
+    // - application_id: Strongly-typed ID for applications (Convex validates referential integrity)
+    // - contact_id: Strongly-typed ID for networking_contacts (Convex validates referential integrity)
+    //
+    // USAGE PATTERN (populate BOTH when applicable):
+    // 1. For applications: Set related_type='application', related_id=<id>, application_id=<id>
+    // 2. For contacts: Set related_type='contact', related_id=<id>, contact_id=<id>
+    // 3. For sessions/reviews/general: Set related_type + related_id only (no typed field exists)
+    //
+    // QUERY USAGE:
+    // - Use typed indexes (by_application, by_contact) when querying a single entity type
+    // - Use composite index (by_related_entity) when querying across multiple entity types
+    //
+    // WHY BOTH? The typed fields provide referential integrity and type safety, while the
+    // generic pattern enables flexible cross-entity queries and supports entity types
+    // without dedicated typed fields (session, review, general).
+    related_type: v.optional(
+      v.union(
+        v.literal('application'),
+        v.literal('contact'),
+        v.literal('session'),
+        v.literal('review'),
+        v.literal('general'),
+      ),
+    ),
+    related_id: v.optional(v.string()), // String representation of entity ID for composite index
+
+    // Typed entity links (provide referential integrity for known entity types)
+    application_id: v.optional(v.id('applications')),
+    contact_id: v.optional(v.id('networking_contacts')),
+
+    // Task management
+    due_at: v.optional(v.number()), // Due date timestamp
+    priority: v.optional(v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('urgent'))),
+    status: v.union(v.literal('open'), v.literal('done')),
+
+    // Completion audit trail
+    // Note: These fields use v.union with v.null() to allow clearing via patch()
+    // Setting to null clears the field when reopening a completed follow-up
+    completed_at: v.optional(v.union(v.number(), v.null())),
+    completed_by: v.optional(v.union(v.id('users'), v.null())),
+
+    // Optimistic concurrency control for FERPA audit accuracy
+    version: v.optional(v.number()),
+
+    // Migration tracking - enables idempotent re-runs with force=true
+    // Stores the original _id from followup_actions or advisor_follow_ups
+    migrated_from_id: v.optional(v.string()),
+
+    // Timestamps
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index('by_user', ['user_id'])
+    .index('by_owner_status', ['owner_id', 'status'])
+    .index('by_university', ['university_id'])
+    .index('by_application', ['application_id'])
+    .index('by_contact', ['contact_id'])
+    .index('by_due_at', ['due_at'])
+    .index('by_owner', ['owner_id'])
+    .index('by_related_entity', ['related_type', 'related_id'])
+    .index('by_migrated_from', ['migrated_from_id'])
+    .index('by_created_by', ['created_by_id'])
+    .index('by_user_university', ['user_id', 'university_id']),
+
+  // =============================================================================
+  // DEPRECATED: Legacy followup_actions table
+  // =============================================================================
+  // STATUS: Deprecated - Consolidated into follow_ups table
+  // MIGRATION SCRIPT: convex/migrate_follow_ups.ts (migrateFollowUps mutation)
+  // USAGE: Run 'npx convex run migrate_follow_ups:migrateFollowUps' to migrate data
+  // VERIFICATION: Run 'npx convex query migrate_follow_ups:verifyMigration' after migration
+  //
+  // NEW CODE: Must use follow_ups table - DO NOT insert/query this table
+  // REMOVAL TIMELINE: After successful production migration and verification (TBD)
+  //
+  // NOTE: This table was replaced to consolidate student-created and advisor-created
+  // follow-ups into a single unified table with better ownership tracking.
+  // =============================================================================
   followup_actions: defineTable({
-    user_id: v.id("users"),
-    application_id: v.optional(v.id("applications")),
-    contact_id: v.optional(v.id("networking_contacts")),
+    user_id: v.id('users'),
+    application_id: v.optional(v.id('applications')),
+    contact_id: v.optional(v.id('networking_contacts')),
     type: v.string(), // default: 'follow_up'
     description: v.optional(v.string()),
     due_date: v.optional(v.number()),
@@ -391,10 +580,10 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_application", ["application_id"])
-    .index("by_contact", ["contact_id"])
-    .index("by_due_date", ["due_date"]),
+    .index('by_user', ['user_id'])
+    .index('by_application', ['application_id'])
+    .index('by_contact', ['contact_id'])
+    .index('by_due_date', ['due_date']),
 
   // Achievements table
   achievements: defineTable({
@@ -455,7 +644,9 @@ export default defineSchema({
     updated_at: v.number(),
   })
     .index("by_user", ["user_id"])
-    .index("by_company", ["company"]),
+    .index("by_company", ["company"])
+    // SECURITY: Tenant-scoped index for university reporting
+    .index("by_university", ["university_id"]),
 
   // Contact interactions table
   contact_interactions: defineTable({
@@ -501,7 +692,9 @@ export default defineSchema({
   })
     .index("by_user", ["user_id"])
     .index("by_status", ["status"])
-    .index("by_target_date", ["target_date"]),
+    .index("by_target_date", ["target_date"])
+    // SECURITY: Tenant-scoped index for university reporting
+    .index("by_university", ["university_id"]),
 
   // AI Coach conversations table
   ai_coach_conversations: defineTable({
@@ -723,8 +916,9 @@ export default defineSchema({
       v.literal("revoked"),
     ),
     expires_at: v.number(), // Timestamp when invite expires
-    accepted_at: v.optional(v.number()), // Timestamp when invite was accepted
-    accepted_by_user_id: v.optional(v.id("users")), // User who accepted the invite
+    // Nullable to support explicit clearing during rollback (prevents stale data)
+    accepted_at: v.optional(v.union(v.number(), v.null())), // Timestamp when invite was accepted
+    accepted_by_user_id: v.optional(v.union(v.id("users"), v.null())), // User who accepted the invite
     metadata: v.optional(v.any()), // Additional invite data (major, year, etc.)
     created_at: v.number(),
     updated_at: v.number(),
@@ -735,8 +929,366 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_expires_at", ["expires_at"]),
 
-  // Advisor-student roster mapping
-  // Enforces advisor assignments within a university
+  // ========================================
+  // ADVISOR FEATURE TABLES
+  // ========================================
+  //
+  // NOTE: There are TWO advisor-student relationship tables:
+  //
+  // 1. student_advisors (below) - Used by ADVISOR MODULE (convex/advisor_*.ts)
+  //    - References users table directly (student_id, advisor_id)
+  //    - Supports ownership semantics (is_owner, shared_type)
+  //    - Primary advisor can be designated per student
+  //    - Used for: caseload queries, session scheduling, document reviews
+  //
+  // 2. advisorStudents (line ~1219) - Used by UNIVERSITY ADMIN MODULE
+  //    - References studentProfiles table (student_profile_id)
+  //    - Simpler roster management without ownership semantics
+  //    - Used for: bulk assignment via university admin UI
+  //
+  // TODO: Consider consolidating these tables. Current duplication exists
+  // because they were developed in parallel for different features.
+  // Migration path: Align advisorStudents to use student_advisors with is_owner=true
+  // ========================================
+
+  // Student-Advisor relationship table (many-to-many with ownership)
+  // UNIQUENESS CONSTRAINT: is_owner=true must be unique per student_id
+  // - Enforced in mutations (no database constraint available)
+  // - Diagnostic: Run 'npx convex run advisor_students:findDuplicateOwners' to detect violations
+  student_advisors: defineTable({
+    student_id: v.id("users"), // Must be a user with role="student"
+    advisor_id: v.id("users"), // Must be a user with role="advisor"
+    university_id: v.id("universities"), // Denormalized for tenant isolation
+    is_owner: v.boolean(), // Primary advisor flag (exactly one per student)
+    shared_type: v.optional(
+      v.union(
+        v.literal("reviewer"), // Can review documents
+        v.literal("temp"), // Temporary assignment
+      ),
+    ),
+    assigned_at: v.number(), // timestamp
+    assigned_by: v.id("users"), // Admin who made the assignment
+    notes: v.optional(v.string()), // Assignment context
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_university", ["university_id"])
+    .index("by_advisor", ["advisor_id", "university_id"])
+    .index("by_student", ["student_id", "university_id"])
+    .index("by_advisor_owner", ["advisor_id", "is_owner", "university_id"])
+    .index("by_student_owner", ["student_id", "is_owner"]),
+
+  // Advisor session/appointment tracking
+  advisor_sessions: defineTable({
+    student_id: v.id("users"),
+    advisor_id: v.id("users"),
+    university_id: v.id("universities"), // Denormalized for tenant isolation
+    title: v.string(),
+    scheduled_at: v.optional(v.number()), // timestamp
+    start_at: v.number(), // timestamp
+    end_at: v.optional(v.number()), // timestamp
+    duration_minutes: v.optional(v.number()),
+    session_type: v.optional(
+      v.union(
+        v.literal("career_planning"),
+        v.literal("resume_review"),
+        v.literal("mock_interview"),
+        v.literal("application_strategy"),
+        v.literal("general_advising"),
+        v.literal("other"),
+      ),
+    ),
+    template_id: v.optional(v.string()), // Reference to note templates
+    outcomes: v.optional(v.array(v.string())), // Checklist of session outcomes
+    location: v.optional(v.string()), // Physical location or room
+    meeting_url: v.optional(v.string()), // Virtual meeting link
+    notes: v.optional(v.string()), // Rich text session notes
+    visibility: v.union(
+      v.literal("shared"), // Visible to student
+      v.literal("advisor_only"), // Private advisor notes
+    ),
+    status: v.optional(
+      v.union(
+        v.literal("scheduled"),
+        v.literal("completed"),
+        v.literal("cancelled"),
+        v.literal("no_show"),
+      ),
+    ),
+    tasks: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          title: v.string(),
+          due_at: v.optional(v.number()),
+          // Role-based ownership: tasks are implicitly owned by the session's student_id or advisor_id
+          // To query "all tasks for user X", filter by role + session student_id/advisor_id
+          // Alternative: use owner_id: v.id("users") for direct user assignment
+          owner: v.union(v.literal("student"), v.literal("advisor")),
+          status: v.union(v.literal("open"), v.literal("done")),
+        }),
+      ),
+    ),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          name: v.string(),
+          storage_id: v.id("_storage"), // Use Convex storage for access control
+          type: v.string(), // MIME type
+          size: v.number(), // bytes
+        }),
+      ),
+    ),
+    version: v.optional(v.number()), // For optimistic concurrency control
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_university", ["university_id"])
+    .index("by_advisor", ["advisor_id", "university_id"])
+    .index("by_student", ["student_id", "university_id"])
+    .index("by_advisor_student", ["advisor_id", "student_id", "university_id"])
+    .index("by_scheduled_at", ["scheduled_at"])
+    .index("by_advisor_scheduled", ["advisor_id", "scheduled_at"])
+    .index("by_status", ["status", "university_id"]),
+
+  // Resume/Cover Letter review queue for advisors
+  advisor_reviews: defineTable({
+    student_id: v.id("users"),
+    university_id: v.id("universities"), // Denormalized for tenant isolation
+    asset_type: v.union(
+      v.literal("resume"),
+      v.literal("cover_letter"),
+    ),
+    // IMPORTANT: Mutations must ensure exactly one of these is set based on asset_type
+    resume_id: v.optional(v.id("resumes")),
+    cover_letter_id: v.optional(v.id("cover_letters")),
+    related_application_id: v.optional(v.id("applications")),
+    related_review_id: v.optional(v.id("advisor_reviews")), // Previous review in chain
+    status: v.union(
+      v.literal("waiting"), // Pending advisor review
+      v.literal("in_review"), // Advisor actively reviewing
+      v.literal("needs_edits"), // Feedback provided, student needs to revise
+      v.literal("approved"), // Advisor approved
+    ),
+    rubric: v.optional(
+      v.object({
+        content_quality: v.optional(v.number()), // 0-100
+        formatting: v.optional(v.number()), // 0-100
+        relevance: v.optional(v.number()), // 0-100
+        grammar: v.optional(v.number()), // 0-100
+        overall: v.optional(v.number()), // 0-100
+      }),
+    ),
+    // Autosave fields for work-in-progress feedback (before finalization)
+    feedback: v.optional(v.string()), // Draft feedback text (autosaved)
+    suggestions: v.optional(v.array(v.string())), // Draft suggestion list (autosaved)
+
+    // Structured comments for finalized feedback
+    comments: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          author_id: v.id("users"), // User ID of commenter
+          body: v.string(), // Comment text (sanitized HTML)
+          visibility: v.union(
+            v.literal("shared"), // Visible to student
+            v.literal("advisor_only"), // Private comment
+          ),
+          created_at: v.number(),
+          updated_at: v.number(),
+        }),
+      ),
+    ),
+    version_id: v.optional(v.string()), // Track which version was reviewed
+    version: v.optional(v.number()), // Optimistic concurrency control version number (optional for backward compat)
+    reviewed_by: v.optional(v.id("users")), // Advisor who reviewed
+    reviewed_at: v.optional(v.number()), // timestamp
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_university", ["university_id"])
+    .index("by_student", ["student_id", "university_id"])
+    .index("by_status", ["status", "university_id"])
+    .index("by_asset_type", ["asset_type", "university_id"])
+    .index("by_resume", ["resume_id"])
+    .index("by_cover_letter", ["cover_letter_id"]),
+
+  // =============================================================================
+  // DEPRECATED: Legacy advisor_follow_ups table
+  // =============================================================================
+  // STATUS: ✅ READY FOR REMOVAL - All queries migrated to follow_ups table
+  // MIGRATION SCRIPT: convex/migrate_follow_ups.ts (migrateFollowUps mutation)
+  // MIGRATION STATUS: Complete - all active queries have been updated
+  // VERIFICATION: Run 'npx convex query migrate_follow_ups:verifyMigration' to confirm data migration
+  //
+  // ✅ ALL QUERIES MIGRATED:
+  // - convex/advisor_dashboard.ts - Now uses follow_ups table
+  // - convex/advisor_calendar.ts - Now uses follow_ups table
+  // - convex/advisor_today.ts - Now uses follow_ups table
+  //
+  // REMOVAL PROCESS:
+  // 1. Verify data migration: npx convex query migrate_follow_ups:verifyMigration
+  // 2. Confirm no production data loss
+  // 3. Remove this table definition from schema
+  // 4. Remove convex/advisor_follow_ups.ts file
+  // 5. Update migration docs
+  //
+  // NEW CODE: Must use follow_ups table - DO NOT insert/query this table
+  //
+  // NOTE: This table was replaced to consolidate student-created and advisor-created
+  // follow-ups into a single unified table with better ownership tracking and multi-tenancy.
+  // =============================================================================
+  advisor_follow_ups: defineTable({
+    student_id: v.id('users'),
+    advisor_id: v.id('users'),
+    university_id: v.id('universities'), // Denormalized for tenant isolation
+    related_type: v.optional(
+      v.union(
+        v.literal('application'),
+        v.literal('session'),
+        v.literal('review'),
+        v.literal('general'),
+      ),
+    ),
+    related_id: v.optional(v.string()), // ID of related entity
+    title: v.string(),
+    description: v.optional(v.string()),
+    due_at: v.optional(v.number()), // timestamp
+    priority: v.optional(
+      v.union(
+        v.literal('low'),
+        v.literal('medium'),
+        v.literal('high'),
+        v.literal('urgent'),
+      ),
+    ),
+    owner_id: v.id('users'), // Who is responsible (student or advisor)
+    status: v.union(
+      v.literal('open'),
+      v.literal('done'),
+    ),
+    completed_at: v.optional(v.number()),
+    completed_by: v.optional(v.id('users')),
+    // MIGRATION ONLY: Version field required for safe operation during migration period
+    // This field enables FERPA-compliant optimistic locking in advisor_follow_ups.ts
+    // mutations (completeFollowUp, reopenFollowUp) while active queries still reference
+    // this deprecated table. Once all queries are migrated to follow_ups table and
+    // convex/advisor_follow_ups.ts is removed, this field becomes unused.
+    version: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index('by_university', ['university_id'])
+    .index('by_advisor', ['advisor_id', 'university_id'])
+    .index('by_student', ['student_id', 'university_id'])
+    .index('by_owner_status', ['owner_id', 'status'])
+    .index('by_due_at', ['due_at'])
+    .index('by_advisor_student', ['advisor_id', 'student_id']),
+
+  // Audit log for FERPA compliance and security
+  //
+  // RETENTION POLICY (FERPA Compliance):
+  // - Logs must be retained for a minimum of 3 years from the date of the last action
+  // - Recommended retention: 7 years for comprehensive compliance coverage
+  // - Implement automated archival/deletion using scheduled Convex functions
+  // - Before deletion, ensure export to long-term storage if required by policy
+  //
+  // PII HANDLING:
+  // - previous_value/new_value may contain student PII (names, grades, etc.)
+  // - Legacy fields also contain PII that must be redacted:
+  //   - performed_by_name, performed_by_email (actor PII)
+  //   - target_name, target_email (target user PII)
+  // - On student data deletion requests (FERPA/GDPR), audit logs should be:
+  //   1. Retained for compliance period (do not delete immediately)
+  //   2. PII in previous_value/new_value should be redacted/anonymized
+  //   3. Legacy PII fields should be set to "[REDACTED]"
+  //   4. Keep student_id/actor_id as reference for audit trail integrity
+  // - Redaction mutation should handle BOTH new and legacy formats:
+  //   - New: previous_value, new_value (JSON fields - redact PII keys)
+  //   - Legacy: performed_by_name, performed_by_email, target_name, target_email
+  //
+  // TODO: Implement scheduled function for automated log retention management
+  //
+  // MIGRATION NOTE: Schema supports both legacy and new formats for backward compatibility:
+  // - Legacy: performed_by_id, target_id, timestamp, metadata
+  // - New: actor_id, entity_id, created_at, previous_value/new_value
+  // All new audit logs use the new format (see createAuditLog in advisor_auth.ts)
+  audit_logs: defineTable({
+    // New format (current - used by createAuditLog)
+    actor_id: v.optional(v.id("users")), // User who performed the action
+    university_id: v.optional(v.id("universities")), // Tenant isolation
+    action: v.string(), // e.g., "session.created", "review.approved"
+    entity_type: v.optional(v.string()), // e.g., "advisor_session", "advisor_review"
+    entity_id: v.optional(v.string()), // ID of the entity being audited
+    student_id: v.optional(v.id("users")), // Student affected by this action (for FERPA queries)
+    previous_value: v.optional(v.any()), // Previous state (may contain PII - subject to redaction)
+    new_value: v.optional(v.any()), // New state (may contain PII - subject to redaction)
+    ip_address: v.optional(v.string()), // IP address for security tracking
+    user_agent: v.optional(v.string()), // Browser/client info for security tracking
+    created_at: v.optional(v.number()), // Timestamp for retention policy enforcement (optional for legacy records)
+
+    // Legacy format (backward compatibility - deprecated)
+    performed_by_id: v.optional(v.string()), // Legacy: actor_id
+    performed_by_name: v.optional(v.string()), // Legacy: actor name (PII - subject to redaction)
+    performed_by_email: v.optional(v.string()), // Legacy: actor email (PII - subject to redaction)
+    target_id: v.optional(v.string()), // Legacy: entity_id
+    target_type: v.optional(v.string()), // Legacy: entity_type
+    target_name: v.optional(v.string()), // Legacy: entity name (PII - subject to redaction)
+    target_email: v.optional(v.string()), // Legacy: entity email (PII - subject to redaction)
+    timestamp: v.optional(v.number()), // Legacy: created_at
+    reason: v.optional(v.string()), // Legacy: action reason
+    metadata: v.optional(v.any()), // Legacy: additional data (may contain PII - subject to redaction)
+  })
+    .index("by_actor", ["actor_id", "created_at"]) // Find all actions by a user
+    .index("by_entity", ["entity_type", "entity_id", "created_at"]) // Find all changes to an entity
+    .index("by_student", ["student_id", "created_at"]) // FERPA: Find all actions affecting a student
+    .index("by_university", ["university_id", "created_at"]) // Tenant-scoped queries
+    .index("by_action", ["action", "created_at"]) // Find all instances of a specific action type
+    .index("by_created_at", ["created_at"]) // Retention policy: find old logs for archival
+    .index("by_timestamp", ["timestamp"]) // Legacy: retention policy for old logs
+    .index("by_target", ["target_type", "target_id", "timestamp"]) // Legacy: Find logs by target (user-specific queries)
+    .index("by_target_email", ["target_email", "timestamp"]), // Legacy: Find logs by target email
+
+  // Migration tracking table for idempotency and state management
+  migration_state: defineTable({
+    migration_name: v.string(), // Unique identifier for the migration (e.g., "migrate_follow_ups_v1")
+    status: v.union(
+      v.literal("pending"),    // Migration started but not completed
+      v.literal("in_progress"), // Currently running
+      v.literal("completed"),   // Successfully completed
+      v.literal("failed"),      // Failed with errors
+      v.literal("rolled_back")  // Rolled back due to errors
+    ),
+    started_at: v.number(),
+    completed_at: v.optional(v.number()),
+    error_message: v.optional(v.string()),
+    metadata: v.optional(v.any()), // Migration-specific data (counts, stats, etc.)
+    executed_by: v.optional(v.string()), // Who/what triggered the migration
+  }).index("by_name", ["migration_name"])
+    .index("by_status", ["status"])
+    .index("by_started_at", ["started_at"]),
+
+  // Advisor-student roster mapping for UNIVERSITY ADMIN module
+  // Used by: convex/university_admin.ts, convex/universities_admin.ts
+  //
+  // ========================================
+  // DEPRECATED: This table is being phased out
+  // ========================================
+  // Use `student_advisors` (line ~938) instead for all new code.
+  //
+  // Migration status:
+  // - [x] university_admin.assignAdvisorToStudent now uses student_advisors
+  // - [x] universities_admin.hardDeleteUniversity deletes from both tables
+  // - [ ] Run migration: npx convex run migrations/consolidate_advisor_students:migrate
+  // - [ ] Remove this table after migration is verified
+  //
+  // Key differences from student_advisors:
+  // - References studentProfiles instead of users (student_profile_id vs student_id)
+  // - No ownership semantics (no is_owner, shared_type fields)
+  //
+  // See docs/TECH_DEBT_ADVISOR_STUDENT_TABLES.md for full migration plan.
+  // ========================================
   advisorStudents: defineTable({
     university_id: v.id("universities"),
     advisor_id: v.id("users"),
@@ -772,28 +1324,6 @@ export default defineSchema({
     .index("by_university_role", ["university_id", "role"])
     .index("by_university", ["university_id"]),
 
-  // Audit logs for tracking admin actions (FERPA/GDPR compliance)
-  audit_logs: defineTable({
-    action: v.string(), // Action performed (e.g., "user_deleted", "user_restored", "user_created", "role_changed")
-    target_type: v.string(), // Type of entity affected (e.g., "user", "university", "application")
-    target_id: v.string(), // ID of the affected entity
-    target_email: v.optional(v.string()), // Email of affected user (for easier searching)
-    target_name: v.optional(v.string()), // Name of affected entity (for easier viewing)
-    performed_by_id: v.id("users"), // Admin who performed the action
-    performed_by_email: v.optional(v.string()), // Email of admin (cached for viewing)
-    performed_by_name: v.optional(v.string()), // Name of admin (cached for viewing)
-    reason: v.optional(v.string()), // Reason for the action
-    metadata: v.optional(v.any()), // Additional context (old values, new values, etc.)
-    ip_address: v.optional(v.string()), // IP address of admin (if available)
-    user_agent: v.optional(v.string()), // Browser/device info (if available)
-    timestamp: v.number(), // When the action was performed
-  })
-    .index("by_action", ["action"])
-    .index("by_target", ["target_type", "target_id"])
-    .index("by_performed_by", ["performed_by_id"])
-    .index("by_timestamp", ["timestamp"])
-    .index("by_target_email", ["target_email"]),
-
   // Notifications table for in-app notifications
   notifications: defineTable({
     user_id: v.id("users"), // User who should see this notification
@@ -814,5 +1344,5 @@ export default defineSchema({
   })
     .index("by_user", ["user_id"])
     .index("by_user_read", ["user_id", "read"])
-    .index("by_created_at", ["created_at"])
+    .index("by_created_at", ["created_at"]),
 });

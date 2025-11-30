@@ -4,6 +4,7 @@ import { api } from "./_generated/api";
 import { getActingUser, logRoleChange } from "./users_core";
 import { isServiceRequest } from "./lib/roles";
 import { validateRoleTransition, type UserRole } from "./lib/roleValidation";
+import { maskEmail, maskId } from "./lib/piiSafe";
 
 // Create or update user from Clerk webhook
 export const createUser = mutation({
@@ -111,7 +112,7 @@ export const createUser = mutation({
         updated_at: Date.now(),
       });
 
-      console.log(`[createUser] Activated pending university student: ${args.email}`);
+      console.log(`[createUser] Activated pending university student: ${maskEmail(args.email)}`);
       return pendingUser._id;
     }
 
@@ -146,6 +147,20 @@ export const createUser = mutation({
 
 export const createUserFromClerk = createUser;
 
+/**
+ * Update user profile fields.
+ *
+ * ⚠️ IMPORTANT: Role changes should go through Clerk first!
+ * Clerk publicMetadata.role is the source of truth for authorization.
+ * Direct role changes here will create a sync mismatch.
+ *
+ * Preferred flow for role changes:
+ * 1. Update role in Clerk publicMetadata (via Dashboard or API)
+ * 2. Clerk webhook triggers user.updated event
+ * 3. Webhook handler calls this mutation with serviceToken
+ *
+ * See CLAUDE.md "Roles & Permissions" section for details.
+ */
 export const updateUser = mutation({
   args: {
     clerkId: v.string(),
@@ -304,6 +319,33 @@ export const updateUser = mutation({
     const oldRole = targetUser.role;
     const newRole = args.updates.role;
 
+    if (roleChanged && newRole) {
+      // ⚠️ Warn if role change is not from webhook (service token)
+      // Clerk publicMetadata.role is the source of truth - direct changes create sync issues
+      if (!isService) {
+        console.warn(
+          `[updateUser] ⚠️ Direct role change for ${args.clerkId}: ${oldRole} → ${newRole}. ` +
+          `Consider updating Clerk publicMetadata.role first to maintain sync.`
+        );
+      }
+
+      const targetUniversityId = args.updates.university_id !== undefined
+        ? args.updates.university_id
+        : targetUser.university_id;
+
+      const validation = await validateRoleTransition(
+        ctx,
+        targetUser.clerkId,
+        oldRole as UserRole,
+        newRole as UserRole,
+        targetUniversityId ?? undefined
+      );
+
+      if (!validation.valid) {
+        throw new Error(validation.error || "Invalid role transition");
+      }
+    }
+
     await ctx.db.patch(targetUser._id, {
       ...cleanUpdates,
       updated_at: Date.now(),
@@ -317,6 +359,24 @@ export const updateUser = mutation({
   },
 });
 
+/**
+ * Update user profile by Convex document ID.
+ *
+ * ⚠️ IMPORTANT: Role changes should go through Clerk first!
+ * Clerk publicMetadata.role is the source of truth for authorization.
+ * Direct role changes here will create a sync mismatch.
+ *
+ * Preferred flow for role changes:
+ * 1. Update role in Clerk publicMetadata (via Dashboard or API)
+ * 2. Clerk webhook triggers user.updated event
+ * 3. Webhook handler calls this mutation with serviceToken
+ *
+ * If role must be changed directly, sync afterward via:
+ *   - API: POST /api/admin/users/sync-role-to-convex with role parameter
+ *   - Script: npx convex run admin/syncRolesToClerk:syncAllRolesToClerk
+ *
+ * See CLAUDE.md "Roles & Permissions" section for details.
+ */
 export const updateUserById = mutation({
   args: {
     id: v.id("users"),
@@ -473,6 +533,15 @@ export const updateUserById = mutation({
 
     // Validate role transition if role is being changed
     if (roleChanged && newRole) {
+      // ⚠️ Warn if role change is not from webhook (service token)
+      // Clerk publicMetadata.role is the source of truth - direct changes create sync issues
+      if (!isService) {
+        console.warn(
+          `[updateUserById] ⚠️ Direct role change for user ${args.id}: ${oldRole} → ${newRole}. ` +
+          `Consider updating Clerk publicMetadata.role first to maintain sync.`
+        );
+      }
+
       // Use the university_id from updates if provided, otherwise use existing
       const targetUniversityId = args.updates.university_id !== undefined
         ? args.updates.university_id
@@ -529,21 +598,26 @@ export const ensureMembership = mutation({
       v.literal("university_admin"),
     ),
     universityId: v.id("universities"),
+    serviceToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Verify caller is super_admin
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized: User not authenticated");
-    }
+    const isService = isServiceRequest(args.serviceToken);
 
-    const callingUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    // Verify caller is super_admin unless using trusted service token (webhook)
+    if (!isService) {
+      if (!identity) {
+        throw new Error("Unauthorized: User not authenticated");
+      }
 
-    if (!callingUser || callingUser.role !== "super_admin") {
-      throw new Error("Forbidden: Only super admins can manage memberships");
+      const callingUser = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .unique();
+
+      if (!callingUser || callingUser.role !== "super_admin") {
+        throw new Error("Forbidden: Only super admins can manage memberships");
+      }
     }
 
     // Get target user by clerkId
@@ -572,7 +646,7 @@ export const ensureMembership = mutation({
           status: "active",
           updated_at: now,
         });
-        console.log(`[ensureMembership] Updated membership for user ${args.clerkId} with role ${args.role}`);
+        console.log(`[ensureMembership] Updated membership for user ${maskId(args.clerkId)} with role ${args.role}`);
       }
       return existingMembership._id;
     }
@@ -587,7 +661,243 @@ export const ensureMembership = mutation({
       updated_at: now,
     });
 
-    console.log(`[ensureMembership] Created membership for user ${args.clerkId} with role ${args.role}`);
+    console.log(`[ensureMembership] Created membership for user ${maskId(args.clerkId)} with role ${args.role}`);
     return membershipId;
+  },
+});
+
+/**
+ * Atomically update user and ensure membership in a single transaction.
+ *
+ * This mutation combines updateUser and ensureMembership operations to prevent
+ * partial updates where user role changes but membership creation fails.
+ *
+ * Used by Clerk webhook for user.updated events to ensure data consistency.
+ *
+ * ⚠️ IMPORTANT: This mutation should primarily be called from the Clerk webhook.
+ * Clerk publicMetadata.role is the source of truth for authorization.
+ * When called directly (not from webhook), role changes will update Convex
+ * but Clerk may still have the old role, causing authorization mismatches.
+ *
+ * Preferred flow:
+ * 1. Update role in Clerk publicMetadata (via Dashboard or API)
+ * 2. Clerk webhook triggers user.updated event
+ * 3. Webhook handler calls this mutation with serviceToken
+ *
+ * See CLAUDE.md "Roles & Permissions" section for details.
+ */
+export const updateUserWithMembership = mutation({
+  args: {
+    clerkId: v.string(),
+    updates: v.object({
+      name: v.optional(v.string()),
+      email: v.optional(v.string()),
+      profile_image: v.optional(v.string()),
+      role: v.optional(
+        v.union(
+          v.literal("individual"),
+          v.literal("user"),
+          v.literal("student"),
+          v.literal("staff"),
+          v.literal("university_admin"),
+          v.literal("advisor"),
+          v.literal("super_admin"),
+        ),
+      ),
+      subscription_plan: v.optional(
+        v.union(
+          v.literal("free"),
+          v.literal("premium"),
+          v.literal("university"),
+        ),
+      ),
+      subscription_status: v.optional(
+        v.union(
+          v.literal("active"),
+          v.literal("inactive"),
+          v.literal("cancelled"),
+          v.literal("past_due"),
+        ),
+      ),
+      university_id: v.optional(v.id("universities")),
+      account_status: v.optional(
+        v.union(
+          v.literal("active"),
+          v.literal("suspended"),
+          v.literal("pending_activation"),
+        ),
+      ),
+    }),
+    // Membership data - only required for university roles
+    membership: v.optional(v.object({
+      role: v.union(
+        v.literal("student"),
+        v.literal("advisor"),
+        v.literal("university_admin"),
+      ),
+      universityId: v.id("universities"),
+    })),
+    serviceToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const isService = isServiceRequest(args.serviceToken);
+
+    // Service token required for webhook calls
+    if (!identity && !isService) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+
+    let callingUser: any = null;
+
+    // For non-service calls, ensure caller is authorized (super_admin)
+    if (!isService && identity) {
+      callingUser = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .unique();
+
+      if (!callingUser || callingUser.role !== "super_admin") {
+        throw new Error("Forbidden: Only super admins can update users with membership");
+      }
+    }
+
+    const protectedFields = new Set([
+      "role",
+      "university_id",
+      "subscription_plan",
+      "subscription_status",
+      "account_status",
+      "department_id",
+    ]);
+
+    if (
+      !isService &&
+      callingUser?.role !== "super_admin" &&
+      Object.keys(args.updates).some((key) => protectedFields.has(key))
+    ) {
+      throw new Error("Unauthorized to change restricted fields");
+    }
+
+    // Get target user by clerkId
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) {
+      throw new Error(`User not found: ${maskId(args.clerkId)}`);
+    }
+
+    const now = Date.now();
+
+    // Filter out undefined values from updates
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(args.updates).filter(([_, value]) => value !== undefined)
+    );
+
+    // Validate that role and membership role (if provided) are consistent
+    if (
+      args.updates.role &&
+      args.membership &&
+      args.updates.role !== args.membership.role
+    ) {
+      throw new Error(
+        `Role mismatch: updates.role (${args.updates.role}) does not match membership.role (${args.membership.role})`
+      );
+    }
+
+    // Track role changes for audit logging
+    const roleChanged = args.updates.role && args.updates.role !== user.role;
+    const oldRole = user.role;
+    const newRole = args.updates.role;
+
+    // Validate role transition if changing role
+    if (roleChanged && newRole) {
+      // ⚠️ Warn if role change is not from webhook (service token)
+      // Clerk publicMetadata.role is the source of truth - direct changes create sync issues
+      if (!isService) {
+        console.warn(
+          `[updateUserWithMembership] ⚠️ Direct role change for ${args.clerkId}: ${oldRole} → ${newRole}. ` +
+          `Consider updating Clerk publicMetadata.role first to maintain sync.`
+        );
+      }
+
+      const targetUniversityId =
+        args.updates.university_id !== undefined
+          ? args.updates.university_id
+          : args.membership?.universityId ?? user.university_id;
+
+      const validation = await validateRoleTransition(
+        ctx,
+        user.clerkId,
+        oldRole as UserRole,
+        newRole as UserRole,
+        targetUniversityId ?? undefined
+      );
+
+      if (!validation.valid) {
+        throw new Error(validation.error || "Invalid role transition");
+      }
+    }
+
+    // Step 1: Update user record
+    await ctx.db.patch(user._id, {
+      ...cleanUpdates,
+      updated_at: now,
+    });
+
+    // Step 2: Ensure membership if university role data provided
+    let membershipId = null;
+    if (args.membership) {
+      // Check for existing membership with this role
+      const existingMembership = await ctx.db
+        .query("memberships")
+        .withIndex("by_user_role", (q) =>
+          q.eq("user_id", user._id).eq("role", args.membership!.role)
+        )
+        .first();
+
+      if (existingMembership) {
+        // Update if university changed or status is not active
+        if (
+          existingMembership.university_id !== args.membership.universityId ||
+          existingMembership.status !== "active"
+        ) {
+          await ctx.db.patch(existingMembership._id, {
+            university_id: args.membership.universityId,
+            // Reactivate membership when webhook confirms role assignment
+            status: "active",
+            updated_at: now,
+          });
+          console.log(`[updateUserWithMembership] Updated membership for user ${maskId(args.clerkId)} with role ${args.membership.role}`);
+        }
+        membershipId = existingMembership._id;
+      } else {
+        // Create new membership
+        membershipId = await ctx.db.insert("memberships", {
+          user_id: user._id,
+          university_id: args.membership.universityId,
+          role: args.membership.role,
+          status: "active",
+          created_at: now,
+          updated_at: now,
+        });
+        console.log(`[updateUserWithMembership] Created membership for user ${maskId(args.clerkId)} with role ${args.membership.role}`);
+      }
+    }
+
+    // Step 3: Log role change if applicable
+    if (roleChanged && !isService) {
+      await logRoleChange(ctx, user, oldRole, newRole!);
+    }
+
+    console.log(`[updateUserWithMembership] Updated user ${maskId(args.clerkId)}${membershipId ? ` with membership ${maskId(membershipId)}` : ''}`);
+
+    return {
+      userId: user._id,
+      membershipId,
+      roleChanged,
+    };
   },
 });

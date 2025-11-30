@@ -4,6 +4,7 @@ import { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { validate as validateEmail } from "email-validator";
 import { requireMembership } from "./lib/roles";
+import { maskEmail, maskId } from "./lib/piiSafe";
 
 /**
  * Valid academic year classifications for students
@@ -78,10 +79,10 @@ async function rollbackInviteAcceptance(
     inviteId: Id<"studentInvites">;
     universityId: Id<"universities">;
     originalUserState: {
-      role: string;
-      university_id?: Id<"universities">;
-      subscription_plan?: string;
-      subscription_status?: string;
+      role: Doc<"users">["role"];
+      university_id?: Doc<"users">["university_id"];
+      subscription_plan?: Doc<"users">["subscription_plan"];
+      subscription_status?: Doc<"users">["subscription_status"];
     };
     context: {
       userEmail: string;
@@ -98,7 +99,7 @@ async function rollbackInviteAcceptance(
     `[ROLLBACK INITIATED] License capacity exceeded for ${params.context.universityName}: ` +
     `${params.context.currentUsage}/${params.context.capacity}`
   );
-  console.error(`User: ${params.context.userEmail} (${params.userId}), Invite: ${params.inviteId}`);
+  console.error(`User: ${maskEmail(params.context.userEmail)} (${maskId(params.userId)}), Invite: ${maskId(params.inviteId)}`);
 
   // Rollback Step 1: Decrement license usage
   try {
@@ -129,10 +130,10 @@ async function rollbackInviteAcceptance(
   // Rollback Step 3: Restore user's original state
   try {
     await ctx.db.patch(params.userId, {
-      role: params.originalUserState.role as any,
+      role: params.originalUserState.role,
       university_id: params.originalUserState.university_id,
-      subscription_plan: params.originalUserState.subscription_plan as any,
-      subscription_status: params.originalUserState.subscription_status as any,
+      subscription_plan: params.originalUserState.subscription_plan,
+      subscription_status: params.originalUserState.subscription_status,
       updated_at: now,
     });
     console.log("[ROLLBACK] ✓ User state restored");
@@ -178,7 +179,8 @@ async function rollbackInviteAcceptance(
  * Throws error if user is not a student with valid studentProfile
  *
  * LEGACY SUPPORT: Currently accepts both "student" role AND legacy "user" role with university_id.
- * TODO: Remove legacy "user" role check after backfillStudentRoles migration is complete and verified.
+ * This is intentional for backward compatibility during the user→student migration period.
+ * To remove: Run backfillStudentRoles migration, verify no users have role="user", then simplify this check.
  * See: convex/migrations.ts:backfillStudentRoles and scripts/backfill-student-roles.js
  */
 export async function requireStudent(
@@ -191,8 +193,7 @@ export async function requireStudent(
     throw new Error("User not found");
   }
 
-  // Check if user is a student
-  // TODO: Remove legacy check after migration - should only check: user.role === "student"
+  // Check if user is a student (includes legacy "user" role with university_id for backward compatibility)
   const isStudent = user.role === "student" ||
                    (user.role === "user" && user.university_id);
 
@@ -543,7 +544,7 @@ export const acceptInvite = mutation({
       } catch (patchError) {
         // Log error but don't block the user from seeing the expired error
         console.error("Failed to auto-expire invite:", patchError);
-        console.error("Invite ID:", invite._id, "Email:", invite.email);
+        console.error("Invite ID:", maskId(invite._id), "Email:", maskEmail(invite.email));
       }
       throw new Error("Invite has expired");
     }
@@ -638,7 +639,7 @@ export const acceptInvite = mutation({
 
     if (raceCheckProfile) {
       // Profile was created by concurrent request - this is OK, use existing
-      console.warn(`Race condition detected: studentProfile already exists for user ${user.email}`);
+      console.warn(`Race condition detected: studentProfile already exists for user ${maskEmail(user.email)}`);
       studentProfileId = raceCheckProfile._id;
     } else {
       // Safe to create profile
@@ -671,7 +672,7 @@ export const acceptInvite = mutation({
           .first();
 
         if (fallbackProfile) {
-          console.warn(`Insert failed but profile exists - likely race condition for user ${user.email}`);
+          console.warn(`Insert failed but profile exists - likely race condition for user ${maskEmail(user.email)}`);
           studentProfileId = fallbackProfile._id;
         } else {
           // Genuine error - cannot proceed without profile
@@ -747,7 +748,7 @@ export const acceptInvite = mutation({
     const updatedUniversity = await ctx.db.get(university._id);
     if (updatedUniversity && updatedUniversity.license_used > updatedUniversity.license_seats) {
       // Over-capacity detected - rollback all changes using helper function
-      await rollbackInviteAcceptance(ctx, {
+      const rollbackResult = await rollbackInviteAcceptance(ctx, {
         userId: user._id,
         studentProfileId,
         inviteId: invite._id,
@@ -760,6 +761,14 @@ export const acceptInvite = mutation({
           capacity: updatedUniversity.license_seats,
         },
       });
+
+      // If rollback failed, log critical error for monitoring/alerting
+      if (!rollbackResult.success) {
+        console.error(
+          `[CRITICAL] Rollback failed for user ${maskEmail(user.email)} (${maskId(user._id)}). ` +
+          `Manual intervention required. Errors: ${rollbackResult.errors.join('; ')}`
+        );
+      }
 
       throw new Error(
         `University has reached maximum capacity (${updatedUniversity.license_seats} licenses). ` +
@@ -1186,9 +1195,9 @@ export const monitorDuplicateProfiles = internalMutation({
       console.error("\nAffected users:");
 
       for (const dup of duplicates) {
-        console.error(`  - ${dup.email} (${dup.userId}): ${dup.profileCount} profiles`);
-        console.error(`    Keep: ${dup.oldestProfile}`);
-        console.error(`    Delete: ${dup.newerProfiles.join(", ")}`);
+        console.error(`  - ${maskEmail(dup.email)} (${maskId(dup.userId)}): ${dup.profileCount} profiles`);
+        console.error(`    Keep: ${maskId(dup.oldestProfile)}`);
+        console.error(`    Delete: ${dup.newerProfiles.map(maskId).join(", ")}`);
       }
 
       console.error("\n🔧 Cleanup command:");
@@ -1622,7 +1631,13 @@ export const detectDuplicateInvites = query({
     const duplicates = [];
     for (const [key, invites] of Array.from(invitesByKey.entries())) {
       if (invites.length > 1) {
-        const [universityId, email] = key.split(":");
+        const colonIndex = key.indexOf(":");
+        if (colonIndex === -1) {
+          console.error(`Invalid invite key format (missing colon): ${key}`);
+          continue;
+        }
+        const universityId = key.substring(0, colonIndex);
+        const email = key.substring(colonIndex + 1);
         const university = await ctx.db.get(universityId as Id<"universities">);
 
         // Sort by created_at to identify oldest (keep) vs newest (delete)

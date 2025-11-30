@@ -215,6 +215,11 @@ export const runSanityCheck = action({
     } catch (error) {
       log(`\n❌ ERROR: ${error instanceof Error ? error.message : String(error)}`);
       log(error instanceof Error ? error.stack || "" : "");
+      log("\n" + "=".repeat(80));
+      return {
+        success: false,
+        logs,
+      };
     }
 
     log("\n" + "=".repeat(80));

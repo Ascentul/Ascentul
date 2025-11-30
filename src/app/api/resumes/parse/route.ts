@@ -99,6 +99,29 @@ function fallbackParser(resumeText: string) {
       const descEnd = nextJobMatch ? nextJobMatch.index! : Math.min(500, remainingExp.length)
       const description = remainingExp.substring(0, descEnd).trim()
 
+      // Parse description into summary and keyContributions to match AI schema
+      // Trim lines upfront so bullet detection works for indented lines like "  • Contribution"
+      const descriptionLines = description ? description.split(/\n/).map(line => line.trim()).filter(line => line) : []
+      const summaryLines: string[] = []
+      const contributionLines: string[] = []
+
+      for (const line of descriptionLines) {
+        if (/^[•*\-]\s*/.test(line)) {
+          contributionLines.push(line.replace(/^[•*\-]\s*/, ''))
+        } else if (contributionLines.length === 0) {
+          // Lines before bullets are considered summary/overview
+          summaryLines.push(line)
+        } else {
+          // Non-bullet lines after bullets are continuation of previous contribution
+          if (line.length > 0 && contributionLines.length > 0) {
+            contributionLines[contributionLines.length - 1] += ' ' + line
+          }
+        }
+      }
+
+      const summaryText = summaryLines.join(' ').trim()
+      const keyContributions = contributionLines.filter(line => line.length > 0)
+
       experience.push({
         title: titleLine.trim(),
         company: companyLine.trim().replace(/^\s*[-–—•]\s*/, ''),
@@ -106,7 +129,8 @@ function fallbackParser(resumeText: string) {
         startDate,
         endDate: current ? 'Present' : endDate,
         current,
-        description: description || ''
+        summary: summaryText,
+        keyContributions
       })
     }
 
@@ -128,7 +152,8 @@ function fallbackParser(resumeText: string) {
               startDate: '',
               endDate: '',
               current: false,
-              description: ''
+              summary: '',
+              keyContributions: []
             })
           }
         }

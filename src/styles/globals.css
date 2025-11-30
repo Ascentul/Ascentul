@@ -146,6 +146,28 @@
     scrollbar-color: rgb(209 213 219) rgb(243 244 246);
   }
 
+  /* Slide-up animation for bulk action bar */
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.2s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-slide-up {
+      animation: none;
+    }
+  }
+
   /* Hide scrollbars but keep scroll functionality */
   .no-scrollbar {
     -ms-overflow-style: none;

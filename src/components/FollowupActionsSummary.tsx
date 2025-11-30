@@ -43,9 +43,10 @@ type FollowupAction = {
 
 export function FollowupActionsSummary() {
   const { user } = useAuth()
+  // SECURITY: Query uses authenticated user from JWT, no clerkId needed
   const followupActions = useQuery(
     api.followups.getUserFollowups,
-    user?.clerkId ? { clerkId: user.clerkId } : 'skip'
+    user?.clerkId ? {} : 'skip'
   ) as FollowupAction[] | undefined
 
   const isLoading = followupActions === undefined

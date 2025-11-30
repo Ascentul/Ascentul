@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSignUp, useAuth } from '@clerk/nextjs'
+import type { SignUpCreateParams } from '@clerk/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -34,6 +35,7 @@ interface SignUpFormProps {
   setFormUI: React.Dispatch<React.SetStateAction<FormUI>>
   error: string | null
   submitting: boolean
+  verifyingInvite?: boolean
   onSubmit: (e: React.FormEvent) => void
 }
 
@@ -44,6 +46,7 @@ function SignUpForm({
   setFormUI,
   error,
   submitting,
+  verifyingInvite = false,
   onSubmit,
 }: SignUpFormProps) {
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>(0)
@@ -175,9 +178,9 @@ function SignUpForm({
       <Button
         type="submit"
         className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 active:bg-black/95 focus-visible:ring-2 focus-visible:ring-black/20 shadow-md hover:shadow-lg transition-all"
-        disabled={submitting}
+        disabled={submitting || verifyingInvite}
       >
-        {submitting ? 'Creating account...' : 'Create Account'}
+        {verifyingInvite ? 'Verifying invite...' : submitting ? 'Creating account...' : 'Create Account'}
       </Button>
 
       <p className="text-xs text-zinc-500 text-center">
@@ -210,12 +213,74 @@ export default function Page() {
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resending, setResending] = useState(false)
+  const [verifyingInvite, setVerifyingInvite] = useState(false)
+  // Warning for invalid/expired invites (less alarming than error, shown as info banner)
+  const [inviteWarning, setInviteWarning] = useState<string | null>(null)
 
-  // Pre-fill email from URL parameter if provided
+  // University invite data from URL parameters
+  const [universityInvite, setUniversityInvite] = useState<{
+    university: string | null
+    email: string | null
+  }>({
+    university: null,
+    email: null,
+  })
+
+  // Pre-fill email from URL parameters and validate invite token if provided
   useEffect(() => {
     const inviteEmail = searchParams.get('email')
-    if (inviteEmail) {
+    const inviteToken = searchParams.get('inviteToken')
+
+    const isValidEmail = inviteEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim()) : false
+
+    if (inviteEmail && isValidEmail) {
       setFormData(prev => ({ ...prev, email: inviteEmail }))
+    }
+
+    // Prefer server-validated invite data when inviteToken is present
+    if (inviteToken) {
+      setVerifyingInvite(true)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      (async () => {
+        try {
+          const res = await fetch(`/api/university/verify-invite?token=${encodeURIComponent(inviteToken)}`, {
+            signal: controller.signal,
+          });
+          if (!res.ok) {
+            throw new Error('Failed to verify invite');
+          }
+          const data = await res.json();
+          if (controller.signal.aborted) return;
+          if (data.valid) {
+            setUniversityInvite({
+              university: data.universityName || null,
+              email: data.email || null,
+            });
+            if (data.email) {
+              setFormData(prev => ({ ...prev, email: data.email }));
+            }
+          } else {
+            // Invalid invite: do not prefill, show warning (not error)
+            setUniversityInvite({ university: null, email: null });
+            setInviteWarning('This invitation link is invalid or has expired. You can still create an account below.');
+          }
+        } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') return;
+          console.error('Invite verification failed:', err);
+          setUniversityInvite({ university: null, email: null });
+          setInviteWarning('Unable to verify invitation. You can still create an account below, or request a new invite link.');
+        } finally {
+          clearTimeout(timeoutId);
+          if (!controller.signal.aborted) {
+            setVerifyingInvite(false);
+          }
+        }
+      })();
+      return () => {
+        clearTimeout(timeoutId);
+        controller.abort();
+      };
     }
   }, [searchParams])
 
@@ -248,12 +313,31 @@ export default function Page() {
 
     try {
       setSubmitting(true)
-      const result = await signUp.create({
-        emailAddress: formData.email,
+      // Build signup params with university metadata if applicable
+      const signUpParams: SignUpCreateParams = {
+        emailAddress: formData.email.trim(),
         password: formData.password,
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
-      })
+      }
+
+      // Pass university invite data to Clerk for webhook processing
+      // This happens when user signs up via university invitation link (URL params)
+      if (universityInvite.university) {
+        // Ensure the email matches the verified invite email
+        if (universityInvite.email && formData.email.trim().toLowerCase() !== universityInvite.email.trim().toLowerCase()) {
+          setError('You must use the email address associated with the invitation.')
+          return
+        }
+        signUpParams.unsafeMetadata = {
+          universityInvite: {
+            universityName: universityInvite.university,
+            inviteEmail: formData.email.trim(),
+          }
+        }
+      }
+
+      const result = await signUp.create(signUpParams)
 
       if (result.status === 'missing_requirements') {
         // Send email verification
@@ -308,10 +392,20 @@ export default function Page() {
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId })
 
-        toast({
-          title: "Email verified successfully!",
-          description: "Welcome to Ascentful!",
-        })
+        // University invitation signup: Show appropriate message
+        // Note: Webhook processes university access asynchronously after user creation
+        // Access will be available shortly, but not guaranteed at this exact moment
+        if (universityInvite.university) {
+          toast({
+            title: "Email verified successfully!",
+            description: `Setting up your ${universityInvite.university} account. This may take a few moments.`,
+          })
+        } else {
+          toast({
+            title: "Email verified successfully!",
+            description: "Welcome to Ascentful!",
+          })
+        }
         router.replace('/onboarding')
       } else {
         setError('Verification failed. Please try again.')
@@ -479,6 +573,11 @@ export default function Page() {
               <CardTitle className="text-2xl font-semibold text-zinc-900">Create your account</CardTitle>
               <p className="text-sm text-zinc-600">Start your career journey today</p>
             </CardHeader>
+            {inviteWarning && (
+              <div className="mx-6 mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                <p>{inviteWarning}</p>
+              </div>
+            )}
             <CardContent>
               <SignUpForm
                 formData={formData}
@@ -487,6 +586,7 @@ export default function Page() {
                 setFormUI={setFormUI}
                 error={error}
                 submitting={submitting}
+                verifyingInvite={verifyingInvite}
                 onSubmit={onSubmitSignUp}
               />
 

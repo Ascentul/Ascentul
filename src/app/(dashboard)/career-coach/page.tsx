@@ -81,6 +81,13 @@ export default function AICoachPage() {
     enabled: !!selectedConversationId && !!user?.clerkId,
   });
 
+  // Auto-select the most recent conversation when list loads
+  useEffect(() => {
+    if (selectedConversationId === null && Array.isArray(conversations) && conversations.length > 0) {
+      setSelectedConversationId(conversations[0].id);
+    }
+  }, [conversations, selectedConversationId]);
+
   // Auto-scroll when messages change
   useEffect(() => {
     scrollToBottom();
@@ -139,13 +146,6 @@ export default function AICoachPage() {
         });
       }
     },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to send message",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
   });
 
   const handleSendMessage = async () => {
@@ -159,7 +159,12 @@ export default function AICoachPage() {
       });
       setMessage("");
     } catch (error) {
-      console.log("Message send error handled by mutation");
+      // Error handling centralized here - no onError callback to avoid duplicate toasts
+      toast({
+        title: "Failed to send message",
+        description: (error as any)?.message || "Please try again",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -367,8 +372,8 @@ export default function AICoachPage() {
               <div className="p-4 border-t bg-gray-50">
                 <div className="max-w-4xl mx-auto">
                   <div className="flex gap-3">
-                    <Textarea
-                      placeholder="Ask your AI career coach anything... (Press Enter to send, Shift+Enter for new line)"
+                      <Textarea
+                      placeholder="Ask your AI career coach anything..."
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       onKeyPress={handleKeyPress}
@@ -399,7 +404,7 @@ export default function AICoachPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex flex-col items-center justify-center gap-6">
               <div className="text-center max-w-md px-6">
                 <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                   <Bot className="h-12 w-12 text-white" />
@@ -408,13 +413,32 @@ export default function AICoachPage() {
                   Welcome to AI Career Coach
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                  Select an existing conversation from the sidebar or create a
-                  new one to start getting personalized career guidance
+                  Select an existing conversation from the sidebar or create a new one to start getting personalized career guidance.
                 </p>
                 <Button onClick={handleCreateConversation} size="lg">
                   <Plus className="h-4 w-4 mr-2" />
                   Start New Conversation
                 </Button>
+              </div>
+              <div className="w-full max-w-4xl px-6">
+                <div className="flex gap-3">
+                  <Textarea
+                    placeholder="Ask your AI career coach anything..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="resize-none bg-white"
+                    rows={2}
+                    disabled
+                  />
+                  <Button disabled className="self-end h-10 px-6" size="lg">
+                    <Send className="h-4 w-4 mr-2" />
+                    Send
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Select a conversation to enable messaging.
+                </p>
               </div>
             </div>
           )}

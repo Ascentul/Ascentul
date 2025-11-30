@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
+import { mapStatusToStage } from "./migrate_application_status_to_stage";
 import { requireMembership } from "./lib/roles";
 
 // Get applications for a user
@@ -58,12 +59,11 @@ export const createApplication = mutation({
       ? (await requireMembership(ctx, { role: "student" })).membership
       : null;
 
-    // TEMPORARILY DISABLED: Free plan limit check
-    // NOTE: Clerk Billing (publicMetadata) is the source of truth for subscriptions.
-    // The subscription_plan field in Convex is cached display data only (see CLAUDE.md).
-    // Backend mutations should NOT use subscription_plan for feature gating.
-    // Frontend enforces limits via useSubscription() hook + Clerk's has() method.
-    // TODO: Re-enable this check by integrating Clerk SDK or passing verified subscription status from frontend.
+    // ARCHITECTURE NOTE: Free plan limits are enforced at the FRONTEND layer
+    // - Clerk Billing (publicMetadata) is the source of truth for subscriptions
+    // - Frontend enforces via useSubscription() hook + Clerk's has() method
+    // - Backend subscription_plan is cached display data only (see CLAUDE.md)
+    // - Defense-in-depth: Consider adding hasPremium arg from frontend for backend validation
 
     // if (user.subscription_plan === "free") {
     //   const FREE_PLAN_LIMIT = 1;
@@ -77,20 +77,26 @@ export const createApplication = mutation({
     //   }
     // }
 
+    const now = Date.now();
+
     const applicationId = await ctx.db.insert("applications", {
       user_id: user._id,
       university_id: membership?.university_id ?? user.university_id,
       company: args.company,
       job_title: args.job_title,
       status: args.status,
+      // MIGRATION: Sync stage field from status for data consistency
+      // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
+      stage: mapStatusToStage(args.status),
+      stage_set_at: now,
       source: args.source,
       url: args.url,
       notes: args.notes,
       applied_at: args.applied_at,
       resume_id: args.resume_id,
       cover_letter_id: args.cover_letter_id,
-      created_at: Date.now(),
-      updated_at: Date.now(),
+      created_at: now,
+      updated_at: now,
     });
 
     // Track activity for streak (fire-and-forget)
@@ -136,19 +142,31 @@ export const updateApplication = mutation({
       throw new Error("Application not found or unauthorized");
     }
 
+    // University isolation check
     if (application.university_id && membership && application.university_id !== membership.university_id) {
       throw new Error("Unauthorized: Application belongs to another university");
     }
+
+    const now = Date.now();
 
     // Convert null values to undefined for Convex patch
     const cleanedUpdates = Object.fromEntries(
       Object.entries(args.updates).map(([key, value]) => [key, value === null ? undefined : value])
     );
 
-    await ctx.db.patch(args.applicationId, {
+    // MIGRATION: Sync stage field when status changes
+    // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
+    const patchData: any = {
       ...cleanedUpdates,
-      updated_at: Date.now(),
-    });
+      updated_at: now,
+    };
+
+    if (args.updates.status) {
+      patchData.stage = mapStatusToStage(args.updates.status);
+      patchData.stage_set_at = now;
+    }
+
+    await ctx.db.patch(args.applicationId, patchData);
 
     return args.applicationId;
   },

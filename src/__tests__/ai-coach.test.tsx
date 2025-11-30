@@ -25,11 +25,10 @@ jest.mock('@/contexts/ClerkAuthProvider', () => ({
   }),
 }))
 
-jest.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({
-    toast: jest.fn(),
-  }),
-}))
+jest.mock('@/hooks/use-toast', () => {
+  const useToast = jest.fn().mockReturnValue({ toast: jest.fn() })
+  return { __esModule: true, useToast }
+})
 
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>
 const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>
@@ -335,7 +334,7 @@ describe('AI Coach Functionality', () => {
       render(<AICoachPage />, { wrapper: createWrapper() })
 
       // Should still render the page structure
-      expect(screen.getByText('Select a conversation')).toBeInTheDocument()
+      expect(screen.getByText('Welcome to AI Career Coach')).toBeInTheDocument()
     })
 
     it('handles message sending errors', async () => {

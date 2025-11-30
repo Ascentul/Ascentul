@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 const schema = z.object({
   company: z.string().min(1, 'Company is required'),
@@ -92,6 +93,7 @@ export function EditApplicationForm({
       onOpenChange(false)
     } catch (e) {
       console.error(e)
+      toast.error(e instanceof Error ? e.message : 'Failed to save application')
     } finally {
       setSubmitting(false)
     }
@@ -112,6 +114,7 @@ export function EditApplicationForm({
       onOpenChange(false)
     } catch (e) {
       console.error(e)
+      toast.error(e instanceof Error ? e.message : 'Failed to delete application')
     } finally {
       setDeleting(false)
     }

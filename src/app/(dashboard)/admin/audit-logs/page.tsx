@@ -5,6 +5,7 @@ import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { usePaginatedQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { hasPlatformAdminAccess } from '@/lib/constants/roles'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -65,7 +66,7 @@ export default function AuditLogsPage() {
   }
 
   const role = user?.role
-  const isSuperAdmin = role === 'super_admin'
+  const isSuperAdmin = hasPlatformAdminAccess(role)
 
   if (!isSuperAdmin) {
     return (
@@ -166,7 +167,11 @@ export default function AuditLogsPage() {
                           {log.action.replace(/_/g, ' ')}
                         </Badge>
                         <span className="text-sm text-muted-foreground">
-                          {new Date(log.timestamp).toLocaleString()}
+                          {(() => {
+                            if (!log.timestamp) return 'N/A'
+                            const date = new Date(log.timestamp)
+                            return isNaN(date.getTime()) ? 'N/A' : date.toLocaleString()
+                          })()}
                         </span>
                       </div>
 

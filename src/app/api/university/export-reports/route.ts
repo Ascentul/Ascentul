@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
+
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
+import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
+import { hasUniversityAdminAccess } from '@/lib/constants/roles';
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
     // Get authentication from request
-    const { userId } = getAuth(request)
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const authResult = await requireConvexToken()
+    const userId = authResult.userId
+    const token = authResult.token
 
     const body = await request.json()
     const { clerkId } = body
@@ -26,18 +27,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ClerkId mismatch' }, { status: 403 })
     }
 
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) {
-      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    }
-
-    // Initialize convex client with the URL
-    const convex = new ConvexHttpClient(url)
-
     // Get the current user to verify admin access
     let user
     try {
-      user = await convex.query(api.users.getUserByClerkId, { clerkId })
+      user = await convexServer.query(api.users.getUserByClerkId, { clerkId }, token)
     } catch (error) {
       console.error('Error fetching user by clerkId:', error)
       return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 })
@@ -47,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (!['super_admin', 'university_admin'].includes(user.role)) {
+    if (!hasUniversityAdminAccess(user.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
@@ -57,10 +50,12 @@ export async function POST(request: NextRequest) {
     // If university admin user doesn't have university_id, try to find university by admin_email
     if (!universityId && user.role === 'university_admin' && user.email) {
       try {
-        const universities = await convex.query(api.universities.getAllUniversities, {}) as any[];
-
-        // Find university where admin_email matches user's email
-        const matchingUniversity = universities.find((uni: any) => uni.admin_email === user.email);
+        // Use indexed query for efficient lookup instead of fetching all universities
+        const matchingUniversity = await convexServer.query(
+          api.universities_queries.getUniversityByAdminEmail,
+          { email: user.email },
+          token
+        ) as any;
 
         if (matchingUniversity) {
           universityId = matchingUniversity._id;
@@ -72,30 +67,38 @@ export async function POST(request: NextRequest) {
             `This indicates the account was not properly configured during creation.`
           );
 
-          // Update user's university_id for future requests
-          await convex.mutation(api.users.updateUser, {
-            clerkId,
-            updates: { university_id: universityId }
-          });
+          // Update user's university_id for future requests.
+          // Note: university_id is supplementary data, not a role. The Clerk-first pattern
+          // (update publicMetadata, then sync via webhook) applies to role changes.
+          // This is a one-time fix for improperly configured accounts. Ideally, university_id
+          // should be set correctly during account creation in Clerk publicMetadata.
+          await convexServer.mutation(
+            api.users.updateUser,
+            {
+              clerkId,
+              updates: { university_id: universityId }
+            },
+            token
+          );
 
           // COMPLIANCE: Persistent audit log for this security-sensitive auto-assignment
           try {
-            await convex.mutation(api.audit_logs.createSystemAuditLog, {
-              action: 'university_admin_auto_assigned',
-              target_type: 'user',
-              target_id: user._id,
-              target_email: user.email,
-              target_name: user.name,
-              performed_by_id: user._id,
-              performed_by_email: user.email,
-              performed_by_name: user.name,
-              reason: `Auto-assigned university_id based on admin_email match during export-reports`,
-              metadata: {
-                university_id: universityId,
-                university_name: matchingUniversity.name,
-                trigger: 'export_reports_endpoint',
+            await convexServer.mutation(
+              api.audit_logs.createSystemAuditLog,
+              {
+                action: 'university_admin_auto_assigned',
+                target_type: 'user',
+                target_id: user._id,
+                reason: `Auto-assigned university_id based on admin_email match during export-reports`,
+                metadata: {
+                  university_id: universityId,
+                  university_name: matchingUniversity.name,
+                  trigger: 'export_reports_endpoint',
+                  // PII excluded for GDPR/CCPA compliance - user identified by target_id
+                },
               },
-            });
+              token
+            );
           } catch (auditError) {
             console.error('Failed to create audit log for auto-assignment:', auditError);
             // Don't fail the operation if audit logging fails
@@ -117,18 +120,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No university assigned to user' }, { status: 400 })
     }
 
-    // Fetch all relevant data
-    let students, departments, overview
+    // Fetch all relevant data including per-student metrics
+    let students, departments, studentProgress
     try {
-      [students, departments, overview] = await Promise.all([
-        convex.query(api.university_admin.listStudents, { clerkId, limit: 1000 }),
-        convex.query(api.university_admin.listDepartments, { clerkId }),
-        convex.query(api.university_admin.getOverview, { clerkId })
+      [students, departments, studentProgress] = await Promise.all([
+        convexServer.query(api.university_admin.listStudents, { clerkId, limit: 1000 }, token),
+        convexServer.query(api.university_admin.listDepartments, { clerkId }, token),
+        convexServer.query(api.university_admin.getStudentProgress, { clerkId }, token),
       ])
     } catch (error) {
       console.error('Error fetching university data:', error)
       return NextResponse.json({ error: 'Failed to fetch university data' }, { status: 500 })
     }
+
+    // Create a map of student progress by student ID for fast lookup
+    const progressMap = new Map(
+      (studentProgress as any[]).map(p => [String(p.studentId), p])
+    )
 
     // Generate CSV content
     const csvHeaders = [
@@ -144,18 +152,28 @@ export async function POST(request: NextRequest) {
       'Cover Letters Created'
     ]
 
-    const csvRows = students.map(student => [
-      student.name || '',
-      student.email || '',
-      student.role || '',
-      student.university_id ? departments.find(d => d._id === student.university_id as any)?.name || '' : '',
-      student.created_at ? new Date(student.created_at).toLocaleDateString() : '',
-      student.updated_at ? new Date(student.updated_at).toLocaleDateString() : '',
-      Math.floor(Math.random() * 10), // Mock goals count
-      Math.floor(Math.random() * 5), // Mock applications count
-      Math.floor(Math.random() * 3), // Mock resumes count
-      Math.floor(Math.random() * 2) // Mock cover letters count
-    ])
+    const csvRows = students.map(student => {
+      // Get actual metrics from studentProgress query
+      const progress = progressMap.get(String(student._id)) || {
+        goals: 0,
+        applications: 0,
+        resumes: 0,
+        coverLetters: 0,
+      }
+
+      return [
+        student.name || '',
+        student.email || '',
+        student.role || '',
+        student.department_id ? departments.find(d => d._id === student.department_id as any)?.name || '' : '',
+        student.created_at ? new Date(student.created_at).toLocaleDateString() : '',
+        student.updated_at ? new Date(student.updated_at).toLocaleDateString() : '',
+        progress.goals ?? 0,
+        progress.applications ?? 0,
+        progress.resumes ?? 0,
+        progress.coverLetters ?? 0,
+      ]
+    })
 
     // Escape CSV cells to handle commas and quotes
     const escapeCSV = (field: string | number) => {

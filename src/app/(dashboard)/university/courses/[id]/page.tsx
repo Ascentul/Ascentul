@@ -20,7 +20,9 @@ export default function CourseDetailPage() {
   const { user, isAdmin, subscription } = useAuth()
   const { toast } = useToast()
 
-  const canAccess = !!user && (isAdmin || subscription.isUniversity || user.role === 'university_admin')
+  // Access control: Only university_admin, advisor, or super_admin can access
+  // subscription.isUniversity is NOT sufficient - it includes regular students
+  const canAccess = !!user && (isAdmin || user.role === 'university_admin' || user.role === 'advisor')
 
   const course = useQuery(
     api.university_admin.getCourse,

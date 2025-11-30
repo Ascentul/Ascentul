@@ -7,6 +7,7 @@ import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { hasPlatformAdminAccess, hasUniversityAdminAccess } from '@/lib/constants/roles'
 import { Id } from 'convex/_generated/dataModel'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -130,12 +131,12 @@ export default function UniversityDetailPage() {
   }) || []
 
   // Separate users by role
-  const students = universityUsers?.filter(u => u.role === 'user') || []
-  const advisors = universityUsers?.filter(u => u.role === 'university_admin') || []
+  const students = universityUsers?.filter(u => u.role === 'user' || u.role === 'student') || []
+  const advisors = universityUsers?.filter(u => hasUniversityAdminAccess(u.role)) || []
   const activeStudents = students.filter(s => s.subscription_status === 'active')
 
   const role = user?.role
-  const canAccess = role === 'super_admin'
+  const canAccess = hasPlatformAdminAccess(role)
 
   const handleToggleTest = async (isTest: boolean) => {
     setIsTogglingTest(true)
@@ -207,24 +208,24 @@ export default function UniversityDetailPage() {
       // FIRST: Stop all queries immediately to prevent race conditions
       setSkipQueries(true)
 
-      // SECOND: Navigate away to unmount component
-      router.replace('/admin/universities')
-
-      // THIRD: Perform the actual deletion
+      // SECOND: Perform the actual deletion
       await hardDeleteUniversity({ universityId })
 
       toast({
         title: 'University permanently deleted',
         description: 'All associated data has been permanently removed.',
       })
+
+      // THIRD: Navigate away on success
+      router.replace('/admin/universities')
     } catch (error) {
+      // Re-enable queries since deletion failed
+      setSkipQueries(false)
       toast({
         title: 'Failed to delete',
         description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       })
-      // If there was an error, we might need to go back
-      // but the navigation already happened, so user is on the list page
     } finally {
       setIsDeleting(false)
     }
@@ -687,7 +688,7 @@ export default function UniversityDetailPage() {
 
       {/* Tabs for different sections */}
       <Card>
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
           <CardHeader>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>

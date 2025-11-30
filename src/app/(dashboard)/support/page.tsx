@@ -232,7 +232,7 @@ export default function SupportPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Tabs for status filter */}
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="open">Open</TabsTrigger>
@@ -275,9 +275,16 @@ export default function SupportPage() {
               </TableHeader>
               <TableBody>
                 {filteredTickets.map((ticket: any) => (
-                  <TableRow key={String(ticket._id)} className="cursor-pointer hover:bg-gray-50">
+                  <TableRow
+                    key={String(ticket._id)}
+                    className="cursor-pointer hover:bg-gray-50"
+                    onClick={() => {
+                      setSelectedTicket(ticket)
+                      setDetailDialogOpen(true)
+                    }}
+                  >
                     <TableCell className="font-medium">{ticket.subject}</TableCell>
-                    <TableCell className="capitalize">{ticket.category.replaceAll('_', ' ')}</TableCell>
+                    <TableCell className="capitalize">{ticket.category?.replaceAll('_', ' ') || 'N/A'}</TableCell>
                     <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
                     <TableCell>{getStatusBadge(ticket.status)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -287,7 +294,8 @@ export default function SupportPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation()
                           setSelectedTicket(ticket)
                           setDetailDialogOpen(true)
                         }}
@@ -406,7 +414,7 @@ export default function SupportPage() {
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Category</Label>
-                    <div className="mt-1 capitalize">{selectedTicket.category.replaceAll('_', ' ')}</div>
+                    <div className="mt-1 capitalize">{selectedTicket.category?.replaceAll('_', ' ') || 'N/A'}</div>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Created</Label>

@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
+import { hasPlatformAdminAccess } from "@/lib/constants/roles";
 
 type IconButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   hasUnread?: boolean;
@@ -52,19 +53,19 @@ export default function AppTopBar() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Hide quick action chips for super_admin
-  const isSuperAdmin = user?.role === "super_admin";
+  const isSuperAdmin = hasPlatformAdminAccess(user?.role);
 
   // Fetch notification count from Convex
   const unreadCount = useQuery(
     api.notifications.getUnreadCount,
-    user?.clerkId ? { clerkId: user.clerkId } : "skip"
+    user ? {} : "skip"
   );
 
   // Fetch notifications
   const notifications = useQuery(
     api.notifications.getNotifications,
-    openPanel === "notifications" && user?.clerkId
-      ? { clerkId: user.clerkId, unreadOnly: false }
+    openPanel === "notifications" && user
+      ? { unreadOnly: false }
       : "skip"
   );
 
@@ -257,10 +258,8 @@ export default function AppTopBar() {
               {hasUnreadNotifications && (
                 <button
                   onClick={() => {
-                    if (user?.clerkId) {
-                      markAllAsRead({ clerkId: user.clerkId })
-                        .catch((err) => console.error("Failed to mark all notifications as read:", err));
-                    }
+                    markAllAsRead({})
+                      .catch((err) => console.error("Failed to mark all notifications as read:", err));
                   }}
                   className="text-xs text-[#4257FF] hover:text-[#3f5dde] transition-colors"
                 >
@@ -283,8 +282,8 @@ export default function AppTopBar() {
                         !notification.read && "bg-blue-50/50"
                       )}
                       onClick={() => {
-                        if (!notification.read && user?.clerkId) {
-                          markAsRead({ clerkId: user.clerkId, notificationId: notification._id })
+                        if (!notification.read) {
+                          markAsRead({ notificationId: notification._id })
                             .catch((err) => console.error("Failed to mark notification as read:", err));
                         }
                         if (notification.link) {

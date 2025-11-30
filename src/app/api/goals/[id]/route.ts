@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
+import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
+import { isValidConvexId } from '@/lib/convex-ids';
 
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL || process.env.CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
-
-export async function PUT(request: NextRequest, context: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = getAuth(request)
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const body = await request.json().catch(() => ({} as any))
+    const { userId, token } = await requireConvexToken()
+    const { id: goalIdParam } = await context.params
+    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidConvexId(goalIdParam)) {
+      return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
+    }
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
 
     const updates: any = {}
     if (typeof body.title === 'string') updates.title = body.title
@@ -29,12 +33,15 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
     // When completedAt is explicitly null, set to undefined so Convex clears the timestamp
     if (body.completedAt === null) updates.completed_at = undefined
 
-    const client = getClient()
-    await client.mutation(api.goals.updateGoal, {
-      clerkId: userId,
-      goalId: context.params.id as any,
-      updates,
-    })
+    await convexServer.mutation(
+      api.goals.updateGoal,
+      {
+        clerkId: userId,
+        goalId: goalIdParam as Id<'goals'>,
+        updates,
+      },
+      token
+    )
     return NextResponse.json({ ok: true })
   } catch (error: any) {
     console.error('PUT /api/goals/[id] error:', error)
@@ -43,12 +50,18 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
   }
 }
 
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = getAuth(request)
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const client = getClient()
-    await client.mutation(api.goals.deleteGoal, { clerkId: userId, goalId: context.params.id as any })
+    const { userId, token } = await requireConvexToken()
+    const { id: goalIdParam } = await context.params
+    if (!goalIdParam || typeof goalIdParam !== 'string' || goalIdParam.trim() === '' || !isValidConvexId(goalIdParam)) {
+      return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 })
+    }
+    await convexServer.mutation(
+      api.goals.deleteGoal,
+      { clerkId: userId, goalId: goalIdParam as Id<'goals'> },
+      token
+    )
     return NextResponse.json({ ok: true })
   } catch (error: any) {
     console.error('DELETE /api/goals/[id] error:', error)

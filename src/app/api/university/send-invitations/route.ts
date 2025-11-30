@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
 import { sendUniversityInvitationEmail } from '@/lib/email';
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+import { getErrorMessage } from '@/lib/errors';
+import { convexServer } from '@/lib/convex-server';
+import { hasAdvisorAccess } from '@/lib/constants/roles';
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,10 +20,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No emails provided' }, { status: 400 });
     }
 
-    // Get the university admin's info to fetch university name
-    const adminUser = await convex.query(api.users.getUserByClerkId, { clerkId: userId });
+    // Validate individual email formats
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalidEmails = emails.filter((email: unknown) =>
+      typeof email !== 'string' || !emailRegex.test(email)
+    );
+    if (invalidEmails.length > 0) {
+      return NextResponse.json(
+        { error: 'Invalid email format detected', invalidEmails },
+        { status: 400 }
+      );
+    }
 
-    const isAdmin = adminUser && ['university_admin', 'advisor'].includes(adminUser.role);
+    // Get the university admin's info to fetch university name
+    const adminUser = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId });
+
+    const isAdmin = adminUser && hasAdvisorAccess(adminUser.role);
     if (!isAdmin || !adminUser?.university_id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
@@ -31,7 +43,7 @@ export async function POST(req: NextRequest) {
     const universityId = adminUser.university_id;
 
     // Get the university details
-    const university = await convex.query(api.universities.getUniversity, {
+    const university = await convexServer.query(api.universities.getUniversity, {
       universityId
     });
 
@@ -44,7 +56,7 @@ export async function POST(req: NextRequest) {
       emails.map(async (email: string) => {
         try {
           // Create stored invite and send secure tokenized link
-          const { token } = await convex.action(api.students.createInvite, {
+          const { token } = await convexServer.action(api.students.createInvite, {
             universityId,
             email,
             createdByClerkId: userId,
@@ -55,9 +67,10 @@ export async function POST(req: NextRequest) {
 
           await sendUniversityInvitationEmail(email, university.name, inviteLink);
           return { email, success: true };
-        } catch (error: any) {
-          console.error(`Error sending invitation to ${email}:`, error);
-          return { email, success: false, error: error.message };
+        } catch (error: unknown) {
+          console.error(`Error sending invitation to ${email.substring(0, 3)}***:`, error);
+          const message = getErrorMessage(error);
+          return { email, success: false, error: message };
         }
       })
     );
@@ -70,12 +83,17 @@ export async function POST(req: NextRequest) {
       total: emails.length,
       successful,
       failed,
-      results: results.map(r => r.status === 'fulfilled' ? r.value : { email: 'unknown', success: false, error: 'Unknown error' }),
+      results: results.map((r, i) =>
+        r.status === 'fulfilled'
+          ? r.value
+          : { email: emails[i], success: false, error: getErrorMessage(r.reason, 'Unknown error') }
+      ),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Send invitations error:', error);
+    const message = getErrorMessage(error, 'Internal server error');
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: message },
       { status: 500 }
     );
   }

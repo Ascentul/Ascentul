@@ -160,17 +160,20 @@ export const getUserByActivationToken = query({
     token: v.string(),
   },
   handler: async (ctx, args) => {
-    // Find user by activation token
-    const users = await ctx.db.query("users").collect()
-    const user = users.find(u => u.activation_token === args.token)
+    // SECURITY FIX: Use index instead of full table scan
+    // This prevents O(n) queries as user count grows
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_activation_token", (q) => q.eq("activation_token", args.token))
+      .unique();
 
     if (!user) {
-      return null
+      return null;
     }
 
     // Check if token expired
     if (user.activation_expires_at && user.activation_expires_at < Date.now()) {
-      return null
+      return null;
     }
 
     // Return user data (excluding sensitive information)
@@ -182,7 +185,7 @@ export const getUserByActivationToken = query({
       university_id: user.university_id,
       account_status: user.account_status,
       temp_password: user.temp_password, // Needed for verification
-    }
+    };
   },
 })
 
@@ -407,10 +410,10 @@ export const _softDeleteUserInternal = internalMutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity || identity.subject !== args.adminClerkId) {
-      throw new Error("Unauthorized");
-    }
+    // Note: Identity check removed - internal mutations may be called from server contexts
+    // (actions, scheduled jobs) where auth identity is not available.
+    // Authorization is enforced by verifying adminClerkId is a super_admin below.
+    // The calling action (softDeleteUser) validates the authenticated user's identity.
 
     // Get admin user
     const admin = await ctx.db
@@ -478,7 +481,17 @@ export const _softDeleteUserInternal = internalMutation({
         targetUniversityId: targetUser.university_id,
       },
       timestamp: Date.now(),
+      created_at: Date.now(),
     });
+
+    // FERPA/GDPR COMPLIANCE: Redact student PII from historical audit logs
+    // This ensures personally identifiable information is scrubbed from audit records
+    // when a user exercises their right to deletion while preserving non-PII audit trail
+    if (targetUser.role === "student" || targetUser.role === "individual") {
+      await ctx.scheduler.runAfter(0, internal.audit_logs.redactStudentPII, {
+        studentId: targetUser._id,
+      });
+    }
 
     return {
       success: true,
@@ -549,6 +562,7 @@ export const _restoreUserInternal = internalMutation({
         targetUniversityId: targetUser.university_id,
       },
       timestamp: Date.now(),
+      created_at: Date.now(),
     });
 
     return {

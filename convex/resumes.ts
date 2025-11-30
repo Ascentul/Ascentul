@@ -114,7 +114,7 @@ export const updateResume = mutation({
       throw new Error("Resume not found or access denied");
     }
 
-    if (resume.university_id && membership && resume.university_id !== membership.university_id) {
+    if (resume.university_id && user.university_id && resume.university_id !== user.university_id) {
       throw new Error("Unauthorized: Resume belongs to another university");
     }
 
@@ -153,8 +153,29 @@ export const deleteResume = mutation({
       throw new Error("Resume not found or unauthorized");
     }
 
-    if (resume.university_id && membership && resume.university_id !== membership.university_id) {
+    // University isolation check
+    if (resume.university_id && user.university_id && resume.university_id !== user.university_id) {
       throw new Error("Unauthorized: Resume belongs to another university");
+    }
+
+    // Referential integrity: Check for active reviews before deletion
+    // Uses by_resume index for O(1) lookup instead of scanning by_student
+    // Active reviews are those awaiting action (waiting/in_review), not finalized ones (approved/needs_edits)
+    const activeReview = await ctx.db
+      .query("advisor_reviews")
+      .withIndex("by_resume", (q) => q.eq("resume_id", args.resumeId))
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "waiting"),
+          q.eq(q.field("status"), "in_review"),
+        ),
+      )
+      .first();
+
+    if (activeReview) {
+      throw new Error(
+        "Cannot delete resume: Active review in progress. Please wait for the review to complete or contact your advisor.",
+      );
     }
 
     await ctx.db.delete(args.resumeId);
@@ -176,9 +197,8 @@ export const getResumeById = query({
 
     if (!user) throw new Error("User not found");
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    // Note: We don't require membership for read queries - consistent with getUserResumes
+    // Users can always view their own resumes regardless of membership status
 
     const resume = await ctx.db.get(args.resumeId);
     if (!resume || resume.user_id !== user._id) {
@@ -186,8 +206,9 @@ export const getResumeById = query({
       return null;
     }
 
-    if (resume.university_id && membership && resume.university_id !== membership.university_id) {
-      throw new Error("Unauthorized: Resume belongs to another university");
+    // University isolation for reads - use user's university_id directly
+    if (resume.university_id && user.university_id && resume.university_id !== user.university_id) {
+      return null;
     }
 
     return resume;

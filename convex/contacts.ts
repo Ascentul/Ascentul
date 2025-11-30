@@ -28,6 +28,31 @@ export const getUserContacts = query({
   },
 });
 
+// Get a single contact by ID (ownership enforced)
+// Note: We don't require university membership for read queries - users can always view their own contacts
+// This is consistent with getUserContacts and allows students who change universities to access historical contacts
+export const getContactById = query({
+  args: {
+    clerkId: v.string(),
+    contactId: v.id("networking_contacts"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (!user) throw new Error("User not found");
+
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact || contact.user_id !== user._id) {
+      throw new Error("Contact not found or unauthorized");
+    }
+
+    return contact;
+  },
+});
+
 // Create a contact for the current user
 export const createContact = mutation({
   args: {
@@ -54,12 +79,11 @@ export const createContact = mutation({
       ? (await requireMembership(ctx, { role: "student" })).membership
       : null;
 
-    // TEMPORARILY DISABLED: Free plan limit check
-    // NOTE: Clerk Billing (publicMetadata) is the source of truth for subscriptions.
-    // The subscription_plan field in Convex is cached display data only (see CLAUDE.md).
-    // Backend mutations should NOT use subscription_plan for feature gating.
-    // Frontend enforces limits via useSubscription() hook + Clerk's has() method.
-    // TODO: Re-enable this check by integrating Clerk SDK or passing verified subscription status from frontend.
+    // ARCHITECTURE NOTE: Free plan limits are enforced at the FRONTEND layer
+    // - Clerk Billing (publicMetadata) is the source of truth for subscriptions
+    // - Frontend enforces via useSubscription() hook + Clerk's has() method
+    // - Backend subscription_plan is cached display data only (see CLAUDE.md)
+    // - Defense-in-depth: Consider adding hasPremium arg from frontend for backend validation
 
     // if (user.subscription_plan === "free") {
     //   const existingContacts = await ctx.db
@@ -142,7 +166,12 @@ export const updateContact = mutation({
       updated_at: Date.now(),
     });
 
-    return args.contactId;
+    // Return the updated contact document
+    const updatedContact = await ctx.db.get(args.contactId);
+    if (!updatedContact) {
+      throw new Error("Failed to retrieve updated contact");
+    }
+    return updatedContact;
   },
 });
 

@@ -5,6 +5,7 @@ import { useUser } from '@clerk/nextjs'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
+import { hasPlatformAdminAccess, requiresUniversityAffiliation } from '@/lib/constants/roles'
 
 /**
  * Valid roles that can be impersonated
@@ -115,7 +116,7 @@ export function ImpersonationProvider({ children }: { children: React.ReactNode 
   )
 
   // Only super_admin can impersonate
-  const canImpersonate = userProfile?.role === 'super_admin'
+  const canImpersonate = hasPlatformAdminAccess(userProfile?.role)
 
   // Track if we've hydrated (to avoid SSR/client mismatch)
   const [isHydrated, setIsHydrated] = useState(false)
@@ -172,7 +173,7 @@ export function ImpersonationProvider({ children }: { children: React.ReactNode 
     // Determine default plan based on role
     let plan = options?.plan || null
     if (!plan) {
-      if (role === 'student' || role === 'university_admin' || role === 'advisor') {
+      if (requiresUniversityAffiliation(role)) {
         plan = 'university'
       } else if (role === 'individual') {
         plan = 'free' // Can be changed to 'premium' via UI

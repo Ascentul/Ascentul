@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { requireSuperAdmin } from "./lib/roles";
 
 export const getUniversitySettings = query({
   args: {
@@ -38,9 +39,26 @@ export const getUniversityBySlug = query({
   }
 });
 
+export const getUniversityByAdminEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    // Only super admins can look up universities by admin email
+    // This prevents unauthorized enumeration of university data
+    await requireSuperAdmin(ctx);
+
+    return await ctx.db
+      .query("universities")
+      .withIndex("by_admin_email", q => q.eq("admin_email", args.email))
+      .unique();
+  }
+});
+
 export const getUniversityAdminCounts = query({
   args: {},
   handler: async (ctx) => {
+    // Only super admins should see admin counts across all universities
+    await requireSuperAdmin(ctx);
+
     const admins = await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("role"), "university_admin"))

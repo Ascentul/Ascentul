@@ -1,51 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
 import OpenAI from 'openai'
+import { fetchQuery, fetchMutation } from 'convex/nextjs'
+import { requireConvexToken } from '@/lib/convex-auth'
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-}) : null
+/**
+ * Helper to get a mock OpenAI instance for testing
+ * Returns null if OpenAI is not mocked
+ */
+interface MockOpenAI {
+  mock?: {
+    results?: Array<{ value?: OpenAI }>
+    instances?: OpenAI[]
+  }
+}
 
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
+const getMockOpenAIInstance = (): OpenAI | null => {
+  const mockApi = (OpenAI as unknown as MockOpenAI).mock
+
+  if (!mockApi) return null
+
+  const fromResults = mockApi.results?.find((r) => r.value)?.value
+  if (fromResults) return fromResults
+
+  if (mockApi.instances && mockApi.instances.length > 0) {
+    return mockApi.instances[0]
+  }
+
+  return null
+}
+
+/**
+ * Creates an OpenAI client, using mock if available (for testing)
+ */
+const createOpenAIClient = (): OpenAI | null => {
+  const mocked = getMockOpenAIInstance()
+  if (mocked) return mocked
+
+  if (!process.env.OPENAI_API_KEY) return null
+
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 }
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, token } = await requireConvexToken()
 
-    const conversationId = params.id
-    const client = getClient()
+    const { id } = await params
+    const conversationId = id
 
-    const messages = await client.query(api.ai_coach.getMessages, {
-      clerkId: userId,
-      conversationId: conversationId as any
-    })
+    if (!conversationId) {
+      return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 })
+    }
+
+    const messages = await fetchQuery(
+      api.ai_coach.getMessages,
+      {
+        clerkId: userId,
+        conversationId: conversationId as Id<'ai_coach_conversations'>
+      },
+      { token }
+    )
 
     return NextResponse.json(messages)
   } catch (error) {
     console.error('Error fetching conversation messages:', error)
-    return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to fetch messages'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, token } = await requireConvexToken()
 
-    const conversationId = params.id
+    const { id } = await params
+    const conversationId = id
     const body = await request.json()
     const { content } = body
 
@@ -53,24 +91,30 @@ export async function POST(
       return NextResponse.json({ error: 'Message content is required' }, { status: 400 })
     }
 
-    const client = getClient()
+    if (!conversationId) {
+      return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 })
+    }
 
     // Get conversation history for context
-    const existingMessages = await client.query(api.ai_coach.getMessages, {
-      clerkId: userId,
-      conversationId: conversationId as any
-    })
+    const existingMessages = await fetchQuery(
+      api.ai_coach.getMessages,
+      {
+        clerkId: userId,
+        conversationId: conversationId as Id<'ai_coach_conversations'>
+      },
+      { token }
+    ) as Array<{ isUser: boolean; message: string }>
 
     // Fetch user context data for personalized coaching
     let userContext = ''
     try {
       const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.all([
-        client.query(api.users.getUserByClerkId, { clerkId: userId }),
-        client.query(api.goals.getUserGoals, { clerkId: userId }),
-        client.query(api.applications.getUserApplications, { clerkId: userId }),
-        client.query(api.resumes.getUserResumes, { clerkId: userId }),
-        client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
-        client.query(api.projects.getUserProjects, { clerkId: userId })
+        fetchQuery(api.users.getUserByClerkId, { clerkId: userId }, { token }) as Promise<Record<string, unknown> | null>,
+        fetchQuery(api.goals.getUserGoals, { clerkId: userId }, { token }) as Promise<Array<Record<string, unknown>>>,
+        fetchQuery(api.applications.getUserApplications, { clerkId: userId }, { token }) as Promise<Array<Record<string, unknown>>>,
+        fetchQuery(api.resumes.getUserResumes, { clerkId: userId }, { token }) as Promise<Array<Record<string, unknown>>>,
+        fetchQuery(api.cover_letters.getUserCoverLetters, { clerkId: userId }, { token }) as Promise<Array<Record<string, unknown>>>,
+        fetchQuery(api.projects.getUserProjects, { clerkId: userId }, { token }) as Promise<Array<Record<string, unknown>>>
       ])
 
       // Build user context summary
@@ -96,43 +140,46 @@ export async function POST(
 
       if (goals && goals.length > 0) {
         contextParts.push('\n--- CAREER GOALS ---')
-        goals.slice(0, 5).forEach((goal: any, idx: number) => {
+        goals.slice(0, 5).forEach((goal, idx: number) => {
           contextParts.push(`${idx + 1}. ${goal.title} (Status: ${goal.status})`)
           if (goal.description) contextParts.push(`   Description: ${goal.description}`)
-          if (goal.target_date) contextParts.push(`   Target Date: ${new Date(goal.target_date).toLocaleDateString()}`)
+          if (goal.target_date) contextParts.push(`   Target Date: ${new Date(goal.target_date as number).toLocaleDateString()}`)
         })
       }
 
       if (applications && applications.length > 0) {
         contextParts.push('\n--- RECENT JOB APPLICATIONS ---')
-        applications.slice(0, 8).forEach((app: any, idx: number) => {
+        applications.slice(0, 8).forEach((app, idx: number) => {
           contextParts.push(`${idx + 1}. ${app.job_title} at ${app.company} (Status: ${app.status})`)
-          if (app.notes) contextParts.push(`   Notes: ${app.notes}`)
+          // NOTE: app.notes intentionally excluded from AI context for privacy
+          // Notes may contain sensitive information (rejection reasons, personal circumstances)
         })
       }
 
       if (resumes && resumes.length > 0) {
         contextParts.push('\n--- RESUMES ---')
-        resumes.slice(0, 3).forEach((resume: any, idx: number) => {
+        resumes.slice(0, 3).forEach((resume, idx: number) => {
           contextParts.push(`${idx + 1}. ${resume.title} (Source: ${resume.source || 'manual'})`)
         })
       }
 
       if (coverLetters && coverLetters.length > 0) {
         contextParts.push('\n--- COVER LETTERS ---')
-        coverLetters.slice(0, 3).forEach((letter: any, idx: number) => {
+        coverLetters.slice(0, 3).forEach((letter, idx: number) => {
           contextParts.push(`${idx + 1}. ${letter.name || 'Untitled'} - ${letter.job_title} at ${letter.company_name}`)
         })
       }
 
       if (projects && projects.length > 0) {
         contextParts.push('\n--- PROJECTS & EXPERIENCE ---')
-        projects.slice(0, 5).forEach((project: any, idx: number) => {
+        projects.slice(0, 5).forEach((project, idx: number) => {
           contextParts.push(`${idx + 1}. ${project.title} (${project.type || 'personal'})`)
           if (project.role) contextParts.push(`   Role: ${project.role}`)
           if (project.company) contextParts.push(`   Company: ${project.company}`)
           if (project.description) contextParts.push(`   Description: ${project.description}`)
-          if (project.technologies?.length) contextParts.push(`   Technologies: ${project.technologies.join(', ')}`)
+          if (project.technologies && Array.isArray(project.technologies)) {
+            contextParts.push(`   Technologies: ${(project.technologies as string[]).join(', ')}`)
+          }
         })
       }
 
@@ -144,7 +191,17 @@ export async function POST(
 
     let aiResponse: string
 
-    if (openai) {
+    const openaiClient = createOpenAIClient()
+
+    if (openaiClient) {
+      // Validate that the OpenAI client is properly configured
+      if (!openaiClient.chat?.completions?.create) {
+        console.error('OpenAI client is not properly configured')
+        return NextResponse.json(
+          { error: 'AI service is not available' },
+          { status: 503 }
+        )
+      }
       try {
         // Build conversation context for the AI
         const systemPrompt = `You are an expert AI Career Coach. Your role is to provide personalized, actionable career advice based on the user's questions and background.
@@ -171,7 +228,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
         ]
 
         // Add conversation history
-        existingMessages.forEach((msg: any) => {
+        existingMessages.forEach((msg) => {
           messages.push({
             role: msg.isUser ? 'user' : 'assistant',
             content: msg.message
@@ -184,7 +241,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
           content: content
         })
 
-        const completion = await openai.chat.completions.create({
+        const completion = await openaiClient.chat.completions.create({
           model: 'gpt-4o',
           messages: messages,
           temperature: 0.7,
@@ -193,7 +250,8 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
           frequency_penalty: 0.1
         })
 
-        aiResponse = completion.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
+        const choiceContent = completion?.choices?.[0]?.message?.content
+        aiResponse = choiceContent || 'I apologize, but I was unable to generate a response. Please try again.'
       } catch (openaiError) {
         console.error('OpenAI API error:', openaiError)
         aiResponse = 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment.'
@@ -203,16 +261,22 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
     }
 
     // Save both messages to the database
-    const newMessages = await client.mutation(api.ai_coach.addMessages, {
-      clerkId: userId,
-      conversationId: conversationId as any,
-      userMessage: content,
-      aiMessage: aiResponse
-    })
+    const newMessages = await fetchMutation(
+      api.ai_coach.addMessages,
+      {
+        clerkId: userId,
+        conversationId: conversationId as Id<'ai_coach_conversations'>,
+        userMessage: content,
+        aiMessage: aiResponse
+      },
+      { token }
+    )
 
     return NextResponse.json(newMessages, { status: 201 })
   } catch (error) {
     console.error('Error sending message:', error)
-    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to send message'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

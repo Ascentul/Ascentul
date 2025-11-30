@@ -1,31 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
+import { fetchQuery } from 'convex/nextjs'
 import { api } from 'convex/_generated/api'
+import { requireConvexToken } from '@/lib/convex-auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+interface CareerPathNode {
+  id: string
+  title: string
+  level: string
+  salaryRange: string
+  yearsExperience: string
+  skills: Array<{ name: string; level: string }>
+  description: string
+  growthPotential: string
+  icon: string
+}
+
+interface CareerPathDocument {
+  _id: string
+  target_role?: string
+  created_at: number
+  steps?: {
+    path?: {
+      id?: string
+      name?: string
+      nodes?: CareerPathNode[]
+    }
+  }
+}
+
+interface CareerPathResponse {
+  docId: string
+  id: string
+  name: string
+  nodes: CareerPathNode[]
+  savedAt: number
+}
+
 export async function GET(_request: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    const client = new ConvexHttpClient(url)
+    const { userId, token } = await requireConvexToken()
 
     const { searchParams } = new URL(_request.url)
     const limit = Math.min(Math.max(parseInt(String(searchParams.get('limit') || '10')) || 10, 1), 50)
     const cursor = searchParams.get('cursor') || undefined
-    const sort = (searchParams.get('sort') || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc'
+    // Note: sort parameter removed - Convex cursor-based pagination requires consistent
+    // sort direction. Backend always returns newest first (desc order).
 
-    const page = await client.query(api.career_paths.getUserCareerPathsPaginated, { clerkId: userId, cursor: cursor as any, limit })
-    const items: any[] = page?.items || []
+    const page = await fetchQuery(
+      api.career_paths.getUserCareerPathsPaginated,
+      { clerkId: userId, cursor, limit },
+      { token }
+    )
 
     // Map only those entries that contain a structured path we can render
-    let paths = (items || [])
-      .map((doc: any) => {
+    const items = (page?.items || []) as CareerPathDocument[]
+    const paths = items
+      .map((doc): CareerPathResponse | null => {
         const p = doc?.steps?.path
         if (!p || !Array.isArray(p?.nodes)) return null
         return {
@@ -36,13 +69,13 @@ export async function GET(_request: NextRequest) {
           savedAt: doc.created_at,
         }
       })
-      .filter(Boolean) as any[]
-
-    if (sort === 'asc') paths = paths.reverse()
+      .filter((path): path is CareerPathResponse => path !== null)
 
     return NextResponse.json({ paths, nextCursor: page?.nextCursor || null })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('GET /api/career-paths error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

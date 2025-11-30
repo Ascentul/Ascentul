@@ -7,6 +7,7 @@ import { v } from "convex/values"
 import { action, internalQuery } from "../_generated/server"
 import { internal } from "../_generated/api"
 import { isValidUserRole } from "../lib/roleValidation"
+import { maskEmail } from "../lib/piiSafe"
 
 /**
  * Sync all user roles from Convex to Clerk
@@ -71,7 +72,7 @@ export const syncAllRolesToClerk = action({
       throw new Error('Unauthorized: Only super_admin can run this operation')
     }
 
-    console.log(`[SyncRolesToClerk] Authorized: ${caller.email_addresses?.[0]?.email_address || args.clerkId} (super_admin)`)
+    console.log(`[SyncRolesToClerk] Authorized: ${maskEmail(caller.email_addresses?.[0]?.email_address) || args.clerkId} (super_admin)`)
 
     // Get all users from Convex using pagination
     const allUsers: Array<{
@@ -142,7 +143,7 @@ export const syncAllRolesToClerk = action({
             action: 'error',
             message: `Invalid role in Convex: "${user.role}". Skipping sync to prevent data corruption.`,
           })
-          console.error(`[SyncRolesToClerk] Invalid role for ${user.email}: ${user.role}`)
+          console.error(`[SyncRolesToClerk] Invalid role for ${maskEmail(user.email)}: ${user.role}`)
           continue
         }
 
@@ -286,7 +287,7 @@ export const syncAllRolesToClerk = action({
           message: `Synced: ${clerkRole || 'null'} → ${user.role}`,
         })
 
-        console.log(`[SyncRolesToClerk] Synced ${user.email}: ${clerkRole} → ${user.role}`)
+        console.log(`[SyncRolesToClerk] Synced ${maskEmail(user.email)}: ${clerkRole} → ${user.role}`)
       } catch (error) {
         results.errors++
         results.details.push({
@@ -317,6 +318,7 @@ export const syncAllRolesToClerk = action({
 /**
  * Internal query to get users with pagination
  * Prevents memory issues with large user bases
+ * Uses Convex's built-in paginate() for reliable cursor-based pagination
  */
 export const getAllUsersInternal = internalQuery({
   args: {
@@ -325,26 +327,26 @@ export const getAllUsersInternal = internalQuery({
   },
   handler: async (ctx, args) => {
     const pageSize = args.pageSize ?? 100
-    let query = ctx.db.query("users")
 
-    if (args.cursor) {
-      // Resume from cursor if provided
-      query = query.filter(q => q.gt(q.field("_id"), args.cursor!))
-    }
-
-    const users = await query.take(pageSize + 1) // Take one extra to check if there are more
-    const hasMore = users.length > pageSize
-    const pageUsers = hasMore ? users.slice(0, pageSize) : users
+    // Use Convex's built-in pagination with proper cursor handling
+    // This orders by _creationTime internally and handles cursor correctly
+    const result = await ctx.db
+      .query("users")
+      .order("asc") // Consistent ordering for pagination
+      .paginate({
+        numItems: pageSize,
+        cursor: args.cursor ?? null,
+      })
 
     return {
-      users: pageUsers.map(u => ({
+      users: result.page.map(u => ({
         _id: u._id,
         clerkId: u.clerkId,
         email: u.email,
         name: u.name,
         role: u.role,
       })),
-      cursor: hasMore ? pageUsers[pageUsers.length - 1]._id : null,
+      cursor: result.isDone ? null : result.continueCursor,
     }
   },
 })

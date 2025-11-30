@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     if (clerkUsers.data.length > 1) {
       return NextResponse.json(
-        { error: `Multiple users found with email ${email}. Please use Clerk ID instead.` },
+        { error: 'Multiple users found with this email. Please use Clerk ID instead.' },
         { status: 400 }
       )
     }

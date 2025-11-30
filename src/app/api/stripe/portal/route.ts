@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
 import Stripe from 'stripe'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+// Default to current stable Stripe API version; override via STRIPE_API_VERSION when needed.
+const stripeApiVersion = (process.env.STRIPE_API_VERSION || '2025-11-17.clover') as Stripe.StripeConfig['apiVersion']
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await getAuth(request)
+    const { userId, token } = await requireConvexToken()
     const origin = request.headers.get('origin') || new URL(request.url).origin
 
     if (!userId) {
@@ -21,16 +22,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: `${origin}/account?portal=mock` })
     }
 
-    const stripe = new Stripe(stripeSecret, { apiVersion: '2023-10-16' as any })
-
-    if (!convexUrl) {
-      console.error('Missing NEXT_PUBLIC_CONVEX_URL')
-      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
-    }
-    const convex = new ConvexHttpClient(convexUrl)
+    const stripe = new Stripe(stripeSecret, { apiVersion: stripeApiVersion })
 
     // Fetch Convex user by Clerk ID
-    const user = await convex.query(api.users.getUserByClerkId, { clerkId: userId })
+    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token)
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
@@ -39,13 +34,31 @@ export async function POST(request: NextRequest) {
 
     // Create customer in Stripe if missing, and store in Convex
     if (!customerId) {
+      if (!user.email) {
+        return NextResponse.json(
+          { error: 'User email is required' },
+          { status: 400 },
+        )
+      }
       const customer = await stripe.customers.create({
         email: user.email,
         name: user.name,
-        metadata: { clerkId: user.clerkId },
+        metadata: { 
+          clerk_id: user.clerkId,
+          clerkId: user.clerkId // Keep for backward compatibility
+        },
       })
       customerId = customer.id
-      await convex.mutation(api.users.setStripeCustomer, { clerkId: user.clerkId, stripeCustomerId: customerId })
+      try {
+        await convexServer.mutation(
+          api.users.setStripeCustomer,
+          { clerkId: user.clerkId, stripeCustomerId: customerId },
+          token
+        )
+      } catch (convexError) {
+        // Customer exists in Stripe; checkout route's search logic will recover on next request
+        console.error(`[Stripe Portal] Failed to save Stripe customer ${customerId} to Convex:`, convexError)
+      }
     }
 
     const session = await stripe.billingPortal.sessions.create({

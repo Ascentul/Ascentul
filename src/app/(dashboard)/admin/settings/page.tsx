@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { hasPlatformAdminAccess } from '@/lib/constants/roles'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -149,11 +150,10 @@ export default function AdminSettingsPage() {
     sessionEncryption: true
   })
 
-  const [activeTab, setActiveTab] = useState('general')
   const [loading, setLoading] = useState(false)
 
   const role = user?.role
-  const isSuperAdmin = role === 'super_admin'
+  const isSuperAdmin = hasPlatformAdminAccess(role)
 
   if (!isSuperAdmin) {
     return (
@@ -181,6 +181,7 @@ export default function AdminSettingsPage() {
 
       // Map settings based on type
       if (settingsType === 'General') {
+        // General tab - includes platform config + maintenance/registration toggles shown in this tab
         settingsToSave = {
           platform_name: generalSettings.platformName,
           support_email: generalSettings.supportEmail,
@@ -188,6 +189,9 @@ export default function AdminSettingsPage() {
           default_timezone: generalSettings.defaultTimezone,
           university_plan_limit: generalSettings.universityPlanLimit,
           premium_plan_limit: generalSettings.premiumPlanLimit,
+          // These toggles appear in both Quick Actions and General tab for convenience
+          maintenance_mode: systemSettings.maintenanceMode,
+          allow_signups: systemSettings.registrationEnabled,
         }
       } else if (settingsType === 'AI') {
         settingsToSave = {
@@ -237,11 +241,6 @@ export default function AdminSettingsPage() {
         title: "Settings saved",
         description: `${settingsType} settings have been updated successfully.`,
       })
-
-      // Reload page to fetch updated settings
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
     } catch (error) {
       toast({
         title: "Error",
@@ -253,10 +252,24 @@ export default function AdminSettingsPage() {
     }
   }
 
+  /**
+   * Test connection to external provider
+   * FEATURE INCOMPLETE: Currently returns mock success
+   * Implementation plan:
+   * 1. Create API routes for each provider health check:
+   *    - /api/admin/health/sendgrid - Verify API key with sendgrid.api.domains.get()
+   *    - /api/admin/health/openai - Call models.list() endpoint
+   *    - /api/admin/health/clerk - Verify via Clerk API client
+   * 2. Each route should return { success: boolean, latency: number, error?: string }
+   * 3. Add timeout handling (5s max)
+   * 4. Cache results for 5 minutes to avoid rate limiting
+   */
   const handleTestConnection = async (type: string) => {
     setLoading(true)
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // TODO: Call real health check API endpoint based on provider type
+      // e.g., const response = await fetch(`/api/admin/health/${type.toLowerCase()}`)
+      await Promise.resolve()
       toast({
         title: "Connection successful",
         description: `${type} connection test passed.`,
@@ -285,7 +298,7 @@ export default function AdminSettingsPage() {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs defaultValue="general" className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="ai">AI & OpenAI</TabsTrigger>
@@ -368,10 +381,46 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-end">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label id="general-maintenance-mode-label" htmlFor="general-maintenance-mode">Maintenance Mode</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enable maintenance mode for all users
+                    </p>
+                  </div>
+                  <Switch
+                    id="general-maintenance-mode"
+                    aria-label="Maintenance Mode"
+                    aria-labelledby="general-maintenance-mode-label"
+                    checked={systemSettings.maintenanceMode}
+                    onCheckedChange={(checked) =>
+                      setSystemSettings(prev => ({ ...prev, maintenanceMode: checked }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label id="general-registration-label" htmlFor="general-registration">Registration Enabled</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow new user registrations
+                    </p>
+                  </div>
+                  <Switch
+                    id="general-registration"
+                    aria-label="Registration Enabled"
+                    aria-labelledby="general-registration-label"
+                    checked={systemSettings.registrationEnabled}
+                    onCheckedChange={(checked) =>
+                      setSystemSettings(prev => ({ ...prev, registrationEnabled: checked }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end pt-2">
                 <Button onClick={() => handleSaveSettings('General')} disabled={loading}>
                   {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                  Save Changes
+                  Save General Settings
                 </Button>
               </div>
             </CardContent>
@@ -425,6 +474,18 @@ export default function AdminSettingsPage() {
                         </div>
                       </div>
                       <div className="space-y-2">
+                        <Label htmlFor="ai-model">Model</Label>
+                        <Input
+                          id="ai-model"
+                          value={aiSettings.model}
+                          onChange={(e) => setAiSettings(prev => ({ ...prev, model: e.target.value }))}
+                          placeholder="gpt-4o"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          OpenAI model to use (e.g., gpt-4o, gpt-4-turbo)
+                        </p>
+                      </div>
+                      <div className="space-y-2">
                         <Label>Max Tokens</Label>
                         <Input
                           type="number"
@@ -435,8 +496,9 @@ export default function AdminSettingsPage() {
                     </div>
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Temperature ({aiSettings.temperature})</Label>
+                        <Label htmlFor="temperature">Temperature ({aiSettings.temperature})</Label>
                         <input
+                          id="temperature"
                           type="range"
                           min="0"
                           max="2"
@@ -776,12 +838,15 @@ export default function AdminSettingsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label>Maintenance Mode</Label>
+                      <Label id="maintenance-mode-label" htmlFor="maintenance-mode">Maintenance Mode</Label>
                       <p className="text-sm text-muted-foreground">
                         Enable maintenance mode for all users
                       </p>
                     </div>
                     <Switch
+                      id="maintenance-mode"
+                      aria-label="Maintenance Mode"
+                      aria-labelledby="maintenance-mode-label"
                       checked={systemSettings.maintenanceMode}
                       onCheckedChange={(checked) =>
                         setSystemSettings(prev => ({ ...prev, maintenanceMode: checked }))
@@ -790,12 +855,15 @@ export default function AdminSettingsPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label>Registration Enabled</Label>
+                      <Label id="system-registration-label" htmlFor="system-registration">Registration Enabled</Label>
                       <p className="text-sm text-muted-foreground">
                         Allow new user registrations
                       </p>
                     </div>
                     <Switch
+                      id="system-registration"
+                      aria-label="Registration Enabled"
+                      aria-labelledby="system-registration-label"
                       checked={systemSettings.registrationEnabled}
                       onCheckedChange={(checked) =>
                         setSystemSettings(prev => ({ ...prev, registrationEnabled: checked }))
@@ -804,12 +872,15 @@ export default function AdminSettingsPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label>Email Verification Required</Label>
+                      <Label id="email-verification-label" htmlFor="email-verification">Email Verification Required</Label>
                       <p className="text-sm text-muted-foreground">
                         Require email verification for new accounts
                       </p>
                     </div>
                     <Switch
+                      id="email-verification"
+                      aria-label="Email Verification Required"
+                      aria-labelledby="email-verification-label"
                       checked={systemSettings.emailVerificationRequired}
                       onCheckedChange={(checked) =>
                         setSystemSettings(prev => ({ ...prev, emailVerificationRequired: checked }))

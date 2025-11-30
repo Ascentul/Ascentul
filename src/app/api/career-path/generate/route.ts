@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
 import OpenAI from 'openai'
+import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 
 export const runtime = 'nodejs'
 
@@ -10,18 +10,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const client = getClient()
-
+    const { userId, token } = await requireConvexToken()
     const body = await request.json()
     const { currentRole, targetRole, skills, experience, timeframe } = body
 
@@ -69,7 +60,8 @@ Format as a structured plan with clear steps and timelines.`
         temperature: 0.7,
       })
       generatedPath = completion.choices[0]?.message?.content || null
-    } catch {
+    } catch (error) {
+      console.error('OpenAI API call failed:', error)
       generatedPath = null
     }
 
@@ -80,18 +72,23 @@ Format as a structured plan with clear steps and timelines.`
     }
 
     // Save the generated career path with graceful degradation (Convex)
-    let careerPath: any = null
+    let careerPath: unknown = null
     let saveWarning: string | undefined
     try {
-      careerPath = await client.mutation(api.career_paths.createCareerPath, {
-        clerkId: userId,
-        target_role: String(targetRole),
-        current_level: undefined,
-        estimated_timeframe: timeframe ? String(timeframe) : undefined,
-        steps: { planText: generatedPath, inputs: { currentRole, targetRole, skills, experience, timeframe } },
-        status: 'active',
-      })
-    } catch {
+      careerPath = await convexServer.mutation(
+        api.career_paths.createCareerPath,
+        {
+          clerkId: userId,
+          target_role: String(targetRole),
+          current_level: undefined,
+          estimated_timeframe: timeframe ? String(timeframe) : undefined,
+          steps: { planText: generatedPath, inputs: { currentRole, targetRole, skills, experience, timeframe } },
+          status: 'active',
+        },
+        token,
+      )
+    } catch (error) {
+      console.error('Failed to save career path to Convex:', error)
       saveWarning = 'Career path generated but could not be saved.'
     }
 
@@ -103,6 +100,8 @@ Format as a structured plan with clear steps and timelines.`
     }, { status: careerPath ? 201 : 200 })
   } catch (error) {
     console.error('Error generating career path:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

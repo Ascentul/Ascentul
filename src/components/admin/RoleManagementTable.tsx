@@ -49,6 +49,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { UserRole } from '@/lib/constants/roles'
+import Image from 'next/image'
 
 interface MinimalUser {
   _id: Id<"users">
@@ -60,13 +61,13 @@ interface MinimalUser {
   role: UserRole
   subscription_plan: 'free' | 'premium' | 'university' | undefined
   subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due' | undefined
-  account_status: 'active' | 'suspended' | 'pending_activation' | 'deleted' | undefined
+  account_status: 'active' | 'suspended' | 'pending_activation' | 'pending_deletion' | 'deleted' | undefined
   is_test_user: boolean | undefined
   deleted_at: number | undefined
   deleted_by: string | undefined
   deleted_reason: string | undefined
   university_id: Id<"universities"> | undefined
-  profile_image: string | null
+  profile_image: string | undefined
   created_at: number
   updated_at: number
 }
@@ -124,10 +125,21 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
   const canAccess = useMemo(() => clerkRole === 'super_admin', [clerkRole])
   const shouldQuery = useMemo(() => !!(clerkLoaded && canAccess && clerkId), [clerkLoaded, canAccess, clerkId])
 
-  // Fetch all users (minimal data)
-  // NOTE: Hard-coded limit of 1000 users. For larger user bases, implement cursor-based
-  // pagination with UI controls. The query already supports pagination via continueCursor.
-  // TODO: Add pagination UI when user count exceeds 1000
+  /**
+   * Fetch all users (minimal data)
+   * FEATURE INCOMPLETE: Pagination UI not implemented
+   *
+   * Current behavior: Hard-coded limit of 1000 users with warning alert
+   *
+   * Implementation plan for pagination:
+   * 1. Add state: const [cursor, setCursor] = useState<string | undefined>()
+   * 2. Pass cursor to query: { clerkId, limit: 50, continueCursor: cursor }
+   * 3. Add pagination controls at bottom of table:
+   *    - "Load More" button that calls setCursor(usersData?.continueCursor)
+   *    - Or use shadcn Pagination component with page numbers
+   * 4. The query already returns continueCursor - just wire up the UI
+   * 5. Consider virtual scrolling (react-virtual) for very large lists
+   */
   const usersData = useQuery(
     api.users.getAllUsersMinimal,
     shouldQuery ? { clerkId, limit: 1000 } : 'skip'
@@ -259,10 +271,9 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
     if (dialogState.newRole && dialogState.user && dialogState.newRole !== dialogState.user.role) {
       handleValidateRoleChange()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // Only re-validate when newRole, selectedUniversityId, or user identity changes
-    // handleValidateRoleChange is intentionally excluded to prevent unnecessary re-validations
-  }, [dialogState.newRole, dialogState.selectedUniversityId, dialogState.user?.clerkId])
+    // Re-validate when role, university selection, user identity, or validation function changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dialogState.user is intentionally excluded to prevent re-running on every user object change
+  }, [dialogState.newRole, dialogState.selectedUniversityId, dialogState.user?.clerkId, handleValidateRoleChange])
 
   if (!usersData) {
     return (
@@ -362,11 +373,13 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {user.profile_image ? (
-                            <img
-                              src={user.profile_image}
-                              alt={user.name}
-                              className="h-8 w-8 rounded-full"
-                            />
+            <Image
+              src={user.profile_image}
+              alt={user.name}
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-full object-cover"
+            />
                           ) : (
                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="text-xs font-semibold text-primary">
@@ -599,7 +612,12 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
             </Button>
             <Button
               onClick={handleRoleChange}
-              disabled={dialogState.loading || !dialogState.validation?.valid || dialogState.newRole === dialogState.user?.role}
+              disabled={
+                dialogState.loading ||
+                !dialogState.validation?.valid ||
+                dialogState.newRole === dialogState.user?.role ||
+                (['student', 'university_admin', 'advisor'].includes(dialogState.newRole) && !dialogState.selectedUniversityId)
+              }
             >
               {dialogState.loading ? (
                 <>

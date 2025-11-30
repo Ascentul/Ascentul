@@ -15,7 +15,6 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
@@ -63,11 +62,49 @@ export function TodaysRecommendations() {
     [recommendations]
   )
 
+  // Sync local state when server data changes (compare hash to catch content updates)
+  // NOTE: Excludes completed/completedAt from hash to preserve local user interactions
+  // during server refreshes - completion state is managed locally
+  const prevRecommendationsHash = useRef<string>('')
+  const recommendationsHash = useMemo(
+    () =>
+      JSON.stringify(
+        recommendationsArray.map(r => ({
+          id: r.id,
+          text: r.text,
+          type: r.type,
+          relatedEntityId: r.relatedEntityId,
+          relatedEntityType: r.relatedEntityType,
+        }))
+      ),
+    [recommendationsArray]
+  )
   useEffect(() => {
-    removalTimeouts.current.forEach(timeout => clearTimeout(timeout))
-    removalTimeouts.current.clear()
-    setLocalRecommendations(recommendationsArray.map(rec => ({ ...rec })))
-  }, [recommendationsArray])
+    if (recommendationsHash !== prevRecommendationsHash.current) {
+      prevRecommendationsHash.current = recommendationsHash
+      removalTimeouts.current.forEach(timeout => clearTimeout(timeout))
+      removalTimeouts.current.clear()
+      setLocalRecommendations(prev => {
+        const prevMap = new Map(prev.map(r => [r.id, r]))
+        return recommendationsArray.map(rec => {
+          const prevRec = prevMap.get(rec.id)
+          // Prioritize local state over server state for completion tracking
+          // This preserves user interactions during server refreshes
+          const completed = prevRec?.completed ?? rec.completed ?? false
+          const completedAt = prevRec?.completedAt ??
+            (completed ? rec.completedAt ?? null : null)
+
+          return {
+            ...rec,
+            completed,
+            completedAt,
+          }
+        })
+      })
+    }
+    // recommendationsHash already captures changes to recommendationsArray content
+    // recommendationsArray is still needed to access the actual data in the callback
+  }, [recommendationsHash, recommendationsArray])
 
   useEffect(() => () => {
     removalTimeouts.current.forEach(timeout => clearTimeout(timeout))

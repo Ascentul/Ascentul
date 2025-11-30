@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
+import { getErrorMessage } from '@/lib/errors';
+import { convexServer } from '@/lib/convex-server';
+import { hasUniversityAdminAccess, hasPlatformAdminAccess } from '@/lib/constants/roles';
 
 /**
  * Sync university assignment to Clerk publicMetadata
@@ -13,23 +15,14 @@ import { api } from 'convex/_generated/api';
  */
 export async function POST(req: NextRequest) {
   try {
-    const authResult = await auth();
-    const { userId } = authResult;
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) {
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-    const convex = new ConvexHttpClient(convexUrl);
-    const convexToken = await authResult.getToken({ template: 'convex' });
-    if (convexToken) {
-      convex.setAuth(convexToken);
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
     }
 
     const body = await req.json();
@@ -43,16 +36,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the requester is a university admin
-    const adminUser = await convex.query(api.users.getUserByClerkId, {
+    const adminUser = await convexServer.query(api.users.getUserByClerkId, {
       clerkId: userId,
-    });
+    }, token);
 
-    if (!adminUser || !['super_admin', 'university_admin'].includes(adminUser.role)) {
+    if (!adminUser || !hasUniversityAdminAccess(adminUser.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Verify the admin belongs to this university (unless super_admin)
-    if (adminUser.role !== 'super_admin' && adminUser.university_id !== universityId) {
+    if (!hasPlatformAdminAccess(adminUser.role) && adminUser.university_id !== universityId) {
       return NextResponse.json(
         { error: 'Cannot assign students to other universities' },
         { status: 403 }
@@ -94,10 +87,11 @@ export async function POST(req: NextRequest) {
       message: 'Clerk metadata updated successfully',
       userFound: true,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Sync Clerk metadata error:', error);
+    const message = getErrorMessage(error, 'Internal server error');
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: message },
       { status: 500 }
     );
   }

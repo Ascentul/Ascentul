@@ -117,10 +117,21 @@ export const getUserMetrics = query({
 
     const mrr = Math.round(premiumUsers.length * weightedAvgRate)
 
-    // TODO: Replace with actual Stripe data when premium users > 500
-    // For investor-grade accuracy, pull real subscription amounts from Stripe API
-    // This will account for actual billing cycles, discounts, prorations, and failed payments
-    // See documentation in analysis comments for Stripe integration approach
+    /**
+     * FEATURE INCOMPLETE: Using weighted average estimate instead of real Stripe data
+     *
+     * Current approach: $23.50/user weighted average (65% annual @ $20/mo, 35% monthly @ $30/mo)
+     * This is acceptable for early stage (< 500 premium users)
+     *
+     * Implementation plan for Stripe integration:
+     * 1. Create convex/stripe_metrics.ts with action to call Stripe API
+     * 2. Use stripe.subscriptions.list() to get all active subscriptions
+     * 3. Calculate actual MRR: sum(subscription.items.data[0].price.unit_amount / 100)
+     * 4. Handle annual subscriptions: divide by 12 for MRR contribution
+     * 5. Account for discounts, trials, and failed payments
+     * 6. Cache results (update daily via scheduled function)
+     * 7. For Series A due diligence: export raw Stripe data for verification
+     */
 
     return {
       // Total counts (real users only)

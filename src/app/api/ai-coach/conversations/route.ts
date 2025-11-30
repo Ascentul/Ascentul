@@ -1,33 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { fetchQuery, fetchMutation } from 'convex/nextjs'
+import { requireConvexToken } from '@/lib/convex-auth'
 
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, token } = await requireConvexToken()
 
-    const client = getClient()
-    const conversations = await client.query(api.ai_coach.getConversations, { clerkId: userId })
+    const conversations = await fetchQuery(
+      api.ai_coach.getConversations,
+      { clerkId: userId },
+      { token }
+    )
 
     return NextResponse.json(conversations)
   } catch (error) {
     console.error('Error fetching conversations:', error)
-    return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to fetch conversations'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, token } = await requireConvexToken()
 
     const body = await request.json()
     const { title } = body
@@ -36,15 +33,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
-    const client = getClient()
-    const newConversation = await client.mutation(api.ai_coach.createConversation, {
-      clerkId: userId,
-      title
-    })
+    const newConversation = await fetchMutation(
+      api.ai_coach.createConversation,
+      { clerkId: userId, title },
+      { token }
+    )
 
     return NextResponse.json(newConversation, { status: 201 })
   } catch (error) {
     console.error('Error creating conversation:', error)
-    return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to create conversation'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

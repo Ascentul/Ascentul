@@ -97,6 +97,31 @@ async function requireSuperAdminUser(ctx: any, providedClerkId?: string) {
   return user;
 }
 
+// MIGRATION: Using stage with status fallback for consistency
+// See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
+function stageFromStatus(status?: string) {
+  switch (status) {
+    case 'offer':
+      return 'Offer';
+    case 'applied':
+      return 'Applied';
+    case 'interview':
+      return 'Interview';
+    case 'rejected':
+      return 'Rejected';
+    case 'saved':
+      return 'Prospect';
+    case 'accepted':
+      return 'Accepted';
+    case 'withdrawn':
+      return 'Withdrawn';
+    case 'archived':
+      return 'Archived';
+    default:
+      return undefined;
+  }
+}
+
 // ============================================================================
 // Queries
 // ============================================================================
@@ -996,7 +1021,7 @@ export const getUserDashboardAnalytics = query({
       ctx.db.query("applications").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
       ctx.db.query("goals").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
       ctx.db.query("interview_stages").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
-      ctx.db.query("followup_actions").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
+      ctx.db.query('follow_ups').withIndex('by_user', (q) => q.eq('user_id', user._id)).take(200),
       ctx.db.query("resumes").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
       ctx.db.query("cover_letters").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
       ctx.db.query("projects").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
@@ -1004,13 +1029,26 @@ export const getUserDashboardAnalytics = query({
       ctx.db.query("career_paths").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
     ]);
 
-    // Calculate stats
+    // Calculate stats using stage with status fallback during migration
+    // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
     const applicationStats = {
       total: applications.length,
-      applied: applications.filter(app => app.status === "applied").length,
-      interview: applications.filter(app => app.status === "interview").length,
-      offer: applications.filter(app => app.status === "offer").length,
-      rejected: applications.filter(app => app.status === "rejected").length,
+      applied: applications.filter(app =>
+        app.stage === "Applied" || (!app.stage && app.status === "applied")
+      ).length,
+      interview: applications.filter(app =>
+        app.stage === "Interview" || (!app.stage && app.status === "interview")
+      ).length,
+      offer: applications.filter(app =>
+        app.stage === "Offer" ||
+        app.stage === "Accepted" ||
+        (!app.stage && app.status === "offer")
+      ).length,
+      rejected: applications.filter(app =>
+        app.stage === "Rejected" ||
+        app.stage === "Withdrawn" ||
+        (!app.stage && app.status === "rejected")
+      ).length,
     };
 
     const activeGoals = goals.filter(goal =>
@@ -1019,7 +1057,7 @@ export const getUserDashboardAnalytics = query({
 
     // Count all incomplete follow-up actions (not just overdue ones)
     const pendingTasks = followupActions.filter(followup =>
-      !followup.completed
+      followup.status === 'open'
     ).length;
 
     // Find next upcoming interview
@@ -1068,26 +1106,29 @@ export const getUserDashboardAnalytics = query({
         });
       }
 
+      // MIGRATION: Using stage instead of status
       if (
-        app.status !== "saved" &&
+        (app.stage || app.status) &&
+        (app.stage ? app.stage !== "Prospect" : app.status !== "saved") &&
         app.updated_at &&
         app.updated_at !== app.created_at
       ) {
-        const statusText =
-          app.status === "applied"
+        const effectiveStage = app.stage || stageFromStatus(app.status as any);
+        const stageText =
+          effectiveStage === "Applied"
             ? "Applied to"
-            : app.status === "interview"
+            : effectiveStage === "Interview"
               ? "Moved to interviews for"
-              : app.status === "offer"
+              : effectiveStage === "Offer" || effectiveStage === "Accepted"
                 ? "Received an offer from"
-                : app.status === "rejected"
+                : effectiveStage === "Rejected" || effectiveStage === "Withdrawn"
                   ? "Closed application for"
                   : "Updated application for";
 
         addActivity({
           id: `application-update-${app._id}`,
           type: "application_update",
-          description: `${statusText} ${app.company}`,
+          description: `${stageText} ${app.company}`,
           timestamp: app.updated_at,
         });
       }
@@ -1108,15 +1149,15 @@ export const getUserDashboardAnalytics = query({
         id: `followup-${followup._id}`,
         type: "followup",
         description: `Scheduled follow-up: ${label}`,
-        timestamp: followup.created_at ?? followup.updated_at ?? 0,
+        timestamp: followup.created_at ?? followup.updated_at ?? Date.now(),
       });
 
-      if (followup.completed && followup.updated_at) {
+      if (followup.status === 'done' && followup.completed_at) {
         addActivity({
           id: `followup-completed-${followup._id}`,
-          type: "followup_completed",
+          type: 'followup_completed',
           description: `Completed follow-up: ${label}`,
-          timestamp: followup.updated_at,
+          timestamp: followup.completed_at,
         });
       }
     }
@@ -1651,14 +1692,14 @@ export const getSingleUniversityAnalytics = query({
       ...uniProjects.map(p => p.user_id),
     ]);
 
-    // Calculate success metrics
     const totalApplications = uniApps.length;
     const interviewsScheduled = uniInterviews.filter(i =>
       i.status === 'scheduled' || i.status === 'completed'
     ).length;
-    const offersReceived = uniApps.filter(a =>
-      a.status === 'offer_received' || a.status === 'accepted'
-    ).length;
+    const offersReceived = uniApps.filter(a => {
+      const stage = a.stage || stageFromStatus(a.status as any);
+      return stage === 'Offer' || stage === 'Accepted';
+    }).length;
     const placementRate = students.length > 0
       ? Math.round((offersReceived / students.length) * 100)
       : 0;

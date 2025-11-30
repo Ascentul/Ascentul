@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
+import { hasUniversityAdminAccess } from '@/lib/constants/roles';
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
     // Get authentication from request
-    const { userId } = getAuth(request)
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const { userId, token } = await requireConvexToken()
 
     const body = await request.json()
     const { clerkId } = body
@@ -25,18 +23,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ClerkId mismatch' }, { status: 403 })
     }
 
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) {
-      return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-    }
+    
 
-    // Initialize convex client
-    const convex = new ConvexHttpClient(url)
 
     // Get the current user to verify admin access
     let user
     try {
-      user = await convex.query(api.users.getUserByClerkId, { clerkId })
+      user = await convexServer.query(api.users.getUserByClerkId, { clerkId }, token)
     } catch (error) {
       console.error('Error fetching user:', error)
       return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 })
@@ -46,7 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (!['super_admin', 'university_admin'].includes(user.role)) {
+    if (!hasUniversityAdminAccess(user.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
@@ -58,8 +51,8 @@ export async function POST(request: NextRequest) {
     let students, departments
     try {
       [students, departments] = await Promise.all([
-        convex.query(api.university_admin.listStudents, { clerkId, limit: 1000 }),
-        convex.query(api.university_admin.listDepartments, { clerkId })
+        convexServer.query(api.university_admin.listStudents, { clerkId }, token),
+        convexServer.query(api.university_admin.listDepartments, { clerkId }, token)
       ])
     } catch (error) {
       console.error('Error fetching data:', error)

@@ -112,24 +112,80 @@ export default function PublicProfilePage() {
     }
   }
 
+  /**
+   * Handle cover image upload
+   * FEATURE INCOMPLETE: Currently only displays preview locally
+   * Implementation needed:
+   * 1. Use Convex file storage (preferred) or external storage (S3/R2)
+   * 2. Create upload endpoint in convex/files.ts
+   * 3. Store URL in users table cover_image field
+   * 4. Add file size/type validation
+   */
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Validate file size (max 10MB to prevent browser freeze from large data URLs)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast({
+        title: 'File too large',
+        description: 'Please select an image under 10MB',
+        variant: 'destructive',
+      })
+      return
+    }
+
     const reader = new FileReader()
     reader.onloadend = () => {
       setCoverImage(reader.result as string)
-      // TODO: Upload to cloud storage and save to database
+      // TODO: Implement cloud storage upload - see comment above for implementation plan
+    }
+    reader.onerror = () => {
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to read the image file',
+        variant: 'destructive',
+      })
     }
     reader.readAsDataURL(file)
   }
 
+  /**
+   * Handle profile image upload
+   * FEATURE INCOMPLETE: Currently only displays preview locally
+   * Implementation needed:
+   * 1. Use Convex file storage (preferred) or external storage (S3/R2)
+   * 2. Create upload endpoint in convex/files.ts
+   * 3. Store URL in users table profile_image field
+   * 4. Add file size/type validation (max 5MB, images only)
+   */
   const handleProfileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Validate file size (max 5MB to prevent browser freeze from large data URLs)
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast({
+        title: 'File too large',
+        description: 'Please select an image under 5MB',
+        variant: 'destructive',
+      })
+      return
+    }
+
     const reader = new FileReader()
     reader.onloadend = () => {
       setProfileImage(reader.result as string)
-      // TODO: Upload to cloud storage and save to database
+      // TODO: Implement cloud storage upload - see comment above for implementation plan
+    }
+    reader.onerror = () => {
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to read the image file',
+        variant: 'destructive',
+      })
     }
     reader.readAsDataURL(file)
   }

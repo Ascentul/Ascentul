@@ -1,16 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "convex/_generated/api";
-import Stripe from "stripe";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { api } from 'convex/_generated/api';
+import Stripe from 'stripe';
+import { convexServer } from '@/lib/convex-server';
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!url) throw new Error("Convex URL not configured");
-  return new ConvexHttpClient(url);
-}
+// Default to current stable Stripe API version; override via STRIPE_API_VERSION when needed.
+const stripeApiVersion = (process.env.STRIPE_API_VERSION || '2025-11-17.clover') as Stripe.StripeConfig['apiVersion'];
 
 // Plan configuration for dynamic price_data
 const PLAN_CONFIG: Record<
@@ -49,19 +46,25 @@ const PLAN_CONFIG: Record<
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const token = await getToken({ template: "convex" });
+    if (!token) {
+      return NextResponse.json({ error: "Failed to obtain auth token" }, { status: 401 });
+    }
+
     let body;
     try {
       body = await request.json();
-    } catch {
+    } catch (err) {
+      console.error('Failed to parse request body:', err);
       return NextResponse.json(
-        { error: "Invalid request body" },
-        { status: 400 },
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
       );
     }
 
@@ -85,15 +88,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const stripe = new Stripe(stripeSecret, {
-      apiVersion: "2025-02-24.acacia",
-    });
-    const client = getClient();
-
+    const stripe = new Stripe(stripeSecret, { apiVersion: stripeApiVersion });
     // Fetch current user record to get/create customer
-    const user = await client.query(api.users.getUserByClerkId, {
-      clerkId: userId,
-    });
+    const user = await convexServer.query(
+      api.users.getUserByClerkId,
+      { clerkId: userId },
+      token
+    );
 
     if (!user) {
       return NextResponse.json(
@@ -105,18 +106,78 @@ export async function POST(request: NextRequest) {
     let customerId = user.stripe_customer_id as string | null;
 
     if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email || undefined,
-        name: user.name || undefined,
-        metadata: { clerk_id: userId, user_id: user._id },
-      });
-      customerId = customer.id;
+      if (!user.email) {
+        return NextResponse.json(
+          { error: "User email is required for checkout" },
+          { status: 400 },
+        );
+      }
 
-      // Update user with stripe customer ID
-      await client.mutation(api.users.updateUser, {
-        clerkId: userId,
-        updates: { stripe_customer_id: customerId },
+      // Check if a Stripe customer already exists for this user by searching Stripe
+      // This handles the edge case where Stripe customer was created but Convex update failed
+      // Use Search API to query by metadata instead of email-only list (more accurate for shared emails)
+      // Escape double quotes and backslashes per Stripe Search Query Language spec
+      const escapedUserId = userId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const existingCustomers = await stripe.customers.search({
+        query: `metadata["clerk_id"]:"${escapedUserId}"`,
+        limit: 1,
       });
+
+      if (existingCustomers.data.length > 0) {
+        // Found existing customer - use it and update Convex
+        customerId = existingCustomers.data[0].id;
+        console.log(`[Stripe Checkout] Found existing Stripe customer ${customerId} for user ${userId}`);
+
+        // Update Convex with the existing customer ID
+        try {
+          await convexServer.mutation(
+            api.users.updateUser,
+            {
+              clerkId: userId,
+              updates: { stripe_customer_id: customerId },
+            },
+            token
+          );
+        } catch (convexError) {
+          console.error('Failed to sync existing Stripe customer ID to Convex:', convexError);
+          // Continue with checkout - the customer exists in Stripe and will be found again on retry
+          console.error(`[Stripe Checkout] Failed to sync existing Stripe customer: ${customerId} for user ${userId}`);
+        }
+      } else {
+        // No existing customer - create new one
+        // Use idempotency key to prevent duplicate customers on concurrent checkout requests
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          name: user.name || undefined,
+          metadata: {
+            clerk_id: userId,
+            clerkId: userId, // Keep for backward compatibility with portal route
+            user_id: user._id,
+          },
+        }, {
+          idempotencyKey: `create-customer-${userId}`,
+        });
+        customerId = customer.id;
+
+        // Update user with stripe customer ID
+        // IMPORTANT: If this fails, we'll have an orphaned Stripe customer, but on retry
+        // the check above will find it and recover gracefully
+        try {
+          await convexServer.mutation(
+            api.users.updateUser,
+            {
+              clerkId: userId,
+              updates: { stripe_customer_id: customerId },
+            },
+            token
+          );
+        } catch (convexError) {
+          console.error('Failed to save Stripe customer ID to Convex:', convexError);
+          // Log the orphaned customer ID for manual cleanup if needed
+          console.error(`[Stripe Checkout] Orphaned Stripe customer: ${customerId} for user ${userId}`);
+          throw new Error('Failed to save customer information. Please try again.');
+        }
+      }
     }
 
     const cfg = PLAN_CONFIG[plan][interval];

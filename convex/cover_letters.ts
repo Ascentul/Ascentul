@@ -160,8 +160,29 @@ export const deleteCoverLetter = mutation({
       throw new Error("Cover letter not found or unauthorized");
     }
 
+    // University isolation check
     if (coverLetter.university_id && membership && coverLetter.university_id !== membership.university_id) {
       throw new Error("Unauthorized: Cover letter belongs to another university");
+    }
+
+    // Referential integrity: Check for active reviews before deletion
+    // Uses by_cover_letter index for O(1) lookup instead of scanning by_student
+    // Active reviews are those awaiting action (waiting/in_review), not finalized ones (approved/needs_edits)
+    const activeReview = await ctx.db
+      .query("advisor_reviews")
+      .withIndex("by_cover_letter", (q) => q.eq("cover_letter_id", args.coverLetterId))
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("status"), "waiting"),
+          q.eq(q.field("status"), "in_review"),
+        ),
+      )
+      .first();
+
+    if (activeReview) {
+      throw new Error(
+        "Cannot delete cover letter: Active review in progress. Please wait for the review to complete or contact your advisor.",
+      );
     }
 
     await ctx.db.delete(args.coverLetterId);

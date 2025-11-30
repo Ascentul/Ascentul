@@ -12,13 +12,16 @@ import { CareerGoalsSummary } from '@/components/CareerGoalsSummary'
 import { ActiveInterviewsSummary } from '@/components/ActiveInterviewsSummary'
 import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
 import { TodaysRecommendations } from '@/components/TodaysRecommendations'
+import { AICareerCoach } from '@/components/AICareerCoach'
 import { UsageProgressCard } from '@/components/UsageProgressCard'
 import { HeatmapCard } from '@/components/streak/HeatmapCard'
+import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
 import { Card, CardContent } from '@/components/ui/card'
 import { Target, Clock, Users } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { hasAdvisorAccess, hasUniversityAdminAccess, hasPlatformAdminAccess } from '@/lib/constants/roles'
 
 // Helper function to format time ago
 function formatTimeAgo(timestamp: number): string {
@@ -89,30 +92,32 @@ export default function DashboardPage() {
         router.replace('/admin')
         return
       }
-      // Otherwise stay on this page (student, individual, staff, advisor)
+      // If impersonating advisor, redirect to advisor dashboard
+      if (effectiveRole === 'advisor') {
+        router.replace('/advisor')
+        return
+      }
+      // Otherwise stay on this page (student, individual, staff)
       return
     }
 
     // Not impersonating - use real role
-    if (user?.role === 'university_admin') {
+    if (user?.role === 'advisor') {
+      router.replace('/advisor')
+      return
+    }
+    if (hasUniversityAdminAccess(user?.role) && user?.role !== 'super_admin') {
       router.replace('/university')
       return
     }
-    if (user?.role === 'super_admin') {
+    if (hasPlatformAdminAccess(user?.role)) {
       router.replace('/admin')
       return
     }
   }, [user, router, impersonation.isImpersonating, effectiveRole])
 
   if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   if (!clerkUser || !user) {
@@ -121,18 +126,16 @@ export default function DashboardPage() {
 
   // Prevent rendering for admin users while redirect is happening
   // But allow rendering if impersonating a non-admin role
-  const shouldRedirectToAdmin = !impersonation.isImpersonating &&
-    (user?.role === 'university_admin' || user?.role === 'super_admin')
+  const shouldRedirectToAdmin = !impersonation.isImpersonating && hasAdvisorAccess(user?.role)
 
   if (shouldRedirectToAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Redirecting to admin portal...</p>
-        </div>
-      </div>
-    )
+    let message = "Redirecting to admin portal..."
+    if (user?.role === 'advisor') {
+      message = "Redirecting to advisor dashboard..."
+    } else if (user?.role === 'university_admin') {
+      message = "Redirecting to university dashboard..."
+    }
+    return <LoadingSpinner message={message} />
   }
 
   // Use real data or fallback to default values
@@ -200,6 +203,12 @@ export default function DashboardPage() {
                 </p>
               </div>
             </header>
+            <div className="rounded-md border bg-white px-4 py-3">
+              <p className="font-medium">Quick Actions</p>
+            </div>
+            <div className="mt-4">
+              <AICareerCoach />
+            </div>
           </motion.div>
 
           {/* Row 1: Stats Overview - Removed Interview Rate card */}

@@ -1,69 +1,106 @@
 import { NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
+
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
+import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
+import { isValidConvexId } from '@/lib/convex-ids';
 
 // GET /api/contacts/[id]
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const { userId } = getAuth(request as any)
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-  const client = new ConvexHttpClient(url)
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const contacts = await client.query(api.contacts.getUserContacts, { clerkId: userId })
-    const contact = (contacts as any[]).find((c) => String(c._id) === params.id)
-    if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+    const { userId, token } = await requireConvexToken()
+
+    const { id } = await params
+    if (!isValidConvexId(id)) {
+      return NextResponse.json({ error: 'Invalid contact ID format' }, { status: 400 })
+    }
+
+    const contact = await convexServer.query(api.contacts.getContactById, {
+      clerkId: userId,
+      contactId: id as Id<'networking_contacts'>,
+    }, token)
+
+    if (!contact) {
+      return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+    }
+
     return NextResponse.json({ contact })
-  } catch (e: any) {
-    return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+  } catch (error: unknown) {
+    console.error('GET /api/contacts/[id] error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to fetch contact'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }
 
 // PUT /api/contacts/[id]
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const { userId } = getAuth(request as any)
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-  const client = new ConvexHttpClient(url)
-
-  const body = await request.json().catch(() => ({} as any))
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await client.mutation(api.contacts.updateContact, {
+    const { userId, token } = await requireConvexToken()
+
+    const { id } = await params
+    if (!isValidConvexId(id)) {
+      return NextResponse.json({ error: 'Invalid contact ID format' }, { status: 400 })
+    }
+
+    let body: Record<string, unknown>
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
+    const contact = await convexServer.mutation(api.contacts.updateContact, {
       clerkId: userId,
-      contactId: params.id as any,
+      contactId: id as Id<'networking_contacts'>,
       updates: {
-        name: body.full_name ?? body.name,
-        company: body.company,
-        position: body.position,
-        email: body.email,
-        phone: body.phone,
-        linkedin_url: body.linkedin_url,
-        notes: body.notes,
-        relationship: body.relationship_type,
-        last_contact: body.last_contact_date ? Date.parse(body.last_contact_date) || undefined : undefined,
+        name: (body.full_name ?? body.name) as string | undefined,
+        company: body.company as string | undefined,
+        position: body.position as string | undefined,
+        email: body.email as string | undefined,
+        phone: body.phone as string | undefined,
+        notes: body.notes as string | undefined,
+        last_contact: (() => {
+          if (typeof body.last_contact_date !== 'string') return undefined;
+          const parsed = Date.parse(body.last_contact_date);
+          if (Number.isNaN(parsed)) {
+            return undefined;
+          }
+          return parsed;
+        })(),
       },
-    })
-    const contacts = await client.query(api.contacts.getUserContacts, { clerkId: userId })
-    const contact = (contacts as any[]).find((c) => String(c._id) === params.id)
+    }, token)
+
     return NextResponse.json({ contact })
-  } catch (e: any) {
-    return NextResponse.json({ error: 'Failed to update contact' }, { status: 500 })
+  } catch (error: unknown) {
+    console.error('PUT /api/contacts/[id] error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to update contact'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }
 
 // DELETE /api/contacts/[id]
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const { userId } = getAuth(request as any)
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-  const client = new ConvexHttpClient(url)
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await client.mutation(api.contacts.deleteContact, { clerkId: userId, contactId: params.id as any })
+    const { userId, token } = await requireConvexToken()
+
+    const { id } = await params
+    if (!isValidConvexId(id)) {
+      return NextResponse.json({ error: 'Invalid contact ID format' }, { status: 400 })
+    }
+
+    await convexServer.mutation(
+      api.contacts.deleteContact,
+      { clerkId: userId, contactId: id as Id<'networking_contacts'> },
+      token
+    )
     return NextResponse.json({ success: true })
-  } catch (e: any) {
-    return NextResponse.json({ error: 'Failed to delete contact' }, { status: 500 })
+  } catch (error: unknown) {
+    console.error('DELETE /api/contacts/[id] error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to delete contact'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

@@ -76,6 +76,14 @@ export const seedDefaults = mutation({
 export const getUserAchievements = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    if (identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized: clerkId mismatch");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -104,6 +112,14 @@ export const getUserAchievements = query({
 export const awardAchievement = mutation({
   args: { clerkId: v.string(), achievement_id: v.id("achievements") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+    if (identity.subject !== args.clerkId) {
+      throw new Error("Unauthorized: clerkId mismatch");
+    }
+
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))

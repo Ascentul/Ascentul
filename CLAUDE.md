@@ -123,6 +123,21 @@ Feature Gating (Access Control)
 - `support_tickets`: Help desk system
 - `ai_coach_conversations`, `ai_coach_messages`: AI coaching chat history
 
+### Advisor-Student Relationships
+
+**CONSOLIDATED**: The `student_advisors` table is now the canonical source for advisor-student relationships.
+
+| Table | Status | Notes |
+|-------|--------|-------|
+| `student_advisors` | **Active** | Use for ALL new code |
+| `advisorStudents` | **Deprecated** | Legacy table, being removed |
+
+**Guidelines**:
+- ALL advisor features should use `student_advisors`
+- University admin `assignAdvisorToStudent` now uses `student_advisors`
+- Migration script available: `npx convex run migrations/consolidate_advisor_students:migrate`
+- See `docs/TECH_DEBT_ADVISOR_STUDENT_TABLES.md` for migration status
+
 ### App Structure (Next.js App Router)
 - `src/app/(auth)/`: Sign-in/sign-up flows
 - `src/app/(dashboard)/`: Protected routes for regular users

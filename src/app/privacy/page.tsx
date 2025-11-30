@@ -13,7 +13,7 @@ export default function PrivacyPage() {
 
         <div className="prose prose-zinc max-w-none">
           <p className="text-lg text-zinc-600 mb-6">
-            Last updated: November 2024
+            Last updated: November 2025
           </p>
 
           <section className="mb-8">

@@ -23,20 +23,18 @@ export default function UniversitySettingsPage() {
   const { user: clerkUser } = useUser();
   const { user, isAdmin, subscription } = useAuth();
   const { toast } = useToast();
+  const effectiveClerkId = clerkUser?.id || user?.clerkId;
 
+  // Convex mutations and queries - api is generated code, no optional chaining needed
+  const updateUniversitySettingsMutation = useMutation(api.universities.updateUniversitySettings);
   const universitySettings = useQuery(
     api.universities.getUniversitySettings,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
-  );
-  const updateUniversitySettings = useMutation(
-    api.universities.updateUniversitySettings,
+    effectiveClerkId ? { clerkId: effectiveClerkId } : "skip",
   );
 
   const canAccess =
     !!user &&
-    (isAdmin ||
-      subscription.isUniversity ||
-      user.role === "university_admin");
+    (isAdmin || (subscription?.isUniversity ?? false));
 
   const [settings, setSettings] = useState({
     name: "",
@@ -64,7 +62,7 @@ export default function UniversitySettingsPage() {
   }, [universitySettings]);
 
   const handleSaveSettings = async () => {
-    if (!clerkUser || !universitySettings?._id) {
+    if (!effectiveClerkId || !universitySettings?._id) {
       toast({
         title: "Error",
         description: "Unable to save settings. Please try refreshing the page.",
@@ -75,14 +73,15 @@ export default function UniversitySettingsPage() {
 
     setLoading(true);
     try {
-      await updateUniversitySettings({
-        clerkId: clerkUser.id,
+      await updateUniversitySettingsMutation({
         universityId: universitySettings._id,
         settings: {
           name: settings.name,
           description: settings.description,
           website: settings.website,
           contact_email: settings.contactEmail,
+          // NOTE: max_students and license_seats are managed by super_admin only
+          // via the admin panel, not editable by university admins
         },
       });
 
@@ -90,12 +89,12 @@ export default function UniversitySettingsPage() {
         title: "Settings saved",
         description: "University settings have been updated successfully.",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Settings save error:", error);
       toast({
         title: "Error",
         description:
-          error?.message || "Failed to save settings. Please try again.",
+          error instanceof Error ? error.message : "Failed to save settings. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -111,7 +110,7 @@ export default function UniversitySettingsPage() {
   };
 
   const handleExportData = async () => {
-    if (!clerkUser) return;
+    if (!effectiveClerkId) return;
 
     try {
       toast({
@@ -126,7 +125,7 @@ export default function UniversitySettingsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          clerkId: clerkUser.id,
+          clerkId: effectiveClerkId,
         }),
       });
 
@@ -278,6 +277,19 @@ export default function UniversitySettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="maxStudents">Maximum Students</Label>
+              <Input
+                id="maxStudents"
+                type="number"
+                value={settings.maxStudents}
+                disabled
+                className="bg-muted cursor-not-allowed"
+              />
+              <p className="text-xs text-muted-foreground">
+                Managed by system administrator
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="licenseSeats">License Seats</Label>
               <Input
                 id="licenseSeats"
@@ -287,7 +299,7 @@ export default function UniversitySettingsPage() {
                 className="bg-muted cursor-not-allowed"
               />
               <p className="text-xs text-muted-foreground">
-                Total number of licenses available for students (read-only)
+                Total number of licenses available for students (managed by system administrator)
               </p>
             </div>
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUser, useAuth as useClerkAuth } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { hasUniversityAdminAccess } from "@/lib/constants/roles";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import {
@@ -80,6 +81,7 @@ import {
   UserRound,
   Briefcase,
   MoreVertical,
+  Loader2,
 } from "lucide-react";
 import { Id } from "convex/_generated/dataModel";
 import {
@@ -105,7 +107,7 @@ export default function UniversityDashboardPage() {
   const router = useRouter();
   const { user: clerkUser } = useUser();
   const { getToken } = useClerkAuth();
-  const { user, isAdmin, subscription } = useAuth();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
   const { impersonation, getEffectiveRole } = useImpersonation();
   const [activeTab, setActiveTab] = useState("overview");
   const [analyticsView, setAnalyticsView] = useState<
@@ -113,8 +115,72 @@ export default function UniversityDashboardPage() {
   >("engagement");
   const { toast } = useToast();
 
+  // Filter states - declared at top to avoid Rules of Hooks violation
+  const [roleFilter, setRoleFilter] = useState<
+    "all" | "undergraduate" | "graduate" | "staff"
+  >("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive" | "pending"
+  >("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Platform Usage states
+  const [usageTimeFilter, setUsageTimeFilter] = useState("Last 30 days");
+  const [usageProgramFilter, setUsageProgramFilter] = useState("All Programs");
+  const [usageView, setUsageView] = useState<"overview" | "features" | "programs">("overview");
+
+  // Assign student licenses states
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignText, setAssignText] = useState("");
+  const [assignRole, setAssignRole] = useState<"user" | "staff">("user");
+  const [selectedProgram, setSelectedProgram] = useState<
+    Id<"departments"> | "none"
+  >("none");
+  const [assigning, setAssigning] = useState(false);
+  const [importingEmails, setImportingEmails] = useState(false);
+
+  // Export dialog state
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportFilename, setExportFilename] = useState("");
+
+  // Student filtering state
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+
+  // Student management state
+  const [editingStudent, setEditingStudent] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    role: "user",
+  });
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<any>(null);
+  const [updatingStudent, setUpdatingStudent] = useState(false);
+  const [deletingStudent, setDeletingStudent] = useState(false);
+
+  // Profile load timeout state - prevents infinite spinner if Convex profile fails to load
+  const [profileLoadTimedOut, setProfileLoadTimedOut] = useState(false);
+
+  // Timeout for profile loading - if Clerk is loaded but Convex user is missing for too long
+  useEffect(() => {
+    // Only start timeout if Clerk user exists but Convex profile is missing and not loading
+    if (clerkUser && !user && !authLoading) {
+      const timeout = setTimeout(() => {
+        setProfileLoadTimedOut(true);
+      }, 10000); // 10 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+    // Reset timeout state if user becomes available
+    if (user) {
+      setProfileLoadTimedOut(false);
+    }
+  }, [clerkUser, user, authLoading]);
+
   // Get effective role (respects impersonation)
   const effectiveRole = getEffectiveRole();
+  const isUniversityRole = hasUniversityAdminAccess(user?.role);
 
   // Redirect based on effective role when impersonating
   useEffect(() => {
@@ -132,133 +198,22 @@ export default function UniversityDashboardPage() {
     }
   }, [impersonation.isImpersonating, effectiveRole, router]);
 
-  // Filter states
-  const [roleFilter, setRoleFilter] = useState<
-    "all" | "undergraduate" | "graduate" | "staff"
-  >("all");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "inactive" | "pending"
-  >("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  // Redirect non-university roles (including advisors) to their dashboards
+  useEffect(() => {
+    if (impersonation.isImpersonating) return; // handled above
+    if (!user) return;
 
-  // Platform Usage states
-  const [usageTimeFilter, setUsageTimeFilter] = useState("Last 30 days");
-  const [usageProgramFilter, setUsageProgramFilter] = useState("All Programs");
-  const [usageView, setUsageView] = useState<"overview" | "features" | "programs">("overview");
-
-  // Report handlers
-  const handleViewReport = async (reportName: string, reportType: string) => {
-    try {
-      toast({
-        title: "Generating Report",
-        description: `Preparing ${reportName}...`,
-      });
-
-      // For now, simulate report generation and show a simple report modal
-      // In a real implementation, this would fetch report data and display it
-      setTimeout(() => {
-        toast({
-          title: "Report Ready",
-          description: `${reportName} is ready for viewing.`,
-          action: (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                // Simple report display - in real implementation, open a modal or navigate
-                alert(`${reportName}\n\nType: ${reportType}\n\nReport data would be displayed here.`);
-              }}
-            >
-              View Report
-            </Button>
-          ),
-        });
-      }, 1000);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate report. Please try again.",
-        variant: "destructive",
-      });
+    if (user.role === 'advisor') {  // Advisor redirects to advisor dashboard (explicit check for redirect)
+      router.replace('/advisor');
+      return;
     }
-  };
 
-  const handleDownloadReport = async (reportName: string, reportType: string) => {
-    try {
-      toast({
-        title: "Download Started",
-        description: `Preparing ${reportName} for download...`,
-      });
-
-      // Get authentication token
-      const token = await getToken({ template: "convex" });
-      if (!token) {
-        toast({
-          title: "Authentication Error",
-          description: "Please log in again to download reports.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Call the export API
-      const response = await fetch("/api/university/export-reports", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          clerkId: clerkUser?.id,
-          reportType: reportType,
-          reportName: reportName,
-        }),
-      });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        const filename = `${reportName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split("T")[0]}`;
-        a.download = `${filename}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        toast({
-          title: "Download Complete",
-          description: `${reportName} downloaded successfully.`,
-          variant: "success",
-        });
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || `Download failed with status ${response.status}`;
-
-        toast({
-          title: "Download Failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Download error:", error);
-      toast({
-        title: "Download Failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+    if (!isUniversityRole) {
+      router.replace('/dashboard');
     }
-  };
+  }, [user, isUniversityRole, impersonation.isImpersonating, router]);
 
-  const canAccess =
-    !!user &&
-    (isAdmin ||
-      subscription.isUniversity ||
-      user.role === "university_admin");
-
-  // Data fetching
+  // Data fetching - must be before conditional returns (Rules of Hooks)
   const overview = useQuery(
     api.university_admin.getOverview,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
@@ -420,34 +375,177 @@ export default function UniversityDashboardPage() {
 
   // Assign student licenses
   const assignStudent = useMutation(api.university_admin.assignStudentByEmail);
-  const [assignOpen, setAssignOpen] = useState(false);
-  const [assignText, setAssignText] = useState("");
-  const [assignRole, setAssignRole] = useState<"user" | "staff">("user");
-  const [selectedProgram, setSelectedProgram] = useState<
-    Id<"departments"> | "none"
-  >("none");
-  const [assigning, setAssigning] = useState(false);
-  const [importingEmails, setImportingEmails] = useState(false);
 
-  // Export dialog state
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [exportFilename, setExportFilename] = useState("");
+  // Access is role-based only - university_admin or super_admin can access this dashboard
+  // subscription.isUniversity is NOT used for access control here; it determines what
+  // features are available within the dashboard, not whether the user can access it
+  const hasAccess =
+    !!user && hasUniversityAdminAccess(effectiveRole);
 
-  // Student filtering state
-  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  // If we know we'll redirect (advisor or non-university role), avoid flashing unauthorized UI
+  const shouldRedirect =
+    !impersonation.isImpersonating &&
+    !!user &&
+    (user.role === 'advisor' || !isUniversityRole);  // Explicit advisor check for redirect logic
 
-  // Student management state
-  const [editingStudent, setEditingStudent] = useState<any>(null);
-  const [editForm, setEditForm] = useState({
-    name: "",
-    email: "",
-    role: "user",
-  });
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [studentToDelete, setStudentToDelete] = useState<any>(null);
-  const [updatingStudent, setUpdatingStudent] = useState(false);
-  const [deletingStudent, setDeletingStudent] = useState(false);
+  // Show error state if profile failed to load after timeout
+  if (profileLoadTimedOut && !user) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile Load Error</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Unable to load your user profile. This may be due to a network issue or a problem with your account setup.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/dashboard')}>
+                Go to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show loading spinner while auth is loading or redirecting
+  // This prevents flashing the Unauthorized card for roles that will be redirected
+  if (authLoading || !clerkUser || !user || shouldRedirect) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Unauthorized</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              You do not have access to the University Dashboard.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Report handlers
+  const handleViewReport = async (reportName: string, reportType: string) => {
+    try {
+      toast({
+        title: "Generating Report",
+        description: `Preparing ${reportName}...`,
+      });
+
+      // For now, simulate report generation and show a simple report modal
+      // In a real implementation, this would fetch report data and display it
+      setTimeout(() => {
+        toast({
+          title: "Report Ready",
+          description: `${reportName} is ready for viewing.`,
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Simple report display - in real implementation, open a modal or navigate
+                alert(`${reportName}\n\nType: ${reportType}\n\nReport data would be displayed here.`);
+              }}
+            >
+              View Report
+            </Button>
+          ),
+        });
+      }, 1000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate report. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadReport = async (reportName: string, reportType: string) => {
+    try {
+      toast({
+        title: "Download Started",
+        description: `Preparing ${reportName} for download...`,
+      });
+
+      // Get authentication token
+      const token = await getToken({ template: "convex" });
+      if (!token) {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in again to download reports.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Call the export API
+      const response = await fetch("/api/university/export-reports", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          clerkId: clerkUser?.id,
+          reportType: reportType,
+          reportName: reportName,
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const filename = `${reportName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split("T")[0]}`;
+        a.download = `${filename}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast({
+          title: "Download Complete",
+          description: `${reportName} downloaded successfully.`,
+          variant: "success",
+        });
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `Download failed with status ${response.status}`;
+
+        toast({
+          title: "Download Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "Download Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Export function
   const handleExportReports = async () => {
@@ -633,23 +731,6 @@ export default function UniversityDashboardPage() {
       });
     }
   };
-
-  if (!canAccess) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Unauthorized</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              You do not have access to the University Dashboard.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   if (!overview || !students || !departments) {
     return (

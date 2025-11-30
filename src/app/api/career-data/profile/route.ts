@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -90,26 +90,32 @@ function formatWorkHistory(workHistory: any[]): any[] {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, token } = await requireConvexToken()
 
-    // Try to fetch user profile and projects from Convex, but gracefully degrade if unavailable
     let user: any = null
     let projects: any[] = []
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (url) {
-      try {
-        const client = new ConvexHttpClient(url)
-        user = await client.query(api.users.getUserByClerkId, { clerkId: userId })
-        // Fetch user's projects
-        try {
-          projects = await client.query(api.projects.getUserProjects, { clerkId: userId }) || []
-        } catch {
-          // ignore; projects are optional
-        }
-      } catch {
-        // ignore; can still return a mock profile
-      }
+
+    try {
+      user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token)
+    } catch (userError) {
+      console.error('Failed to fetch user profile:', {
+        message: userError instanceof Error ? userError.message : 'Unknown error',
+      })
+      return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 503 })
+    }
+
+    if (!user) {
+      console.error('User not found in Convex for authenticated user')
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+    }
+
+    try {
+      projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token) as any[]
+    } catch (projectError) {
+      console.warn('Failed to fetch user projects:', {
+        message: projectError instanceof Error ? projectError.message : 'Unknown error',
+      })
+      // projects are optional; continue with empty array
     }
 
     // Build a comprehensive profile from actual user data
@@ -129,7 +135,7 @@ export async function GET(request: NextRequest) {
       workHistory: formatWorkHistory(user?.work_history),
       work_history: user?.work_history || [],
       achievements_history: user?.achievements_history || [],
-      projects: projects || [],
+      projects: projects,
       industry: user?.industry,
       bio: user?.bio,
       career_goals: user?.career_goals,

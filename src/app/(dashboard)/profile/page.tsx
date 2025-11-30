@@ -238,6 +238,15 @@ export default function ProfilePage() {
   };
 
   const handleProfileUpdate = async (data: CareerProfileFormValues) => {
+    if (!isViewingOwnProfile) {
+      toast({
+        title: "Unauthorized",
+        description: "Cannot modify another user's profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       if (!clerkUser) throw new Error("No user found");
@@ -303,6 +312,15 @@ export default function ProfilePage() {
   };
 
   const handleImageUpload = async (file: File, type: "avatar" | "cover") => {
+    if (!isViewingOwnProfile) {
+      toast({
+        title: "Unauthorized",
+        description: "Cannot modify another user's profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!file.type.startsWith("image/")) {
       toast({
         title: "Invalid file type",
@@ -365,10 +383,12 @@ export default function ProfilePage() {
 
   // Work History Management Functions
   const handleAddWorkHistory = async () => {
-    if (!clerkUser || !workHistoryForm.role || !workHistoryForm.company) {
+    if (!clerkUser || !isViewingOwnProfile || !workHistoryForm.role || !workHistoryForm.company) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in role and company",
+        title: !isViewingOwnProfile ? "Unauthorized" : "Missing fields",
+        description: !isViewingOwnProfile
+          ? "Cannot modify another user's profile"
+          : "Please fill in role and company",
         variant: "destructive",
       });
       return;
@@ -420,7 +440,18 @@ export default function ProfilePage() {
   };
 
   const handleUpdateWorkHistory = async () => {
-    if (!clerkUser || !editingWorkHistoryId) return;
+    if (!isViewingOwnProfile) {
+      toast({
+        title: "Unauthorized",
+        description: "Cannot modify another user's profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!clerkUser || !editingWorkHistoryId) {
+      return;
+    }
 
     try {
       const currentWorkHistory = userProfile?.work_history || [];
@@ -470,8 +501,16 @@ export default function ProfilePage() {
       });
     }
   };
-
   const handleDeleteWorkHistory = async (id: string) => {
+    if (!isViewingOwnProfile) {
+      toast({
+        title: "Unauthorized",
+        description: "Cannot modify another user's profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!clerkUser) return;
 
     try {
@@ -513,10 +552,10 @@ export default function ProfilePage() {
 
   // Achievements Management Functions
   const handleAddAchievement = async () => {
-    if (!clerkUser || !achievementForm.title) {
+    if (!clerkUser || !isViewingOwnProfile || !achievementForm.title) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in the achievement title",
+        title: !isViewingOwnProfile ? "Unauthorized" : "Missing fields",
+        description: !isViewingOwnProfile ? "Cannot modify another user's profile" : "Please fill in the achievement title",
         variant: "destructive",
       });
       return;
@@ -562,6 +601,15 @@ export default function ProfilePage() {
   };
 
   const handleUpdateAchievement = async () => {
+    if (!isViewingOwnProfile) {
+      toast({
+        title: "Unauthorized",
+        description: "Cannot modify another user's profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!clerkUser || !editingAchievementId) return;
 
     try {
@@ -608,6 +656,15 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAchievement = async (id: string) => {
+    if (!isViewingOwnProfile) {
+      toast({
+        title: "Unauthorized",
+        description: "Cannot modify another user's profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!clerkUser) return;
 
     try {

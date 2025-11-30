@@ -1,21 +1,19 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { ConvexError, v } from 'convex/values';
+import { mutation, query } from './_generated/server';
+import { buildApplicationRelationship } from './lib/followUpValidation';
+import { getAuthenticatedUser } from './lib/roles';
 
 // Get all follow-ups for a user
+// SECURITY: Uses authenticated user from JWT, not client-supplied clerkId
 export const getUserFollowups = query({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
 
     const followups = await ctx.db
-      .query("followup_actions")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .order("desc")
+      .query('follow_ups')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
+      .order('desc')
       .collect();
 
     // Get associated applications and contacts for each follow-up
@@ -33,7 +31,7 @@ export const getUserFollowups = query({
           application,
           contact,
         };
-      })
+      }),
     );
 
     return followupsWithDetails;
@@ -41,19 +39,16 @@ export const getUserFollowups = query({
 });
 
 export const getFollowupsForApplication = query({
-  args: { clerkId: v.string(), applicationId: v.id("applications") },
+  args: { applicationId: v.id('applications') },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+    const user = await getAuthenticatedUser(ctx);
 
     const items = await ctx.db
-      .query("followup_actions")
-      .withIndex("by_application", (q) => q.eq("application_id", args.applicationId))
-      .order("desc")
+      .query('follow_ups')
+      .withIndex('by_application', (q) =>
+        q.eq('application_id', args.applicationId),
+      )
+      .order('desc')
       .collect();
 
     return items.filter((f) => f.user_id === user._id);
@@ -62,31 +57,56 @@ export const getFollowupsForApplication = query({
 
 export const createFollowup = mutation({
   args: {
-    clerkId: v.string(),
-    applicationId: v.id("applications"),
+    applicationId: v.id('applications'),
     description: v.string(),
-    due_date: v.optional(v.number()),
+    due_at: v.optional(v.number()),
     notes: v.optional(v.string()),
     type: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
+    const user = await getAuthenticatedUser(ctx);
 
-    if (!user) throw new Error("User not found");
+    const now = Date.now();
+    const title =
+      args.description?.trim().substring(0, 100) ||
+      `${args.type || 'Follow-up'} task`;
 
-    const id = await ctx.db.insert("followup_actions", {
-      user_id: user._id,
-      application_id: args.applicationId,
+    // Determine created_by_type based on user role
+    const userRole = user.role;
+    const createdByType = 
+      userRole === 'student' ? 'student' 
+      : userRole === 'advisor' ? 'advisor' 
+      : userRole === 'individual' ? 'individual'
+      : 'student'; // Treat other roles as student for follow-up ownership
+
+    const id = await ctx.db.insert('follow_ups', {
+      // Core fields
+      title,
       description: args.description,
-      due_date: args.due_date,
+      type: args.type ?? 'follow_up',
       notes: args.notes,
-      type: args.type ?? "follow_up",
-      completed: false,
-      created_at: Date.now(),
-      updated_at: Date.now(),
+
+      // Ownership - student-created
+      user_id: user._id,
+      owner_id: user._id,
+      created_by_id: user._id,
+      created_by_type: createdByType,
+
+      // Multi-tenancy (optional for non-university users)
+      university_id: user.university_id,
+
+      // Relationships (dual-field pattern: populate both generic and typed fields)
+      // Using helper to ensure consistency between generic and typed fields
+      ...buildApplicationRelationship(args.applicationId),
+
+      // Task management
+      due_at: args.due_at,
+      status: 'open',
+      version: 0, // Initialize for optimistic locking on status changes
+
+      // Timestamps
+      created_at: now,
+      updated_at: now,
     });
 
     return id;
@@ -95,44 +115,124 @@ export const createFollowup = mutation({
 
 export const updateFollowup = mutation({
   args: {
-    clerkId: v.string(),
-    followupId: v.id("followup_actions"),
+    followupId: v.id('follow_ups'),
     updates: v.object({
+      title: v.optional(v.string()),
       description: v.optional(v.string()),
-      due_date: v.optional(v.number()),
+      due_at: v.optional(v.number()),
       notes: v.optional(v.string()),
       type: v.optional(v.string()),
-      completed: v.optional(v.boolean()),
+      status: v.optional(v.union(v.literal('open'), v.literal('done'))),
+      priority: v.optional(
+        v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('urgent')),
+      ),
     }),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+    const user = await getAuthenticatedUser(ctx);
 
     const item = await ctx.db.get(args.followupId);
-    if (!item || item.user_id !== user._id) throw new Error("Followup not found or unauthorized");
+    if (!item) {
+      throw new ConvexError({ message: 'Followup not found', code: 'NOT_FOUND' });
+    }
+    if (item.user_id !== user._id) {
+      throw new ConvexError({ message: 'Unauthorized', code: 'UNAUTHORIZED' });
+    }
 
-    await ctx.db.patch(args.followupId, { ...args.updates, updated_at: Date.now() });
-    return args.followupId;
+    const now = Date.now();
+
+    // RACE CONDITION MITIGATION: Idempotent handling for status changes
+    const statusChangingToDone = args.updates.status === 'done' && item.status !== 'done';
+    const statusChangingToOpen = args.updates.status === 'open' && item.status === 'done';
+
+    // If status is already in desired state, return success (idempotent)
+    if (args.updates.status === 'done' && item.status === 'done') {
+      return {
+        success: true,
+        followupId: args.followupId,
+        alreadyCompleted: true,
+        completed_at: item.completed_at,
+        completed_by: item.completed_by,
+        verified: true,
+      };
+    }
+
+    if (args.updates.status === 'open' && item.status !== 'done') {
+      return {
+        success: true,
+        followupId: args.followupId,
+        alreadyOpen: true,
+        verified: true,
+      };
+    }
+
+    // Build patch data with explicit typing for completion fields
+    type PatchData = Partial<typeof item> & {
+      updated_at: number;
+      completed_at?: number | null | undefined;
+      completed_by?: typeof user._id | null | undefined;
+      version?: number;
+    };
+
+    const patchData: PatchData = {
+      ...args.updates,
+      updated_at: now,
+    };
+
+    // FERPA COMPLIANCE: Version tracking for status changes
+    // Status changes affect audit trail - version increments provide audit history
+    // Note: Convex mutations are serialized at document level, so concurrent
+    // modifications to the same document are handled sequentially by the runtime
+    if (statusChangingToDone || statusChangingToOpen) {
+      const currentVersion = item.version ?? 0;
+      patchData.version = currentVersion + 1;
+
+      // Set/clear completion fields based on status change
+      if (statusChangingToDone) {
+        patchData.completed_at = now;
+        patchData.completed_by = user._id;
+      } else if (statusChangingToOpen) {
+        // Clear completion fields when reopening
+        // Use null (not undefined) to actually clear the fields in Convex patch()
+        patchData.completed_at = null;
+        patchData.completed_by = null;
+      }
+
+      await ctx.db.patch(args.followupId, patchData);
+
+      // Return consistent shape with idempotent paths
+      return {
+        success: true,
+        followupId: args.followupId,
+        alreadyCompleted: false,
+        alreadyOpen: false,
+        completed_at: statusChangingToDone ? now : undefined,
+        completed_by: statusChangingToDone ? user._id : undefined,
+        version: currentVersion + 1,
+      };
+    } else {
+      // Non-status updates don't need optimistic locking
+      await ctx.db.patch(args.followupId, patchData);
+      return {
+        success: true,
+        followupId: args.followupId,
+      };
+    }
   },
 });
 
 export const deleteFollowup = mutation({
-  args: { clerkId: v.string(), followupId: v.id("followup_actions") },
+  args: { followupId: v.id('follow_ups') },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+    const user = await getAuthenticatedUser(ctx);
 
     const item = await ctx.db.get(args.followupId);
-    if (!item || item.user_id !== user._id) throw new Error("Followup not found or unauthorized");
+    if (!item) {
+      throw new ConvexError({ message: 'Followup not found', code: 'NOT_FOUND' });
+    }
+    if (item.user_id !== user._id) {
+      throw new ConvexError({ message: 'Unauthorized', code: 'UNAUTHORIZED' });
+    }
 
     await ctx.db.delete(args.followupId);
     return args.followupId;

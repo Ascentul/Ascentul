@@ -57,11 +57,11 @@ export default function UniversityCoursesPage() {
   const { user: clerkUser } = useUser();
   const { toast } = useToast();
 
+  // Access control: Only university_admin, advisor, or super_admin can access
+  // subscription.isUniversity is NOT sufficient - it includes regular students
   const canAccess =
     !!user &&
-    (isAdmin ||
-      subscription.isUniversity ||
-      user.role === "university_admin");
+    (isAdmin || user.role === 'university_admin' || user.role === 'advisor');
 
   const courses = useQuery(
     api.university_admin.listCourses,

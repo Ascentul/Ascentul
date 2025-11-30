@@ -41,40 +41,182 @@ jest.mock('@clerk/nextjs', () => ({
   UserButton: () => <div>User Button</div>,
 }))
 
+// Mock toast hook with overridable jest.fn
+const toastFn = jest.fn()
+const useToastMock = jest.fn(() => ({ toast: toastFn }))
+jest.mock('@/hooks/use-toast', () => ({
+  useToast: useToastMock,
+}))
+
 // Mock Convex
+const getName = (ref) => (typeof ref === 'string' ? ref : ref?._name || '')
+
+const mockUseQuery = jest.fn((name) => {
+  const key = getName(name)
+  if (key === 'universities:getUniversitySettings') {
+    return {
+      _id: 'uni-1',
+      name: 'Test University',
+      description: 'A great place to learn',
+      website: 'https://example.edu',
+      contact_email: 'admin@example.edu',
+      max_students: 123,
+      license_seats: 50,
+      license_used: 10,
+    }
+  }
+  if (key === 'analytics:getUserDashboardAnalytics') {
+    return {
+      totalStudents: 0,
+      sessionsThisWeek: 0,
+      progress: [],
+    }
+  }
+  if (key === 'ai_coach:getConversations') {
+    return [{ id: 'conversation-1', title: 'Test Conversation' }]
+  }
+  if (key === 'ai_coach:getMessages') {
+    return []
+  }
+  if (key === 'users:getUserByClerkId') {
+    return { _id: 'user-1', role: 'student', name: 'Test User' }
+  }
+  if (key === 'platform_settings:getPlatformSettings') {
+    return {
+      openai_model: 'gpt-4o-mini',
+      openai_temperature: 0.7,
+      openai_max_tokens: 4000,
+      maintenance_mode: false,
+      allow_signups: true,
+      default_user_role: 'user',
+    }
+  }
+  return undefined
+})
+const mockUseMutation = jest.fn((name) => {
+  const key = getName(name)
+  if (key === 'avatar:generateAvatarUploadUrl') {
+    return jest.fn(() => Promise.resolve('https://upload.example.com'))
+  }
+  if (key === 'avatar:updateUserAvatar') {
+    return jest.fn(() => Promise.resolve({ success: true }))
+  }
+  if (key === 'universities:updateUniversitySettings') {
+    return jest.fn(() => Promise.resolve({ success: true }))
+  }
+  if (key === 'platform_settings:updatePlatformSettings') {
+    return jest.fn(() => Promise.resolve({ success: true }))
+  }
+  return jest.fn(() => Promise.resolve({ success: true }))
+})
+const mockUseAction = jest.fn(() => jest.fn(() => Promise.resolve({ success: true })))
+
 jest.mock('convex/react', () => ({
-  useQuery: jest.fn(),
-  useMutation: jest.fn(),
-  useAction: jest.fn(),
+  useQuery: mockUseQuery,
+  useMutation: mockUseMutation,
+  useAction: mockUseAction,
   ConvexProvider: ({ children }) => children,
 }))
 
-// Mock Convex browser client and API
-jest.mock('convex/browser', () => ({
-  ConvexHttpClient: jest.fn().mockImplementation(() => ({
-    query: jest.fn(),
-    mutation: jest.fn(),
-  })),
+// Mock Convex Next.js helpers
+jest.mock('convex/nextjs', () => ({
+  fetchQuery: jest.fn(() => Promise.resolve(undefined)),
+  fetchMutation: jest.fn(() => Promise.resolve(undefined)),
+  fetchAction: jest.fn(() => Promise.resolve(undefined)),
 }))
 
-// Mock convex/_generated/api globally
-jest.mock('convex/_generated/api', () => ({
-  api: {
-    ai_coach: {
-      getConversations: 'ai_coach:getConversations',
-      getMessages: 'ai_coach:getMessages',
-      createConversation: 'ai_coach:createConversation',
-      sendMessage: 'ai_coach:sendMessage',
+// Mock Convex server helper used in API routes
+jest.mock('@/lib/convex-server', () => {
+  const getName = (ref) => (typeof ref === 'string' ? ref : ref?._name || '')
+  const query = jest.fn((fn) => {
+    const key = getName(fn)
+    if (key === 'ai_coach:getConversations') {
+      return Promise.resolve([
+        { id: 'conversation-1', title: 'Test Conversation' },
+        { id: 'test-conversation', title: 'Test Conversation' },
+        { id: '123', title: 'Sample Conversation' },
+      ])
+    }
+    if (key === 'ai_coach:getMessages') {
+      return Promise.resolve([{ id: 'message-1', text: 'Hi there', role: 'user' }])
+    }
+    if (
+      key === 'users:getUserByClerkId' ||
+      key === 'goals:getUserGoals' ||
+      key === 'applications:getUserApplications' ||
+      key === 'resumes:getUserResumes' ||
+      key === 'cover_letters:getUserCoverLetters' ||
+      key === 'projects:getUserProjects'
+    ) {
+      return Promise.resolve([])
+    }
+    return Promise.resolve({})
+  })
+  const mutation = jest.fn(() => Promise.resolve({ success: true }))
+  const action = jest.fn(() => Promise.resolve({ success: true }))
+  return {
+    convexServer: { query, mutation, action },
+  }
+})
+
+// Mock Impersonation context to avoid provider errors in tests
+jest.mock('@/contexts/ImpersonationContext', () => ({
+  useImpersonation: () => ({
+    impersonation: {
+      isImpersonating: false,
+      impersonatedUser: null,
     },
+    getEffectiveRole: () => 'student',
+    startImpersonation: jest.fn(),
+    stopImpersonation: jest.fn(),
+  }),
+  ImpersonationProvider: ({ children }) => children,
+}))
+
+global.HTMLElement.prototype.scrollIntoView = jest.fn()
+
+// Mock Clerk server auth for API route tests
+jest.mock('@clerk/nextjs/server', () => ({
+  auth: jest.fn().mockResolvedValue({
+    isAuthenticated: true,
+    userId: 'test-user-id',
+    sessionId: 'test-session-id',
+    orgId: null,
+    orgRole: null,
+    orgSlug: null,
+    getToken: jest.fn().mockResolvedValue('test-token'),
+    has: jest.fn().mockReturnValue(false),
+    protect: jest.fn().mockResolvedValue(undefined),
+    redirectToSignIn: jest.fn(),
+  }),
+  clerkClient: jest.fn().mockResolvedValue({
     users: {
-      getUser: 'users:getUser',
+      getUser: jest.fn().mockResolvedValue({
+        id: 'test-user-id',
+        publicMetadata: { role: 'individual' },
+      }),
+      getUserList: jest.fn().mockResolvedValue({ data: [] }),
+      updateUser: jest.fn().mockResolvedValue({}),
+      updateUserMetadata: jest.fn().mockResolvedValue({}),
     },
-  },
-}), { virtual: true })
+  }),
+  currentUser: jest.fn().mockResolvedValue({
+    id: 'test-user-id',
+    emailAddresses: [{ emailAddress: 'test@example.com' }],
+    publicMetadata: { role: 'individual' },
+  }),
+}))
 
 
-// Mock API requests
-global.fetch = jest.fn()
+// Mock API requests with a basic resolved response
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: async () => ({ storageId: 'storage-1' }),
+    blob: async () => new Blob(),
+  })
+)
 
 // Mock next/server for API route testing
 jest.mock('next/server', () => ({

@@ -1,25 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
+import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
+import { Doc } from 'convex/_generated/dataModel'
 import OpenAI from 'openai'
+import { convexServer } from '@/lib/convex-server';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
+// Type definitions based on Convex schema
+type UserProfile = Doc<'users'>
+type Project = Doc<'projects'>
+type Application = Doc<'applications'>
+type CoverLetter = Doc<'cover_letters'>
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = getAuth(request)
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const client = getClient()
-
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
     const body = await request.json()
     const { jobDescription, companyName, position } = body as {
       jobDescription?: string
@@ -34,32 +35,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch the user career profile so generation stays grounded in real data
-    let profile: any | null = null
-    let projects: any[] = []
-    let applications: any[] = []
+    let profile: UserProfile | null = null
+    let projects: Project[] = []
+    let applications: Application[] = []
 
     try {
-      profile = await client.query(api.users.getUserByClerkId, { clerkId: userId })
+      profile = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token)
     } catch (error) {
       console.error('Failed to load career profile for letter generation', error)
     }
 
     // Fetch user's projects to demonstrate accomplishments
     try {
-      projects = await client.query(api.projects.getUserProjects, { clerkId: userId }) || []
+      projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token) || []
     } catch (error) {
       console.error('Failed to load projects for letter generation', error)
     }
 
     // Fetch recent applications to understand career trajectory
     try {
-      applications = await client.query(api.applications.getUserApplications, { clerkId: userId }) || []
+      applications = await convexServer.query(api.applications.getUserApplications, { clerkId: userId }, token) || []
       // Get the 5 most recent applications
       applications = applications.slice(0, 5)
     } catch (error) {
       console.error('Failed to load applications for letter generation', error)
     }
 
+    // Build profile summary for cover letter personalization
+    // NOTE: Only include data needed for cover letter generation
+    // Bio and career_goals excluded to minimize PII sent to AI service
     const profileSummary: string[] = []
     if (profile) {
       if (profile.current_position) profileSummary.push(`Current position: ${profile.current_position}`)
@@ -68,8 +72,8 @@ export async function POST(request: NextRequest) {
       if (profile.experience_level) profileSummary.push(`Experience level: ${profile.experience_level}`)
       if (profile.location) profileSummary.push(`Location: ${profile.location}`)
       if (profile.skills) profileSummary.push(`Skills: ${Array.isArray(profile.skills) ? profile.skills.join(', ') : profile.skills}`)
-      if (profile.bio) profileSummary.push(`Bio: ${profile.bio}`)
-      if (profile.career_goals) profileSummary.push(`Career goals: ${profile.career_goals}`)
+      // NOTE: bio and career_goals intentionally excluded - they contain free-form personal
+      // information that is not necessary for cover letter generation and may contain sensitive data
       if (profile.education) profileSummary.push(`Education: ${profile.education}`)
       if (profile.university_name) profileSummary.push(`University: ${profile.university_name}`)
       if (profile.major) profileSummary.push(`Major: ${profile.major}`)
@@ -78,7 +82,7 @@ export async function POST(request: NextRequest) {
       // Add work history details
       if (profile.work_history && Array.isArray(profile.work_history) && profile.work_history.length > 0) {
         profileSummary.push('\n--- Work History ---')
-        profile.work_history.forEach((job: any, idx: number) => {
+        profile.work_history.forEach((job: NonNullable<UserProfile['work_history']>[number], idx: number) => {
           const workLines: string[] = []
           workLines.push(`${idx + 1}. ${job.role || 'Role'} at ${job.company || 'Company'}`)
           workLines.push(`   Duration: ${job.start_date || 'N/A'} - ${job.is_current ? 'Present' : (job.end_date || 'N/A')}`)
@@ -91,13 +95,12 @@ export async function POST(request: NextRequest) {
       // Add education history details
       if (profile.education_history && Array.isArray(profile.education_history) && profile.education_history.length > 0) {
         profileSummary.push('\n--- Education History ---')
-        profile.education_history.forEach((edu: any, idx: number) => {
+        profile.education_history.forEach((edu: NonNullable<UserProfile['education_history']>[number], idx: number) => {
           const eduLines: string[] = []
           eduLines.push(`${idx + 1}. ${edu.degree || 'Degree'} in ${edu.field_of_study || 'Field'}`)
-          eduLines.push(`   Institution: ${edu.institution || 'N/A'}`)
-          eduLines.push(`   Duration: ${edu.start_date || 'N/A'} - ${edu.is_current ? 'Present' : (edu.end_date || edu.graduation_date || 'N/A')}`)
-          if (edu.gpa) eduLines.push(`   GPA: ${edu.gpa}`)
-          if (edu.activities) eduLines.push(`   Activities: ${edu.activities}`)
+          eduLines.push(`   Institution: ${edu.school || 'N/A'}`)
+          eduLines.push(`   Duration: ${edu.start_year || 'N/A'} - ${edu.is_current ? 'Present' : (edu.end_year || 'N/A')}`)
+          if (edu.description) eduLines.push(`   Description: ${edu.description}`)
           profileSummary.push(eduLines.join('\n'))
         })
       }
@@ -106,7 +109,7 @@ export async function POST(request: NextRequest) {
     // Add projects summary
     if (projects.length > 0) {
       profileSummary.push('\n--- Projects & Experience ---')
-      projects.slice(0, 5).forEach((project: any, idx: number) => {
+      projects.slice(0, 5).forEach((project: Project, idx: number) => {
         const projLines: string[] = []
         projLines.push(`Project ${idx + 1}: ${project.title}`)
         if (project.role) projLines.push(`  Role: ${project.role}`)
@@ -120,7 +123,7 @@ export async function POST(request: NextRequest) {
     // Add recent applications context
     if (applications.length > 0) {
       profileSummary.push('\n--- Recent Job Applications (for context) ---')
-      applications.forEach((app: any, idx: number) => {
+      applications.forEach((app: Application, idx: number) => {
         profileSummary.push(`${idx + 1}. ${app.job_title} at ${app.company} (Status: ${app.status})`)
       })
     }
@@ -184,7 +187,7 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
       })
       generatedContent = completion.choices[0]?.message?.content || null
     } catch (e) {
-      // swallow and use fallback
+      console.error('OpenAI generation failed, using fallback:', e)
       generatedContent = null
     }
 
@@ -209,7 +212,8 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
       if (profile?.current_position || profile?.experience_level) {
         const expLevel = profile?.experience_level || 'experienced professional'
         const industry = profile?.industry ? ` in the ${profile.industry} sector` : ''
-        paragraphs.push(`With my background as a ${expLevel}${industry}, I bring valuable expertise that directly addresses the requirements outlined in your posting. ${profile?.bio || ''}`)
+        // NOTE: bio excluded from fallback template (may contain sensitive personal info)
+        paragraphs.push(`With my background as a ${expLevel}${industry}, I bring valuable expertise that directly addresses the requirements outlined in your posting.`)
         paragraphs.push('')
       }
 
@@ -226,11 +230,8 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
         paragraphs.push('')
       }
 
-      // Career goals paragraph
-      if (profile?.career_goals) {
-        paragraphs.push(`My career goals include ${profile.career_goals}, and I see this position at ${companyName} as an excellent opportunity to advance toward these objectives while contributing meaningfully to your organization.`)
-        paragraphs.push('')
-      }
+      // NOTE: career_goals paragraph removed - may contain sensitive personal aspirations
+      // The closing paragraph below provides sufficient context without exposing PII
 
       // Closing
       paragraphs.push(`I would welcome the opportunity to discuss how my background, skills, and enthusiasm can contribute to ${companyName}'s continued success. Thank you for considering my application, and I look forward to the possibility of speaking with you soon.`)
@@ -242,20 +243,21 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
     }
 
     // Save the generated cover letter to Convex, degrade gracefully if persistence fails
-    let coverLetter: any = null
+    let coverLetter: CoverLetter | null = null
     let saveWarning: string | undefined
     try {
-      coverLetter = await client.mutation(api.cover_letters.createCoverLetter, {
+      coverLetter = await convexServer.mutation(api.cover_letters.createCoverLetter, {
         clerkId: userId,
         name: `Cover Letter - ${companyName} ${position}`,
-        job_title: String(position),
-        company_name: companyName ? String(companyName) : undefined,
+        job_title: position,
+        company_name: companyName,
         template: 'standard',
         content: generatedContent,
         closing: 'Sincerely,',
         source: 'ai_generated',
-      })
-    } catch {
+      }, token)
+    } catch (error) {
+      console.error('Failed to save cover letter:', error)
       saveWarning = 'Cover letter generated but could not be saved.'
     }
 

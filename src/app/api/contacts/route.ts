@@ -1,17 +1,19 @@
 import { NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
+import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
+import { fetchQuery, fetchMutation } from 'convex/nextjs';
 
 // GET /api/contacts - list current user's contacts
-export async function GET(request: Request) {
-  const { userId } = getAuth(request as any)
+export async function GET() {
+  const authResult = await auth()
+  const { userId } = authResult
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-  const client = new ConvexHttpClient(url)
+
+  const token = await authResult.getToken({ template: 'convex' })
+  if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+
   try {
-    const contacts = await client.query(api.contacts.getUserContacts, { clerkId: userId })
+    const contacts = await fetchQuery(api.contacts.getUserContacts, { clerkId: userId }, { token })
     return NextResponse.json({ contacts })
   } catch (e: any) {
     console.error('GET /api/contacts error', e)
@@ -21,16 +23,23 @@ export async function GET(request: Request) {
 
 // POST /api/contacts - create a contact
 export async function POST(request: Request) {
-  const { userId } = getAuth(request as any)
+  const authResult = await auth()
+  const { userId } = authResult
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-  const client = new ConvexHttpClient(url)
 
-  const body = await request.json().catch(() => ({} as any))
+  const token = await authResult.getToken({ template: 'convex' })
+  if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
   const name: string = body.full_name ?? body.name ?? 'Unnamed'
   try {
-    const contact = await client.mutation(api.contacts.createContact, {
+    const contact = await fetchMutation(api.contacts.createContact, {
       clerkId: userId,
       name,
       company: body.company ?? undefined,
@@ -40,8 +49,12 @@ export async function POST(request: Request) {
       linkedin_url: body.linkedin_url ?? undefined,
       notes: body.notes ?? undefined,
       relationship: body.relationship_type ?? undefined,
-      last_contact: body.last_contact_date ? Date.parse(body.last_contact_date) || undefined : undefined,
-    })
+      last_contact: (() => {
+        if (!body.last_contact_date) return undefined;
+        const parsed = Date.parse(body.last_contact_date);
+        return Number.isNaN(parsed) ? undefined : parsed;
+      })(),
+    }, { token })
 
     return NextResponse.json({ contact }, { status: 201 })
   } catch (e: any) {

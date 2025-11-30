@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "convex/_generated/api";
 import OpenAI from "openai";
+import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from "@/lib/convex-auth";
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
-
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!url) throw new Error("Convex URL not configured");
-  return new ConvexHttpClient(url);
-}
 
 type AnalysisResult = {
   summary: string;
@@ -243,11 +237,15 @@ const fallbackAnalysis = (
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = getAuth(request);
-    if (!userId)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { userId, token } = await requireConvexToken();
+    
+    if (!userId || !token) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
-    const client = getClient();
     const { jobDescription, coverLetter, optimize, roleTitle, companyName } =
       (await request.json()) as {
         jobDescription?: string;
@@ -268,9 +266,11 @@ export async function POST(request: NextRequest) {
 
     let profile: any | null = null;
     try {
-      profile = await client.query(api.users.getUserByClerkId, {
-        clerkId: userId,
-      });
+      profile = await convexServer.query(
+        api.users.getUserByClerkId,
+        { clerkId: userId },
+        token
+      );
     } catch (error) {
       console.error("Failed to fetch career profile for analysis", error);
     }

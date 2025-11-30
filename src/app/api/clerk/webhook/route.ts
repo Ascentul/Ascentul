@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Webhook } from 'svix'
 import { clerkClient } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
+import { convexServer } from '@/lib/convex-server';
 import { validateRoleOrWarn } from '@/lib/validation/roleValidation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-const convexServiceToken = process.env.CONVEX_INTERNAL_SERVICE_TOKEN
 
 /**
  * Clerk Webhook Handler
@@ -23,6 +22,8 @@ const convexServiceToken = process.env.CONVEX_INTERNAL_SERVICE_TOKEN
  * - user.updated: Sync subscription status from Clerk publicMetadata to Convex
  * - user.deleted: Mark user as deleted in Convex
  */
+
+const convexServiceToken = process.env.CONVEX_INTERNAL_SERVICE_TOKEN
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,11 +44,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, warning: 'no_secret' })
     }
 
-    if (!convexUrl) {
-      console.error('[Clerk Webhook] Missing NEXT_PUBLIC_CONVEX_URL')
-      return NextResponse.json({ error: 'Missing Convex URL' }, { status: 500 })
-    }
-
     // Verify webhook signature
     const wh = new Webhook(webhookSecret)
     let event: any
@@ -58,8 +54,6 @@ export async function POST(request: NextRequest) {
       console.error('[Clerk Webhook] Verification failed:', err)
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
-
-    const convex = new ConvexHttpClient(convexUrl)
     const eventType = event.type
     const userData = event.data
 
@@ -81,7 +75,7 @@ export async function POST(request: NextRequest) {
         console.log(`[Clerk Webhook] Creating user: ${userEmail}${validatedRole ? ` with role: ${validatedRole}` : ''}`)
 
         // Create/activate user in Convex
-        const userId = await convex.mutation(api.users.createUserFromClerk, {
+        const userId = await convexServer.mutation(api.users.createUserFromClerk, {
           clerkId: userData.id,
           email: userEmail,
           name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'User',
@@ -97,7 +91,7 @@ export async function POST(request: NextRequest) {
 
         // Check if this user was a pending university student
         // If so, sync university_id to Clerk metadata
-        const convexUser = await convex.query(api.users.getUserByClerkId, {
+        const convexUser = await convexServer.query(api.users.getUserByClerkId, {
           clerkId: userData.id,
           serviceToken: convexServiceToken,
         })
@@ -138,18 +132,48 @@ export async function POST(request: NextRequest) {
 
         // Check if role changed - important for role management logging
         const roleInMetadata = metadata.role || null
+        const universityIdInMetadata = metadata.university_id
+        // Basic sanity check: must be a non-empty string
+        // Convex will validate the actual ID format via v.id("universities") validator
+        const universityIdString =
+          typeof universityIdInMetadata === 'string' && universityIdInMetadata.trim().length > 0
+            ? universityIdInMetadata.trim()
+            : undefined
         const userEmail = userData.email_addresses?.[0]?.email_address
 
-        // Validate role value for logging only; Convex is the source of truth so we do not overwrite roles here
+        // Validate role value before syncing to Convex
         const validatedRole = validateRoleOrWarn(roleInMetadata, `Clerk Webhook - ${userEmail}`)
+        const isUniversityRole =
+          validatedRole === 'student' ||
+          validatedRole === 'advisor' ||
+          validatedRole === 'university_admin'
+        const membershipRole = isUniversityRole ? validatedRole : null
 
-        // Check if user was banned in Clerk - sync to account_status
+        // Build updates object
         const updates: any = {
           email: userEmail,
           name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
-          profile_image: userData.image_url,
-          subscription_plan: subscriptionPlan,
-          subscription_status: subscriptionStatus,
+        }
+
+        if (validatedRole) {
+          updates.role = validatedRole
+        }
+
+        // Enforce role constraints per learnings
+        if (validatedRole === 'individual') {
+          // Individual users must NOT have university_id
+          updates.university_id = null  // Explicitly clear
+        } else if (membershipRole) {
+          // University roles MUST have university_id
+          if (!universityIdString) {
+            console.error(`[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`)
+            return NextResponse.json(
+              { error: `${membershipRole} role requires university_id` },
+              { status: 400 }
+            )
+          }
+          // Pass as string - Convex validates format with v.id() validator
+          updates.university_id = universityIdString
         }
 
         // If user is banned in Clerk, ensure account_status is suspended
@@ -163,11 +187,38 @@ export async function POST(request: NextRequest) {
           updates.account_status = 'active'
         }
 
-        await convex.mutation(api.users.updateUser, {
-          clerkId: userData.id,
-          serviceToken: convexServiceToken,
-          updates,
-        })
+        // Use atomic mutation to update user and membership in single transaction
+        // This prevents partial updates where user role changes but membership creation fails
+        // Wrap in try-catch to handle invalid university_id format errors gracefully
+        try {
+          await convexServer.mutation(api.users_profile.updateUserWithMembership, {
+            clerkId: userData.id,
+            updates,
+            // Include membership data for university roles
+            // Type assertion rationale: universityIdString is validated as non-empty string above (lines 138-141).
+            // The Convex mutation uses v.id("universities") validator which will reject malformed IDs at runtime.
+            // The catch block below (lines 204-216) handles these validation errors gracefully.
+            // This assertion is safe because: 1) we pre-check for non-empty string, 2) server validates format,
+            // 3) we catch and handle format errors with a 400 response.
+            membership: membershipRole && universityIdString
+              ? { role: membershipRole, universityId: universityIdString as Id<'universities'> }
+              : undefined,
+            serviceToken: convexServiceToken,
+          })
+        } catch (mutationError: any) {
+          // Handle Convex validation errors (e.g., malformed university_id)
+          // Convex v.id() validator throws ArgumentValidationError with message prefix
+          const errorMessage = mutationError?.message || String(mutationError)
+          if (errorMessage.includes('ArgumentValidationError:')) {
+            console.error(`[Clerk Webhook] Invalid university_id format for user ${userData.id}: ${universityIdString}`)
+            return NextResponse.json(
+              { error: 'Invalid university_id format in metadata' },
+              { status: 400 }
+            )
+          }
+          // Re-throw other errors
+          throw mutationError
+        }
 
         console.log(`[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}${validatedRole ? `, role: ${validatedRole}` : ''}`)
         break
@@ -180,7 +231,7 @@ export async function POST(request: NextRequest) {
 
         // Check if user exists in Convex and is a test user
         try {
-          const convexUser = await convex.query(api.users.getUserByClerkId, {
+          const convexUser = await convexServer.query(api.users.getUserByClerkId, {
             clerkId: userData.id,
             serviceToken: convexServiceToken,
           })

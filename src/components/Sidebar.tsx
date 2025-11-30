@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
+import { hasUniversityAdminAccess } from "@/lib/constants/roles";
 import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
@@ -142,10 +143,9 @@ const Sidebar = React.memo(function Sidebar({
   const isUniversityUser = useMemo(
     () => {
       if (impersonation.isImpersonating) {
-        return effectivePlan === "university" || effectiveRole === "university_admin";
+        return effectivePlan === "university" || hasUniversityAdminAccess(effectiveRole);
       }
-      return user?.role === "university_admin" ||
-        subscription.isUniversity;
+      return hasUniversityAdminAccess(user?.role) || subscription.isUniversity;
     },
     [impersonation.isImpersonating, effectivePlan, effectiveRole, user?.role, subscription.isUniversity],
   );
@@ -352,16 +352,88 @@ const Sidebar = React.memo(function Sidebar({
     [],
   );
 
+  // Advisor sections - for career advisors
+  const advisorSections: SidebarSection[] = useMemo(
+    () => [
+      {
+        id: "advisor-dashboard",
+        title: "Dashboard",
+        icon: <LayoutDashboard className="h-5 w-5" />,
+        href: "/advisor",
+      },
+      {
+        id: "advisor-students",
+        title: "Students",
+        icon: <UserIcon className="h-5 w-5" />,
+        href: "/advisor/students",
+      },
+      {
+        id: "advisor-advising",
+        title: "Advising",
+        icon: <Calendar className="h-5 w-5" />,
+        items: [
+          {
+            href: "/advisor/advising/today",
+            icon: <Clock className="h-4 w-4" />,
+            label: "Today",
+          },
+          {
+            href: "/advisor/advising/calendar",
+            icon: <Calendar className="h-4 w-4" />,
+            label: "Calendar",
+          },
+          {
+            href: "/advisor/advising/sessions",
+            icon: <Mic className="h-4 w-4" />,
+            label: "Sessions",
+          },
+          {
+            href: "/advisor/advising/reviews",
+            icon: <FileEdit className="h-4 w-4" />,
+            label: "Reviews",
+          },
+        ],
+      },
+      {
+        id: "advisor-applications",
+        title: "Applications",
+        icon: <ClipboardList className="h-5 w-5" />,
+        href: "/advisor/applications",
+      },
+      {
+        id: "advisor-analytics",
+        title: "Analytics",
+        icon: <LineChart className="h-5 w-5" />,
+        href: "/advisor/analytics",
+      },
+      {
+        id: "advisor-support",
+        title: "Support",
+        icon: <HelpCircle className="h-5 w-5" />,
+        href: "/advisor/support",
+      },
+    ],
+    [],
+  );
+
+  // Check if user is advisor (supports impersonation)
+  const effectiveIsAdvisor = useMemo(
+    () => effectiveRole === "advisor",
+    [effectiveRole],
+  );
+
   // Determine which sections to show based on effective role (supports impersonation)
   const allSections: SidebarSection[] = useMemo(() => {
-    if (effectiveIsUniAdmin) {
+    if (effectiveIsAdvisor) {
+      return advisorSections;
+    } else if (effectiveIsUniAdmin) {
       return universitySections;
     } else if (effectiveIsAdmin) {
       return adminSections;
     } else {
       return sidebarSections;
     }
-  }, [effectiveIsUniAdmin, effectiveIsAdmin, universitySections, adminSections, sidebarSections]);
+  }, [effectiveIsAdvisor, effectiveIsUniAdmin, effectiveIsAdmin, advisorSections, universitySections, adminSections, sidebarSections]);
 
   // Memoize isActive function
   const isActive = useCallback(

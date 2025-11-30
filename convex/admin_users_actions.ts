@@ -33,6 +33,38 @@ const TABLES_TO_CASCADE = [
   "daily_recommendations",
 ] as const;
 
+// Type for minimal user data from getAllUsersMinimal query
+type MinimalUser = {
+  _id: string;
+  is_test_user?: boolean;
+  account_status?: string;
+  clerkId: string;
+  email?: string;
+  name?: string;
+};
+
+// Validate query results at the trust boundary
+function assertMinimalUsers(data: any): asserts data is MinimalUser[] {
+  if (!Array.isArray(data)) {
+    throw new Error("Expected data to be an array");
+  }
+
+  for (const user of data) {
+    if (!user || typeof user !== "object") {
+      throw new Error("Invalid user record: not an object");
+    }
+    if (typeof (user as any)._id !== "string" || typeof (user as any).clerkId !== "string") {
+      throw new Error("Invalid user record: missing required id fields");
+    }
+    if ("is_test_user" in user && typeof (user as any).is_test_user !== "boolean") {
+      throw new Error("Invalid user record: is_test_user must be boolean");
+    }
+    if ("account_status" in user && typeof (user as any).account_status !== "string") {
+      throw new Error("Invalid user record: account_status must be string");
+    }
+  }
+}
+
 /**
  * Soft delete a user (super_admin only)
  * Public action that handles both Convex and Clerk
@@ -417,6 +449,7 @@ export const reconcileTestUsers = action({
       limit: maxUsers,
     });
 
+    assertMinimalUsers(usersPage.page);
     const candidates = usersPage.page.filter((u) =>
       u.is_test_user === true &&
       (u.account_status !== "deleted" || args.includeDeletedStatus === true)

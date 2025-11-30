@@ -54,6 +54,7 @@ export async function logRoleChange(
           target_university_id: targetUser.university_id,
         },
         timestamp: Date.now(),
+        created_at: Date.now(),
       });
     }
   } catch (auditError) {

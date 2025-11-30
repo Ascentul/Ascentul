@@ -1,24 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
+import { convexServer } from '@/lib/convex-server';
+import { requireConvexToken } from '@/lib/convex-auth';
+import { isValidConvexId } from '@/lib/convex-ids';
 
 export const runtime = 'nodejs'
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { id } = await params
+    const { userId, token } = await requireConvexToken()
 
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL
-    if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
+    // Validate ID format before mutation
+    if (!id || typeof id !== 'string' || id.trim() === '' || !isValidConvexId(id)) {
+      return NextResponse.json({ error: 'Invalid career path ID' }, { status: 400 })
+    }
 
-    const client = new ConvexHttpClient(url)
-    await client.mutation(api.career_paths.deleteCareerPath, { clerkId: userId, id: params.id as any })
+    try {
+      await convexServer.mutation(
+        api.career_paths.deleteCareerPath,
+        {
+          clerkId: userId,
+          id: id as Id<'career_paths'>,
+        },
+        token
+      )
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete career path'
+      console.error('Delete career path error:', err)
+      const lower = message.toLowerCase()
+      if (lower.includes('not found')) {
+        return NextResponse.json({ error: message }, { status: 404 })
+      }
+      if (lower.includes('unauthorized')) {
+        return NextResponse.json({ error: message }, { status: 403 })
+      }
+      return NextResponse.json({ error: message }, { status: 500 })
+    }
 
     return NextResponse.json({ ok: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('DELETE /api/career-paths/[id] error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

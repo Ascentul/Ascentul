@@ -1,23 +1,36 @@
-// Mock Convex useQuery - must be hoisted
+// Forward declarations for mocks
+const mockUseQuery = jest.fn()
+const mockUseMutation = jest.fn()
+
+// Mock Convex useQuery/useMutation - must be hoisted
 jest.mock('convex/react', () => ({
-  useQuery: jest.fn(),
+  useQuery: (...args: unknown[]) => mockUseQuery(...args),
+  useMutation: (...args: unknown[]) => mockUseMutation(...args),
 }))
 
 // Mock Convex API - must be hoisted
 jest.mock('convex/_generated/api', () => ({
   api: {
     analytics: {
-      getUserDashboardAnalytics: 'mock-analytics-function',
+      getUserDashboardAnalytics: 'analytics:getUserDashboardAnalytics',
+    },
+    users: {
+      getUserByClerkId: 'users:getUserByClerkId',
+      toggleHideProgressCard: 'users:toggleHideProgressCard',
+    },
+    activity: {
+      getActivityYear: 'activity:getActivityYear',
+    },
+    usage: {
+      getUserUsage: 'usage:getUserUsage',
     },
   },
 }))
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import DashboardPage from '@/app/(dashboard)/dashboard/page'
-import { useQuery } from 'convex/react'
-
-const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>
+import { api as mockApi } from 'convex/_generated/api'
 
 jest.mock('@clerk/nextjs', () => ({
   useUser: () => ({
@@ -108,28 +121,44 @@ describe('Dashboard Page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Mock the Convex useQuery for dashboard analytics
-    mockUseQuery.mockReturnValue({
-      applicationStats: {
-        total: 10,
-        applied: 5,
-        interview: 3,
-        offer: 1,
-        rejected: 1,
-      },
-      nextInterview: "Tomorrow 2PM",
-      pendingTasks: 4,
-      activeGoals: 3,
-      upcomingInterviews: 2,
-      interviewRate: 30,
-      recentActivity: [
-        {
-          id: "1",
-          type: "application",
-          description: "Applied to TechCorp Inc.",
-          timestamp: Date.now() - 86400000, // 1 day ago
+    mockUseMutation.mockReturnValue(jest.fn(() => Promise.resolve({ success: true })))
+
+    // Mock the Convex useQuery for dashboard analytics and related data
+    mockUseQuery.mockImplementation((queryRef: unknown) => {
+      if (queryRef === mockApi.analytics.getUserDashboardAnalytics) {
+        return {
+          applicationStats: {
+            total: 10,
+            applied: 5,
+            interview: 3,
+            offer: 1,
+            rejected: 1,
+          },
+          nextInterview: "Tomorrow 2PM",
+          pendingTasks: 4,
+          activeGoals: 3,
+          upcomingInterviews: 2,
+          interviewRate: 30,
+          recentActivity: [
+            {
+              id: "1",
+              type: "application",
+              description: "Applied to TechCorp Inc.",
+              timestamp: Date.now() - 86400000, // 1 day ago
+            }
+          ],
         }
-      ],
+      }
+      if (queryRef === mockApi.users.getUserByClerkId) {
+        return { role: 'user', name: 'Test User' }
+      }
+      if (queryRef === mockApi.activity.getActivityYear) {
+        return []
+      }
+      if (queryRef === mockApi.usage.getUserUsage) {
+        return { applicationsCreated: 0, resumesUploaded: 0 }
+      }
+      return {}
     })
   })
 

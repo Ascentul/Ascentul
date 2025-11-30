@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+import { getErrorMessage } from '@/lib/errors';
+import { convexServer } from '@/lib/convex-server';
+import { hasAdvisorAccess, ASSIGNABLE_STUDENT_ROLES } from '@/lib/constants/roles';
 
 /**
  * Assign a student to a university
@@ -16,9 +16,13 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
  */
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
     }
 
     const body = await req.json();
@@ -31,10 +35,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate departmentId format if provided (Convex will enforce ID validity)
+    if (departmentId !== undefined) {
+      if (typeof departmentId !== 'string' || !departmentId.trim()) {
+        return NextResponse.json(
+          { error: 'Invalid departmentId format' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Get the admin's university info
-    const adminUser = await convex.query(api.users.getUserByClerkId, {
-      clerkId: userId,
-    });
+    const adminUser = await convexServer.query(
+      api.users.getUserByClerkId,
+      { clerkId: userId },
+      token
+    );
 
     if (!adminUser || !adminUser.university_id) {
       return NextResponse.json(
@@ -44,19 +60,44 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify admin has permission
-    if (!['super_admin', 'university_admin', 'advisor'].includes(adminUser.role)) {
+    if (!hasAdvisorAccess(adminUser.role)) {
       return NextResponse.json({
         error: 'Insufficient permissions. Only super admins, university admins, and advisors can assign students.'
       }, { status: 403 });
     }
 
+    // Validate department ownership (if provided)
+    if (departmentId !== undefined) {
+      const department = await convexServer.query(
+        api.departments.getDepartment,
+        { departmentId: departmentId as Id<'departments'> },
+        token
+      );
+
+      if (!department || department.university_id !== adminUser.university_id) {
+        return NextResponse.json(
+          { error: 'Department not found or access denied' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Assign student in Convex
-    const result = await convex.mutation(api.university_admin.assignStudentByEmail, {
-      clerkId: userId,
-      email: email,
-      role: role || 'user',
-      departmentId: departmentId as Id<'departments'> | undefined,
-    });
+    // Note: This mutation should be idempotent - if the student is already assigned,
+    // it should update rather than fail, to prevent issues on retry
+    // Validate role if provided
+    const assignedRole = role && (ASSIGNABLE_STUDENT_ROLES as readonly string[]).includes(role) ? role : 'user';
+
+    const result = await convexServer.mutation(
+      api.university_admin.assignStudentByEmail,
+      {
+        clerkId: clerkId,
+        email: email,
+        role: assignedRole,
+        departmentId: departmentId as Id<'departments'> | undefined,
+      },
+      token
+    );
 
     // Sync to Clerk publicMetadata
     try {
@@ -72,7 +113,7 @@ export async function POST(req: NextRequest) {
           publicMetadata: {
             ...studentClerkUser.publicMetadata,
             university_id: adminUser.university_id,
-            role: role || 'user',
+            role: assignedRole,
           },
         });
 
@@ -90,10 +131,11 @@ export async function POST(req: NextRequest) {
       result,
       message: 'Student assigned successfully',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Assign student error:', error);
+    const message = getErrorMessage(error, 'Internal server error');
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: message },
       { status: 500 }
     );
   }

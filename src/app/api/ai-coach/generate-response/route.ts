@@ -1,23 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { convexServer } from '@/lib/convex-server'
+import { buildUserContext } from '@/lib/ai-coach-helpers';
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 }) : null
 
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = await getToken({ template: 'convex' })
+    if (!token) {
+      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+    }
 
     const body = await request.json()
     const { query, conversationHistory = [] } = body
@@ -27,55 +26,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch user context data for personalized coaching
-    const client = getClient()
     let userContext = ''
     try {
       const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.all([
-        client.query(api.users.getUserByClerkId, { clerkId: userId }),
-        client.query(api.goals.getUserGoals, { clerkId: userId }),
-        client.query(api.applications.getUserApplications, { clerkId: userId }),
-        client.query(api.resumes.getUserResumes, { clerkId: userId }),
-        client.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }),
-        client.query(api.projects.getUserProjects, { clerkId: userId })
+        convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token),
+        convexServer.query(api.goals.getUserGoals, { clerkId: userId }, token),
+        convexServer.query(api.applications.getUserApplications, { clerkId: userId }, token),
+        convexServer.query(api.resumes.getUserResumes, { clerkId: userId }, token),
+        convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }, token),
+        convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token)
       ])
 
-      // Build user context summary
-      const contextParts: string[] = []
-
-      if (userProfile) {
-        contextParts.push('--- USER PROFILE ---')
-        if (userProfile.name) contextParts.push(`Name: ${userProfile.name}`)
-        if (userProfile.current_position) contextParts.push(`Current Position: ${userProfile.current_position}`)
-        if (userProfile.current_company) contextParts.push(`Current Company: ${userProfile.current_company}`)
-        if (userProfile.industry) contextParts.push(`Industry: ${userProfile.industry}`)
-        if (userProfile.experience_level) contextParts.push(`Experience Level: ${userProfile.experience_level}`)
-        if (userProfile.skills) contextParts.push(`Skills: ${userProfile.skills}`)
-        if (userProfile.career_goals) contextParts.push(`Career Goals: ${userProfile.career_goals}`)
-      }
-
-      if (goals && goals.length > 0) {
-        contextParts.push('\n--- CAREER GOALS ---')
-        goals.slice(0, 5).forEach((goal: any, idx: number) => {
-          contextParts.push(`${idx + 1}. ${goal.title} (Status: ${goal.status})`)
-        })
-      }
-
-      if (applications && applications.length > 0) {
-        contextParts.push('\n--- RECENT JOB APPLICATIONS ---')
-        applications.slice(0, 8).forEach((app: any, idx: number) => {
-          contextParts.push(`${idx + 1}. ${app.job_title} at ${app.company} (Status: ${app.status})`)
-        })
-      }
-
-      if (projects && projects.length > 0) {
-        contextParts.push('\n--- PROJECTS & EXPERIENCE ---')
-        projects.slice(0, 5).forEach((project: any, idx: number) => {
-          contextParts.push(`${idx + 1}. ${project.title}`)
-          if (project.description) contextParts.push(`   ${project.description}`)
-        })
-      }
-
-      userContext = contextParts.join('\n')
+      userContext = buildUserContext({
+        userProfile,
+        goals,
+        applications,
+        resumes,
+        coverLetters,
+        projects
+      })
     } catch (error) {
       console.error('Error fetching user context:', error)
       userContext = 'Unable to load user context data.'
@@ -124,7 +93,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
         })
 
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
+          model: process.env.OPENAI_MODEL || 'gpt-4o',
           messages: messages,
           temperature: 0.7,
           max_tokens: 1500,

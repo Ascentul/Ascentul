@@ -1,26 +1,27 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
 import { api } from 'convex/_generated/api'
+import { Id } from 'convex/_generated/dataModel'
+import { convexServer } from '@/lib/convex-server';
+import { isValidConvexId } from '@/lib/convex-ids';
 
 // POST /api/achievements/award { achievement_id }
 export async function POST(request: Request) {
   const { userId, getToken } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) return NextResponse.json({ error: 'Convex URL not configured' }, { status: 500 })
-  const client = new ConvexHttpClient(url)
-  const token = await getToken({ template: 'convex' }).catch(() => null)
-  if (token) {
-    client.setAuth(token)
+
+  const token = await getToken({ template: 'convex' })
+  if (!token) {
+    return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
   }
 
   const body = await request.json().catch(() => ({} as any))
   const achievementId = body.achievement_id as string
   if (!achievementId) return NextResponse.json({ error: 'achievement_id is required' }, { status: 400 })
+  if (!isValidConvexId(achievementId)) return NextResponse.json({ error: 'Invalid achievement ID format' }, { status: 400 })
 
   try {
-    const id = await client.mutation(api.achievements.awardAchievement, { clerkId: userId, achievement_id: achievementId as any })
+    const id = await convexServer.mutation(api.achievements.awardAchievement, { clerkId: userId, achievement_id: achievementId as Id<'achievements'> }, token)
     return NextResponse.json({ userAchievementId: id }, { status: 201 })
   } catch (e: any) {
     const message = typeof e?.message === 'string' && e.message.includes('Already') ? 'Already earned' : 'Failed to award achievement'
@@ -28,4 +29,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status })
   }
 }
-

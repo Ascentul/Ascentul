@@ -10,17 +10,45 @@ type MutationCtx = GenericMutationCtx<DataModel>;
 type Ctx = QueryCtx | MutationCtx;
 
 /**
+ * Timing-safe string comparison to prevent timing attacks.
+ * Compares two strings in constant time regardless of where they differ.
+ *
+ * NOTE: Uses pure JavaScript (charCodeAt) instead of Buffer because
+ * Convex's default runtime provides a browser-like API environment
+ * and Buffer is not available in queries/mutations.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  // Pure JavaScript timing-safe comparison (no Buffer dependency)
+  let result = a.length ^ b.length;
+  const minLength = Math.min(a.length, b.length);
+
+  for (let i = 0; i < minLength; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+
+  return result === 0;
+}
+
+/**
  * Internal service token check for server-to-server calls
  * This is used by trusted backends (e.g., webhooks) when no user identity exists.
+ *
+ * SECURITY: Uses timing-safe comparison to prevent timing attacks.
  */
 export function isServiceRequest(token: string | undefined) {
   const expected = process.env.CONVEX_INTERNAL_SERVICE_TOKEN;
-  return Boolean(expected && token && token === expected);
+  if (!expected || !token) {
+    return false;
+  }
+  return timingSafeEqual(token, expected);
 }
 
 /**
  * Get the authenticated user from context
- * Throws error if user is not authenticated
+ * Throws error if user is not authenticated or account is deleted/suspended
+ *
+ * SECURITY: This function now automatically verifies account_status.
+ * Deleted or suspended users will be blocked from all authenticated endpoints.
  */
 export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -37,6 +65,10 @@ export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx) {
   if (!user) {
     throw new Error("Unauthorized: User not found in database");
   }
+
+  // SECURITY FIX: Always verify account is active
+  // Prevents deleted/suspended users from accessing any endpoints
+  checkAccountActive(user);
 
   return user;
 }
@@ -108,13 +140,22 @@ export async function requireUniversityAdmin(ctx: QueryCtx | MutationCtx) {
 
 /**
  * Check if the authenticated user is an advisor
- * Throws error if user is not an advisor
+ * Throws error if user is not an advisor or lacks university affiliation
+ *
+ * SECURITY: Advisors MUST have university_id to ensure tenant isolation.
+ * This matches the pattern used in requireUniversityAdmin().
  */
 export async function requireAdvisor(ctx: QueryCtx | MutationCtx) {
   const user = await getAuthenticatedUser(ctx);
 
   if (user.role !== "advisor") {
     throw new Error("Forbidden: Only advisors can perform this action");
+  }
+
+  // SECURITY FIX: Advisors must have university affiliation
+  // Prevents advisors without university_id from bypassing tenant checks
+  if (!user.university_id) {
+    throw new Error("Forbidden: Advisor must be associated with a university");
   }
 
   return user;
@@ -169,7 +210,7 @@ export async function requireUserAccess(
  * Check if user account is active (not deleted, not suspended)
  */
 export function checkAccountActive(user: {
-  account_status?: "pending_activation" | "active" | "suspended" | "deleted";
+  account_status?: "pending_activation" | "pending_deletion" | "active" | "suspended" | "deleted";
 }) {
   if (user.account_status === "deleted") {
     throw new Error("Forbidden: User account has been deleted");

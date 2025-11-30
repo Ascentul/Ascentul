@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { hasAdvisorAccess } from '@/lib/constants/roles'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,7 +43,7 @@ export default function AdminSupportPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'open' | 'in_progress' | 'resolved' | 'closed'>('all')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
-  const [selectedTicket, setSelectedTicket] = useState<any>(null)
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -60,8 +61,7 @@ export default function AdminSupportPage() {
   const role = user?.role
   // SECURITY: Backend now properly isolates tickets by university
   // University admins and advisors can access support for their university's students
-  const canAccess = role === 'super_admin' ||
-                     ['university_admin', 'advisor'].includes(role || '')
+  const canAccess = hasAdvisorAccess(role)
 
   // Queries
   const tickets = useQuery(
@@ -74,6 +74,25 @@ export default function AdminSupportPage() {
   const updateTicketStatus = useMutation(api.support_tickets.updateTicketStatus)
   const addResponse = useMutation(api.support_tickets.addTicketResponse)
   const deleteTicket = useMutation(api.support_tickets.deleteTicket)
+
+  // Derive selected ticket from ID to avoid stale references/loops
+  const selectedTicket = useMemo(() => {
+    if (!selectedTicketId || !tickets) return null
+    return tickets.find((t) => t._id === selectedTicketId) ?? null
+  }, [selectedTicketId, tickets])
+
+  // Close dialog if selected ticket becomes unavailable (e.g., deleted by another process)
+  useEffect(() => {
+    if (detailDialogOpen && selectedTicketId && !selectedTicket) {
+      setDetailDialogOpen(false)
+      setSelectedTicketId(null)
+      toast({
+        title: 'Ticket unavailable',
+        description: 'The selected ticket is no longer available',
+        variant: 'destructive'
+      })
+    }
+  }, [detailDialogOpen, selectedTicketId, selectedTicket, toast])
 
   // Filter tickets
   const filteredTickets = useMemo(() => {
@@ -162,11 +181,6 @@ export default function AdminSupportPage() {
         status: newStatus as any
       })
 
-      // Update local state to reflect the change immediately
-      if (selectedTicket && selectedTicket._id === ticketId) {
-        setSelectedTicket({ ...selectedTicket, status: newStatus })
-      }
-
       toast({
         title: 'Status updated',
         description: `Ticket status changed to ${newStatus}`,
@@ -227,7 +241,7 @@ export default function AdminSupportPage() {
       })
 
       setDetailDialogOpen(false)
-      setSelectedTicket(null)
+      setSelectedTicketId(null)
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -365,7 +379,7 @@ export default function AdminSupportPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Tabs for status filter */}
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="open">Open</TabsTrigger>
@@ -437,7 +451,14 @@ export default function AdminSupportPage() {
               </TableHeader>
               <TableBody>
                 {filteredTickets.map((ticket: any) => (
-                  <TableRow key={String(ticket._id)} className="cursor-pointer hover:bg-gray-50">
+                  <TableRow
+                    key={String(ticket._id)}
+                    className="cursor-pointer hover:bg-gray-50"
+                    onClick={() => {
+                      setSelectedTicketId(ticket._id)
+                      setDetailDialogOpen(true)
+                    }}
+                  >
                     <TableCell className="font-medium">{ticket.subject}</TableCell>
                     <TableCell className="capitalize">{ticket.category.replaceAll('_', ' ')}</TableCell>
                     <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
@@ -450,7 +471,7 @@ export default function AdminSupportPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          setSelectedTicket(ticket)
+                          setSelectedTicketId(ticket._id)
                           setDetailDialogOpen(true)
                         }}
                       >

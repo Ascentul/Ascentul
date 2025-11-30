@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuth } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
+import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
-
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) throw new Error('Convex URL not configured')
-  return new ConvexHttpClient(url)
-}
+import { convexServer } from '@/lib/convex-server';
+import { isValidGoalStatus, VALID_GOAL_STATUSES } from '@/lib/constants/roles';
 
 const mapGoal = (doc: any) => ({
   id: doc._id,
@@ -26,10 +21,11 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = getAuth(request)
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const client = getClient()
-    const goals = await client.query(api.goals.getUserGoals, { clerkId: userId })
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+    const goals = await convexServer.query(api.goals.getUserGoals, { clerkId: userId }, token)
     return NextResponse.json({ goals: goals.map(mapGoal) })
   } catch (error: any) {
     console.error('GET /api/goals error:', error)
@@ -40,12 +36,27 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = getAuth(request)
+    const { userId, getToken } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const body = await request.json().catch(() => ({} as any))
+    const token = await getToken({ template: 'convex' })
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
+
     if (!body?.title) return NextResponse.json({ error: 'Title is required' }, { status: 400 })
 
-    const client = getClient()
+    // Validate status if provided
+    if (body.status && !isValidGoalStatus(body.status)) {
+      return NextResponse.json({
+        error: `Invalid status: ${body.status}. Valid values: ${VALID_GOAL_STATUSES.join(', ')}`
+      }, { status: 400 })
+    }
+
     const args = {
       clerkId: userId,
       title: String(body.title),
@@ -56,7 +67,7 @@ export async function POST(request: NextRequest) {
       checklist: Array.isArray(body.checklist) ? body.checklist : undefined,
       category: body.category ? String(body.category) : undefined,
     }
-    const id = await client.mutation(api.goals.createGoal, args as any)
+    const id = await convexServer.mutation(api.goals.createGoal, args, token)
     return NextResponse.json({ id }, { status: 201 })
   } catch (error: any) {
     console.error('POST /api/goals error:', error)
