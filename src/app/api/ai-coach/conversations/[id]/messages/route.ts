@@ -9,12 +9,15 @@ import { requireConvexToken } from '@/lib/convex-auth'
  * Helper to get a mock OpenAI instance for testing
  * Returns null if OpenAI is not mocked
  */
-const getMockOpenAIInstance = (): OpenAI | null => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mockApi = (OpenAI as any).mock as {
+interface MockOpenAI {
+  mock?: {
     results?: Array<{ value?: OpenAI }>
     instances?: OpenAI[]
-  } | undefined
+  }
+}
+
+const getMockOpenAIInstance = (): OpenAI | null => {
+  const mockApi = (OpenAI as unknown as MockOpenAI).mock
 
   if (!mockApi) return null
 

@@ -69,6 +69,7 @@ export default function AdvisorApplicationsPage() {
   // ============================================================================
 
   const filterHook = useApplicationFilters();
+  const { applyFilters } = filterHook;
   const selectionHook = useApplicationSelection();
 
   // ============================================================================
@@ -100,8 +101,8 @@ export default function AdvisorApplicationsPage() {
 
   // Apply filters
   const filteredApplications = useMemo(() => {
-    return filterHook.applyFilters(enrichedApplications);
-  }, [enrichedApplications, filterHook.applyFilters]);
+    return applyFilters(enrichedApplications);
+  }, [enrichedApplications, applyFilters]);
 
   // Get available cohorts for filter UI
   const availableCohorts = useAvailableCohorts(enrichedApplications);

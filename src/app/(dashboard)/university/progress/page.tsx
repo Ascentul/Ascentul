@@ -14,7 +14,7 @@ export default function UniversityStudentProgressPage() {
   const { user, isAdmin, subscription } = useAuth()
   const { user: clerkUser } = useUser()
 
-  const canAccess = !!user && (isAdmin || subscription.isUniversity || user.role === 'university_admin')
+  const canAccess = !!user && (isAdmin || subscription.isUniversity)
 
   const students = useQuery(api.university_admin.listStudents, clerkUser?.id ? { clerkId: clerkUser.id, limit: 1000 } : 'skip') as any[] | undefined
 

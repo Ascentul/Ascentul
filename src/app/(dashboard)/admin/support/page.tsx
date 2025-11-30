@@ -5,6 +5,7 @@ import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { hasAdvisorAccess } from '@/lib/constants/roles'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -60,8 +61,7 @@ export default function AdminSupportPage() {
   const role = user?.role
   // SECURITY: Backend now properly isolates tickets by university
   // University admins and advisors can access support for their university's students
-  const canAccess = role === 'super_admin' ||
-                     ['university_admin', 'advisor'].includes(role || '')
+  const canAccess = hasAdvisorAccess(role)
 
   // Queries
   const tickets = useQuery(

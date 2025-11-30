@@ -109,12 +109,11 @@ export const createCareerPath = mutation({
 
     if (!user) throw new Error("User not found");
 
-    // TEMPORARILY DISABLED: Free plan limit check
-    // NOTE: Clerk Billing (publicMetadata) is the source of truth for subscriptions.
-    // The subscription_plan field in Convex is cached display data only (see CLAUDE.md).
-    // Backend mutations should NOT use subscription_plan for feature gating.
-    // Frontend enforces limits via useSubscription() hook + Clerk's has() method.
-    // TODO: Re-enable this check by integrating Clerk SDK or passing verified subscription status from frontend.
+    // ARCHITECTURE NOTE: Free plan limits are enforced at the FRONTEND layer
+    // - Clerk Billing (publicMetadata) is the source of truth for subscriptions
+    // - Frontend enforces via useSubscription() hook + Clerk's has() method
+    // - Backend subscription_plan is cached display data only (see CLAUDE.md)
+    // - Defense-in-depth: Consider adding hasPremium arg from frontend for backend validation
 
     // if (user.subscription_plan === "free") {
     //   const existingPaths = await ctx.db

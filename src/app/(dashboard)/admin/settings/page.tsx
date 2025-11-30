@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { hasPlatformAdminAccess } from '@/lib/constants/roles'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -152,7 +153,7 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(false)
 
   const role = user?.role
-  const isSuperAdmin = role === 'super_admin'
+  const isSuperAdmin = hasPlatformAdminAccess(role)
 
   if (!isSuperAdmin) {
     return (
@@ -251,11 +252,23 @@ export default function AdminSettingsPage() {
     }
   }
 
+  /**
+   * Test connection to external provider
+   * FEATURE INCOMPLETE: Currently returns mock success
+   * Implementation plan:
+   * 1. Create API routes for each provider health check:
+   *    - /api/admin/health/sendgrid - Verify API key with sendgrid.api.domains.get()
+   *    - /api/admin/health/openai - Call models.list() endpoint
+   *    - /api/admin/health/clerk - Verify via Clerk API client
+   * 2. Each route should return { success: boolean, latency: number, error?: string }
+   * 3. Add timeout handling (5s max)
+   * 4. Cache results for 5 minutes to avoid rate limiting
+   */
   const handleTestConnection = async (type: string) => {
     setLoading(true)
     try {
-      // TODO: Replace with real connectivity check for each provider.
-      // Keep fast-resolution for tests by using an already-resolved promise.
+      // TODO: Call real health check API endpoint based on provider type
+      // e.g., const response = await fetch(`/api/admin/health/${type.toLowerCase()}`)
       await Promise.resolve()
       toast({
         title: "Connection successful",

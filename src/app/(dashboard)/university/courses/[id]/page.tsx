@@ -20,7 +20,7 @@ export default function CourseDetailPage() {
   const { user, isAdmin, subscription } = useAuth()
   const { toast } = useToast()
 
-  const canAccess = !!user && (isAdmin || subscription.isUniversity || user.role === 'university_admin')
+  const canAccess = !!user && (isAdmin || subscription.isUniversity)
 
   const course = useQuery(
     api.university_admin.getCourse,

@@ -88,6 +88,8 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
 
   // Sync form state when session changes (ID change or version bump from server)
   // Note: Version is incremented on each save, so this captures external updates
+  // Individual session properties are intentionally excluded - we only want to reset form
+  // when navigating to a different session (_id) or receiving a server update (version)
   useEffect(() => {
     // Only show warning if version changed externally AND we had unsaved changes
     if (session.version !== prevVersionRef.current && hasUnsavedChangesRef.current) {
@@ -110,6 +112,7 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
     prevVersionRef.current = session.version;
     setCurrentVersion(session.version);
     setHasUnsavedChanges(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session._id, session.version, toast]);
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);

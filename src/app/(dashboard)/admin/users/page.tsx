@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { hasPlatformAdminAccess, requiresUniversityAffiliation } from '@/lib/constants/roles'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -44,7 +45,7 @@ interface UserRow {
 // Helper to determine the display plan for a user based on their role and subscription
 function getDisplayPlan(user: UserRow): { label: string; variant: 'default' | 'secondary' | 'outline'; className?: string } {
   // Super admin - distinct styling from staff
-  if (user.role === 'super_admin') {
+  if (hasPlatformAdminAccess(user.role)) {
     return { label: 'Admin', variant: 'outline', className: 'border-red-300 text-red-700 bg-red-50' }
   }
 
@@ -54,7 +55,7 @@ function getDisplayPlan(user: UserRow): { label: string; variant: 'default' | 's
   }
 
   // University-affiliated roles get university plan
-  if (user.role === 'student' || user.role === 'university_admin' || user.role === 'advisor') {
+  if (requiresUniversityAffiliation(user.role)) {
     return { label: 'University', variant: 'default', className: 'bg-blue-600' }
   }
 
@@ -131,7 +132,7 @@ export default function AdminUsersPage() {
       const matchesRole = roleFilter === 'all' || u.role === roleFilter
       // Plan filter: 'staff' matches internal roles (staff, super_admin) which have no billing plan
       const matchesPlan = planFilter === 'all' ||
-        (planFilter === 'staff' ? (u.role === 'staff' || u.role === 'super_admin') : u.subscription_plan === planFilter)
+        (planFilter === 'staff' ? (u.role === 'staff' || hasPlatformAdminAccess(u.role)) : u.subscription_plan === planFilter)
       const matchesStatus = statusFilter === 'all' || u.subscription_status === statusFilter
       const matchesAccountStatus = accountStatusFilter === 'all' || (u.account_status || 'active') === accountStatusFilter
       const matchesUniversity = universityFilter === 'all' || u.university_id === universityFilter

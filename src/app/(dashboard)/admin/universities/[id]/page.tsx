@@ -7,6 +7,7 @@ import { useUser } from '@clerk/nextjs'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
+import { hasPlatformAdminAccess, hasUniversityAdminAccess } from '@/lib/constants/roles'
 import { Id } from 'convex/_generated/dataModel'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -130,12 +131,12 @@ export default function UniversityDetailPage() {
   }) || []
 
   // Separate users by role
-  const students = universityUsers?.filter(u => u.role === 'user') || []
-  const advisors = universityUsers?.filter(u => u.role === 'university_admin') || []
+  const students = universityUsers?.filter(u => u.role === 'user' || u.role === 'student') || []
+  const advisors = universityUsers?.filter(u => hasUniversityAdminAccess(u.role)) || []
   const activeStudents = students.filter(s => s.subscription_status === 'active')
 
   const role = user?.role
-  const canAccess = role === 'super_admin'
+  const canAccess = hasPlatformAdminAccess(role)
 
   const handleToggleTest = async (isTest: boolean) => {
     setIsTogglingTest(true)

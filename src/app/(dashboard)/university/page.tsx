@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUser, useAuth as useClerkAuth } from "@clerk/nextjs";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { hasUniversityAdminAccess } from "@/lib/constants/roles";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
 import {
@@ -179,7 +180,7 @@ export default function UniversityDashboardPage() {
 
   // Get effective role (respects impersonation)
   const effectiveRole = getEffectiveRole();
-  const isUniversityRole = user?.role === 'university_admin' || user?.role === 'super_admin';
+  const isUniversityRole = hasUniversityAdminAccess(user?.role);
 
   // Redirect based on effective role when impersonating
   useEffect(() => {
@@ -202,7 +203,7 @@ export default function UniversityDashboardPage() {
     if (impersonation.isImpersonating) return; // handled above
     if (!user) return;
 
-    if (user.role === 'advisor') {
+    if (user.role === 'advisor') {  // Advisor redirects to advisor dashboard (explicit check for redirect)
       router.replace('/advisor');
       return;
     }
@@ -379,14 +380,13 @@ export default function UniversityDashboardPage() {
   // subscription.isUniversity is NOT used for access control here; it determines what
   // features are available within the dashboard, not whether the user can access it
   const hasAccess =
-    !!user &&
-    (effectiveRole === 'university_admin' || effectiveRole === 'super_admin');
+    !!user && hasUniversityAdminAccess(effectiveRole);
 
   // If we know we'll redirect (advisor or non-university role), avoid flashing unauthorized UI
   const shouldRedirect =
     !impersonation.isImpersonating &&
     !!user &&
-    (user.role === 'advisor' || !isUniversityRole);
+    (user.role === 'advisor' || !isUniversityRole);  // Explicit advisor check for redirect logic
 
   // Show error state if profile failed to load after timeout
   if (profileLoadTimedOut && !user) {

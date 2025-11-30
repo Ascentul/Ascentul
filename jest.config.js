@@ -27,7 +27,7 @@ const customJestConfig = {
     '^convex/browser$': '<rootDir>/__mocks__/convex-browser.js',
     '^.+/convex/browser$': '<rootDir>/__mocks__/convex-browser.js',
     '^convex/nextjs$': '<rootDir>/__mocks__/convex/nextjs.js',
-    '^\\.\\./\\.\\./convex/nextjs$': '<rootDir>/__mocks__/convex/nextjs.js',
+    '^.*/convex/nextjs$': '<rootDir>/__mocks__/convex/nextjs.js',
     '^@/contexts/ImpersonationContext$': '<rootDir>/__mocks__/contexts/ImpersonationContext.tsx',
     '^@/hooks/use-toast$': '<rootDir>/__mocks__/use-toast.js',
   },

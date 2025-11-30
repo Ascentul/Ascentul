@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { User, Session } from '@supabase/supabase-js'
 import { useToast } from '@/hooks/use-toast'
 import { createClient } from '@/lib/supabase/client'
+import { hasAdvisorAccess } from '@/lib/constants/roles'
 
 interface UserProfile {
   id: string
@@ -233,8 +234,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Check if user is admin
-  const isAdmin = user?.role === 'super_admin' || user?.role === 'university_admin' || user?.role === 'admin'
+  // Check if user is admin (uses centralized role helper)
+  const isAdmin = hasAdvisorAccess(user?.role)
 
   const value = {
     user,

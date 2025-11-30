@@ -112,24 +112,42 @@ export default function PublicProfilePage() {
     }
   }
 
+  /**
+   * Handle cover image upload
+   * FEATURE INCOMPLETE: Currently only displays preview locally
+   * Implementation needed:
+   * 1. Use Convex file storage (preferred) or external storage (S3/R2)
+   * 2. Create upload endpoint in convex/files.ts
+   * 3. Store URL in users table cover_image field
+   * 4. Add file size/type validation
+   */
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
     reader.onloadend = () => {
       setCoverImage(reader.result as string)
-      // TODO: Upload to cloud storage and save to database
+      // TODO: Implement cloud storage upload - see comment above for implementation plan
     }
     reader.readAsDataURL(file)
   }
 
+  /**
+   * Handle profile image upload
+   * FEATURE INCOMPLETE: Currently only displays preview locally
+   * Implementation needed:
+   * 1. Use Convex file storage (preferred) or external storage (S3/R2)
+   * 2. Create upload endpoint in convex/files.ts
+   * 3. Store URL in users table profile_image field
+   * 4. Add file size/type validation (max 5MB, images only)
+   */
   const handleProfileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
     reader.onloadend = () => {
       setProfileImage(reader.result as string)
-      // TODO: Upload to cloud storage and save to database
+      // TODO: Implement cloud storage upload - see comment above for implementation plan
     }
     reader.readAsDataURL(file)
   }

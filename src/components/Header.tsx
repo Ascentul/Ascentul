@@ -3,6 +3,7 @@
 import { Menu, GraduationCap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/ClerkAuthProvider'
+import { hasUniversityAdminAccess } from '@/lib/constants/roles'
 import Link from 'next/link'
 
 interface HeaderProps {
@@ -11,7 +12,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuToggle }: HeaderProps) {
   const { user, subscription } = useAuth()
-  const isUniversityUser = user?.role === 'university_admin' || subscription.isUniversity
+  const isUniversityUser = hasUniversityAdminAccess(user?.role) || subscription.isUniversity
 
   return (
     <header className="bg-white shadow-sm z-10">

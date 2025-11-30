@@ -125,10 +125,21 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
   const canAccess = useMemo(() => clerkRole === 'super_admin', [clerkRole])
   const shouldQuery = useMemo(() => !!(clerkLoaded && canAccess && clerkId), [clerkLoaded, canAccess, clerkId])
 
-  // Fetch all users (minimal data)
-  // NOTE: Hard-coded limit of 1000 users. For larger user bases, implement cursor-based
-  // pagination with UI controls. The query already supports pagination via continueCursor.
-  // TODO: Add pagination UI when user count exceeds 1000
+  /**
+   * Fetch all users (minimal data)
+   * FEATURE INCOMPLETE: Pagination UI not implemented
+   *
+   * Current behavior: Hard-coded limit of 1000 users with warning alert
+   *
+   * Implementation plan for pagination:
+   * 1. Add state: const [cursor, setCursor] = useState<string | undefined>()
+   * 2. Pass cursor to query: { clerkId, limit: 50, continueCursor: cursor }
+   * 3. Add pagination controls at bottom of table:
+   *    - "Load More" button that calls setCursor(usersData?.continueCursor)
+   *    - Or use shadcn Pagination component with page numbers
+   * 4. The query already returns continueCursor - just wire up the UI
+   * 5. Consider virtual scrolling (react-virtual) for very large lists
+   */
   const usersData = useQuery(
     api.users.getAllUsersMinimal,
     shouldQuery ? { clerkId, limit: 1000 } : 'skip'

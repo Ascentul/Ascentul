@@ -229,7 +229,8 @@ async function rollbackInviteAcceptance(
  * Throws error if user is not a student with valid studentProfile
  *
  * LEGACY SUPPORT: Currently accepts both "student" role AND legacy "user" role with university_id.
- * TODO: Remove legacy "user" role check after backfillStudentRoles migration is complete and verified.
+ * This is intentional for backward compatibility during the user→student migration period.
+ * To remove: Run backfillStudentRoles migration, verify no users have role="user", then simplify this check.
  * See: convex/migrations.ts:backfillStudentRoles and scripts/backfill-student-roles.js
  */
 export async function requireStudent(
@@ -242,8 +243,7 @@ export async function requireStudent(
     throw new Error("User not found");
   }
 
-  // Check if user is a student
-  // TODO: Remove legacy check after migration - should only check: user.role === "student"
+  // Check if user is a student (includes legacy "user" role with university_id for backward compatibility)
   const isStudent = user.role === "student" ||
                    (user.role === "user" && user.university_id);
 

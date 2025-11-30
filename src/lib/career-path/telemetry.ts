@@ -30,14 +30,21 @@ export function emitTelemetryEvent(event: TelemetryEvent): void {
     console.log('[Career Path Telemetry]', JSON.stringify(event, null, 2))
   }
 
-  // TODO: Send to your analytics service (e.g., PostHog, Mixpanel, Segment)
-  // Example:
-  // posthog.capture(event.event, {
-  //   userId: event.userId,
-  //   jobTitle: event.jobTitle,
-  //   model: event.model,
-  //   ...event
-  // })
+  /**
+   * FEATURE INCOMPLETE: Analytics service not connected
+   * Implementation plan:
+   * 1. Install PostHog: npm install posthog-js posthog-node
+   * 2. Add NEXT_PUBLIC_POSTHOG_KEY and POSTHOG_HOST to env
+   * 3. Initialize in src/lib/posthog.ts
+   * 4. Uncomment below and import posthog client
+   *
+   * posthog.capture(event.event, {
+   *   userId: event.userId,
+   *   jobTitle: event.jobTitle,
+   *   model: event.model,
+   *   ...event
+   * })
+   */
 }
 
 /**
@@ -149,8 +156,11 @@ export function logStructuredError(context: string, error: unknown, metadata?: R
     console.error('[Career Path Error]', JSON.stringify(logEntry, null, 2))
   }
 
-  // TODO: Send to error tracking service (e.g., Sentry)
-  // Sentry.captureException(error, { contexts: { careerPath: metadata } })
+  /**
+   * FEATURE INCOMPLETE: Error tracking not connected
+   * Implementation: npm install @sentry/nextjs, run npx @sentry/wizard@latest -i nextjs
+   * Then: Sentry.captureException(error, { contexts: { careerPath: metadata } })
+   */
 }
 
 // ============================================================================
@@ -167,8 +177,7 @@ export function trackUserAction(action: string, properties?: Record<string, unkn
     console.log('[Career Path Action]', action, properties)
   }
 
-  // TODO: Send to analytics service
-  // analytics.track(action, properties)
+  // TODO: Connect to PostHog (see emitTelemetryEvent for implementation plan)
 }
 
 /**
@@ -205,8 +214,7 @@ export class PerformanceTimer {
       console.log(`[Career Path Performance] ${this.label}: ${duration}ms`, metadata)
     }
 
-    // TODO: Send to performance monitoring service
-    // Example: track metric to DataDog, New Relic, etc.
+    // TODO: Connect to performance monitoring (DataDog/New Relic) or use PostHog for basic metrics
 
     return duration
   }

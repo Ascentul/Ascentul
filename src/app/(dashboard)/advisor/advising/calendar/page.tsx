@@ -103,12 +103,19 @@ export default function AdvisorCalendarPage() {
                 Schedule Session
               </Button>
             </Link>
-            {/* TODO: Implement calendar export functionality (export to .ics format)
-            <Button variant="outline" disabled>
-              <Download className="h-4 w-4 mr-2" />
-              Export Calendar
-            </Button>
-            */}
+            {/* FEATURE INCOMPLETE: Calendar export to .ics format
+             * Implementation plan:
+             * 1. Install ical-generator package (npm install ical-generator)
+             * 2. Create API route: /api/advisor/calendar/export
+             * 3. Generate ICS from sessions array with VEVENT components
+             * 4. Return as downloadable file with content-type: text/calendar
+             * 5. Uncomment button and add onClick handler
+             *
+             * Example:
+             * const calendar = ical({ name: 'Advisor Sessions' })
+             * sessions.forEach(s => calendar.createEvent({ start: new Date(s.start_at), ... }))
+             * return new Response(calendar.toString(), { headers: { 'Content-Type': 'text/calendar' } })
+             */}
           </div>
         </div>
 
