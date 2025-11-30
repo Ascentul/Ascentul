@@ -34,6 +34,12 @@ export async function POST(request: NextRequest) {
 
     // Create customer in Stripe if missing, and store in Convex
     if (!customerId) {
+      if (!user.email) {
+        return NextResponse.json(
+          { error: 'User email is required' },
+          { status: 400 },
+        )
+      }
       const customer = await stripe.customers.create({
         email: user.email,
         name: user.name,
@@ -43,11 +49,16 @@ export async function POST(request: NextRequest) {
         },
       })
       customerId = customer.id
-      await convexServer.mutation(
-        api.users.setStripeCustomer,
-        { clerkId: user.clerkId, stripeCustomerId: customerId },
-        token
-      )
+      try {
+        await convexServer.mutation(
+          api.users.setStripeCustomer,
+          { clerkId: user.clerkId, stripeCustomerId: customerId },
+          token
+        )
+      } catch (convexError) {
+        // Customer exists in Stripe; checkout route's search logic will recover on next request
+        console.error(`[Stripe Portal] Failed to save Stripe customer ${customerId} to Convex:`, convexError)
+      }
     }
 
     const session = await stripe.billingPortal.sessions.create({

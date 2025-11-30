@@ -113,6 +113,17 @@ export default function AdvisorSupportPage() {
   const addResponse = useMutation(api.support_tickets.addTicketResponse)
   const deleteTicket = useMutation(api.support_tickets.deleteTicket)
 
+  // Sync selectedTicket with updated data from tickets query
+  // This ensures the detail dialog shows fresh data after mutations
+  React.useEffect(() => {
+    if (selectedTicket && tickets) {
+      const updated = tickets.find(t => t._id === selectedTicket._id)
+      if (updated) {
+        setSelectedTicket(updated)
+      }
+    }
+  }, [tickets, selectedTicket?._id])
+
   // Filter tickets
   const filteredTickets = useMemo(() => {
     if (!tickets) return []
@@ -545,7 +556,8 @@ export default function AdvisorSupportPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation()
                             setSelectedTicket(ticket)
                             setDetailDialogOpen(true)
                           }}

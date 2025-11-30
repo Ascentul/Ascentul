@@ -294,7 +294,8 @@ export default function SupportPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation()
                           setSelectedTicket(ticket)
                           setDetailDialogOpen(true)
                         }}

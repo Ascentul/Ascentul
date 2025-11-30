@@ -99,15 +99,20 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
     if (!filteredLogs || filteredLogs.length === 0) return
 
     const headers = ['Timestamp', 'User', 'Email', 'Old Role', 'New Role', 'Changed By', 'Reason']
-    const rows = filteredLogs.map((log: AuditLog) => [
-      format(new Date(log.timestamp ?? log.created_at ?? Date.now()), 'yyyy-MM-dd HH:mm:ss'),
-      log.target_name || '',
-      log.target_email || '',
-      (log.metadata as Record<string, unknown>)?.old_role || '',
-      (log.metadata as Record<string, unknown>)?.new_role || '',
-      log.performed_by_name || '',
-      log.reason || '',
-    ])
+    const rows = filteredLogs.map((log: AuditLog) => {
+      // Timestamp is guaranteed by filter on line 67, but use fallback for type safety
+      const logTime = log.timestamp ?? log.created_at
+      const metadata = log.metadata as { old_role?: string; new_role?: string } | undefined
+      return [
+        logTime ? format(new Date(logTime), 'yyyy-MM-dd HH:mm:ss') : 'N/A',
+        log.target_name || '',
+        log.target_email || '',
+        metadata?.old_role || '',
+        metadata?.new_role || '',
+        log.performed_by_name || '',
+        log.reason || '',
+      ]
+    })
 
     const csvContent = [
       headers.join(','),
@@ -220,10 +225,11 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
                 </TableRow>
               ) : (
                 filteredLogs.map((log: AuditLog) => {
-                  const metadata = log.metadata as Record<string, unknown> | undefined
-                  const oldRole = metadata?.old_role as string | undefined
-                  const newRole = metadata?.new_role as string | undefined
-                  const logTime = log.timestamp ?? log.created_at ?? Date.now()
+                  const metadata = log.metadata as { old_role?: string; new_role?: string } | undefined
+                  const oldRole = metadata?.old_role
+                  const newRole = metadata?.new_role
+                  // Timestamp is guaranteed by filter on line 67
+                  const logTime = log.timestamp ?? log.created_at ?? 0
 
                   return (
                     <TableRow key={log._id}>

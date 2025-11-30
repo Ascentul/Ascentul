@@ -539,6 +539,7 @@ export const updateApplicationNextStep = mutation({
     });
 
     // Audit log for FERPA compliance
+    // NOTE: Store structural metadata only, not full next_step content (PII compliance)
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId,
@@ -546,8 +547,8 @@ export const updateApplicationNextStep = mutation({
       entityType: 'application',
       entityId: args.applicationId,
       studentId: application.user_id,
-      previousValue: { next_step: application.next_step, due_date: application.due_date },
-      newValue: { next_step: args.nextStep, due_date: args.dueDate },
+      previousValue: { hasNextStep: Boolean(application.next_step), due_date: application.due_date },
+      newValue: { hasNextStep: Boolean(args.nextStep), nextStepLength: args.nextStep.length, due_date: args.dueDate },
     });
 
     return {

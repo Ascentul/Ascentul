@@ -123,6 +123,7 @@ export const migrate = mutation({
       migrated: 0,
       skippedAlreadyExists: 0,
       skippedMissingProfile: 0,
+      skippedMissingUser: 0,
       deleted: 0,
       errors: [] as Array<{ id: string; error: string }>,
     };
@@ -148,6 +149,7 @@ export const migrate = mutation({
         // Validate user exists
         const user = await ctx.db.get(userId);
         if (!user) {
+          results.skippedMissingUser++;
           results.errors.push({
             id: record._id,
             error: `User not found: ${userId}`,

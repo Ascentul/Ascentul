@@ -129,9 +129,12 @@ export default function DashboardPage() {
   const shouldRedirectToAdmin = !impersonation.isImpersonating && hasAdvisorAccess(user?.role)
 
   if (shouldRedirectToAdmin) {
-    const message = user?.role === 'advisor'
-      ? "Redirecting to advisor dashboard..."
-      : "Redirecting to admin portal..."
+    let message = "Redirecting to admin portal..."
+    if (user?.role === 'advisor') {
+      message = "Redirecting to advisor dashboard..."
+    } else if (user?.role === 'university_admin') {
+      message = "Redirecting to university dashboard..."
+    }
     return <LoadingSpinner message={message} />
   }
 

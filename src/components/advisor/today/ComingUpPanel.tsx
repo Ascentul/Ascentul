@@ -150,7 +150,7 @@ export function ComingUpPanel({ days, isLoading }: ComingUpPanelProps) {
           <div className="text-center py-6 text-slate-500">
             <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm font-medium">No sessions scheduled</p>
-            <p className="text-xs mt-0.5">Next 3 days are clear</p>
+            <p className="text-xs mt-0.5">No upcoming sessions</p>
           </div>
         ) : (
           <div className="space-y-3">

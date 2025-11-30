@@ -39,9 +39,11 @@ export default function UniversityDepartmentsPage() {
   const { user: clerkUser } = useUser();
   const { toast } = useToast();
 
+  // Access control: Only university_admin or super_admin can manage departments
+  // subscription.isUniversity is NOT sufficient - it includes regular students
   const canAccess =
     !!user &&
-    (isAdmin || subscription.isUniversity);
+    (isAdmin || user.role === 'university_admin');
 
   const departments = useQuery(
     api.university_admin.listDepartments,

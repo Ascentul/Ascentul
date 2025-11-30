@@ -140,6 +140,36 @@ export async function POST(request: NextRequest) {
 
     const { token } = await requireConvexToken()
 
+    // Validate university-affiliation constraints per CLAUDE.md role rules
+    const UNIVERSITY_REQUIRED_ROLES = ['student', 'university_admin', 'advisor']
+    const UNIVERSITY_FORBIDDEN_ROLES = ['individual']
+
+    if (UNIVERSITY_REQUIRED_ROLES.includes(roleToSync) || UNIVERSITY_FORBIDDEN_ROLES.includes(roleToSync)) {
+      const convexUser = await convexServer.query(
+        api.users.getUserByClerkId,
+        { clerkId: userId },
+        token
+      )
+
+      if (UNIVERSITY_REQUIRED_ROLES.includes(roleToSync) && !convexUser?.university_id) {
+        return NextResponse.json(
+          {
+            error: `Role "${roleToSync}" requires university affiliation. Please assign user to a university first.`,
+          },
+          { status: 400 }
+        )
+      }
+
+      if (UNIVERSITY_FORBIDDEN_ROLES.includes(roleToSync) && convexUser?.university_id) {
+        return NextResponse.json(
+          {
+            error: `Role "${roleToSync}" cannot have university affiliation. Please remove user from university first.`,
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     // Sync to Convex (Clerk is already source of truth at this point)
     await convexServer.mutation(
       api.users.updateUser,

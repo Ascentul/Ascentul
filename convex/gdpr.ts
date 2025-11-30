@@ -127,20 +127,18 @@ export const getUserDataForExport = query({
       ]);
     }
 
-    // Sanitize sensitive fields from user profile
-    const sanitizedUserProfile = {
-      ...targetUser,
-      // Remove internal IDs that aren't meaningful to user
-      _id: undefined,
-      // Remove sensitive internal fields
-      activation_token: undefined,
-      activation_expires_at: undefined,
-      temp_password: undefined,
-      password_reset_token: undefined,
-      password_reset_expires_at: undefined,
-      // Keep clerkId as it's the user's identifier
-      clerkId: targetUser.clerkId,
-    };
+    // Sanitize sensitive fields from user profile using destructuring
+    // to ensure fields are truly excluded, not just set to undefined
+    const {
+      _id,
+      _creationTime,
+      activation_token,
+      activation_expires_at,
+      temp_password,
+      password_reset_token,
+      password_reset_expires_at,
+      ...sanitizedUserProfile
+    } = targetUser;
 
     // Build the export object following GDPR Article 20 format
     const exportData = {
@@ -327,6 +325,18 @@ export const requestAccountDeletion = mutation({
     }
 
     // Check if already in deletion process
+    if (user.account_status === "pending_deletion") {
+      return {
+        success: true,
+        message: "Account deletion already scheduled.",
+        deletionType: "scheduled",
+        scheduledDeletionDate: user.deletion_scheduled_at
+          ? new Date(user.deletion_scheduled_at).toISOString()
+          : undefined,
+        gracePeriodDays: 30,
+      };
+    }
+
     if (user.account_status === "deleted") {
       throw new Error("Account is already deleted");
     }

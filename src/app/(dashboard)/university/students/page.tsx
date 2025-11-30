@@ -85,9 +85,11 @@ export default function UniversityStudentsPage() {
   // View toggle state
   const [activeView, setActiveView] = useState<"students" | "progress">("students");
 
+  // Access control: Only university_admin, advisor, or super_admin can access
+  // subscription.isUniversity is NOT sufficient - it includes regular students
   const canAccess =
     !!user &&
-    (isAdmin || subscription.isUniversity);
+    (isAdmin || user.role === 'university_admin' || user.role === 'advisor');
 
   const students = useQuery(
     api.university_admin.listStudents,

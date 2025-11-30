@@ -88,6 +88,11 @@ export function maskId(id: string | undefined | null): string {
  * Sanitizes an error object for safe logging by removing potentially sensitive fields.
  * Use this when logging errors from third-party services that may include PII.
  *
+ * NOTE: This function extracts the error message as-is. Callers should ensure error
+ * messages do not contain raw PII before logging. When throwing custom errors, use
+ * maskEmail(), maskName(), or maskId() for any user-identifying data:
+ *   throw new Error(`User not found: ${maskId(userId)}`)
+ *
  * @param error - The error object to sanitize
  * @returns Object with only safe fields (message, code, status)
  *

@@ -191,7 +191,10 @@ jest.mock('@clerk/nextjs/server', () => ({
   }),
   clerkClient: jest.fn().mockResolvedValue({
     users: {
-      getUser: jest.fn().mockResolvedValue({ id: 'test-user-id' }),
+      getUser: jest.fn().mockResolvedValue({
+        id: 'test-user-id',
+        publicMetadata: { role: 'individual' },
+      }),
       getUserList: jest.fn().mockResolvedValue({ data: [] }),
       updateUser: jest.fn().mockResolvedValue({}),
       updateUserMetadata: jest.fn().mockResolvedValue({}),
@@ -200,7 +203,7 @@ jest.mock('@clerk/nextjs/server', () => ({
   currentUser: jest.fn().mockResolvedValue({
     id: 'test-user-id',
     emailAddresses: [{ emailAddress: 'test@example.com' }],
-    publicMetadata: {},
+    publicMetadata: { role: 'individual' },
   }),
 }))
 

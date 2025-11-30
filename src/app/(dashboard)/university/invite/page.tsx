@@ -22,7 +22,9 @@ export default function UniversityInviteStudentsPage() {
   const { user: clerkUser } = useUser()
   const { toast } = useToast()
 
-  const canAccess = !!user && (isAdmin || subscription.isUniversity)
+  // Access control: Only university_admin or super_admin can invite students
+  // subscription.isUniversity is NOT sufficient - it includes regular students
+  const canAccess = !!user && (isAdmin || user.role === 'university_admin')
 
   const departments = useQuery(api.university_admin.listDepartments, clerkUser?.id ? { clerkId: clerkUser.id } : 'skip') as any[] | undefined
 

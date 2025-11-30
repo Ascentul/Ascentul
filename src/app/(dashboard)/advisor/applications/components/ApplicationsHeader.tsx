@@ -291,9 +291,11 @@ function MetricCard({
   clickable = false,
   valueClassName = '',
 }: MetricCardProps) {
-  const cardProps = clickable
+  // Only apply interactive props when both clickable=true AND onClick handler exists
+  const isInteractive = clickable && onClick;
+  const cardProps = isInteractive
     ? {
-        onClick: onClick ?? (() => {}),
+        onClick,
         className: 'cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
         role: 'button',
         tabIndex: 0,
@@ -307,10 +309,10 @@ function MetricCard({
         <TooltipTrigger asChild>
           <Card
             {...cardProps}
-            onKeyDown={clickable ? (e: React.KeyboardEvent) => {
+            onKeyDown={isInteractive ? (e: React.KeyboardEvent) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                onClick?.();
+                onClick();
               }
             } : undefined}
           >

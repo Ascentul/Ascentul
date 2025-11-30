@@ -16,72 +16,74 @@ reviews:
     enabled: true
     drafts: false
 
-  # Custom instructions for this codebase
-  instructions: |
-    ## Project Context
-    This is a Next.js 14 + Convex + Clerk application for career development.
+  # Custom instructions for this codebase, applied to all files
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        ## Project Context
+        This is a Next.js 14 + Convex + Clerk application for career development.
 
-    ## Patterns to Accept (Don't Flag)
+        ## Patterns to Accept (Don't Flag)
 
-    ### Convex Type Safety
-    - Trust Convex query/mutation results - validators enforce types at runtime
-    - Don't suggest undefined/null guards for schema-validated fields (e.g., `status`, `stage`)
-    - `v.id()` validators handle ID format validation - no additional guards needed
-    - `v.union(v.literal(...))` ensures only valid enum values - no fallback guards needed
-    - Schema uses `v.union(v.number(), v.null())` intentionally for clearable fields
-    - String-based error detection (e.g., `includes('ArgumentValidationError:')`) is acceptable
+        ### Convex Type Safety
+        - Trust Convex query/mutation results - validators enforce types at runtime
+        - Don't suggest undefined/null guards for schema-validated fields (e.g., `status`, `stage`)
+        - `v.id()` validators handle ID format validation - no additional guards needed
+        - `v.union(v.literal(...))` ensures only valid enum values - no fallback guards needed
+        - Schema uses `v.union(v.number(), v.null())` intentionally for clearable fields
+        - String-based error detection (e.g., `includes('ArgumentValidationError:')`) is acceptable
 
-    ### Authentication & convexServer Shim
-    - `convexServer.query/mutation/action` accepts token as THIRD parameter (see src/lib/convex-server.ts)
-    - The shim wraps token as `{ token }` internally - don't suggest removing token parameter
-    - `requireConvexToken()` handles auth validation and returns `{ userId, token }`
-    - Clerk `publicMetadata.role` is the source of truth for authorization
-    - `getCurrentUser(ctx, args.clerkId)` validates clerkId against JWT - don't flag as insecure
+        ### Authentication & convexServer Shim
+        - `convexServer.query/mutation/action` accepts token as THIRD parameter (see src/lib/convex-server.ts)
+        - The shim wraps token as `{ token }` internally - don't suggest removing token parameter
+        - `requireConvexToken()` handles auth validation and returns `{ userId, token }`
+        - Clerk `publicMetadata.role` is the source of truth for authorization
+        - `getCurrentUser(ctx, args.clerkId)` validates clerkId against JWT - don't flag as insecure
 
-    ### Error Handling Architecture
-    - Dialog/modal components often delegate error handling to parent callbacks
-    - Check CALLER functions for try-catch before suggesting error handling in child components
-    - Errors that re-throw after toast allow parent to know operation failed
-    - PII sanitization belongs at logging infrastructure level, not individual sanitizeError functions
+        ### Error Handling Architecture
+        - Dialog/modal components often delegate error handling to parent callbacks
+        - Check CALLER functions for try-catch before suggesting error handling in child components
+        - Errors that re-throw after toast allow parent to know operation failed
+        - PII sanitization belongs at logging infrastructure level, not individual sanitizeError functions
 
-    ### Idempotent Operations
-    - Session cancellation is idempotent - status check is sufficient, no version check needed
-    - Soft delete operations are idempotent - can be called multiple times safely
+        ### Idempotent Operations
+        - Session cancellation is idempotent - status check is sufficient, no version check needed
+        - Soft delete operations are idempotent - can be called multiple times safely
 
-    ### Performance
-    - Don't suggest index optimizations without evidence of actual performance issues
-    - Don't flag one-time migration scripts for pagination unless dataset is large
+        ### Performance
+        - Don't suggest index optimizations without evidence of actual performance issues
+        - Don't flag one-time migration scripts for pagination unless dataset is large
 
-    ### Testing
-    - Mock implementations in `__mocks__/` are intentionally simplified
-    - Don't suggest making test mocks more realistic unless tests are failing
+        ### Testing
+        - Mock implementations in `__mocks__/` are intentionally simplified
+        - Don't suggest making test mocks more realistic unless tests are failing
 
-    ### Style
-    - Don't suggest documentation-only changes
-    - Don't flag null vs undefined unless it causes actual bugs
-    - Stage vs status case differences are intentional (title case for new, lowercase for legacy)
+        ### Style
+        - Don't suggest documentation-only changes
+        - Don't flag null vs undefined unless it causes actual bugs
+        - Stage vs status case differences are intentional (title case for new, lowercase for legacy)
 
-    ### University Invite Flow
-    - Invite tokens are validated server-side via `/api/university/verify-invite` BEFORE setting `unsafeMetadata`
-    - The Clerk webhook does NOT use `unsafeMetadata` - it looks up user's `university_id` from Convex database
-    - Don't suggest re-verifying invite tokens in webhooks - they're already validated before signup
+        ### University Invite Flow
+        - Invite tokens are validated server-side via `/api/university/verify-invite` BEFORE setting `unsafeMetadata`
+        - The Clerk webhook does NOT use `unsafeMetadata` - it looks up user's `university_id` from Convex database
+        - Don't suggest re-verifying invite tokens in webhooks - they're already validated before signup
 
-    ### Audit Logs & Timestamps
-    - Audit logs always have either `created_at` (new format) or `timestamp` (legacy format)
-    - `createAuditLog` helper always sets `created_at: Date.now()`
-    - Fallback timestamps are defensive guards for theoretical data corruption, not expected code paths
-    - Don't suggest replacing `Date.now()` fallbacks with "Unknown" strings
+        ### Audit Logs & Timestamps
+        - Audit logs always have either `created_at` (new format) or `timestamp` (legacy format)
+        - `createAuditLog` helper always sets `created_at: Date.now()`
+        - Fallback timestamps are defensive guards for theoretical data corruption, not expected code paths
+        - Don't suggest replacing `Date.now()` fallbacks with "Unknown" strings
 
-    ### Accessibility
-    - Elements with `role="button"` containing visible text get accessible names from content (WCAG)
-    - Don't suggest adding `aria-label` to clickable cards/elements that contain descriptive text
-    - Only suggest `aria-label` when interactive elements have NO visible text content
+        ### Accessibility
+        - Elements with `role="button"` containing visible text get accessible names from content (WCAG)
+        - Don't suggest adding `aria-label` to clickable cards/elements that contain descriptive text
+        - Only suggest `aria-label` when interactive elements have NO visible text content
 
-    ### Async Patterns
-    - Fire-and-forget async calls are intentional when `setIsLoading(true)` runs synchronously at function start
-    - Example: `handleQuickAction() { handleAsync(); }` is fine if `handleAsync` sets loading state first
-    - Don't suggest adding `await` to wrapper functions that just trigger async operations
-    - The synchronous state update disables buttons before any async work begins
+        ### Async Patterns
+        - Fire-and-forget async calls are intentional when `setIsLoading(true)` runs synchronously at function start
+        - Example: `handleQuickAction() { handleAsync(); }` is fine if `handleAsync` sets loading state first
+        - Don't suggest adding `await` to wrapper functions that just trigger async operations
+        - The synchronous state update disables buttons before any async work begins
 
 chat:
   auto_reply: true

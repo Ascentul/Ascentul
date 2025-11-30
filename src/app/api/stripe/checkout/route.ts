@@ -116,10 +116,10 @@ export async function POST(request: NextRequest) {
       // Check if a Stripe customer already exists for this user by searching Stripe
       // This handles the edge case where Stripe customer was created but Convex update failed
       // Use Search API to query by metadata instead of email-only list (more accurate for shared emails)
-      // Escape special characters in userId to prevent query injection
-      const escapedUserId = userId.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+      // Escape double quotes and backslashes per Stripe Search Query Language spec
+      const escapedUserId = userId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
       const existingCustomers = await stripe.customers.search({
-        query: `metadata['clerk_id']:'${escapedUserId}'`,
+        query: `metadata["clerk_id"]:"${escapedUserId}"`,
         limit: 1,
       });
 

@@ -46,7 +46,7 @@ type MinimalUser = {
 // Validate query results at the trust boundary
 function assertMinimalUsers(data: any): asserts data is MinimalUser[] {
   if (!Array.isArray(data)) {
-    throw new Error("Expected usersPage.page to be an array");
+    throw new Error("Expected data to be an array");
   }
 
   for (const user of data) {

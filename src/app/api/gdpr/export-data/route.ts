@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
         token
       );
     } catch (error) {
-      console.error("Error fetching user data for export:", error);
+      // Log only error message to avoid PII leakage in GDPR context
+      console.error("Error fetching user data for export:", error instanceof Error ? error.message : "Unknown error");
       return NextResponse.json(
         { error: "Failed to export user data" },
         { status: 500 }
@@ -63,12 +64,13 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("GDPR data export error:", error);
+    // Log only error message to avoid PII leakage in GDPR context
+    console.error("GDPR data export error:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       {
         error: "Internal server error",
         details:
-          process.env.NODE_ENV === "development" ? String(error) : undefined,
+          process.env.NODE_ENV === "development" && error instanceof Error ? error.message : undefined,
       },
       { status: 500 }
     );

@@ -49,9 +49,11 @@ export default function UniversityAnalyticsPage() {
   const [analyticsView, setAnalyticsView] = useState<"engagement" | "features" | "risk">("engagement");
   const [activeUsersTimeRange, setActiveUsersTimeRange] = useState<"daily" | "weekly" | "monthly">("weekly");
 
+  // Access control: Only university_admin, advisor, or super_admin can access
+  // subscription.isUniversity is NOT sufficient - it includes regular students
   const canAccess =
     !!user &&
-    (isAdmin || subscription.isUniversity);
+    (isAdmin || user.role === 'university_admin' || user.role === 'advisor');
 
   const overview = useQuery(
     api.university_admin.getOverview,

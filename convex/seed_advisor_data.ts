@@ -65,6 +65,7 @@ export const setupAdvisorTestData = internalMutation({
       role: "advisor",
       subscription_plan: "university",
       subscription_status: "active",
+      is_test_user: true,
       updated_at: now,
     });
     console.log(`✓ Updated advisor: ${advisorUser.email}`);
@@ -118,6 +119,7 @@ export const setupAdvisorTestData = internalMutation({
         role: "student",
         subscription_plan: "university",
         subscription_status: "active",
+        is_test_user: true,
         major: student.email === "test.student1@ascentful.io" ? "Computer Science" : "Business Administration",
         graduation_year: "2025",
         updated_at: now,
