@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
+import { hasPlatformAdminAccess } from "@/lib/constants/roles";
 
 type IconButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   hasUnread?: boolean;
@@ -52,7 +53,7 @@ export default function AppTopBar() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Hide quick action chips for super_admin
-  const isSuperAdmin = user?.role === "super_admin";
+  const isSuperAdmin = hasPlatformAdminAccess(user?.role);
 
   // Fetch notification count from Convex
   const unreadCount = useQuery(

@@ -21,6 +21,7 @@ import StatCard from '@/components/StatCard'
 import { Card, CardContent } from '@/components/ui/card'
 import { Target, Clock, Users } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { hasAdvisorAccess, hasUniversityAdminAccess, hasPlatformAdminAccess } from '@/lib/constants/roles'
 
 // Helper function to format time ago
 function formatTimeAgo(timestamp: number): string {
@@ -105,11 +106,11 @@ export default function DashboardPage() {
       router.replace('/advisor')
       return
     }
-    if (user?.role === 'university_admin') {
+    if (hasUniversityAdminAccess(user?.role) && user?.role !== 'super_admin') {
       router.replace('/university')
       return
     }
-    if (user?.role === 'super_admin') {
+    if (hasPlatformAdminAccess(user?.role)) {
       router.replace('/admin')
       return
     }
@@ -125,8 +126,7 @@ export default function DashboardPage() {
 
   // Prevent rendering for admin users while redirect is happening
   // But allow rendering if impersonating a non-admin role
-  const shouldRedirectToAdmin = !impersonation.isImpersonating &&
-    (user?.role === 'university_admin' || user?.role === 'super_admin' || user?.role === 'advisor')
+  const shouldRedirectToAdmin = !impersonation.isImpersonating && hasAdvisorAccess(user?.role)
 
   if (shouldRedirectToAdmin) {
     const message = user?.role === 'advisor'

@@ -4,6 +4,7 @@ import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
 import { getErrorMessage } from '@/lib/errors';
 import { convexServer } from '@/lib/convex-server';
+import { hasAdvisorAccess, ASSIGNABLE_STUDENT_ROLES } from '@/lib/constants/roles';
 
 /**
  * Assign a student to a university
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify admin has permission
-    if (!['super_admin', 'university_admin', 'advisor'].includes(adminUser.role)) {
+    if (!hasAdvisorAccess(adminUser.role)) {
       return NextResponse.json({
         error: 'Insufficient permissions. Only super admins, university admins, and advisors can assign students.'
       }, { status: 403 });
@@ -85,8 +86,7 @@ export async function POST(req: NextRequest) {
     // Note: This mutation should be idempotent - if the student is already assigned,
     // it should update rather than fail, to prevent issues on retry
     // Validate role if provided
-    const allowedStudentRoles = ['user', 'student'];
-    const assignedRole = role && allowedStudentRoles.includes(role) ? role : 'user';
+    const assignedRole = role && (ASSIGNABLE_STUDENT_ROLES as readonly string[]).includes(role) ? role : 'user';
 
     const result = await convexServer.mutation(
       api.university_admin.assignStudentByEmail,

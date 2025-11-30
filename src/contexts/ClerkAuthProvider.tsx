@@ -6,6 +6,7 @@ import { useQuery, useMutation } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { useToast } from '@/hooks/use-toast'
 import { useSubscription, type SubscriptionInfo } from '@/hooks/useSubscription'
+import { hasAdvisorAccess } from '@/lib/constants/roles'
 
 interface UserProfile {
   _id: string
@@ -196,9 +197,7 @@ export function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check if user is admin (memoized)
   const isAdmin = useMemo(
-    () => userProfile?.role === 'super_admin' ||
-          userProfile?.role === 'university_admin' ||
-          userProfile?.role === 'advisor',
+    () => hasAdvisorAccess(userProfile?.role),
     [userProfile?.role]
   )
 

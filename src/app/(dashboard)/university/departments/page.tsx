@@ -41,9 +41,7 @@ export default function UniversityDepartmentsPage() {
 
   const canAccess =
     !!user &&
-    (isAdmin ||
-      subscription.isUniversity ||
-      user.role === "university_admin");
+    (isAdmin || subscription.isUniversity);
 
   const departments = useQuery(
     api.university_admin.listDepartments,

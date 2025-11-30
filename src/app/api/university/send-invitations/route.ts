@@ -4,6 +4,7 @@ import { api } from 'convex/_generated/api';
 import { sendUniversityInvitationEmail } from '@/lib/email';
 import { getErrorMessage } from '@/lib/errors';
 import { convexServer } from '@/lib/convex-server';
+import { hasAdvisorAccess } from '@/lib/constants/roles';
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     // Get the university admin's info to fetch university name
     const adminUser = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId });
 
-    const isAdmin = adminUser && ['university_admin', 'advisor'].includes(adminUser.role);
+    const isAdmin = adminUser && hasAdvisorAccess(adminUser.role);
     if (!isAdmin || !adminUser?.university_id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }

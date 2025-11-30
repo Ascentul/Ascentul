@@ -34,9 +34,7 @@ export default function UniversitySettingsPage() {
 
   const canAccess =
     !!user &&
-    (isAdmin ||
-      (subscription?.isUniversity ?? false) ||
-      user.role === "university_admin");
+    (isAdmin || (subscription?.isUniversity ?? false));
 
   const [settings, setSettings] = useState({
     name: "",

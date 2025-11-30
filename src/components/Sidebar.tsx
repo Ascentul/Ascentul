@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/ClerkAuthProvider";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useQuery } from "convex/react";
 import { api } from "convex/_generated/api";
+import { hasUniversityAdminAccess } from "@/lib/constants/roles";
 import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
@@ -142,10 +143,9 @@ const Sidebar = React.memo(function Sidebar({
   const isUniversityUser = useMemo(
     () => {
       if (impersonation.isImpersonating) {
-        return effectivePlan === "university" || effectiveRole === "university_admin";
+        return effectivePlan === "university" || hasUniversityAdminAccess(effectiveRole);
       }
-      return user?.role === "university_admin" ||
-        subscription.isUniversity;
+      return hasUniversityAdminAccess(user?.role) || subscription.isUniversity;
     },
     [impersonation.isImpersonating, effectivePlan, effectiveRole, user?.role, subscription.isUniversity],
   );

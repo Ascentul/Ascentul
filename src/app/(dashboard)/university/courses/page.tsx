@@ -59,9 +59,7 @@ export default function UniversityCoursesPage() {
 
   const canAccess =
     !!user &&
-    (isAdmin ||
-      subscription.isUniversity ||
-      user.role === "university_admin");
+    (isAdmin || subscription.isUniversity);
 
   const courses = useQuery(
     api.university_admin.listCourses,

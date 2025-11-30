@@ -3,6 +3,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
 import { getErrorMessage } from '@/lib/errors';
 import { convexServer } from '@/lib/convex-server';
+import { hasUniversityAdminAccess, hasPlatformAdminAccess } from '@/lib/constants/roles';
 
 /**
  * Sync university assignment to Clerk publicMetadata
@@ -39,12 +40,12 @@ export async function POST(req: NextRequest) {
       clerkId: userId,
     }, token);
 
-    if (!adminUser || !['super_admin', 'university_admin'].includes(adminUser.role)) {
+    if (!adminUser || !hasUniversityAdminAccess(adminUser.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Verify the admin belongs to this university (unless super_admin)
-    if (adminUser.role !== 'super_admin' && adminUser.university_id !== universityId) {
+    if (!hasPlatformAdminAccess(adminUser.role) && adminUser.university_id !== universityId) {
       return NextResponse.json(
         { error: 'Cannot assign students to other universities' },
         { status: 403 }

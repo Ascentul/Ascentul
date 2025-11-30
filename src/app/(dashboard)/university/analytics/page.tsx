@@ -51,9 +51,7 @@ export default function UniversityAnalyticsPage() {
 
   const canAccess =
     !!user &&
-    (isAdmin ||
-      subscription.isUniversity ||
-      user.role === "university_admin");
+    (isAdmin || subscription.isUniversity);
 
   const overview = useQuery(
     api.university_admin.getOverview,
@@ -438,35 +436,16 @@ export default function UniversityAnalyticsPage() {
                 <CardDescription>Average time spent per session over last 7 days</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={(() => {
-                      const data = [];
-                      for (let i = 6; i >= 0; i--) {
-                        const date = new Date();
-                        date.setDate(date.getDate() - i);
-                        data.push({
-                          day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-                          minutes: Math.floor(18 + Math.random() * 12),
-                        });
-                      }
-                      return data;
-                    })()}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="minutes"
-                      stroke="#0C29AB"
-                      strokeWidth={2}
-                      name="Avg Session (min)"
-                      dot={{ fill: '#0C29AB', r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {/* Time-series engagement tracking coming soon */}
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <Clock className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Session duration tracking coming soon
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">
+                    Historical engagement data will appear here
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -629,34 +608,16 @@ export default function UniversityAnalyticsPage() {
                 <CardDescription>Monthly new users per feature</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={(() => {
-                      const data = [];
-                      for (let i = 5; i >= 0; i--) {
-                        const date = new Date();
-                        date.setMonth(date.getMonth() - i);
-                        const monthStr = date.toLocaleDateString('en-US', { month: 'short' });
-                        data.push({
-                          month: monthStr,
-                          applications: Math.floor(5 + i * 3 + Math.random() * 5),
-                          goals: Math.floor(3 + i * 2 + Math.random() * 4),
-                          documents: Math.floor(4 + i * 2.5 + Math.random() * 3),
-                        });
-                      }
-                      return data;
-                    })()}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="applications" stroke="#4F46E5" strokeWidth={2} name="Applications" />
-                    <Line type="monotone" dataKey="goals" stroke="#10B981" strokeWidth={2} name="Goals" />
-                    <Line type="monotone" dataKey="documents" stroke="#F59E0B" strokeWidth={2} name="Documents" />
-                  </LineChart>
-                </ResponsiveContainer>
+                {/* Monthly trends tracking coming soon */}
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <TrendingUp className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Monthly activity trends coming soon
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">
+                    Track applications, goals, and documents over time
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -837,34 +798,16 @@ export default function UniversityAnalyticsPage() {
               <CardDescription>Monthly at-risk student count and interventions</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={(() => {
-                    const data = [];
-                    for (let i = 5; i >= 0; i--) {
-                      const date = new Date();
-                      date.setMonth(date.getMonth() - i);
-                      const monthStr = date.toLocaleDateString('en-US', { month: 'short' });
-                      data.push({
-                        month: monthStr,
-                        atRisk: Math.floor(students.length * (0.15 + (Math.random() * 0.1 - 0.05))),
-                        interventions: Math.floor(students.length * (0.08 + (Math.random() * 0.05))),
-                        recovered: Math.floor(students.length * (0.06 + (Math.random() * 0.04))),
-                      });
-                    }
-                    return data;
-                  })()}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="atRisk" stroke="#EF4444" strokeWidth={2} name="At-Risk Students" />
-                  <Line type="monotone" dataKey="interventions" stroke="#F59E0B" strokeWidth={2} name="Interventions" />
-                  <Line type="monotone" dataKey="recovered" stroke="#10B981" strokeWidth={2} name="Re-engaged" />
-                </LineChart>
-              </ResponsiveContainer>
+              {/* At-risk tracking coming soon */}
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Users className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  At-risk student tracking coming soon
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  Monitor intervention effectiveness over time
+                </p>
+              </div>
             </CardContent>
           </Card>
 

@@ -87,9 +87,7 @@ export default function UniversityStudentsPage() {
 
   const canAccess =
     !!user &&
-    (isAdmin ||
-      subscription.isUniversity ||
-      user.role === "university_admin");
+    (isAdmin || subscription.isUniversity);
 
   const students = useQuery(
     api.university_admin.listStudents,
@@ -909,16 +907,12 @@ export default function UniversityStudentsPage() {
               <CardContent>
                 <div className="flex items-center">
                   <Target className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {Math.round(
-                      students?.filter((s: any) => s.role === "user")
-                        .reduce((acc, s) => acc + (Math.random() * 40 + 30), 0) /
-                        (students?.filter((s: any) => s.role === "user").length || 1)
-                    )}%
+                  <div className="text-2xl font-bold text-muted-foreground">
+                    --
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  Career assets completed
+                  Asset tracking coming soon
                 </div>
               </CardContent>
             </Card>
