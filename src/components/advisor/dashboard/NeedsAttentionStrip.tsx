@@ -179,7 +179,7 @@ export function NeedsAttentionStrip({ data, isLoading }: NeedsAttentionStripProp
             count={data.urgentReviews.count}
             href="/advisor/advising/reviews?filter=urgent"
             variant="alert"
-            subtitle="Waiting 3+ days"
+            subtitle={`Waiting ${data.urgentReviews.config?.days || 3}+ days`}
           />
         </div>
       </div>

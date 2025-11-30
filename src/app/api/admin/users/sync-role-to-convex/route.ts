@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       }
 
       roleToSync = currentClerkRole
-      console.log(`[API] Syncing existing Clerk role to Convex for ${targetUser.emailAddresses[0]?.emailAddress || userId}: ${roleToSync}`)
+      console.log(`[API] Syncing existing Clerk role to Convex for user ${userId}: ${roleToSync}`)
     }
 
     const { token } = await requireConvexToken()

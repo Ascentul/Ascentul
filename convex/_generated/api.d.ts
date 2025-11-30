@@ -8,11 +8,6 @@
  * @module
  */
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
 import type * as achievements from "../achievements.js";
 import type * as activity from "../activity.js";
 import type * as admin_syncRolesToClerk from "../admin/syncRolesToClerk.js";
@@ -49,6 +44,7 @@ import type * as email from "../email.js";
 import type * as enable_advisor_features from "../enable_advisor_features.js";
 import type * as feature_flags from "../feature_flags.js";
 import type * as followups from "../followups.js";
+import type * as gdpr from "../gdpr.js";
 import type * as goals from "../goals.js";
 import type * as interviews from "../interviews.js";
 import type * as investor_metrics from "../investor_metrics.js";
@@ -62,9 +58,9 @@ import type * as metrics from "../metrics.js";
 import type * as migrate_application_status_to_stage from "../migrate_application_status_to_stage.js";
 import type * as migrate_follow_ups from "../migrate_follow_ups.js";
 import type * as migrate_session_scheduled_at from "../migrate_session_scheduled_at.js";
+import type * as migrations from "../migrations.js";
 import type * as migrations_consolidate_advisor_students from "../migrations/consolidate_advisor_students.js";
 import type * as migrations_migrate_user_to_individual from "../migrations/migrate_user_to_individual.js";
-import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
 import type * as password_reset from "../password_reset.js";
 import type * as platform_settings from "../platform_settings.js";
@@ -92,14 +88,12 @@ import type * as users_queries from "../users_queries.js";
 import type * as users_subscriptions from "../users_subscriptions.js";
 import type * as viewer from "../viewer.js";
 
-/**
- * A utility for referencing Convex functions in your app's API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+
 declare const fullApi: ApiFromModules<{
   achievements: typeof achievements;
   activity: typeof activity;
@@ -137,6 +131,7 @@ declare const fullApi: ApiFromModules<{
   enable_advisor_features: typeof enable_advisor_features;
   feature_flags: typeof feature_flags;
   followups: typeof followups;
+  gdpr: typeof gdpr;
   goals: typeof goals;
   interviews: typeof interviews;
   investor_metrics: typeof investor_metrics;
@@ -150,9 +145,9 @@ declare const fullApi: ApiFromModules<{
   migrate_application_status_to_stage: typeof migrate_application_status_to_stage;
   migrate_follow_ups: typeof migrate_follow_ups;
   migrate_session_scheduled_at: typeof migrate_session_scheduled_at;
+  migrations: typeof migrations;
   "migrations/consolidate_advisor_students": typeof migrations_consolidate_advisor_students;
   "migrations/migrate_user_to_individual": typeof migrations_migrate_user_to_individual;
-  migrations: typeof migrations;
   notifications: typeof notifications;
   password_reset: typeof password_reset;
   platform_settings: typeof platform_settings;
@@ -180,11 +175,31 @@ declare const fullApi: ApiFromModules<{
   users_subscriptions: typeof users_subscriptions;
   viewer: typeof viewer;
 }>;
+
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
 export declare const api: FilterApi<
   typeof fullApi,
   FunctionReference<any, "public">
 >;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
 export declare const internal: FilterApi<
   typeof fullApi,
   FunctionReference<any, "internal">
 >;
+
+export declare const components: {};

@@ -7,14 +7,14 @@ import { convexServer } from '@/lib/convex-server';
  * Returns invite metadata (email, universityName, expiresAt) when valid.
  */
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const token = body?.token;
-
-  if (!token) {
-    return NextResponse.json({ error: 'Missing token' }, { status: 400 });
-  }
-
   try {
+    const body = await request.json();
+    const token = body?.token;
+
+    if (!token) {
+      return NextResponse.json({ error: 'Missing token' }, { status: 400 });
+    }
+
     const result = await convexServer.query(api.students.validateInviteToken, { token });
 
     return NextResponse.json(result, { status: 200 });

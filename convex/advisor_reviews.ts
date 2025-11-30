@@ -715,7 +715,7 @@ export const deleteComment = mutation({
       studentId: review.student_id,
       previousValue: {
         comment_id: args.commentId,
-        body: comment.body,
+        bodyLength: comment.body?.length ?? 0,
         visibility: comment.visibility,
         author_id: comment.author_id,
       },

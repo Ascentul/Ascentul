@@ -121,7 +121,7 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
           />
         </div>
 
-        <Select value={stageFilter} onValueChange={setStageFilter}>
+        <Select value={stageFilter} onValueChange={setStageFilter} aria-label="Filter by stage">
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Stage" />
           </SelectTrigger>
@@ -138,7 +138,7 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
           </SelectContent>
         </Select>
 
-        <Select value={sortBy} onValueChange={(val) => setSortBy(val as "date" | "student" | "company")}>
+        <Select value={sortBy} onValueChange={(val) => setSortBy(val as "date" | "student" | "company")} aria-label="Sort by">
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>

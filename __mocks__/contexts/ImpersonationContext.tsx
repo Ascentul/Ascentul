@@ -6,6 +6,7 @@ export const useImpersonation = () => ({
     impersonatedUser: null,
   },
   getEffectiveRole: () => 'student',
+  getEffectivePlan: () => 'free',
   startImpersonation: jest.fn(),
   stopImpersonation: jest.fn(),
 });

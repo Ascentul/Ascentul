@@ -89,6 +89,24 @@ export const setupAdvisorTestData = internalMutation({
 
     // Update students' university_id and ensure role is student
     for (const student of students) {
+      // Create studentProfile if not exists
+      const existingProfile = await ctx.db
+        .query("studentProfiles")
+        .withIndex("by_user_id", (q) => q.eq("user_id", student._id))
+        .first();
+      
+      if (!existingProfile) {
+        await ctx.db.insert("studentProfiles", {
+          user_id: student._id,
+          university_id: university._id,
+          major: student.email === "test.student1@ascentful.io" ? "Computer Science" : "Business Administration",
+          enrollment_date: now,
+          status: "active",
+          created_at: now,
+          updated_at: now,
+        });
+      }
+
       await ctx.db.patch(student._id, {
         university_id: university._id,
         role: "student",

@@ -30,8 +30,13 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
       const message = err instanceof Error ? err.message : 'Failed to delete career path'
       console.error('Delete career path error:', err)
       const lower = message.toLowerCase()
-      const isClientError = lower.includes('not found') || lower.includes('unauthorized')
-      return NextResponse.json({ error: message }, { status: isClientError ? 400 : 500 })
+      if (lower.includes('not found')) {
+        return NextResponse.json({ error: message }, { status: 404 })
+      }
+      if (lower.includes('unauthorized')) {
+        return NextResponse.json({ error: message }, { status: 403 })
+      }
+      return NextResponse.json({ error: message }, { status: 500 })
     }
 
     return NextResponse.json({ ok: true })

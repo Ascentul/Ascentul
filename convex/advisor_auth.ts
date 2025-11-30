@@ -401,7 +401,8 @@ export function canViewPrivateContent(
 
     // Advisors can see their own private content
     if (sessionCtx.role === "advisor") {
-      return !authorId || authorId === sessionCtx.userId;
+      // Require authorId to be specified; default to hiding if unknown
+      return authorId !== undefined && authorId === sessionCtx.userId;
     }
   }
 
