@@ -126,6 +126,7 @@ export function BulkActionBar({
       await onChangeStage(selectedStage);
       setSelectedStage('');
       setNotes('');
+      onClearSelection();
     } catch (error) {
       console.error('Failed to change stage:', error);
       // Optional: add toast/notification here

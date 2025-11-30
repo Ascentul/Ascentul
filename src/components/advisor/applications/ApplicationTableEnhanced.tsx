@@ -15,6 +15,11 @@
  * - useApplicationSelection hook for multi-select
  * - BulkActionBar for batch operations
  * - Need-action triage rules
+ *
+ * ACCESSIBILITY NOTES:
+ * - Clickable table rows derive accessible names from visible content per WCAG 2.1 SC 4.1.2
+ * - Uses aria-hidden on decorative icons with sr-only text alternatives
+ * - No explicit aria-label needed when text content provides the accessible name
  */
 
 import { useState, useCallback, useEffect } from "react";
@@ -51,6 +56,7 @@ import {
   Clock,
   Plus,
   Activity,
+  Loader2,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import Link from "next/link";
@@ -96,6 +102,8 @@ export function ApplicationTableEnhanced({
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [editNextStep, setEditNextStep] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
+  // Track which row is currently being saved to prevent double-clicks
+  const [savingRowId, setSavingRowId] = useState<string | null>(null);
   // Track last selected ID explicitly for shift-click range selection
   // (Set iteration order is not guaranteed to match insertion order)
   const [lastSelectedId, setLastSelectedId] = useState<Id<'applications'> | null>(null);
@@ -146,6 +154,10 @@ export function ApplicationTableEnhanced({
         return;
       }
 
+      // Prevent double-clicks while saving
+      if (savingRowId) return;
+
+      setSavingRowId(appId.toString());
       try {
         let dueDateTimestamp: number | undefined = undefined;
         if (editDueDate) {
@@ -156,6 +168,7 @@ export function ApplicationTableEnhanced({
           if (isNaN(parsedDate.getTime())) {
             console.error("Invalid date format");
             toast.error("Invalid date format");
+            setSavingRowId(null);
             return;
           }
           dueDateTimestamp = parsedDate.getTime();
@@ -174,9 +187,11 @@ export function ApplicationTableEnhanced({
       } catch (error) {
         console.error("Failed to update next step:", error);
         toast.error(error instanceof Error ? error.message : "Failed to update next step");
+      } finally {
+        setSavingRowId(null);
       }
     },
-    [clerkId, editNextStep, editDueDate, updateNextStepMutation]
+    [clerkId, editNextStep, editDueDate, updateNextStepMutation, savingRowId]
   );
 
   const handleCancelEdit = useCallback(() => {
@@ -452,10 +467,15 @@ export function ApplicationTableEnhanced({
                         size="sm"
                         variant="ghost"
                         onClick={() => handleSaveEdit(app._id)}
+                        disabled={savingRowId === app._id.toString()}
                         className="h-7 px-2"
                       >
-                        <Check className="h-4 w-4 text-green-600" aria-hidden="true" />
-                        <span className="sr-only">Save</span>
+                        {savingRowId === app._id.toString() ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-green-600" aria-hidden="true" />
+                        ) : (
+                          <Check className="h-4 w-4 text-green-600" aria-hidden="true" />
+                        )}
+                        <span className="sr-only">{savingRowId === app._id.toString() ? 'Saving...' : 'Save'}</span>
                       </Button>
                       <Button
                         size="sm"

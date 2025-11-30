@@ -176,6 +176,8 @@ export default function AdvisorApplicationsPage() {
         description: "Failed to update applications. Please try again.",
         variant: "destructive",
       });
+      // Clear selection on error to prevent stale state
+      selectionHook.clearSelection();
     }
   };
 
@@ -213,6 +215,8 @@ export default function AdvisorApplicationsPage() {
         description: "Failed to archive applications. Please try again.",
         variant: "destructive",
       });
+      // Clear selection on error to prevent stale state
+      selectionHook.clearSelection();
     }
   };
 
@@ -251,6 +255,8 @@ export default function AdvisorApplicationsPage() {
         description: "Failed to update next steps. Please try again.",
         variant: "destructive",
       });
+      // Clear selection on error to prevent stale state
+      selectionHook.clearSelection();
     }
   };
 
@@ -287,6 +293,8 @@ export default function AdvisorApplicationsPage() {
         description: "Failed to mark applications as reviewed. Please try again.",
         variant: "destructive",
       });
+      // Clear selection on error to prevent stale state
+      selectionHook.clearSelection();
     }
   };
 

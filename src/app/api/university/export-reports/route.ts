@@ -4,6 +4,7 @@ import { api } from 'convex/_generated/api'
 import { Id } from 'convex/_generated/dataModel'
 import { convexServer } from '@/lib/convex-server';
 import { requireConvexToken } from '@/lib/convex-auth';
+import { hasUniversityAdminAccess } from '@/lib/constants/roles';
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (!['super_admin', 'university_admin'].includes(user.role)) {
+    if (!hasUniversityAdminAccess(user.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
@@ -119,17 +120,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No university assigned to user' }, { status: 400 })
     }
 
-    // Fetch all relevant data
-    let students, departments
+    // Fetch all relevant data including per-student metrics
+    let students, departments, studentProgress
     try {
-      [students, departments] = await Promise.all([
+      [students, departments, studentProgress] = await Promise.all([
         convexServer.query(api.university_admin.listStudents, { clerkId, limit: 1000 }, token),
         convexServer.query(api.university_admin.listDepartments, { clerkId }, token),
+        convexServer.query(api.university_admin.getStudentProgress, { clerkId }, token),
       ])
     } catch (error) {
       console.error('Error fetching university data:', error)
       return NextResponse.json({ error: 'Failed to fetch university data' }, { status: 500 })
     }
+
+    // Create a map of student progress by student ID for fast lookup
+    const progressMap = new Map(
+      (studentProgress as any[]).map(p => [String(p.studentId), p])
+    )
 
     // Generate CSV content
     const csvHeaders = [
@@ -145,18 +152,28 @@ export async function POST(request: NextRequest) {
       'Cover Letters Created'
     ]
 
-    const csvRows = students.map(student => [
-      student.name || '',
-      student.email || '',
-      student.role || '',
-      student.university_id ? departments.find(d => d._id === student.university_id as any)?.name || '' : '',
-      student.created_at ? new Date(student.created_at).toLocaleDateString() : '',
-      student.updated_at ? new Date(student.updated_at).toLocaleDateString() : '',
-      Math.floor(Math.random() * 10), // Mock goals count
-      Math.floor(Math.random() * 5), // Mock applications count
-      Math.floor(Math.random() * 3), // Mock resumes count
-      Math.floor(Math.random() * 2) // Mock cover letters count
-    ])
+    const csvRows = students.map(student => {
+      // Get actual metrics from studentProgress query
+      const progress = progressMap.get(String(student._id)) || {
+        goals: 0,
+        applications: 0,
+        resumes: 0,
+        coverLetters: 0,
+      }
+
+      return [
+        student.name || '',
+        student.email || '',
+        student.role || '',
+        student.department_id ? departments.find(d => d._id === student.department_id as any)?.name || '' : '',
+        student.created_at ? new Date(student.created_at).toLocaleDateString() : '',
+        student.updated_at ? new Date(student.updated_at).toLocaleDateString() : '',
+        progress.goals ?? 0,
+        progress.applications ?? 0,
+        progress.resumes ?? 0,
+        progress.coverLetters ?? 0,
+      ]
+    })
 
     // Escape CSV cells to handle commas and quotes
     const escapeCSV = (field: string | number) => {

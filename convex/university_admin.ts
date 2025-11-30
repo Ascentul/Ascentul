@@ -64,7 +64,8 @@ export const getOverview = query({
     ]);
 
     // Filter to count only actual students (exclude university_admin)
-    const actualStudents = students.filter((s: any) => s.role === "user");
+    // Include both legacy 'user' role and current 'student' role
+    const actualStudents = students.filter((s: any) => s.role === "user" || s.role === "student");
 
     // Calculate growth from last month
     const now = Date.now();
@@ -133,7 +134,8 @@ export const getUniversityAnalytics = query({
     ]);
 
     // Filter to only actual students (exclude university_admin)
-    let students = allUsers.filter((s: any) => s.role === "user");
+    // Include both legacy 'user' role and current 'student' role
+    let students = allUsers.filter((s: any) => s.role === "user" || s.role === "student");
 
     // Filter by department if specified
     if (args.departmentId) {
@@ -309,7 +311,7 @@ export const assignStudentByEmail = mutation({
   args: {
     clerkId: v.string(),
     email: v.string(),
-    role: v.optional(v.union(v.literal("user"), v.literal("staff"))),
+    role: v.optional(v.union(v.literal("user"), v.literal("student"), v.literal("staff"))),
     departmentId: v.optional(v.id("departments")),
   },
   handler: async (ctx, args) => {
@@ -687,7 +689,8 @@ export const getStudentMetrics = query({
       )
       .take(2000); // Limit to 2000 users max
 
-    const students = allUsers.filter((s: any) => s.role === "user");
+    // Include both legacy 'user' role and current 'student' role for analytics
+    const students = allUsers.filter((s: any) => s.role === "user" || s.role === "student");
     const studentIds = students.map((s) => s._id);
 
     if (studentIds.length === 0) {
@@ -797,7 +800,8 @@ export const getStudentProgress = query({
       )
       .take(2000); // Limit to 2000 users max
 
-    const students = allUsers.filter((s: any) => s.role === "user");
+    // Include both legacy 'user' role and current 'student' role for analytics
+    const students = allUsers.filter((s: any) => s.role === "user" || s.role === "student");
     const studentIds = students.map((s) => s._id);
 
     if (studentIds.length === 0) return [];

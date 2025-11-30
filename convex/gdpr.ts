@@ -341,6 +341,7 @@ export const requestAccountDeletion = mutation({
     // Store deletion request metadata
     await ctx.db.patch(user._id, {
       account_status: skipGracePeriod ? "deleted" : "pending_deletion",
+      deletion_scheduled_at: skipGracePeriod ? undefined : deletionScheduledAt,
       deleted_at: skipGracePeriod ? Date.now() : undefined,
       deleted_reason: args.reason || "User requested account deletion (GDPR Article 17)",
       updated_at: Date.now(),
@@ -423,6 +424,7 @@ export const cancelAccountDeletion = mutation({
     // Restore account
     await ctx.db.patch(user._id, {
       account_status: "active",
+      deletion_scheduled_at: undefined,
       deleted_reason: undefined,
       updated_at: Date.now(),
     });
@@ -650,8 +652,7 @@ export const getDeletionStatus = query({
       return {
         hasPendingDeletion: true,
         reason: user.deleted_reason,
-        // Note: Actual deletion date would need to be stored separately
-        // For now, return approximate date
+        scheduledDeletionDate: user.deletion_scheduled_at,
         message: "Your account is scheduled for deletion. You can cancel this request anytime.",
       };
     }

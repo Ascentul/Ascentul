@@ -495,15 +495,16 @@ export default function AdminUsersPage() {
                         variant={
                           u.account_status === 'deleted' ? 'destructive' :
                           u.account_status === 'suspended' ? 'destructive' :
-                          u.account_status === 'pending_deletion' ? 'destructive' :
                           u.account_status === 'pending_activation' ? 'secondary' :
                           'default'
                         }
-                        className={`capitalize text-xs ${
-                          u.account_status === 'pending_deletion' ? 'bg-orange-600' : ''
+                        className={`text-xs ${
+                          u.account_status === 'pending_deletion'
+                            ? 'bg-orange-600 hover:bg-orange-700 text-white border-transparent'
+                            : ''
                         }`}
                       >
-                        {u.account_status || 'active'}
+                        {(u.account_status || 'active').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                       </Badge>
                     </div>
                     <div className="text-right min-w-0">

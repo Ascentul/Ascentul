@@ -61,5 +61,27 @@ reviews:
     - Don't flag null vs undefined unless it causes actual bugs
     - Stage vs status case differences are intentional (title case for new, lowercase for legacy)
 
+    ### University Invite Flow
+    - Invite tokens are validated server-side via `/api/university/verify-invite` BEFORE setting `unsafeMetadata`
+    - The Clerk webhook does NOT use `unsafeMetadata` - it looks up user's `university_id` from Convex database
+    - Don't suggest re-verifying invite tokens in webhooks - they're already validated before signup
+
+    ### Audit Logs & Timestamps
+    - Audit logs always have either `created_at` (new format) or `timestamp` (legacy format)
+    - `createAuditLog` helper always sets `created_at: Date.now()`
+    - Fallback timestamps are defensive guards for theoretical data corruption, not expected code paths
+    - Don't suggest replacing `Date.now()` fallbacks with "Unknown" strings
+
+    ### Accessibility
+    - Elements with `role="button"` containing visible text get accessible names from content (WCAG)
+    - Don't suggest adding `aria-label` to clickable cards/elements that contain descriptive text
+    - Only suggest `aria-label` when interactive elements have NO visible text content
+
+    ### Async Patterns
+    - Fire-and-forget async calls are intentional when `setIsLoading(true)` runs synchronously at function start
+    - Example: `handleQuickAction() { handleAsync(); }` is fine if `handleAsync` sets loading state first
+    - Don't suggest adding `await` to wrapper functions that just trigger async operations
+    - The synchronous state update disables buttons before any async work begins
+
 chat:
   auto_reply: true

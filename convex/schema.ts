@@ -115,6 +115,7 @@ export default defineSchema({
     created_by_admin: v.optional(v.boolean()),
     // Test user and deletion tracking
     is_test_user: v.optional(v.boolean()), // Flag for test users (can be hard deleted)
+    deletion_scheduled_at: v.optional(v.number()), // When account will be permanently deleted (GDPR grace period)
     deleted_at: v.optional(v.number()), // Timestamp when soft deleted
     deleted_by: v.optional(v.id("users")), // Admin who deleted the user
     deleted_reason: v.optional(v.string()), // Reason for deletion

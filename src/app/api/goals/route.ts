@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { api } from 'convex/_generated/api'
 import { convexServer } from '@/lib/convex-server';
+import { isValidGoalStatus, VALID_GOAL_STATUSES } from '@/lib/constants/roles';
 
 const mapGoal = (doc: any) => ({
   id: doc._id,
@@ -48,6 +49,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (!body?.title) return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+
+    // Validate status if provided
+    if (body.status && !isValidGoalStatus(body.status)) {
+      return NextResponse.json({
+        error: `Invalid status: ${body.status}. Valid values: ${VALID_GOAL_STATUSES.join(', ')}`
+      }, { status: 400 })
+    }
 
     const args = {
       clerkId: userId,

@@ -451,7 +451,14 @@ export default function AdminSupportPage() {
               </TableHeader>
               <TableBody>
                 {filteredTickets.map((ticket: any) => (
-                  <TableRow key={String(ticket._id)} className="cursor-pointer hover:bg-gray-50">
+                  <TableRow
+                    key={String(ticket._id)}
+                    className="cursor-pointer hover:bg-gray-50"
+                    onClick={() => {
+                      setSelectedTicketId(ticket._id)
+                      setDetailDialogOpen(true)
+                    }}
+                  >
                     <TableCell className="font-medium">{ticket.subject}</TableCell>
                     <TableCell className="capitalize">{ticket.category.replaceAll('_', ' ')}</TableCell>
                     <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>

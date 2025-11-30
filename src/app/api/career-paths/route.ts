@@ -46,7 +46,8 @@ export async function GET(_request: NextRequest) {
     const { searchParams } = new URL(_request.url)
     const limit = Math.min(Math.max(parseInt(String(searchParams.get('limit') || '10')) || 10, 1), 50)
     const cursor = searchParams.get('cursor') || undefined
-    const sort = (searchParams.get('sort') || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc'
+    // Note: sort parameter removed - Convex cursor-based pagination requires consistent
+    // sort direction. Backend always returns newest first (desc order).
 
     const page = await fetchQuery(
       api.career_paths.getUserCareerPathsPaginated,
@@ -56,7 +57,7 @@ export async function GET(_request: NextRequest) {
 
     // Map only those entries that contain a structured path we can render
     const items = (page?.items || []) as CareerPathDocument[]
-    let paths = items
+    const paths = items
       .map((doc): CareerPathResponse | null => {
         const p = doc?.steps?.path
         if (!p || !Array.isArray(p?.nodes)) return null
@@ -69,8 +70,6 @@ export async function GET(_request: NextRequest) {
         }
       })
       .filter((path): path is CareerPathResponse => path !== null)
-
-    if (sort === 'asc') paths = paths.reverse()
 
     return NextResponse.json({ paths, nextCursor: page?.nextCursor || null })
   } catch (error: unknown) {

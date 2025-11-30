@@ -57,6 +57,13 @@ export function SnoozeDialog({
     }
   };
 
+  /**
+   * Quick snooze delegates to handleSnooze without awaiting.
+   * The isSubmitting state provides immediate UI feedback while the async
+   * operation completes. This "fire-and-forget with loading state" pattern
+   * is intentional - we don't need the await since handleSnooze manages its
+   * own error handling and state cleanup.
+   */
   const handleQuickSnooze = (date: Date) => {
     handleSnooze(date);
   };
