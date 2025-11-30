@@ -28,3 +28,6 @@ TEST_ACCOUNTS.md
 *.bak
 *.backup
 *~
+
+# Test coverage
+coverage/
