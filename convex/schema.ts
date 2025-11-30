@@ -386,7 +386,7 @@ export default defineSchema({
     ),
     // PRIMARY FIELD: stage is the source of truth for application state
     // status field is maintained for backward compatibility only
-    // TODO: Make required after migration backfills existing records
+    // MIGRATION: Run `npx convex run migrations/backfill_application_stages` then change to v.required()
     stage: v.optional(
       v.union(
         v.literal("Prospect"), // Active - researching/considering

@@ -615,13 +615,26 @@ export const sendDeletionReminder = internalMutation({
       return { success: false, reason: "Deletion was cancelled" };
     }
 
-    // TODO: Send reminder email via email service
-    // await ctx.scheduler.runAfter(0, api.email.sendDeletionReminderEmail, {
-    //   email: user.email,
-    //   name: user.name,
-    // });
+    /**
+     * FEATURE INCOMPLETE: GDPR deletion reminder email
+     *
+     * Implementation plan:
+     * 1. Add sendDeletionReminderEmail to src/lib/email.ts (use existing email patterns)
+     * 2. Create email template explaining:
+     *    - Account will be deleted in X days
+     *    - How to cancel deletion (log in)
+     *    - What data will be removed
+     * 3. Create convex action to call email service
+     * 4. Uncomment scheduler call below:
+     *    await ctx.scheduler.runAfter(0, api.email.sendDeletionReminderEmail, {
+     *      email: user.email,
+     *      name: user.name,
+     *      deletionDate: user.deletion_scheduled_at,
+     *    });
+     */
 
-    console.log(`Deletion reminder would be sent to user ${args.userId}`);
+    // Placeholder log until email is implemented
+    console.log(`[GDPR] Deletion reminder would be sent to user ${args.userId}`);
 
     return { success: true };
   },

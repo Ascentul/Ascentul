@@ -1901,7 +1901,7 @@ const evaluatePathQuality = (
   // - 10 chars: Too lenient, allows "Some role" which isn't helpful
   // - 15 chars: Balanced - allows "Marketing role" but rejects "Short desc"
   // TRADE-OFF: Slightly higher success rate while ensuring descriptions are still meaningful
-  // TODO: Monitor telemetry - if < 15 char descriptions are common, consider lowering to 12
+  // POST-LAUNCH: Monitor 'descriptions_missing_or_short' rate in PostHog - if > 5% of failures, consider lowering to 12
   const missingDescriptions = nodes.some(
     (node: any) => !node?.description || String(node.description).trim().length < QUALITY_THRESHOLDS.MIN_DESCRIPTION_LENGTH,
   )
@@ -1946,7 +1946,7 @@ const evaluatePathQuality = (
   //   - "Marketing Manager" → "Product Manager" → "VP Product" (1 "manager" match = PASS)
   //   - "Junior Dev" → "Senior Dev" → "Tech Lead" (0 specific matches but valid path)
   // TRADE-OFF: Accept more generic paths to reduce false rejections of valid transitions
-  // TODO: Monitor 'insufficient_domain_specificity' telemetry - if < 10%, reduce further
+  // POST-LAUNCH: Monitor 'insufficient_domain_specificity' rate in PostHog - if < 10% of failures, reduce KEYWORD_REDUCTION_FACTOR to 0.5
   const keywordTargets =
     template.qualityKeywords && template.qualityKeywords.length
       ? template.qualityKeywords

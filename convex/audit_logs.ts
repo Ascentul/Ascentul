@@ -244,7 +244,21 @@ export const redactStudentPII = internalMutation({
 // ============================================================================
 // Retention Job: delete audit logs older than 7 years
 // ============================================================================
-// Placeholder export hook (stub for future S3/R2 export)
+
+/**
+ * FEATURE INCOMPLETE: Audit log export to cold storage
+ *
+ * Implementation plan when ready to enable retention:
+ * 1. Create S3/R2 bucket for audit log archive
+ * 2. Add AWS_S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY to env
+ * 3. Implement this function to:
+ *    - Convert logs to JSONL format
+ *    - Upload to S3 with key: audit-logs/YYYY/MM/batch-{timestamp}.jsonl.gz
+ *    - Return success only after confirmed upload
+ * 4. Create scheduled function in convex/crons.ts:
+ *    crons.weekly("audit_log_retention", { hourUTC: 3, minuteUTC: 0 }, internal.audit_logs.deleteExpiredAuditLogs)
+ * 5. Remove the throw statement below to enable deletion
+ */
 async function exportAuditLogsForArchive(_logs: Doc<"audit_logs">[]) {
   // TODO: Implement export to long-term storage (S3/R2) before deletion
   throw new Error(
