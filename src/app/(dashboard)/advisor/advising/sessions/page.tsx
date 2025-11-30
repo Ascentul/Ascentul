@@ -524,6 +524,7 @@ export default function AdvisorSessionsPage() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm">
+                                  <span className="sr-only">Session actions</span>
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>

@@ -115,6 +115,8 @@ export default function AdvisorSupportPage() {
 
   // Sync selectedTicket with updated data from tickets query
   // This ensures the detail dialog shows fresh data after mutations
+  // Note: We intentionally depend on selectedTicket._id only (not the full object)
+  // to avoid infinite loops since we call setSelectedTicket in this effect
   React.useEffect(() => {
     if (selectedTicket && tickets) {
       const updated = tickets.find(t => t._id === selectedTicket._id)
@@ -122,6 +124,7 @@ export default function AdvisorSupportPage() {
         setSelectedTicket(updated)
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickets, selectedTicket?._id])
 
   // Filter tickets
