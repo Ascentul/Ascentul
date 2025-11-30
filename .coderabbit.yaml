@@ -23,16 +23,30 @@ reviews:
 
     ## Patterns to Accept (Don't Flag)
 
-    ### Convex Patterns
-    - Trust internal Convex data - don't suggest additional type guards for query results
-    - `v.id()` validators handle ID format validation at runtime
+    ### Convex Type Safety
+    - Trust Convex query/mutation results - validators enforce types at runtime
+    - Don't suggest undefined/null guards for schema-validated fields (e.g., `status`, `stage`)
+    - `v.id()` validators handle ID format validation - no additional guards needed
+    - `v.union(v.literal(...))` ensures only valid enum values - no fallback guards needed
     - Schema uses `v.union(v.number(), v.null())` intentionally for clearable fields
-    - String-based error detection (e.g., `includes('ArgumentValidationError:')`) is acceptable for Convex errors
+    - String-based error detection (e.g., `includes('ArgumentValidationError:')`) is acceptable
+
+    ### Authentication & convexServer Shim
+    - `convexServer.query/mutation/action` accepts token as THIRD parameter (see src/lib/convex-server.ts)
+    - The shim wraps token as `{ token }` internally - don't suggest removing token parameter
+    - `requireConvexToken()` handles auth validation and returns `{ userId, token }`
+    - Clerk `publicMetadata.role` is the source of truth for authorization
     - `getCurrentUser(ctx, args.clerkId)` validates clerkId against JWT - don't flag as insecure
 
-    ### Authentication
-    - Clerk `publicMetadata.role` is the source of truth for authorization
-    - `requireConvexToken()` handles auth validation
+    ### Error Handling Architecture
+    - Dialog/modal components often delegate error handling to parent callbacks
+    - Check CALLER functions for try-catch before suggesting error handling in child components
+    - Errors that re-throw after toast allow parent to know operation failed
+    - PII sanitization belongs at logging infrastructure level, not individual sanitizeError functions
+
+    ### Idempotent Operations
+    - Session cancellation is idempotent - status check is sufficient, no version check needed
+    - Soft delete operations are idempotent - can be called multiple times safely
 
     ### Performance
     - Don't suggest index optimizations without evidence of actual performance issues

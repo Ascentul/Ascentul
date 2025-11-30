@@ -373,17 +373,21 @@ function NeedActionMetric({ value, breakdown, onClick, onClickReason }: NeedActi
     }
   };
 
+  // Avoid nested interactive elements: when breakdown has clickable reasons, card shouldn't be a button
+  const hasClickableBreakdown = breakdown && hasIssues && onClickReason;
+  const isCardClickable = onClick && !hasClickableBreakdown;
+
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <Card
-            className={`${hasIssues ? 'border-orange-200 bg-orange-50/50' : ''} ${onClick ? 'cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]' : ''}`}
-            onClick={onClick}
-            onKeyDown={onClick ? handleKeyDown : undefined}
-            role={onClick ? 'button' : undefined}
-            tabIndex={onClick ? 0 : undefined}
-            aria-label={onClick ? 'Filter applications needing action' : undefined}
+            className={`${hasIssues ? 'border-orange-200 bg-orange-50/50' : ''} ${isCardClickable ? 'cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]' : ''}`}
+            onClick={isCardClickable ? onClick : undefined}
+            onKeyDown={isCardClickable ? handleKeyDown : undefined}
+            role={isCardClickable ? 'button' : undefined}
+            tabIndex={isCardClickable ? 0 : undefined}
+            aria-label={isCardClickable ? 'Filter applications needing action' : undefined}
           >
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
               <div className="flex items-center gap-2">

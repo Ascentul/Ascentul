@@ -82,7 +82,7 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState<'all' | UserRow['role']>('all')
   const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'premium' | 'university' | 'staff'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | UserRow['subscription_status']>('all')
-  const [accountStatusFilter, setAccountStatusFilter] = useState<'all' | 'active' | 'deleted' | 'pending_activation' | 'suspended'>('active') // Default to active only
+  const [accountStatusFilter, setAccountStatusFilter] = useState<'all' | 'active' | 'deleted' | 'pending_activation' | 'pending_deletion' | 'suspended'>('active') // Default to active only
   const [universityFilter, setUniversityFilter] = useState<'all' | string>('all')
 
   // Check permissions using CLERK directly (source of truth for roles)
@@ -409,6 +409,7 @@ export default function AdminUsersPage() {
                   <SelectItem value="all">All Account Statuses</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="pending_activation">Pending Activation</SelectItem>
+                  <SelectItem value="pending_deletion">Pending Deletion</SelectItem>
                   <SelectItem value="suspended">Suspended</SelectItem>
                   <SelectItem value="deleted">Deleted</SelectItem>
                 </SelectContent>
@@ -494,10 +495,13 @@ export default function AdminUsersPage() {
                         variant={
                           u.account_status === 'deleted' ? 'destructive' :
                           u.account_status === 'suspended' ? 'destructive' :
+                          u.account_status === 'pending_deletion' ? 'destructive' :
                           u.account_status === 'pending_activation' ? 'secondary' :
                           'default'
                         }
-                        className="capitalize text-xs"
+                        className={`capitalize text-xs ${
+                          u.account_status === 'pending_deletion' ? 'bg-orange-600' : ''
+                        }`}
                       >
                         {u.account_status || 'active'}
                       </Badge>

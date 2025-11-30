@@ -92,6 +92,12 @@ export async function GET(request: NextRequest) {
       instructions: "Submit a POST request to this endpoint to receive a downloadable JSON file containing all your personal data.",
     });
   } catch (error) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    console.error("GDPR export info error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    const isAuthError = message === "Unauthorized" || message === "Failed to obtain auth token";
+    return NextResponse.json(
+      { error: isAuthError ? "Unauthorized" : "Internal server error" },
+      { status: isAuthError ? 401 : 500 }
+    );
   }
 }

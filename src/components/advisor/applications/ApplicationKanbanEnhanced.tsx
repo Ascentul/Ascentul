@@ -135,7 +135,8 @@ export function ApplicationKanbanEnhanced({
     };
 
     applications.forEach((app) => {
-      if (app.needsAction && app.stage !== 'Archived') {
+      // Guard against unknown stages (consistent with applicationsByStage grouping)
+      if (app.needsAction && app.stage !== 'Archived' && counts[app.stage] !== undefined) {
         counts[app.stage]++;
       }
     });

@@ -8,14 +8,14 @@ import { isValidConvexId } from '@/lib/convex-ids';
 
 // GET /api/contacts/[id]
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { userId, token } = await requireConvexToken()
-
-  const { id } = await params
-  if (!isValidConvexId(id)) {
-    return NextResponse.json({ error: 'Invalid contact ID format' }, { status: 400 })
-  }
-
   try {
+    const { userId, token } = await requireConvexToken()
+
+    const { id } = await params
+    if (!isValidConvexId(id)) {
+      return NextResponse.json({ error: 'Invalid contact ID format' }, { status: 400 })
+    }
+
     const contact = await convexServer.query(api.contacts.getContactById, {
       clerkId: userId,
       contactId: id as Id<'networking_contacts'>,
@@ -28,27 +28,29 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ contact })
   } catch (error: unknown) {
     console.error('GET /api/contacts/[id] error:', error)
-    return NextResponse.json({ error: 'Failed to fetch contact' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to fetch contact'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }
 
 // PUT /api/contacts/[id]
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { userId, token } = await requireConvexToken()
-
-  const { id } = await params
-  if (!isValidConvexId(id)) {
-    return NextResponse.json({ error: 'Invalid contact ID format' }, { status: 400 })
-  }
-
-  let body: Record<string, unknown>
   try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
-  }
+    const { userId, token } = await requireConvexToken()
 
-  try {
+    const { id } = await params
+    if (!isValidConvexId(id)) {
+      return NextResponse.json({ error: 'Invalid contact ID format' }, { status: 400 })
+    }
+
+    let body: Record<string, unknown>
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
     const contact = await convexServer.mutation(api.contacts.updateContact, {
       clerkId: userId,
       contactId: id as Id<'networking_contacts'>,
@@ -63,7 +65,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           if (typeof body.last_contact_date !== 'string') return undefined;
           const parsed = Date.parse(body.last_contact_date);
           if (Number.isNaN(parsed)) {
-            // Could throw or return validation error here
             return undefined;
           }
           return parsed;
@@ -74,20 +75,22 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ contact })
   } catch (error: unknown) {
     console.error('PUT /api/contacts/[id] error:', error)
-    return NextResponse.json({ error: 'Failed to update contact' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to update contact'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }
 
 // DELETE /api/contacts/[id]
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { userId, token } = await requireConvexToken()
-
-  const { id } = await params
-  if (!isValidConvexId(id)) {
-    return NextResponse.json({ error: 'Invalid contact ID format' }, { status: 400 })
-  }
-
   try {
+    const { userId, token } = await requireConvexToken()
+
+    const { id } = await params
+    if (!isValidConvexId(id)) {
+      return NextResponse.json({ error: 'Invalid contact ID format' }, { status: 400 })
+    }
+
     await convexServer.mutation(
       api.contacts.deleteContact,
       { clerkId: userId, contactId: id as Id<'networking_contacts'> },
@@ -96,6 +99,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ success: true })
   } catch (error: unknown) {
     console.error('DELETE /api/contacts/[id] error:', error)
-    return NextResponse.json({ error: 'Failed to delete contact' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to delete contact'
+    const status = message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }
