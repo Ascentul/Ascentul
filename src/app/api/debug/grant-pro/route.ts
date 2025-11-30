@@ -49,6 +49,14 @@ async function findClerkUserIdByEmail(email: string, clerkSecret?: string): Prom
   }
 }
 
+// WARNING: These debug functions directly update Convex subscription fields,
+// bypassing the normal Clerk Billing → Webhook → Convex sync flow.
+// This creates inconsistent state between Clerk and Convex:
+// - Clerk Billing won't reflect the premium subscription
+// - No payment records or subscription metadata in Clerk
+// - Future billing operations may conflict with the manually set Convex state
+// Only use in development/testing. Disabled in production via requireAdminAuth.
+
 async function upgradeToPremiumByClerkId(clerkId: string, token: string) {
   return convexServer.mutation(
     api.users.updateUser,

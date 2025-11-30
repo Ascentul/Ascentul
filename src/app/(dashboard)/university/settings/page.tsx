@@ -82,8 +82,8 @@ export default function UniversitySettingsPage() {
           description: settings.description,
           website: settings.website,
           contact_email: settings.contactEmail,
-          max_students: settings.maxStudents,
-          license_seats: settings.licenseSeats,
+          // NOTE: max_students and license_seats are managed by super_admin only
+          // via the admin panel, not editable by university admins
         },
       });
 

@@ -62,7 +62,7 @@ export const migrateAdminToSuperAdmin = internalMutation({
 
     console.log(`\nMigration complete: ${totalProcessed} users checked, ${migratedCount} users updated, ${failedCount} failed`)
     if (failedUsers.length > 0) {
-      console.log(`Failed user IDs: ${failedUsers.join(', ')}`)
+      console.log(`Failed user IDs: ${failedUsers.map(id => maskId(id)).join(', ')}`)
     }
 
     return {

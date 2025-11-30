@@ -371,12 +371,15 @@ export default function AdminSettingsPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Maintenance Mode</Label>
+                    <Label id="general-maintenance-mode-label" htmlFor="general-maintenance-mode">Maintenance Mode</Label>
                     <p className="text-sm text-muted-foreground">
                       Enable maintenance mode for all users
                     </p>
                   </div>
                   <Switch
+                    id="general-maintenance-mode"
+                    aria-label="Maintenance Mode"
+                    aria-labelledby="general-maintenance-mode-label"
                     checked={systemSettings.maintenanceMode}
                     onCheckedChange={(checked) =>
                       setSystemSettings(prev => ({ ...prev, maintenanceMode: checked }))
@@ -385,12 +388,15 @@ export default function AdminSettingsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Registration Enabled</Label>
+                    <Label id="general-registration-label" htmlFor="general-registration">Registration Enabled</Label>
                     <p className="text-sm text-muted-foreground">
                       Allow new user registrations
                     </p>
                   </div>
                   <Switch
+                    id="general-registration"
+                    aria-label="Registration Enabled"
+                    aria-labelledby="general-registration-label"
                     checked={systemSettings.registrationEnabled}
                     onCheckedChange={(checked) =>
                       setSystemSettings(prev => ({ ...prev, registrationEnabled: checked }))
@@ -836,12 +842,15 @@ export default function AdminSettingsPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label>Registration Enabled</Label>
+                      <Label id="system-registration-label" htmlFor="system-registration">Registration Enabled</Label>
                       <p className="text-sm text-muted-foreground">
                         Allow new user registrations
                       </p>
                     </div>
                     <Switch
+                      id="system-registration"
+                      aria-label="Registration Enabled"
+                      aria-labelledby="system-registration-label"
                       checked={systemSettings.registrationEnabled}
                       onCheckedChange={(checked) =>
                         setSystemSettings(prev => ({ ...prev, registrationEnabled: checked }))
@@ -850,12 +859,15 @@ export default function AdminSettingsPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label>Email Verification Required</Label>
+                      <Label id="email-verification-label" htmlFor="email-verification">Email Verification Required</Label>
                       <p className="text-sm text-muted-foreground">
                         Require email verification for new accounts
                       </p>
                     </div>
                     <Switch
+                      id="email-verification"
+                      aria-label="Email Verification Required"
+                      aria-labelledby="email-verification-label"
                       checked={systemSettings.emailVerificationRequired}
                       onCheckedChange={(checked) =>
                         setSystemSettings(prev => ({ ...prev, emailVerificationRequired: checked }))

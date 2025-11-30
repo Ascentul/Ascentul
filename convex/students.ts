@@ -812,7 +812,7 @@ export const acceptInvite = mutation({
       // If rollback failed, log critical error for monitoring/alerting
       if (!rollbackResult.success) {
         console.error(
-          `[CRITICAL] Rollback failed for user ${user.email} (${user._id}). ` +
+          `[CRITICAL] Rollback failed for user ${maskEmail(user.email)} (${maskId(user._id)}). ` +
           `Manual intervention required. Errors: ${rollbackResult.errors.join('; ')}`
         );
       }

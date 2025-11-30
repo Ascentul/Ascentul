@@ -585,10 +585,20 @@ export const updateComment = mutation({
       visibility: args.visibility || comment.visibility,
       updated_at: now,
     };
+
+    // Check version hasn't changed since we read the review (optimistic concurrency control)
+    const currentReview = await ctx.db.get(args.reviewId);
+    if (!currentReview) {
+      throw new Error("Review was deleted. Please refresh and try again.");
+    }
+    if (currentReview.version !== review.version) {
+      throw new Error("Review was modified by another user. Please refresh and try again.");
+    }
+
     await ctx.db.patch(args.reviewId, {
       comments,
       updated_at: now,
-      version: (review.version ?? 0) + 1,
+      version: (currentReview.version ?? 0) + 1,
     });
 
     // Audit log for body changes (FERPA compliance)

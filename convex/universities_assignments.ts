@@ -115,8 +115,17 @@ export const updateUniversitySettings = mutation({
 
     if (!isAuthorized) throw new Error("Unauthorized - University admin access required");
 
+    // SECURITY: Only super_admin can modify billing/capacity fields
+    // University admins can update basic info but not license limits
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { max_students, license_seats, ...safeSettings } = args.settings;
+
+    const settingsToApply = currentUser.role === "super_admin"
+      ? args.settings  // Super admins can modify everything
+      : safeSettings;  // University admins cannot modify license fields
+
     await ctx.db.patch(args.universityId, {
-      ...args.settings,
+      ...settingsToApply,
       updated_at: Date.now(),
     });
 

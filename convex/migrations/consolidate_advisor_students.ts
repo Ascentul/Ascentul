@@ -141,6 +141,8 @@ export const migrate = mutation({
           .unique();
 
         if (existing) {
+          // Record already exists in student_advisors - skip migration but still
+          // allow deletion of the duplicate in advisorStudents if requested
           results.skippedAlreadyExists++;
         } else {
           // Check if student already has an owner

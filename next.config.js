@@ -2,11 +2,7 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      // Supabase storage
-      {
-        protocol: 'https',
-        hostname: 'qyycdduuadsofgabrgip.supabase.co',
-      },
+      // Supabase storage (wildcard covers all Supabase instances - trusted CDN)
       {
         protocol: 'https',
         hostname: '*.supabase.co',
@@ -22,10 +18,6 @@ const nextConfig = {
         hostname: 'img.clerk.com',
       },
       // OAuth provider profile images (Google, GitHub, etc.)
-      {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
-      },
       {
         protocol: 'https',
         hostname: 'avatars.githubusercontent.com',
