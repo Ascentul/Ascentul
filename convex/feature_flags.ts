@@ -156,9 +156,9 @@ export const initializeAdvisorFlags = internalMutation({
 });
 
 /**
- * List all feature flags (admin only)
+ * List all advisor feature flags (admin only)
  */
-export const listFeatureFlags = query({
+export const listAdvisorFeatureFlags = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
