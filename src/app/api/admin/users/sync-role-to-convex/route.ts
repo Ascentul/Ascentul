@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       token
     )
 
-    console.log(`[API] Synced role to Convex for ${targetUser.emailAddresses[0]?.emailAddress || userId}: ${roleToSync}`)
+    console.log(`[API] Synced role to Convex for user ${userId}: ${roleToSync}`)
 
     return NextResponse.json({
       success: true,
