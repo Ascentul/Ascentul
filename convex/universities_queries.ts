@@ -42,6 +42,10 @@ export const getUniversityBySlug = query({
 export const getUniversityByAdminEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
+    // Only super admins can look up universities by admin email
+    // This prevents unauthorized enumeration of university data
+    await requireSuperAdmin(ctx);
+
     return await ctx.db
       .query("universities")
       .withIndex("by_admin_email", q => q.eq("admin_email", args.email))

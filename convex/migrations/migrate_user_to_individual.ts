@@ -6,6 +6,15 @@
  *
  * This migration updates all users with role="user" to role="individual".
  *
+ * IMPORTANT - Clerk Sync Required:
+ * This is a ONE-TIME legacy data migration that updates Convex roles directly.
+ * Per the Clerk-first role update pattern, Clerk publicMetadata.role is the source
+ * of truth for authorization. After running this migration, you MUST sync the
+ * updated roles to Clerk:
+ *
+ *   npx convex run admin/syncRolesToClerk:syncAllRolesToClerk --dryRun true
+ *   npx convex run admin/syncRolesToClerk:syncAllRolesToClerk --dryRun false
+ *
  * Run: npx convex run migrations/migrate_user_to_individual:migrate
  * Dry run: npx convex run migrations/migrate_user_to_individual:dryRun
  */
@@ -67,8 +76,10 @@ export const migrate = mutation({
     };
 
     for (const user of usersWithLegacyRole) {
-      // If user has university_id, they might need a university role instead
-      // Log a warning but still migrate to individual
+      // Skip users with university_id - individual role must not have university_id
+      // These users likely need a university-specific role (student/advisor/university_admin)
+      // Skip users with university_id - individual role must not have university_id
+      // These users likely need a university-specific role (student/advisor/university_admin)
       if (user.university_id) {
         results.warnings.push({
           id: user._id,
@@ -78,8 +89,6 @@ export const migrate = mutation({
         results.skipped++;
         continue; // Skip users with university_id - they need manual role assignment
       }
-
-      // Update role to individual
       await ctx.db.patch(user._id, {
         role: "individual",
         updated_at: now,
@@ -100,6 +109,8 @@ export const migrate = mutation({
  * 1. Only developers with deployment access can run CLI commands
  * 2. It's an internal mutation (not exposed to clients)
  * 3. The operation is idempotent and non-destructive
+ *
+ * IMPORTANT: After running, sync roles to Clerk (see file header for details)
  */
 export const migrateInternal = internalMutation({
   args: {},
@@ -118,12 +129,16 @@ export const migrateInternal = internalMutation({
     };
 
     for (const user of usersWithLegacyRole) {
+      // Skip users with university_id - individual role must not have university_id
+      // These users likely need a university-specific role (student/advisor/university_admin)
       if (user.university_id) {
         results.warnings.push({
           id: user._id,
           email: user.email,
-          reason: "Has university_id but migrated to 'individual' - review if should be 'student'",
+          reason: "Has university_id - skipped (needs manual assignment to student/advisor/university_admin)",
         });
+        results.skipped++;
+        continue;
       }
 
       await ctx.db.patch(user._id, {

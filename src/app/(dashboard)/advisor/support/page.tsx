@@ -724,9 +724,10 @@ export default function AdvisorSupportPage() {
                   )}
 
                   <div>
-                    <Label className="text-xs text-muted-foreground">Add Response</Label>
+                    <Label htmlFor="response-textarea" className="text-xs text-muted-foreground">Add Response</Label>
                     <div className="mt-2 flex gap-2">
                       <Textarea
+                        id="response-textarea"
                         placeholder="Type your response..."
                         value={responseText}
                         onChange={(e) => setResponseText(e.target.value)}

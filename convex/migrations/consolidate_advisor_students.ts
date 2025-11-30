@@ -17,10 +17,13 @@ import { requireSuperAdmin } from "../lib/roles";
 
 /**
  * Preview what would be migrated (dry run)
+ * Requires super_admin role
  */
 export const dryRun = query({
   args: {},
   handler: async (ctx) => {
+    await requireSuperAdmin(ctx);
+
     const advisorStudents = await ctx.db.query("advisorStudents").collect();
 
     const results = {
@@ -183,10 +186,13 @@ export const migrate = mutation({
 
 /**
  * Check for inconsistencies between the two tables
+ * Requires super_admin role
  */
 export const auditInconsistencies = query({
   args: {},
   handler: async (ctx) => {
+    await requireSuperAdmin(ctx);
+
     const advisorStudents = await ctx.db.query("advisorStudents").collect();
     const studentAdvisors = await ctx.db.query("student_advisors").collect();
 

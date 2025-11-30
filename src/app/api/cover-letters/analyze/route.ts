@@ -238,7 +238,15 @@ const fallbackAnalysis = (
 export async function POST(request: NextRequest) {
   try {
     const { userId, token } = await requireConvexToken();
+    
+    if (!userId || !token) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
+    const { jobDescription, coverLetter, optimize, roleTitle, companyName } =
     const { jobDescription, coverLetter, optimize, roleTitle, companyName } =
       (await request.json()) as {
         jobDescription?: string;

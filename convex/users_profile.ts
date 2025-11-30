@@ -4,6 +4,7 @@ import { api } from "./_generated/api";
 import { getActingUser, logRoleChange } from "./users_core";
 import { isServiceRequest } from "./lib/roles";
 import { validateRoleTransition, type UserRole } from "./lib/roleValidation";
+import { maskEmail, maskId } from "./lib/piiSafe";
 
 // Create or update user from Clerk webhook
 export const createUser = mutation({
@@ -111,7 +112,7 @@ export const createUser = mutation({
         updated_at: Date.now(),
       });
 
-      console.log(`[createUser] Activated pending university student: ${args.email}`);
+      console.log(`[createUser] Activated pending university student: ${maskEmail(args.email)}`);
       return pendingUser._id;
     }
 
@@ -358,6 +359,24 @@ export const updateUser = mutation({
   },
 });
 
+/**
+ * Update user profile by Convex document ID.
+ *
+ * ⚠️ IMPORTANT: Role changes should go through Clerk first!
+ * Clerk publicMetadata.role is the source of truth for authorization.
+ * Direct role changes here will create a sync mismatch.
+ *
+ * Preferred flow for role changes:
+ * 1. Update role in Clerk publicMetadata (via Dashboard or API)
+ * 2. Clerk webhook triggers user.updated event
+ * 3. Webhook handler calls this mutation with serviceToken
+ *
+ * If role must be changed directly, sync afterward via:
+ *   - API: POST /api/admin/users/sync-role-to-convex with role parameter
+ *   - Script: npx convex run admin/syncRolesToClerk:syncAllRolesToClerk
+ *
+ * See CLAUDE.md "Roles & Permissions" section for details.
+ */
 export const updateUserById = mutation({
   args: {
     id: v.id("users"),
@@ -514,6 +533,15 @@ export const updateUserById = mutation({
 
     // Validate role transition if role is being changed
     if (roleChanged && newRole) {
+      // ⚠️ Warn if role change is not from webhook (service token)
+      // Clerk publicMetadata.role is the source of truth - direct changes create sync issues
+      if (!isService) {
+        console.warn(
+          `[updateUserById] ⚠️ Direct role change for user ${args.id}: ${oldRole} → ${newRole}. ` +
+          `Consider updating Clerk publicMetadata.role first to maintain sync.`
+        );
+      }
+
       // Use the university_id from updates if provided, otherwise use existing
       const targetUniversityId = args.updates.university_id !== undefined
         ? args.updates.university_id
@@ -618,7 +646,7 @@ export const ensureMembership = mutation({
           status: "active",
           updated_at: now,
         });
-        console.log(`[ensureMembership] Updated membership for user ${args.clerkId} with role ${args.role}`);
+        console.log(`[ensureMembership] Updated membership for user ${maskId(args.clerkId)} with role ${args.role}`);
       }
       return existingMembership._id;
     }
@@ -633,7 +661,7 @@ export const ensureMembership = mutation({
       updated_at: now,
     });
 
-    console.log(`[ensureMembership] Created membership for user ${args.clerkId} with role ${args.role}`);
+    console.log(`[ensureMembership] Created membership for user ${maskId(args.clerkId)} with role ${args.role}`);
     return membershipId;
   },
 });
@@ -842,7 +870,7 @@ export const updateUserWithMembership = mutation({
             status: "active",
             updated_at: now,
           });
-          console.log(`[updateUserWithMembership] Updated membership for user ${args.clerkId} with role ${args.membership.role}`);
+          console.log(`[updateUserWithMembership] Updated membership for user ${maskId(args.clerkId)} with role ${args.membership.role}`);
         }
         membershipId = existingMembership._id;
       } else {
@@ -855,7 +883,7 @@ export const updateUserWithMembership = mutation({
           created_at: now,
           updated_at: now,
         });
-        console.log(`[updateUserWithMembership] Created membership for user ${args.clerkId} with role ${args.membership.role}`);
+        console.log(`[updateUserWithMembership] Created membership for user ${maskId(args.clerkId)} with role ${args.membership.role}`);
       }
     }
 
@@ -864,7 +892,7 @@ export const updateUserWithMembership = mutation({
       await logRoleChange(ctx, user, oldRole, newRole!);
     }
 
-    console.log(`[updateUserWithMembership] Updated user ${args.clerkId}${membershipId ? ` with membership ${membershipId}` : ''}`);
+    console.log(`[updateUserWithMembership] Updated user ${maskId(args.clerkId)}${membershipId ? ` with membership ${maskId(membershipId)}` : ''}`);
 
     return {
       userId: user._id,

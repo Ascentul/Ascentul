@@ -371,39 +371,29 @@ export default function AdminSettingsPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label id="general-maintenance-label" htmlFor="general-maintenance">Maintenance Mode</Label>
+                    <Label>Maintenance Mode</Label>
                     <p className="text-sm text-muted-foreground">
                       Enable maintenance mode for all users
                     </p>
                   </div>
-                  <input
-                    id="general-maintenance"
-                    type="checkbox"
-                    aria-label="Maintenance Mode"
-                    aria-labelledby="general-maintenance-label"
-                    className="h-4 w-4"
+                  <Switch
                     checked={systemSettings.maintenanceMode}
-                    onChange={(e) =>
-                      setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))
+                    onCheckedChange={(checked) =>
+                      setSystemSettings(prev => ({ ...prev, maintenanceMode: checked }))
                     }
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label id="general-registration-label" htmlFor="general-registration">Registration Enabled</Label>
+                    <Label>Registration Enabled</Label>
                     <p className="text-sm text-muted-foreground">
                       Allow new user registrations
                     </p>
                   </div>
-                  <input
-                    id="general-registration"
-                    type="checkbox"
-                    aria-label="Registration Enabled"
-                    aria-labelledby="general-registration-label"
-                    className="h-4 w-4"
+                  <Switch
                     checked={systemSettings.registrationEnabled}
-                    onChange={(e) =>
-                      setSystemSettings(prev => ({ ...prev, registrationEnabled: e.target.checked }))
+                    onCheckedChange={(checked) =>
+                      setSystemSettings(prev => ({ ...prev, registrationEnabled: checked }))
                     }
                   />
                 </div>

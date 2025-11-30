@@ -48,7 +48,7 @@ interface FollowUpPanelProps {
   activeTab: 'overdue' | 'today' | 'upcoming';
   onTabChange: (tab: 'overdue' | 'today' | 'upcoming') => void;
   onComplete?: (followUpId: Id<"follow_ups">) => void;
-  onSnooze?: (followUpId: Id<"follow_ups">) => void;
+  onSnooze?: (followUpId: Id<"follow_ups">, title?: string) => void;
   isLoading?: boolean;
 }
 
@@ -59,7 +59,7 @@ function FollowUpRow({
 }: {
   followUp: FollowUp;
   onComplete?: (id: Id<"follow_ups">) => void;
-  onSnooze?: (id: Id<"follow_ups">) => void;
+  onSnooze?: (id: Id<"follow_ups">, title?: string) => void;
 }) {
   const isOverdue = followUp.due_at && isPast(followUp.due_at) && !isToday(followUp.due_at);
 
@@ -124,7 +124,7 @@ function FollowUpRow({
           variant="ghost"
           size="icon"
           className="h-7 w-7 text-slate-500 hover:text-slate-700"
-          onClick={() => onSnooze?.(followUp._id)}
+          onClick={() => onSnooze?.(followUp._id, followUp.title)}
           title="Snooze"
         >
           <RotateCcw className="h-4 w-4" />

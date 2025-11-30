@@ -80,9 +80,23 @@ async function createClerkUser(email, role) {
           } catch (parseError) {
             reject(new Error('Failed to parse Clerk API response: ' + parseError.message));
           }
-        } else if (res.statusCode === 422 || res.statusCode === 409) {
+        } else if (res.statusCode === 409) {
+          // 409 Conflict: User already exists (duplicate email)
           console.log('✓ User already exists:', email);
           resolve(null);
+        } else if (res.statusCode === 422) {
+          // 422 Unprocessable Entity: Validation error (invalid email, weak password, etc.)
+          // This is a real error that should be reported, not silently ignored
+          let errorDetails = body;
+          try {
+            const parsed = JSON.parse(body);
+            if (parsed.errors && Array.isArray(parsed.errors)) {
+              errorDetails = parsed.errors.map(e => e.message || e.long_message || JSON.stringify(e)).join('; ');
+            }
+          } catch {
+            // Keep raw body if parsing fails
+          }
+          reject(new Error('Validation error for ' + email + ': ' + errorDetails));
         } else if (res.statusCode === 401) {
           reject(new Error('Authentication failed. Check CLERK_SECRET_KEY is correct.'));
         } else {

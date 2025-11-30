@@ -914,8 +914,9 @@ export default defineSchema({
       v.literal("revoked"),
     ),
     expires_at: v.number(), // Timestamp when invite expires
-    accepted_at: v.optional(v.number()), // Timestamp when invite was accepted
-    accepted_by_user_id: v.optional(v.id("users")), // User who accepted the invite
+    // Nullable to support explicit clearing during rollback (prevents stale data)
+    accepted_at: v.optional(v.union(v.number(), v.null())), // Timestamp when invite was accepted
+    accepted_by_user_id: v.optional(v.union(v.id("users"), v.null())), // User who accepted the invite
     metadata: v.optional(v.any()), // Additional invite data (major, year, etc.)
     created_at: v.number(),
     updated_at: v.number(),

@@ -457,6 +457,8 @@ export const assignAdvisorToStudent = mutation({
     }
 
     // If there's an existing owner and we're assigning a new primary, demote the old one
+    // TRANSACTION SAFETY: Convex mutations are fully transactional - if the insert
+    // below fails, this patch is rolled back, preventing orphan state.
     if (existingOwner) {
       await ctx.db.patch(existingOwner._id, {
         is_owner: false,

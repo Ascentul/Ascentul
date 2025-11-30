@@ -49,6 +49,27 @@ export const setAdvisorRole = internalMutation({
       return { success: false, message: `User not found: ${maskEmail(args.email)}. Please sign in first.` };
     }
 
+    // Prevent removing last super_admin
+    if (user.role === "super_admin") {
+      const otherSuperAdmins = await ctx.db
+        .query("users")
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("role"), "super_admin"),
+            q.neq(q.field("_id"), user._id)
+          )
+        )
+        .first();
+
+      if (!otherSuperAdmins) {
+        console.log(`❌ Cannot change last super_admin: ${maskEmail(args.email)}`);
+        return {
+          success: false,
+          message: `Cannot change role for ${maskEmail(args.email)}: user is the last super_admin in the system.`,
+        };
+      }
+    }
+
     // Ensure advisor has university_id
     const universityId = args.university_id || user.university_id;
     if (!universityId) {

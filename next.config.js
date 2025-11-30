@@ -16,14 +16,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'ui-avatars.com',
       },
-      // Clerk profile images
+      // Clerk profile images (img.clerk.com is the only official Clerk image CDN)
       {
         protocol: 'https',
         hostname: 'img.clerk.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.clerk.com',
       },
       // OAuth provider profile images (Google, GitHub, etc.)
       {

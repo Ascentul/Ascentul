@@ -104,6 +104,7 @@ export const createSession = mutation({
     });
 
     // Audit log for FERPA compliance
+    // NOTE: Exclude title from audit log as it may contain sensitive info (e.g., "Mental health discussion")
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId,
@@ -112,7 +113,6 @@ export const createSession = mutation({
       entityId: sessionId,
       studentId: args.student_id,
       newValue: {
-        title: args.title,
         session_type: args.session_type,
         start_at: args.start_at,
         duration_minutes: args.duration_minutes,
@@ -275,14 +275,16 @@ export const updateSession = mutation({
     await ctx.db.patch(args.session_id, updates);
 
     // Audit log for FERPA compliance - track what changed
+    // NOTE: Exclude title, notes, location, meeting_url from audit log (may contain PII)
+    // Only log structural changes (session_type, timing, visibility, status)
     const changedFields: Record<string, any> = {};
-    if (args.title !== undefined) changedFields.title = args.title;
+    if (args.title !== undefined) changedFields.titleChanged = true;
     if (args.session_type !== undefined) changedFields.session_type = args.session_type;
     if (args.start_at !== undefined) changedFields.start_at = args.start_at;
     if (args.duration_minutes !== undefined) changedFields.duration_minutes = args.duration_minutes;
-    if (args.location !== undefined) changedFields.location = args.location;
-    if (args.meeting_url !== undefined) changedFields.meeting_url = args.meeting_url;
-    if (args.notes !== undefined) changedFields.notes = args.notes;
+    if (args.location !== undefined) changedFields.locationChanged = true;
+    if (args.meeting_url !== undefined) changedFields.meetingUrlChanged = true;
+    if (args.notes !== undefined) changedFields.notesChanged = true;
     if (args.visibility !== undefined) changedFields.visibility = args.visibility;
     if (args.status !== undefined) changedFields.status = args.status;
 
@@ -295,13 +297,9 @@ export const updateSession = mutation({
       studentId: session.student_id,
       previousValue: {
         version: session.version,
-        ...(args.title !== undefined && { title: session.title }),
         ...(args.session_type !== undefined && { session_type: session.session_type }),
         ...(args.start_at !== undefined && { start_at: session.start_at }),
         ...(args.duration_minutes !== undefined && { duration_minutes: session.duration_minutes }),
-        ...(args.location !== undefined && { location: session.location }),
-        ...(args.meeting_url !== undefined && { meeting_url: session.meeting_url }),
-        ...(args.notes !== undefined && { notes: session.notes }),
         ...(args.visibility !== undefined && { visibility: session.visibility }),
         ...(args.status !== undefined && { status: session.status }),
       },
@@ -423,9 +421,10 @@ export const cancelSession = mutation({
       previousValue: {
         status: session.status,
       },
+      // NOTE: Exclude reason from audit log (may contain PII like "student illness")
       newValue: {
         status: "cancelled",
-        reason: args.reason,
+        hasReason: Boolean(args.reason),
       },
       ipAddress: "server",
     });

@@ -59,9 +59,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         email: body.email as string | undefined,
         phone: body.phone as string | undefined,
         notes: body.notes as string | undefined,
-        last_contact: typeof body.last_contact_date === 'string'
-          ? (Number.isNaN(Date.parse(body.last_contact_date)) ? undefined : Date.parse(body.last_contact_date))
-          : undefined,
+        last_contact: (() => {
+          if (typeof body.last_contact_date !== 'string') return undefined;
+          const parsed = Date.parse(body.last_contact_date);
+          if (Number.isNaN(parsed)) {
+            // Could throw or return validation error here
+            return undefined;
+          }
+          return parsed;
+        })(),
       },
     }, token)
 

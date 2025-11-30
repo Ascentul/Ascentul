@@ -105,7 +105,7 @@ export default function AdvisorTodayPage() {
     if (!clerkId) return;
 
     try {
-      await updateFollowup({ clerkId, followupId: followUpId, updates: { status: 'done' } });
+      await updateFollowup({ followupId: followUpId, updates: { status: 'done' } });
       toast({ title: 'Follow-up marked as complete' });
     } catch (error) {
       toast({
@@ -116,13 +116,10 @@ export default function AdvisorTodayPage() {
     }
   };
 
-  const handleSnoozeFollowUp = (followUpId: Id<"follow_ups">) => {
-    // Find the follow-up title for display in the dialog
-    const allFollowUps = [...followUps.overdue, ...followUps.today, ...followUps.upcoming];
-    const followUp = allFollowUps.find((f) => f._id === followUpId);
-
+  const handleSnoozeFollowUp = (followUpId: Id<"follow_ups">, title?: string) => {
+    // Title is passed directly from the caller to avoid accessing followUps before definition
     setSnoozeFollowUpId(followUpId);
-    setSnoozeFollowUpTitle(followUp?.title);
+    setSnoozeFollowUpTitle(title);
     setSnoozeDialogOpen(true);
   };
 
@@ -130,7 +127,7 @@ export default function AdvisorTodayPage() {
     if (!clerkId) return;
 
     try {
-      await updateFollowup({ clerkId, followupId: followUpId, updates: { due_at: newDate } });
+      await updateFollowup({ followupId: followUpId, updates: { due_at: newDate } });
       toast({ title: 'Follow-up snoozed successfully' });
     } catch (error) {
       toast({

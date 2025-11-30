@@ -3,7 +3,7 @@
  *
  * Migration shim: wraps convex/nextjs helpers in the legacy convexServer shape.
  *
- * Preferred usage (recommended):
+ * PREFERRED USAGE (recommended - standard Convex API):
  *   import { fetchQuery, fetchMutation, fetchAction } from 'convex/nextjs';
  *   import { auth } from '@clerk/nextjs/server';
  *
@@ -11,13 +11,18 @@
  *   const token = await getToken({ template: 'convex' });
  *   const result = await fetchQuery(api.myQuery, { args }, { token });
  *
- * Temporary shim (backward compatibility):
- *   convexServer.query/mutation/action will call the fetch* helpers.
- *   Pass an optional token parameter for authenticated calls.
+ * LEGACY SHIM USAGE (this module - for backward compatibility only):
+ *   import { convexServer } from '@/lib/convex-server';
+ *   const result = await convexServer.query(api.myQuery, { args }, token);
+ *
+ *   NOTE: The shim accepts `token` as a positional argument and internally
+ *   wraps it as `{ token }` to match the standard Convex API.
  *
  * IMPORTANT: For authenticated Convex calls with Clerk JWT, you MUST:
  * 1. Get the token: const { getToken } = await auth(); const token = await getToken({ template: 'convex' });
- * 2. Pass it to the call: convexServer.query(api.myQuery, { args }, token);
+ * 2. Pass it to the call:
+ *    - Standard API: fetchQuery(api.myQuery, { args }, { token })
+ *    - Legacy shim:  convexServer.query(api.myQuery, { args }, token)
  *
  * Without a token, calls are unauthenticated and will fail if the Convex function requires auth.
  */

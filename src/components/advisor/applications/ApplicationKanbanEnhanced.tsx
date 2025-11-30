@@ -322,7 +322,8 @@ function ApplicationCard({
             <span className={cn(
               app.isStale && "font-medium text-gray-500"
             )}>
-              {app.daysSinceUpdate === 0 ? "Today" :
+              {app.daysSinceUpdate == null ? "-" :
+               app.daysSinceUpdate === 0 ? "Today" :
                app.daysSinceUpdate === 1 ? "1d" :
                `${app.daysSinceUpdate}d`}
             </span>

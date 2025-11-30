@@ -67,6 +67,36 @@ function redactJsonField(value: any): any {
   return clone;
 }
 
+/**
+ * Apply full PII redaction to an audit log before returning to the client.
+ * This ensures PII is never exposed when reading audit logs, even to super_admins.
+ *
+ * FERPA/GDPR Compliance: Audit logs maintain record of actions but PII is
+ * redacted on read to minimize exposure risk. Original data preserved in DB
+ * for compliance investigations with proper access controls.
+ */
+function redactAuditLogForRead(log: Doc<"audit_logs">) {
+  // Apply legacy field redaction
+  const legacyRedactions = redactLegacyFields(log);
+
+  // Apply JSON field redaction to new format fields
+  const redactedPreviousValue = log.previous_value ? redactJsonField(log.previous_value) : log.previous_value;
+  const redactedNewValue = log.new_value ? redactJsonField(log.new_value) : log.new_value;
+  const redactedMetadata = log.metadata ? redactJsonField(log.metadata) : log.metadata;
+
+  // Also redact the reason field which may contain PII explanations
+  const redactedReason = log.reason ? "[REDACTED]" : log.reason;
+
+  return {
+    ...log,
+    ...legacyRedactions,
+    previous_value: redactedPreviousValue,
+    new_value: redactedNewValue,
+    metadata: redactedMetadata,
+    reason: redactedReason,
+  };
+}
+
 // ============================================================================
 // Internal Mutation for Creating Audit Logs from Actions
 // ============================================================================
@@ -110,6 +140,47 @@ export const _createAuditLogInternal = internalMutation({
 // ============================================================================
 // PII Redaction for a Student
 // ============================================================================
+
+/**
+ * Redact PII from all audit logs involving a specific student.
+ *
+ * PERFORMANCE LIMITATION (Known Issue):
+ * This function performs a full table scan of all audit_logs to find entries
+ * involving the student. This is acceptable for:
+ * - Low volume usage (< 10,000 audit logs)
+ * - Infrequent calls (GDPR deletion requests, account cleanup)
+ * - Running as a background job during off-peak hours
+ *
+ * RECOMMENDED OPTIMIZATION (before 50,000 audit logs):
+ * Add indexes to schema.ts for efficient querying:
+ *
+ *   audit_logs: defineTable({...})
+ *     .index("by_student_id", ["student_id"])
+ *     .index("by_target_id", ["target_id"])
+ *
+ * Then update this function to use index-based queries:
+ *
+ *   // Query by student_id index
+ *   const byStudentId = await ctx.db
+ *     .query("audit_logs")
+ *     .withIndex("by_student_id", q => q.eq("student_id", studentId))
+ *     .collect();
+ *
+ *   // Query by target_id index
+ *   const byTargetId = await ctx.db
+ *     .query("audit_logs")
+ *     .withIndex("by_target_id", q => q.eq("target_id", studentId))
+ *     .collect();
+ *
+ * Note: Logs with student_id only in metadata.student_id cannot be indexed
+ * directly. Consider promoting this to a top-level field during log creation
+ * or accepting the trade-off that metadata-only references require full scan.
+ *
+ * USAGE RECOMMENDATION:
+ * - Schedule during off-peak hours (e.g., 2-4 AM UTC)
+ * - Consider batching multiple student redactions together
+ * - Monitor execution time and add indexes before it exceeds 30 seconds
+ */
 export const redactStudentPII = internalMutation({
   args: {
     studentId: v.id("users"),
@@ -117,6 +188,7 @@ export const redactStudentPII = internalMutation({
   handler: async (ctx, args) => {
     const studentId = args.studentId as Id<"users">;
 
+    // PERFORMANCE: Full table scan - see function docs for optimization path
     // Query audit logs by student (new format uses student_id in metadata) if such an index exists
     // Fallback: scan by student_id field if present; otherwise paginate all logs
     let cursor: string | null = null;
@@ -371,9 +443,13 @@ export const getAuditLogsPaginated = query({
       ? result.page.filter(log => log.action === args.action)
       : result.page;
 
+    // Apply PII redaction before returning to client
+    // FERPA/GDPR: Audit logs maintain action records but PII is redacted on read
+    const redactedPage = filteredPage.map(redactAuditLogForRead);
+
     return {
       ...result,
-      page: filteredPage,
+      page: redactedPage,
     };
   },
 });
@@ -396,9 +472,13 @@ export const getAuditLogs = query({
     }
 
     const limit = args.limit ?? 100;
-    return await ctx.db
+    const logs = await ctx.db
       .query("audit_logs")
       .order("desc")
       .take(limit);
+
+    // Apply PII redaction before returning to client
+    // FERPA/GDPR: Audit logs maintain action records but PII is redacted on read
+    return logs.map(redactAuditLogForRead);
   },
 });

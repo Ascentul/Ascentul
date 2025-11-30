@@ -280,17 +280,7 @@ export default function Page() {
         }
       })();
       return () => controller.abort();
-    } else if (university || inviteEmail) {
-      // Legacy path: fall back to sanitized client-side values when no token is provided
-      const sanitizedUniversity = university
-        ?.trim()
-        .replace(/[<>\"'&]/g, '') // Remove potentially dangerous characters
-        .slice(0, 100) || null
-      setUniversityInvite({
-        university: sanitizedUniversity,
-        email: isValidEmail ? inviteEmail : null,
-      })
-    }
+
   }, [searchParams])
 
   // If a session already exists, redirect to dashboard

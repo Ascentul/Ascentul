@@ -1,17 +1,14 @@
 import { ConvexError, v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import { buildApplicationRelationship } from './lib/followUpValidation';
+import { getAuthenticatedUser } from './lib/roles';
 
 // Get all follow-ups for a user
+// SECURITY: Uses authenticated user from JWT, not client-supplied clerkId
 export const getUserFollowups = query({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
-      .unique();
-
-    if (!user) throw new ConvexError({ message: 'User not found', code: 'USER_NOT_FOUND' });
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
 
     const followups = await ctx.db
       .query('follow_ups')
@@ -42,14 +39,9 @@ export const getUserFollowups = query({
 });
 
 export const getFollowupsForApplication = query({
-  args: { clerkId: v.string(), applicationId: v.id('applications') },
+  args: { applicationId: v.id('applications') },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
-      .unique();
-
-    if (!user) throw new ConvexError({ message: 'User not found', code: 'USER_NOT_FOUND' });
+    const user = await getAuthenticatedUser(ctx);
 
     const items = await ctx.db
       .query('follow_ups')
@@ -65,7 +57,6 @@ export const getFollowupsForApplication = query({
 
 export const createFollowup = mutation({
   args: {
-    clerkId: v.string(),
     applicationId: v.id('applications'),
     description: v.string(),
     due_at: v.optional(v.number()),
@@ -73,12 +64,7 @@ export const createFollowup = mutation({
     type: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
-      .unique();
-
-    if (!user) throw new ConvexError({ message: 'User not found', code: 'USER_NOT_FOUND' });
+    const user = await getAuthenticatedUser(ctx);
 
     const now = Date.now();
     const title =
@@ -128,7 +114,6 @@ export const createFollowup = mutation({
 
 export const updateFollowup = mutation({
   args: {
-    clerkId: v.string(),
     followupId: v.id('follow_ups'),
     updates: v.object({
       title: v.optional(v.string()),
@@ -143,12 +128,7 @@ export const updateFollowup = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
-      .unique();
-
-    if (!user) throw new ConvexError({ message: 'User not found', code: 'USER_NOT_FOUND' });
+    const user = await getAuthenticatedUser(ctx);
 
     const item = await ctx.db.get(args.followupId);
     if (!item) {
@@ -241,14 +221,9 @@ export const updateFollowup = mutation({
 });
 
 export const deleteFollowup = mutation({
-  args: { clerkId: v.string(), followupId: v.id('follow_ups') },
+  args: { followupId: v.id('follow_ups') },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
-      .unique();
-
-    if (!user) throw new ConvexError({ message: 'User not found', code: 'USER_NOT_FOUND' });
+    const user = await getAuthenticatedUser(ctx);
 
     const item = await ctx.db.get(args.followupId);
     if (!item) {

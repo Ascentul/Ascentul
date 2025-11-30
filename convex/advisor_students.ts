@@ -361,6 +361,8 @@ export const addAdvisorNote = mutation({
     });
 
     // Create audit log
+    // NOTE: Store structural metadata only, not full note content (PII/FERPA compliance)
+    // Full notes are stored in the student record; audit log tracks the action
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId,
@@ -368,7 +370,11 @@ export const addAdvisorNote = mutation({
       entityType: "student",
       entityId: args.studentId,
       studentId: args.studentId,
-      newValue: args.note,
+      newValue: {
+        noteAdded: true,
+        noteLength: args.note.length,
+        timestamp: Date.now(),
+      },
       ipAddress: "server",
     });
 
@@ -438,6 +444,11 @@ export const assignStudentToAdvisor = mutation({
     // For enterprise deployments needing stronger guarantees, consider:
     // - Adding a version field to student_advisors for optimistic locking
     // - Using Convex's scheduled mutations for serialized processing
+    //
+    // TRANSACTION SAFETY: Convex mutations are fully transactional - if any
+    // operation fails (e.g., the insert below), ALL operations are rolled back,
+    // including the owner demotions. This ensures no orphan state where a
+    // student has no primary advisor.
     if (args.isOwner) {
       // Find ALL current owners (handles corrupted state with multiple owners)
       const existingOwners = await ctx.db
@@ -447,7 +458,7 @@ export const assignStudentToAdvisor = mutation({
         )
         .collect();
 
-      // Demote all existing owners
+      // Demote all existing owners (safe: rolled back if subsequent ops fail)
       for (const existingOwner of existingOwners) {
         await ctx.db.patch(existingOwner._id, {
           is_owner: false,

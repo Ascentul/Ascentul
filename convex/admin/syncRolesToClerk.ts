@@ -7,6 +7,7 @@ import { v } from "convex/values"
 import { action, internalQuery } from "../_generated/server"
 import { internal } from "../_generated/api"
 import { isValidUserRole } from "../lib/roleValidation"
+import { maskEmail } from "../lib/piiSafe"
 
 /**
  * Sync all user roles from Convex to Clerk
@@ -71,7 +72,7 @@ export const syncAllRolesToClerk = action({
       throw new Error('Unauthorized: Only super_admin can run this operation')
     }
 
-    console.log(`[SyncRolesToClerk] Authorized: ${caller.email_addresses?.[0]?.email_address || args.clerkId} (super_admin)`)
+    console.log(`[SyncRolesToClerk] Authorized: ${maskEmail(caller.email_addresses?.[0]?.email_address) || args.clerkId} (super_admin)`)
 
     // Get all users from Convex using pagination
     const allUsers: Array<{
@@ -142,7 +143,7 @@ export const syncAllRolesToClerk = action({
             action: 'error',
             message: `Invalid role in Convex: "${user.role}". Skipping sync to prevent data corruption.`,
           })
-          console.error(`[SyncRolesToClerk] Invalid role for ${user.email}: ${user.role}`)
+          console.error(`[SyncRolesToClerk] Invalid role for ${maskEmail(user.email)}: ${user.role}`)
           continue
         }
 
@@ -286,7 +287,7 @@ export const syncAllRolesToClerk = action({
           message: `Synced: ${clerkRole || 'null'} → ${user.role}`,
         })
 
-        console.log(`[SyncRolesToClerk] Synced ${user.email}: ${clerkRole} → ${user.role}`)
+        console.log(`[SyncRolesToClerk] Synced ${maskEmail(user.email)}: ${clerkRole} → ${user.role}`)
       } catch (error) {
         results.errors++
         results.details.push({

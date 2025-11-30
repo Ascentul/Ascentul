@@ -593,6 +593,7 @@ export const updateComment = mutation({
 
     // Audit log for body changes (FERPA compliance)
     if (sanitizedBody !== previousBody) {
+      // NOTE: Store structural metadata only, not full comment content (PII/FERPA compliance)
       await createAuditLog(ctx, {
         actorId: sessionCtx.userId,
         universityId: review.university_id,
@@ -600,8 +601,8 @@ export const updateComment = mutation({
         entityType: "advisor_review",
         entityId: args.reviewId,
         studentId: review.student_id,
-        previousValue: { body: previousBody },
-        newValue: { body: sanitizedBody },
+        previousValue: { bodyLength: previousBody?.length ?? 0 },
+        newValue: { bodyLength: sanitizedBody.length, edited: true },
         ipAddress: "server",
       });
     }

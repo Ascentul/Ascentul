@@ -61,6 +61,9 @@ export async function POST(request: NextRequest) {
       console.error('Failed to load applications for letter generation', error)
     }
 
+    // Build profile summary for cover letter personalization
+    // NOTE: Only include data needed for cover letter generation
+    // Bio and career_goals excluded to minimize PII sent to AI service
     const profileSummary: string[] = []
     if (profile) {
       if (profile.current_position) profileSummary.push(`Current position: ${profile.current_position}`)
@@ -69,8 +72,8 @@ export async function POST(request: NextRequest) {
       if (profile.experience_level) profileSummary.push(`Experience level: ${profile.experience_level}`)
       if (profile.location) profileSummary.push(`Location: ${profile.location}`)
       if (profile.skills) profileSummary.push(`Skills: ${Array.isArray(profile.skills) ? profile.skills.join(', ') : profile.skills}`)
-      if (profile.bio) profileSummary.push(`Bio: ${profile.bio}`)
-      if (profile.career_goals) profileSummary.push(`Career goals: ${profile.career_goals}`)
+      // NOTE: bio and career_goals intentionally excluded - they contain free-form personal
+      // information that is not necessary for cover letter generation and may contain sensitive data
       if (profile.education) profileSummary.push(`Education: ${profile.education}`)
       if (profile.university_name) profileSummary.push(`University: ${profile.university_name}`)
       if (profile.major) profileSummary.push(`Major: ${profile.major}`)
@@ -209,7 +212,8 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
       if (profile?.current_position || profile?.experience_level) {
         const expLevel = profile?.experience_level || 'experienced professional'
         const industry = profile?.industry ? ` in the ${profile.industry} sector` : ''
-        paragraphs.push(`With my background as a ${expLevel}${industry}, I bring valuable expertise that directly addresses the requirements outlined in your posting. ${profile?.bio || ''}`)
+        // NOTE: bio excluded from fallback template (may contain sensitive personal info)
+        paragraphs.push(`With my background as a ${expLevel}${industry}, I bring valuable expertise that directly addresses the requirements outlined in your posting.`)
         paragraphs.push('')
       }
 
@@ -226,11 +230,8 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
         paragraphs.push('')
       }
 
-      // Career goals paragraph
-      if (profile?.career_goals) {
-        paragraphs.push(`My career goals include ${profile.career_goals}, and I see this position at ${companyName} as an excellent opportunity to advance toward these objectives while contributing meaningfully to your organization.`)
-        paragraphs.push('')
-      }
+      // NOTE: career_goals paragraph removed - may contain sensitive personal aspirations
+      // The closing paragraph below provides sufficient context without exposing PII
 
       // Closing
       paragraphs.push(`I would welcome the opportunity to discuss how my background, skills, and enthusiasm can contribute to ${companyName}'s continued success. Thank you for considering my application, and I look forward to the possibility of speaking with you soon.`)

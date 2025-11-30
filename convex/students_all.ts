@@ -4,6 +4,7 @@ import { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { validate as validateEmail } from "email-validator";
 import { requireMembership } from "./lib/roles";
+import { maskEmail, maskId } from "./lib/piiSafe";
 
 /**
  * Valid academic year classifications for students
@@ -98,7 +99,7 @@ async function rollbackInviteAcceptance(
     `[ROLLBACK INITIATED] License capacity exceeded for ${params.context.universityName}: ` +
     `${params.context.currentUsage}/${params.context.capacity}`
   );
-  console.error(`User: ${params.context.userEmail} (${params.userId}), Invite: ${params.inviteId}`);
+  console.error(`User: ${maskEmail(params.context.userEmail)} (${maskId(params.userId)}), Invite: ${maskId(params.inviteId)}`);
 
   // Rollback Step 1: Decrement license usage
   try {
@@ -543,7 +544,7 @@ export const acceptInvite = mutation({
       } catch (patchError) {
         // Log error but don't block the user from seeing the expired error
         console.error("Failed to auto-expire invite:", patchError);
-        console.error("Invite ID:", invite._id, "Email:", invite.email);
+        console.error("Invite ID:", maskId(invite._id), "Email:", maskEmail(invite.email));
       }
       throw new Error("Invite has expired");
     }
@@ -638,7 +639,7 @@ export const acceptInvite = mutation({
 
     if (raceCheckProfile) {
       // Profile was created by concurrent request - this is OK, use existing
-      console.warn(`Race condition detected: studentProfile already exists for user ${user.email}`);
+      console.warn(`Race condition detected: studentProfile already exists for user ${maskEmail(user.email)}`);
       studentProfileId = raceCheckProfile._id;
     } else {
       // Safe to create profile
@@ -671,7 +672,7 @@ export const acceptInvite = mutation({
           .first();
 
         if (fallbackProfile) {
-          console.warn(`Insert failed but profile exists - likely race condition for user ${user.email}`);
+          console.warn(`Insert failed but profile exists - likely race condition for user ${maskEmail(user.email)}`);
           studentProfileId = fallbackProfile._id;
         } else {
           // Genuine error - cannot proceed without profile
@@ -1194,9 +1195,9 @@ export const monitorDuplicateProfiles = internalMutation({
       console.error("\nAffected users:");
 
       for (const dup of duplicates) {
-        console.error(`  - ${dup.email} (${dup.userId}): ${dup.profileCount} profiles`);
-        console.error(`    Keep: ${dup.oldestProfile}`);
-        console.error(`    Delete: ${dup.newerProfiles.join(", ")}`);
+        console.error(`  - ${maskEmail(dup.email)} (${maskId(dup.userId)}): ${dup.profileCount} profiles`);
+        console.error(`    Keep: ${maskId(dup.oldestProfile)}`);
+        console.error(`    Delete: ${dup.newerProfiles.map(maskId).join(", ")}`);
       }
 
       console.error("\n🔧 Cleanup command:");

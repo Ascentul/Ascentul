@@ -14,20 +14,17 @@ type Ctx = QueryCtx | MutationCtx;
  * Compares two strings in constant time regardless of where they differ.
  */
 function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    // Still do the comparison to maintain constant time
-    // but we know result will be false
-    let result = 1;
-    for (let i = 0; i < a.length; i++) {
-      result |= a.charCodeAt(i) ^ a.charCodeAt(i);
-    }
-    return false;
+  const aBuffer = Buffer.from(a);
+  const bBuffer = Buffer.from(b);
+  
+  // Compare against a fixed length to avoid timing leaks
+  let result = aBuffer.length ^ bBuffer.length;
+  const minLength = Math.min(aBuffer.length, bBuffer.length);
+  
+  for (let i = 0; i < minLength; i++) {
+    result |= aBuffer[i] ^ bBuffer[i];
   }
-
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
+  
   return result === 0;
 }
 

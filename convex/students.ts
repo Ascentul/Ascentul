@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery, action, QueryCtx, MutationCtx } from "./_generated/server";
 import { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { maskEmail, maskId } from "./lib/piiSafe";
 
 /**
  * Basic email format validation
@@ -124,7 +125,7 @@ async function rollbackInviteAcceptance(
     `[ROLLBACK INITIATED] License capacity exceeded for ${params.context.universityName}: ` +
     `${params.context.currentUsage}/${params.context.capacity}`
   );
-  console.error(`User: ${params.userId}, Invite: ${params.inviteId}`);
+  console.error(`User: ${maskId(params.userId)}, Invite: ${maskId(params.inviteId)}`);
 
   // Rollback Step 1: Decrement license usage
   try {
@@ -190,16 +191,17 @@ async function rollbackInviteAcceptance(
     rollbackErrors.push(errMsg);
   }
 
-  // Rollback Step 5: Mark invite as pending again
-  // Note: Convex patch with undefined does NOT clear fields - it means "don't update".
-  // The accepted_at and accepted_by_user_id fields will retain stale values, but
-  // status: "pending" is the authoritative field for invite state.
+  // Rollback Step 5: Mark invite as pending again and clear acceptance data
+  // Explicitly set accepted_at and accepted_by_user_id to null to prevent stale data
+  // that could cause issues with queries filtering by these fields or audit trails
   try {
     await ctx.db.patch(params.inviteId, {
       status: "pending",
+      accepted_at: null,
+      accepted_by_user_id: null,
       updated_at: now,
     });
-    console.log("[ROLLBACK] ✓ Invite reset to pending");
+    console.log("[ROLLBACK] ✓ Invite reset to pending (acceptance data cleared)");
   } catch (error) {
     const errMsg = `Failed to reset invite ${params.inviteId}: ${error}`;
     console.error(`[ROLLBACK] ✗ ${errMsg}`);
@@ -695,7 +697,7 @@ export const acceptInvite = mutation({
 
     if (raceCheckProfile) {
       // Profile was created by concurrent request - this is OK, use existing
-      console.warn(`Race condition detected: studentProfile already exists for user ${user._id}`);
+      console.warn(`Race condition detected: studentProfile already exists for user ${maskId(user._id)}`);
       studentProfileId = raceCheckProfile._id;
     } else {
       // Safe to create profile
@@ -728,7 +730,7 @@ export const acceptInvite = mutation({
           .first();
 
         if (fallbackProfile) {
-          console.warn(`Insert failed but profile exists - likely race condition for user ${user.email}`);
+          console.warn(`Insert failed but profile exists - likely race condition for user ${maskEmail(user.email)}`);
           studentProfileId = fallbackProfile._id;
         } else {
           // Genuine error - cannot proceed without profile
@@ -1027,11 +1029,19 @@ export const findDuplicateProfiles = query({
     // Convex query limits: 1-second execution, 64 MiB memory
     // Current approach risks timeout at ~3,000-5,000 profiles depending on data size
     //
-    // MIGRATION REQUIRED when approaching 3,000 profiles:
-    // 1. Add pagination with cursor-based queries (take/cursor pattern)
-    // 2. Move to scheduled internal mutation (no 1-second limit)
-    // 3. Store results in diagnostics table for faster admin UI access
-    // 4. Consider Convex's batch get() API when available
+    // MIGRATION PRIORITY (Phase 2 - before 2,000 profiles):
+    // See detectOrphanedProfiles for reference implementation of paginated internalMutation.
+    //
+    // Migration steps:
+    // 1. Convert to internalMutation (removes 1-second query limit)
+    // 2. Add cursor-based pagination (see detectOrphanedProfiles pattern)
+    // 3. Store results in diagnostics table for async retrieval
+    // 4. Set up scheduled nightly runs instead of on-demand
+    //
+    // Priority order for diagnostic query migrations:
+    // - Phase 1 (NOW): detectOrphanedProfiles ✅ Already migrated to internalMutation
+    // - Phase 2 (before 2,000 profiles): findDuplicateProfiles, findStudentsAtInactiveUniversities
+    // - Phase 3 (before 2,500 invites): detectDuplicateInvites
     //
     // Monitor: Convex dashboard function execution time
     // Hard limit: 1 second (query will fail if exceeded)
@@ -1454,13 +1464,16 @@ export const findStudentsAtInactiveUniversities = query({
     // PERFORMANCE CRITICAL: Loads all profiles into memory
     // Convex query limits: 1-second execution, 64 MiB memory
     // Risks timeout at ~3,000-5,000 profiles depending on data size
+    //
+    // MIGRATION PRIORITY: Phase 2 (before 2,000 profiles)
+    // See findDuplicateProfiles for full migration plan and priority order.
     const allProfiles = await ctx.db.query("studentProfiles").collect();
 
     // Early warning if approaching 1-second query limit
     if (allProfiles.length > 2500) {
       console.warn(
         `[SCALE WARNING] findStudentsAtInactiveUniversities processing ${allProfiles.length} profiles. ` +
-        `Approaching 1-second query limit. Pagination required soon.`
+        `Approaching 1-second query limit. Pagination required soon. See findDuplicateProfiles for migration plan.`
       );
     }
 
@@ -1731,6 +1744,9 @@ export const detectDuplicateInvites = query({
     // PERFORMANCE CRITICAL: Loads all pending invites into memory
     // Convex query limits: 1-second execution, 64 MiB memory
     // Risks timeout at ~3,000-5,000 pending invites depending on invite data size
+    //
+    // MIGRATION PRIORITY: Phase 3 (before 2,500 pending invites)
+    // See findDuplicateProfiles for full migration plan and priority order.
     const allPendingInvites = await ctx.db
       .query("studentInvites")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
@@ -1740,7 +1756,7 @@ export const detectDuplicateInvites = query({
     if (allPendingInvites.length > 2500) {
       console.warn(
         `[SCALE WARNING] detectDuplicateInvites processing ${allPendingInvites.length} pending invites. ` +
-        `Approaching 1-second query limit. Pagination required soon.`
+        `Approaching 1-second query limit. Pagination required soon. See findDuplicateProfiles for migration plan.`
       );
     }
 

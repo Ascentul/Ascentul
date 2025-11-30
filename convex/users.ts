@@ -594,6 +594,19 @@ export const initializeUserProfile = mutation({
 });
 
 // Update user profile
+/**
+ * Update user profile by Clerk ID
+ *
+ * WARNING - Clerk Sync Required for Role Changes:
+ * This mutation updates Convex directly. Per the Clerk-first role update pattern,
+ * Clerk publicMetadata.role is the source of truth for authorization.
+ *
+ * For role changes, prefer using the admin UI at /admin/settings → "User Roles"
+ * which handles Clerk sync automatically. If using this mutation directly for
+ * role changes, you must sync to Clerk afterward:
+ *   - Via API: POST /api/admin/users/sync-role-to-convex with role parameter
+ *   - Via script: npx convex run admin/syncRolesToClerk:syncAllRolesToClerk
+ */
 export const updateUser = mutation({
   args: {
     clerkId: v.string(),
@@ -778,7 +791,19 @@ export const updateUser = mutation({
   },
 });
 
-// Update user profile by Convex document ID (useful for admin/dev utilities)
+/**
+ * Update user profile by Convex document ID (useful for admin/dev utilities)
+ *
+ * WARNING - Clerk Sync Required for Role Changes:
+ * This mutation updates Convex directly. Per the Clerk-first role update pattern,
+ * Clerk publicMetadata.role is the source of truth for authorization.
+ *
+ * For role changes, prefer using the admin UI at /admin/settings → "User Roles"
+ * which handles Clerk sync automatically. If using this mutation directly for
+ * role changes, you must sync to Clerk afterward:
+ *   - Via API: POST /api/admin/users/sync-role-to-convex with role parameter
+ *   - Via script: npx convex run admin/syncRolesToClerk:syncAllRolesToClerk
+ */
 export const updateUserById = mutation({
   args: {
     id: v.id("users"),

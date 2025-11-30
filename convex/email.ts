@@ -7,6 +7,7 @@
 
 import { action } from "./_generated/server"
 import { v } from "convex/values"
+import { sanitizeError } from "./lib/piiSafe"
 
 /**
  * Send activation email to newly created user with magic link
@@ -37,7 +38,8 @@ export const sendActivationEmail = action({
         message: "Activation email sent successfully",
       }
     } catch (error) {
-      console.error("Failed to send activation email:", error)
+      // Sanitize error to avoid logging PII from email service response
+      console.error("Failed to send activation email:", sanitizeError(error))
 
       // In development or when email service is not configured,
       // don't fail the user creation - just log the error
@@ -90,7 +92,8 @@ export const sendSupportTicketResponseEmail = action({
         message: "Support ticket response email sent successfully",
       }
     } catch (error) {
-      console.error("Failed to send support ticket response email:", error)
+      // Sanitize error to avoid logging PII from email service response
+      console.error("Failed to send support ticket response email:", sanitizeError(error))
       // Return failure but don't throw - email is non-critical
       return {
         success: false,
@@ -121,7 +124,7 @@ export const sendWelcomeEmail = action({
         message: "Welcome email sent successfully",
       }
     } catch (error) {
-      console.error("Failed to send welcome email:", error)
+      console.error("Failed to send welcome email:", sanitizeError(error))
       throw new Error("Failed to send welcome email: " + (error as Error).message)
     }
   },
@@ -204,7 +207,7 @@ The Ascentul Team`
         message: "Password reset email sent successfully",
       }
     } catch (error) {
-      console.error("Failed to send password reset email:", error)
+      console.error("Failed to send password reset email:", sanitizeError(error))
       throw new Error("Failed to send password reset email: " + (error as Error).message)
     }
   },
@@ -239,7 +242,7 @@ export const sendUniversityStudentInvitationEmail = action({
         message: "University student invitation email sent successfully",
       }
     } catch (error) {
-      console.error("Failed to send university student invitation email:", error)
+      console.error("Failed to send university student invitation email:", sanitizeError(error))
       return {
         success: false,
         messageId: null,
@@ -281,7 +284,7 @@ export const sendUniversityAdvisorInvitationEmail = action({
         message: "University advisor invitation email sent successfully",
       }
     } catch (error) {
-      console.error("Failed to send university advisor invitation email:", error)
+      console.error("Failed to send university advisor invitation email:", sanitizeError(error))
       return {
         success: false,
         messageId: null,
@@ -322,7 +325,7 @@ export const sendUniversityAdminInvitationEmail = action({
         message: "University admin invitation email sent successfully",
       }
     } catch (error) {
-      console.error("Failed to send university admin invitation email:", error)
+      console.error("Failed to send university admin invitation email:", sanitizeError(error))
       return {
         success: false,
         messageId: null,
@@ -359,7 +362,7 @@ export const sendPaymentConfirmationEmail = action({
         message: "Payment confirmation email sent successfully",
       }
     } catch (error) {
-      console.error("Failed to send payment confirmation email:", error)
+      console.error("Failed to send payment confirmation email:", sanitizeError(error))
 
       // Email is non-critical, don't fail the payment process
       const errorMessage = (error as Error).message
@@ -411,7 +414,7 @@ export const sendReviewCompletionEmail = action({
         message: "Review completion email sent successfully",
       }
     } catch (error) {
-      console.error("Failed to send review completion email:", error)
+      console.error("Failed to send review completion email:", sanitizeError(error))
 
       // Email is non-critical, don't fail the review completion process
       const errorMessage = (error as Error).message

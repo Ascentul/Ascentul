@@ -478,6 +478,7 @@ export const updateApplicationStage = mutation({
     await ctx.db.patch(args.applicationId, updates);
 
     // Audit log for FERPA compliance
+    // NOTE: Store structural metadata only, not full notes content (PII compliance)
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId,
@@ -486,7 +487,12 @@ export const updateApplicationStage = mutation({
       entityId: args.applicationId,
       studentId: application.user_id,
       previousValue: { stage: currentStage },
-      newValue: { stage: newStage, notes: args.notes, reason_code: args.reason_code },
+      newValue: {
+        stage: newStage,
+        hasNotes: Boolean(args.notes),
+        notesLength: args.notes?.length ?? 0,
+        reason_code: args.reason_code,
+      },
       ipAddress: 'server',
     });
 

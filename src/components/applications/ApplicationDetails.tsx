@@ -93,7 +93,7 @@ export function ApplicationDetails({
   );
   const followups = useQuery(
     api.followups.getFollowupsForApplication,
-    clerkId ? { clerkId, applicationId: local.id as any } : "skip",
+    clerkId ? { applicationId: local.id as any } : "skip",
   );
   const resumes = useQuery(
     api.resumes.getUserResumes,
@@ -312,7 +312,6 @@ export function ApplicationDetails({
         ? new Date(followForm.due_date).getTime()
         : undefined;
       await createFollowup({
-        clerkId,
         applicationId: local.id as any,
         description: followForm.description,
         due_date: due,
@@ -326,7 +325,6 @@ export function ApplicationDetails({
   const toggleFollowup = async (followupId: any, current: boolean) => {
     if (!clerkId) return;
     await updateFollowup({
-      clerkId,
       followupId,
       updates: { completed: !current },
     } as any);
@@ -335,7 +333,7 @@ export function ApplicationDetails({
   const removeFollowup = async (followupId: any) => {
     if (!clerkId) return;
     if (!confirm("Delete this follow-up action?")) return;
-    await deleteFollowup({ clerkId, followupId } as any);
+    await deleteFollowup({ followupId } as any);
   };
 
   // Materials selection

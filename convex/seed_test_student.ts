@@ -106,6 +106,7 @@ export const createTestStudent = internalMutation({
         role: "advisor",
         subscription_plan: "university",
         subscription_status: "active",
+        is_test_user: true,
         updated_at: now,
       });
       console.log(`✓ Updated advisor role: ${advisor.email}`);
@@ -115,6 +116,7 @@ export const createTestStudent = internalMutation({
         university_id: university._id,
         subscription_plan: "university",
         subscription_status: "active",
+        is_test_user: true,
         updated_at: now,
       });
       console.log(`✓ Linked advisor to university (preserved ${advisor.role} role): ${advisor.email}`);
@@ -141,6 +143,7 @@ export const createTestStudent = internalMutation({
         account_status: "pending_activation", // Signals to webhook this is a pre-created user
         onboarding_completed: true,
         university_id: university._id,
+        is_test_user: true,
         major: "Computer Science",
         graduation_year: "2025",
         created_at: now,
@@ -157,6 +160,7 @@ export const createTestStudent = internalMutation({
         role: "student",
         subscription_plan: "university",
         subscription_status: "active",
+        is_test_user: true,
         major: "Computer Science",
         graduation_year: "2025",
         updated_at: now,

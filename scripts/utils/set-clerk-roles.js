@@ -105,7 +105,7 @@ async function setMetadata(userId, metadata) {
       headers: {
         'Authorization': 'Bearer ' + CLERK_SECRET_KEY,
         'Content-Type': 'application/json',
-        'Content-Length': data.length
+        'Content-Length': Buffer.byteLength(data)
       }
     }, (res) => {
       let body = '';
