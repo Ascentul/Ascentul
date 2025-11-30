@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
         } catch (convexError) {
           console.error('Failed to sync existing Stripe customer ID to Convex:', convexError);
           // Continue with checkout - the customer exists in Stripe and will be found again on retry
+          console.error(`[Stripe Checkout] Failed to sync existing Stripe customer: ${customerId} for user ${userId}`);
         }
       } else {
         // No existing customer - create new one
