@@ -9,7 +9,7 @@ import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@
 export async function GET(request: NextRequest) {
   const correlationId = getCorrelationIdFromRequest(request);
   const log = createRequestLogger(correlationId, {
-    feature: 'career-path',
+    feature: 'achievements',
     httpMethod: 'GET',
     httpPath: '/api/achievements',
   });

@@ -181,7 +181,23 @@ export async function POST(req: NextRequest) {
   log.info('Resume generation request started', { event: 'request.start' });
 
   try {
-    const { jobDescription, userProfile } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      log.warn('Invalid JSON in request body', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'Invalid JSON' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
+    const { jobDescription, userProfile } = body;
 
     if (!jobDescription) {
       log.warn('Missing job description', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });

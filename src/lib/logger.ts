@@ -68,22 +68,23 @@ const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
 
 /** Application feature areas for log categorization */
 export type LogFeature =
-  | 'auth'
-  | 'resume'
-  | 'cover-letter'
-  | 'application'
-  | 'goal'
-  | 'ai-coach'
-  | 'career-path'
-  | 'university'
-  | 'advisor'
-  | 'webhook'
-  | 'gdpr'
+  | 'achievements'
   | 'admin'
+  | 'advisor'
+  | 'ai-coach'
+  | 'application'
+  | 'auth'
   | 'billing'
-  | 'support'
+  | 'career-path'
+  | 'cover-letter'
   | 'file'
-  | 'system';
+  | 'gdpr'
+  | 'goal'
+  | 'resume'
+  | 'support'
+  | 'system'
+  | 'university'
+  | 'webhook';
 
 /** Runtime environment */
 export type Environment = 'development' | 'preview' | 'production';
