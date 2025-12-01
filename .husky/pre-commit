@@ -33,9 +33,9 @@ else
     'secret\s*[=:]\s*["\047][^"\047]{8,}'    # secret = "..." patterns
     'api_key\s*[=:]\s*["\047][^"\047]{8,}'   # api_key = "..." patterns
 
-    # Private keys
-    '-----BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----'
-    '-----BEGIN PGP PRIVATE KEY BLOCK-----'
+    # Private keys (use -- to signal end of options for patterns starting with -)
+    'BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY'
+    'BEGIN PGP PRIVATE KEY BLOCK'
   )
 
   FOUND_SECRETS=0
