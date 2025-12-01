@@ -1,28 +1,31 @@
-import { TrendingUp, Zap, Users } from 'lucide-react'
+import { TrendingUp, Users, Zap } from 'lucide-react';
 
 const trustItems = [
   {
     icon: TrendingUp,
     title: 'Career Growth',
-    description: 'Track your progress, set meaningful goals, and accelerate your professional development with AI-powered insights.',
+    description:
+      'Track your progress, set meaningful goals, and accelerate your professional development with AI-powered insights.',
   },
   {
     icon: Zap,
     title: 'AI-Powered Tools',
-    description: 'Leverage cutting-edge AI to optimize your resume, practice interviews, and get personalized career advice.',
+    description:
+      'Leverage cutting-edge AI to optimize your resume, practice interviews, and get personalized career advice.',
   },
   {
     icon: Users,
     title: 'Professional Network',
-    description: 'Connect with like-minded professionals, mentors, and industry experts to expand your career opportunities.',
+    description:
+      'Connect with like-minded professionals, mentors, and industry experts to expand your career opportunities.',
   },
-]
+];
 
 export function TrustRow() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
       {trustItems.map((item) => {
-        const Icon = item.icon
+        const Icon = item.icon;
         return (
           <div key={item.title} className="text-center">
             <Icon
@@ -30,15 +33,11 @@ export function TrustRow() {
               aria-hidden="true"
               strokeWidth={1.5}
             />
-            <h3 className="text-lg font-semibold text-zinc-900 mb-2">
-              {item.title}
-            </h3>
-            <p className="text-sm text-zinc-600 leading-relaxed">
-              {item.description}
-            </p>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-2">{item.title}</h3>
+            <p className="text-sm text-zinc-600 leading-relaxed">{item.description}</p>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

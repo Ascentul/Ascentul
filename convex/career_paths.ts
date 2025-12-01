@@ -1,20 +1,21 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { v } from 'convex/values';
+
+import { mutation, query } from './_generated/server';
 
 export const getUserCareerPaths = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const items = await ctx.db
-      .query("career_paths")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .order("desc")
+      .query('career_paths')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
+      .order('desc')
       .collect();
 
     return items;
@@ -25,16 +26,16 @@ export const getUserCareerPathsPaginated = query({
   args: { clerkId: v.string(), cursor: v.optional(v.string()), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const result = await ctx.db
-      .query("career_paths")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .order("desc")
+      .query('career_paths')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
+      .order('desc')
       .paginate({ numItems: args.limit ?? 10, cursor: args.cursor ?? null });
 
     return {
@@ -46,17 +47,17 @@ export const getUserCareerPathsPaginated = query({
 
 // Update a saved career path's display name (and keep steps.path.name in sync)
 export const updateCareerPathName = mutation({
-  args: { clerkId: v.string(), id: v.id("career_paths"), name: v.string() },
+  args: { clerkId: v.string(), id: v.id('career_paths'), name: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const doc = await ctx.db.get(args.id);
-    if (!doc) throw new Error("Career path not found");
-    if (doc.user_id !== user._id) throw new Error("Unauthorized");
+    if (!doc) throw new Error('Career path not found');
+    if (doc.user_id !== user._id) throw new Error('Unauthorized');
 
     const steps = doc.steps || {};
     const path = steps.path || {};
@@ -75,17 +76,17 @@ export const updateCareerPathName = mutation({
 
 // Delete a saved career path
 export const deleteCareerPath = mutation({
-  args: { clerkId: v.string(), id: v.id("career_paths") },
+  args: { clerkId: v.string(), id: v.id('career_paths') },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const doc = await ctx.db.get(args.id);
-    if (!doc) throw new Error("Career path not found");
-    if (doc.user_id !== user._id) throw new Error("Unauthorized");
+    if (!doc) throw new Error('Career path not found');
+    if (doc.user_id !== user._id) throw new Error('Unauthorized');
 
     await ctx.db.delete(args.id);
     return args.id;
@@ -103,11 +104,11 @@ export const createCareerPath = mutation({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     // ARCHITECTURE NOTE: Free plan limits are enforced at the FRONTEND layer
     // - Clerk Billing (publicMetadata) is the source of truth for subscriptions
@@ -127,13 +128,13 @@ export const createCareerPath = mutation({
     // }
 
     const now = Date.now();
-    const id = await ctx.db.insert("career_paths", {
+    const id = await ctx.db.insert('career_paths', {
       user_id: user._id,
       target_role: args.target_role,
       current_level: args.current_level,
       estimated_timeframe: args.estimated_timeframe,
       steps: args.steps,
-      status: args.status ?? "active",
+      status: args.status ?? 'active',
       created_at: now,
       updated_at: now,
     });

@@ -1,10 +1,13 @@
-"use client"
+'use client';
 
-import { useState } from 'react'
-import { z } from 'zod'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@/components/ui/button'
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { z } from 'zod';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +15,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -20,30 +23,38 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 const schema = z.object({
   company: z.string().min(1, 'Company is required'),
   job_title: z.string().min(1, 'Job title is required'),
   status: z.enum(['saved', 'applied', 'interview', 'offer', 'rejected']),
-  url: z.string().url().optional().or(z.literal('').transform(() => undefined)),
+  url: z
+    .string()
+    .url()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   notes: z.string().optional(),
-})
+});
 
 export type Application = {
-  id: string | number
-  company: string
-  job_title: string
-  status: 'saved' | 'applied' | 'interview' | 'offer' | 'rejected'
-  url?: string | null
-  notes?: string | null
-  updated_at?: string
-}
+  id: string | number;
+  company: string;
+  job_title: string;
+  status: 'saved' | 'applied' | 'interview' | 'offer' | 'rejected';
+  url?: string | null;
+  notes?: string | null;
+  updated_at?: string;
+};
 
 export function EditApplicationForm({
   open,
@@ -53,15 +64,15 @@ export function EditApplicationForm({
   saveFn,
   deleteFn,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  application: Application
-  onSuccess?: (updated: Application | null) => void
-  saveFn?: (id: string | number, values: z.infer<typeof schema>) => Promise<Application>
-  deleteFn?: (id: string | number) => Promise<void>
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  application: Application;
+  onSuccess?: (updated: Application | null) => void;
+  saveFn?: (id: string | number, values: z.infer<typeof schema>) => Promise<Application>;
+  deleteFn?: (id: string | number) => Promise<void>;
 }) {
-  const [submitting, setSubmitting] = useState(false)
-  const [deleting, setDeleting] = useState(false)
+  const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -72,53 +83,53 @@ export function EditApplicationForm({
       url: (application as any).url ?? undefined,
       notes: (application as any).notes ?? undefined,
     },
-  })
+  });
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
-    setSubmitting(true)
+    setSubmitting(true);
     try {
       if (saveFn) {
-        const updated = await saveFn(application.id, values)
-        onSuccess?.(updated)
+        const updated = await saveFn(application.id, values);
+        onSuccess?.(updated);
       } else {
         const res = await fetch(`/api/applications/${application.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(values),
-        })
-        const json = await res.json()
-        if (!res.ok) throw new Error(json.error || 'Failed to update')
-        onSuccess?.(json.application)
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Failed to update');
+        onSuccess?.(json.application);
       }
-      onOpenChange(false)
+      onOpenChange(false);
     } catch (e) {
-      console.error(e)
-      toast.error(e instanceof Error ? e.message : 'Failed to save application')
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : 'Failed to save application');
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   const onDelete = async () => {
-    if (!confirm('Delete this application?')) return
-    setDeleting(true)
+    if (!confirm('Delete this application?')) return;
+    setDeleting(true);
     try {
       if (deleteFn) {
-        await deleteFn(application.id)
-        onSuccess?.(null)
+        await deleteFn(application.id);
+        onSuccess?.(null);
       } else {
-        const res = await fetch(`/api/applications/${application.id}`, { method: 'DELETE' })
-        if (!res.ok) throw new Error('Failed to delete')
-        onSuccess?.(null)
+        const res = await fetch(`/api/applications/${application.id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete');
+        onSuccess?.(null);
       }
-      onOpenChange(false)
+      onOpenChange(false);
     } catch (e) {
-      console.error(e)
-      toast.error(e instanceof Error ? e.message : 'Failed to delete application')
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : 'Failed to delete application');
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -212,8 +223,17 @@ export function EditApplicationForm({
             />
 
             <DialogFooter className="flex items-center justify-between gap-2">
-              <Button type="button" variant="outline" className="gap-2 text-destructive border-destructive" onClick={onDelete}>
-                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2 text-destructive border-destructive"
+                onClick={onDelete}
+              >
+                {deleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
                 Delete
               </Button>
               <div className="flex gap-2">
@@ -235,5 +255,5 @@ export function EditApplicationForm({
         </Form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -1,13 +1,16 @@
-import { MutationCtx, QueryCtx } from "./_generated/server";
-import { isServiceRequest } from "./lib/roles";
+import { MutationCtx, QueryCtx } from './_generated/server';
+import { isServiceRequest } from './lib/roles';
 
 /**
  * Resolve profile_image storage ID to URL if needed.
  */
-export async function resolveProfileImageUrl(ctx: QueryCtx, profileImage: string | undefined): Promise<string | null> {
+export async function resolveProfileImageUrl(
+  ctx: QueryCtx,
+  profileImage: string | undefined,
+): Promise<string | null> {
   if (!profileImage) return null;
 
-  if (profileImage.startsWith("http")) {
+  if (profileImage.startsWith('http')) {
     return profileImage;
   }
 
@@ -26,21 +29,21 @@ export async function logRoleChange(
   ctx: MutationCtx,
   targetUser: any,
   oldRole: string,
-  newRole: string
+  newRole: string,
 ) {
   try {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return;
 
     const admin = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
       .unique();
 
-    if (admin && admin.role === "super_admin") {
-      await ctx.db.insert("audit_logs", {
-        action: "user_role_changed",
-        target_type: "user",
+    if (admin && admin.role === 'super_admin') {
+      await ctx.db.insert('audit_logs', {
+        action: 'user_role_changed',
+        target_type: 'user',
         target_id: targetUser._id,
         target_email: targetUser.email,
         target_name: targetUser.name,
@@ -58,7 +61,7 @@ export async function logRoleChange(
       });
     }
   } catch (auditError) {
-    console.error("Failed to create role change audit log:", auditError);
+    console.error('Failed to create role change audit log:', auditError);
   }
 }
 
@@ -70,7 +73,7 @@ export async function getActingUser(ctx: MutationCtx, serviceToken?: string) {
   const isService = isServiceRequest(serviceToken);
 
   if (!identity && !isService) {
-    throw new Error("Unauthorized");
+    throw new Error('Unauthorized');
   }
 
   if (isService) {
@@ -78,12 +81,12 @@ export async function getActingUser(ctx: MutationCtx, serviceToken?: string) {
   }
 
   const actingUser = await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity!.subject))
+    .query('users')
+    .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity!.subject))
     .unique();
 
   if (!actingUser) {
-    throw new Error("Unauthorized");
+    throw new Error('Unauthorized');
   }
 
   return { actingUser, isService: false };

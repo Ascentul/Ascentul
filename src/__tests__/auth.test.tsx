@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react'
-import { useUser, useAuth } from '@clerk/nextjs'
-import { useAuth as useClerkAuth } from '@/contexts/ClerkAuthProvider'
+import { useAuth, useUser } from '@clerk/nextjs';
+import { render, screen } from '@testing-library/react';
+
+import { useAuth as useClerkAuth } from '@/contexts/ClerkAuthProvider';
 
 // Mock Clerk hooks
 jest.mock('@clerk/nextjs', () => ({
@@ -10,21 +11,21 @@ jest.mock('@clerk/nextjs', () => ({
   SignInButton: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
   SignUpButton: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
   UserButton: () => <div>User Button</div>,
-}))
+}));
 
 jest.mock('@/contexts/ClerkAuthProvider', () => ({
   useAuth: jest.fn(),
   ClerkAuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}))
+}));
 
-const mockUseUser = useUser as jest.MockedFunction<typeof useUser>
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
-const mockUseClerkAuth = useClerkAuth as jest.MockedFunction<typeof useClerkAuth>
+const mockUseUser = useUser as jest.MockedFunction<typeof useUser>;
+const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+const mockUseClerkAuth = useClerkAuth as jest.MockedFunction<typeof useClerkAuth>;
 
 describe('Authentication', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-  })
+    jest.clearAllMocks();
+  });
 
   describe('User Authentication State', () => {
     it('handles signed-in user correctly', () => {
@@ -35,13 +36,13 @@ describe('Authentication', () => {
         lastName: 'Doe',
         username: 'johndoe',
         imageUrl: 'https://example.com/avatar.jpg',
-      }
+      };
 
       mockUseUser.mockReturnValue({
         user: mockUser,
         isLoaded: true,
         isSignedIn: true,
-      } as any)
+      } as any);
 
       mockUseAuth.mockReturnValue({
         isSignedIn: true,
@@ -52,7 +53,7 @@ describe('Authentication', () => {
         orgSlug: null,
         getToken: jest.fn(),
         signOut: jest.fn(),
-      } as any)
+      } as any);
 
       mockUseClerkAuth.mockReturnValue({
         user: {
@@ -64,11 +65,11 @@ describe('Authentication', () => {
           subscription_status: 'active',
         },
         isLoading: false,
-      } as any)
+      } as any);
 
       // Test component that uses authentication
       const TestComponent = () => {
-        const { user } = useClerkAuth() as any
+        const { user } = useClerkAuth() as any;
         return (
           <div>
             {user ? (
@@ -81,30 +82,30 @@ describe('Authentication', () => {
               <span>Not authenticated</span>
             )}
           </div>
-        )
-      }
+        );
+      };
 
-      render(<TestComponent />)
+      render(<TestComponent />);
 
-      expect(screen.getByText('Welcome, John Doe')).toBeInTheDocument()
-      expect(screen.getByText('Role: user')).toBeInTheDocument()
-      expect(screen.getByText('Plan: free')).toBeInTheDocument()
-    })
+      expect(screen.getByText('Welcome, John Doe')).toBeInTheDocument();
+      expect(screen.getByText('Role: user')).toBeInTheDocument();
+      expect(screen.getByText('Plan: free')).toBeInTheDocument();
+    });
 
     it('handles loading state correctly', () => {
       mockUseUser.mockReturnValue({
         user: null,
         isLoaded: false,
         isSignedIn: false,
-      } as any)
+      } as any);
 
       mockUseClerkAuth.mockReturnValue({
         user: null,
         isLoading: true,
-      } as any)
+      } as any);
 
       const TestComponent = () => {
-        const { user, isLoading } = useClerkAuth()
+        const { user, isLoading } = useClerkAuth();
         return (
           <div>
             {isLoading ? (
@@ -115,20 +116,20 @@ describe('Authentication', () => {
               <span>Not authenticated</span>
             )}
           </div>
-        )
-      }
+        );
+      };
 
-      render(<TestComponent />)
+      render(<TestComponent />);
 
-      expect(screen.getByText('Loading...')).toBeInTheDocument()
-    })
+      expect(screen.getByText('Loading...')).toBeInTheDocument();
+    });
 
     it('handles signed-out user correctly', () => {
       mockUseUser.mockReturnValue({
         user: null,
         isLoaded: true,
         isSignedIn: false,
-      } as any)
+      } as any);
 
       mockUseAuth.mockReturnValue({
         isSignedIn: false,
@@ -139,15 +140,15 @@ describe('Authentication', () => {
         orgSlug: null,
         getToken: jest.fn(),
         signOut: jest.fn(),
-      } as any)
+      } as any);
 
       mockUseClerkAuth.mockReturnValue({
         user: null,
         isLoading: false,
-      } as any)
+      } as any);
 
       const TestComponent = () => {
-        const { user, isLoading } = useClerkAuth()
+        const { user, isLoading } = useClerkAuth();
         return (
           <div>
             {isLoading ? (
@@ -158,18 +159,18 @@ describe('Authentication', () => {
               <span>Not authenticated</span>
             )}
           </div>
-        )
-      }
+        );
+      };
 
-      render(<TestComponent />)
+      render(<TestComponent />);
 
-      expect(screen.getByText('Not authenticated')).toBeInTheDocument()
-    })
+      expect(screen.getByText('Not authenticated')).toBeInTheDocument();
+    });
 
     it('handles different user roles correctly', () => {
-      const roles = ['user', 'admin', 'super_admin', 'university_admin'] as const
+      const roles = ['user', 'admin', 'super_admin', 'university_admin'] as const;
 
-      roles.forEach(role => {
+      roles.forEach((role) => {
         mockUseClerkAuth.mockReturnValue({
           user: {
             clerkId: 'user_123',
@@ -180,21 +181,21 @@ describe('Authentication', () => {
             subscription_status: 'active',
           },
           isLoading: false,
-        } as any)
+        } as any);
 
         const TestComponent = () => {
-          const { user } = useClerkAuth()
-          return <div>Role: {user?.role}</div>
-        }
+          const { user } = useClerkAuth();
+          return <div>Role: {user?.role}</div>;
+        };
 
-        const { rerender } = render(<TestComponent />)
-        expect(screen.getByText(`Role: ${role}`)).toBeInTheDocument()
+        const { rerender } = render(<TestComponent />);
+        expect(screen.getByText(`Role: ${role}`)).toBeInTheDocument();
 
         // Clean up for next iteration
-        rerender(<div />)
-      })
-    })
-  })
+        rerender(<div />);
+      });
+    });
+  });
 
   describe('Authentication Guards', () => {
     it('should redirect university admins to university dashboard', () => {
@@ -208,25 +209,25 @@ describe('Authentication', () => {
           subscription_status: 'active',
         },
         isLoading: false,
-      } as any)
+      } as any);
 
       // Test the logic directly - university admin role should trigger redirect logic
       const TestComponent = () => {
-        const { user } = useClerkAuth()
+        const { user } = useClerkAuth();
 
         // Simulate the redirect logic
         if (user?.role === 'university_admin') {
-          return <div data-testid="redirect-triggered">Redirecting to university dashboard...</div>
+          return <div data-testid="redirect-triggered">Redirecting to university dashboard...</div>;
         }
 
-        return <div>Regular dashboard</div>
-      }
+        return <div>Regular dashboard</div>;
+      };
 
-      render(<TestComponent />)
+      render(<TestComponent />);
 
-      expect(screen.getByTestId('redirect-triggered')).toBeInTheDocument()
-      expect(screen.getByText('Redirecting to university dashboard...')).toBeInTheDocument()
-    })
+      expect(screen.getByTestId('redirect-triggered')).toBeInTheDocument();
+      expect(screen.getByText('Redirecting to university dashboard...')).toBeInTheDocument();
+    });
 
     it('should allow regular users to access dashboard', () => {
       mockUseClerkAuth.mockReturnValue({
@@ -239,21 +240,21 @@ describe('Authentication', () => {
           subscription_status: 'active',
         },
         isLoading: false,
-      } as any)
+      } as any);
 
       const TestGuardComponent = () => {
-        const { user } = useClerkAuth()
+        const { user } = useClerkAuth();
 
         if (user?.role === 'university_admin') {
-          return null
+          return null;
         }
 
-        return <div>Regular dashboard</div>
-      }
+        return <div>Regular dashboard</div>;
+      };
 
-      render(<TestGuardComponent />)
+      render(<TestGuardComponent />);
 
-      expect(screen.getByText('Regular dashboard')).toBeInTheDocument()
-    })
-  })
-})
+      expect(screen.getByText('Regular dashboard')).toBeInTheDocument();
+    });
+  });
+});

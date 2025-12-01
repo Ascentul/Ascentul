@@ -1,32 +1,33 @@
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
-import type { Id, Doc } from "./_generated/dataModel";
+import { v } from 'convex/values';
+
+import type { Doc, Id } from './_generated/dataModel';
+import { mutation, query } from './_generated/server';
 
 function requireAdmin(user: any, options?: { allowMissingUniversity?: boolean }) {
-  const isAdmin = ["super_admin", "university_admin", "advisor"].includes(user.role);
+  const isAdmin = ['super_admin', 'university_admin', 'advisor'].includes(user.role);
   if (!isAdmin) {
-    throw new Error("Unauthorized");
+    throw new Error('Unauthorized');
   }
 
   // University-scoped roles must be tied to a university (unless explicitly allowed)
-  if (user.role !== "super_admin" && !user.university_id && !options?.allowMissingUniversity) {
-    throw new Error("Unauthorized: University membership required");
+  if (user.role !== 'super_admin' && !user.university_id && !options?.allowMissingUniversity) {
+    throw new Error('Unauthorized: University membership required');
   }
 }
 
 async function getCurrentUser(ctx: any, clerkId: string) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
-    throw new Error("Unauthorized");
+    throw new Error('Unauthorized');
   }
   if (clerkId && clerkId !== identity.subject) {
-    throw new Error("Unauthorized: Clerk identity mismatch");
+    throw new Error('Unauthorized: Clerk identity mismatch');
   }
   const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", identity.subject))
+    .query('users')
+    .withIndex('by_clerk_id', (q: any) => q.eq('clerkId', identity.subject))
     .unique();
-  if (!user) throw new Error("User not found");
+  if (!user) throw new Error('User not found');
   return user;
 }
 
@@ -50,22 +51,22 @@ export const getOverview = query({
     // OPTIMIZED: Add limits to prevent bandwidth issues
     const [students, departments, courses] = await Promise.all([
       ctx.db
-        .query("users")
-        .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
+        .query('users')
+        .withIndex('by_university', (q: any) => q.eq('university_id', uniId))
         .take(2000), // Limit students to 2000 max
       ctx.db
-        .query("departments")
-        .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
+        .query('departments')
+        .withIndex('by_university', (q: any) => q.eq('university_id', uniId))
         .take(100), // Limit departments to 100 max
       ctx.db
-        .query("courses")
-        .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
+        .query('courses')
+        .withIndex('by_university', (q: any) => q.eq('university_id', uniId))
         .take(500), // Limit courses to 500 max
     ]);
 
     // Filter to count only actual students (exclude university_admin)
     // Include both legacy 'user' role and current 'student' role
-    const actualStudents = students.filter((s: any) => s.role === "user" || s.role === "student");
+    const actualStudents = students.filter((s: any) => s.role === 'user' || s.role === 'student');
 
     // Calculate growth from last month
     const now = Date.now();
@@ -76,19 +77,17 @@ export const getOverview = query({
     lastMonthEnd.setDate(0); // Last day of previous month
 
     const studentsLastMonth = actualStudents.filter(
-      (s: any) => s.created_at <= lastMonthEnd.getTime()
+      (s: any) => s.created_at <= lastMonthEnd.getTime(),
     ).length;
 
-    const studentGrowth = studentsLastMonth > 0
-      ? ((actualStudents.length - studentsLastMonth) / studentsLastMonth) * 100
-      : 0;
+    const studentGrowth =
+      studentsLastMonth > 0
+        ? ((actualStudents.length - studentsLastMonth) / studentsLastMonth) * 100
+        : 0;
 
     // Use university license seats if available
-    const uni = (await ctx.db.get(
-      uniId as Id<"universities">,
-    )) as Doc<"universities"> | null;
-    const licenseCapacity =
-      (uni?.license_seats as number | undefined) ?? actualStudents.length;
+    const uni = (await ctx.db.get(uniId as Id<'universities'>)) as Doc<'universities'> | null;
+    const licenseCapacity = (uni?.license_seats as number | undefined) ?? actualStudents.length;
 
     return {
       totalStudents: actualStudents.length,
@@ -102,7 +101,7 @@ export const getOverview = query({
 });
 
 export const getUniversityAnalytics = query({
-  args: { clerkId: v.string(), departmentId: v.optional(v.id("departments")) },
+  args: { clerkId: v.string(), departmentId: v.optional(v.id('departments')) },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(user, { allowMissingUniversity: true });
@@ -120,22 +119,22 @@ export const getUniversityAnalytics = query({
     // OPTIMIZED: Add limits to prevent bandwidth issues
     const [allUsers, departments, courses] = await Promise.all([
       ctx.db
-        .query("users")
-        .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
+        .query('users')
+        .withIndex('by_university', (q: any) => q.eq('university_id', uniId))
         .take(2000), // Limit to 2000 users max
       ctx.db
-        .query("departments")
-        .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
+        .query('departments')
+        .withIndex('by_university', (q: any) => q.eq('university_id', uniId))
         .take(100), // Limit to 100 departments max
       ctx.db
-        .query("courses")
-        .withIndex("by_university", (q: any) => q.eq("university_id", uniId))
+        .query('courses')
+        .withIndex('by_university', (q: any) => q.eq('university_id', uniId))
         .take(500), // Limit to 500 courses max
     ]);
 
     // Filter to only actual students (exclude university_admin)
     // Include both legacy 'user' role and current 'student' role
-    let students = allUsers.filter((s: any) => s.role === "user" || s.role === "student");
+    let students = allUsers.filter((s: any) => s.role === 'user' || s.role === 'student');
 
     // Filter by department if specified
     if (args.departmentId) {
@@ -147,26 +146,18 @@ export const getUniversityAnalytics = query({
     for (let i = 5; i >= 0; i--) {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
-      const monthStart = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        1,
-      ).getTime();
-      const monthEnd = new Date(
-        date.getFullYear(),
-        date.getMonth() + 1,
-        0,
-      ).getTime();
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0).getTime();
 
       const monthStudents = students.filter(
         (student) =>
-          student.role === "user" &&
+          student.role === 'user' &&
           student.created_at >= monthStart &&
           student.created_at <= monthEnd,
       ).length;
 
       studentGrowthData.push({
-        month: date.toLocaleDateString("en-US", { month: "short" }),
+        month: date.toLocaleDateString('en-US', { month: 'short' }),
         students: monthStudents,
       });
     }
@@ -174,13 +165,9 @@ export const getUniversityAnalytics = query({
     // Calculate department statistics with real student counts
     const departmentStats = departments.map((dept: any) => {
       // Count students actually assigned to this department
-      const deptStudents = students.filter(
-        (student) => student.department_id === dept._id,
-      );
+      const deptStudents = students.filter((student) => student.department_id === dept._id);
 
-      const deptCourses = courses.filter(
-        (course) => course.department_id === dept._id,
-      );
+      const deptCourses = courses.filter((course) => course.department_id === dept._id);
 
       return {
         name: dept.name,
@@ -195,21 +182,14 @@ export const getUniversityAnalytics = query({
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const dayStart = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate(),
-      ).getTime();
+      const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
       const dayEnd = dayStart + 24 * 60 * 60 * 1000 - 1;
 
       // OPTIMIZED: Get applications created on this day with limit
       const dayApplications = await ctx.db
-        .query("applications")
+        .query('applications')
         .filter((q: any) =>
-          q.and(
-            q.gte(q.field("created_at"), dayStart),
-            q.lte(q.field("created_at"), dayEnd),
-          ),
+          q.and(q.gte(q.field('created_at'), dayStart), q.lte(q.field('created_at'), dayEnd)),
         )
         .take(500); // Limit to 500 applications per day
 
@@ -219,7 +199,7 @@ export const getUniversityAnalytics = query({
       );
 
       activityData.push({
-        day: date.toLocaleDateString("en-US", { weekday: "short" }),
+        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
         logins: Math.max(0, universityApplications.length * 2), // Estimate logins based on activity
         assignments: universityApplications.length,
       });
@@ -229,54 +209,56 @@ export const getUniversityAnalytics = query({
     const platformUsageData = [];
 
     // OPTIMIZED: Filter by time window and limit results to prevent bandwidth issues
-    const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000); // 6 months
+    const sixMonthsAgo = Date.now() - 180 * 24 * 60 * 60 * 1000; // 6 months
     const studentIds = students.map((s) => s._id);
 
     // Load only recent data for university students with limits
     const [allApplications, allResumes, allCoverLetters, allGoals] = await Promise.all([
-      ctx.db.query("applications")
-        .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+      ctx.db
+        .query('applications')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
         .take(2000), // Limit to 2000 per category
-      ctx.db.query("resumes")
-        .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+      ctx.db
+        .query('resumes')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
         .take(1000),
-      ctx.db.query("cover_letters")
-        .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+      ctx.db
+        .query('cover_letters')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
         .take(1000),
-      ctx.db.query("goals")
-        .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
+      ctx.db
+        .query('goals')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
         .take(1000),
     ]);
 
     for (let i = 5; i >= 0; i--) {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
-      const monthStart = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        1,
-      ).getTime();
-      const monthEnd = new Date(
-        date.getFullYear(),
-        date.getMonth() + 1,
-        0,
-      ).getTime();
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0).getTime();
 
       const monthGoals = allGoals.filter(
-        (g) => studentIds.includes(g.user_id) && g.created_at >= monthStart && g.created_at <= monthEnd
+        (g) =>
+          studentIds.includes(g.user_id) && g.created_at >= monthStart && g.created_at <= monthEnd,
       ).length;
       const monthApplications = allApplications.filter(
-        (a) => studentIds.includes(a.user_id) && a.created_at >= monthStart && a.created_at <= monthEnd
+        (a) =>
+          studentIds.includes(a.user_id) && a.created_at >= monthStart && a.created_at <= monthEnd,
       ).length;
       const monthResumes = allResumes.filter(
-        (r) => studentIds.includes(r.user_id) && r.created_at >= monthStart && r.created_at <= monthEnd
+        (r) =>
+          studentIds.includes(r.user_id) && r.created_at >= monthStart && r.created_at <= monthEnd,
       ).length;
       const monthCoverLetters = allCoverLetters.filter(
-        (cl) => studentIds.includes(cl.user_id) && cl.created_at >= monthStart && cl.created_at <= monthEnd
+        (cl) =>
+          studentIds.includes(cl.user_id) &&
+          cl.created_at >= monthStart &&
+          cl.created_at <= monthEnd,
       ).length;
 
       platformUsageData.push({
-        month: date.toLocaleDateString("en-US", { month: "short" }),
+        month: date.toLocaleDateString('en-US', { month: 'short' }),
         goals: monthGoals,
         applications: monthApplications,
         resumes: monthResumes,
@@ -294,14 +276,14 @@ export const getUniversityAnalytics = query({
 });
 
 export const getCourse = query({
-  args: { clerkId: v.string(), courseId: v.id("courses") },
+  args: { clerkId: v.string(), courseId: v.id('courses') },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(user);
     const course = await ctx.db.get(args.courseId);
     if (!course) return null;
     if (user.university_id && course.university_id !== user.university_id) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
     return course;
   },
@@ -311,81 +293,90 @@ export const assignStudentByEmail = mutation({
   args: {
     clerkId: v.string(),
     email: v.string(),
-    role: v.optional(v.union(v.literal("user"), v.literal("student"), v.literal("staff"))),
-    departmentId: v.optional(v.id("departments")),
+    role: v.optional(v.union(v.literal('user'), v.literal('student'), v.literal('staff'))),
+    departmentId: v.optional(v.id('departments')),
   },
   handler: async (ctx, args) => {
     const admin = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(admin);
-    if (!admin.university_id) throw new Error("No university assigned");
+    if (!admin.university_id) throw new Error('No university assigned');
     const now = Date.now();
 
     // Check if user already exists
     const existingStudent = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q: any) => q.eq("email", args.email))
+      .query('users')
+      .withIndex('by_email', (q: any) => q.eq('email', args.email))
       .first();
 
-    if (existingStudent && existingStudent.university_id && existingStudent.university_id !== admin.university_id) {
+    if (
+      existingStudent &&
+      existingStudent.university_id &&
+      existingStudent.university_id !== admin.university_id
+    ) {
       // Prevent silently moving a user between universities
-      throw new Error("User already belongs to a different university");
+      throw new Error('User already belongs to a different university');
     }
 
     // Only super admins/university admins/advisors can operate within their own university
-    const isSameUniversity = !existingStudent || !existingStudent.university_id || existingStudent.university_id === admin.university_id;
+    const isSameUniversity =
+      !existingStudent ||
+      !existingStudent.university_id ||
+      existingStudent.university_id === admin.university_id;
     if (!isSameUniversity) {
-      throw new Error("Unauthorized to reassign this user");
+      throw new Error('Unauthorized to reassign this user');
     }
 
     if (existingStudent) {
       // Update existing user
       await ctx.db.patch(existingStudent._id, {
         university_id: admin.university_id,
-        subscription_plan: "university",
+        subscription_plan: 'university',
         ...(args.role ? { role: args.role } : {}),
         ...(args.departmentId ? { department_id: args.departmentId } : {}),
         updated_at: now,
       });
       const membership = await ctx.db
-        .query("memberships")
-        .withIndex("by_user_role", (q: any) => q.eq("user_id", existingStudent._id).eq("role", "student"))
+        .query('memberships')
+        .withIndex('by_user_role', (q: any) =>
+          q.eq('user_id', existingStudent._id).eq('role', 'student'),
+        )
         .first();
       if (!membership) {
-        await ctx.db.insert("memberships", {
+        await ctx.db.insert('memberships', {
           user_id: existingStudent._id,
           university_id: admin.university_id,
-          role: "student",
-          status: "active",
+          role: 'student',
+          status: 'active',
           created_at: now,
           updated_at: now,
         });
       } else if (membership.university_id !== admin.university_id) {
-        throw new Error("Existing student membership is tied to another university");
-      } else if (membership.status !== "active") {
-        await ctx.db.patch(membership._id, { status: "active", updated_at: now });
+        throw new Error('Existing student membership is tied to another university');
+      } else if (membership.status !== 'active') {
+        await ctx.db.patch(membership._id, { status: 'active', updated_at: now });
       }
       return { userId: existingStudent._id, isNew: false };
     } else {
       // Create pending user invitation
       // This user will be activated when they click the magic link in their email
-      const userId = await ctx.db.insert("users", {
+      const userId = await ctx.db.insert('users', {
         email: args.email,
-        name: "", // Will be filled in when user activates
-        clerkId: "", // Will be filled in when user activates via Clerk
+        name: '', // Will be filled in when user activates
+        clerkId: '', // Will be filled in when user activates via Clerk
         university_id: admin.university_id,
-        subscription_plan: "university",
-        subscription_status: "active",
-        role: args.role || "user",
-        account_status: "pending_activation",
+        subscription_plan: 'university',
+        subscription_status: 'active',
+        role: args.role || 'user',
+        account_status: 'pending_activation',
         ...(args.departmentId ? { department_id: args.departmentId } : {}),
         created_at: now,
         updated_at: now,
       });
-      await ctx.db.insert("memberships", {
+      await ctx.db.insert('memberships', {
         user_id: userId,
         university_id: admin.university_id,
-        role: "student",
-        status: "active",
+        role: 'student',
+        status: 'active',
         created_at: now,
         updated_at: now,
       });
@@ -406,37 +397,37 @@ export const assignStudentByEmail = mutation({
 export const assignAdvisorToStudent = mutation({
   args: {
     clerkId: v.string(),
-    advisorId: v.id("users"),
-    studentProfileId: v.id("studentProfiles"),
+    advisorId: v.id('users'),
+    studentProfileId: v.id('studentProfiles'),
   },
   handler: async (ctx, args) => {
     const acting = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(acting);
-    if (!acting.university_id) throw new Error("No university assigned");
+    if (!acting.university_id) throw new Error('No university assigned');
 
     // Get the student profile to find the user_id
     const studentProfile = await ctx.db.get(args.studentProfileId);
-    if (!studentProfile) throw new Error("Student profile not found");
-    if (!studentProfile.user_id) throw new Error("Student profile missing user_id");
+    if (!studentProfile) throw new Error('Student profile not found');
+    if (!studentProfile.user_id) throw new Error('Student profile missing user_id');
     if (studentProfile.university_id !== acting.university_id) {
-      throw new Error("Unauthorized: Student not in your university");
+      throw new Error('Unauthorized: Student not in your university');
     }
 
     const studentUserId = studentProfile.user_id;
 
     const advisor = await ctx.db.get(args.advisorId);
-    if (!advisor) throw new Error("Advisor not found");
-    if (advisor.role !== "advisor" || advisor.university_id !== acting.university_id) {
-      throw new Error("Advisor must belong to your university");
+    if (!advisor) throw new Error('Advisor not found');
+    if (advisor.role !== 'advisor' || advisor.university_id !== acting.university_id) {
+      throw new Error('Advisor must belong to your university');
     }
 
     // Check if assignment already exists in student_advisors (canonical table)
     const existing = await ctx.db
-      .query("student_advisors")
-      .withIndex("by_student", (q: any) =>
-        q.eq("student_id", studentUserId).eq("university_id", acting.university_id)
+      .query('student_advisors')
+      .withIndex('by_student', (q: any) =>
+        q.eq('student_id', studentUserId).eq('university_id', acting.university_id),
       )
-      .filter((q: any) => q.eq(q.field("advisor_id"), args.advisorId))
+      .filter((q: any) => q.eq(q.field('advisor_id'), args.advisorId))
       .unique();
 
     const now = Date.now();
@@ -448,15 +439,15 @@ export const assignAdvisorToStudent = mutation({
 
     // Check if student already has a primary owner
     const existingOwner = await ctx.db
-      .query("student_advisors")
-      .withIndex("by_student_owner", (q: any) =>
-        q.eq("student_id", studentUserId).eq("is_owner", true)
+      .query('student_advisors')
+      .withIndex('by_student_owner', (q: any) =>
+        q.eq('student_id', studentUserId).eq('is_owner', true),
       )
       .unique();
 
     // Only super admins or university admins can reassign primary ownership
-    if (existingOwner && acting.role !== "super_admin" && acting.role !== "university_admin") {
-      throw new Error("Unauthorized: Cannot reassign primary advisor");
+    if (existingOwner && acting.role !== 'super_admin' && acting.role !== 'university_admin') {
+      throw new Error('Unauthorized: Cannot reassign primary advisor');
     }
 
     // If there's an existing owner and we're assigning a new primary, demote the old one
@@ -470,7 +461,7 @@ export const assignAdvisorToStudent = mutation({
     }
 
     // Create the new assignment as primary owner
-    const studentAdvisorId = await ctx.db.insert("student_advisors", {
+    const studentAdvisorId = await ctx.db.insert('student_advisors', {
       student_id: studentUserId,
       advisor_id: args.advisorId,
       university_id: acting.university_id,
@@ -490,7 +481,7 @@ export const assignAdvisorToStudent = mutation({
 export const updateDepartment = mutation({
   args: {
     clerkId: v.string(),
-    departmentId: v.id("departments"),
+    departmentId: v.id('departments'),
     patch: v.object({
       name: v.optional(v.string()),
       code: v.optional(v.string()),
@@ -500,9 +491,8 @@ export const updateDepartment = mutation({
     const user = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(user);
     const dept = await ctx.db.get(args.departmentId);
-    if (!dept) throw new Error("Department not found");
-    if (dept.university_id !== user.university_id)
-      throw new Error("Unauthorized");
+    if (!dept) throw new Error('Department not found');
+    if (dept.university_id !== user.university_id) throw new Error('Unauthorized');
     await ctx.db.patch(args.departmentId, {
       ...args.patch,
       updated_at: Date.now(),
@@ -511,14 +501,13 @@ export const updateDepartment = mutation({
 });
 
 export const deleteDepartment = mutation({
-  args: { clerkId: v.string(), departmentId: v.id("departments") },
+  args: { clerkId: v.string(), departmentId: v.id('departments') },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(user);
     const dept = await ctx.db.get(args.departmentId);
     if (!dept) return;
-    if (dept.university_id !== user.university_id)
-      throw new Error("Unauthorized");
+    if (dept.university_id !== user.university_id) throw new Error('Unauthorized');
     await ctx.db.delete(args.departmentId);
   },
 });
@@ -534,14 +523,12 @@ export const listStudents = query({
     // OPTIMIZED: Use take() directly on the query instead of collect() + slice()
     const limit = Math.min(args.limit ?? 200, 500); // Max 500 students
     const allUsers = await ctx.db
-      .query("users")
-      .withIndex("by_university", (q) =>
-        q.eq("university_id", user.university_id!),
-      )
+      .query('users')
+      .withIndex('by_university', (q) => q.eq('university_id', user.university_id!))
       .take(limit * 2); // Take 2x limit to account for filtering
 
     // Filter to only actual students (role === "user")
-    const students = allUsers.filter((s: any) => s.role === "user");
+    const students = allUsers.filter((s: any) => s.role === 'user');
 
     return students.slice(0, limit);
   },
@@ -555,10 +542,8 @@ export const listDepartments = query({
     if (!user.university_id) return [];
     // OPTIMIZED: Add limit to prevent bandwidth issues
     return await ctx.db
-      .query("departments")
-      .withIndex("by_university", (q: any) =>
-        q.eq("university_id", user.university_id!),
-      )
+      .query('departments')
+      .withIndex('by_university', (q: any) => q.eq('university_id', user.university_id!))
       .take(100); // Limit to 100 departments max
   },
 });
@@ -568,9 +553,9 @@ export const createDepartment = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(user);
-    if (!user.university_id) throw new Error("No university assigned");
+    if (!user.university_id) throw new Error('No university assigned');
     const now = Date.now();
-    return await ctx.db.insert("departments", {
+    return await ctx.db.insert('departments', {
       university_id: user.university_id!,
       name: args.name,
       code: args.code,
@@ -588,10 +573,8 @@ export const listCourses = query({
     if (!user.university_id) return [];
     // OPTIMIZED: Add limit to prevent bandwidth issues
     return await ctx.db
-      .query("courses")
-      .withIndex("by_university", (q: any) =>
-        q.eq("university_id", user.university_id!),
-      )
+      .query('courses')
+      .withIndex('by_university', (q: any) => q.eq('university_id', user.university_id!))
       .take(500); // Limit to 500 courses max
   },
 });
@@ -600,7 +583,7 @@ export const createCourse = mutation({
   args: {
     clerkId: v.string(),
     title: v.string(),
-    departmentId: v.optional(v.id("departments")),
+    departmentId: v.optional(v.id('departments')),
     category: v.optional(v.string()),
     level: v.optional(v.string()),
     published: v.optional(v.boolean()),
@@ -608,9 +591,9 @@ export const createCourse = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(user);
-    if (!user.university_id) throw new Error("No university assigned");
+    if (!user.university_id) throw new Error('No university assigned');
     const now = Date.now();
-    return await ctx.db.insert("courses", {
+    return await ctx.db.insert('courses', {
       university_id: user.university_id!,
       department_id: args.departmentId,
       title: args.title,
@@ -628,10 +611,10 @@ export const createCourse = mutation({
 export const updateCourse = mutation({
   args: {
     clerkId: v.string(),
-    courseId: v.id("courses"),
+    courseId: v.id('courses'),
     patch: v.object({
       title: v.optional(v.string()),
-      department_id: v.optional(v.id("departments")),
+      department_id: v.optional(v.id('departments')),
       category: v.optional(v.string()),
       level: v.optional(v.string()),
       published: v.optional(v.boolean()),
@@ -641,9 +624,8 @@ export const updateCourse = mutation({
     const user = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(user);
     const course = await ctx.db.get(args.courseId);
-    if (!course) throw new Error("Course not found");
-    if (course.university_id !== user.university_id)
-      throw new Error("Unauthorized");
+    if (!course) throw new Error('Course not found');
+    if (course.university_id !== user.university_id) throw new Error('Unauthorized');
     await ctx.db.patch(args.courseId, {
       ...args.patch,
       updated_at: Date.now(),
@@ -652,14 +634,13 @@ export const updateCourse = mutation({
 });
 
 export const deleteCourse = mutation({
-  args: { clerkId: v.string(), courseId: v.id("courses") },
+  args: { clerkId: v.string(), courseId: v.id('courses') },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
     requireAdmin(user);
     const course = await ctx.db.get(args.courseId);
     if (!course) return;
-    if (course.university_id !== user.university_id)
-      throw new Error("Unauthorized");
+    if (course.university_id !== user.university_id) throw new Error('Unauthorized');
     await ctx.db.delete(args.courseId);
   },
 });
@@ -683,14 +664,12 @@ export const getStudentMetrics = query({
 
     // OPTIMIZED: Get students for this university with limit
     const allUsers = await ctx.db
-      .query("users")
-      .withIndex("by_university", (q: any) =>
-        q.eq("university_id", user.university_id!),
-      )
+      .query('users')
+      .withIndex('by_university', (q: any) => q.eq('university_id', user.university_id!))
       .take(2000); // Limit to 2000 users max
 
     // Include both legacy 'user' role and current 'student' role for analytics
-    const students = allUsers.filter((s: any) => s.role === "user" || s.role === "student");
+    const students = allUsers.filter((s: any) => s.role === 'user' || s.role === 'student');
     const studentIds = students.map((s) => s._id);
 
     if (studentIds.length === 0) {
@@ -705,53 +684,43 @@ export const getStudentMetrics = query({
     }
 
     // OPTIMIZED: Load only recent data with time filter and limits (last 6 months)
-    const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
-    const [applications, resumes, coverLetters, goals, projects] =
-      await Promise.all([
-        ctx.db.query("applications")
-          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-          .take(3000),
-        ctx.db.query("resumes")
-          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-          .take(1500),
-        ctx.db.query("cover_letters")
-          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-          .take(1500),
-        ctx.db.query("goals")
-          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-          .take(1500),
-        ctx.db.query("projects")
-          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-          .take(1500),
-      ]);
+    const sixMonthsAgo = Date.now() - 180 * 24 * 60 * 60 * 1000;
+    const [applications, resumes, coverLetters, goals, projects] = await Promise.all([
+      ctx.db
+        .query('applications')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
+        .take(3000),
+      ctx.db
+        .query('resumes')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
+        .take(1500),
+      ctx.db
+        .query('cover_letters')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
+        .take(1500),
+      ctx.db
+        .query('goals')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
+        .take(1500),
+      ctx.db
+        .query('projects')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
+        .take(1500),
+    ]);
 
     // Filter to only include items belonging to university students
-    const studentApplications = applications.filter((app) =>
-      studentIds.includes(app.user_id),
-    );
-    const studentResumes = resumes.filter((resume) =>
-      studentIds.includes(resume.user_id),
-    );
-    const studentCoverLetters = coverLetters.filter((cl) =>
-      studentIds.includes(cl.user_id),
-    );
-    const studentGoals = goals.filter((goal) =>
-      studentIds.includes(goal.user_id),
-    );
-    const studentProjects = projects.filter((project) =>
-      studentIds.includes(project.user_id),
-    );
+    const studentApplications = applications.filter((app) => studentIds.includes(app.user_id));
+    const studentResumes = resumes.filter((resume) => studentIds.includes(resume.user_id));
+    const studentCoverLetters = coverLetters.filter((cl) => studentIds.includes(cl.user_id));
+    const studentGoals = goals.filter((goal) => studentIds.includes(goal.user_id));
+    const studentProjects = projects.filter((project) => studentIds.includes(project.user_id));
 
     // Calculate average career completion percentage
     // Based on: resumes (30%), cover letters (20%), applications (30%), goals (10%), projects (10%)
     const careerCompletions = students.map((student) => {
       const hasResume = studentResumes.some((r) => r.user_id === student._id);
-      const hasCoverLetter = studentCoverLetters.some(
-        (cl) => cl.user_id === student._id,
-      );
-      const hasApplication = studentApplications.some(
-        (app) => app.user_id === student._id,
-      );
+      const hasCoverLetter = studentCoverLetters.some((cl) => cl.user_id === student._id);
+      const hasApplication = studentApplications.some((app) => app.user_id === student._id);
       const hasGoal = studentGoals.some((g) => g.user_id === student._id);
       const hasProject = studentProjects.some((p) => p.user_id === student._id);
 
@@ -767,10 +736,7 @@ export const getStudentMetrics = query({
 
     const avgCareerCompletion =
       careerCompletions.length > 0
-        ? Math.round(
-            careerCompletions.reduce((a, b) => a + b, 0) /
-              careerCompletions.length,
-          )
+        ? Math.round(careerCompletions.reduce((a, b) => a + b, 0) / careerCompletions.length)
         : 0;
 
     return {
@@ -794,52 +760,48 @@ export const getStudentProgress = query({
 
     // OPTIMIZED: Get students for this university with limit
     const allUsers = await ctx.db
-      .query("users")
-      .withIndex("by_university", (q: any) =>
-        q.eq("university_id", user.university_id!),
-      )
+      .query('users')
+      .withIndex('by_university', (q: any) => q.eq('university_id', user.university_id!))
       .take(2000); // Limit to 2000 users max
 
     // Include both legacy 'user' role and current 'student' role for analytics
-    const students = allUsers.filter((s: any) => s.role === "user" || s.role === "student");
+    const students = allUsers.filter((s: any) => s.role === 'user' || s.role === 'student');
     const studentIds = students.map((s) => s._id);
 
     if (studentIds.length === 0) return [];
 
     // OPTIMIZED: Load only recent data with time filter and limits (last 6 months)
-    const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000);
-    const [applications, resumes, coverLetters, goals, projects] =
-      await Promise.all([
-        ctx.db.query("applications")
-          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-          .take(3000),
-        ctx.db.query("resumes")
-          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-          .take(1500),
-        ctx.db.query("cover_letters")
-          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-          .take(1500),
-        ctx.db.query("goals")
-          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-          .take(1500),
-        ctx.db.query("projects")
-          .filter((q) => q.gte(q.field("created_at"), sixMonthsAgo))
-          .take(1500),
-      ]);
+    const sixMonthsAgo = Date.now() - 180 * 24 * 60 * 60 * 1000;
+    const [applications, resumes, coverLetters, goals, projects] = await Promise.all([
+      ctx.db
+        .query('applications')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
+        .take(3000),
+      ctx.db
+        .query('resumes')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
+        .take(1500),
+      ctx.db
+        .query('cover_letters')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
+        .take(1500),
+      ctx.db
+        .query('goals')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
+        .take(1500),
+      ctx.db
+        .query('projects')
+        .filter((q) => q.gte(q.field('created_at'), sixMonthsAgo))
+        .take(1500),
+    ]);
 
     // Map student progress
     return students.map((student) => {
-      const studentApps = applications.filter(
-        (app) => app.user_id === student._id,
-      );
+      const studentApps = applications.filter((app) => app.user_id === student._id);
       const studentResumes = resumes.filter((r) => r.user_id === student._id);
-      const studentCoverLetters = coverLetters.filter(
-        (cl) => cl.user_id === student._id,
-      );
+      const studentCoverLetters = coverLetters.filter((cl) => cl.user_id === student._id);
       const studentGoals = goals.filter((g) => g.user_id === student._id);
-      const studentProjects = projects.filter(
-        (p) => p.user_id === student._id,
-      );
+      const studentProjects = projects.filter((p) => p.user_id === student._id);
 
       // Calculate completion percentage
       let completion = 0;

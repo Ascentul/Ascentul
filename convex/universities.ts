@@ -1,22 +1,17 @@
 export {
-  createUniversity,
-  getAllUniversities,
-  updateUniversity,
-  toggleTestUniversity,
   archiveUniversity,
-  restoreUniversity,
-  hardDeleteUniversity,
+  createUniversity,
   deleteUniversity,
-} from "./universities_admin";
-
+  getAllUniversities,
+  hardDeleteUniversity,
+  restoreUniversity,
+  toggleTestUniversity,
+  updateUniversity,
+} from './universities_admin';
+export { assignUniversityToUser, updateUniversitySettings } from './universities_assignments';
 export {
-  assignUniversityToUser,
-  updateUniversitySettings,
-} from "./universities_assignments";
-
-export {
-  getUniversitySettings,
   getUniversity,
-  getUniversityBySlug,
   getUniversityAdminCounts,
-} from "./universities_queries";
+  getUniversityBySlug,
+  getUniversitySettings,
+} from './universities_queries';

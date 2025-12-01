@@ -1,5 +1,6 @@
-import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { v } from 'convex/values';
+
+import { query } from './_generated/server';
 
 /**
  * Get current viewer (authenticated user) with student context
@@ -26,7 +27,7 @@ export const getViewer = query({
     // Verify authenticated user is available from auth context
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      console.warn("viewer:getViewer called without auth identity", {
+      console.warn('viewer:getViewer called without auth identity', {
         timestamp: new Date().toISOString(),
         clerkIdArg: args.clerkId,
       });
@@ -36,15 +37,15 @@ export const getViewer = query({
     const clerkId = identity.subject;
 
     if (args.clerkId && args.clerkId !== clerkId) {
-      console.warn("viewer:getViewer incoming clerkId mismatch ignored", {
+      console.warn('viewer:getViewer incoming clerkId mismatch ignored', {
         timestamp: new Date().toISOString(),
       });
     }
 
     // Get user by Clerk ID
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', clerkId))
       .first();
 
     // RESILIENCE: Using .first() instead of .unique() allows the app to continue working
@@ -58,12 +59,12 @@ export const getViewer = query({
     }
 
     // Check if user is a student (role === "student" or legacy "user" with university)
-    const isStudent = user.role === "student" ||
-                     (user.role === "user" && user.university_id);
+    const isStudent = user.role === 'student' || (user.role === 'user' && user.university_id);
 
     // Check if user is university-affiliated (student, advisor, or university_admin)
-    const isUniversityAffiliated = ["student", "advisor", "university_admin"].includes(user.role) ||
-                                    (user.role === "user" && user.university_id);
+    const isUniversityAffiliated =
+      ['student', 'advisor', 'university_admin'].includes(user.role) ||
+      (user.role === 'user' && user.university_id);
 
     let studentContext = null;
     let universityContext = null;
@@ -85,9 +86,9 @@ export const getViewer = query({
       // Get student profile (if exists)
       // Order by created_at ascending to always get the oldest profile if duplicates exist
       const studentProfile = await ctx.db
-        .query("studentProfiles")
-        .withIndex("by_user_id", (q) => q.eq("user_id", user._id))
-        .order("asc")
+        .query('studentProfiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', user._id))
+        .order('asc')
         .first();
 
       // Get university details
@@ -98,11 +99,13 @@ export const getViewer = query({
           universityName: university.name,
           universityId: university._id,
           universityLogo: university.logo_url || null,
-          studentProfile: studentProfile ? {
-            major: studentProfile.major,
-            year: studentProfile.year,
-            status: studentProfile.status,
-          } : null,
+          studentProfile: studentProfile
+            ? {
+                major: studentProfile.major,
+                year: studentProfile.year,
+                status: studentProfile.status,
+              }
+            : null,
         };
       }
     }

@@ -1,25 +1,23 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { AdvisorGate } from '@/components/advisor/AdvisorGate';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StudentsTable } from '@/components/advisor/StudentsTable';
-import { StudentFilters } from '@/components/advisor/StudentFilters';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useUser } from '@clerk/nextjs';
-import { useQuery } from 'convex/react';
 import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
+
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
+import { StudentFilters } from '@/components/advisor/StudentFilters';
+import { StudentsTable } from '@/components/advisor/StudentsTable';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 function AdvisorStudentsPageContent() {
   const { user } = useUser();
   const clerkId = user?.id;
 
   // Fetch caseload data (errors are caught by ErrorBoundary wrapper)
-  const caseloadData = useQuery(
-    api.advisor_students.getMyCaseload,
-    clerkId ? { clerkId } : 'skip'
-  );
+  const caseloadData = useQuery(api.advisor_students.getMyCaseload, clerkId ? { clerkId } : 'skip');
 
   // Filter state
   const [selectedMajor, setSelectedMajor] = useState('all');
@@ -66,11 +64,14 @@ function AdvisorStudentsPageContent() {
         const hasOffer = student.metadata?.hasOffer || false;
 
         // Match the badge priority logic: At Risk > Has Offer > Active > Inactive
-        const effectiveStatus = isAtRisk ? 'at-risk' 
-          : hasOffer ? 'has-offer'
-          : hasApps ? 'active'
-          : 'inactive';
-        
+        const effectiveStatus = isAtRisk
+          ? 'at-risk'
+          : hasOffer
+            ? 'has-offer'
+            : hasApps
+              ? 'active'
+              : 'inactive';
+
         if (selectedStatus !== effectiveStatus) return false;
       }
 
@@ -79,9 +80,7 @@ function AdvisorStudentsPageContent() {
   }, [caseloadData, selectedMajor, selectedGradYear, selectedStatus]);
 
   const hasActiveFilters =
-    selectedMajor !== 'all' ||
-    selectedGradYear !== 'all' ||
-    selectedStatus !== 'all';
+    selectedMajor !== 'all' || selectedGradYear !== 'all' || selectedStatus !== 'all';
 
   const handleClearFilters = () => {
     setSelectedMajor('all');
@@ -90,48 +89,43 @@ function AdvisorStudentsPageContent() {
   };
 
   return (
-    <AdvisorGate requiredFlag='advisor.students'>
-      <div className='container mx-auto p-6 space-y-6'>
+    <AdvisorGate requiredFlag="advisor.students">
+      <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">My Students</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage your student caseload
-            </p>
+            <p className="text-muted-foreground mt-1">Manage your student caseload</p>
           </div>
         </div>
 
         <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Student Caseload
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Filters */}
-          <StudentFilters
-            selectedMajor={selectedMajor}
-            selectedGradYear={selectedGradYear}
-            selectedStatus={selectedStatus}
-            onMajorChange={setSelectedMajor}
-            onGradYearChange={setSelectedGradYear}
-            onStatusChange={setSelectedStatus}
-            onClearFilters={handleClearFilters}
-            majors={majors}
-            gradYears={gradYears}
-            hasActiveFilters={hasActiveFilters}
-          />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Student Caseload
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Filters */}
+            <StudentFilters
+              selectedMajor={selectedMajor}
+              selectedGradYear={selectedGradYear}
+              selectedStatus={selectedStatus}
+              onMajorChange={setSelectedMajor}
+              onGradYearChange={setSelectedGradYear}
+              onStatusChange={setSelectedStatus}
+              onClearFilters={handleClearFilters}
+              majors={majors}
+              gradYears={gradYears}
+              hasActiveFilters={hasActiveFilters}
+            />
 
-          {/* Table */}
-          <StudentsTable
-            students={filteredStudents}
-            isLoading={caseloadData === undefined}
-          />
-        </CardContent>
-      </Card>
-    </div>
-  </AdvisorGate>
+            {/* Table */}
+            <StudentsTable students={filteredStudents} isLoading={caseloadData === undefined} />
+          </CardContent>
+        </Card>
+      </div>
+    </AdvisorGate>
   );
 }
 

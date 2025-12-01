@@ -1,31 +1,35 @@
-"use client"
+'use client';
 
-import type { ReactNode } from 'react'
-import Link from 'next/link'
-import { cn } from '@/lib/utils'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
 
-type StatCardVariant = 'interview' | 'applications' | 'followups' | 'goals'
+import { cn } from '@/lib/utils';
+
+type StatCardVariant = 'interview' | 'applications' | 'followups' | 'goals';
 
 interface StatCardProps {
-  label: string
-  metric: ReactNode
+  label: string;
+  metric: ReactNode;
   /** Accessible text for metric when metric is a ReactNode (e.g., "5 applications") */
-  metricLabel?: string
-  helper: string
-  icon: ReactNode
-  variant: StatCardVariant
-  href?: string
-  onClick?: () => void
-  className?: string
+  metricLabel?: string;
+  helper: string;
+  icon: ReactNode;
+  variant: StatCardVariant;
+  href?: string;
+  onClick?: () => void;
+  className?: string;
 }
 
-const variantStyles: Record<StatCardVariant, {
-  iconBg: string
-  iconColor: string
-  hoverBorder: string
-  focusRing: string
-}> = {
+const variantStyles: Record<
+  StatCardVariant,
+  {
+    iconBg: string;
+    iconColor: string;
+    hoverBorder: string;
+    focusRing: string;
+  }
+> = {
   interview: {
     iconBg: 'bg-[#EEF1FF]',
     iconColor: 'text-[#5371FF]',
@@ -50,7 +54,7 @@ const variantStyles: Record<StatCardVariant, {
     hoverBorder: 'hover:border-[#5371FF]/30',
     focusRing: 'focus-visible:ring-[#5371FF]/30',
   },
-}
+};
 
 export default function StatCard({
   label,
@@ -63,12 +67,12 @@ export default function StatCard({
   onClick,
   className,
 }: StatCardProps) {
-  const styles = variantStyles[variant]
-  const isClickable = !!href || !!onClick
+  const styles = variantStyles[variant];
+  const isClickable = !!href || !!onClick;
 
   // Build accessible label - prefer explicit metricLabel, fall back to string/number metric
-  const accessibleMetric = metricLabel
-    || (typeof metric === 'string' || typeof metric === 'number' ? String(metric) : '')
+  const accessibleMetric =
+    metricLabel || (typeof metric === 'string' || typeof metric === 'number' ? String(metric) : '');
 
   const cardContent = (
     <>
@@ -77,9 +81,9 @@ export default function StatCard({
         <div className="flex items-center gap-2.5">
           <span
             className={cn(
-              "inline-flex h-9 w-9 items-center justify-center rounded-full",
+              'inline-flex h-9 w-9 items-center justify-center rounded-full',
               styles.iconBg,
-              styles.iconColor
+              styles.iconColor,
             )}
           >
             {icon}
@@ -93,32 +97,30 @@ export default function StatCard({
 
       {/* Main metric */}
       <div className="mt-3">
-        <p className="text-2xl font-semibold text-slate-900 md:text-3xl">
-          {metric}
-        </p>
+        <p className="text-2xl font-semibold text-slate-900 md:text-3xl">{metric}</p>
         <p className="mt-0.5 text-xs text-slate-500 md:text-sm">{helper}</p>
       </div>
     </>
-  )
+  );
 
   const cardClasses = cn(
-    "group flex h-full flex-col rounded-2xl border border-slate-200 bg-white px-5 py-4 transition-all duration-150 md:px-6 md:py-5",
+    'group flex h-full flex-col rounded-2xl border border-slate-200 bg-white px-5 py-4 transition-all duration-150 md:px-6 md:py-5',
     isClickable && [
-      "cursor-pointer",
+      'cursor-pointer',
       styles.hoverBorder,
-      "hover:shadow-md",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+      'hover:shadow-md',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
       styles.focusRing,
     ],
-    className
-  )
+    className,
+  );
 
   if (href) {
     return (
       <Link href={href} className={cardClasses} aria-label={`${label}: ${accessibleMetric}`}>
         {cardContent}
       </Link>
-    )
+    );
   }
 
   if (onClick) {
@@ -126,17 +128,13 @@ export default function StatCard({
       <button
         type="button"
         onClick={onClick}
-        className={cn(cardClasses, "text-left")}
+        className={cn(cardClasses, 'text-left')}
         aria-label={`${label}: ${accessibleMetric}`}
       >
         {cardContent}
       </button>
-    )
+    );
   }
 
-  return (
-    <div className={cardClasses}>
-      {cardContent}
-    </div>
-  )
+  return <div className={cardClasses}>{cardContent}</div>;
 }

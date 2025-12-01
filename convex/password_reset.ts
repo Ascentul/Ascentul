@@ -3,15 +3,16 @@
  * Allows users to reset their password via email
  */
 
-import { v } from "convex/values"
-import { mutation } from "./_generated/server"
-import { api } from "./_generated/api"
+import { v } from 'convex/values';
+
+import { api } from './_generated/api';
+import { mutation } from './_generated/server';
 
 /**
  * Generate a random password reset token
  */
 function generateResetToken(): string {
-  return `reset_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`
+  return `reset_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
 }
 
 /**
@@ -25,43 +26,43 @@ export const requestPasswordReset = mutation({
   handler: async (ctx, args) => {
     // Find user by email
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .unique()
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', args.email))
+      .unique();
 
     // For security, don't reveal if user exists or not
     // Always return success message
     if (!user) {
       return {
         success: true,
-        message: "If an account exists with that email, a password reset link has been sent.",
-      }
+        message: 'If an account exists with that email, a password reset link has been sent.',
+      };
     }
 
     // Generate reset token (expires in 1 hour)
-    const resetToken = generateResetToken()
-    const expiresAt = Date.now() + (60 * 60 * 1000) // 1 hour
+    const resetToken = generateResetToken();
+    const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
 
     // Save token to user
     await ctx.db.patch(user._id, {
       password_reset_token: resetToken,
       password_reset_expires_at: expiresAt,
       updated_at: Date.now(),
-    })
+    });
 
     // Schedule password reset email
     await ctx.scheduler.runAfter(0, api.email.sendPasswordResetEmail, {
       email: user.email,
       name: user.name,
       resetToken,
-    })
+    });
 
     return {
       success: true,
-      message: "If an account exists with that email, a password reset link has been sent.",
-    }
+      message: 'If an account exists with that email, a password reset link has been sent.',
+    };
   },
-})
+});
 
 /**
  * Verify a password reset token
@@ -73,25 +74,25 @@ export const verifyResetToken = mutation({
   },
   handler: async (ctx, args) => {
     // Find user with this reset token
-    const users = await ctx.db.query("users").collect()
-    const user = users.find(u => u.password_reset_token === args.token)
+    const users = await ctx.db.query('users').collect();
+    const user = users.find((u) => u.password_reset_token === args.token);
 
     if (!user) {
-      throw new Error("Invalid or expired reset token")
+      throw new Error('Invalid or expired reset token');
     }
 
     // Check if token expired
     if (user.password_reset_expires_at && user.password_reset_expires_at < Date.now()) {
-      throw new Error("Reset token has expired. Please request a new password reset.")
+      throw new Error('Reset token has expired. Please request a new password reset.');
     }
 
     return {
       valid: true,
       email: user.email,
       name: user.name,
-    }
+    };
   },
-})
+});
 
 /**
  * Reset password using token
@@ -105,21 +106,21 @@ export const completePasswordReset = mutation({
   },
   handler: async (ctx, args) => {
     // Find user with this reset token
-    const users = await ctx.db.query("users").collect()
-    const user = users.find(u => u.password_reset_token === args.token)
+    const users = await ctx.db.query('users').collect();
+    const user = users.find((u) => u.password_reset_token === args.token);
 
     if (!user) {
-      throw new Error("Invalid reset token")
+      throw new Error('Invalid reset token');
     }
 
     // Verify email matches
     if (user.email !== args.email) {
-      throw new Error("Email mismatch")
+      throw new Error('Email mismatch');
     }
 
     // Check if token expired
     if (user.password_reset_expires_at && user.password_reset_expires_at < Date.now()) {
-      throw new Error("Reset token has expired")
+      throw new Error('Reset token has expired');
     }
 
     // Clear reset token
@@ -127,14 +128,14 @@ export const completePasswordReset = mutation({
       password_reset_token: undefined,
       password_reset_expires_at: undefined,
       updated_at: Date.now(),
-    })
+    });
 
     return {
       success: true,
-      message: "Password reset completed successfully",
-    }
+      message: 'Password reset completed successfully',
+    };
   },
-})
+});
 
 /**
  * Cancel a password reset request
@@ -146,12 +147,12 @@ export const cancelPasswordReset = mutation({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .unique()
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', args.email))
+      .unique();
 
     if (!user) {
-      throw new Error("User not found")
+      throw new Error('User not found');
     }
 
     // Clear reset token
@@ -159,11 +160,11 @@ export const cancelPasswordReset = mutation({
       password_reset_token: undefined,
       password_reset_expires_at: undefined,
       updated_at: Date.now(),
-    })
+    });
 
     return {
       success: true,
-      message: "Password reset request cancelled",
-    }
+      message: 'Password reset request cancelled',
+    };
   },
-})
+});

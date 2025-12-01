@@ -1,24 +1,29 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { useUser } from '@clerk/nextjs'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-import { LineChart, BarChart, Users, Target, TrendingUp, Calendar } from 'lucide-react'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
+import { BarChart, Calendar, LineChart, Target, TrendingUp, Users } from 'lucide-react';
+import React from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
 
 export default function UniversityStudentProgressPage() {
-  const { user, isAdmin } = useAuth()
-  const { user: clerkUser } = useUser()
+  const { user, isAdmin } = useAuth();
+  const { user: clerkUser } = useUser();
 
   // Access control: Only university_admin, advisor, or super_admin can access
   // subscription.isUniversity is NOT sufficient - it includes regular students
-  const canAccess = !!user && (isAdmin || user.role === 'university_admin' || user.role === 'advisor')
+  const canAccess =
+    !!user && (isAdmin || user.role === 'university_admin' || user.role === 'advisor');
 
-  const students = useQuery(api.university_admin.listStudents, clerkUser?.id ? { clerkId: clerkUser.id, limit: 1000 } : 'skip') as any[] | undefined
+  const students = useQuery(
+    api.university_admin.listStudents,
+    clerkUser?.id ? { clerkId: clerkUser.id, limit: 1000 } : 'skip',
+  ) as any[] | undefined;
 
   if (!canAccess) {
     return (
@@ -32,7 +37,7 @@ export default function UniversityStudentProgressPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   if (!students) {
@@ -42,27 +47,30 @@ export default function UniversityStudentProgressPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       </div>
-    )
+    );
   }
 
   // Calculate progress metrics
-  const totalStudents = students.length
-  const activeStudents = students.filter((s: any) => s.status === 'active' || !s.status).length
-  const completedGoals = students.reduce((acc: number, s: any) => acc + (s.completed_goals_count || 0), 0)
-  const totalGoals = students.reduce((acc: number, s: any) => acc + (s.total_goals_count || 0), 0)
-  const avgProgress = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0
+  const totalStudents = students.length;
+  const activeStudents = students.filter((s: any) => s.status === 'active' || !s.status).length;
+  const completedGoals = students.reduce(
+    (acc: number, s: any) => acc + (s.completed_goals_count || 0),
+    0,
+  );
+  const totalGoals = students.reduce((acc: number, s: any) => acc + (s.total_goals_count || 0), 0);
+  const avgProgress = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
   // Department breakdown
   const departmentStats = students.reduce((acc: any, s: any) => {
-    const dept = s.department_name || 'Unassigned'
+    const dept = s.department_name || 'Unassigned';
     if (!acc[dept]) {
-      acc[dept] = { total: 0, completed: 0, students: 0 }
+      acc[dept] = { total: 0, completed: 0, students: 0 };
     }
-    acc[dept].students++
-    acc[dept].completed += s.completed_goals_count || 0
-    acc[dept].total += s.total_goals_count || 0
-    return acc
-  }, {})
+    acc[dept].students++;
+    acc[dept].completed += s.completed_goals_count || 0;
+    acc[dept].total += s.total_goals_count || 0;
+    return acc;
+  }, {});
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
@@ -139,7 +147,8 @@ export default function UniversityStudentProgressPage() {
           ) : (
             <div className="space-y-4">
               {Object.entries(departmentStats).map(([deptName, stats]: [string, any]) => {
-                const progress = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
+                const progress =
+                  stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
                 return (
                   <div key={deptName} className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -147,12 +156,14 @@ export default function UniversityStudentProgressPage() {
                       <Badge variant="secondary">{stats.students} students</Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>{stats.completed} of {stats.total} goals completed</span>
+                      <span>
+                        {stats.completed} of {stats.total} goals completed
+                      </span>
                       <span>{progress}%</span>
                     </div>
                     <Progress value={progress} className="h-2" />
                   </div>
-                )
+                );
               })}
             </div>
           )}
@@ -169,11 +180,12 @@ export default function UniversityStudentProgressPage() {
           <div className="text-center py-8">
             <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">Activity tracking coming soon</p>
-            <p className="text-sm text-muted-foreground">Real-time student activity will be displayed here</p>
+            <p className="text-sm text-muted-foreground">
+              Real-time student activity will be displayed here
+            </p>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
-

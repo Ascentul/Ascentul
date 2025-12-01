@@ -5,27 +5,36 @@
  * See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md for full context.
  */
 
-import { internalMutation, internalQuery } from "./_generated/server";
-import { v } from "convex/values";
+import { v } from 'convex/values';
+
+import { internalMutation, internalQuery } from './_generated/server';
 
 /**
  * Application stage type matching the schema definition
  */
-export type ApplicationStage = "Prospect" | "Applied" | "Interview" | "Offer" | "Accepted" | "Rejected" | "Withdrawn" | "Archived";
+export type ApplicationStage =
+  | 'Prospect'
+  | 'Applied'
+  | 'Interview'
+  | 'Offer'
+  | 'Accepted'
+  | 'Rejected'
+  | 'Withdrawn'
+  | 'Archived';
 
 /**
  * Map legacy status values to new stage values
  */
 export function mapStatusToStage(status: string): ApplicationStage {
   const map: Record<string, ApplicationStage> = {
-    saved: "Prospect",
-    applied: "Applied",
-    interview: "Interview",
-    offer: "Offer",
-    rejected: "Rejected",
-    accepted: "Accepted",
+    saved: 'Prospect',
+    applied: 'Applied',
+    interview: 'Interview',
+    offer: 'Offer',
+    rejected: 'Rejected',
+    accepted: 'Accepted',
   };
-  return map[status] || "Prospect";
+  return map[status] || 'Prospect';
 }
 
 /**
@@ -42,16 +51,16 @@ export function mapStatusToStage(status: string): ApplicationStage {
  */
 export function mapStageToStatus(stage: string): string {
   const map: Record<string, string> = {
-    Prospect: "saved",
-    Applied: "applied",
-    Interview: "interview",
-    Offer: "offer",
-    Accepted: "offer", // Lossy: maps to same as Offer
-    Rejected: "rejected",
-    Withdrawn: "rejected", // Lossy: maps to same as Rejected
-    Archived: "saved", // Lossy: maps to same as Prospect
+    Prospect: 'saved',
+    Applied: 'applied',
+    Interview: 'interview',
+    Offer: 'offer',
+    Accepted: 'offer', // Lossy: maps to same as Offer
+    Rejected: 'rejected',
+    Withdrawn: 'rejected', // Lossy: maps to same as Rejected
+    Archived: 'saved', // Lossy: maps to same as Prospect
   };
-  return map[stage] || "saved";
+  return map[stage] || 'saved';
 }
 
 /**
@@ -80,8 +89,8 @@ export const migrateStatusToStage = internalMutation({
 
     while (!isDone) {
       const page = await ctx.db
-        .query("applications")
-        .order("asc")
+        .query('applications')
+        .order('asc')
         .paginate({ cursor, numItems: 100 });
 
       for (const app of page.page) {
@@ -149,7 +158,7 @@ export const migrateStatusToStage = internalMutation({
         : `Successfully migrated ${migrated} applications (${alreadyMigrated} already had stage, ${skipped} skipped)`,
     };
 
-    console.log("\n✅ Migration complete!");
+    console.log('\n✅ Migration complete!');
     console.log(JSON.stringify(summary, null, 2));
 
     return summary;
@@ -164,7 +173,7 @@ export const migrateStatusToStage = internalMutation({
 export const verifyMigration = internalQuery({
   args: {},
   handler: async (ctx) => {
-    console.log("🔍 Verifying application status→stage migration...");
+    console.log('🔍 Verifying application status→stage migration...');
 
     // Streaming aggregation - don't accumulate all apps in memory
     let total = 0;
@@ -183,7 +192,7 @@ export const verifyMigration = internalQuery({
     let isDone = false;
 
     while (!isDone) {
-      const result = await ctx.db.query("applications").paginate({ cursor, numItems: 1000 });
+      const result = await ctx.db.query('applications').paginate({ cursor, numItems: 1000 });
 
       for (const app of result.page) {
         total++;
@@ -226,7 +235,7 @@ export const verifyMigration = internalQuery({
     };
 
     if (verifyResult.complete) {
-      console.log("✅ Migration complete and verified!");
+      console.log('✅ Migration complete and verified!');
       console.log(JSON.stringify(verifyResult, null, 2));
       return verifyResult;
     }
@@ -240,7 +249,7 @@ export const verifyMigration = internalQuery({
 
     console.log(JSON.stringify(verifyResult, null, 2));
     throw new Error(
-      `Migration verification failed: ${withoutStageCount} missing stage, ${mismatchCount} mismatches`
+      `Migration verification failed: ${withoutStageCount} missing stage, ${mismatchCount} mismatches`,
     );
   },
 });
@@ -261,19 +270,19 @@ export const getMigrationStats = internalQuery({
 
     while (!isDone) {
       const result = await ctx.db
-        .query("applications")
-        .order("asc")
+        .query('applications')
+        .order('asc')
         .paginate({ cursor, numItems: 1000 });
 
       for (const app of result.page) {
         total++;
 
         // Count by status
-        const status = app.status || "undefined";
+        const status = app.status || 'undefined';
         statusCounts[status] = (statusCounts[status] || 0) + 1;
 
         // Count by stage
-        const stage = app.stage || "undefined";
+        const stage = app.stage || 'undefined';
         stageCounts[stage] = (stageCounts[stage] || 0) + 1;
       }
 
@@ -285,7 +294,7 @@ export const getMigrationStats = internalQuery({
       total,
       byStatus: statusCounts,
       byStage: stageCounts,
-      migrationNeeded: stageCounts["undefined"] || 0,
+      migrationNeeded: stageCounts['undefined'] || 0,
     };
   },
 });

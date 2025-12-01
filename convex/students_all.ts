@@ -1,10 +1,19 @@
-import { v } from "convex/values";
-import { mutation, query, internalMutation, internalQuery, action, QueryCtx, MutationCtx } from "./_generated/server";
-import { Id, Doc } from "./_generated/dataModel";
-import { internal } from "./_generated/api";
-import { validate as validateEmail } from "email-validator";
-import { requireMembership } from "./lib/roles";
-import { maskEmail, maskId } from "./lib/piiSafe";
+import { v } from 'convex/values';
+import { validate as validateEmail } from 'email-validator';
+
+import { internal } from './_generated/api';
+import { Doc, Id } from './_generated/dataModel';
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  mutation,
+  MutationCtx,
+  query,
+  QueryCtx,
+} from './_generated/server';
+import { maskEmail, maskId } from './lib/piiSafe';
+import { requireMembership } from './lib/roles';
 
 /**
  * Valid academic year classifications for students
@@ -12,7 +21,7 @@ import { maskEmail, maskId } from "./lib/piiSafe";
  * Used for validation in student profile creation and updates.
  * Ensures consistency across invite acceptance, profile updates, and queries.
  */
-const VALID_YEARS = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"] as const;
+const VALID_YEARS = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'] as const;
 
 type CryptoLike = {
   getRandomValues(array: Uint8Array): Uint8Array;
@@ -28,7 +37,7 @@ type CryptoLike = {
 function generateSecureToken(): string {
   const cryptoObj = (globalThis as { crypto?: CryptoLike }).crypto;
   if (!cryptoObj || typeof cryptoObj.getRandomValues !== 'function') {
-    throw new Error("Secure crypto API is unavailable in this environment");
+    throw new Error('Secure crypto API is unavailable in this environment');
   }
 
   const bytes = new Uint8Array(32);
@@ -53,11 +62,11 @@ function validateGPA(gpa: number | undefined): void {
   }
 
   if (typeof gpa !== 'number' || isNaN(gpa)) {
-    throw new Error("GPA must be a valid number");
+    throw new Error('GPA must be a valid number');
   }
 
   if (gpa < 0.0 || gpa > 4.0) {
-    throw new Error("GPA must be between 0.0 and 4.0");
+    throw new Error('GPA must be between 0.0 and 4.0');
   }
 }
 
@@ -74,15 +83,15 @@ function validateGPA(gpa: number | undefined): void {
 async function rollbackInviteAcceptance(
   ctx: MutationCtx,
   params: {
-    userId: Id<"users">;
-    studentProfileId: Id<"studentProfiles">;
-    inviteId: Id<"studentInvites">;
-    universityId: Id<"universities">;
+    userId: Id<'users'>;
+    studentProfileId: Id<'studentProfiles'>;
+    inviteId: Id<'studentInvites'>;
+    universityId: Id<'universities'>;
     originalUserState: {
-      role: Doc<"users">["role"];
-      university_id?: Doc<"users">["university_id"];
-      subscription_plan?: Doc<"users">["subscription_plan"];
-      subscription_status?: Doc<"users">["subscription_status"];
+      role: Doc<'users'>['role'];
+      university_id?: Doc<'users'>['university_id'];
+      subscription_plan?: Doc<'users'>['subscription_plan'];
+      subscription_status?: Doc<'users'>['subscription_status'];
     };
     context: {
       userEmail: string;
@@ -90,16 +99,18 @@ async function rollbackInviteAcceptance(
       currentUsage: number;
       capacity: number;
     };
-  }
+  },
 ): Promise<{ success: boolean; errors: string[] }> {
   const now = Date.now();
   const rollbackErrors: string[] = [];
 
   console.error(
     `[ROLLBACK INITIATED] License capacity exceeded for ${params.context.universityName}: ` +
-    `${params.context.currentUsage}/${params.context.capacity}`
+      `${params.context.currentUsage}/${params.context.capacity}`,
   );
-  console.error(`User: ${maskEmail(params.context.userEmail)} (${maskId(params.userId)}), Invite: ${maskId(params.inviteId)}`);
+  console.error(
+    `User: ${maskEmail(params.context.userEmail)} (${maskId(params.userId)}), Invite: ${maskId(params.inviteId)}`,
+  );
 
   // Rollback Step 1: Decrement license usage
   try {
@@ -109,7 +120,7 @@ async function rollbackInviteAcceptance(
         license_used: Math.max(0, (university.license_used || 0) - 1),
         updated_at: now,
       });
-      console.log("[ROLLBACK] ✓ License count decremented");
+      console.log('[ROLLBACK] ✓ License count decremented');
     }
   } catch (error) {
     const errMsg = `Failed to decrement license count: ${error}`;
@@ -120,7 +131,7 @@ async function rollbackInviteAcceptance(
   // Rollback Step 2: Delete student profile
   try {
     await ctx.db.delete(params.studentProfileId);
-    console.log("[ROLLBACK] ✓ Student profile deleted");
+    console.log('[ROLLBACK] ✓ Student profile deleted');
   } catch (error) {
     const errMsg = `Failed to delete student profile ${params.studentProfileId}: ${error}`;
     console.error(`[ROLLBACK] ✗ ${errMsg}`);
@@ -136,7 +147,7 @@ async function rollbackInviteAcceptance(
       subscription_status: params.originalUserState.subscription_status,
       updated_at: now,
     });
-    console.log("[ROLLBACK] ✓ User state restored");
+    console.log('[ROLLBACK] ✓ User state restored');
   } catch (error) {
     const errMsg = `Failed to restore user state for ${params.userId}: ${error}`;
     console.error(`[ROLLBACK] ✗ ${errMsg}`);
@@ -146,12 +157,12 @@ async function rollbackInviteAcceptance(
   // Rollback Step 4: Mark invite as pending again
   try {
     await ctx.db.patch(params.inviteId, {
-      status: "pending",
+      status: 'pending',
       accepted_at: undefined,
       accepted_by_user_id: undefined,
       updated_at: now,
     });
-    console.log("[ROLLBACK] ✓ Invite reset to pending");
+    console.log('[ROLLBACK] ✓ Invite reset to pending');
   } catch (error) {
     const errMsg = `Failed to reset invite ${params.inviteId}: ${error}`;
     console.error(`[ROLLBACK] ✗ ${errMsg}`);
@@ -162,10 +173,10 @@ async function rollbackInviteAcceptance(
   if (rollbackErrors.length > 0) {
     console.error(
       `[ROLLBACK INCOMPLETE] ${rollbackErrors.length} step(s) failed. ` +
-      `Manual cleanup may be required. Run: npx convex run students:detectOrphanedProfiles`
+        `Manual cleanup may be required. Run: npx convex run students:detectOrphanedProfiles`,
     );
   } else {
-    console.log("[ROLLBACK COMPLETE] All changes successfully reverted");
+    console.log('[ROLLBACK COMPLETE] All changes successfully reverted');
   }
 
   return {
@@ -183,47 +194,43 @@ async function rollbackInviteAcceptance(
  * To remove: Run backfillStudentRoles migration, verify no users have role="user", then simplify this check.
  * See: convex/migrations.ts:backfillStudentRoles and scripts/backfill-student-roles.js
  */
-export async function requireStudent(
-  ctx: QueryCtx | MutationCtx,
-  userId: Id<"users">
-) {
+export async function requireStudent(ctx: QueryCtx | MutationCtx, userId: Id<'users'>) {
   const user = await ctx.db.get(userId);
 
   if (!user) {
-    throw new Error("User not found");
+    throw new Error('User not found');
   }
 
   // Check if user is a student (includes legacy "user" role with university_id for backward compatibility)
-  const isStudent = user.role === "student" ||
-                   (user.role === "user" && user.university_id);
+  const isStudent = user.role === 'student' || (user.role === 'user' && user.university_id);
 
   if (!isStudent) {
-    throw new Error("Unauthorized: Student role required");
+    throw new Error('Unauthorized: Student role required');
   }
 
   // Check if user has university_id
   if (!user.university_id) {
-    throw new Error("Student must belong to a university");
+    throw new Error('Student must belong to a university');
   }
 
   // Validate active membership
   const membership = await ctx.db
-    .query("memberships")
-    .withIndex("by_user_role", (q) => q.eq("user_id", userId).eq("role", "student"))
+    .query('memberships')
+    .withIndex('by_user_role', (q) => q.eq('user_id', userId).eq('role', 'student'))
     .first();
 
-  if (!membership || membership.status !== "active") {
-    throw new Error("Unauthorized: Active student membership required");
+  if (!membership || membership.status !== 'active') {
+    throw new Error('Unauthorized: Active student membership required');
   }
 
   // Check if studentProfile exists
   const studentProfile = await ctx.db
-    .query("studentProfiles")
-    .withIndex("by_user_id", (q) => q.eq("user_id", userId))
+    .query('studentProfiles')
+    .withIndex('by_user_id', (q) => q.eq('user_id', userId))
     .first();
 
   if (!studentProfile) {
-    throw new Error("Student profile not found. Student must have a valid profile.");
+    throw new Error('Student profile not found. Student must have a valid profile.');
   }
 
   return { user, studentProfile };
@@ -251,19 +258,22 @@ export async function requireStudent(
  */
 export const createInvite = action({
   args: {
-    universityId: v.id("universities"),
+    universityId: v.id('universities'),
     email: v.string(),
     createdByClerkId: v.string(),
     expiresInDays: v.optional(v.number()),
     metadata: v.optional(v.any()),
   },
-  handler: async (ctx, args): Promise<{ inviteId: Id<"studentInvites">; token: string; expiresAt: number }> => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ inviteId: Id<'studentInvites'>; token: string; expiresAt: number }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized: Authentication required");
+      throw new Error('Unauthorized: Authentication required');
     }
     if (identity.subject !== args.createdByClerkId) {
-      throw new Error("Unauthorized: Clerk identity mismatch");
+      throw new Error('Unauthorized: Clerk identity mismatch');
     }
 
     // Generate cryptographically secure token
@@ -305,7 +315,7 @@ export const createInvite = action({
  */
 export const createInviteInternal = internalMutation({
   args: {
-    universityId: v.id("universities"),
+    universityId: v.id('universities'),
     email: v.string(),
     createdByClerkId: v.string(),
     token: v.string(),
@@ -315,7 +325,7 @@ export const createInviteInternal = internalMutation({
   handler: async (ctx, args) => {
     const now = Date.now();
     const expiresInDays = args.expiresInDays ?? 7;
-    const expiresAt = now + (expiresInDays * 24 * 60 * 60 * 1000);
+    const expiresAt = now + expiresInDays * 24 * 60 * 60 * 1000;
 
     // 0. Normalize email first (lowercase, trim whitespace)
     // This ensures we don't reject valid emails due to formatting differences
@@ -329,37 +339,37 @@ export const createInviteInternal = internalMutation({
     // - IPv6 address literals
     // - Quoted strings in local parts
     if (!validateEmail(normalizedEmail)) {
-      throw new Error("Invalid email format. Please provide a valid email address.");
+      throw new Error('Invalid email format. Please provide a valid email address.');
     }
 
     // 2. Validate university exists and is active
     const university = await ctx.db.get(args.universityId);
     if (!university) {
-      throw new Error("University not found");
+      throw new Error('University not found');
     }
 
-    if (university.status !== "active") {
+    if (university.status !== 'active') {
       throw new Error(
-        `University is ${university.status}. Only active universities can send invites.`
+        `University is ${university.status}. Only active universities can send invites.`,
       );
     }
 
     // 3. Validate creator is university_admin for this university
     const creator = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.createdByClerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.createdByClerkId))
       .unique();
 
     if (!creator) {
-      throw new Error("Creator not found");
+      throw new Error('Creator not found');
     }
 
-    if (!["university_admin", "advisor"].includes(creator.role)) {
-      throw new Error("Only university admins or advisors can create invites");
+    if (!['university_admin', 'advisor'].includes(creator.role)) {
+      throw new Error('Only university admins or advisors can create invites');
     }
 
     if (creator.university_id !== args.universityId) {
-      throw new Error("Cannot create invites for a different university");
+      throw new Error('Cannot create invites for a different university');
     }
 
     // 4. Check for existing pending invite (UNIQUENESS INVARIANT)
@@ -369,45 +379,46 @@ export const createInviteInternal = internalMutation({
     // concurrent requests can both pass this check and create duplicate invites.
     // Mitigation: Optimistic concurrency control with post-insert verification (step 5a)
     const existingPendingInvite = await ctx.db
-      .query("studentInvites")
-      .withIndex("by_university_email_status", (q) =>
-        q.eq("university_id", args.universityId)
-         .eq("email", normalizedEmail)
-         .eq("status", "pending")
+      .query('studentInvites')
+      .withIndex('by_university_email_status', (q) =>
+        q
+          .eq('university_id', args.universityId)
+          .eq('email', normalizedEmail)
+          .eq('status', 'pending'),
       )
       .first();
 
     if (existingPendingInvite) {
       throw new Error(
         `A pending invite already exists for ${normalizedEmail} at this university. ` +
-        `Please revoke the existing invite first or wait for it to expire.`
+          `Please revoke the existing invite first or wait for it to expire.`,
       );
     }
 
     // 5. Rate limiting check - prevent invite spam
     // Check how many invites this admin created in the last hour
-    const oneHourAgo = now - (60 * 60 * 1000);
+    const oneHourAgo = now - 60 * 60 * 1000;
     const recentInvites = await ctx.db
-      .query("studentInvites")
-      .withIndex("by_created_by", (q) => q.eq("created_by_id", creator._id))
-      .filter((q) => q.gte(q.field("created_at"), oneHourAgo))
+      .query('studentInvites')
+      .withIndex('by_created_by', (q) => q.eq('created_by_id', creator._id))
+      .filter((q) => q.gte(q.field('created_at'), oneHourAgo))
       .collect();
 
     const rateLimitPerHour = 50; // Max 50 invites per hour per admin
     if (recentInvites.length >= rateLimitPerHour) {
       throw new Error(
         `Rate limit exceeded. You can only create ${rateLimitPerHour} invites per hour. ` +
-        `Please try again later.`
+          `Please try again later.`,
       );
     }
 
     // 6. Create invite with the cryptographically secure token
-    const inviteId = await ctx.db.insert("studentInvites", {
+    const inviteId = await ctx.db.insert('studentInvites', {
       university_id: args.universityId,
       email: normalizedEmail,
       token: args.token,
       created_by_id: creator._id,
-      status: "pending",
+      status: 'pending',
       expires_at: expiresAt,
       metadata: args.metadata,
       created_at: now,
@@ -418,11 +429,12 @@ export const createInviteInternal = internalMutation({
     // This handles the race condition where concurrent requests both passed step 4
     // before either completed the insert. We detect duplicates immediately after insert.
     const allPendingForEmail = await ctx.db
-      .query("studentInvites")
-      .withIndex("by_university_email_status", (q) =>
-        q.eq("university_id", args.universityId)
-         .eq("email", normalizedEmail)
-         .eq("status", "pending")
+      .query('studentInvites')
+      .withIndex('by_university_email_status', (q) =>
+        q
+          .eq('university_id', args.universityId)
+          .eq('email', normalizedEmail)
+          .eq('status', 'pending'),
       )
       .collect();
 
@@ -435,28 +447,32 @@ export const createInviteInternal = internalMutation({
 
       console.error(
         `🚨 RACE CONDITION DETECTED: ${allPendingForEmail.length} pending invites for ${normalizedEmail} ` +
-        `at university ${args.universityId}`
+          `at university ${args.universityId}`,
       );
-      console.error(`  Keeping oldest invite: ${keepInvite._id} (created: ${new Date(keepInvite.created_at).toISOString()})`);
+      console.error(
+        `  Keeping oldest invite: ${keepInvite._id} (created: ${new Date(keepInvite.created_at).toISOString()})`,
+      );
 
       // Delete the duplicate(s) - including this one if it's not the oldest
       for (const inviteToDelete of deleteInvites) {
-        console.error(`  Deleting duplicate invite: ${inviteToDelete._id} (created: ${new Date(inviteToDelete.created_at).toISOString()})`);
+        console.error(
+          `  Deleting duplicate invite: ${inviteToDelete._id} (created: ${new Date(inviteToDelete.created_at).toISOString()})`,
+        );
         await ctx.db.delete(inviteToDelete._id);
       }
 
       // If we just deleted our own invite, throw an error to retry
-      if (deleteInvites.some(inv => inv._id === inviteId)) {
+      if (deleteInvites.some((inv) => inv._id === inviteId)) {
         throw new Error(
           `A pending invite for ${normalizedEmail} was created concurrently by another admin. ` +
-          `The existing invite has been preserved. Please refresh to see the current invite.`
+            `The existing invite has been preserved. Please refresh to see the current invite.`,
         );
       }
 
       // Log for monitoring - this indicates high concurrency or potential issue
       console.warn(
         `⚠️  Resolved race condition: Kept invite ${keepInvite._id}, deleted ${deleteInvites.length} duplicate(s). ` +
-        `If this happens frequently, consider implementing distributed locking.`
+          `If this happens frequently, consider implementing distributed locking.`,
       );
     }
 
@@ -512,24 +528,24 @@ export const acceptInvite = mutation({
     const now = Date.now();
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized: Authentication required");
+      throw new Error('Unauthorized: Authentication required');
     }
     if (identity.subject !== args.clerkId) {
-      throw new Error("Unauthorized: Clerk identity mismatch");
+      throw new Error('Unauthorized: Clerk identity mismatch');
     }
 
     // 1. Find the invite by token
     const invite = await ctx.db
-      .query("studentInvites")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .query('studentInvites')
+      .withIndex('by_token', (q) => q.eq('token', args.token))
       .first();
 
     if (!invite) {
-      throw new Error("Invalid invite token");
+      throw new Error('Invalid invite token');
     }
 
     // 2. Validate invite status
-    if (invite.status !== "pending") {
+    if (invite.status !== 'pending') {
       throw new Error(`Invite is ${invite.status}. Only pending invites can be accepted.`);
     }
 
@@ -538,40 +554,40 @@ export const acceptInvite = mutation({
       // Auto-expire the invite (best effort - don't block user if patch fails)
       try {
         await ctx.db.patch(invite._id, {
-          status: "expired",
+          status: 'expired',
           updated_at: now,
         });
       } catch (patchError) {
         // Log error but don't block the user from seeing the expired error
-        console.error("Failed to auto-expire invite:", patchError);
-        console.error("Invite ID:", maskId(invite._id), "Email:", maskEmail(invite.email));
+        console.error('Failed to auto-expire invite:', patchError);
+        console.error('Invite ID:', maskId(invite._id), 'Email:', maskEmail(invite.email));
       }
-      throw new Error("Invite has expired");
+      throw new Error('Invite has expired');
     }
 
     // 4. Get the accepting user
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     if (user.university_id && user.university_id !== invite.university_id) {
-      throw new Error("User already belongs to a different university");
+      throw new Error('User already belongs to a different university');
     }
 
     // 5. Verify email matches (optional security check)
     if (user.email !== invite.email) {
-      throw new Error("Email mismatch. This invite was sent to a different email address.");
+      throw new Error('Email mismatch. This invite was sent to a different email address.');
     }
 
     // 6. Get university details
     const university = await ctx.db.get(invite.university_id);
     if (!university) {
-      throw new Error("University not found");
+      throw new Error('University not found');
     }
 
     // 6a. Check university license capacity
@@ -586,34 +602,33 @@ export const acceptInvite = mutation({
     if (currentUsage >= licenseLimit) {
       throw new Error(
         `University has reached maximum capacity (${licenseLimit} licenses). ` +
-        `Contact your university administrator to increase capacity.`
+          `Contact your university administrator to increase capacity.`,
       );
     }
 
     // Also check if university license is active
-    if (university.status !== "active") {
+    if (university.status !== 'active') {
       throw new Error(
         `University license is ${university.status}. ` +
-        `Contact your university administrator to resolve this issue.`
+          `Contact your university administrator to resolve this issue.`,
       );
     }
 
     // Check if license has expired
     if (university.license_end && university.license_end < now) {
       throw new Error(
-        `University license has expired. ` +
-        `Contact your university administrator to renew.`
+        `University license has expired. ` + `Contact your university administrator to renew.`,
       );
     }
 
     // 7. Check if user already has a student profile (race condition check)
     const existingProfile = await ctx.db
-      .query("studentProfiles")
-      .withIndex("by_user_id", (q) => q.eq("user_id", user._id))
+      .query('studentProfiles')
+      .withIndex('by_user_id', (q) => q.eq('user_id', user._id))
       .first();
 
     if (existingProfile) {
-      throw new Error("User already has a student profile");
+      throw new Error('User already has a student profile');
     }
 
     // 8. Create student profile FIRST (before updating user role)
@@ -631,15 +646,17 @@ export const acceptInvite = mutation({
 
     // Re-check for existing profile immediately before insert to minimize race window
     const raceCheckProfile = await ctx.db
-      .query("studentProfiles")
-      .withIndex("by_user_id", (q) => q.eq("user_id", user._id))
+      .query('studentProfiles')
+      .withIndex('by_user_id', (q) => q.eq('user_id', user._id))
       .first();
 
     let studentProfileId;
 
     if (raceCheckProfile) {
       // Profile was created by concurrent request - this is OK, use existing
-      console.warn(`Race condition detected: studentProfile already exists for user ${maskEmail(user.email)}`);
+      console.warn(
+        `Race condition detected: studentProfile already exists for user ${maskEmail(user.email)}`,
+      );
       studentProfileId = raceCheckProfile._id;
     } else {
       // Safe to create profile
@@ -649,30 +666,32 @@ export const acceptInvite = mutation({
         // Validate year if provided in metadata
         if (metadata.year && !(VALID_YEARS as readonly string[]).includes(metadata.year)) {
           throw new Error(
-            `Invalid year in invite metadata: "${metadata.year}". Must be one of: ${VALID_YEARS.join(", ")}`
+            `Invalid year in invite metadata: "${metadata.year}". Must be one of: ${VALID_YEARS.join(', ')}`,
           );
         }
 
-        studentProfileId = await ctx.db.insert("studentProfiles", {
+        studentProfileId = await ctx.db.insert('studentProfiles', {
           user_id: user._id,
           university_id: invite.university_id,
           student_id: metadata.student_id,
           major: metadata.major,
           year: metadata.year,
           enrollment_date: now,
-          status: "active",
+          status: 'active',
           created_at: now,
           updated_at: now,
         });
       } catch (error) {
         // If insert fails due to concurrent creation, fetch the existing profile
         const fallbackProfile = await ctx.db
-          .query("studentProfiles")
-          .withIndex("by_user_id", (q) => q.eq("user_id", user._id))
+          .query('studentProfiles')
+          .withIndex('by_user_id', (q) => q.eq('user_id', user._id))
           .first();
 
         if (fallbackProfile) {
-          console.warn(`Insert failed but profile exists - likely race condition for user ${maskEmail(user.email)}`);
+          console.warn(
+            `Insert failed but profile exists - likely race condition for user ${maskEmail(user.email)}`,
+          );
           studentProfileId = fallbackProfile._id;
         } else {
           // Genuine error - cannot proceed without profile
@@ -685,33 +704,33 @@ export const acceptInvite = mutation({
     // 9. Update user role AFTER successful profile creation
     // This ensures we NEVER have a student role without a valid profile (requireStudent invariant)
     await ctx.db.patch(user._id, {
-      role: "student",
+      role: 'student',
       university_id: invite.university_id,
-      subscription_plan: "university",
-      subscription_status: "active",
+      subscription_plan: 'university',
+      subscription_status: 'active',
       updated_at: now,
     });
 
     // 9a. Ensure membership record exists for this student
     const existingMembership = await ctx.db
-      .query("memberships")
-      .withIndex("by_user_role", (q) => q.eq("user_id", user._id).eq("role", "student"))
+      .query('memberships')
+      .withIndex('by_user_role', (q) => q.eq('user_id', user._id).eq('role', 'student'))
       .first();
 
     if (!existingMembership) {
-      await ctx.db.insert("memberships", {
+      await ctx.db.insert('memberships', {
         user_id: user._id,
         university_id: invite.university_id,
-        role: "student",
-        status: "active",
+        role: 'student',
+        status: 'active',
         created_at: now,
         updated_at: now,
       });
     } else if (existingMembership.university_id !== invite.university_id) {
-      throw new Error("Student membership belongs to a different university");
-    } else if (existingMembership.status !== "active") {
+      throw new Error('Student membership belongs to a different university');
+    } else if (existingMembership.status !== 'active') {
       await ctx.db.patch(existingMembership._id, {
-        status: "active",
+        status: 'active',
         updated_at: now,
       });
     }
@@ -722,15 +741,17 @@ export const acceptInvite = mutation({
     const currentInvite = await ctx.db.get(invite._id);
 
     if (!currentInvite) {
-      throw new Error("Invite was deleted");
+      throw new Error('Invite was deleted');
     }
 
-    if (currentInvite.status !== "pending") {
-      throw new Error(`Invite was already ${currentInvite.status}. It may have been accepted by another user.`);
+    if (currentInvite.status !== 'pending') {
+      throw new Error(
+        `Invite was already ${currentInvite.status}. It may have been accepted by another user.`,
+      );
     }
 
     await ctx.db.patch(invite._id, {
-      status: "accepted",
+      status: 'accepted',
       accepted_at: now,
       accepted_by_user_id: user._id,
       updated_at: now,
@@ -766,14 +787,14 @@ export const acceptInvite = mutation({
       if (!rollbackResult.success) {
         console.error(
           `[CRITICAL] Rollback failed for user ${maskEmail(user.email)} (${maskId(user._id)}). ` +
-          `Manual intervention required. Errors: ${rollbackResult.errors.join('; ')}`
+            `Manual intervention required. Errors: ${rollbackResult.errors.join('; ')}`,
         );
       }
 
       throw new Error(
         `University has reached maximum capacity (${updatedUniversity.license_seats} licenses). ` +
-        `This occurred due to concurrent enrollments. Please try again in a moment, or ` +
-        `contact your university administrator to increase capacity.`
+          `This occurred due to concurrent enrollments. Please try again in a moment, or ` +
+          `contact your university administrator to increase capacity.`,
       );
     }
 
@@ -795,8 +816,8 @@ export const getStudentProfile = query({
   handler: async (ctx, args) => {
     // Get user
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
@@ -804,14 +825,14 @@ export const getStudentProfile = query({
     }
 
     const membership = await ctx.db
-      .query("memberships")
-      .withIndex("by_user_role", (q) => q.eq("user_id", user._id).eq("role", "student"))
+      .query('memberships')
+      .withIndex('by_user_role', (q) => q.eq('user_id', user._id).eq('role', 'student'))
       .first();
 
     // Get student profile
     const studentProfile = await ctx.db
-      .query("studentProfiles")
-      .withIndex("by_user_id", (q) => q.eq("user_id", user._id))
+      .query('studentProfiles')
+      .withIndex('by_user_id', (q) => q.eq('user_id', user._id))
       .first();
 
     if (!studentProfile) {
@@ -823,10 +844,12 @@ export const getStudentProfile = query({
 
     return {
       ...studentProfile,
-      university: university ? {
-        name: university.name,
-        slug: university.slug,
-      } : null,
+      university: university
+        ? {
+            name: university.name,
+            slug: university.slug,
+          }
+        : null,
       membershipId: membership?._id,
     };
   },
@@ -844,15 +867,15 @@ export const validateInviteToken = query({
     const now = Date.now();
 
     const invite = await ctx.db
-      .query("studentInvites")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .query('studentInvites')
+      .withIndex('by_token', (q) => q.eq('token', args.token))
       .first();
 
     if (!invite) {
-      return { valid: false, reason: "Invalid token" };
+      return { valid: false, reason: 'Invalid token' };
     }
 
-    if (invite.status !== "pending") {
+    if (invite.status !== 'pending') {
       return { valid: false, reason: `Invite is ${invite.status}` };
     }
 
@@ -860,7 +883,7 @@ export const validateInviteToken = query({
       // Note: We don't auto-expire here since this is a query (read-only).
       // The cron job (expireOldInvites) handles batch expiration hourly.
       // Auto-expiration also happens in acceptInvite mutation when actually accepting.
-      return { valid: false, reason: "Invite has expired" };
+      return { valid: false, reason: 'Invite has expired' };
     }
 
     // Get university
@@ -869,7 +892,7 @@ export const validateInviteToken = query({
     return {
       valid: true,
       email: invite.email,
-      universityName: university?.name ?? "Unknown University",
+      universityName: university?.name ?? 'Unknown University',
       expiresAt: invite.expires_at,
     };
   },
@@ -887,14 +910,12 @@ export const findDuplicateInviteAcceptances = query({
   handler: async (ctx) => {
     // Get all accepted invites
     const acceptedInvites = await ctx.db
-      .query("studentInvites")
-      .withIndex("by_status", (q) => q.eq("status", "accepted"))
+      .query('studentInvites')
+      .withIndex('by_status', (q) => q.eq('status', 'accepted'))
       .collect();
 
     // Check for any "accepted" invites without an accepted_by_user_id (data integrity issue)
-    const orphanedAcceptances = acceptedInvites.filter(
-      (inv) => !inv.accepted_by_user_id
-    );
+    const orphanedAcceptances = acceptedInvites.filter((inv) => !inv.accepted_by_user_id);
 
     // Note: We can't detect if multiple different invites were created for the same email
     // and all accepted (that's a different issue). This checks for data integrity.
@@ -956,18 +977,18 @@ export const findDuplicateProfiles = query({
     //
     // Monitor: Convex dashboard function execution time
     // Hard limit: 1 second (query will fail if exceeded)
-    const allProfiles = await ctx.db.query("studentProfiles").collect();
+    const allProfiles = await ctx.db.query('studentProfiles').collect();
 
     // Early warning: Log if approaching realistic scale limits
     if (allProfiles.length > 2500) {
       console.warn(
         `[SCALE WARNING] findDuplicateProfiles processing ${allProfiles.length} profiles. ` +
-        `Approaching 1-second query limit. MIGRATION TO BACKGROUND JOB REQUIRED SOON.`
+          `Approaching 1-second query limit. MIGRATION TO BACKGROUND JOB REQUIRED SOON.`,
       );
     }
 
     // Group by user_id
-    type ProfileType = typeof allProfiles[number];
+    type ProfileType = (typeof allProfiles)[number];
     const profilesByUser = new Map<string, ProfileType[]>();
 
     for (const profile of allProfiles) {
@@ -979,8 +1000,8 @@ export const findDuplicateProfiles = query({
     }
 
     // Find users with multiple profiles and collect user IDs for batch fetch
-    const usersWithDuplicates: { userIdStr: string; profiles: Doc<"studentProfiles">[] }[] = [];
-    const userIdsToFetch: Id<"users">[] = [];
+    const usersWithDuplicates: { userIdStr: string; profiles: Doc<'studentProfiles'>[] }[] = [];
+    const userIdsToFetch: Id<'users'>[] = [];
 
     profilesByUser.forEach((profiles, userIdStr) => {
       if (profiles.length > 1) {
@@ -1012,8 +1033,8 @@ export const findDuplicateProfiles = query({
 
       duplicates.push({
         userId: userIdStr,
-        email: user?.email || "unknown",
-        name: user?.name || "unknown",
+        email: user?.email || 'unknown',
+        name: user?.name || 'unknown',
         profileCount: profiles.length,
         // First profile is the one to KEEP
         profileToKeep: {
@@ -1036,9 +1057,10 @@ export const findDuplicateProfiles = query({
       duplicatesFound: duplicates.length > 0,
       count: duplicates.length,
       duplicates,
-      cleanupInstructions: duplicates.length > 0
-        ? "Run students:cleanupDuplicateProfiles with userId for each affected user to automatically clean up duplicates"
-        : null,
+      cleanupInstructions:
+        duplicates.length > 0
+          ? 'Run students:cleanupDuplicateProfiles with userId for each affected user to automatically clean up duplicates'
+          : null,
     };
   },
 });
@@ -1061,13 +1083,13 @@ export const findDuplicateProfiles = query({
  */
 export const cleanupDuplicateProfiles = internalMutation({
   args: {
-    userId: v.id("users"),
+    userId: v.id('users'),
   },
   handler: async (ctx, args) => {
     // Get all profiles for this user
     const profiles = await ctx.db
-      .query("studentProfiles")
-      .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
+      .query('studentProfiles')
+      .withIndex('by_user_id', (q) => q.eq('user_id', args.userId))
       .collect();
 
     // Sort by created_at to ensure we keep the oldest profile
@@ -1081,9 +1103,10 @@ export const cleanupDuplicateProfiles = internalMutation({
         profilesFound: profiles.length,
         profilesDeleted: 0,
         profileKept: profiles.length === 1 ? profiles[0]._id : null,
-        message: profiles.length === 0
-          ? "No profiles found for this user"
-          : "User has only one profile - no cleanup needed",
+        message:
+          profiles.length === 0
+            ? 'No profiles found for this user'
+            : 'User has only one profile - no cleanup needed',
       };
     }
 
@@ -1092,7 +1115,7 @@ export const cleanupDuplicateProfiles = internalMutation({
 
     console.log(
       `🧹 Cleaning up duplicate profiles for user ${user?.email || args.userId}: ` +
-      `${profiles.length} profiles found`
+        `${profiles.length} profiles found`,
     );
 
     // Keep the oldest (first) profile, delete the rest
@@ -1101,20 +1124,24 @@ export const cleanupDuplicateProfiles = internalMutation({
 
     // Delete duplicate profiles
     for (const profile of profilesToDelete) {
-      console.log(`  🗑️  Deleting duplicate profile ${profile._id} (created: ${new Date(profile.created_at).toISOString()})`);
+      console.log(
+        `  🗑️  Deleting duplicate profile ${profile._id} (created: ${new Date(profile.created_at).toISOString()})`,
+      );
       await ctx.db.delete(profile._id);
     }
 
-    console.log(`  ✅ Kept oldest profile ${profileToKeep._id} (created: ${new Date(profileToKeep.created_at).toISOString()})`);
+    console.log(
+      `  ✅ Kept oldest profile ${profileToKeep._id} (created: ${new Date(profileToKeep.created_at).toISOString()})`,
+    );
 
     return {
       success: true,
       userId: args.userId,
-      userEmail: user?.email || "unknown",
+      userEmail: user?.email || 'unknown',
       profilesFound: profiles.length,
       profilesDeleted: profilesToDelete.length,
       profileKept: profileToKeep._id,
-      deletedProfiles: profilesToDelete.map(p => ({
+      deletedProfiles: profilesToDelete.map((p) => ({
         id: p._id,
         createdAt: p.created_at,
         universityId: p.university_id,
@@ -1149,18 +1176,18 @@ export const monitorDuplicateProfiles = internalMutation({
     // Internal mutation limits: 5-minute execution, 512 MiB memory
     // More headroom than queries, but still monitor performance
     // Safe up to ~20,000-30,000 profiles, but pagination recommended beyond 10k
-    const allProfiles = await ctx.db.query("studentProfiles").collect();
+    const allProfiles = await ctx.db.query('studentProfiles').collect();
 
     // Early warning if approaching reasonable scale limits
     if (allProfiles.length > 8000) {
       console.warn(
         `[SCALE WARNING] monitorDuplicateProfiles processing ${allProfiles.length} profiles. ` +
-        `Consider migration to incremental processing for datasets >10k.`
+          `Consider migration to incremental processing for datasets >10k.`,
       );
     }
 
     // Group by user_id
-    type ProfileType = typeof allProfiles[number];
+    type ProfileType = (typeof allProfiles)[number];
     const profilesByUser = new Map<string, ProfileType[]>();
 
     for (const profile of allProfiles) {
@@ -1180,33 +1207,37 @@ export const monitorDuplicateProfiles = internalMutation({
 
         duplicates.push({
           userId: userIdStr,
-          email: user?.email || "unknown",
+          email: user?.email || 'unknown',
           profileCount: profiles.length,
           oldestProfile: sortedProfiles[0]._id,
-          newerProfiles: sortedProfiles.slice(1).map(p => p._id),
+          newerProfiles: sortedProfiles.slice(1).map((p) => p._id),
         });
       }
     }
 
     // Alert if duplicates found
     if (duplicates.length > 0) {
-      console.error("🚨 ALERT: Duplicate student profiles detected!");
+      console.error('🚨 ALERT: Duplicate student profiles detected!');
       console.error(`Total affected users: ${duplicates.length}`);
-      console.error("\nAffected users:");
+      console.error('\nAffected users:');
 
       for (const dup of duplicates) {
-        console.error(`  - ${maskEmail(dup.email)} (${maskId(dup.userId)}): ${dup.profileCount} profiles`);
+        console.error(
+          `  - ${maskEmail(dup.email)} (${maskId(dup.userId)}): ${dup.profileCount} profiles`,
+        );
         console.error(`    Keep: ${maskId(dup.oldestProfile)}`);
-        console.error(`    Delete: ${dup.newerProfiles.map(maskId).join(", ")}`);
+        console.error(`    Delete: ${dup.newerProfiles.map(maskId).join(', ')}`);
       }
 
-      console.error("\n🔧 Cleanup command:");
-      console.error("For each user, run:");
+      console.error('\n🔧 Cleanup command:');
+      console.error('For each user, run:');
       for (const dup of duplicates) {
-        console.error(`  npx convex run students:cleanupDuplicateProfiles --userId "${dup.userId}"`);
+        console.error(
+          `  npx convex run students:cleanupDuplicateProfiles --userId "${dup.userId}"`,
+        );
       }
     } else {
-      console.log("✅ Monitoring check: No duplicate student profiles found");
+      console.log('✅ Monitoring check: No duplicate student profiles found');
     }
 
     return {
@@ -1238,19 +1269,19 @@ export const getMyInvites = query({
   handler: async (ctx, args) => {
     // Get the admin user
     const admin = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.createdByClerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.createdByClerkId))
       .unique();
 
     if (!admin) {
-      throw new Error("Admin user not found");
+      throw new Error('Admin user not found');
     }
 
     // Query invites created by this admin using the by_created_by index
     const invites = await ctx.db
-      .query("studentInvites")
-      .withIndex("by_created_by", (q) => q.eq("created_by_id", admin._id))
-      .order("desc")
+      .query('studentInvites')
+      .withIndex('by_created_by', (q) => q.eq('created_by_id', admin._id))
+      .order('desc')
       .take(args.limit ?? 50);
 
     // Get university names for each invite
@@ -1261,13 +1292,13 @@ export const getMyInvites = query({
           inviteId: invite._id,
           email: invite.email,
           status: invite.status,
-          universityName: university?.name ?? "Unknown",
+          universityName: university?.name ?? 'Unknown',
           expiresAt: invite.expires_at,
           createdAt: invite.created_at,
           acceptedAt: invite.accepted_at,
           isExpired: invite.expires_at < Date.now(),
         };
-      })
+      }),
     );
 
     return invitesWithDetails;
@@ -1295,21 +1326,16 @@ export const expireOldInvites = internalMutation({
     // Query for expired pending invites using the by_expires_at index
     // Note: We still need to filter by status since the index only includes expires_at
     const expiredInvites = await ctx.db
-      .query("studentInvites")
-      .withIndex("by_expires_at")
-      .filter((q) =>
-        q.and(
-          q.lt(q.field("expires_at"), now),
-          q.eq(q.field("status"), "pending")
-        )
-      )
+      .query('studentInvites')
+      .withIndex('by_expires_at')
+      .filter((q) => q.and(q.lt(q.field('expires_at'), now), q.eq(q.field('status'), 'pending')))
       .collect();
 
     // Update each expired invite to "expired" status
     let expiredCount = 0;
     for (const invite of expiredInvites) {
       await ctx.db.patch(invite._id, {
-        status: "expired",
+        status: 'expired',
         updated_at: now,
       });
       expiredCount++;
@@ -1355,23 +1381,23 @@ export const findStudentsAtInactiveUniversities = query({
     // PERFORMANCE CRITICAL: Loads all profiles into memory
     // Convex query limits: 1-second execution, 64 MiB memory
     // Risks timeout at ~3,000-5,000 profiles depending on data size
-    const allProfiles = await ctx.db.query("studentProfiles").collect();
+    const allProfiles = await ctx.db.query('studentProfiles').collect();
 
     // Early warning if approaching 1-second query limit
     if (allProfiles.length > 2500) {
       console.warn(
         `[SCALE WARNING] findStudentsAtInactiveUniversities processing ${allProfiles.length} profiles. ` +
-        `Approaching 1-second query limit. Pagination required soon.`
+          `Approaching 1-second query limit. Pagination required soon.`,
       );
     }
 
     // Get all inactive universities
     const inactiveUniversities = await ctx.db
-      .query("universities")
-      .filter((q) => q.neq(q.field("status"), "active"))
+      .query('universities')
+      .filter((q) => q.neq(q.field('status'), 'active'))
       .collect();
 
-    const inactiveUniversityIds = new Set(inactiveUniversities.map(u => u._id));
+    const inactiveUniversityIds = new Set(inactiveUniversities.map((u) => u._id));
 
     // Find student profiles at inactive universities
     const studentsAtInactive = [];
@@ -1413,7 +1439,7 @@ export const findStudentsAtInactiveUniversities = query({
       universityName: students[0].universityName,
       universityStatus: students[0].universityStatus,
       studentCount: students.length,
-      students: students.map(s => ({
+      students: students.map((s) => ({
         userId: s.userId,
         email: s.userEmail,
         name: s.userName,
@@ -1428,9 +1454,10 @@ export const findStudentsAtInactiveUniversities = query({
       totalStudents: studentsAtInactive.length,
       inactiveUniversityCount: inactiveUniversities.length,
       summary,
-      recommendations: studentsAtInactive.length > 0
-        ? "Review each university and decide whether to reactivate, convert students to individual accounts, or suspend them."
-        : null,
+      recommendations:
+        studentsAtInactive.length > 0
+          ? 'Review each university and decide whether to reactivate, convert students to individual accounts, or suspend them.'
+          : null,
     };
   },
 });
@@ -1461,26 +1488,26 @@ export const detectOrphanedProfiles = query({
     // Convex query limits: 1-second execution, 64 MiB memory
     // HIGHEST RISK - loads TWO full tables, will timeout much sooner than other queries
     // Likely to fail at ~2,000-3,000 profiles depending on user table size
-    const allProfiles = await ctx.db.query("studentProfiles").collect();
+    const allProfiles = await ctx.db.query('studentProfiles').collect();
 
     // Early warning - lower threshold due to loading two tables
     if (allProfiles.length > 2000) {
       console.warn(
         `[SCALE WARNING] detectOrphanedProfiles processing ${allProfiles.length} profiles. ` +
-        `This query loads both profiles AND users - very high timeout risk. Pagination critical.`
+          `This query loads both profiles AND users - very high timeout risk. Pagination critical.`,
       );
     }
 
     // Get all users with student role
-    const allUsers = await ctx.db.query("users").collect();
+    const allUsers = await ctx.db.query('users').collect();
 
     if (allUsers.length > 2000) {
       console.warn(
         `[SCALE WARNING] detectOrphanedProfiles processing ${allUsers.length} users. ` +
-        `Combined with profiles load, approaching 1-second limit rapidly.`
+          `Combined with profiles load, approaching 1-second limit rapidly.`,
       );
     }
-    const studentUsers = allUsers.filter(u => u.role === "student");
+    const studentUsers = allUsers.filter((u) => u.role === 'student');
 
     const orphanedStates = [];
 
@@ -1489,25 +1516,26 @@ export const detectOrphanedProfiles = query({
       const user = await ctx.db.get(profile.user_id);
       if (!user) {
         orphanedStates.push({
-          type: "profile_without_user",
+          type: 'profile_without_user',
           profileId: profile._id,
           userId: profile.user_id,
           universityId: profile.university_id,
-          issue: "Student profile exists but user not found",
+          issue: 'Student profile exists but user not found',
           recommendation: `Delete profile: ctx.db.delete("${profile._id}")`,
         });
-      } else if (user.role !== "student") {
+      } else if (user.role !== 'student') {
         orphanedStates.push({
-          type: "profile_role_mismatch",
+          type: 'profile_role_mismatch',
           profileId: profile._id,
           userId: user._id,
           userEmail: user.email,
           userRole: user.role,
           universityId: profile.university_id,
           issue: `User has role "${user.role}" but student profile exists`,
-          recommendation: user.university_id === profile.university_id
-            ? `Update user role to "student" OR delete profile`
-            : `Delete profile (user not at this university)`,
+          recommendation:
+            user.university_id === profile.university_id
+              ? `Update user role to "student" OR delete profile`
+              : `Delete profile (user not at this university)`,
         });
       }
     }
@@ -1515,13 +1543,13 @@ export const detectOrphanedProfiles = query({
     // Check 2: Users with role="student" but no student profile
     for (const user of studentUsers) {
       const profile = await ctx.db
-        .query("studentProfiles")
-        .withIndex("by_user_id", (q) => q.eq("user_id", user._id))
+        .query('studentProfiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', user._id))
         .first();
 
       if (!profile) {
         orphanedStates.push({
-          type: "student_without_profile",
+          type: 'student_without_profile',
           userId: user._id,
           userEmail: user.email,
           universityId: user.university_id,
@@ -1535,8 +1563,8 @@ export const detectOrphanedProfiles = query({
 
     // Check 3: Invites marked "accepted" but user is not a student
     const acceptedInvites = await ctx.db
-      .query("studentInvites")
-      .withIndex("by_status", (q) => q.eq("status", "accepted"))
+      .query('studentInvites')
+      .withIndex('by_status', (q) => q.eq('status', 'accepted'))
       .collect();
 
     for (const invite of acceptedInvites) {
@@ -1544,16 +1572,16 @@ export const detectOrphanedProfiles = query({
         const user = await ctx.db.get(invite.accepted_by_user_id);
         if (!user) {
           orphanedStates.push({
-            type: "accepted_invite_user_deleted",
+            type: 'accepted_invite_user_deleted',
             inviteId: invite._id,
             email: invite.email,
             acceptedByUserId: invite.accepted_by_user_id,
-            issue: "Invite marked accepted but user not found",
+            issue: 'Invite marked accepted but user not found',
             recommendation: `Reset invite to pending OR mark as revoked`,
           });
-        } else if (user.role !== "student" || user.university_id !== invite.university_id) {
+        } else if (user.role !== 'student' || user.university_id !== invite.university_id) {
           orphanedStates.push({
-            type: "accepted_invite_role_mismatch",
+            type: 'accepted_invite_role_mismatch',
             inviteId: invite._id,
             email: invite.email,
             userId: user._id,
@@ -1572,11 +1600,17 @@ export const detectOrphanedProfiles = query({
       count: orphanedStates.length,
       orphanedStates,
       summary: {
-        profilesWithoutUser: orphanedStates.filter(s => s.type === "profile_without_user").length,
-        profileRoleMismatches: orphanedStates.filter(s => s.type === "profile_role_mismatch").length,
-        studentsWithoutProfile: orphanedStates.filter(s => s.type === "student_without_profile").length,
-        acceptedInviteUserDeleted: orphanedStates.filter(s => s.type === "accepted_invite_user_deleted").length,
-        acceptedInviteRoleMismatch: orphanedStates.filter(s => s.type === "accepted_invite_role_mismatch").length,
+        profilesWithoutUser: orphanedStates.filter((s) => s.type === 'profile_without_user').length,
+        profileRoleMismatches: orphanedStates.filter((s) => s.type === 'profile_role_mismatch')
+          .length,
+        studentsWithoutProfile: orphanedStates.filter((s) => s.type === 'student_without_profile')
+          .length,
+        acceptedInviteUserDeleted: orphanedStates.filter(
+          (s) => s.type === 'accepted_invite_user_deleted',
+        ).length,
+        acceptedInviteRoleMismatch: orphanedStates.filter(
+          (s) => s.type === 'accepted_invite_role_mismatch',
+        ).length,
       },
     };
   },
@@ -1603,20 +1637,20 @@ export const detectDuplicateInvites = query({
     // Convex query limits: 1-second execution, 64 MiB memory
     // Risks timeout at ~3,000-5,000 pending invites depending on invite data size
     const allPendingInvites = await ctx.db
-      .query("studentInvites")
-      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .query('studentInvites')
+      .withIndex('by_status', (q) => q.eq('status', 'pending'))
       .collect();
 
     // Early warning if approaching 1-second query limit
     if (allPendingInvites.length > 2500) {
       console.warn(
         `[SCALE WARNING] detectDuplicateInvites processing ${allPendingInvites.length} pending invites. ` +
-        `Approaching 1-second query limit. Pagination required soon.`
+          `Approaching 1-second query limit. Pagination required soon.`,
       );
     }
 
     // Group by (university_id, email) pair
-    type InviteType = typeof allPendingInvites[number];
+    type InviteType = (typeof allPendingInvites)[number];
     const invitesByKey = new Map<string, InviteType[]>();
 
     for (const invite of allPendingInvites) {
@@ -1631,21 +1665,21 @@ export const detectDuplicateInvites = query({
     const duplicates = [];
     for (const [key, invites] of Array.from(invitesByKey.entries())) {
       if (invites.length > 1) {
-        const colonIndex = key.indexOf(":");
+        const colonIndex = key.indexOf(':');
         if (colonIndex === -1) {
           console.error(`Invalid invite key format (missing colon): ${key}`);
           continue;
         }
         const universityId = key.substring(0, colonIndex);
         const email = key.substring(colonIndex + 1);
-        const university = await ctx.db.get(universityId as Id<"universities">);
+        const university = await ctx.db.get(universityId as Id<'universities'>);
 
         // Sort by created_at to identify oldest (keep) vs newest (delete)
         const sortedInvites = [...invites].sort((a, b) => a.created_at - b.created_at);
 
         duplicates.push({
           universityId,
-          universityName: university?.name || "Unknown",
+          universityName: university?.name || 'Unknown',
           email,
           inviteCount: invites.length,
           // First invite is the one to KEEP
@@ -1673,9 +1707,10 @@ export const detectDuplicateInvites = query({
       count: duplicates.length,
       totalPendingInvites: allPendingInvites.length,
       duplicates,
-      cleanupInstructions: duplicates.length > 0
-        ? "For each duplicate, run: await ctx.db.delete(inviteId) for invitesToDelete entries"
-        : null,
+      cleanupInstructions:
+        duplicates.length > 0
+          ? 'For each duplicate, run: await ctx.db.delete(inviteId) for invitesToDelete entries'
+          : null,
     };
   },
 });
@@ -1704,7 +1739,7 @@ export const detectDuplicateInvites = query({
  */
 export const updateStudentProfile = mutation({
   args: {
-    studentProfileId: v.id("studentProfiles"),
+    studentProfileId: v.id('studentProfiles'),
     clerkId: v.string(),
     updates: v.object({
       student_id: v.optional(v.string()),
@@ -1714,11 +1749,11 @@ export const updateStudentProfile = mutation({
       graduation_date: v.optional(v.number()),
       status: v.optional(
         v.union(
-          v.literal("active"),
-          v.literal("inactive"),
-          v.literal("graduated"),
-          v.literal("suspended"),
-        )
+          v.literal('active'),
+          v.literal('inactive'),
+          v.literal('graduated'),
+          v.literal('suspended'),
+        ),
       ),
     }),
   },
@@ -1728,29 +1763,28 @@ export const updateStudentProfile = mutation({
     // Get the student profile
     const profile = await ctx.db.get(args.studentProfileId);
     if (!profile) {
-      throw new Error("Student profile not found");
+      throw new Error('Student profile not found');
     }
 
     // Get the requesting user
     const requestingUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!requestingUser) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Authorization check
     const isOwnProfile = profile.user_id === requestingUser._id;
     const isUniversityAdmin =
-      requestingUser.role === "university_admin" &&
+      requestingUser.role === 'university_admin' &&
       requestingUser.university_id === profile.university_id;
-    const isSuperAdmin =
-      requestingUser.role === "super_admin";
+    const isSuperAdmin = requestingUser.role === 'super_admin';
 
     if (!isOwnProfile && !isUniversityAdmin && !isSuperAdmin) {
-      throw new Error("Unauthorized: Cannot update this student profile");
+      throw new Error('Unauthorized: Cannot update this student profile');
     }
 
     // Validate GPA if provided
@@ -1760,14 +1794,15 @@ export const updateStudentProfile = mutation({
 
     // Status changes require admin privileges
     if (args.updates.status !== undefined && !isUniversityAdmin && !isSuperAdmin) {
-      throw new Error("Only administrators can change student status");
+      throw new Error('Only administrators can change student status');
     }
 
     // Validate year if provided
-    if (args.updates.year !== undefined && !(VALID_YEARS as readonly string[]).includes(args.updates.year)) {
-      throw new Error(
-        `Invalid year. Must be one of: ${VALID_YEARS.join(", ")}`
-      );
+    if (
+      args.updates.year !== undefined &&
+      !(VALID_YEARS as readonly string[]).includes(args.updates.year)
+    ) {
+      throw new Error(`Invalid year. Must be one of: ${VALID_YEARS.join(', ')}`);
     }
 
     // Update the profile

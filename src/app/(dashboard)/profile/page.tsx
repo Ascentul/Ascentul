@@ -1,32 +1,43 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Image from "next/image";
-import { useUser } from "@clerk/nextjs";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
-import { useToast } from "@/hooks/use-toast";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useSearchParams } from "next/navigation";
-
-// UI Components
+import { useUser } from '@clerk/nextjs';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
+  Award,
+  Briefcase,
+  Calendar,
+  Camera,
+  CheckCircle2,
+  Circle,
+  Edit,
+  FileText,
+  Globe,
+  GraduationCap,
+  Linkedin,
+  Loader2,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Plus,
+  Target,
+  Trash2,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
+import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+// UI Components
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -34,7 +45,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -43,46 +54,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import {
-  Edit,
-  Loader2,
-  Camera,
-  Briefcase,
-  GraduationCap,
-  Target,
-  Award,
-  FileText,
-  Users,
-  Calendar,
-  TrendingUp,
-  MapPin,
-  Mail,
-  Globe,
-  CheckCircle2,
-  Circle,
-  Linkedin,
-  Plus,
-  Trash2,
-  Pencil,
-  Phone,
-} from "lucide-react";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 // Career Profile Form Schema
 const careerProfileSchema = z.object({
-  bio: z.string().max(500, "Bio must be 500 characters or less").optional(),
-  email: z
-    .string()
-    .email("Please enter a valid email")
-    .optional()
-    .or(z.literal("")),
+  bio: z.string().max(500, 'Bio must be 500 characters or less').optional(),
+  email: z.string().email('Please enter a valid email').optional().or(z.literal('')),
   phone_number: z.string().optional(),
   city: z.string().optional(),
-  linkedin_url: z
-    .string()
-    .url("Please enter a valid LinkedIn URL")
-    .optional()
-    .or(z.literal("")),
+  linkedin_url: z.string().url('Please enter a valid LinkedIn URL').optional().or(z.literal('')),
   major: z.string().optional(),
   university_name: z.string().optional(),
   graduation_year: z.string().optional(),
@@ -91,17 +77,14 @@ const careerProfileSchema = z.object({
   experience_level: z.string().optional(),
   industry: z.string().optional(),
   skills: z.string().optional(),
-  career_goals: z
-    .string()
-    .max(1000, "Career goals must be 1000 characters or less")
-    .optional(),
+  career_goals: z.string().max(1000, 'Career goals must be 1000 characters or less').optional(),
 });
 
 type CareerProfileFormValues = z.infer<typeof careerProfileSchema>;
 
 export default function ProfilePage() {
   const searchParams = useSearchParams();
-  const viewingUserId = searchParams.get("userId"); // If viewing another user's profile
+  const viewingUserId = searchParams.get('userId'); // If viewing another user's profile
 
   const { user: clerkUser } = useUser();
   const { user: userProfile, isAdmin } = useAuth();
@@ -115,34 +98,28 @@ export default function ProfilePage() {
   // Query the target user's data
   const targetUserProfile = useQuery(
     api.users.getUserByClerkId,
-    viewingUserId ? { clerkId: viewingUserId } : "skip",
+    viewingUserId ? { clerkId: viewingUserId } : 'skip',
   );
 
   // Use target user's data or fallback to current user
   const displayProfile = viewingUserId ? targetUserProfile : userProfile;
 
   // Check if current user can view this profile
-  const canView =
-    isViewingOwnProfile ||
-    isAdmin ||
-    displayProfile?.role === "university_admin";
+  const canView = isViewingOwnProfile || isAdmin || displayProfile?.role === 'university_admin';
 
   // Queries for user data
-  const goals = useQuery(
-    api.goals.getUserGoals,
-    targetUserId ? { clerkId: targetUserId } : "skip",
-  );
+  const goals = useQuery(api.goals.getUserGoals, targetUserId ? { clerkId: targetUserId } : 'skip');
   const applications = useQuery(
     api.applications.getUserApplications,
-    targetUserId ? { clerkId: targetUserId } : "skip",
+    targetUserId ? { clerkId: targetUserId } : 'skip',
   );
   const contacts = useQuery(
     api.contacts.getUserContacts,
-    targetUserId ? { clerkId: targetUserId } : "skip",
+    targetUserId ? { clerkId: targetUserId } : 'skip',
   );
   const projects = useQuery(
     api.projects.getUserProjects,
-    targetUserId ? { clerkId: targetUserId } : "skip",
+    targetUserId ? { clerkId: targetUserId } : 'skip',
   );
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -154,49 +131,47 @@ export default function ProfilePage() {
   const [isAddingWorkHistory, setIsAddingWorkHistory] = useState(false);
   const [editingWorkHistoryId, setEditingWorkHistoryId] = useState<string | null>(null);
   const [workHistoryForm, setWorkHistoryForm] = useState({
-    role: "",
-    company: "",
-    location: "",
-    start_date: "",
-    end_date: "",
+    role: '',
+    company: '',
+    location: '',
+    start_date: '',
+    end_date: '',
     is_current: false,
-    summary: "",
+    summary: '',
   });
 
   // Achievements Management
   const [isAddingAchievement, setIsAddingAchievement] = useState(false);
   const [editingAchievementId, setEditingAchievementId] = useState<string | null>(null);
   const [achievementForm, setAchievementForm] = useState({
-    title: "",
-    organization: "",
-    date: "",
-    description: "",
+    title: '',
+    organization: '',
+    date: '',
+    description: '',
   });
 
   // Avatar mutations
-  const generateAvatarUploadUrl = useMutation(
-    api.avatar.generateAvatarUploadUrl,
-  );
+  const generateAvatarUploadUrl = useMutation(api.avatar.generateAvatarUploadUrl);
   const updateUserAvatar = useMutation(api.avatar.updateUserAvatar);
 
   // Career profile form - reset values when displayProfile changes
   const profileForm = useForm<CareerProfileFormValues>({
     resolver: zodResolver(careerProfileSchema),
     defaultValues: {
-      bio: displayProfile?.bio || "",
-      email: displayProfile?.email || "",
-      phone_number: displayProfile?.phone_number || "",
-      city: displayProfile?.city || "",
-      linkedin_url: displayProfile?.linkedin_url || "",
-      major: displayProfile?.major || "",
-      university_name: displayProfile?.university_name || "",
-      graduation_year: displayProfile?.graduation_year || "",
-      current_position: displayProfile?.current_position || "",
-      current_company: displayProfile?.current_company || "",
-      experience_level: displayProfile?.experience_level || "",
-      industry: displayProfile?.industry || "",
-      skills: displayProfile?.skills || "",
-      career_goals: displayProfile?.career_goals || "",
+      bio: displayProfile?.bio || '',
+      email: displayProfile?.email || '',
+      phone_number: displayProfile?.phone_number || '',
+      city: displayProfile?.city || '',
+      linkedin_url: displayProfile?.linkedin_url || '',
+      major: displayProfile?.major || '',
+      university_name: displayProfile?.university_name || '',
+      graduation_year: displayProfile?.graduation_year || '',
+      current_position: displayProfile?.current_position || '',
+      current_company: displayProfile?.current_company || '',
+      experience_level: displayProfile?.experience_level || '',
+      industry: displayProfile?.industry || '',
+      skills: displayProfile?.skills || '',
+      career_goals: displayProfile?.career_goals || '',
     },
   });
 
@@ -204,20 +179,20 @@ export default function ProfilePage() {
   React.useEffect(() => {
     if (displayProfile && isEditingProfile) {
       profileForm.reset({
-        bio: displayProfile.bio || "",
-        email: displayProfile.email || "",
-        phone_number: displayProfile.phone_number || "",
-        city: displayProfile.city || "",
-        linkedin_url: displayProfile.linkedin_url || "",
-        major: displayProfile.major || "",
-        university_name: displayProfile.university_name || "",
-        graduation_year: displayProfile.graduation_year || "",
-        current_position: displayProfile.current_position || "",
-        current_company: displayProfile.current_company || "",
-        experience_level: displayProfile.experience_level || "",
-        industry: displayProfile.industry || "",
-        skills: displayProfile.skills || "",
-        career_goals: displayProfile.career_goals || "",
+        bio: displayProfile.bio || '',
+        email: displayProfile.email || '',
+        phone_number: displayProfile.phone_number || '',
+        city: displayProfile.city || '',
+        linkedin_url: displayProfile.linkedin_url || '',
+        major: displayProfile.major || '',
+        university_name: displayProfile.university_name || '',
+        graduation_year: displayProfile.graduation_year || '',
+        current_position: displayProfile.current_position || '',
+        current_company: displayProfile.current_company || '',
+        experience_level: displayProfile.experience_level || '',
+        industry: displayProfile.industry || '',
+        skills: displayProfile.skills || '',
+        career_goals: displayProfile.career_goals || '',
       });
     }
   }, [displayProfile, isEditingProfile, profileForm]);
@@ -227,10 +202,13 @@ export default function ProfilePage() {
     const sections = [
       !!displayProfile?.bio, // Career Summary
       !!displayProfile?.linkedin_url, // LinkedIn Profile
-      Array.isArray((displayProfile as any)?.work_history) && (displayProfile as any).work_history.length > 0, // Work History
+      Array.isArray((displayProfile as any)?.work_history) &&
+        (displayProfile as any).work_history.length > 0, // Work History
       // Check for education in either new format (education_history array) OR legacy format (major/university_name)
-      (Array.isArray((displayProfile as any)?.education_history) && (displayProfile as any).education_history.length > 0) ||
-      (!!displayProfile?.major || !!displayProfile?.university_name), // Education
+      (Array.isArray((displayProfile as any)?.education_history) &&
+        (displayProfile as any).education_history.length > 0) ||
+        !!displayProfile?.major ||
+        !!displayProfile?.university_name, // Education
       !!displayProfile?.skills, // Skills
     ];
     const completed = sections.filter(Boolean).length;
@@ -240,16 +218,16 @@ export default function ProfilePage() {
   const handleProfileUpdate = async (data: CareerProfileFormValues) => {
     if (!isViewingOwnProfile) {
       toast({
-        title: "Unauthorized",
+        title: 'Unauthorized',
         description: "Cannot modify another user's profile",
-        variant: "destructive",
+        variant: 'destructive',
       });
       return;
     }
 
     setIsLoading(true);
     try {
-      if (!clerkUser) throw new Error("No user found");
+      if (!clerkUser) throw new Error('No user found');
 
       // Build updates object, only including non-empty values to let Convex handle filtering
       const updates: any = {};
@@ -276,65 +254,65 @@ export default function ProfilePage() {
       // Update form with new data to refresh the display and completion percentage
       // This ensures the completion percentage recalculates immediately after update
       profileForm.reset({
-        bio: data.bio || displayProfile?.bio || "",
-        email: data.email || displayProfile?.email || "",
-        phone_number: data.phone_number || displayProfile?.phone_number || "",
-        city: data.city || displayProfile?.city || "",
-        linkedin_url: data.linkedin_url || displayProfile?.linkedin_url || "",
-        major: data.major || displayProfile?.major || "",
-        university_name: data.university_name || displayProfile?.university_name || "",
-        graduation_year: data.graduation_year || displayProfile?.graduation_year || "",
-        current_position: data.current_position || displayProfile?.current_position || "",
-        current_company: data.current_company || displayProfile?.current_company || "",
-        experience_level: data.experience_level || displayProfile?.experience_level || "",
-        industry: data.industry || displayProfile?.industry || "",
-        skills: data.skills || displayProfile?.skills || "",
-        career_goals: data.career_goals || displayProfile?.career_goals || "",
+        bio: data.bio || displayProfile?.bio || '',
+        email: data.email || displayProfile?.email || '',
+        phone_number: data.phone_number || displayProfile?.phone_number || '',
+        city: data.city || displayProfile?.city || '',
+        linkedin_url: data.linkedin_url || displayProfile?.linkedin_url || '',
+        major: data.major || displayProfile?.major || '',
+        university_name: data.university_name || displayProfile?.university_name || '',
+        graduation_year: data.graduation_year || displayProfile?.graduation_year || '',
+        current_position: data.current_position || displayProfile?.current_position || '',
+        current_company: data.current_company || displayProfile?.current_company || '',
+        experience_level: data.experience_level || displayProfile?.experience_level || '',
+        industry: data.industry || displayProfile?.industry || '',
+        skills: data.skills || displayProfile?.skills || '',
+        career_goals: data.career_goals || displayProfile?.career_goals || '',
       });
 
       toast({
-        title: "Profile updated",
-        description: "Your career profile has been updated successfully.",
-        variant: "success",
+        title: 'Profile updated',
+        description: 'Your career profile has been updated successfully.',
+        variant: 'success',
       });
       setIsEditingProfile(false);
     } catch (error: any) {
-      console.error("Profile update error:", error);
-      const errorMessage = error?.message || "Failed to update profile. Please try again.";
+      console.error('Profile update error:', error);
+      const errorMessage = error?.message || 'Failed to update profile. Please try again.';
       toast({
-        title: "Error",
+        title: 'Error',
         description: errorMessage,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleImageUpload = async (file: File, type: "avatar" | "cover") => {
+  const handleImageUpload = async (file: File, type: 'avatar' | 'cover') => {
     if (!isViewingOwnProfile) {
       toast({
-        title: "Unauthorized",
+        title: 'Unauthorized',
         description: "Cannot modify another user's profile",
-        variant: "destructive",
+        variant: 'destructive',
       });
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
+    if (!file.type.startsWith('image/')) {
       toast({
-        title: "Invalid file type",
-        description: "Please upload an image file",
-        variant: "destructive",
+        title: 'Invalid file type',
+        description: 'Please upload an image file',
+        variant: 'destructive',
       });
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: "File too large",
-        description: "Please upload an image smaller than 5MB",
-        variant: "destructive",
+        title: 'File too large',
+        description: 'Please upload an image smaller than 5MB',
+        variant: 'destructive',
       });
       return;
     }
@@ -342,24 +320,24 @@ export default function ProfilePage() {
     try {
       const uploadUrl = await generateAvatarUploadUrl();
       const uploadResult = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
         body: file,
       });
 
-      if (!uploadResult.ok) throw new Error("Failed to upload image");
+      if (!uploadResult.ok) throw new Error('Failed to upload image');
 
       const { storageId } = await uploadResult.json();
 
       if (clerkUser?.id) {
-        if (type === "avatar") {
+        if (type === 'avatar') {
           await updateUserAvatar({
             clerkId: clerkUser.id,
             storageId,
           });
           toast({
-            title: "Profile picture updated",
-            description: "Your profile picture has been updated successfully",
+            title: 'Profile picture updated',
+            description: 'Your profile picture has been updated successfully',
           });
         } else {
           await updateUser({
@@ -367,16 +345,16 @@ export default function ProfilePage() {
             updates: { cover_image: storageId },
           });
           toast({
-            title: "Cover image updated",
-            description: "Your cover image has been updated successfully",
+            title: 'Cover image updated',
+            description: 'Your cover image has been updated successfully',
           });
         }
       }
     } catch (error) {
       toast({
-        title: "Upload failed",
-        description: "Failed to upload image. Please try again.",
-        variant: "destructive",
+        title: 'Upload failed',
+        description: 'Failed to upload image. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -385,11 +363,11 @@ export default function ProfilePage() {
   const handleAddWorkHistory = async () => {
     if (!clerkUser || !isViewingOwnProfile || !workHistoryForm.role || !workHistoryForm.company) {
       toast({
-        title: !isViewingOwnProfile ? "Unauthorized" : "Missing fields",
+        title: !isViewingOwnProfile ? 'Unauthorized' : 'Missing fields',
         description: !isViewingOwnProfile
           ? "Cannot modify another user's profile"
-          : "Please fill in role and company",
-        variant: "destructive",
+          : 'Please fill in role and company',
+        variant: 'destructive',
       });
       return;
     }
@@ -402,7 +380,7 @@ export default function ProfilePage() {
         company: workHistoryForm.company,
         location: workHistoryForm.location || undefined,
         start_date: workHistoryForm.start_date || undefined,
-        end_date: workHistoryForm.is_current ? undefined : (workHistoryForm.end_date || undefined),
+        end_date: workHistoryForm.is_current ? undefined : workHistoryForm.end_date || undefined,
         is_current: workHistoryForm.is_current,
         summary: workHistoryForm.summary || undefined,
       };
@@ -415,26 +393,26 @@ export default function ProfilePage() {
       });
 
       toast({
-        title: "Work experience added",
-        description: "Your work history has been updated",
+        title: 'Work experience added',
+        description: 'Your work history has been updated',
       });
 
       // Reset form
       setWorkHistoryForm({
-        role: "",
-        company: "",
-        location: "",
-        start_date: "",
-        end_date: "",
+        role: '',
+        company: '',
+        location: '',
+        start_date: '',
+        end_date: '',
         is_current: false,
-        summary: "",
+        summary: '',
       });
       setIsAddingWorkHistory(false);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to add work history",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to add work history',
+        variant: 'destructive',
       });
     }
   };
@@ -442,9 +420,9 @@ export default function ProfilePage() {
   const handleUpdateWorkHistory = async () => {
     if (!isViewingOwnProfile) {
       toast({
-        title: "Unauthorized",
+        title: 'Unauthorized',
         description: "Cannot modify another user's profile",
-        variant: "destructive",
+        variant: 'destructive',
       });
       return;
     }
@@ -463,11 +441,13 @@ export default function ProfilePage() {
               company: workHistoryForm.company,
               location: workHistoryForm.location || undefined,
               start_date: workHistoryForm.start_date || undefined,
-              end_date: workHistoryForm.is_current ? undefined : (workHistoryForm.end_date || undefined),
+              end_date: workHistoryForm.is_current
+                ? undefined
+                : workHistoryForm.end_date || undefined,
               is_current: workHistoryForm.is_current,
               summary: workHistoryForm.summary || undefined,
             }
-          : item
+          : item,
       );
 
       await updateUser({
@@ -478,35 +458,35 @@ export default function ProfilePage() {
       });
 
       toast({
-        title: "Work experience updated",
-        description: "Your work history has been updated",
+        title: 'Work experience updated',
+        description: 'Your work history has been updated',
       });
 
       // Reset form
       setWorkHistoryForm({
-        role: "",
-        company: "",
-        location: "",
-        start_date: "",
-        end_date: "",
+        role: '',
+        company: '',
+        location: '',
+        start_date: '',
+        end_date: '',
         is_current: false,
-        summary: "",
+        summary: '',
       });
       setEditingWorkHistoryId(null);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to update work history",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update work history',
+        variant: 'destructive',
       });
     }
   };
   const handleDeleteWorkHistory = async (id: string) => {
     if (!isViewingOwnProfile) {
       toast({
-        title: "Unauthorized",
+        title: 'Unauthorized',
         description: "Cannot modify another user's profile",
-        variant: "destructive",
+        variant: 'destructive',
       });
       return;
     }
@@ -525,27 +505,27 @@ export default function ProfilePage() {
       });
 
       toast({
-        title: "Work experience deleted",
-        description: "Your work history has been updated",
+        title: 'Work experience deleted',
+        description: 'Your work history has been updated',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to delete work history",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to delete work history',
+        variant: 'destructive',
       });
     }
   };
 
   const handleEditWorkHistory = (item: any) => {
     setWorkHistoryForm({
-      role: item.role || "",
-      company: item.company || "",
-      location: item.location || "",
-      start_date: item.start_date || "",
-      end_date: item.end_date || "",
+      role: item.role || '',
+      company: item.company || '',
+      location: item.location || '',
+      start_date: item.start_date || '',
+      end_date: item.end_date || '',
       is_current: item.is_current || false,
-      summary: item.summary || "",
+      summary: item.summary || '',
     });
     setEditingWorkHistoryId(item.id);
   };
@@ -554,9 +534,11 @@ export default function ProfilePage() {
   const handleAddAchievement = async () => {
     if (!clerkUser || !isViewingOwnProfile || !achievementForm.title) {
       toast({
-        title: !isViewingOwnProfile ? "Unauthorized" : "Missing fields",
-        description: !isViewingOwnProfile ? "Cannot modify another user's profile" : "Please fill in the achievement title",
-        variant: "destructive",
+        title: !isViewingOwnProfile ? 'Unauthorized' : 'Missing fields',
+        description: !isViewingOwnProfile
+          ? "Cannot modify another user's profile"
+          : 'Please fill in the achievement title',
+        variant: 'destructive',
       });
       return;
     }
@@ -579,23 +561,23 @@ export default function ProfilePage() {
       });
 
       toast({
-        title: "Achievement added",
-        description: "Your achievement has been added successfully",
+        title: 'Achievement added',
+        description: 'Your achievement has been added successfully',
       });
 
       // Reset form
       setAchievementForm({
-        title: "",
-        organization: "",
-        date: "",
-        description: "",
+        title: '',
+        organization: '',
+        date: '',
+        description: '',
       });
       setIsAddingAchievement(false);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to add achievement",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to add achievement',
+        variant: 'destructive',
       });
     }
   };
@@ -603,9 +585,9 @@ export default function ProfilePage() {
   const handleUpdateAchievement = async () => {
     if (!isViewingOwnProfile) {
       toast({
-        title: "Unauthorized",
+        title: 'Unauthorized',
         description: "Cannot modify another user's profile",
-        variant: "destructive",
+        variant: 'destructive',
       });
       return;
     }
@@ -623,7 +605,7 @@ export default function ProfilePage() {
               date: achievementForm.date || undefined,
               description: achievementForm.description || undefined,
             }
-          : item
+          : item,
       );
 
       await updateUser({
@@ -634,23 +616,23 @@ export default function ProfilePage() {
       });
 
       toast({
-        title: "Achievement updated",
-        description: "Your achievement has been updated successfully",
+        title: 'Achievement updated',
+        description: 'Your achievement has been updated successfully',
       });
 
       // Reset form
       setAchievementForm({
-        title: "",
-        organization: "",
-        date: "",
-        description: "",
+        title: '',
+        organization: '',
+        date: '',
+        description: '',
       });
       setEditingAchievementId(null);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to update achievement",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update achievement',
+        variant: 'destructive',
       });
     }
   };
@@ -658,9 +640,9 @@ export default function ProfilePage() {
   const handleDeleteAchievement = async (id: string) => {
     if (!isViewingOwnProfile) {
       toast({
-        title: "Unauthorized",
+        title: 'Unauthorized',
         description: "Cannot modify another user's profile",
-        variant: "destructive",
+        variant: 'destructive',
       });
       return;
     }
@@ -679,24 +661,24 @@ export default function ProfilePage() {
       });
 
       toast({
-        title: "Achievement deleted",
-        description: "Your achievement has been removed",
+        title: 'Achievement deleted',
+        description: 'Your achievement has been removed',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to delete achievement",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to delete achievement',
+        variant: 'destructive',
       });
     }
   };
 
   const handleEditAchievement = (item: any) => {
     setAchievementForm({
-      title: item.title || "",
-      organization: item.organization || "",
-      date: item.date || "",
-      description: item.description || "",
+      title: item.title || '',
+      organization: item.organization || '',
+      date: item.date || '',
+      description: item.description || '',
     });
     setEditingAchievementId(item.id);
   };
@@ -739,10 +721,15 @@ export default function ProfilePage() {
   const completedSections = {
     careerSummary: !!displayProfile?.bio,
     linkedinProfile: !!displayProfile?.linkedin_url,
-    workHistory: Array.isArray((displayProfile as any)?.work_history) && (displayProfile as any).work_history.length > 0,
+    workHistory:
+      Array.isArray((displayProfile as any)?.work_history) &&
+      (displayProfile as any).work_history.length > 0,
     // Check for education in either new format (education_history array) OR legacy format (major/university_name)
-    education: (Array.isArray((displayProfile as any)?.education_history) && (displayProfile as any).education_history.length > 0) ||
-      (!!displayProfile?.major || !!displayProfile?.university_name),
+    education:
+      (Array.isArray((displayProfile as any)?.education_history) &&
+        (displayProfile as any).education_history.length > 0) ||
+      !!displayProfile?.major ||
+      !!displayProfile?.university_name,
     skills: !!displayProfile?.skills,
   };
 
@@ -768,7 +755,7 @@ export default function ProfilePage() {
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) handleImageUpload(file, "cover");
+              if (file) handleImageUpload(file, 'cover');
             }}
           />
         )}
@@ -777,7 +764,7 @@ export default function ProfilePage() {
             variant="secondary"
             size="sm"
             className="absolute bottom-4 right-4"
-            onClick={() => document.getElementById("cover-upload")?.click()}
+            onClick={() => document.getElementById('cover-upload')?.click()}
           >
             <Camera className="h-4 w-4 mr-2" />
             Edit Cover
@@ -793,18 +780,14 @@ export default function ProfilePage() {
             <div className="relative -mt-32">
               <Avatar className="w-32 h-32 ring-4 ring-primary-500 bg-white">
                 <AvatarImage
-                  src={
-                    profilePreview ||
-                    displayProfile.profile_image ||
-                    clerkUser?.imageUrl
-                  }
+                  src={profilePreview || displayProfile.profile_image || clerkUser?.imageUrl}
                   className="object-cover"
                 />
                 <AvatarFallback className="text-2xl">
                   {displayProfile.name
-                    .split(" ")
+                    .split(' ')
                     .map((n) => n[0])
-                    .join("")
+                    .join('')
                     .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -817,16 +800,14 @@ export default function ProfilePage() {
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file, "avatar");
+                      if (file) handleImageUpload(file, 'avatar');
                     }}
                   />
                   <Button
                     variant="secondary"
                     size="sm"
                     className="absolute bottom-0 right-0 rounded-full p-2"
-                    onClick={() =>
-                      document.getElementById("profile-upload")?.click()
-                    }
+                    onClick={() => document.getElementById('profile-upload')?.click()}
                   >
                     <Camera className="h-4 w-4" />
                   </Button>
@@ -838,15 +819,10 @@ export default function ProfilePage() {
             <div className="flex-1">
               <div className="flex items-start justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold text-[#0C29AB]">
-                    {displayProfile.name}
-                  </h1>
+                  <h1 className="text-3xl font-bold text-[#0C29AB]">{displayProfile.name}</h1>
                   <p className="text-lg text-muted-foreground mt-1">
-                    {displayProfile.current_position ||
-                      displayProfile.major ||
-                      "Student"}
-                    {displayProfile.current_company &&
-                      ` at ${displayProfile.current_company}`}
+                    {displayProfile.current_position || displayProfile.major || 'Student'}
+                    {displayProfile.current_company && ` at ${displayProfile.current_company}`}
                   </p>
                   {displayProfile.city && (
                     <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
@@ -883,11 +859,7 @@ export default function ProfilePage() {
                 )}
                 {displayProfile.linkedin_url && (
                   <Button variant="outline" size="sm" asChild>
-                    <a
-                      href={displayProfile.linkedin_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
+                    <a href={displayProfile.linkedin_url} target="_blank" rel="noopener noreferrer">
                       <Linkedin className="h-4 w-4 mr-2" />
                       LinkedIn
                     </a>
@@ -895,11 +867,7 @@ export default function ProfilePage() {
                 )}
                 {displayProfile.website && (
                   <Button variant="outline" size="sm" asChild>
-                    <a
-                      href={displayProfile.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
+                    <a href={displayProfile.website} target="_blank" rel="noopener noreferrer">
                       <Globe className="h-4 w-4 mr-2" />
                       Website
                     </a>
@@ -924,9 +892,7 @@ export default function ProfilePage() {
                 Complete your career profile to maximize opportunities
               </CardDescription>
             </div>
-            <div className="text-3xl font-bold text-[#0C29AB]">
-              {profileCompletion}%
-            </div>
+            <div className="text-3xl font-bold text-[#0C29AB]">{profileCompletion}%</div>
           </div>
         </CardHeader>
         <CardContent>
@@ -939,9 +905,7 @@ export default function ProfilePage() {
                 ) : (
                   <Circle className="h-5 w-5 text-muted-foreground" />
                 )}
-                <span className="text-sm capitalize">
-                  {key.replace(/([A-Z])/g, " $1").trim()}
-                </span>
+                <span className="text-sm capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
               </div>
             ))}
           </div>
@@ -957,7 +921,7 @@ export default function ProfilePage() {
               <div className="text-3xl font-bold">{goals?.length || 0}</div>
               <div className="text-sm text-muted-foreground">Goals</div>
               <div className="text-xs text-muted-foreground mt-1">
-                {goals?.filter((g) => g.status === "active").length || 0} active
+                {goals?.filter((g) => g.status === 'active').length || 0} active
               </div>
             </div>
           </CardContent>
@@ -967,14 +931,10 @@ export default function ProfilePage() {
           <CardContent className="pt-6">
             <div className="text-center">
               <FileText className="h-8 w-8 mx-auto mb-2 text-[#0C29AB]" />
-              <div className="text-3xl font-bold">
-                {applications?.length || 0}
-              </div>
+              <div className="text-3xl font-bold">{applications?.length || 0}</div>
               <div className="text-sm text-muted-foreground">Applications</div>
               <div className="text-xs text-muted-foreground mt-1">
-                {applications?.filter((a) => a.status === "applied").length ||
-                  0}{" "}
-                in progress
+                {applications?.filter((a) => a.status === 'applied').length || 0} in progress
               </div>
             </div>
           </CardContent>
@@ -987,9 +947,7 @@ export default function ProfilePage() {
               <div className="text-3xl font-bold">{contacts?.length || 0}</div>
               <div className="text-sm text-muted-foreground">Contacts</div>
               <div className="text-xs text-muted-foreground mt-1">
-                {contacts?.filter((c) => c.relationship === "Strong").length ||
-                  0}{" "}
-                strong
+                {contacts?.filter((c) => c.relationship === 'Strong').length || 0} strong
               </div>
             </div>
           </CardContent>
@@ -1020,8 +978,7 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              {displayProfile.bio ||
-                "No career summary added yet. Click Edit Profile to add one."}
+              {displayProfile.bio || 'No career summary added yet. Click Edit Profile to add one.'}
             </p>
           </CardContent>
         </Card>
@@ -1063,13 +1020,9 @@ export default function ProfilePage() {
           <CardContent>
             {displayProfile.major || displayProfile.university_name ? (
               <div>
-                {displayProfile.major && (
-                  <p className="font-medium">{displayProfile.major}</p>
-                )}
+                {displayProfile.major && <p className="font-medium">{displayProfile.major}</p>}
                 {displayProfile.university_name && (
-                  <p className="text-sm text-muted-foreground">
-                    {displayProfile.university_name}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{displayProfile.university_name}</p>
                 )}
                 {displayProfile.graduation_year && (
                   <p className="text-sm text-muted-foreground">
@@ -1094,11 +1047,7 @@ export default function ProfilePage() {
                 Work History
               </CardTitle>
               {isViewingOwnProfile && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsAddingWorkHistory(true)}
-                >
+                <Button variant="outline" size="sm" onClick={() => setIsAddingWorkHistory(true)}>
                   <Plus className="h-4 w-4 mr-1" />
                   Add Experience
                 </Button>
@@ -1121,12 +1070,10 @@ export default function ProfilePage() {
                           </p>
                         )}
                         <p className="text-sm text-muted-foreground mt-1">
-                          {job.start_date || "Start date not specified"} -{" "}
-                          {job.is_current ? "Present" : (job.end_date || "End date not specified")}
+                          {job.start_date || 'Start date not specified'} -{' '}
+                          {job.is_current ? 'Present' : job.end_date || 'End date not specified'}
                         </p>
-                        {job.summary && (
-                          <p className="text-sm mt-2">{job.summary}</p>
-                        )}
+                        {job.summary && <p className="text-sm mt-2">{job.summary}</p>}
                       </div>
                       {isViewingOwnProfile && (
                         <div className="flex gap-2 ml-4">
@@ -1152,7 +1099,8 @@ export default function ProfilePage() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No work history added yet. {isViewingOwnProfile && "Click 'Add Experience' to add your work history."}
+                No work history added yet.{' '}
+                {isViewingOwnProfile && "Click 'Add Experience' to add your work history."}
               </p>
             )}
           </CardContent>
@@ -1169,7 +1117,7 @@ export default function ProfilePage() {
           <CardContent>
             {displayProfile.skills ? (
               <div className="flex flex-wrap gap-2">
-                {displayProfile.skills.split(",").map((skill, index) => (
+                {displayProfile.skills.split(',').map((skill, index) => (
                   <Badge key={index} variant="secondary">
                     {skill.trim()}
                   </Badge>
@@ -1194,7 +1142,7 @@ export default function ProfilePage() {
           <CardContent>
             <p className="text-sm text-muted-foreground">
               {displayProfile.career_goals ||
-                "No career goals added yet. Click Edit Profile to add your goals."}
+                'No career goals added yet. Click Edit Profile to add your goals.'}
             </p>
           </CardContent>
         </Card>
@@ -1208,11 +1156,7 @@ export default function ProfilePage() {
                 Awards & Achievements
               </CardTitle>
               {isViewingOwnProfile && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsAddingAchievement(true)}
-                >
+                <Button variant="outline" size="sm" onClick={() => setIsAddingAchievement(true)}>
                   <Plus className="h-4 w-4 mr-1" />
                   Add Achievement
                 </Button>
@@ -1220,51 +1164,60 @@ export default function ProfilePage() {
             </div>
           </CardHeader>
           <CardContent>
-            {(displayProfile as any).achievements_history && (displayProfile as any).achievements_history.length > 0 ? (
+            {(displayProfile as any).achievements_history &&
+            (displayProfile as any).achievements_history.length > 0 ? (
               <div className="space-y-4">
-                {(displayProfile as any).achievements_history.map((achievement: any, index: number) => (
-                  <div key={achievement.id || index} className="border-b last:border-0 pb-4 last:pb-0">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-base">{achievement.title}</h3>
-                        {achievement.organization && (
-                          <p className="text-sm text-muted-foreground">{achievement.organization}</p>
-                        )}
-                        {achievement.date && (
-                          <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                            <Calendar className="h-3 w-3" />
-                            {achievement.date}
-                          </p>
-                        )}
-                        {achievement.description && (
-                          <p className="text-sm mt-2">{achievement.description}</p>
+                {(displayProfile as any).achievements_history.map(
+                  (achievement: any, index: number) => (
+                    <div
+                      key={achievement.id || index}
+                      className="border-b last:border-0 pb-4 last:pb-0"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-base">{achievement.title}</h3>
+                          {achievement.organization && (
+                            <p className="text-sm text-muted-foreground">
+                              {achievement.organization}
+                            </p>
+                          )}
+                          {achievement.date && (
+                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                              <Calendar className="h-3 w-3" />
+                              {achievement.date}
+                            </p>
+                          )}
+                          {achievement.description && (
+                            <p className="text-sm mt-2">{achievement.description}</p>
+                          )}
+                        </div>
+                        {isViewingOwnProfile && (
+                          <div className="flex gap-2 ml-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditAchievement(achievement)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteAchievement(achievement.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         )}
                       </div>
-                      {isViewingOwnProfile && (
-                        <div className="flex gap-2 ml-4">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditAchievement(achievement)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteAchievement(achievement.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No awards or achievements added yet. {isViewingOwnProfile && "Click 'Add Achievement' to showcase your accomplishments."}
+                No awards or achievements added yet.{' '}
+                {isViewingOwnProfile && "Click 'Add Achievement' to showcase your accomplishments."}
               </p>
             )}
           </CardContent>
@@ -1281,10 +1234,7 @@ export default function ProfilePage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...profileForm}>
-            <form
-              onSubmit={profileForm.handleSubmit(handleProfileUpdate)}
-              className="space-y-4"
-            >
+            <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
               <FormField
                 control={profileForm.control}
                 name="bio"
@@ -1300,8 +1250,7 @@ export default function ProfilePage() {
                       />
                     </FormControl>
                     <FormDescription>
-                      A brief summary of your professional background and
-                      aspirations
+                      A brief summary of your professional background and aspirations
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1316,11 +1265,7 @@ export default function ProfilePage() {
                     <FormItem>
                       <FormLabel>Email Address</FormLabel>
                       <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="your@email.com"
-                          {...field}
-                        />
+                        <Input type="email" placeholder="your@email.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1334,11 +1279,7 @@ export default function ProfilePage() {
                     <FormItem>
                       <FormLabel>Phone Number</FormLabel>
                       <FormControl>
-                        <Input
-                          type="tel"
-                          placeholder="(555) 123-4567"
-                          {...field}
-                        />
+                        <Input type="tel" placeholder="(555) 123-4567" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1354,10 +1295,7 @@ export default function ProfilePage() {
                     <FormItem>
                       <FormLabel>City</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="San Francisco, CA"
-                          {...field}
-                        />
+                        <Input placeholder="San Francisco, CA" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1371,10 +1309,7 @@ export default function ProfilePage() {
                     <FormItem>
                       <FormLabel>LinkedIn Profile URL</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="https://linkedin.com/in/yourprofile"
-                          {...field}
-                        />
+                        <Input placeholder="https://linkedin.com/in/yourprofile" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1419,10 +1354,7 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>University</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="e.g. Stanford University"
-                        {...field}
-                      />
+                      <Input placeholder="e.g. Stanford University" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1437,10 +1369,7 @@ export default function ProfilePage() {
                     <FormItem>
                       <FormLabel>Current Position</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="e.g. Software Engineer Intern"
-                          {...field}
-                        />
+                        <Input placeholder="e.g. Software Engineer Intern" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1470,10 +1399,7 @@ export default function ProfilePage() {
                     <FormItem>
                       <FormLabel>Experience Level</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="e.g. Entry Level, Mid-Level"
-                          {...field}
-                        />
+                        <Input placeholder="e.g. Entry Level, Mid-Level" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1487,10 +1413,7 @@ export default function ProfilePage() {
                     <FormItem>
                       <FormLabel>Industry</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="e.g. Technology, Finance"
-                          {...field}
-                        />
+                        <Input placeholder="e.g. Technology, Finance" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1510,9 +1433,7 @@ export default function ProfilePage() {
                         {...field}
                       />
                     </FormControl>
-                    <FormDescription>
-                      Enter your skills separated by commas
-                    </FormDescription>
+                    <FormDescription>Enter your skills separated by commas</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -1541,21 +1462,16 @@ export default function ProfilePage() {
               />
 
               <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsEditingProfile(false)}
-                >
+                <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isLoading}>
                   {isLoading ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />{" "}
-                      Saving...
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
                     </>
                   ) : (
-                    "Save Changes"
+                    'Save Changes'
                   )}
                 </Button>
               </DialogFooter>
@@ -1572,13 +1488,13 @@ export default function ProfilePage() {
             setIsAddingWorkHistory(false);
             setEditingWorkHistoryId(null);
             setWorkHistoryForm({
-              role: "",
-              company: "",
-              location: "",
-              start_date: "",
-              end_date: "",
+              role: '',
+              company: '',
+              location: '',
+              start_date: '',
+              end_date: '',
               is_current: false,
-              summary: "",
+              summary: '',
             });
           }
         }}
@@ -1586,11 +1502,9 @@ export default function ProfilePage() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {editingWorkHistoryId ? "Edit Work Experience" : "Add Work Experience"}
+              {editingWorkHistoryId ? 'Edit Work Experience' : 'Add Work Experience'}
             </DialogTitle>
-            <DialogDescription>
-              Add details about your work experience
-            </DialogDescription>
+            <DialogDescription>Add details about your work experience</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -1599,9 +1513,7 @@ export default function ProfilePage() {
                 <Input
                   placeholder="e.g. Software Engineer"
                   value={workHistoryForm.role}
-                  onChange={(e) =>
-                    setWorkHistoryForm({ ...workHistoryForm, role: e.target.value })
-                  }
+                  onChange={(e) => setWorkHistoryForm({ ...workHistoryForm, role: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
@@ -1686,22 +1598,20 @@ export default function ProfilePage() {
                 setIsAddingWorkHistory(false);
                 setEditingWorkHistoryId(null);
                 setWorkHistoryForm({
-                  role: "",
-                  company: "",
-                  location: "",
-                  start_date: "",
-                  end_date: "",
+                  role: '',
+                  company: '',
+                  location: '',
+                  start_date: '',
+                  end_date: '',
                   is_current: false,
-                  summary: "",
+                  summary: '',
                 });
               }}
             >
               Cancel
             </Button>
-            <Button
-              onClick={editingWorkHistoryId ? handleUpdateWorkHistory : handleAddWorkHistory}
-            >
-              {editingWorkHistoryId ? "Update" : "Add"} Experience
+            <Button onClick={editingWorkHistoryId ? handleUpdateWorkHistory : handleAddWorkHistory}>
+              {editingWorkHistoryId ? 'Update' : 'Add'} Experience
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1715,10 +1625,10 @@ export default function ProfilePage() {
             setIsAddingAchievement(false);
             setEditingAchievementId(null);
             setAchievementForm({
-              title: "",
-              organization: "",
-              date: "",
-              description: "",
+              title: '',
+              organization: '',
+              date: '',
+              description: '',
             });
           }
         }}
@@ -1726,11 +1636,9 @@ export default function ProfilePage() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {editingAchievementId ? "Edit Achievement" : "Add Achievement"}
+              {editingAchievementId ? 'Edit Achievement' : 'Add Achievement'}
             </DialogTitle>
-            <DialogDescription>
-              Add details about your award or achievement
-            </DialogDescription>
+            <DialogDescription>Add details about your award or achievement</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -1738,9 +1646,7 @@ export default function ProfilePage() {
               <Input
                 placeholder="e.g. Dean's List, Employee of the Year"
                 value={achievementForm.title}
-                onChange={(e) =>
-                  setAchievementForm({ ...achievementForm, title: e.target.value })
-                }
+                onChange={(e) => setAchievementForm({ ...achievementForm, title: e.target.value })}
               />
             </div>
 
@@ -1760,9 +1666,7 @@ export default function ProfilePage() {
               <Input
                 type="month"
                 value={achievementForm.date}
-                onChange={(e) =>
-                  setAchievementForm({ ...achievementForm, date: e.target.value })
-                }
+                onChange={(e) => setAchievementForm({ ...achievementForm, date: e.target.value })}
               />
             </div>
 
@@ -1786,19 +1690,17 @@ export default function ProfilePage() {
                 setIsAddingAchievement(false);
                 setEditingAchievementId(null);
                 setAchievementForm({
-                  title: "",
-                  organization: "",
-                  date: "",
-                  description: "",
+                  title: '',
+                  organization: '',
+                  date: '',
+                  description: '',
                 });
               }}
             >
               Cancel
             </Button>
-            <Button
-              onClick={editingAchievementId ? handleUpdateAchievement : handleAddAchievement}
-            >
-              {editingAchievementId ? "Update" : "Add"} Achievement
+            <Button onClick={editingAchievementId ? handleUpdateAchievement : handleAddAchievement}>
+              {editingAchievementId ? 'Update' : 'Add'} Achievement
             </Button>
           </DialogFooter>
         </DialogContent>

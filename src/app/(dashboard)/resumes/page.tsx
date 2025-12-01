@@ -1,107 +1,120 @@
-'use client'
+'use client';
 
-import React, { useMemo, useState, useRef, useEffect } from 'react'
-import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, FileText, Loader2, Copy, Trash2, Download, Edit, Sparkles, Upload, Eye, AlertCircle } from 'lucide-react'
-import { useUser } from '@clerk/nextjs'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
-import { useToast } from '@/hooks/use-toast'
-import { ResumePreviewModal } from '@/components/resume-preview-modal'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { generateResumePDF } from '@/lib/resume-pdf-generator'
-import type { ResumeData } from '@/components/resume/ResumeDocument'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  AlertCircle,
+  Copy,
+  Download,
+  Edit,
+  Eye,
+  FileText,
+  Loader2,
+  Plus,
+  Sparkles,
+  Trash2,
+  Upload,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
+import type { ResumeData } from '@/components/resume/ResumeDocument';
+import { ResumePreviewModal } from '@/components/resume-preview-modal';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { generateResumePDF } from '@/lib/resume-pdf-generator';
 
 type ResumeDoc = {
-  _id: string
-  title: string
-  content: any
-  visibility: 'private' | 'public'
-  source?: 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload'
-  analysis_result?: any
-  created_at: number
-  updated_at: number
-}
+  _id: string;
+  title: string;
+  content: any;
+  visibility: 'private' | 'public';
+  source?: 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload';
+  analysis_result?: any;
+  created_at: number;
+  updated_at: number;
+};
 
 export default function ResumesPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { user: clerkUser } = useUser()
-  const clerkId = clerkUser?.id
-  const { toast } = useToast()
-  const [creating, setCreating] = useState(false)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user: clerkUser } = useUser();
+  const clerkId = clerkUser?.id;
+  const { toast } = useToast();
+  const [creating, setCreating] = useState(false);
 
   // Initialize activeTab from URL parameter
-  const tabParam = searchParams.get('tab') as 'my-resumes' | 'generate-ai' | 'upload-analyze' | null
-  const actionParam = searchParams.get('action')
+  const tabParam = searchParams.get('tab') as
+    | 'my-resumes'
+    | 'generate-ai'
+    | 'upload-analyze'
+    | null;
+  const actionParam = searchParams.get('action');
   const [activeTab, setActiveTab] = useState<'my-resumes' | 'generate-ai' | 'upload-analyze'>(
     tabParam && ['my-resumes', 'generate-ai', 'upload-analyze'].includes(tabParam)
       ? tabParam
-      : 'my-resumes'
-  )
+      : 'my-resumes',
+  );
 
   // Preview modal state
-  const [previewResume, setPreviewResume] = useState<ResumeDoc | null>(null)
+  const [previewResume, setPreviewResume] = useState<ResumeDoc | null>(null);
 
   // AI Generation state
-  const [jobDescription, setJobDescription] = useState('')
-  const [generating, setGenerating] = useState(false)
-  const [generatedResume, setGeneratedResume] = useState<any>(null)
+  const [jobDescription, setJobDescription] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [generatedResume, setGeneratedResume] = useState<any>(null);
 
   // Upload & Analyze state
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const [analyzeJobDescription, setAnalyzeJobDescription] = useState('')
-  const [analyzing, setAnalyzing] = useState(false)
-  const [analysisResult, setAnalysisResult] = useState<any>(null)
-  const [extractedText, setExtractedText] = useState('')
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [analyzeJobDescription, setAnalyzeJobDescription] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [extractedText, setExtractedText] = useState('');
 
   // Import resume state (for My Resumes tab)
-  const [importing, setImporting] = useState(false)
-  const importFileInputRef = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false);
+  const importFileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-trigger import when action=import parameter is present
   useEffect(() => {
     if (actionParam === 'import' && activeTab === 'my-resumes') {
       // Small delay to ensure the component is fully rendered
       const timer = setTimeout(() => {
-        importFileInputRef.current?.click()
-      }, 300)
-      return () => clearTimeout(timer)
+        importFileInputRef.current?.click();
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [actionParam, activeTab])
+  }, [actionParam, activeTab]);
 
-  const resumes = useQuery(
-    api.resumes.getUserResumes,
-    clerkId ? { clerkId } : 'skip'
-  ) as ResumeDoc[] | undefined
+  const resumes = useQuery(api.resumes.getUserResumes, clerkId ? { clerkId } : 'skip') as
+    | ResumeDoc[]
+    | undefined;
 
   // Fetch complete user profile from database
-  const userProfile = useQuery(
-    api.users.getUserByClerkId,
-    clerkId ? { clerkId } : 'skip'
-  )
+  const userProfile = useQuery(api.users.getUserByClerkId, clerkId ? { clerkId } : 'skip');
 
-  const createResumeMutation = useMutation(api.resumes.createResume)
-  const deleteResumeMutation = useMutation(api.resumes.deleteResume)
+  const createResumeMutation = useMutation(api.resumes.createResume);
+  const deleteResumeMutation = useMutation(api.resumes.deleteResume);
 
-  const loading = !resumes && !!clerkId
+  const loading = !resumes && !!clerkId;
 
   const sorted = useMemo(() => {
-    return (resumes ?? []).slice().sort((a, b) => b.updated_at - a.updated_at)
-  }, [resumes])
+    return (resumes ?? []).slice().sort((a, b) => b.updated_at - a.updated_at);
+  }, [resumes]);
 
   const createResume = () => {
-    if (!clerkId) return
-    router.push('/resumes/new')
-  }
+    if (!clerkId) return;
+    router.push('/resumes/new');
+  };
 
   const getUserProfile = () => {
-    if (!userProfile) return null
+    if (!userProfile) return null;
 
     return {
       name: userProfile.name || clerkUser?.fullName || '',
@@ -121,68 +134,68 @@ export default function ResumesPage() {
       university_name: userProfile.university_name || '',
       major: userProfile.major || '',
       graduation_year: userProfile.graduation_year || '',
-    }
-  }
+    };
+  };
 
   const duplicateResume = async (resumeId: string, title: string) => {
-    if (!clerkId) return
+    if (!clerkId) return;
     try {
-      const original = resumes?.find(r => r._id === resumeId)
-      if (!original) return
+      const original = resumes?.find((r) => r._id === resumeId);
+      if (!original) return;
 
       const id = await createResumeMutation({
         clerkId,
         title: `${title} (Copy)`,
         content: original.content,
         visibility: 'private',
-      })
+      });
 
       toast({
-        title: "Resume Copied",
-        description: "Your resume has been duplicated successfully",
+        title: 'Resume Copied',
+        description: 'Your resume has been duplicated successfully',
         variant: 'success',
-      })
+      });
 
-      router.push(`/resumes/${id}`)
+      router.push(`/resumes/${id}`);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to copy resume",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: 'Failed to copy resume',
+        variant: 'destructive',
+      });
     }
-  }
+  };
 
   const deleteResume = async (resumeId: string) => {
-    if (!clerkId) return
-    if (!confirm('Are you sure you want to delete this resume?')) return
+    if (!clerkId) return;
+    if (!confirm('Are you sure you want to delete this resume?')) return;
 
     try {
-      await deleteResumeMutation({ clerkId, resumeId: resumeId as any })
+      await deleteResumeMutation({ clerkId, resumeId: resumeId as any });
       toast({
-        title: "Resume Deleted",
-        description: "Your resume has been deleted successfully",
+        title: 'Resume Deleted',
+        description: 'Your resume has been deleted successfully',
         variant: 'success',
-      })
+      });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to delete resume",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: 'Failed to delete resume',
+        variant: 'destructive',
+      });
     }
-  }
+  };
 
   const generateWithAI = async () => {
-    if (!jobDescription.trim() || !clerkId) return
-    setGenerating(true)
+    if (!jobDescription.trim() || !clerkId) return;
+    setGenerating(true);
     try {
       toast({
-        title: "Generating Resume",
-        description: "AI is creating your optimized resume...",
-      })
+        title: 'Generating Resume',
+        description: 'AI is creating your optimized resume...',
+      });
 
-      const userProfile = getUserProfile()
+      const userProfile = getUserProfile();
 
       const response = await fetch('/api/resumes/generate', {
         method: 'POST',
@@ -191,34 +204,35 @@ export default function ResumesPage() {
           jobDescription,
           userProfile,
         }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to generate resume')
+        throw new Error('Failed to generate resume');
       }
 
-      const data = await response.json()
-      setGeneratedResume(data.resume)
+      const data = await response.json();
+      setGeneratedResume(data.resume);
 
       toast({
-        title: "Resume Generated!",
-        description: "Review your AI-generated resume below. You can save it or optimize your profile.",
+        title: 'Resume Generated!',
+        description:
+          'Review your AI-generated resume below. You can save it or optimize your profile.',
         variant: 'success',
-      })
+      });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to generate resume",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: 'Failed to generate resume',
+        variant: 'destructive',
+      });
     } finally {
-      setGenerating(false)
+      setGenerating(false);
     }
-  }
+  };
 
   const saveGeneratedResume = async () => {
-    if (!generatedResume || !clerkId) return
-    setCreating(true)
+    if (!generatedResume || !clerkId) return;
+    setCreating(true);
     try {
       const id = await createResumeMutation({
         clerkId,
@@ -227,112 +241,112 @@ export default function ResumesPage() {
         visibility: 'private',
         source: 'ai_generated',
         job_description: jobDescription,
-      })
+      });
 
       toast({
-        title: "Resume Saved",
-        description: "Your AI-generated resume has been saved successfully",
+        title: 'Resume Saved',
+        description: 'Your AI-generated resume has been saved successfully',
         variant: 'success',
-      })
+      });
 
       // Reset and switch to My Resumes tab
-      setGeneratedResume(null)
-      setJobDescription('')
-      setActiveTab('my-resumes')
+      setGeneratedResume(null);
+      setJobDescription('');
+      setActiveTab('my-resumes');
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to save resume",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: 'Failed to save resume',
+        variant: 'destructive',
+      });
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
-  }
+  };
 
   const optimizeProfile = () => {
     toast({
-      title: "Profile Optimization",
-      description: "Redirecting to account settings to update your profile...",
-    })
-    router.push('/account')
-  }
+      title: 'Profile Optimization',
+      description: 'Redirecting to account settings to update your profile...',
+    });
+    router.push('/account');
+  };
 
   const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
 
     if (!file) {
       toast({
-        title: "No File Selected",
-        description: "Please select a PDF file to import",
-        variant: "destructive",
-      })
-      return
+        title: 'No File Selected',
+        description: 'Please select a PDF file to import',
+        variant: 'destructive',
+      });
+      return;
     }
 
     if (!clerkId) {
       toast({
-        title: "Not Ready",
-        description: "Please wait for the page to finish loading before importing",
-        variant: "destructive",
-      })
-      return
+        title: 'Not Ready',
+        description: 'Please wait for the page to finish loading before importing',
+        variant: 'destructive',
+      });
+      return;
     }
 
-    setImporting(true)
+    setImporting(true);
 
     try {
       toast({
-        title: "Importing Resume",
-        description: "Extracting text from your resume...",
-      })
+        title: 'Importing Resume',
+        description: 'Extracting text from your resume...',
+      });
 
       // Step 1: Extract text from PDF
-      const formData = new FormData()
-      formData.append('file', file)
+      const formData = new FormData();
+      formData.append('file', file);
 
       const extractResponse = await fetch('/api/resumes/extract', {
         method: 'POST',
         body: formData,
-      })
+      });
 
       if (!extractResponse.ok) {
-        throw new Error('Failed to extract text from resume')
+        throw new Error('Failed to extract text from resume');
       }
 
-      const { text } = await extractResponse.json()
+      const { text } = await extractResponse.json();
 
       if (!text || text.trim().length === 0) {
         toast({
-          title: "Warning",
-          description: "Could not extract text from PDF. The file may be image-based or corrupted.",
-          variant: "destructive",
-        })
-        return
+          title: 'Warning',
+          description: 'Could not extract text from PDF. The file may be image-based or corrupted.',
+          variant: 'destructive',
+        });
+        return;
       }
 
       // Step 2: Parse extracted text into structured data
       toast({
-        title: "Parsing Resume",
-        description: "Analyzing resume content...",
-      })
+        title: 'Parsing Resume',
+        description: 'Analyzing resume content...',
+      });
 
       const parseResponse = await fetch('/api/resumes/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeText: text }),
-      })
+      });
 
       if (!parseResponse.ok) {
-        throw new Error('Failed to parse resume')
+        throw new Error('Failed to parse resume');
       }
 
-      const { data: parsedData, warning } = await parseResponse.json()
+      const { data: parsedData, warning } = await parseResponse.json();
 
       // Step 3: Create resume with parsed structured data
       const resumeTitle = parsedData.personalInfo?.name
         ? `${parsedData.personalInfo.name}'s Resume`
-        : `Imported Resume - ${file.name.replace('.pdf', '')}`
+        : `Imported Resume - ${file.name.replace('.pdf', '')}`;
 
       const id = await createResumeMutation({
         clerkId,
@@ -349,70 +363,70 @@ export default function ResumesPage() {
         visibility: 'private',
         source: 'pdf_upload',
         extracted_text: text, // Keep raw text for AI analysis, but not in content
-      })
+      });
 
       toast({
-        title: "Resume Imported!",
+        title: 'Resume Imported!',
         description: warning
           ? `${warning}. Your resume has been imported.`
-          : "Your resume has been imported and parsed successfully",
+          : 'Your resume has been imported and parsed successfully',
         variant: 'success',
-      })
+      });
 
       // Reset file input
       if (importFileInputRef.current) {
-        importFileInputRef.current.value = ''
+        importFileInputRef.current.value = '';
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to import resume",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to import resume',
+        variant: 'destructive',
+      });
     } finally {
-      setImporting(false)
+      setImporting(false);
     }
-  }
+  };
 
   const handleImportClick = () => {
-    importFileInputRef.current?.click()
-  }
+    importFileInputRef.current?.click();
+  };
 
   const analyzeResume = async () => {
-    if (!uploadedFile || !analyzeJobDescription.trim()) return
-    setAnalyzing(true)
-    setAnalysisResult(null)
-    setExtractedText('')
+    if (!uploadedFile || !analyzeJobDescription.trim()) return;
+    setAnalyzing(true);
+    setAnalysisResult(null);
+    setExtractedText('');
 
     try {
       toast({
-        title: "Analyzing Resume",
-        description: "Extracting text and analyzing your resume...",
-      })
+        title: 'Analyzing Resume',
+        description: 'Extracting text and analyzing your resume...',
+      });
 
       // Step 1: Extract text from PDF
-      const formData = new FormData()
-      formData.append('file', uploadedFile)
+      const formData = new FormData();
+      formData.append('file', uploadedFile);
 
       const extractResponse = await fetch('/api/resumes/extract', {
         method: 'POST',
         body: formData,
-      })
+      });
 
       if (!extractResponse.ok) {
-        throw new Error('Failed to extract text from resume')
+        throw new Error('Failed to extract text from resume');
       }
 
-      const { text } = await extractResponse.json()
-      setExtractedText(text)
+      const { text } = await extractResponse.json();
+      setExtractedText(text);
 
       if (!text || text.trim().length === 0) {
         toast({
-          title: "Warning",
-          description: "Could not extract text from PDF. The file may be image-based or corrupted.",
-          variant: "destructive",
-        })
-        return
+          title: 'Warning',
+          description: 'Could not extract text from PDF. The file may be image-based or corrupted.',
+          variant: 'destructive',
+        });
+        return;
       }
 
       // Step 2: Analyze resume against job description
@@ -423,34 +437,34 @@ export default function ResumesPage() {
           resumeText: text,
           jobDescription: analyzeJobDescription,
         }),
-      })
+      });
 
       if (!analyzeResponse.ok) {
-        throw new Error('Failed to analyze resume')
+        throw new Error('Failed to analyze resume');
       }
 
-      const analysis = await analyzeResponse.json()
-      setAnalysisResult(analysis)
+      const analysis = await analyzeResponse.json();
+      setAnalysisResult(analysis);
 
       toast({
-        title: "Analysis Complete!",
+        title: 'Analysis Complete!',
         description: `Match score: ${analysis.score}%. Review the suggestions below.`,
         variant: 'success',
-      })
+      });
     } catch (error) {
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to analyze resume",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to analyze resume',
+        variant: 'destructive',
+      });
     } finally {
-      setAnalyzing(false)
+      setAnalyzing(false);
     }
-  }
+  };
 
   const saveAnalyzedResume = async () => {
-    if (!clerkId || !extractedText || !analysisResult) return
-    setCreating(true)
+    if (!clerkId || !extractedText || !analysisResult) return;
+    setCreating(true);
     try {
       const id = await createResumeMutation({
         clerkId,
@@ -461,42 +475,42 @@ export default function ResumesPage() {
         job_description: analyzeJobDescription,
         extracted_text: extractedText,
         analysis_result: analysisResult,
-      })
+      });
 
       toast({
-        title: "Resume Saved",
-        description: "Your analyzed resume has been saved successfully",
+        title: 'Resume Saved',
+        description: 'Your analyzed resume has been saved successfully',
         variant: 'success',
-      })
+      });
 
       // Reset and switch to My Resumes tab
-      setAnalysisResult(null)
-      setExtractedText('')
-      setAnalyzeJobDescription('')
-      setUploadedFile(null)
-      setActiveTab('my-resumes')
+      setAnalysisResult(null);
+      setExtractedText('');
+      setAnalyzeJobDescription('');
+      setUploadedFile(null);
+      setActiveTab('my-resumes');
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to save resume",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: 'Failed to save resume',
+        variant: 'destructive',
+      });
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
-  }
+  };
 
   const optimizeAnalyzedResume = async () => {
-    if (!clerkId || !extractedText || !analysisResult || !analyzeJobDescription) return
-    setCreating(true)
+    if (!clerkId || !extractedText || !analysisResult || !analyzeJobDescription) return;
+    setCreating(true);
     try {
       toast({
-        title: "Optimizing Resume",
-        description: "Creating an optimized version based on analysis...",
-      })
+        title: 'Optimizing Resume',
+        description: 'Creating an optimized version based on analysis...',
+      });
 
       // Optimize the uploaded resume using AI
-      const userProfile = getUserProfile()
+      const userProfile = getUserProfile();
       const response = await fetch('/api/resumes/optimize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -506,13 +520,13 @@ export default function ResumesPage() {
           jobDescription: analyzeJobDescription,
           userProfile,
         }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to optimize resume')
+        throw new Error('Failed to optimize resume');
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       const id = await createResumeMutation({
         clerkId,
@@ -523,41 +537,45 @@ export default function ResumesPage() {
         job_description: analyzeJobDescription,
         analysis_result: analysisResult,
         extracted_text: extractedText, // Store original resume for reference
-      })
+      });
 
       toast({
-        title: "Resume Optimized!",
-        description: "An optimized version has been created and saved",
+        title: 'Resume Optimized!',
+        description: 'An optimized version has been created and saved',
         variant: 'success',
-      })
+      });
 
       // Reset and switch to My Resumes tab
-      setAnalysisResult(null)
-      setExtractedText('')
-      setAnalyzeJobDescription('')
-      setUploadedFile(null)
-      setActiveTab('my-resumes')
+      setAnalysisResult(null);
+      setExtractedText('');
+      setAnalyzeJobDescription('');
+      setUploadedFile(null);
+      setActiveTab('my-resumes');
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to optimize resume",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: 'Failed to optimize resume',
+        variant: 'destructive',
+      });
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
-  }
+  };
 
   const exportResumePDF = async (resume: ResumeDoc) => {
     try {
       // Structured content
-      const content = (resume.content || {}) as any
+      const content = (resume.content || {}) as any;
       // Support both shapes: editor saves contactInfo/experiences; AI uses personalInfo/experience
-      const personalInfo = content.contactInfo || content.personalInfo || {}
-      const fullName = personalInfo.name || clerkUser?.fullName || [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') || ''
-      const email = personalInfo.email || clerkUser?.primaryEmailAddress?.emailAddress || ''
-      const phone = personalInfo.phone || clerkUser?.phoneNumbers?.[0]?.phoneNumber || ''
-      const location = personalInfo.location || ''
+      const personalInfo = content.contactInfo || content.personalInfo || {};
+      const fullName =
+        personalInfo.name ||
+        clerkUser?.fullName ||
+        [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') ||
+        '';
+      const email = personalInfo.email || clerkUser?.primaryEmailAddress?.emailAddress || '';
+      const phone = personalInfo.phone || clerkUser?.phoneNumbers?.[0]?.phoneNumber || '';
+      const location = personalInfo.location || '';
 
       // Normalize data to ResumeData format
       const resumeData: ResumeData = {
@@ -580,17 +598,21 @@ export default function ResumesPage() {
         education: Array.isArray(content?.education) ? content.education : [],
         projects: Array.isArray(content?.projects) ? content.projects : [],
         achievements: Array.isArray(content?.achievements) ? content.achievements : [],
-      }
+      };
 
-      const fileName = `${(resume.title || fullName || 'resume').replace(/\s+/g, '_')}.pdf`
-      await generateResumePDF(resumeData, fileName)
+      const fileName = `${(resume.title || fullName || 'resume').replace(/\s+/g, '_')}.pdf`;
+      await generateResumePDF(resumeData, fileName);
 
-      toast({ title: 'Exported', description: 'PDF downloaded successfully.', variant: 'success' })
+      toast({ title: 'Exported', description: 'PDF downloaded successfully.', variant: 'success' });
     } catch (error) {
-      console.error('PDF export error:', error)
-      toast({ title: "Export Failed", description: "Failed to export PDF.", variant: "destructive" })
+      console.error('PDF export error:', error);
+      toast({
+        title: 'Export Failed',
+        description: 'Failed to export PDF.',
+        variant: 'destructive',
+      });
     }
-  }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -655,7 +677,9 @@ export default function ResumesPage() {
                 <Upload className="h-5 w-5 text-blue-600" />
                 <div className="flex-1">
                   <h3 className="font-medium text-sm mb-1">Import Existing Resume</h3>
-                  <p className="text-xs text-muted-foreground">Upload a PDF resume to scan and save it to your library</p>
+                  <p className="text-xs text-muted-foreground">
+                    Upload a PDF resume to scan and save it to your library
+                  </p>
                 </div>
                 <Button
                   variant="outline"
@@ -685,7 +709,9 @@ export default function ResumesPage() {
                 <CardTitle>No resumes yet</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground mb-4">Create your first resume to get started.</p>
+                <p className="text-muted-foreground mb-4">
+                  Create your first resume to get started.
+                </p>
                 <Button onClick={createResume} disabled={!clerkId}>
                   <Plus className="h-4 w-4 mr-2" /> New Resume
                 </Button>
@@ -697,17 +723,33 @@ export default function ResumesPage() {
                 const getSourceBadge = () => {
                   switch (r.source) {
                     case 'ai_generated':
-                      return <span className="text-[11px] bg-purple-100 text-purple-700 px-2 py-1 rounded-full">AI Generated</span>
+                      return (
+                        <span className="text-[11px] bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                          AI Generated
+                        </span>
+                      );
                     case 'ai_optimized':
-                      return <span className="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full">AI Optimized</span>
+                      return (
+                        <span className="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                          AI Optimized
+                        </span>
+                      );
                     case 'pdf_upload':
-                      return <span className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-full">PDF Upload</span>
+                      return (
+                        <span className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                          PDF Upload
+                        </span>
+                      );
                     case 'manual':
-                      return <span className="text-[11px] bg-gray-100 text-gray-700 px-2 py-1 rounded-full">Manual</span>
+                      return (
+                        <span className="text-[11px] bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                          Manual
+                        </span>
+                      );
                     default:
-                      return null
+                      return null;
                   }
-                }
+                };
 
                 return (
                   <Card
@@ -735,11 +777,10 @@ export default function ResumesPage() {
                         </div>
 
                         <div className="rounded-lg border border-dashed border-slate-200 bg-white/60 px-4 py-2 text-xs text-slate-500">
-                          <p>
-                            Created {new Date(r.created_at).toLocaleDateString()}
-                          </p>
+                          <p>Created {new Date(r.created_at).toLocaleDateString()}</p>
                           <p className="mt-0.5">
-                            Visibility: <span className="font-medium capitalize">{r.visibility}</span>
+                            Visibility:{' '}
+                            <span className="font-medium capitalize">{r.visibility}</span>
                           </p>
                         </div>
 
@@ -748,8 +789,8 @@ export default function ResumesPage() {
                           variant="secondary"
                           className="justify-center gap-2 text-sm w-full"
                           onClick={(e) => {
-                            e.stopPropagation()
-                            setPreviewResume(r)
+                            e.stopPropagation();
+                            setPreviewResume(r);
                           }}
                         >
                           <Eye className="h-3.5 w-3.5" />
@@ -803,7 +844,7 @@ export default function ResumesPage() {
                       </div>
                     </CardContent>
                   </Card>
-                )
+                );
               })}
             </div>
           )}
@@ -868,8 +909,12 @@ export default function ResumesPage() {
                       <div>
                         <h3 className="text-lg font-bold">{generatedResume.personalInfo.name}</h3>
                         <div className="text-sm text-muted-foreground space-y-1 mt-1">
-                          {generatedResume.personalInfo.email && <div>{generatedResume.personalInfo.email}</div>}
-                          {generatedResume.personalInfo.phone && <div>{generatedResume.personalInfo.phone}</div>}
+                          {generatedResume.personalInfo.email && (
+                            <div>{generatedResume.personalInfo.email}</div>
+                          )}
+                          {generatedResume.personalInfo.phone && (
+                            <div>{generatedResume.personalInfo.phone}</div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -888,7 +933,10 @@ export default function ResumesPage() {
                         <h4 className="font-semibold text-sm mb-2">Skills</h4>
                         <div className="flex flex-wrap gap-2">
                           {generatedResume.skills.map((skill: string, idx: number) => (
-                            <span key={idx} className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
+                            <span
+                              key={idx}
+                              className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs"
+                            >
                               {skill}
                             </span>
                           ))}
@@ -897,104 +945,120 @@ export default function ResumesPage() {
                     )}
 
                     {/* Experience */}
-                    {Array.isArray(generatedResume.experience) && generatedResume.experience.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2">Experience</h4>
-                        <div className="space-y-3">
-                          {generatedResume.experience.map((exp: any, idx: number) => (
-                            <div key={idx} className="border-l-2 border-blue-500 pl-3">
-                              <h5 className="font-semibold text-sm">{exp.title}</h5>
-                              <div className="text-xs text-muted-foreground">
-                                {exp.company}
-                                {(exp.startDate || exp.endDate) && (
-                                  <span> | {exp.startDate}{exp.startDate && exp.endDate && ' - '}{exp.endDate}</span>
+                    {Array.isArray(generatedResume.experience) &&
+                      generatedResume.experience.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-sm mb-2">Experience</h4>
+                          <div className="space-y-3">
+                            {generatedResume.experience.map((exp: any, idx: number) => (
+                              <div key={idx} className="border-l-2 border-blue-500 pl-3">
+                                <h5 className="font-semibold text-sm">{exp.title}</h5>
+                                <div className="text-xs text-muted-foreground">
+                                  {exp.company}
+                                  {(exp.startDate || exp.endDate) && (
+                                    <span>
+                                      {' '}
+                                      | {exp.startDate}
+                                      {exp.startDate && exp.endDate && ' - '}
+                                      {exp.endDate}
+                                    </span>
+                                  )}
+                                </div>
+                                {exp.summary && (
+                                  <p className="text-xs mt-2 text-gray-700">{exp.summary}</p>
+                                )}
+                                {exp.keyContributions && exp.keyContributions.length > 0 && (
+                                  <div className="mt-2">
+                                    <h6 className="text-xs font-medium text-gray-800">
+                                      Key Contributions
+                                    </h6>
+                                    <ul className="list-disc list-inside space-y-1 mt-1">
+                                      {exp.keyContributions.map(
+                                        (contribution: string, cIdx: number) => (
+                                          <li key={cIdx} className="text-xs text-gray-700">
+                                            {contribution}
+                                          </li>
+                                        ),
+                                      )}
+                                    </ul>
+                                  </div>
+                                )}
+                                {/* Fallback for old format with description */}
+                                {!exp.summary && !exp.keyContributions && exp.description && (
+                                  <p className="text-xs mt-1 text-gray-700 whitespace-pre-line">
+                                    {exp.description}
+                                  </p>
                                 )}
                               </div>
-                              {exp.summary && (
-                                <p className="text-xs mt-2 text-gray-700">{exp.summary}</p>
-                              )}
-                              {exp.keyContributions && exp.keyContributions.length > 0 && (
-                                <div className="mt-2">
-                                  <h6 className="text-xs font-medium text-gray-800">Key Contributions</h6>
-                                  <ul className="list-disc list-inside space-y-1 mt-1">
-                                    {exp.keyContributions.map((contribution: string, cIdx: number) => (
-                                      <li key={cIdx} className="text-xs text-gray-700">{contribution}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              {/* Fallback for old format with description */}
-                              {!exp.summary && !exp.keyContributions && exp.description && (
-                                <p className="text-xs mt-1 text-gray-700 whitespace-pre-line">{exp.description}</p>
-                              )}
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* Education */}
-                    {Array.isArray(generatedResume.education) && generatedResume.education.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2">Education</h4>
-                        <div className="space-y-2">
-                          {generatedResume.education.map((edu: any, idx: number) => (
-                            <div key={idx}>
-                              <h5 className="font-semibold text-sm">{edu.degree}</h5>
-                              <div className="text-xs text-muted-foreground">
-                                {edu.school}{edu.graduationYear && ` | ${edu.graduationYear}`}
+                    {Array.isArray(generatedResume.education) &&
+                      generatedResume.education.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-sm mb-2">Education</h4>
+                          <div className="space-y-2">
+                            {generatedResume.education.map((edu: any, idx: number) => (
+                              <div key={idx}>
+                                <h5 className="font-semibold text-sm">{edu.degree}</h5>
+                                <div className="text-xs text-muted-foreground">
+                                  {edu.school}
+                                  {edu.graduationYear && ` | ${edu.graduationYear}`}
+                                </div>
+                                {edu.gpa && (
+                                  <div className="text-xs text-gray-600">GPA: {edu.gpa}</div>
+                                )}
                               </div>
-                              {edu.gpa && (
-                                <div className="text-xs text-gray-600">GPA: {edu.gpa}</div>
-                              )}
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* Projects */}
-                    {Array.isArray(generatedResume.projects) && generatedResume.projects.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2">Projects</h4>
-                        <div className="space-y-2">
-                          {generatedResume.projects.map((proj: any, idx: number) => (
-                            <div key={idx}>
-                              <h5 className="font-semibold text-sm">{proj.name}</h5>
-                              {proj.technologies && (
-                                <div className="text-xs text-muted-foreground">Technologies: {proj.technologies}</div>
-                              )}
-                              {proj.description && (
-                                <p className="text-xs mt-1 text-gray-700">{proj.description}</p>
-                              )}
-                            </div>
-                          ))}
+                    {Array.isArray(generatedResume.projects) &&
+                      generatedResume.projects.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-sm mb-2">Projects</h4>
+                          <div className="space-y-2">
+                            {generatedResume.projects.map((proj: any, idx: number) => (
+                              <div key={idx}>
+                                <h5 className="font-semibold text-sm">{proj.name}</h5>
+                                {proj.technologies && (
+                                  <div className="text-xs text-muted-foreground">
+                                    Technologies: {proj.technologies}
+                                  </div>
+                                )}
+                                {proj.description && (
+                                  <p className="text-xs mt-1 text-gray-700">{proj.description}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* Achievements */}
-                    {Array.isArray(generatedResume.achievements) && generatedResume.achievements.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2">Achievements</h4>
-                        <ul className="space-y-1">
-                          {generatedResume.achievements.map((ach: any, idx: number) => (
-                            <li key={idx} className="text-xs text-gray-700">
-                              • {typeof ach === 'string' ? ach : ach.title || ach.description}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    {Array.isArray(generatedResume.achievements) &&
+                      generatedResume.achievements.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-sm mb-2">Achievements</h4>
+                          <ul className="space-y-1">
+                            {generatedResume.achievements.map((ach: any, idx: number) => (
+                              <li key={idx} className="text-xs text-gray-700">
+                                • {typeof ach === 'string' ? ach : ach.title || ach.description}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                   </div>
                 </div>
 
                 <div className="flex gap-3">
-                  <Button
-                    onClick={saveGeneratedResume}
-                    disabled={creating}
-                    className="flex-1"
-                  >
+                  <Button onClick={saveGeneratedResume} disabled={creating} className="flex-1">
                     {creating ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -1039,7 +1103,9 @@ export default function ResumesPage() {
                   onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
                 />
                 {uploadedFile && (
-                  <p className="text-sm text-muted-foreground mt-2 truncate">Selected: {uploadedFile.name}</p>
+                  <p className="text-sm text-muted-foreground mt-2 truncate">
+                    Selected: {uploadedFile.name}
+                  </p>
                 )}
               </div>
               <div>
@@ -1098,74 +1164,107 @@ export default function ResumesPage() {
                 <div className="space-y-4">
                   <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-blue-600">{analysisResult.score}%</div>
+                      <div className="text-4xl font-bold text-blue-600">
+                        {analysisResult.score}%
+                      </div>
                       <div className="text-sm text-muted-foreground mt-1">Match Score</div>
                     </div>
                     {analysisResult.summary && (
-                      <p className="text-sm text-gray-700 mt-3 text-center">{analysisResult.summary}</p>
+                      <p className="text-sm text-gray-700 mt-3 text-center">
+                        {analysisResult.summary}
+                      </p>
                     )}
                   </div>
 
-                  {Array.isArray(analysisResult.strengthHighlights) && analysisResult.strengthHighlights.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                        <span className="text-green-600">✓</span> Strength Highlights
-                      </h4>
-                      <ul className="space-y-2">
-                        {analysisResult.strengthHighlights.map((highlight: string, i: number) => (
-                          <li key={i} className="text-sm text-gray-700 bg-green-50 px-3 py-2 rounded-lg border border-green-100">
-                            {highlight}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {Array.isArray(analysisResult.strengths) && analysisResult.strengths.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                        <span className="text-blue-600">#</span> Matching Keywords
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {analysisResult.strengths.map((s: string, i: number) => (
-                          <span key={i} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs">{s}</span>
-                        ))}
+                  {Array.isArray(analysisResult.strengthHighlights) &&
+                    analysisResult.strengthHighlights.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                          <span className="text-green-600">✓</span> Strength Highlights
+                        </h4>
+                        <ul className="space-y-2">
+                          {analysisResult.strengthHighlights.map((highlight: string, i: number) => (
+                            <li
+                              key={i}
+                              className="text-sm text-gray-700 bg-green-50 px-3 py-2 rounded-lg border border-green-100"
+                            >
+                              {highlight}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                  {Array.isArray(analysisResult.strengths) &&
+                    analysisResult.strengths.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                          <span className="text-blue-600">#</span> Matching Keywords
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {analysisResult.strengths.map((s: string, i: number) => (
+                            <span
+                              key={i}
+                              className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                   {Array.isArray(analysisResult.gaps) && analysisResult.gaps.length > 0 && (
                     <div>
-                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2"><span className="text-orange-600">!</span> Missing Keywords</h4>
+                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <span className="text-orange-600">!</span> Missing Keywords
+                      </h4>
                       <div className="flex flex-wrap gap-2">
                         {analysisResult.gaps.map((g: string, i: number) => (
-                          <span key={i} className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs">{g}</span>
+                          <span
+                            key={i}
+                            className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs"
+                          >
+                            {g}
+                          </span>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {Array.isArray(analysisResult.suggestions) && analysisResult.suggestions.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">💡 Suggestions for Improvement</h4>
-                      <ul className="space-y-2">
-                        {analysisResult.suggestions.map((s: string, i: number) => (
-                          <li key={i} className="text-sm text-gray-700 bg-blue-50 p-2 rounded">{s}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {Array.isArray(analysisResult.suggestions) &&
+                    analysisResult.suggestions.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-2">
+                          💡 Suggestions for Improvement
+                        </h4>
+                        <ul className="space-y-2">
+                          {analysisResult.suggestions.map((s: string, i: number) => (
+                            <li key={i} className="text-sm text-gray-700 bg-blue-50 p-2 rounded">
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Create an AI-optimized resume that addresses the gaps identified in the analysis.
+                      Create an AI-optimized resume that addresses the gaps identified in the
+                      analysis.
                     </AlertDescription>
                   </Alert>
 
                   <div className="flex gap-3">
                     <Button onClick={optimizeAnalyzedResume} disabled={creating} className="w-full">
-                      {creating ? (<><Loader2 className="h-4 w-4 animate-spin mr-2" /> Optimizing...</>) : ('Optimize Resume')}
+                      {creating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" /> Optimizing...
+                        </>
+                      ) : (
+                        'Optimize Resume'
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -1186,5 +1285,5 @@ export default function ResumesPage() {
         />
       )}
     </div>
-  )
+  );
 }

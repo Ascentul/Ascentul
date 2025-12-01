@@ -12,12 +12,13 @@
  * - Next few upcoming sessions for quick reference
  */
 
+import { format, isToday, isTomorrow } from 'date-fns';
+import { Calendar, ChevronRight, Clock, Plus, User } from 'lucide-react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, User, ChevronRight, Plus } from 'lucide-react';
-import { format, isToday, isTomorrow } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface UpcomingSession {
@@ -66,7 +67,7 @@ function SessionRow({ session }: { session: UpcomingSession }) {
 
   const sessionDate = new Date(session.start_at);
   let dateLabel = format(sessionDate, 'EEE, MMM d');
-  let timeLabel = format(sessionDate, 'h:mm a');
+  const timeLabel = format(sessionDate, 'h:mm a');
 
   if (isToday(sessionDate)) {
     dateLabel = 'Today';
@@ -83,9 +84,7 @@ function SessionRow({ session }: { session: UpcomingSession }) {
         <Calendar className="h-5 w-5 text-primary" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-900 truncate">
-          {session.title}
-        </p>
+        <p className="text-sm font-medium text-slate-900 truncate">{session.title}</p>
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <div className="flex items-center gap-1">
             <User className="h-3 w-3" />
@@ -94,7 +93,9 @@ function SessionRow({ session }: { session: UpcomingSession }) {
           <span>·</span>
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            <span>{dateLabel}, {timeLabel}</span>
+            <span>
+              {dateLabel}, {timeLabel}
+            </span>
           </div>
         </div>
       </div>
@@ -179,8 +180,8 @@ export function CapacityCard({ data, isLoading }: CapacityCardProps) {
                   capacity.percentage >= 90
                     ? 'bg-red-50 text-red-700 border-red-200'
                     : capacity.percentage >= 70
-                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                    : 'bg-green-50 text-green-700 border-green-200'
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-green-50 text-green-700 border-green-200',
                 )}
               >
                 {capacityLabel}
@@ -213,9 +214,7 @@ export function CapacityCard({ data, isLoading }: CapacityCardProps) {
               <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p>No upcoming sessions scheduled</p>
               <Button variant="link" size="sm" asChild className="mt-1">
-                <Link href="/advisor/advising/calendar">
-                  View calendar
-                </Link>
+                <Link href="/advisor/advising/calendar">View calendar</Link>
               </Button>
             </div>
           ) : (

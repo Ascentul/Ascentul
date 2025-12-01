@@ -1,54 +1,69 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Zap } from 'lucide-react'
+import { Zap } from 'lucide-react';
+import React from 'react';
+
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface UpgradeModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  feature: string
-  limit?: string
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  feature: string;
+  limit?: string;
 }
 
 export function UpgradeModal({ open, onOpenChange, feature, limit }: UpgradeModalProps) {
   const handleUpgrade = () => {
     // Navigate to pricing or subscription page
-    window.location.href = '/pricing'
-  }
+    window.location.href = '/pricing';
+  };
 
   const featureDescriptions: Record<string, { title: string; description: string }> = {
     application: {
       title: 'Application Limit Reached',
-      description: 'Free accounts can track only 1 application. Upgrade to Premium to track unlimited applications and get advanced analytics.',
+      description:
+        'Free accounts can track only 1 application. Upgrade to Premium to track unlimited applications and get advanced analytics.',
     },
     goal: {
       title: 'Goal Limit Reached',
-      description: 'Free accounts can create only 1 career goal. Upgrade to Premium to create unlimited goals and track your progress.',
+      description:
+        'Free accounts can create only 1 career goal. Upgrade to Premium to create unlimited goals and track your progress.',
     },
     contact: {
       title: 'Network Contact Limit Reached',
-      description: 'Free accounts can add only 1 network contact. Upgrade to Premium to build your professional network with unlimited contacts.',
+      description:
+        'Free accounts can add only 1 network contact. Upgrade to Premium to build your professional network with unlimited contacts.',
     },
     careerPath: {
       title: 'Career Path Limit Reached',
-      description: 'Free accounts can generate 1 career path. Upgrade to Premium to generate unlimited career paths and explore more opportunities.',
+      description:
+        'Free accounts can generate 1 career path. Upgrade to Premium to generate unlimited career paths and explore more opportunities.',
     },
     project: {
       title: 'Project Limit Reached',
-      description: 'Free accounts can create only 1 project. Upgrade to Premium to showcase unlimited projects in your portfolio.',
+      description:
+        'Free accounts can create only 1 project. Upgrade to Premium to showcase unlimited projects in your portfolio.',
     },
     aiCoach: {
       title: 'Premium Feature',
-      description: 'AI Career Coach is a premium feature. Upgrade to Premium to get personalized career guidance and coaching.',
+      description:
+        'AI Career Coach is a premium feature. Upgrade to Premium to get personalized career guidance and coaching.',
     },
-  }
+  };
 
   const config = featureDescriptions[feature] || {
     title: 'Upgrade to Premium',
-    description: 'This feature requires a Premium subscription. Upgrade now to unlock all features.',
-  }
+    description:
+      'This feature requires a Premium subscription. Upgrade now to unlock all features.',
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,5 +101,5 @@ export function UpgradeModal({ open, onOpenChange, feature, limit }: UpgradeModa
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

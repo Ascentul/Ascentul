@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { goalTemplates } from "./GoalTemplates";
+import * as React from 'react';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/dialog';
+
+import { goalTemplates } from './GoalTemplates';
 
 interface GoalTemplatesStripProps {
   onSelectTemplate: (templateId: string) => void;
 }
 
-export const GoalTemplatesStrip: React.FC<GoalTemplatesStripProps> = ({
-  onSelectTemplate,
-}) => {
+export const GoalTemplatesStrip: React.FC<GoalTemplatesStripProps> = ({ onSelectTemplate }) => {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   // Show first 3 templates in the strip
@@ -33,12 +33,8 @@ export const GoalTemplatesStrip: React.FC<GoalTemplatesStripProps> = ({
       {/* Compact strip */}
       <section className="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-semibold text-slate-900">
-            Goal templates
-          </h3>
-          <p className="text-xs text-slate-500">
-            Start faster with a prebuilt goal.
-          </p>
+          <h3 className="text-sm font-semibold text-slate-900">Goal templates</h3>
+          <p className="text-xs text-slate-500">Start faster with a prebuilt goal.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

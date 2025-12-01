@@ -1,7 +1,8 @@
-import { v } from "convex/values";
-import { query } from "./_generated/server";
-import { resolveProfileImageUrl } from "./users_core";
-import { assertUniversityAccess, getAuthenticatedUser, isServiceRequest } from "./lib/roles";
+import { v } from 'convex/values';
+
+import { query } from './_generated/server';
+import { assertUniversityAccess, getAuthenticatedUser, isServiceRequest } from './lib/roles';
+import { resolveProfileImageUrl } from './users_core';
 
 // Get user by Clerk ID
 export const getUserByClerkId = query({
@@ -10,23 +11,23 @@ export const getUserByClerkId = query({
     const identity = await ctx.auth.getUserIdentity();
     const isService = isServiceRequest(args.serviceToken);
     if (!identity && !isService) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const actingUser = !isService
       ? await ctx.db
-        .query("users")
-        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity!.subject))
-        .unique()
+          .query('users')
+          .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity!.subject))
+          .unique()
       : null;
 
     if (!isService && !actingUser) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) return null;
@@ -35,17 +36,14 @@ export const getUserByClerkId = query({
       const currentUser = actingUser!;
       const isSelf = currentUser.clerkId === user.clerkId;
       const actingRole = currentUser.role;
-      if (
-        !isSelf &&
-        actingRole !== "super_admin"
-      ) {
-        if (actingRole === "university_admin" || actingRole === "advisor") {
+      if (!isSelf && actingRole !== 'super_admin') {
+        if (actingRole === 'university_admin' || actingRole === 'advisor') {
           if (!user.university_id) {
-            throw new Error("Unauthorized - target user has no university");
+            throw new Error('Unauthorized - target user has no university');
           }
           assertUniversityAccess(currentUser, user.university_id);
         } else {
-          throw new Error("Unauthorized");
+          throw new Error('Unauthorized');
         }
       }
     }
@@ -68,14 +66,14 @@ export const getAllUsers = query({
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
 
-    if (currentUser.role !== "super_admin") {
-      throw new Error("Unauthorized");
+    if (currentUser.role !== 'super_admin') {
+      throw new Error('Unauthorized');
     }
 
     const limit = args.limit || 50;
     const result = await ctx.db
-      .query("users")
-      .order("desc")
+      .query('users')
+      .order('desc')
       .paginate({ numItems: limit, cursor: args.cursor ?? null });
 
     // Resolve profile image URLs (storage IDs → usable URLs)
@@ -83,7 +81,7 @@ export const getAllUsers = query({
       result.page.map(async (user) => ({
         ...user,
         profile_image: await resolveProfileImageUrl(ctx, user.profile_image),
-      }))
+      })),
     );
 
     return {
@@ -104,13 +102,13 @@ export const getAllUsersMinimal = query({
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
 
-    if (currentUser.role !== "super_admin") {
-      throw new Error("Unauthorized");
+    if (currentUser.role !== 'super_admin') {
+      throw new Error('Unauthorized');
     }
 
     const users = await ctx.db
-      .query("users")
-      .order("desc")
+      .query('users')
+      .order('desc')
       .paginate({
         numItems: args.limit || 50,
         cursor: null,
@@ -136,7 +134,7 @@ export const getAllUsersMinimal = query({
         profile_image: await resolveProfileImageUrl(ctx, user.profile_image),
         created_at: user.created_at,
         updated_at: user.updated_at,
-      }))
+      })),
     );
 
     return {
@@ -150,24 +148,23 @@ export const getAllUsersMinimal = query({
 export const getUsersByUniversity = query({
   args: {
     clerkId: v.string(),
-    universityId: v.id("universities"),
+    universityId: v.id('universities'),
   },
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
 
-    const isSuperAdmin = currentUser.role === "super_admin";
-    const isUniversityScoped = (currentUser.role === "university_admin" || currentUser.role === "advisor") &&
+    const isSuperAdmin = currentUser.role === 'super_admin';
+    const isUniversityScoped =
+      (currentUser.role === 'university_admin' || currentUser.role === 'advisor') &&
       currentUser.university_id === args.universityId;
 
     if (!isSuperAdmin && !isUniversityScoped) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const users = await ctx.db
-      .query("users")
-      .withIndex("by_university", (q) =>
-        q.eq("university_id", args.universityId),
-      )
+      .query('users')
+      .withIndex('by_university', (q) => q.eq('university_id', args.universityId))
       .collect();
 
     return users;
@@ -180,13 +177,13 @@ export const getOnboardingProgress = query({
   handler: async (ctx, args) => {
     const actingUser = await getAuthenticatedUser(ctx);
     const isSelf = actingUser.clerkId === args.clerkId;
-    if (!isSelf && actingUser.role !== "super_admin") {
-      throw new Error("Unauthorized");
+    if (!isSelf && actingUser.role !== 'super_admin') {
+      throw new Error('Unauthorized');
     }
 
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {

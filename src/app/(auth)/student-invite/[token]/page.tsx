@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth, useSignUp } from '@clerk/nextjs';
 import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../../../../convex/_generated/api';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+
+import { api } from '../../../../../convex/_generated/api';
 
 interface PageProps {
   params: { token: string };
@@ -96,8 +98,8 @@ export default function StudentInvitePage({ params }: PageProps) {
           // Non-retryable error - show helpful message
           setError(
             `Unable to link your account to the university: ${errorMessage}. ` +
-            `Your account was created successfully. Please contact your university administrator ` +
-            `or email support@ascentful.io for assistance with linking your account.`
+              `Your account was created successfully. Please contact your university administrator ` +
+              `or email support@ascentful.io for assistance with linking your account.`,
           );
           return;
         }
@@ -179,8 +181,8 @@ export default function StudentInvitePage({ params }: PageProps) {
           // Non-retryable error - show helpful message
           setError(
             `Unable to link your account to the university: ${errorMessage}. ` +
-            `Your account was created successfully. Please contact your university administrator ` +
-            `or email support@ascentful.io for assistance with linking your account.`
+              `Your account was created successfully. Please contact your university administrator ` +
+              `or email support@ascentful.io for assistance with linking your account.`,
           );
           return;
         }
@@ -221,9 +223,7 @@ export default function StudentInvitePage({ params }: PageProps) {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-red-600">Invite unavailable</CardTitle>
-            <CardDescription>
-              This invite is invalid, expired, or already used.
-            </CardDescription>
+            <CardDescription>This invite is invalid, expired, or already used.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert>
@@ -322,7 +322,8 @@ export default function StudentInvitePage({ params }: PageProps) {
             <form onSubmit={handleVerifyEmail} className="space-y-4">
               <Alert>
                 <AlertDescription>
-                  We sent a 6-digit verification code to <strong>{email}</strong>. Please check your email and enter the code below.
+                  We sent a 6-digit verification code to <strong>{email}</strong>. Please check your
+                  email and enter the code below.
                 </AlertDescription>
               </Alert>
 
@@ -332,7 +333,9 @@ export default function StudentInvitePage({ params }: PageProps) {
                   id="verificationCode"
                   type="text"
                   value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={(e) =>
+                    setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                  }
                   placeholder="Enter 6-digit code"
                   required
                   disabled={isLoading}
@@ -354,7 +357,11 @@ export default function StudentInvitePage({ params }: PageProps) {
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full" disabled={isLoading || verificationCode.length !== 6}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || verificationCode.length !== 6}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -394,7 +401,10 @@ export default function StudentInvitePage({ params }: PageProps) {
 
           {!isSignedIn && (
             <p className="text-xs text-gray-500 mt-4 text-center">
-              Already have an account? <a href="/sign-in" className="text-primary hover:underline">Sign in and click this link again.</a>
+              Already have an account?{' '}
+              <a href="/sign-in" className="text-primary hover:underline">
+                Sign in and click this link again.
+              </a>
             </p>
           )}
 

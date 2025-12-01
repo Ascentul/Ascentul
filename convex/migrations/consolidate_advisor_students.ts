@@ -11,9 +11,10 @@
  * Dry run: npx convex run migrations/consolidate_advisor_students:dryRun
  */
 
-import { mutation, query } from "../_generated/server";
-import { v } from "convex/values";
-import { requireSuperAdmin } from "../lib/roles";
+import { v } from 'convex/values';
+
+import { mutation, query } from '../_generated/server';
+import { requireSuperAdmin } from '../lib/roles';
 
 /**
  * Preview what would be migrated (dry run)
@@ -24,7 +25,7 @@ export const dryRun = query({
   handler: async (ctx) => {
     await requireSuperAdmin(ctx);
 
-    const advisorStudents = await ctx.db.query("advisorStudents").collect();
+    const advisorStudents = await ctx.db.query('advisorStudents').collect();
 
     const results = {
       totalRecords: advisorStudents.length,
@@ -33,7 +34,7 @@ export const dryRun = query({
         studentProfileId: string;
         advisorId: string;
         userId: string | null;
-        status: "will_migrate" | "already_exists" | "missing_user" | "missing_profile";
+        status: 'will_migrate' | 'already_exists' | 'missing_user' | 'missing_profile';
       }>,
       alreadyMigrated: 0,
       missingUsers: 0,
@@ -50,7 +51,7 @@ export const dryRun = query({
           studentProfileId: record.student_profile_id,
           advisorId: record.advisor_id,
           userId: null,
-          status: "missing_profile",
+          status: 'missing_profile',
         });
         results.missingProfiles++;
         continue;
@@ -66,7 +67,7 @@ export const dryRun = query({
           studentProfileId: record.student_profile_id,
           advisorId: record.advisor_id,
           userId,
-          status: "missing_user",
+          status: 'missing_user',
         });
         results.missingUsers++;
         continue;
@@ -74,11 +75,11 @@ export const dryRun = query({
 
       // Check if already exists in student_advisors
       const existing = await ctx.db
-        .query("student_advisors")
-        .withIndex("by_advisor", (q) =>
-          q.eq("advisor_id", record.advisor_id).eq("university_id", record.university_id)
+        .query('student_advisors')
+        .withIndex('by_advisor', (q) =>
+          q.eq('advisor_id', record.advisor_id).eq('university_id', record.university_id),
         )
-        .filter((q) => q.eq(q.field("student_id"), userId))
+        .filter((q) => q.eq(q.field('student_id'), userId))
         .unique();
 
       if (existing) {
@@ -87,7 +88,7 @@ export const dryRun = query({
           studentProfileId: record.student_profile_id,
           advisorId: record.advisor_id,
           userId,
-          status: "already_exists",
+          status: 'already_exists',
         });
         results.alreadyMigrated++;
       } else {
@@ -96,7 +97,7 @@ export const dryRun = query({
           studentProfileId: record.student_profile_id,
           advisorId: record.advisor_id,
           userId,
-          status: "will_migrate",
+          status: 'will_migrate',
         });
       }
     }
@@ -116,7 +117,7 @@ export const migrate = mutation({
     // Require super_admin
     await requireSuperAdmin(ctx);
 
-    const advisorStudents = await ctx.db.query("advisorStudents").collect();
+    const advisorStudents = await ctx.db.query('advisorStudents').collect();
 
     const results = {
       totalRecords: advisorStudents.length,
@@ -159,11 +160,11 @@ export const migrate = mutation({
 
         // Check if already exists in student_advisors
         const existing = await ctx.db
-          .query("student_advisors")
-          .withIndex("by_advisor", (q) =>
-            q.eq("advisor_id", record.advisor_id).eq("university_id", record.university_id)
+          .query('student_advisors')
+          .withIndex('by_advisor', (q) =>
+            q.eq('advisor_id', record.advisor_id).eq('university_id', record.university_id),
           )
-          .filter((q) => q.eq(q.field("student_id"), userId))
+          .filter((q) => q.eq(q.field('student_id'), userId))
           .unique();
 
         if (existing) {
@@ -173,14 +174,12 @@ export const migrate = mutation({
         } else {
           // Check if student already has an owner
           const existingOwner = await ctx.db
-            .query("student_advisors")
-            .withIndex("by_student_owner", (q) =>
-              q.eq("student_id", userId).eq("is_owner", true)
-            )
+            .query('student_advisors')
+            .withIndex('by_student_owner', (q) => q.eq('student_id', userId).eq('is_owner', true))
             .unique();
 
           // Create new record in student_advisors
-          await ctx.db.insert("student_advisors", {
+          await ctx.db.insert('student_advisors', {
             student_id: userId,
             advisor_id: record.advisor_id,
             university_id: record.university_id,
@@ -221,8 +220,8 @@ export const auditInconsistencies = query({
   handler: async (ctx) => {
     await requireSuperAdmin(ctx);
 
-    const advisorStudents = await ctx.db.query("advisorStudents").collect();
-    const studentAdvisors = await ctx.db.query("student_advisors").collect();
+    const advisorStudents = await ctx.db.query('advisorStudents').collect();
+    const studentAdvisors = await ctx.db.query('student_advisors').collect();
 
     const results = {
       inAdvisorStudentsOnly: [] as Array<{
@@ -264,9 +263,9 @@ export const auditInconsistencies = query({
 
     // Remaining items in set are only in student_advisors
     for (const key of studentAdvisorSet) {
-      const [studentId, advisorId] = key.split(":");
+      const [studentId, advisorId] = key.split(':');
       const sa = studentAdvisors.find(
-        (s) => s.student_id === studentId && s.advisor_id === advisorId
+        (s) => s.student_id === studentId && s.advisor_id === advisorId,
       );
       if (sa) {
         results.inStudentAdvisorsOnly.push({

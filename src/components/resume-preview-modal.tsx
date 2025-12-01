@@ -1,29 +1,25 @@
-'use client'
+'use client';
 
-import React from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Download } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
-import { ResumeDocument, type ResumeData } from '@/components/resume/ResumeDocument'
-import { generateResumePDF } from '@/lib/resume-pdf-generator'
+import { Download } from 'lucide-react';
+import React from 'react';
+
+import { type ResumeData, ResumeDocument } from '@/components/resume/ResumeDocument';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { generateResumePDF } from '@/lib/resume-pdf-generator';
 
 interface ResumePreviewModalProps {
-  open: boolean
-  onClose: () => void
+  open: boolean;
+  onClose: () => void;
   resume: {
-    _id: string
-    title: string
-    content: any
-    source?: 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload'
-  }
-  userName?: string
-  userEmail?: string
+    _id: string;
+    title: string;
+    content: any;
+    source?: 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload';
+  };
+  userName?: string;
+  userEmail?: string;
 }
 
 export function ResumePreviewModal({
@@ -33,13 +29,13 @@ export function ResumePreviewModal({
   userName,
   userEmail,
 }: ResumePreviewModalProps) {
-  const { toast } = useToast()
+  const { toast } = useToast();
 
-  const content = resume.content || {}
+  const content = resume.content || {};
 
   // Normalize data to ResumeData format
   // Support both data shapes: AI-generated (personalInfo/experience) and editor (contactInfo/experiences)
-  const rawPersonalInfo = content.contactInfo || content.personalInfo || {}
+  const rawPersonalInfo = content.contactInfo || content.personalInfo || {};
   const resumeData: ResumeData = {
     contactInfo: {
       name: rawPersonalInfo.name || userName || 'Your Name',
@@ -60,42 +56,50 @@ export function ResumePreviewModal({
     education: Array.isArray(content.education) ? content.education : [],
     projects: Array.isArray(content.projects) ? content.projects : [],
     achievements: Array.isArray(content.achievements) ? content.achievements : [],
-  }
+  };
 
   const exportPDF = async () => {
     try {
-      const fileName = `${resume.title.replace(/\s+/g, '_')}.pdf`
-      await generateResumePDF(resumeData, fileName)
+      const fileName = `${resume.title.replace(/\s+/g, '_')}.pdf`;
+      await generateResumePDF(resumeData, fileName);
 
       toast({
         title: 'Exported',
         description: 'Resume PDF downloaded successfully',
         variant: 'success',
-      })
+      });
     } catch (error) {
-      console.error('PDF export error:', error)
+      console.error('PDF export error:', error);
       toast({
         title: 'Export Failed',
         description: 'Failed to export PDF',
         variant: 'destructive',
-      })
+      });
     }
-  }
+  };
 
   const getSourceBadge = () => {
     switch (resume.source) {
       case 'ai_generated':
-        return <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">AI Generated</span>
+        return (
+          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+            AI Generated
+          </span>
+        );
       case 'ai_optimized':
-        return <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">AI Optimized</span>
+        return (
+          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">AI Optimized</span>
+        );
       case 'pdf_upload':
-        return <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">PDF Upload</span>
+        return (
+          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">PDF Upload</span>
+        );
       case 'manual':
-        return <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">Manual</span>
+        return <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">Manual</span>;
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -119,5 +123,5 @@ export function ResumePreviewModal({
         <ResumeDocument data={resumeData} className="border rounded-lg shadow-sm" />
       </DialogContent>
     </Dialog>
-  )
+  );
 }

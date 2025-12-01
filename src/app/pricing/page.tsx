@@ -1,16 +1,17 @@
-'use client'
+'use client';
 
-import React, { useEffect, useState } from 'react'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { useUser } from '@clerk/nextjs'
-import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { PlanCard } from '@/components/pricing/PlanCard'
-import { TrustRow } from '@/components/pricing/TrustRow'
-import { PricingFAQ } from '@/components/pricing/PricingFAQ'
-import { Lock } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { useUser } from '@clerk/nextjs';
+import { Lock } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+
+import { PlanCard } from '@/components/pricing/PlanCard';
+import { PricingFAQ } from '@/components/pricing/PricingFAQ';
+import { TrustRow } from '@/components/pricing/TrustRow';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 const PLAN_FEATURES = [
   'Advanced application tracking',
@@ -18,15 +19,15 @@ const PLAN_FEATURES = [
   'Resume & Cover Letter Studios',
   'AI Career Coach',
   'Priority Support',
-]
+];
 
 export default function PricingPage() {
-  const { isSignedIn, subscription, hasPremium } = useAuth()
-  const { user: clerkUser } = useUser()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { toast } = useToast()
-  const [isCheckingOut, setIsCheckingOut] = useState<string | null>(null)
+  const { isSignedIn, subscription, hasPremium } = useAuth();
+  const { user: clerkUser } = useUser();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const [isCheckingOut, setIsCheckingOut] = useState<string | null>(null);
 
   // Force reload user session after returning from Clerk checkout
   useEffect(() => {
@@ -34,20 +35,23 @@ export default function PricingPage() {
 
     if (!sessionRefreshed && clerkUser) {
       // Reload the user to get fresh subscription data from Clerk
-      clerkUser.reload().then(() => {
-        // Add URL param to prevent repeated reloads
-        const url = new URL(window.location.href);
-        url.searchParams.set('session_refreshed', 'true');
-        window.history.replaceState({}, '', url);
-      }).catch((err) => {
-        console.error('[PricingPage] Error refreshing session:', err);
-      });
+      clerkUser
+        .reload()
+        .then(() => {
+          // Add URL param to prevent repeated reloads
+          const url = new URL(window.location.href);
+          url.searchParams.set('session_refreshed', 'true');
+          window.history.replaceState({}, '', url);
+        })
+        .catch((err) => {
+          console.error('[PricingPage] Error refreshing session:', err);
+        });
     }
   }, [clerkUser, searchParams]);
 
   // If user already has premium, redirect to dashboard
   if (hasPremium && !subscription.isLoading) {
-    router.push('/dashboard')
+    router.push('/dashboard');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100/50">
         <div className="text-center">
@@ -55,51 +59,52 @@ export default function PricingPage() {
           <p className="text-zinc-600">Redirecting to dashboard...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Handle checkout
   const handleCheckout = async (interval: 'monthly' | 'annual') => {
     if (!isSignedIn) {
-      router.push('/sign-in?redirect_url=/pricing')
-      return
+      router.push('/sign-in?redirect_url=/pricing');
+      return;
     }
 
-    setIsCheckingOut(interval)
+    setIsCheckingOut(interval);
 
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: 'premium', interval }),
         signal: controller.signal,
-      })
+      });
 
-      clearTimeout(timeoutId)
-      const data = await response.json()
+      clearTimeout(timeoutId);
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error || 'Failed to create checkout session')
+        throw new Error(data?.error || 'Failed to create checkout session');
       }
 
       if (data?.url) {
-        window.location.href = data.url
+        window.location.href = data.url;
       }
     } catch (error) {
-      console.error('Checkout error:', error)
+      console.error('Checkout error:', error);
       toast({
         variant: 'destructive',
         title: 'Checkout Failed',
-        description: error instanceof Error && error.name === 'AbortError'
-          ? 'Request timed out. Please try again.'
-          : 'Failed to start checkout. Please try again.',
-      })
-      setIsCheckingOut(null)
+        description:
+          error instanceof Error && error.name === 'AbortError'
+            ? 'Request timed out. Please try again.'
+            : 'Failed to start checkout. Please try again.',
+      });
+      setIsCheckingOut(null);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100/50">
@@ -156,8 +161,8 @@ export default function PricingPage() {
               asChild
               className="text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100"
             >
-              <Link href={isSignedIn ? "/dashboard" : "/sign-up"}>
-                {isSignedIn ? "Continue with Free Plan" : "Get Started Free"}
+              <Link href={isSignedIn ? '/dashboard' : '/sign-up'}>
+                {isSignedIn ? 'Continue with Free Plan' : 'Get Started Free'}
               </Link>
             </Button>
           </div>
@@ -170,7 +175,8 @@ export default function PricingPage() {
               Why Choose <span className="text-brand-blue">Ascentful?</span>
             </h2>
             <p className="text-base text-zinc-600 max-w-2xl mx-auto">
-              Join thousands of professionals accelerating their careers with our comprehensive platform
+              Join thousands of professionals accelerating their careers with our comprehensive
+              platform
             </p>
           </div>
           <TrustRow />
@@ -202,5 +208,5 @@ export default function PricingPage() {
         </section>
       </div>
     </div>
-  )
+  );
 }

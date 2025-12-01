@@ -7,16 +7,17 @@
  * don't have notes, prompting the advisor to document them.
  */
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Id } from 'convex/_generated/dataModel';
+import { formatDistanceToNow } from 'date-fns';
+import { CheckCircle2, Clock, FileText, User } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Clock, User, CheckCircle2 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { Id } from 'convex/_generated/dataModel';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface UndocumentedSession {
-  _id: Id<"advisor_sessions">;
-  student_id: Id<"users">;
+  _id: Id<'advisor_sessions'>;
+  student_id: Id<'users'>;
   student_name: string;
   title: string;
   session_type?: string;
@@ -26,7 +27,7 @@ interface UndocumentedSession {
 
 interface DocumentationPanelProps {
   sessions: UndocumentedSession[];
-  onAddNote?: (sessionId: Id<"advisor_sessions">) => void;
+  onAddNote?: (sessionId: Id<'advisor_sessions'>) => void;
   isLoading?: boolean;
 }
 
@@ -39,11 +40,7 @@ const sessionTypeLabels: Record<string, string> = {
   other: 'Other',
 };
 
-export function DocumentationPanel({
-  sessions,
-  onAddNote,
-  isLoading,
-}: DocumentationPanelProps) {
+export function DocumentationPanel({ sessions, onAddNote, isLoading }: DocumentationPanelProps) {
   if (isLoading) {
     return (
       <Card>

@@ -1,20 +1,21 @@
-"use client";
+'use client';
 
-import { Bell, MessageCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Bell, MessageCircle } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
 
 function IconButton(
-  props: React.ButtonHTMLAttributes<HTMLButtonElement> & { hasUnread?: boolean }
+  props: React.ButtonHTMLAttributes<HTMLButtonElement> & { hasUnread?: boolean },
 ) {
-  const { hasUnread, children, className = "", ...rest } = props;
+  const { hasUnread, children, className = '', ...rest } = props;
 
   return (
     <button
       type="button"
       {...rest}
       className={cn(
-        "relative flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors",
-        className
+        'relative flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors',
+        className,
       )}
     >
       {children}
@@ -61,11 +62,7 @@ export function NotificationButtons({
 }: NotificationButtonsProps) {
   return (
     <div className="flex items-center gap-2">
-      <IconButton
-        aria-label="Messages"
-        hasUnread={hasUnreadMessages}
-        onClick={onMessagesClick}
-      >
+      <IconButton aria-label="Messages" hasUnread={hasUnreadMessages} onClick={onMessagesClick}>
         <MessageCircle className="h-4 w-4" />
       </IconButton>
       <IconButton

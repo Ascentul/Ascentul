@@ -1,5 +1,6 @@
-import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { v } from 'convex/values';
+
+import { query } from './_generated/server';
 
 // Define free plan limits
 export const FREE_PLAN_LIMITS = {
@@ -17,8 +18,8 @@ export const getUserUsage = query({
   handler: async (ctx, args) => {
     // Get user
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
@@ -36,38 +37,38 @@ export const getUserUsage = query({
       coverLettersCount,
     ] = await Promise.all([
       ctx.db
-        .query("applications")
-        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .query('applications')
+        .withIndex('by_user', (q) => q.eq('user_id', user._id))
         .collect()
         .then((items) => items.length),
       ctx.db
-        .query("goals")
-        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .query('goals')
+        .withIndex('by_user', (q) => q.eq('user_id', user._id))
         .collect()
         .then((items) => items.length),
       ctx.db
-        .query("networking_contacts")
-        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .query('networking_contacts')
+        .withIndex('by_user', (q) => q.eq('user_id', user._id))
         .collect()
         .then((items) => items.length),
       ctx.db
-        .query("career_paths")
-        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .query('career_paths')
+        .withIndex('by_user', (q) => q.eq('user_id', user._id))
         .collect()
         .then((items) => items.length),
       ctx.db
-        .query("projects")
-        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .query('projects')
+        .withIndex('by_user', (q) => q.eq('user_id', user._id))
         .collect()
         .then((items) => items.length),
       ctx.db
-        .query("resumes")
-        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .query('resumes')
+        .withIndex('by_user', (q) => q.eq('user_id', user._id))
         .collect()
         .then((items) => items.length),
       ctx.db
-        .query("cover_letters")
-        .withIndex("by_user", (q) => q.eq("user_id", user._id))
+        .query('cover_letters')
+        .withIndex('by_user', (q) => q.eq('user_id', user._id))
         .collect()
         .then((items) => items.length),
     ]);

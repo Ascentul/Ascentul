@@ -5,15 +5,11 @@
  * Features: claim review, submit feedback, version control
  */
 
-import { mutation, action, internalMutation } from "./_generated/server";
-import { ConvexError, v } from "convex/values";
-import { api, internal } from "./_generated/api";
-import {
-  getCurrentUser,
-  requireAdvisorRole,
-  requireTenant,
-  createAuditLog,
-} from "./advisor_auth";
+import { ConvexError, v } from 'convex/values';
+
+import { api, internal } from './_generated/api';
+import { action, internalMutation, mutation } from './_generated/server';
+import { createAuditLog, getCurrentUser, requireAdvisorRole, requireTenant } from './advisor_auth';
 
 /**
  * Claim a review (move from waiting to in_progress)
@@ -38,7 +34,10 @@ export const claimReview = mutation({
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new ConvexError({ message: 'Unauthorized: Review not in your university', code: 'UNAUTHORIZED' });
+      throw new ConvexError({
+        message: 'Unauthorized: Review not in your university',
+        code: 'UNAUTHORIZED',
+      });
     }
 
     // CRITICAL: Race condition prevention via optimistic concurrency control.
@@ -46,18 +45,21 @@ export const claimReview = mutation({
     // only one commit will succeed. The second will fail serialization check,
     // retry, see status='in_review', and fail this validation.
     if (review.status !== 'waiting') {
-      throw new ConvexError({ message: 'Review is not available to claim', code: 'VALIDATION_ERROR' });
+      throw new ConvexError({
+        message: 'Review is not available to claim',
+        code: 'VALIDATION_ERROR',
+      });
     }
 
     // Safe to claim - optimistic concurrency control guarantees that if another
     // mutation modified this review concurrently, this transaction will abort and retry
-      const currentVersion = review.version ?? 0;
-      await ctx.db.patch(args.review_id, {
-        status: 'in_review',
-        reviewed_by: sessionCtx.userId,
-        version: currentVersion + 1,
-        updated_at: Date.now(),
-      });
+    const currentVersion = review.version ?? 0;
+    await ctx.db.patch(args.review_id, {
+      status: 'in_review',
+      reviewed_by: sessionCtx.userId,
+      version: currentVersion + 1,
+      updated_at: Date.now(),
+    });
 
     return { success: true, version: currentVersion + 1 };
   },
@@ -86,7 +88,10 @@ export const updateReviewFeedback = mutation({
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new ConvexError({ message: 'Unauthorized: Review not in your university', code: 'UNAUTHORIZED' });
+      throw new ConvexError({
+        message: 'Unauthorized: Review not in your university',
+        code: 'UNAUTHORIZED',
+      });
     }
 
     // Only reviewer can update
@@ -108,7 +113,7 @@ export const updateReviewFeedback = mutation({
     if (currentVersion !== args.version) {
       throw new ConvexError({
         message: `Version mismatch: Review was updated by another user. Expected version ${currentVersion}, got ${args.version}. Please refresh and try again.`,
-        code: 'VERSION_CONFLICT'
+        code: 'VERSION_CONFLICT',
       });
     }
 
@@ -152,13 +157,16 @@ export const completeReview = action({
   },
   handler: async (ctx, args) => {
     // Call internal mutation to update the review
-    const result = await ctx.runMutation(internal.advisor_reviews_mutations._completeReviewInternal, {
-      clerkId: args.clerkId,
-      review_id: args.review_id,
-      feedback: args.feedback,
-      suggestions: args.suggestions,
-      version: args.version,
-    });
+    const result = await ctx.runMutation(
+      internal.advisor_reviews_mutations._completeReviewInternal,
+      {
+        clerkId: args.clerkId,
+        review_id: args.review_id,
+        feedback: args.feedback,
+        suggestions: args.suggestions,
+        version: args.version,
+      },
+    );
 
     // Send email notification to student (non-blocking)
     try {
@@ -201,7 +209,10 @@ export const _completeReviewInternal = internalMutation({
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new ConvexError({ message: 'Unauthorized: Review not in your university', code: 'UNAUTHORIZED' });
+      throw new ConvexError({
+        message: 'Unauthorized: Review not in your university',
+        code: 'UNAUTHORIZED',
+      });
     }
 
     // Only reviewer can complete
@@ -223,7 +234,7 @@ export const _completeReviewInternal = internalMutation({
     if (currentVersion !== args.version) {
       throw new ConvexError({
         message: `Version mismatch: Review was updated by another user. Expected version ${currentVersion}, got ${args.version}. Please refresh and try again.`,
-        code: 'VERSION_CONFLICT'
+        code: 'VERSION_CONFLICT',
       });
     }
 
@@ -233,13 +244,19 @@ export const _completeReviewInternal = internalMutation({
       throw new ConvexError({ message: 'Student record not found', code: 'NOT_FOUND' });
     }
     if (!student.email) {
-      throw new ConvexError({ message: 'Student email not found - cannot send notification', code: 'VALIDATION_ERROR' });
+      throw new ConvexError({
+        message: 'Student email not found - cannot send notification',
+        code: 'VALIDATION_ERROR',
+      });
     }
 
     // Validate configuration BEFORE making changes
     const appUrl = process.env.APP_URL;
     if (!appUrl) {
-      throw new ConvexError({ message: 'APP_URL environment variable not configured', code: 'CONFIG_ERROR' });
+      throw new ConvexError({
+        message: 'APP_URL environment variable not configured',
+        code: 'CONFIG_ERROR',
+      });
     }
 
     const now = Date.now();
@@ -295,7 +312,10 @@ export const returnReviewToQueue = mutation({
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new ConvexError({ message: 'Unauthorized: Review not in your university', code: 'UNAUTHORIZED' });
+      throw new ConvexError({
+        message: 'Unauthorized: Review not in your university',
+        code: 'UNAUTHORIZED',
+      });
     }
 
     // Only reviewer or admin can return
@@ -317,7 +337,7 @@ export const returnReviewToQueue = mutation({
 
     await ctx.db.patch(args.review_id, {
       status: 'waiting',
-      reviewed_by: undefined,  // Explicitly clear the reviewer
+      reviewed_by: undefined, // Explicitly clear the reviewer
       updated_at: Date.now(),
       version: (review.version ?? 0) + 1,
     });
@@ -326,12 +346,12 @@ export const returnReviewToQueue = mutation({
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: review.university_id,
-      action: "review.returned_to_queue",
-      entityType: "advisor_review",
+      action: 'review.returned_to_queue',
+      entityType: 'advisor_review',
       entityId: args.review_id,
       studentId: review.student_id,
-      previousValue: { status: "in_review", reviewed_by: review.reviewed_by },
-      newValue: { status: "waiting", reason: args.reason },
+      previousValue: { status: 'in_review', reviewed_by: review.reviewed_by },
+      newValue: { status: 'waiting', reason: args.reason },
     });
 
     return { success: true };

@@ -27,8 +27,8 @@
  * Without a token, calls are unauthenticated and will fail if the Convex function requires auth.
  */
 
-import { fetchQuery, fetchMutation, fetchAction } from 'convex/nextjs';
-import type { FunctionReference, FunctionReturnType, FunctionArgs } from 'convex/server';
+import { fetchAction, fetchMutation, fetchQuery } from 'convex/nextjs';
+import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 
 /**
  * Backward-compatible convexServer shim.
@@ -44,9 +44,8 @@ export const convexServer = {
   query: <Query extends FunctionReference<'query'>>(
     fn: Query,
     args: FunctionArgs<Query>,
-    token?: string | null
-  ): Promise<FunctionReturnType<Query>> =>
-    fetchQuery(fn, args, token ? { token } : undefined),
+    token?: string | null,
+  ): Promise<FunctionReturnType<Query>> => fetchQuery(fn, args, token ? { token } : undefined),
 
   /**
    * Execute a Convex mutation
@@ -57,7 +56,7 @@ export const convexServer = {
   mutation: <Mutation extends FunctionReference<'mutation'>>(
     fn: Mutation,
     args: FunctionArgs<Mutation>,
-    token?: string | null
+    token?: string | null,
   ): Promise<FunctionReturnType<Mutation>> =>
     fetchMutation(fn, args, token ? { token } : undefined),
 
@@ -70,14 +69,15 @@ export const convexServer = {
   action: <Action extends FunctionReference<'action'>>(
     fn: Action,
     args: FunctionArgs<Action>,
-    token?: string | null
-  ): Promise<FunctionReturnType<Action>> =>
-    fetchAction(fn, args, token ? { token } : undefined),
+    token?: string | null,
+  ): Promise<FunctionReturnType<Action>> => fetchAction(fn, args, token ? { token } : undefined),
 
   /**
    * @deprecated setAuth is no longer used. Pass token directly to query/mutation/action calls.
    */
   setAuth: () => {
-    console.warn('convexServer.setAuth is deprecated. Pass token directly to query/mutation/action calls instead.');
+    console.warn(
+      'convexServer.setAuth is deprecated. Pass token directly to query/mutation/action calls instead.',
+    );
   },
 };

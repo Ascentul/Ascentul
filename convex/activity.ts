@@ -1,25 +1,26 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
+import { v } from 'convex/values';
+
+import { Doc, Id } from './_generated/dataModel';
+import { mutation, query } from './_generated/server';
 
 /**
  * Get current date in YYYY-MM-DD format for a given timezone
  * Defaults to UTC if no timezone provided
  */
-function getTodayString(timezone: string = "UTC"): string {
+function getTodayString(timezone: string = 'UTC'): string {
   try {
     const now = new Date();
-    const formatter = new Intl.DateTimeFormat("en-CA", {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
       timeZone: timezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
     });
     return formatter.format(now); // Returns YYYY-MM-DD
   } catch (error) {
     // Fallback to UTC if timezone is invalid
     const now = new Date();
-    return now.toISOString().split("T")[0];
+    return now.toISOString().split('T')[0];
   }
 }
 
@@ -31,22 +32,22 @@ export const markLoginForToday = mutation({
     timezone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { timezone = "UTC" } = args;
+    const { timezone = 'UTC' } = args;
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Not authenticated");
+      throw new Error('Not authenticated');
     }
     const clerkId = identity.subject;
 
     // Get user
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const today = getTodayString(timezone);
@@ -54,8 +55,8 @@ export const markLoginForToday = mutation({
 
     // Check if record exists
     const existing = await ctx.db
-      .query("user_daily_activity")
-      .withIndex("by_clerk_date", (q) => q.eq("clerk_id", clerkId).eq("date", today))
+      .query('user_daily_activity')
+      .withIndex('by_clerk_date', (q) => q.eq('clerk_id', clerkId).eq('date', today))
       .unique();
 
     if (existing) {
@@ -67,7 +68,7 @@ export const markLoginForToday = mutation({
       return existing._id;
     } else {
       // Create new record
-      return await ctx.db.insert("user_daily_activity", {
+      return await ctx.db.insert('user_daily_activity', {
         user_id: user._id,
         clerk_id: clerkId,
         date: today,
@@ -89,22 +90,22 @@ export const markActionForToday = mutation({
     timezone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { timezone = "UTC" } = args;
+    const { timezone = 'UTC' } = args;
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Not authenticated");
+      throw new Error('Not authenticated');
     }
     const clerkId = identity.subject;
 
     // Get user
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const today = getTodayString(timezone);
@@ -112,8 +113,8 @@ export const markActionForToday = mutation({
 
     // Check if record exists
     const existing = await ctx.db
-      .query("user_daily_activity")
-      .withIndex("by_clerk_date", (q) => q.eq("clerk_id", clerkId).eq("date", today))
+      .query('user_daily_activity')
+      .withIndex('by_clerk_date', (q) => q.eq('clerk_id', clerkId).eq('date', today))
       .unique();
 
     if (existing) {
@@ -126,7 +127,7 @@ export const markActionForToday = mutation({
       return existing._id;
     } else {
       // Create new record
-      return await ctx.db.insert("user_daily_activity", {
+      return await ctx.db.insert('user_daily_activity', {
         user_id: user._id,
         clerk_id: clerkId,
         date: today,
@@ -157,11 +158,11 @@ export const getActivityYear = query({
   handler: async (ctx, args): Promise<HeatmapDay[]> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Not authenticated");
+      throw new Error('Not authenticated');
     }
 
     const clerkId = identity.subject;
-    const { timezone = "UTC" } = args;
+    const { timezone = 'UTC' } = args;
 
     // Get current year range: Jan 1 to today
     const today = getTodayString(timezone);
@@ -169,18 +170,13 @@ export const getActivityYear = query({
     const startDate = `${currentYear}-01-01`;
 
     const activities = await ctx.db
-      .query("user_daily_activity")
-      .withIndex("by_clerk_date", (q) => q.eq("clerk_id", clerkId))
-      .filter((q) =>
-        q.and(
-          q.gte(q.field("date"), startDate),
-          q.lte(q.field("date"), today)
-        )
-      )
+      .query('user_daily_activity')
+      .withIndex('by_clerk_date', (q) => q.eq('clerk_id', clerkId))
+      .filter((q) => q.and(q.gte(q.field('date'), startDate), q.lte(q.field('date'), today)))
       .collect();
 
     // Create a map for quick lookup
-    const activityMap = new Map<string, Doc<"user_daily_activity">>();
+    const activityMap = new Map<string, Doc<'user_daily_activity'>>();
     activities.forEach((activity) => {
       activityMap.set(activity.date, activity);
     });
@@ -188,10 +184,10 @@ export const getActivityYear = query({
     // Generate all days from Jan 1 to today
     const result: HeatmapDay[] = [];
     const currentDate = new Date(`${startDate}T00:00:00Z`);
-    const endDate = new Date(today + "T00:00:00Z");
+    const endDate = new Date(today + 'T00:00:00Z');
 
     while (currentDate <= endDate) {
-      const dateString = currentDate.toISOString().split("T")[0];
+      const dateString = currentDate.toISOString().split('T')[0];
       const activity = activityMap.get(dateString);
 
       result.push({
@@ -226,16 +222,16 @@ export const getStreakSummary = query({
   handler: async (ctx, args): Promise<StreakSummary> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Not authenticated");
+      throw new Error('Not authenticated');
     }
 
     const clerkId = identity.subject;
 
     // Get all activity for the user, sorted by date descending
     const activities = await ctx.db
-      .query("user_daily_activity")
-      .withIndex("by_clerk_date", (q) => q.eq("clerk_id", clerkId))
-      .filter((q) => q.eq(q.field("did_action"), true))
+      .query('user_daily_activity')
+      .withIndex('by_clerk_date', (q) => q.eq('clerk_id', clerkId))
+      .filter((q) => q.eq(q.field('did_action'), true))
       .collect();
 
     if (activities.length === 0) {
@@ -260,11 +256,11 @@ export const getStreakSummary = query({
     let longestStreak = 0;
     let tempStreak = 0;
 
-    const today = getTodayString(args.timezone ?? "UTC");
-    const todayDate = new Date(today + "T00:00:00Z");
+    const today = getTodayString(args.timezone ?? 'UTC');
+    const todayDate = new Date(today + 'T00:00:00Z');
     const yesterdayDate = new Date(todayDate);
     yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
-    const yesterdayString = yesterdayDate.toISOString().split("T")[0];
+    const yesterdayString = yesterdayDate.toISOString().split('T')[0];
 
     // Check if we need to count current streak
     const hasActivityToday = activities.some((a) => a.date === today);
@@ -272,12 +268,12 @@ export const getStreakSummary = query({
 
     // Calculate current streak working backwards from today/yesterday
     if (hasActivityToday || hasActivityYesterday) {
-      let checkDate = hasActivityToday ? today : yesterdayString;
-      const checkDateObj = new Date(checkDate + "T00:00:00Z");
+      const checkDate = hasActivityToday ? today : yesterdayString;
+      const checkDateObj = new Date(checkDate + 'T00:00:00Z');
 
       for (let i = activities.length - 1; i >= 0; i--) {
         const activityDate = activities[i].date;
-        const checkDateString = checkDateObj.toISOString().split("T")[0];
+        const checkDateString = checkDateObj.toISOString().split('T')[0];
         if (activityDate === checkDateString) {
           currentStreak++;
           checkDateObj.setUTCDate(checkDateObj.getUTCDate() - 1);
@@ -298,7 +294,7 @@ export const getStreakSummary = query({
         const prevDate = new Date(prevDateStr + 'T00:00:00Z');
         const currentDate = new Date(activity.date + 'T00:00:00Z');
         const diffDays = Math.round(
-          (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24)
+          (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24),
         );
 
         if (diffDays === 1) {

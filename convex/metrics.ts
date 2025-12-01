@@ -11,8 +11,9 @@
  * - Metrics are computed server-side for consistency
  */
 
-import { query } from "./_generated/server";
-import { v } from "convex/values";
+import { v } from 'convex/values';
+
+import { query } from './_generated/server';
 
 /**
  * Total universities that have ever been created (excluding test universities)
@@ -27,14 +28,14 @@ import { v } from "convex/values";
 export const getTotalUniversitiesAllTime = query({
   args: {},
   handler: async (ctx) => {
-    const universities = await ctx.db.query("universities").collect();
+    const universities = await ctx.db.query('universities').collect();
 
     const count = universities.filter(
       (u) =>
         // Exclude test universities
         u.is_test !== true &&
         // Count trial, active, and archived universities
-        (u.status === "trial" || u.status === "active" || u.status === "archived")
+        (u.status === 'trial' || u.status === 'active' || u.status === 'archived'),
     ).length;
 
     return count;
@@ -54,14 +55,14 @@ export const getTotalUniversitiesAllTime = query({
 export const getActiveUniversitiesCurrent = query({
   args: {},
   handler: async (ctx) => {
-    const universities = await ctx.db.query("universities").collect();
+    const universities = await ctx.db.query('universities').collect();
 
     const count = universities.filter(
       (u) =>
         // Exclude test universities
         u.is_test !== true &&
         // Count only trial and active universities
-        (u.status === "trial" || u.status === "active")
+        (u.status === 'trial' || u.status === 'active'),
     ).length;
 
     return count;
@@ -81,14 +82,14 @@ export const getActiveUniversitiesCurrent = query({
 export const getArchivedUniversities = query({
   args: {},
   handler: async (ctx) => {
-    const universities = await ctx.db.query("universities").collect();
+    const universities = await ctx.db.query('universities').collect();
 
     const count = universities.filter(
       (u) =>
         // Exclude test universities
         u.is_test !== true &&
         // Count only archived universities
-        u.status === "archived"
+        u.status === 'archived',
     ).length;
 
     return count;
@@ -113,14 +114,14 @@ export const getArchivedUniversities = query({
 export const getTotalUsersAllTime = query({
   args: {},
   handler: async (ctx) => {
-    const users = await ctx.db.query("users").collect();
+    const users = await ctx.db.query('users').collect();
 
     const count = users.filter(
       (u) =>
         // Exclude test users
         u.is_test_user !== true &&
         // Exclude internal users (super_admin is internal)
-        u.role !== "super_admin"
+        u.role !== 'super_admin',
     ).length;
 
     return count;
@@ -146,13 +147,11 @@ export const getTotalUsersAllTime = query({
 export const getActiveUsers30d = query({
   args: {},
   handler: async (ctx) => {
-    const users = await ctx.db.query("users").collect();
-    const universities = await ctx.db.query("universities").collect();
+    const users = await ctx.db.query('users').collect();
+    const universities = await ctx.db.query('universities').collect();
 
     // Create a map of university IDs to universities for quick lookup
-    const universityMap = new Map(
-      universities.map((u) => [u._id, u])
-    );
+    const universityMap = new Map(universities.map((u) => [u._id, u]));
 
     // Calculate 30 days ago timestamp
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -162,7 +161,7 @@ export const getActiveUsers30d = query({
       if (u.is_test_user === true) return false;
 
       // Exclude internal users
-      if (u.role === "super_admin") return false;
+      if (u.role === 'super_admin') return false;
 
       // Must have logged in within last 30 days
       if (!u.last_login_at || u.last_login_at < thirtyDaysAgo) return false;
@@ -178,7 +177,7 @@ export const getActiveUsers30d = query({
         if (university.is_test === true) return false;
 
         // Exclude if university is not active or trial
-        if (university.status !== "trial" && university.status !== "active") {
+        if (university.status !== 'trial' && university.status !== 'active') {
           return false;
         }
       }
@@ -205,31 +204,28 @@ export const getAllMetrics = query({
   args: {},
   handler: async (ctx) => {
     // Fetch all data once for efficiency
-    const users = await ctx.db.query("users").collect();
-    const universities = await ctx.db.query("universities").collect();
+    const users = await ctx.db.query('users').collect();
+    const universities = await ctx.db.query('universities').collect();
 
     // Filter real universities (exclude test)
     const realUniversities = universities.filter((u) => u.is_test !== true);
 
     // Total universities all time (trial, active, archived)
     const totalUniversitiesAllTime = realUniversities.filter(
-      (u) =>
-        u.status === "trial" || u.status === "active" || u.status === "archived"
+      (u) => u.status === 'trial' || u.status === 'active' || u.status === 'archived',
     ).length;
 
     // Active universities current (trial, active)
     const activeUniversitiesCurrent = realUniversities.filter(
-      (u) => u.status === "trial" || u.status === "active"
+      (u) => u.status === 'trial' || u.status === 'active',
     ).length;
 
     // Archived universities
-    const archivedUniversities = realUniversities.filter(
-      (u) => u.status === "archived"
-    ).length;
+    const archivedUniversities = realUniversities.filter((u) => u.status === 'archived').length;
 
     // Total users all time (exclude test and internal)
     const totalUsersAllTime = users.filter(
-      (u) => u.is_test_user !== true && u.role !== "super_admin"
+      (u) => u.is_test_user !== true && u.role !== 'super_admin',
     ).length;
 
     // Active users 30d
@@ -238,14 +234,14 @@ export const getAllMetrics = query({
 
     const activeUsers30d = users.filter((u) => {
       if (u.is_test_user === true) return false;
-      if (u.role === "super_admin") return false;
+      if (u.role === 'super_admin') return false;
       if (!u.last_login_at || u.last_login_at < thirtyDaysAgo) return false;
 
       if (u.university_id) {
         const university = universityMap.get(u.university_id);
         if (!university) return false;
         if (university.is_test === true) return false;
-        if (university.status !== "trial" && university.status !== "active") {
+        if (university.status !== 'trial' && university.status !== 'active') {
           return false;
         }
       }

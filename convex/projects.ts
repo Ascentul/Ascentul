@@ -1,18 +1,19 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { requireMembership } from "./lib/roles";
+import { v } from 'convex/values';
+
+import { mutation, query } from './_generated/server';
+import { requireMembership } from './lib/roles';
 
 // Get projects for a user
 export const getUserProjects = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Note: We don't require membership for read queries - users can always view their own projects
@@ -20,9 +21,9 @@ export const getUserProjects = query({
 
     // OPTIMIZED: Add limit to prevent bandwidth issues
     const projects = await ctx.db
-      .query("projects")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .order("desc")
+      .query('projects')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
+      .order('desc')
       .take(100); // Limit to 100 most recent projects
 
     return projects;
@@ -47,17 +48,18 @@ export const createProject = mutation({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
     // ARCHITECTURE NOTE: Free plan limits are enforced at the FRONTEND layer
     // - Clerk Billing (publicMetadata) is the source of truth for subscriptions
@@ -76,7 +78,7 @@ export const createProject = mutation({
     //   }
     // }
 
-    const projectId = await ctx.db.insert("projects", {
+    const projectId = await ctx.db.insert('projects', {
       user_id: user._id,
       university_id: membership?.university_id ?? user.university_id,
       title: args.title,
@@ -102,7 +104,7 @@ export const createProject = mutation({
 export const updateProject = mutation({
   args: {
     clerkId: v.string(),
-    projectId: v.id("projects"),
+    projectId: v.id('projects'),
     updates: v.object({
       title: v.optional(v.string()),
       role: v.optional(v.string()),
@@ -119,25 +121,26 @@ export const updateProject = mutation({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
     const project = await ctx.db.get(args.projectId);
     if (!project || project.user_id !== user._id) {
-      throw new Error("Project not found or unauthorized");
+      throw new Error('Project not found or unauthorized');
     }
 
     if (project.university_id && membership && project.university_id !== membership.university_id) {
-      throw new Error("Unauthorized: Project belongs to another university");
+      throw new Error('Unauthorized: Project belongs to another university');
     }
 
     await ctx.db.patch(args.projectId, {
@@ -153,29 +156,30 @@ export const updateProject = mutation({
 export const deleteProject = mutation({
   args: {
     clerkId: v.string(),
-    projectId: v.id("projects"),
+    projectId: v.id('projects'),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
     const project = await ctx.db.get(args.projectId);
     if (!project || project.user_id !== user._id) {
-      throw new Error("Project not found or unauthorized");
+      throw new Error('Project not found or unauthorized');
     }
 
     if (project.university_id && membership && project.university_id !== membership.university_id) {
-      throw new Error("Unauthorized: Project belongs to another university");
+      throw new Error('Unauthorized: Project belongs to another university');
     }
 
     await ctx.db.delete(args.projectId);

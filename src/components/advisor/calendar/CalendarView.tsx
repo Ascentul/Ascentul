@@ -1,22 +1,23 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  startOfWeek,
+  addDays,
+  addMonths,
+  addWeeks,
+  eachDayOfInterval,
+  endOfMonth,
   endOfWeek,
   startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  addDays,
-  addWeeks,
-  addMonths,
+  startOfWeek,
   subDays,
-  subWeeks,
   subMonths,
+  subWeeks,
 } from 'date-fns';
+import { useEffect, useMemo, useRef, useState } from 'react';
+
 import { CalendarControls } from './CalendarControls';
-import { DayCell } from './DayCell';
 import { DayCard } from './DayCard';
+import { DayCell } from './DayCell';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -28,7 +29,7 @@ type ViewMode = 'day' | 'week' | 'month';
  */
 function groupByDay<T>(
   items: T[],
-  getTimestamp: (item: T) => number | undefined
+  getTimestamp: (item: T) => number | undefined,
 ): Map<string, T[]> {
   const grouped = new Map<string, T[]>();
   items.forEach((item) => {
@@ -79,7 +80,13 @@ interface CalendarViewProps {
   onDateChange?: (date: Date) => void;
 }
 
-export function CalendarView({ sessions, followUps, isLoading, currentDate: controlledDate, onDateChange }: CalendarViewProps) {
+export function CalendarView({
+  sessions,
+  followUps,
+  isLoading,
+  currentDate: controlledDate,
+  onDateChange,
+}: CalendarViewProps) {
   const [internalDate, setInternalDate] = useState<Date>(() => controlledDate ?? new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [now, setNow] = useState<number>(() => Date.now());
@@ -160,34 +167,28 @@ export function CalendarView({ sessions, followUps, isLoading, currentDate: cont
   }, [viewMode, currentDate]);
 
   // Group sessions by day (memoized to avoid re-filtering)
-  const sessionsByDay = useMemo(
-    () => groupByDay(sessions, (s) => s.start_at),
-    [sessions]
-  );
+  const sessionsByDay = useMemo(() => groupByDay(sessions, (s) => s.start_at), [sessions]);
 
   const getSessionsForDay = (day: Date) => sessionsByDay.get(day.toDateString()) || [];
 
   // Group follow-ups by day (memoized to avoid re-filtering)
-  const followUpsByDay = useMemo(
-    () => groupByDay(followUps, (f) => f.due_at),
-    [followUps]
-  );
+  const followUpsByDay = useMemo(() => groupByDay(followUps, (f) => f.due_at), [followUps]);
 
   const getFollowUpsForDay = (day: Date) => followUpsByDay.get(day.toDateString()) || [];
 
   if (isLoading) {
     return (
-      <div className='flex items-center justify-center h-96'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4'></div>
-          <p className='text-muted-foreground'>Loading calendar...</p>
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading calendar...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className='space-y-4'>
+    <div className="space-y-4">
       {/* Calendar Controls */}
       <CalendarControls
         currentDate={currentDate}
@@ -200,19 +201,19 @@ export function CalendarView({ sessions, followUps, isLoading, currentDate: cont
 
       {/* Calendar Grid */}
       {viewMode === 'month' ? (
-        <div className='border rounded-lg overflow-hidden'>
+        <div className="border rounded-lg overflow-hidden">
           {/* Month view - grid layout */}
-          <div className='grid grid-cols-7 bg-muted'>
+          <div className="grid grid-cols-7 bg-muted">
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
               <div
                 key={day}
-                className='p-2 text-center text-sm font-medium border-r last:border-r-0'
+                className="p-2 text-center text-sm font-medium border-r last:border-r-0"
               >
                 {day}
               </div>
             ))}
           </div>
-          <div className='grid grid-cols-7'>
+          <div className="grid grid-cols-7">
             {daysToDisplay.map((day) => (
               <DayCell
                 key={day.toISOString()}
@@ -227,7 +228,7 @@ export function CalendarView({ sessions, followUps, isLoading, currentDate: cont
         </div>
       ) : (
         // Day/Week view - list layout
-        <div className='space-y-4'>
+        <div className="space-y-4">
           {daysToDisplay.map((day) => (
             <DayCard
               key={day.toISOString()}

@@ -1,63 +1,64 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSignIn } from '@clerk/nextjs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/hooks/use-toast'
-import Link from 'next/link'
-import { Eye, EyeOff } from 'lucide-react'
+import { useSignIn } from '@clerk/nextjs';
+import { Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 interface SignInFormProps {
-  onForgotPassword: () => void,
+  onForgotPassword: () => void;
 }
 
 export function SignInForm({ onForgotPassword }: SignInFormProps) {
-  const router = useRouter()
-  const { isLoaded, signIn, setActive } = useSignIn()
-  const { toast } = useToast()
+  const router = useRouter();
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const { toast } = useToast();
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showPassword, setShowPassword] = useState(false)
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    if (!isLoaded) return
+    e.preventDefault();
+    setError(null);
+    if (!isLoaded) return;
 
     if (!email.trim() || !password.trim()) {
-      setError('Please enter both email and password')
-      return
+      setError('Please enter both email and password');
+      return;
     }
 
     try {
-      setSubmitting(true)
+      setSubmitting(true);
 
       // Start the sign-in process
       const result = await signIn.create({
         identifier: email,
-        password
-      })
+        password,
+      });
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('Sign-in result status:', result.status)
+        console.log('Sign-in result status:', result.status);
       }
 
       // Handle complete sign-in
       if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
+        await setActive({ session: result.createdSessionId });
         toast({
           title: 'Welcome back!',
           description: 'You have been successfully signed in.',
-        })
-        router.replace('/dashboard')
-        return
+        });
+        router.replace('/dashboard');
+        return;
       }
 
       // If status is needs_first_factor, attempt to complete with password strategy
@@ -65,69 +66,76 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
         try {
           const attemptResult = await signIn.attemptFirstFactor({
             strategy: 'password',
-            password
-          })
+            password,
+          });
 
           if (attemptResult.status === 'complete') {
-            await setActive({ session: attemptResult.createdSessionId })
+            await setActive({ session: attemptResult.createdSessionId });
             toast({
               title: 'Welcome back!',
               description: 'You have been successfully signed in.',
-            })
-            router.replace('/dashboard')
-            return
+            });
+            router.replace('/dashboard');
+            return;
           }
 
-          console.warn('First factor attempt incomplete:', attemptResult.status, attemptResult)
-          setError(`Sign-in incomplete. Status: ${attemptResult.status}. Please contact support.`)
-          return
+          console.warn('First factor attempt incomplete:', attemptResult.status, attemptResult);
+          setError(`Sign-in incomplete. Status: ${attemptResult.status}. Please contact support.`);
+          return;
         } catch (factorErr) {
-          console.error('First factor attempt failed:', factorErr)
-          throw factorErr
+          console.error('First factor attempt failed:', factorErr);
+          throw factorErr;
         }
       }
 
       // Handle other statuses
       if (result.status === 'needs_second_factor') {
         // MFA is disabled globally but user account may have it enabled
-        console.warn('MFA required for this account:', result)
-        setError('Your account has two-factor authentication enabled. Please contact support to disable MFA or use an alternative sign-in method.')
-        return
+        console.warn('MFA required for this account:', result);
+        setError(
+          'Your account has two-factor authentication enabled. Please contact support to disable MFA or use an alternative sign-in method.',
+        );
+        return;
       }
 
       if (result.status === 'needs_identifier') {
-        setError('Additional information is required. Please try signing in again or contact support.')
-        return
+        setError(
+          'Additional information is required. Please try signing in again or contact support.',
+        );
+        return;
       }
 
       if (result.status === 'needs_new_password') {
-        setError('You need to reset your password. Please use the "Forgot password?" link.')
-        return
+        setError('You need to reset your password. Please use the "Forgot password?" link.');
+        return;
       }
 
       // Unexpected status
-      console.warn('Unexpected sign-in status:', result.status, result)
-      setError(`Unable to complete sign-in (status: ${result.status}). Please contact support.`)
+      console.warn('Unexpected sign-in status:', result.status, result);
+      setError(`Unable to complete sign-in (status: ${result.status}). Please contact support.`);
     } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ code?: string; longMessage?: string }>; message?: string }
-      const code = clerkError?.errors?.[0]?.code
+      const clerkError = err as {
+        errors?: Array<{ code?: string; longMessage?: string }>;
+        message?: string;
+      };
+      const code = clerkError?.errors?.[0]?.code;
       if (code === 'session_exists') {
-        router.replace('/dashboard')
-        return
+        router.replace('/dashboard');
+        return;
       } else if (code === 'form_identifier_not_found') {
-        setError('No account found with this email address. Please check your email or sign up.')
+        setError('No account found with this email address. Please check your email or sign up.');
       } else if (code === 'form_password_incorrect') {
-        setError('Incorrect password. Please try again or reset your password.')
+        setError('Incorrect password. Please try again or reset your password.');
       } else if (code === 'too_many_requests') {
-        setError('Too many failed attempts. Please wait a moment before trying again.')
+        setError('Too many failed attempts. Please wait a moment before trying again.');
       } else {
-        const msg = clerkError?.errors?.[0]?.longMessage || clerkError?.message || 'Sign in failed'
-        setError(msg)
+        const msg = clerkError?.errors?.[0]?.longMessage || clerkError?.message || 'Sign in failed';
+        setError(msg);
       }
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   return (
     <Card className="border-neutral-200/80 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl">
@@ -214,5 +222,5 @@ export function SignInForm({ onForgotPassword }: SignInFormProps) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

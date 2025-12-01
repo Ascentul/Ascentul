@@ -1,29 +1,30 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
-import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 export type WizardJob = {
   title: string;
@@ -46,31 +47,28 @@ export function ApplicationWizard({
   const router = useRouter();
   const clerkId = user?.id;
 
-  const resumes = useQuery(
-    api.resumes.getUserResumes,
-    clerkId ? { clerkId } : "skip",
-  );
+  const resumes = useQuery(api.resumes.getUserResumes, clerkId ? { clerkId } : 'skip');
   const coverLetters = useQuery(
     api.cover_letters.getUserCoverLetters,
-    clerkId ? { clerkId } : "skip",
+    clerkId ? { clerkId } : 'skip',
   );
 
   const createApp = useMutation(api.applications.createApplication);
   const updateApp = useMutation(api.applications.updateApplication);
 
   const [step, setStep] = useState(1);
-  const [notes, setNotes] = useState("");
-  const [resumeId, setResumeId] = useState<string>("none");
-  const [coverId, setCoverId] = useState<string>("none");
+  const [notes, setNotes] = useState('');
+  const [resumeId, setResumeId] = useState<string>('none');
+  const [coverId, setCoverId] = useState<string>('none');
   const [markApplied, setMarkApplied] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
       setStep(1);
-      setNotes("");
-      setResumeId("none");
-      setCoverId("none");
+      setNotes('');
+      setResumeId('none');
+      setCoverId('none');
       setMarkApplied(true);
     }
   }, [open]);
@@ -88,20 +86,20 @@ export function ApplicationWizard({
         clerkId,
         company: job.company,
         job_title: job.title,
-        status: markApplied ? ("applied" as const) : ("saved" as const),
+        status: markApplied ? ('applied' as const) : ('saved' as const),
         url: job.url,
         notes: notes || undefined,
         applied_at: markApplied ? Date.now() : undefined,
-        resume_id: resumeId !== "none" ? (resumeId as any) : undefined,
-        cover_letter_id: coverId !== "none" ? (coverId as any) : undefined,
+        resume_id: resumeId !== 'none' ? (resumeId as any) : undefined,
+        cover_letter_id: coverId !== 'none' ? (coverId as any) : undefined,
       });
 
       onCreated?.(String(createdId));
       onOpenChange(false);
-      router.push("/applications");
+      router.push('/applications');
     } catch (error) {
-      console.error("Failed to create application:", error);
-      alert("Failed to create application. Please try again.");
+      console.error('Failed to create application:', error);
+      alert('Failed to create application. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -122,7 +120,7 @@ export function ApplicationWizard({
           {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
-              className={`px-2 py-1 rounded ${s === step ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
+              className={`px-2 py-1 rounded ${s === step ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}
             >
               Step {s}
             </div>
@@ -266,7 +264,7 @@ export function ApplicationWizard({
                     Creating...
                   </>
                 ) : (
-                  "Create Application"
+                  'Create Application'
                 )}
               </Button>
             )}

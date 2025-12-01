@@ -2,8 +2,9 @@
  * Authorization utilities for role-based access control
  */
 
-import { GenericQueryCtx, GenericMutationCtx } from "convex/server";
-import { DataModel } from "../_generated/dataModel";
+import { GenericMutationCtx, GenericQueryCtx } from 'convex/server';
+
+import { DataModel } from '../_generated/dataModel';
 
 type QueryCtx = GenericQueryCtx<DataModel>;
 type MutationCtx = GenericMutationCtx<DataModel>;
@@ -54,16 +55,16 @@ export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
 
   if (!identity) {
-    throw new Error("Unauthorized: User not authenticated");
+    throw new Error('Unauthorized: User not authenticated');
   }
 
   const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .query('users')
+    .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
     .unique();
 
   if (!user) {
-    throw new Error("Unauthorized: User not found in database");
+    throw new Error('Unauthorized: User not found in database');
   }
 
   // SECURITY FIX: Always verify account is active
@@ -78,7 +79,7 @@ export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx) {
  */
 export async function requireMembership(
   ctx: Ctx,
-  opts: { role?: "student" | "advisor" | "university_admin" }
+  opts: { role?: 'student' | 'advisor' | 'university_admin' },
 ) {
   const user = await getAuthenticatedUser(ctx);
 
@@ -86,21 +87,21 @@ export async function requireMembership(
 
   if (opts.role) {
     membership = await ctx.db
-      .query("memberships")
-      .withIndex("by_user_role", (q) => q.eq("user_id", user._id).eq("role", opts.role!))
+      .query('memberships')
+      .withIndex('by_user_role', (q) => q.eq('user_id', user._id).eq('role', opts.role!))
       .first();
   } else {
     membership = await ctx.db
-      .query("memberships")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .query('memberships')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
       .first();
   }
   if (!membership) {
-    throw new Error("Unauthorized: Membership not found");
+    throw new Error('Unauthorized: Membership not found');
   }
 
-  if (membership.status !== "active") {
-    throw new Error("Unauthorized: Inactive membership");
+  if (membership.status !== 'active') {
+    throw new Error('Unauthorized: Inactive membership');
   }
 
   return { user, membership };
@@ -113,8 +114,8 @@ export async function requireMembership(
 export async function requireSuperAdmin(ctx: QueryCtx | MutationCtx) {
   const user = await getAuthenticatedUser(ctx);
 
-  if (user.role !== "super_admin") {
-    throw new Error("Forbidden: Only super admins can perform this action");
+  if (user.role !== 'super_admin') {
+    throw new Error('Forbidden: Only super admins can perform this action');
   }
 
   return user;
@@ -127,12 +128,12 @@ export async function requireSuperAdmin(ctx: QueryCtx | MutationCtx) {
 export async function requireUniversityAdmin(ctx: QueryCtx | MutationCtx) {
   const user = await getAuthenticatedUser(ctx);
 
-  if (user.role !== "university_admin") {
-    throw new Error("Forbidden: Only university admins can perform this action");
+  if (user.role !== 'university_admin') {
+    throw new Error('Forbidden: Only university admins can perform this action');
   }
 
   if (!user.university_id) {
-    throw new Error("Forbidden: University admin must be associated with a university");
+    throw new Error('Forbidden: University admin must be associated with a university');
   }
 
   return user;
@@ -148,14 +149,14 @@ export async function requireUniversityAdmin(ctx: QueryCtx | MutationCtx) {
 export async function requireAdvisor(ctx: QueryCtx | MutationCtx) {
   const user = await getAuthenticatedUser(ctx);
 
-  if (user.role !== "advisor") {
-    throw new Error("Forbidden: Only advisors can perform this action");
+  if (user.role !== 'advisor') {
+    throw new Error('Forbidden: Only advisors can perform this action');
   }
 
   // SECURITY FIX: Advisors must have university affiliation
   // Prevents advisors without university_id from bypassing tenant checks
   if (!user.university_id) {
-    throw new Error("Forbidden: Advisor must be associated with a university");
+    throw new Error('Forbidden: Advisor must be associated with a university');
   }
 
   return user;
@@ -168,14 +169,11 @@ export async function requireAdvisor(ctx: QueryCtx | MutationCtx) {
  * - university_admin: can access users in their university
  * - user: can only access their own data
  */
-export async function requireUserAccess(
-  ctx: QueryCtx | MutationCtx,
-  targetClerkId: string
-) {
+export async function requireUserAccess(ctx: QueryCtx | MutationCtx, targetClerkId: string) {
   const authenticatedUser = await getAuthenticatedUser(ctx);
 
   // Super admins can access anyone
-  if (authenticatedUser.role === "super_admin") {
+  if (authenticatedUser.role === 'super_admin') {
     return authenticatedUser;
   }
 
@@ -185,20 +183,17 @@ export async function requireUserAccess(
   }
 
   // University admins can access users in their university
-  if (authenticatedUser.role === "university_admin") {
+  if (authenticatedUser.role === 'university_admin') {
     if (!authenticatedUser.university_id) {
-      throw new Error("Forbidden: University admin must have an associated university");
+      throw new Error('Forbidden: University admin must have an associated university');
     }
 
     const targetUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", targetClerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', targetClerkId))
       .unique();
 
-    if (
-      targetUser &&
-      targetUser.university_id === authenticatedUser.university_id
-    ) {
+    if (targetUser && targetUser.university_id === authenticatedUser.university_id) {
       return authenticatedUser;
     }
   }
@@ -210,14 +205,14 @@ export async function requireUserAccess(
  * Check if user account is active (not deleted, not suspended)
  */
 export function checkAccountActive(user: {
-  account_status?: "pending_activation" | "pending_deletion" | "active" | "suspended" | "deleted";
+  account_status?: 'pending_activation' | 'pending_deletion' | 'active' | 'suspended' | 'deleted';
 }) {
-  if (user.account_status === "deleted") {
-    throw new Error("Forbidden: User account has been deleted");
+  if (user.account_status === 'deleted') {
+    throw new Error('Forbidden: User account has been deleted');
   }
 
-  if (user.account_status === "suspended") {
-    throw new Error("Forbidden: User account has been suspended");
+  if (user.account_status === 'suspended') {
+    throw new Error('Forbidden: User account has been suspended');
   }
 
   // Allow pending_activation and active statuses
@@ -232,7 +227,7 @@ export function assertUniversityAccess(
   actingUser: { role?: string; university_id?: string | null },
   targetUniversityId?: string | null,
 ) {
-  if (actingUser.role === "super_admin") {
+  if (actingUser.role === 'super_admin') {
     return;
   }
 
@@ -241,6 +236,6 @@ export function assertUniversityAccess(
     !targetUniversityId ||
     actingUser.university_id !== targetUniversityId
   ) {
-    throw new Error("Unauthorized: Tenant access denied");
+    throw new Error('Unauthorized: Tenant access denied');
   }
 }

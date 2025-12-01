@@ -26,8 +26,8 @@ export function parseDescription(description: string | string[]): string[] {
   // If already an array, return it cleaned up
   if (Array.isArray(description)) {
     return description
-      .map(line => typeof line === 'string' ? line.trim() : String(line).trim())
-      .filter(line => line.length > 0);
+      .map((line) => (typeof line === 'string' ? line.trim() : String(line).trim()))
+      .filter((line) => line.length > 0);
   }
 
   // Handle non-string values by converting to string
@@ -35,8 +35,8 @@ export function parseDescription(description: string | string[]): string[] {
 
   const lines = descriptionStr
     .split(/\n|•/)
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
 
   return lines;
 }

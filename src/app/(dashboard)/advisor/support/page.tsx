@@ -1,83 +1,115 @@
-'use client'
+'use client';
 
-import React, { useState, useMemo } from 'react'
-import { useUser } from '@clerk/nextjs'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { AdvisorGate } from '@/components/advisor/AdvisorGate'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useToast } from '@/hooks/use-toast'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import type { Id } from 'convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
 import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
   HelpCircle,
   Loader2,
-  Plus,
   MessageSquare,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
+  Plus,
   Search,
   Send,
-  Trash2
-} from 'lucide-react'
-import type { Id } from 'convex/_generated/dataModel'
+  Trash2,
+  XCircle,
+} from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 interface SupportTicket {
-  _id: Id<'support_tickets'>
-  _creationTime: number
-  user_id: Id<'users'>
-  subject: string
-  category: string
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  department: string
-  contact_person?: string
-  description: string
-  status: 'open' | 'in_progress' | 'resolved' | 'closed'
-  ticket_type: string
-  assigned_to?: Id<'users'>
-  resolution?: string
-  resolved_at?: number
-  created_at: number
-  updated_at: number
+  _id: Id<'support_tickets'>;
+  _creationTime: number;
+  user_id: Id<'users'>;
+  subject: string;
+  category: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  department: string;
+  contact_person?: string;
+  description: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  ticket_type: string;
+  assigned_to?: Id<'users'>;
+  resolution?: string;
+  resolved_at?: number;
+  created_at: number;
+  updated_at: number;
 }
 
 export default function AdvisorSupportPage() {
-  const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
-  const { toast } = useToast()
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
+  const { toast } = useToast();
 
   // State
-  const [activeTab, setActiveTab] = useState<'all' | 'open' | 'in_progress' | 'resolved' | 'closed'>('all')
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null)
-  const [ticketToDelete, setTicketToDelete] = useState<Id<'support_tickets'> | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [priorityFilter, setPriorityFilter] = useState<string>('all')
-  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [activeTab, setActiveTab] = useState<
+    'all' | 'open' | 'in_progress' | 'resolved' | 'closed'
+  >('all');
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [ticketToDelete, setTicketToDelete] = useState<Id<'support_tickets'> | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   // Form state
   const [formData, setFormData] = useState({
     subject: '',
     category: 'general',
     priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
-    description: ''
-  })
+    description: '',
+  });
 
-  const [responseText, setResponseText] = useState('')
-  const [isSubmittingResponse, setIsSubmittingResponse] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [responseText, setResponseText] = useState('');
+  const [isSubmittingResponse, setIsSubmittingResponse] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const responseEntries = useMemo(() => {
     if (!selectedTicket?.resolution) return [];
@@ -97,21 +129,28 @@ export default function AdvisorSupportPage() {
       });
     } catch {
       // Fallback: treat entire resolution as a single response blob
-      return [{ author: 'Response', message: selectedTicket.resolution, timestamp: null, raw: selectedTicket.resolution }];
+      return [
+        {
+          author: 'Response',
+          message: selectedTicket.resolution,
+          timestamp: null,
+          raw: selectedTicket.resolution,
+        },
+      ];
     }
   }, [selectedTicket?.resolution]);
 
   // Queries
   const tickets = useQuery(
     api.support_tickets.listTickets,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
-  )
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
+  );
 
   // Mutations
-  const createTicket = useMutation(api.support_tickets.createTicket)
-  const updateTicketStatus = useMutation(api.support_tickets.updateTicketStatus)
-  const addResponse = useMutation(api.support_tickets.addTicketResponse)
-  const deleteTicket = useMutation(api.support_tickets.deleteTicket)
+  const createTicket = useMutation(api.support_tickets.createTicket);
+  const updateTicketStatus = useMutation(api.support_tickets.updateTicketStatus);
+  const addResponse = useMutation(api.support_tickets.addTicketResponse);
+  const deleteTicket = useMutation(api.support_tickets.deleteTicket);
 
   // Sync selectedTicket with updated data from tickets query
   // This ensures the detail dialog shows fresh data after mutations
@@ -119,47 +158,48 @@ export default function AdvisorSupportPage() {
   // to avoid infinite loops since we call setSelectedTicket in this effect
   React.useEffect(() => {
     if (selectedTicket && tickets) {
-      const updated = tickets.find(t => t._id === selectedTicket._id)
+      const updated = tickets.find((t) => t._id === selectedTicket._id);
       if (updated) {
-        setSelectedTicket(updated)
+        setSelectedTicket(updated);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tickets, selectedTicket?._id])
+  }, [tickets, selectedTicket?._id]);
 
   // Filter tickets
   const filteredTickets = useMemo(() => {
-    if (!tickets) return []
+    if (!tickets) return [];
 
-    let filtered = tickets
+    let filtered = tickets;
 
     // Status filter
     if (activeTab !== 'all') {
-      filtered = filtered.filter(t => t.status === activeTab)
+      filtered = filtered.filter((t) => t.status === activeTab);
     }
 
     // Priority filter
     if (priorityFilter !== 'all') {
-      filtered = filtered.filter(t => t.priority === priorityFilter)
+      filtered = filtered.filter((t) => t.priority === priorityFilter);
     }
 
     // Category filter
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(t => t.category === categoryFilter)
+      filtered = filtered.filter((t) => t.category === categoryFilter);
     }
 
     // Search filter
     if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(t =>
-        t.subject?.toLowerCase().includes(query) ||
-        t.description?.toLowerCase().includes(query) ||
-        t.contact_person?.toLowerCase().includes(query)
-      )
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (t) =>
+          t.subject?.toLowerCase().includes(query) ||
+          t.description?.toLowerCase().includes(query) ||
+          t.contact_person?.toLowerCase().includes(query),
+      );
     }
 
-    return filtered
-  }, [tickets, activeTab, priorityFilter, categoryFilter, searchQuery])
+    return filtered;
+  }, [tickets, activeTab, priorityFilter, categoryFilter, searchQuery]);
 
   // Handle create ticket
   const handleCreateTicket = async () => {
@@ -167,9 +207,9 @@ export default function AdvisorSupportPage() {
       toast({
         title: 'Missing fields',
         description: 'Please fill in all required fields',
-        variant: 'destructive'
-      })
-      return
+        variant: 'destructive',
+      });
+      return;
     }
 
     if (isCreating) return;
@@ -181,79 +221,79 @@ export default function AdvisorSupportPage() {
         subject: formData.subject,
         category: formData.category,
         priority: formData.priority,
-        description: formData.description
-      })
+        description: formData.description,
+      });
 
       toast({
         title: 'Ticket created',
         description: 'Your support ticket has been created successfully',
-        variant: 'success'
-      })
+        variant: 'success',
+      });
 
-      setCreateDialogOpen(false)
+      setCreateDialogOpen(false);
       setFormData({
         subject: '',
         category: 'general',
         priority: 'medium',
-        description: ''
-      })
+        description: '',
+      });
     } catch (error: unknown) {
       toast({
         title: 'Error',
         description: 'Failed to create ticket. Please try again.',
-        variant: 'destructive'
-      })
+        variant: 'destructive',
+      });
     } finally {
       setIsCreating(false);
     }
-  }
+  };
 
   // Handle update status
   const handleUpdateStatus = async (
     ticketId: Id<'support_tickets'>,
-    newStatus: 'open' | 'in_progress' | 'resolved' | 'closed'
+    newStatus: 'open' | 'in_progress' | 'resolved' | 'closed',
   ) => {
-    if (!clerkUser?.id) return
+    if (!clerkUser?.id) return;
 
     // Capture current ticket state for rollback
-    const ticketSnapshot = selectedTicket ? { ...selectedTicket } : null
-    const originalStatus = ticketSnapshot?.status
+    const ticketSnapshot = selectedTicket ? { ...selectedTicket } : null;
+    const originalStatus = ticketSnapshot?.status;
 
     // Optimistic update for the detail dialog only.
     // Table rows rely on Convex reactivity (useQuery auto-updates after mutation).
     // This is intentional: the detail dialog is the primary interaction point.
     if (ticketSnapshot && ticketSnapshot._id === ticketId) {
-      setSelectedTicket({ ...ticketSnapshot, status: newStatus })
+      setSelectedTicket({ ...ticketSnapshot, status: newStatus });
     }
 
     try {
       await updateTicketStatus({
         clerkId: clerkUser.id,
         ticketId,
-        status: newStatus
-      })
+        status: newStatus,
+      });
 
       toast({
         title: 'Status updated',
         description: `Ticket status changed to ${newStatus}`,
-        variant: 'success'
-      })
+        variant: 'success',
+      });
     } catch (error: unknown) {
       // Revert optimistic update on error
       if (ticketSnapshot && ticketSnapshot._id === ticketId && originalStatus) {
-        setSelectedTicket({ ...ticketSnapshot, status: originalStatus })
+        setSelectedTicket({ ...ticketSnapshot, status: originalStatus });
       }
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to update status',
-        variant: 'destructive'
-      })
+        variant: 'destructive',
+      });
     }
-  }
+  };
 
   // Handle add response
   const handleAddResponse = async () => {
-    if (!clerkUser?.id || !selectedTicket || !responseText.trim()) return
+    if (!clerkUser?.id || !selectedTicket || !responseText.trim()) return;
 
     if (isSubmittingResponse) return;
     setIsSubmittingResponse(true);
@@ -261,141 +301,168 @@ export default function AdvisorSupportPage() {
       await addResponse({
         clerkId: clerkUser.id,
         ticketId: selectedTicket._id,
-        message: responseText.trim()
-      })
+        message: responseText.trim(),
+      });
 
       toast({
         title: 'Response added',
         description: 'Your response has been posted',
-        variant: 'success'
-      })
+        variant: 'success',
+      });
 
-      setResponseText('')
+      setResponseText('');
     } catch (error: unknown) {
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to add response',
-        variant: 'destructive'
-      })
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmittingResponse(false);
     }
-  }
+  };
 
   // Handle delete ticket - opens confirmation dialog
   const handleDeleteTicket = (ticketId: Id<'support_tickets'>) => {
-    setTicketToDelete(ticketId)
-    setDeleteDialogOpen(true)
-  }
+    setTicketToDelete(ticketId);
+    setDeleteDialogOpen(true);
+  };
 
   // Confirm delete ticket - executes the deletion
   const confirmDeleteTicket = async () => {
-    if (!clerkUser?.id || !ticketToDelete) return
+    if (!clerkUser?.id || !ticketToDelete) return;
 
-    setIsDeleting(true)
+    setIsDeleting(true);
     try {
       await deleteTicket({
         clerkId: clerkUser.id,
-        ticketId: ticketToDelete
-      })
+        ticketId: ticketToDelete,
+      });
 
       toast({
         title: 'Ticket deleted',
         description: 'The ticket has been permanently deleted',
-        variant: 'success'
-      })
+        variant: 'success',
+      });
 
-      setDeleteDialogOpen(false)
-      setTicketToDelete(null)
-      setDetailDialogOpen(false)
-      setSelectedTicket(null)
+      setDeleteDialogOpen(false);
+      setTicketToDelete(null);
+      setDetailDialogOpen(false);
+      setSelectedTicket(null);
     } catch (error: unknown) {
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to delete ticket',
-        variant: 'destructive'
-      })
+        variant: 'destructive',
+      });
     } finally {
-      setIsDeleting(false)
+      setIsDeleting(false);
     }
-  }
+  };
 
   // Get status badge
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'open':
-        return <Badge variant="default" className="bg-blue-600"><Clock className="h-3 w-3 mr-1" />Open</Badge>
+        return (
+          <Badge variant="default" className="bg-blue-600">
+            <Clock className="h-3 w-3 mr-1" />
+            Open
+          </Badge>
+        );
       case 'in_progress':
-        return <Badge variant="default" className="bg-amber-600"><AlertTriangle className="h-3 w-3 mr-1" />In Progress</Badge>
+        return (
+          <Badge variant="default" className="bg-amber-600">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            In Progress
+          </Badge>
+        );
       case 'resolved':
-        return <Badge variant="default" className="bg-green-600"><CheckCircle className="h-3 w-3 mr-1" />Resolved</Badge>
+        return (
+          <Badge variant="default" className="bg-green-600">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Resolved
+          </Badge>
+        );
       case 'closed':
-        return <Badge variant="secondary"><XCircle className="h-3 w-3 mr-1" />Closed</Badge>
+        return (
+          <Badge variant="secondary">
+            <XCircle className="h-3 w-3 mr-1" />
+            Closed
+          </Badge>
+        );
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return <Badge variant="outline">{status}</Badge>;
     }
-  }
+  };
 
   // Get priority badge
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return <Badge variant="destructive">Urgent</Badge>
+        return <Badge variant="destructive">Urgent</Badge>;
       case 'high':
-        return <Badge variant="default" className="bg-orange-600">High</Badge>
+        return (
+          <Badge variant="default" className="bg-orange-600">
+            High
+          </Badge>
+        );
       case 'medium':
-        return <Badge variant="secondary">Medium</Badge>
+        return <Badge variant="secondary">Medium</Badge>;
       case 'low':
-        return <Badge variant="outline">Low</Badge>
+        return <Badge variant="outline">Low</Badge>;
       default:
-        return <Badge variant="outline">{priority}</Badge>
+        return <Badge variant="outline">{priority}</Badge>;
     }
-  }
+  };
 
   // Handle unauthenticated state (prevents infinite loading)
   if (!clerkLoaded) {
     return (
-      <AdvisorGate requiredFlag='advisor.support'>
+      <AdvisorGate requiredFlag="advisor.support">
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </div>
       </AdvisorGate>
-    )
+    );
   }
 
   if (!clerkUser?.id) {
     return (
-      <AdvisorGate requiredFlag='advisor.support'>
+      <AdvisorGate requiredFlag="advisor.support">
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">Please sign in to view support tickets.</p>
           </div>
         </div>
       </AdvisorGate>
-    )
+    );
   }
 
   if (!tickets) {
     return (
-      <AdvisorGate requiredFlag='advisor.support'>
+      <AdvisorGate requiredFlag="advisor.support">
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </div>
       </AdvisorGate>
-    )
+    );
   }
 
   return (
-    <AdvisorGate requiredFlag='advisor.support'>
+    <AdvisorGate requiredFlag="advisor.support">
       <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2" style={{ color: '#0C29AB' }}>
+            <h1
+              className="text-3xl font-bold tracking-tight flex items-center gap-2"
+              style={{ color: '#0C29AB' }}
+            >
               <HelpCircle className="h-7 w-7" />
               Support Tickets
             </h1>
@@ -424,7 +491,7 @@ export default function AdvisorSupportPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {tickets.filter(t => t.status === 'open').length}
+                {tickets.filter((t) => t.status === 'open').length}
               </div>
             </CardContent>
           </Card>
@@ -435,7 +502,7 @@ export default function AdvisorSupportPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-amber-600">
-                {tickets.filter(t => t.status === 'in_progress').length}
+                {tickets.filter((t) => t.status === 'in_progress').length}
               </div>
             </CardContent>
           </Card>
@@ -446,7 +513,7 @@ export default function AdvisorSupportPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {tickets.filter(t => t.status === 'resolved').length}
+                {tickets.filter((t) => t.status === 'resolved').length}
               </div>
             </CardContent>
           </Card>
@@ -521,7 +588,11 @@ export default function AdvisorSupportPage() {
               <div className="text-center py-12">
                 <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <p className="text-muted-foreground">No tickets found</p>
-                <Button onClick={() => setCreateDialogOpen(true)} variant="outline" className="mt-4">
+                <Button
+                  onClick={() => setCreateDialogOpen(true)}
+                  variant="outline"
+                  className="mt-4"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Create your first ticket
                 </Button>
@@ -544,12 +615,14 @@ export default function AdvisorSupportPage() {
                       key={String(ticket._id)}
                       className="cursor-pointer hover:bg-gray-50"
                       onClick={() => {
-                        setSelectedTicket(ticket)
-                        setDetailDialogOpen(true)
+                        setSelectedTicket(ticket);
+                        setDetailDialogOpen(true);
                       }}
                     >
                       <TableCell className="font-medium">{ticket.subject}</TableCell>
-                      <TableCell className="capitalize">{ticket.category.replace(/_/g, ' ')}</TableCell>
+                      <TableCell className="capitalize">
+                        {ticket.category.replace(/_/g, ' ')}
+                      </TableCell>
                       <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
                       <TableCell>{getStatusBadge(ticket.status)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -560,9 +633,9 @@ export default function AdvisorSupportPage() {
                           size="sm"
                           variant="outline"
                           onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedTicket(ticket)
-                            setDetailDialogOpen(true)
+                            e.stopPropagation();
+                            setSelectedTicket(ticket);
+                            setDetailDialogOpen(true);
                           }}
                         >
                           View
@@ -581,9 +654,7 @@ export default function AdvisorSupportPage() {
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Create Support Ticket</DialogTitle>
-              <DialogDescription>
-                Submit a new support request
-              </DialogDescription>
+              <DialogDescription>Submit a new support request</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -599,7 +670,10 @@ export default function AdvisorSupportPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="category">Category *</Label>
-                  <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(v) => setFormData({ ...formData, category: v })}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -615,7 +689,12 @@ export default function AdvisorSupportPage() {
 
                 <div>
                   <Label htmlFor="priority">Priority *</Label>
-                  <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v as typeof formData.priority })}>
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, priority: v as typeof formData.priority })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -662,10 +741,13 @@ export default function AdvisorSupportPage() {
         </Dialog>
 
         {/* Ticket Detail Dialog */}
-        <Dialog open={detailDialogOpen} onOpenChange={(open) => {
-          setDetailDialogOpen(open)
-          if (!open) setResponseText('')
-        }}>
+        <Dialog
+          open={detailDialogOpen}
+          onOpenChange={(open) => {
+            setDetailDialogOpen(open);
+            if (!open) setResponseText('');
+          }}
+        >
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             {selectedTicket && (
               <>
@@ -687,10 +769,12 @@ export default function AdvisorSupportPage() {
                         {getStatusBadge(selectedTicket.status)}
                         <Select
                           value={selectedTicket.status}
-                          onValueChange={(value) => handleUpdateStatus(
-                            selectedTicket._id,
-                            value as 'open' | 'in_progress' | 'resolved' | 'closed'
-                          )}
+                          onValueChange={(value) =>
+                            handleUpdateStatus(
+                              selectedTicket._id,
+                              value as 'open' | 'in_progress' | 'resolved' | 'closed',
+                            )
+                          }
                         >
                           <SelectTrigger className="w-[140px] h-8 text-xs">
                             <SelectValue placeholder="Change status" />
@@ -710,11 +794,15 @@ export default function AdvisorSupportPage() {
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Category</Label>
-                      <div className="mt-1 capitalize">{selectedTicket.category.replace(/_/g, ' ')}</div>
+                      <div className="mt-1 capitalize">
+                        {selectedTicket.category.replace(/_/g, ' ')}
+                      </div>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Created</Label>
-                      <div className="mt-1">{new Date(selectedTicket.created_at).toLocaleString()}</div>
+                      <div className="mt-1">
+                        {new Date(selectedTicket.created_at).toLocaleString()}
+                      </div>
                     </div>
                   </div>
 
@@ -735,12 +823,17 @@ export default function AdvisorSupportPage() {
                       <Card className="mt-2">
                         <CardContent className="pt-4 space-y-3">
                           {responseEntries.map((entry, idx) => (
-                            <div key={idx} className="text-sm border-b last:border-b-0 pb-2 last:pb-0 border-gray-200">
+                            <div
+                              key={idx}
+                              className="text-sm border-b last:border-b-0 pb-2 last:pb-0 border-gray-200"
+                            >
                               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                                 <span className="font-medium text-gray-900">{entry.author}</span>
                                 {entry.timestamp && <span>{entry.timestamp}</span>}
                               </div>
-                              <div className="whitespace-pre-wrap text-gray-800">{entry.message}</div>
+                              <div className="whitespace-pre-wrap text-gray-800">
+                                {entry.message}
+                              </div>
                             </div>
                           ))}
                         </CardContent>
@@ -749,7 +842,9 @@ export default function AdvisorSupportPage() {
                   )}
 
                   <div>
-                    <Label htmlFor="response-textarea" className="text-xs text-muted-foreground">Add Response</Label>
+                    <Label htmlFor="response-textarea" className="text-xs text-muted-foreground">
+                      Add Response
+                    </Label>
                     <div className="mt-2 flex gap-2">
                       <Textarea
                         id="response-textarea"
@@ -807,14 +902,17 @@ export default function AdvisorSupportPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Support Ticket</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete this ticket? This action cannot be undone and the ticket will be permanently removed from the system.
+                Are you sure you want to delete this ticket? This action cannot be undone and the
+                ticket will be permanently removed from the system.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => {
-                setDeleteDialogOpen(false)
-                setTicketToDelete(null)
-              }}>
+              <AlertDialogCancel
+                onClick={() => {
+                  setDeleteDialogOpen(false);
+                  setTicketToDelete(null);
+                }}
+              >
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
@@ -836,5 +934,5 @@ export default function AdvisorSupportPage() {
         </AlertDialog>
       </div>
     </AdvisorGate>
-  )
+  );
 }

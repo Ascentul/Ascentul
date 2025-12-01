@@ -11,24 +11,25 @@
  * - Quick action buttons
  */
 
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Id } from 'convex/_generated/dataModel';
+import { format, formatDistanceToNow } from 'date-fns';
 import {
+  AlertTriangle,
+  Briefcase,
   Clock,
-  User,
+  ExternalLink,
   FileText,
   MessageSquare,
-  ExternalLink,
-  AlertTriangle,
   Sparkles,
-  Briefcase,
+  User,
   Video,
 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Id } from 'convex/_generated/dataModel';
 
 interface StudentContext {
   isFirstSession: boolean;
@@ -40,8 +41,8 @@ interface StudentContext {
 }
 
 interface EnhancedSession {
-  _id: Id<"advisor_sessions">;
-  student_id: Id<"users">;
+  _id: Id<'advisor_sessions'>;
+  student_id: Id<'users'>;
   student_name: string;
   student_email: string;
   title: string;
@@ -58,8 +59,8 @@ interface EnhancedSession {
 
 interface EnhancedSessionCardProps {
   session: EnhancedSession;
-  onAddNote?: (sessionId: Id<"advisor_sessions">) => void;
-  onAddFollowUp?: (studentId: Id<"users">) => void;
+  onAddNote?: (sessionId: Id<'advisor_sessions'>) => void;
+  onAddFollowUp?: (studentId: Id<'users'>) => void;
 }
 
 const sessionTypeLabels: Record<string, string> = {
@@ -94,7 +95,9 @@ export function EnhancedSessionCard({
   if (studentContext.applicationCount === 0) {
     helperItems.push('No applications yet');
   } else if (studentContext.applicationCount < 3) {
-    helperItems.push(`${studentContext.applicationCount} application${studentContext.applicationCount === 1 ? '' : 's'}`);
+    helperItems.push(
+      `${studentContext.applicationCount} application${studentContext.applicationCount === 1 ? '' : 's'}`,
+    );
   }
 
   // Format last session date
@@ -103,22 +106,20 @@ export function EnhancedSessionCard({
     : null;
 
   return (
-    <Card className={cn(
-      'transition-all hover:shadow-md',
-      isCompleted && 'bg-slate-50/50 border-slate-200'
-    )}>
+    <Card
+      className={cn(
+        'transition-all hover:shadow-md',
+        isCompleted && 'bg-slate-50/50 border-slate-200',
+      )}
+    >
       <CardContent className="p-4">
         {/* Header Row: Time + Status */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2 text-sm">
             <Clock className="h-4 w-4 text-slate-400" />
-            <span className="font-medium">
-              {format(session.start_at, 'h:mm a')}
-            </span>
+            <span className="font-medium">{format(session.start_at, 'h:mm a')}</span>
             {session.duration_minutes && (
-              <span className="text-slate-400">
-                ({session.duration_minutes} min)
-              </span>
+              <span className="text-slate-400">({session.duration_minutes} min)</span>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -128,7 +129,10 @@ export function EnhancedSessionCard({
               </Badge>
             )}
             {isCompleted && (
-              <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+              <Badge
+                variant="outline"
+                className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200"
+              >
                 Completed
               </Badge>
             )}
@@ -177,7 +181,7 @@ export function EnhancedSessionCard({
                   variant={tagInfo.variant === 'destructive' ? 'destructive' : 'outline'}
                   className={cn(
                     'text-xs',
-                    tagInfo.variant === 'warning' && 'bg-amber-50 text-amber-700 border-amber-200'
+                    tagInfo.variant === 'warning' && 'bg-amber-50 text-amber-700 border-amber-200',
                   )}
                 >
                   <AlertTriangle className="h-3 w-3 mr-1" />
@@ -207,15 +211,10 @@ export function EnhancedSessionCard({
         {/* Quick Actions */}
         <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
           {session.meeting_url && !isPast && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs gap-1"
-              asChild
-            >
-              <a 
-                href={session.meeting_url} 
-                target="_blank" 
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" asChild>
+              <a
+                href={session.meeting_url}
+                target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Join meeting with ${session.student_name}`}
               >
@@ -242,12 +241,7 @@ export function EnhancedSessionCard({
             <MessageSquare className="h-3 w-3" />
             Follow-up
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs gap-1 ml-auto"
-            asChild
-          >
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 ml-auto" asChild>
             <Link href={`/advisor/advising/sessions/${session._id}`}>
               <ExternalLink className="h-3 w-3" />
               View

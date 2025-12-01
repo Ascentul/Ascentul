@@ -1,11 +1,12 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { format, isPast, isToday, isTomorrow } from 'date-fns';
+import { AlertCircle, Calendar, Clock, User } from 'lucide-react';
+import Link from 'next/link';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, User, AlertCircle } from 'lucide-react';
-import { format, isToday, isTomorrow, isPast } from 'date-fns';
-import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export interface UpcomingItem {
   _id: string;
@@ -28,14 +29,14 @@ export function UpcomingItems({ items, isLoading }: UpcomingItemsProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <Calendar className='h-5 w-5' />
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
             Upcoming This Week
           </CardTitle>
           <CardDescription>Sessions and follow-ups in the next 7 days</CardDescription>
         </CardHeader>
-        <CardContent className='h-[300px] flex items-center justify-center'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary'></div>
+        <CardContent className="h-[300px] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </CardContent>
       </Card>
     );
@@ -44,20 +45,20 @@ export function UpcomingItems({ items, isLoading }: UpcomingItemsProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className='flex items-center gap-2'>
-          <Calendar className='h-5 w-5' />
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="h-5 w-5" />
           Upcoming This Week
         </CardTitle>
         <CardDescription>Sessions and follow-ups in the next 7 days</CardDescription>
       </CardHeader>
       <CardContent>
         {!items || items.length === 0 ? (
-          <div className='text-center py-12 text-sm text-muted-foreground'>
-            <Calendar className='h-12 w-12 mx-auto mb-3 opacity-50' />
+          <div className="text-center py-12 text-sm text-muted-foreground">
+            <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p>No upcoming items this week</p>
           </div>
         ) : (
-          <div className='space-y-3 max-h-[400px] overflow-y-auto'>
+          <div className="space-y-3 max-h-[400px] overflow-y-auto">
             {items.map((item) => {
               const itemDate = new Date(item.date);
 
@@ -83,11 +84,11 @@ export function UpcomingItems({ items, isLoading }: UpcomingItemsProps) {
                     isOverdue ? 'bg-red-50 border-red-200' : 'hover:bg-muted/50'
                   }`}
                 >
-                  <div className='flex items-start justify-between gap-2'>
-                    <div className='flex-1 min-w-0'>
-                      <div className='flex items-center gap-2 mb-1'>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
                         <Badge
-                          variant='outline'
+                          variant="outline"
                           className={
                             item.type === 'session'
                               ? 'bg-blue-50 text-blue-700 border-blue-200'
@@ -97,37 +98,35 @@ export function UpcomingItems({ items, isLoading }: UpcomingItemsProps) {
                           {item.type === 'session' ? 'Session' : 'Follow-up'}
                         </Badge>
                         {item.priority === 'urgent' && (
-                          <Badge variant='destructive' className='text-xs'>
+                          <Badge variant="destructive" className="text-xs">
                             Urgent
                           </Badge>
                         )}
                       </div>
-                      <h4 className='font-medium text-sm truncate'>{item.title}</h4>
+                      <h4 className="font-medium text-sm truncate">{item.title}</h4>
                     </div>
                   </div>
 
-                  <div className='flex items-center gap-3 text-xs text-muted-foreground'>
-                    <div className='flex items-center gap-1'>
-                      <User className='h-3 w-3' />
-                      <span className='truncate'>{item.student_name}</span>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      <span className="truncate">{item.student_name}</span>
                     </div>
-                    <div className='flex items-center gap-1'>
-                      <Clock className='h-3 w-3' />
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
                       <span>{dateLabel}</span>
                     </div>
                   </div>
 
                   {isOverdue && (
-                    <div className='flex items-center gap-1 text-xs text-red-600 font-medium'>
-                      <AlertCircle className='h-3 w-3' />
+                    <div className="flex items-center gap-1 text-xs text-red-600 font-medium">
+                      <AlertCircle className="h-3 w-3" />
                       <span>Overdue</span>
                     </div>
                   )}
 
-                  <Button variant='ghost' size='sm' className='w-full mt-2' asChild>
-                    <Link href={`/advisor/students/${item.student_id}`}>
-                      View Student
-                    </Link>
+                  <Button variant="ghost" size="sm" className="w-full mt-2" asChild>
+                    <Link href={`/advisor/students/${item.student_id}`}>View Student</Link>
                   </Button>
                 </div>
               );
@@ -136,11 +135,9 @@ export function UpcomingItems({ items, isLoading }: UpcomingItemsProps) {
         )}
 
         {items && items.length > 0 && (
-          <div className='mt-4 pt-4 border-t'>
-            <Button variant='outline' size='sm' className='w-full' asChild>
-              <Link href='/advisor/advising/calendar'>
-                View Full Calendar
-              </Link>
+          <div className="mt-4 pt-4 border-t">
+            <Button variant="outline" size="sm" className="w-full" asChild>
+              <Link href="/advisor/advising/calendar">View Full Calendar</Link>
             </Button>
           </div>
         )}

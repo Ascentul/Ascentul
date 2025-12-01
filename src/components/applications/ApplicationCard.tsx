@@ -1,27 +1,29 @@
-"use client"
+'use client';
 
-import { useState } from 'react'
-import { Card, CardContent, CardFooter } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { ExternalLink, Calendar, Edit } from 'lucide-react'
-import { ApplicationStatusBadge } from './ApplicationStatusBadge'
-import { EditApplicationForm, type Application as AppType } from './EditApplicationForm'
-import { cn } from '@/lib/utils'
+import { Calendar, Edit, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+
+import { ApplicationStatusBadge } from './ApplicationStatusBadge';
+import { type Application as AppType, EditApplicationForm } from './EditApplicationForm';
 
 function mapStatusToLabel(status: AppType['status']): string {
   switch (status) {
     case 'saved':
-      return 'In Progress'
+      return 'In Progress';
     case 'applied':
-      return 'Applied'
+      return 'Applied';
     case 'interview':
-      return 'Interviewing'
+      return 'Interviewing';
     case 'offer':
-      return 'Offer'
+      return 'Offer';
     case 'rejected':
-      return 'Rejected'
+      return 'Rejected';
     default:
-      return 'In Progress'
+      return 'In Progress';
   }
 }
 
@@ -33,36 +35,36 @@ export function ApplicationCard({
   saveFn,
   deleteFn,
 }: {
-  application: AppType & { url?: string | null; created_at?: string; updated_at?: string }
-  className?: string
-  onChanged?: (updated: AppType | null) => void
-  onClick?: () => void
-  saveFn?: (id: string | number, values: any) => Promise<AppType>
-  deleteFn?: (id: string | number) => Promise<void>
+  application: AppType & { url?: string | null; created_at?: string; updated_at?: string };
+  className?: string;
+  onChanged?: (updated: AppType | null) => void;
+  onClick?: () => void;
+  saveFn?: (id: string | number, values: any) => Promise<AppType>;
+  deleteFn?: (id: string | number) => Promise<void>;
 }) {
-  const [showEdit, setShowEdit] = useState(false)
+  const [showEdit, setShowEdit] = useState(false);
 
-  const title = application.job_title || 'Untitled Role'
-  const company = application.company || 'Company'
+  const title = application.job_title || 'Untitled Role';
+  const company = application.company || 'Company';
 
-  const updatedAt = application.updated_at || application.created_at
-  const statusLabel = mapStatusToLabel(application.status)
+  const updatedAt = application.updated_at || application.created_at;
+  const statusLabel = mapStatusToLabel(application.status);
 
   const handleStatusChange = async (newStatusLabel: string) => {
     const statusMap: Record<string, AppType['status']> = {
       'In Progress': 'saved',
-      'Applied': 'applied',
-      'Interviewing': 'interview',
-      'Offer': 'offer',
-      'Rejected': 'rejected',
-    }
-    const newStatus = statusMap[newStatusLabel]
+      Applied: 'applied',
+      Interviewing: 'interview',
+      Offer: 'offer',
+      Rejected: 'rejected',
+    };
+    const newStatus = statusMap[newStatusLabel];
 
     if (newStatus && saveFn) {
-      const updated = await saveFn(application.id, { status: newStatus })
-      onChanged?.(updated)
+      const updated = await saveFn(application.id, { status: newStatus });
+      onChanged?.(updated);
     }
-  }
+  };
 
   return (
     <>
@@ -72,7 +74,9 @@ export function ApplicationCard({
       >
         <CardContent className="py-4 flex items-center justify-between">
           <div>
-            <div className="font-medium">{company} — {title}</div>
+            <div className="font-medium">
+              {company} — {title}
+            </div>
             <div className="text-xs text-muted-foreground flex items-center gap-2">
               <Calendar className="h-3.5 w-3.5" />
               <span>Updated {updatedAt ? new Date(updatedAt).toLocaleString() : '—'}</span>
@@ -99,8 +103,8 @@ export function ApplicationCard({
               variant="ghost"
               size="sm"
               onClick={(e) => {
-                e.stopPropagation()
-                setShowEdit(true)
+                e.stopPropagation();
+                setShowEdit(true);
               }}
             >
               <Edit className="h-4 w-4 mr-1" /> Edit
@@ -118,8 +122,8 @@ export function ApplicationCard({
           onSuccess={onChanged}
           saveFn={saveFn}
           deleteFn={deleteFn}
-        />)
-      }
+        />
+      )}
     </>
-  )
+  );
 }

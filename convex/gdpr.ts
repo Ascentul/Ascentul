@@ -13,10 +13,11 @@
  * - Financial records (Stripe) are preserved for legal requirements
  */
 
-import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { Id } from "./_generated/dataModel";
+import { v } from 'convex/values';
+
+import { internal } from './_generated/api';
+import { Id } from './_generated/dataModel';
+import { internalMutation, mutation, query } from './_generated/server';
 
 /**
  * Get all user data for GDPR data export (Right of Access / Right to Portability)
@@ -30,36 +31,36 @@ export const getUserDataForExport = query({
     // Verify authentication
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     // Users can only export their own data (or super_admin can export any)
     const requestingUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
       .unique();
 
     if (!requestingUser) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Target user (either self or if super_admin requesting on behalf)
     let targetUser;
-    if (requestingUser.role === "super_admin" && args.clerkId !== identity.subject) {
+    if (requestingUser.role === 'super_admin' && args.clerkId !== identity.subject) {
       targetUser = await ctx.db
-        .query("users")
-        .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+        .query('users')
+        .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
         .unique();
     } else {
       // Regular users can only export their own data
       if (args.clerkId !== identity.subject) {
-        throw new Error("Forbidden: You can only export your own data");
+        throw new Error('Forbidden: You can only export your own data');
       }
       targetUser = requestingUser;
     }
 
     if (!targetUser) {
-      throw new Error("Target user not found");
+      throw new Error('Target user not found');
     }
 
     const userId = targetUser._id;
@@ -86,26 +87,83 @@ export const getUserDataForExport = query({
       stripePayments,
       notifications,
     ] = await Promise.all([
-      ctx.db.query("applications").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("resumes").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("cover_letters").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("goals").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("projects").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("networking_contacts").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("contact_interactions").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("follow_ups").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("career_paths").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("ai_coach_conversations").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("ai_coach_messages").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("support_tickets").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("user_achievements").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("user_daily_activity").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("job_searches").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("daily_recommendations").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("studentProfiles").withIndex("by_user_id", (q) => q.eq("user_id", userId)).first(),
+      ctx.db
+        .query('applications')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('resumes')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('cover_letters')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('goals')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('projects')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('networking_contacts')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('contact_interactions')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('follow_ups')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('career_paths')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('ai_coach_conversations')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('ai_coach_messages')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('support_tickets')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('user_achievements')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('user_daily_activity')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('job_searches')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('daily_recommendations')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('studentProfiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', userId))
+        .first(),
       // Stripe payments by user_id (may be optional)
-      ctx.db.query("stripe_payments").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
-      ctx.db.query("notifications").withIndex("by_user", (q) => q.eq("user_id", userId)).collect(),
+      ctx.db
+        .query('stripe_payments')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
+      ctx.db
+        .query('notifications')
+        .withIndex('by_user', (q) => q.eq('user_id', userId))
+        .collect(),
     ]);
 
     // Get advisor-related data if user is a student
@@ -113,16 +171,19 @@ export const getUserDataForExport = query({
     let advisorReviews: any[] = [];
     let studentAdvisorRelationships: any[] = [];
 
-    if (targetUser.role === "student") {
+    if (targetUser.role === 'student') {
       [advisorSessions, advisorReviews, studentAdvisorRelationships] = await Promise.all([
-        ctx.db.query("advisor_sessions")
-          .filter((q) => q.eq(q.field("student_id"), userId))
+        ctx.db
+          .query('advisor_sessions')
+          .filter((q) => q.eq(q.field('student_id'), userId))
           .collect(),
-        ctx.db.query("advisor_reviews")
-          .filter((q) => q.eq(q.field("student_id"), userId))
+        ctx.db
+          .query('advisor_reviews')
+          .filter((q) => q.eq(q.field('student_id'), userId))
           .collect(),
-        ctx.db.query("student_advisors")
-          .filter((q) => q.eq(q.field("student_id"), userId))
+        ctx.db
+          .query('student_advisors')
+          .filter((q) => q.eq(q.field('student_id'), userId))
           .collect(),
       ]);
     }
@@ -148,12 +209,13 @@ export const getUserDataForExport = query({
           email: targetUser.email,
           name: targetUser.name,
         },
-        exportedBy: requestingUser.role === "super_admin" && requestingUser._id !== targetUser._id
-          ? "Administrator on behalf of user"
-          : "Data subject (self)",
-        gdprArticle: "Article 15 (Right of Access) & Article 20 (Right to Data Portability)",
-        format: "JSON",
-        version: "1.0",
+        exportedBy:
+          requestingUser.role === 'super_admin' && requestingUser._id !== targetUser._id
+            ? 'Administrator on behalf of user'
+            : 'Data subject (self)',
+        gdprArticle: 'Article 15 (Right of Access) & Article 20 (Right to Data Portability)',
+        format: 'JSON',
+        version: '1.0',
       },
       profile: sanitizedUserProfile,
       careerData: {
@@ -312,24 +374,24 @@ export const requestAccountDeletion = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Check if already in deletion process
-    if (user.account_status === "pending_deletion") {
+    if (user.account_status === 'pending_deletion') {
       return {
         success: true,
-        message: "Account deletion already scheduled.",
-        deletionType: "scheduled",
+        message: 'Account deletion already scheduled.',
+        deletionType: 'scheduled',
         scheduledDeletionDate: user.deletion_scheduled_at
           ? new Date(user.deletion_scheduled_at).toISOString()
           : undefined,
@@ -337,8 +399,8 @@ export const requestAccountDeletion = mutation({
       };
     }
 
-    if (user.account_status === "deleted") {
-      throw new Error("Account is already deleted");
+    if (user.account_status === 'deleted') {
+      throw new Error('Account is already deleted');
     }
 
     // Calculate grace period end (30 days from now)
@@ -350,24 +412,24 @@ export const requestAccountDeletion = mutation({
 
     // Store deletion request metadata
     await ctx.db.patch(user._id, {
-      account_status: skipGracePeriod ? "deleted" : "pending_deletion",
+      account_status: skipGracePeriod ? 'deleted' : 'pending_deletion',
       deletion_scheduled_at: skipGracePeriod ? undefined : deletionScheduledAt,
       deleted_at: skipGracePeriod ? Date.now() : undefined,
-      deleted_reason: args.reason || "User requested account deletion (GDPR Article 17)",
+      deleted_reason: args.reason || 'User requested account deletion (GDPR Article 17)',
       updated_at: Date.now(),
     });
 
     // Create audit log
-    await ctx.db.insert("audit_logs", {
-      action: skipGracePeriod ? "gdpr_deletion_immediate" : "gdpr_deletion_requested",
+    await ctx.db.insert('audit_logs', {
+      action: skipGracePeriod ? 'gdpr_deletion_immediate' : 'gdpr_deletion_requested',
       actor_id: user._id,
-      entity_type: "user",
+      entity_type: 'user',
       entity_id: String(user._id),
-      student_id: user.role === "student" ? user._id : undefined,
+      student_id: user.role === 'student' ? user._id : undefined,
       new_value: {
         reason: args.reason,
         scheduledDeletionDate: skipGracePeriod ? null : new Date(deletionScheduledAt).toISOString(),
-        gdprArticle: "Article 17 - Right to Erasure",
+        gdprArticle: 'Article 17 - Right to Erasure',
       },
       created_at: Date.now(),
     });
@@ -380,8 +442,8 @@ export const requestAccountDeletion = mutation({
 
       return {
         success: true,
-        message: "Account deletion initiated. Your data will be deleted shortly.",
-        deletionType: "immediate",
+        message: 'Account deletion initiated. Your data will be deleted shortly.',
+        deletionType: 'immediate',
       };
     }
 
@@ -398,8 +460,9 @@ export const requestAccountDeletion = mutation({
 
     return {
       success: true,
-      message: "Account deletion requested. Your account will be deleted in 30 days. You can cancel this request anytime during the grace period.",
-      deletionType: "scheduled",
+      message:
+        'Account deletion requested. Your account will be deleted in 30 days. You can cancel this request anytime during the grace period.',
+      deletionType: 'scheduled',
       scheduledDeletionDate: new Date(deletionScheduledAt).toISOString(),
       gracePeriodDays: 30,
     };
@@ -414,43 +477,43 @@ export const cancelAccountDeletion = mutation({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Check if there's a pending deletion
-    if (user.account_status !== "pending_deletion") {
-      throw new Error("No pending deletion request found");
+    if (user.account_status !== 'pending_deletion') {
+      throw new Error('No pending deletion request found');
     }
 
     // Restore account
     await ctx.db.patch(user._id, {
-      account_status: "active",
+      account_status: 'active',
       deletion_scheduled_at: undefined,
       deleted_reason: undefined,
       updated_at: Date.now(),
     });
 
     // Create audit log
-    await ctx.db.insert("audit_logs", {
-      action: "gdpr_deletion_cancelled",
+    await ctx.db.insert('audit_logs', {
+      action: 'gdpr_deletion_cancelled',
       actor_id: user._id,
-      entity_type: "user",
+      entity_type: 'user',
       entity_id: String(user._id),
       created_at: Date.now(),
     });
 
     return {
       success: true,
-      message: "Account deletion request cancelled. Your account is now active.",
+      message: 'Account deletion request cancelled. Your account is now active.',
     };
   },
 });
@@ -461,42 +524,42 @@ export const cancelAccountDeletion = mutation({
  */
 export const executeAccountDeletion = internalMutation({
   args: {
-    userId: v.id("users"),
+    userId: v.id('users'),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
 
     if (!user) {
       console.log(`User ${args.userId} not found - may have already been deleted`);
-      return { success: false, reason: "User not found" };
+      return { success: false, reason: 'User not found' };
     }
 
     // Check if deletion was cancelled (account is now active)
-    if (user.account_status === "active") {
+    if (user.account_status === 'active') {
       console.log(`Deletion cancelled for user ${args.userId}`);
-      return { success: false, reason: "Deletion was cancelled" };
+      return { success: false, reason: 'Deletion was cancelled' };
     }
 
     // Tables to cascade delete (all user-linked data)
     const tablesToDelete = [
-      "applications",
-      "resumes",
-      "cover_letters",
-      "goals",
-      "projects",
-      "networking_contacts",
-      "contact_interactions",
-      "follow_ups",
-      "followup_actions", // Legacy table
-      "career_paths",
-      "ai_coach_conversations",
-      "ai_coach_messages",
-      "support_tickets",
-      "user_achievements",
-      "user_daily_activity",
-      "job_searches",
-      "daily_recommendations",
-      "notifications",
+      'applications',
+      'resumes',
+      'cover_letters',
+      'goals',
+      'projects',
+      'networking_contacts',
+      'contact_interactions',
+      'follow_ups',
+      'followup_actions', // Legacy table
+      'career_paths',
+      'ai_coach_conversations',
+      'ai_coach_messages',
+      'support_tickets',
+      'user_achievements',
+      'user_daily_activity',
+      'job_searches',
+      'daily_recommendations',
+      'notifications',
     ];
 
     let deletedCount = 0;
@@ -506,7 +569,7 @@ export const executeAccountDeletion = internalMutation({
     for (const tableName of tablesToDelete) {
       try {
         const records = await (ctx.db.query(tableName as any) as any)
-          .withIndex("by_user", (q: any) => q.eq("user_id", args.userId))
+          .withIndex('by_user', (q: any) => q.eq('user_id', args.userId))
           .collect();
 
         for (const record of records) {
@@ -522,8 +585,8 @@ export const executeAccountDeletion = internalMutation({
 
     // Delete student profile if exists
     const studentProfile = await ctx.db
-      .query("studentProfiles")
-      .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
+      .query('studentProfiles')
+      .withIndex('by_user_id', (q) => q.eq('user_id', args.userId))
       .first();
 
     if (studentProfile) {
@@ -533,8 +596,8 @@ export const executeAccountDeletion = internalMutation({
 
     // Delete advisor sessions where user is student
     const advisorSessions = await ctx.db
-      .query("advisor_sessions")
-      .filter((q) => q.eq(q.field("student_id"), args.userId))
+      .query('advisor_sessions')
+      .filter((q) => q.eq(q.field('student_id'), args.userId))
       .collect();
 
     for (const session of advisorSessions) {
@@ -544,8 +607,8 @@ export const executeAccountDeletion = internalMutation({
 
     // Delete advisor reviews where user is student
     const advisorReviews = await ctx.db
-      .query("advisor_reviews")
-      .filter((q) => q.eq(q.field("student_id"), args.userId))
+      .query('advisor_reviews')
+      .filter((q) => q.eq(q.field('student_id'), args.userId))
       .collect();
 
     for (const review of advisorReviews) {
@@ -555,8 +618,8 @@ export const executeAccountDeletion = internalMutation({
 
     // Delete student_advisors relationships
     const studentAdvisorRelationships = await ctx.db
-      .query("student_advisors")
-      .filter((q) => q.eq(q.field("student_id"), args.userId))
+      .query('student_advisors')
+      .filter((q) => q.eq(q.field('student_id'), args.userId))
       .collect();
 
     for (const relationship of studentAdvisorRelationships) {
@@ -566,8 +629,8 @@ export const executeAccountDeletion = internalMutation({
 
     // Delete memberships
     const memberships = await ctx.db
-      .query("memberships")
-      .withIndex("by_user", (q) => q.eq("user_id", args.userId))
+      .query('memberships')
+      .withIndex('by_user', (q) => q.eq('user_id', args.userId))
       .collect();
 
     for (const membership of memberships) {
@@ -585,14 +648,14 @@ export const executeAccountDeletion = internalMutation({
     deletedCount++;
 
     // Create final audit log (with minimal info since user is deleted)
-    await ctx.db.insert("audit_logs", {
-      action: "gdpr_deletion_completed",
-      entity_type: "user",
+    await ctx.db.insert('audit_logs', {
+      action: 'gdpr_deletion_completed',
+      entity_type: 'user',
       entity_id: String(args.userId),
       new_value: {
         deletedRecordsCount: deletedCount,
         completedAt: new Date().toISOString(),
-        gdprArticle: "Article 17 - Right to Erasure",
+        gdprArticle: 'Article 17 - Right to Erasure',
         ...(failedTables.length > 0 && { failedTables }),
       },
       created_at: Date.now(),
@@ -611,18 +674,18 @@ export const executeAccountDeletion = internalMutation({
  */
 export const sendDeletionReminder = internalMutation({
   args: {
-    userId: v.id("users"),
+    userId: v.id('users'),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
 
     if (!user) {
-      return { success: false, reason: "User not found" };
+      return { success: false, reason: 'User not found' };
     }
 
     // Check if deletion was cancelled
-    if (user.account_status === "active") {
-      return { success: false, reason: "Deletion was cancelled" };
+    if (user.account_status === 'active') {
+      return { success: false, reason: 'Deletion was cancelled' };
     }
 
     /**
@@ -662,8 +725,8 @@ export const getDeletionStatus = query({
     }
 
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
       .unique();
 
     if (!user) {
@@ -671,12 +734,12 @@ export const getDeletionStatus = query({
     }
 
     // Check for pending deletion
-    if (user.account_status === "pending_deletion") {
+    if (user.account_status === 'pending_deletion') {
       return {
         hasPendingDeletion: true,
         reason: user.deleted_reason,
         scheduledDeletionDate: user.deletion_scheduled_at,
-        message: "Your account is scheduled for deletion. You can cancel this request anytime.",
+        message: 'Your account is scheduled for deletion. You can cancel this request anytime.',
       };
     }
 

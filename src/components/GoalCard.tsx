@@ -1,31 +1,25 @@
-"use client";
+'use client';
 
-import {
-  Edit,
-  Calendar,
-  CheckSquare,
-  Square,
-  ChevronUp,
-  ChevronDown,
-  Check,
-} from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { format, formatDistanceToNow } from "date-fns";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { type GoalChecklistItem } from "@/utils/schema";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { format, formatDistanceToNow } from 'date-fns';
+import { Calendar, Check, CheckSquare, ChevronDown, ChevronUp, Edit, Square } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import Confetti from "./Confetti";
+} from '@/components/ui/dropdown-menu';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { type GoalChecklistItem } from '@/utils/schema';
+
+import Confetti from './Confetti';
 
 interface GoalCardProps {
   id: string | number;
@@ -69,26 +63,26 @@ export default function GoalCard({
 
   const getBadgeStyles = () => {
     switch (status.toLowerCase()) {
-      case "in-progress":
-      case "in_progress":
-        return "bg-blue-100 text-blue-800";
-      case "active":
-        return "bg-primary/10 text-primary";
-      case "on-track":
-        return "bg-green-100 text-green-800";
-      case "completed":
-        return "bg-green-100 text-green-800";
-      case "overdue":
-        return "bg-red-100 text-red-800";
-      case "not_started":
-        return "bg-gray-100 text-gray-800";
+      case 'in-progress':
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-800';
+      case 'active':
+        return 'bg-primary/10 text-primary';
+      case 'on-track':
+        return 'bg-green-100 text-green-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      case 'not_started':
+        return 'bg-gray-100 text-gray-800';
       default:
-        return "bg-gray-100 text-gray-800";
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const formatDueDate = () => {
-    if (!dueDate) return "No due date";
+    if (!dueDate) return 'No due date';
 
     const now = new Date();
     const dueTime = new Date(dueDate).getTime();
@@ -103,7 +97,7 @@ export default function GoalCard({
   const handleStatusChange = (newStatus: string) => {
     if (status === newStatus) return;
 
-    const isCompleted = newStatus === "completed";
+    const isCompleted = newStatus === 'completed';
 
     const updateData: any = { status: newStatus };
 
@@ -114,14 +108,13 @@ export default function GoalCard({
 
     updateChecklistMutation.mutate(updateData);
 
-    const statusLabel = newStatus.replace("_", " ");
-    const formattedStatus =
-      statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1);
+    const statusLabel = newStatus.replace('_', ' ');
+    const formattedStatus = statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1);
 
     toast({
       title: `Goal status updated`,
       description: `Status changed to "${formattedStatus}"`,
-      variant: isCompleted ? "success" : undefined,
+      variant: isCompleted ? 'success' : undefined,
     });
 
     if (isCompleted && !completionCelebratedRef.current) {
@@ -136,15 +129,15 @@ export default function GoalCard({
 
   const updateChecklistMutation = useMutation({
     mutationFn: async (updatedGoal: any) => {
-      const response = await apiRequest("PUT", `/api/goals/${id}`, updatedGoal);
+      const response = await apiRequest('PUT', `/api/goals/${id}`, updatedGoal);
       return response.json();
     },
     onMutate: async (updatedGoal) => {
-      await queryClient.cancelQueries({ queryKey: ["/api/goals"] });
+      await queryClient.cancelQueries({ queryKey: ['/api/goals'] });
 
-      const previousGoals = queryClient.getQueryData(["/api/goals"]);
+      const previousGoals = queryClient.getQueryData(['/api/goals']);
 
-      queryClient.setQueryData(["/api/goals"], (old: any[]) => {
+      queryClient.setQueryData(['/api/goals'], (old: any[]) => {
         if (!old) return [];
 
         return old.map((goal) => {
@@ -162,20 +155,19 @@ export default function GoalCard({
     },
     onError: (error, newData, context: any) => {
       if (context?.previousGoals) {
-        queryClient.setQueryData(["/api/goals"], context.previousGoals);
+        queryClient.setQueryData(['/api/goals'], context.previousGoals);
       }
 
       toast({
-        title: "Failed to update checklist",
+        title: 'Failed to update checklist',
         description:
-          error.message ||
-          "There was a problem updating the checklist. Please try again.",
-        variant: "destructive",
+          error.message || 'There was a problem updating the checklist. Please try again.',
+        variant: 'destructive',
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/goals"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users/statistics"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
     },
   });
 
@@ -188,13 +180,12 @@ export default function GoalCard({
     const totalItems = checklist.length;
     const hasAtLeastTwoItems = totalItems >= 2;
     const isNotStarted =
-      status.toLowerCase() === "not_started" ||
-      status.toLowerCase() === "active";
+      status.toLowerCase() === 'not_started' || status.toLowerCase() === 'active';
 
     if (
       allCompleted &&
       totalItems > 0 &&
-      status.toLowerCase() !== "completed" &&
+      status.toLowerCase() !== 'completed' &&
       !completionCelebratedRef.current
     ) {
       completionCelebratedRef.current = true;
@@ -202,23 +193,23 @@ export default function GoalCard({
       setShowConfetti(true);
 
       updateChecklistMutation.mutate({
-        status: "completed",
+        status: 'completed',
         progress: 100,
         checklist: checklist,
         completed: true,
       });
 
       toast({
-        title: "Goal completed! 🎉",
-        description: "Congratulations on completing your goal!",
-        variant: "success",
+        title: 'Goal completed! 🎉',
+        description: 'Congratulations on completing your goal!',
+        variant: 'success',
       });
 
       handleDissolveAnimation(id);
     } else if (
       allCompleted &&
       totalItems > 0 &&
-      status.toLowerCase() === "completed" &&
+      status.toLowerCase() === 'completed' &&
       !completionCelebratedRef.current
     ) {
       completionCelebratedRef.current = true;
@@ -226,20 +217,15 @@ export default function GoalCard({
       setShowConfetti(true);
 
       toast({
-        title: "Goal completed! 🎉",
-        description: "Congratulations on completing your goal!",
-        variant: "success",
+        title: 'Goal completed! 🎉',
+        description: 'Congratulations on completing your goal!',
+        variant: 'success',
       });
 
       handleDissolveAnimation(id);
-    } else if (
-      hasAtLeastTwoItems &&
-      hasAtLeastOneChecked &&
-      !allCompleted &&
-      isNotStarted
-    ) {
+    } else if (hasAtLeastTwoItems && hasAtLeastOneChecked && !allCompleted && isNotStarted) {
       updateChecklistMutation.mutate({
-        status: "in_progress",
+        status: 'in_progress',
         checklist: checklist,
       });
     }
@@ -264,26 +250,17 @@ export default function GoalCard({
       return item;
     });
 
-    const completedItems = updatedChecklist.filter(
-      (item) => item.completed,
-    ).length;
+    const completedItems = updatedChecklist.filter((item) => item.completed).length;
     const totalItems = updatedChecklist.length;
-    const newProgress =
-      totalItems > 0
-        ? Math.round((completedItems / totalItems) * 100)
-        : progress;
+    const newProgress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : progress;
 
     const allCompleted = completedItems === totalItems && totalItems > 0;
 
-    if (
-      allCompleted &&
-      status.toLowerCase() !== "completed" &&
-      !completionCelebratedRef.current
-    ) {
+    if (allCompleted && status.toLowerCase() !== 'completed' && !completionCelebratedRef.current) {
       updateChecklistMutation.mutate({
         checklist: updatedChecklist,
         progress: 100,
-        status: "completed",
+        status: 'completed',
         completed: true,
       });
 
@@ -292,15 +269,15 @@ export default function GoalCard({
       setShowConfetti(true);
 
       toast({
-        title: "Goal completed! 🎉",
-        description: "Congratulations on completing your goal!",
-        variant: "success",
+        title: 'Goal completed! 🎉',
+        description: 'Congratulations on completing your goal!',
+        variant: 'success',
       });
 
       handleDissolveAnimation(id);
     } else if (
       allCompleted &&
-      status.toLowerCase() === "completed" &&
+      status.toLowerCase() === 'completed' &&
       !completionCelebratedRef.current
     ) {
       updateChecklistMutation.mutate({
@@ -315,28 +292,20 @@ export default function GoalCard({
       handleDissolveAnimation(id);
     } else {
       const hasAtLeastTwoItems = updatedChecklist.length >= 2;
-      const hasAtLeastOneChecked = updatedChecklist.some(
-        (item) => item.completed,
-      );
+      const hasAtLeastOneChecked = updatedChecklist.some((item) => item.completed);
       const areAllChecked = updatedChecklist.every((item) => item.completed);
       const isNotStarted =
-        status.toLowerCase() === "not_started" ||
-        status.toLowerCase() === "active";
+        status.toLowerCase() === 'not_started' || status.toLowerCase() === 'active';
 
-      if (
-        hasAtLeastTwoItems &&
-        hasAtLeastOneChecked &&
-        !areAllChecked &&
-        isNotStarted
-      ) {
+      if (hasAtLeastTwoItems && hasAtLeastOneChecked && !areAllChecked && isNotStarted) {
         updateChecklistMutation.mutate({
           checklist: updatedChecklist,
           progress: newProgress,
-          status: "in_progress",
+          status: 'in_progress',
         });
 
         toast({
-          title: "Goal in progress",
+          title: 'Goal in progress',
           description: "Your goal status has been updated to 'In Progress'",
         });
       } else {
@@ -357,11 +326,7 @@ export default function GoalCard({
       <div id={`goal-${id}`} className="goal-card" ref={cardRef}>
         <Card
           className={`rounded-2xl shadow-sm flex flex-col bg-white hover:shadow-md transition-shadow duration-150 ${
-            showChecklist
-              ? "min-h-[320px]"
-              : hasChecklist
-                ? "min-h-[240px]"
-                : "min-h-[200px]"
+            showChecklist ? 'min-h-[320px]' : hasChecklist ? 'min-h-[240px]' : 'min-h-[200px]'
           }`}
         >
           <div className="p-6 space-y-3 pb-4">
@@ -371,22 +336,19 @@ export default function GoalCard({
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="p-0 h-auto hover:bg-transparent"
-                  >
+                  <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
                     <Badge
                       variant="outline"
                       className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${getBadgeStyles()} cursor-pointer hover:shadow-sm transition-all duration-150`}
                       title="Click to change status"
                     >
-                      {status === "not_started" ? (
+                      {status === 'not_started' ? (
                         <span className="flex items-center">
                           <span className="h-1.5 w-1.5 bg-gray-400 rounded-full mr-1.5"></span>
                           Not started
                         </span>
-                      ) : status === "in_progress" ? (
-                        "In progress"
+                      ) : status === 'in_progress' ? (
+                        'In progress'
                       ) : (
                         status.charAt(0).toUpperCase() + status.slice(1)
                       )}
@@ -395,34 +357,28 @@ export default function GoalCard({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[150px]">
                   <DropdownMenuItem
-                    onClick={() => handleStatusChange("not_started")}
+                    onClick={() => handleStatusChange('not_started')}
                     className="gap-2"
                   >
                     <span className="h-1.5 w-1.5 bg-gray-400 rounded-full"></span>
                     Not started
-                    {status === "not_started" && (
-                      <Check className="ml-auto h-4 w-4" />
-                    )}
+                    {status === 'not_started' && <Check className="ml-auto h-4 w-4" />}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => handleStatusChange("in_progress")}
+                    onClick={() => handleStatusChange('in_progress')}
                     className="gap-2"
                   >
                     <span className="h-1.5 w-1.5 bg-blue-600 rounded-full"></span>
                     In progress
-                    {status === "in_progress" && (
-                      <Check className="ml-auto h-4 w-4" />
-                    )}
+                    {status === 'in_progress' && <Check className="ml-auto h-4 w-4" />}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => handleStatusChange("completed")}
+                    onClick={() => handleStatusChange('completed')}
                     className="gap-2"
                   >
                     <span className="h-1.5 w-1.5 bg-green-600 rounded-full"></span>
                     Completed
-                    {status === "completed" && (
-                      <Check className="ml-auto h-4 w-4" />
-                    )}
+                    {status === 'completed' && <Check className="ml-auto h-4 w-4" />}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -432,10 +388,7 @@ export default function GoalCard({
               <p className="text-sm font-medium">Progress</p>
               <div className="relative">
                 {progress > 0 ? (
-                  <Progress
-                    value={progress}
-                    className="mt-1 h-2 transition-all duration-300"
-                  />
+                  <Progress value={progress} className="mt-1 h-2 transition-all duration-300" />
                 ) : (
                   <div className="mt-1 h-2 w-full rounded-full bg-secondary transition-all duration-300" />
                 )}
@@ -445,8 +398,8 @@ export default function GoalCard({
             {hasChecklist && (
               <div className="flex justify-between items-center text-sm text-muted-foreground">
                 <p>
-                  {checklist.filter((item) => item.completed).length}/
-                  {checklist.length} tasks complete
+                  {checklist.filter((item) => item.completed).length}/{checklist.length} tasks
+                  complete
                 </p>
                 <Button
                   variant="ghost"
@@ -482,7 +435,7 @@ export default function GoalCard({
                       )}
                     </Button>
                     <span
-                      className={`text-xs ${item.completed ? "line-through text-neutral-400" : "text-neutral-600"}`}
+                      className={`text-xs ${item.completed ? 'line-through text-neutral-400' : 'text-neutral-600'}`}
                     >
                       {item.text}
                     </span>
@@ -494,7 +447,7 @@ export default function GoalCard({
 
           <div
             className={`flex items-center justify-between px-4 py-3 border-t ${
-              showChecklist ? "mt-auto" : "mt-2"
+              showChecklist ? 'mt-auto' : 'mt-2'
             }`}
           >
             <p className="text-sm text-muted-foreground flex items-center gap-1">

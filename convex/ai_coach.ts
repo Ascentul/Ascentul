@@ -1,5 +1,6 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { v } from 'convex/values';
+
+import { mutation, query } from './_generated/server';
 
 // Get conversations for a user
 export const getConversations = query({
@@ -7,26 +8,26 @@ export const getConversations = query({
   handler: async (ctx, args) => {
     // Get user first
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .first();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Get conversations for the user
     const conversations = await ctx.db
-      .query("ai_coach_conversations")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .order("desc")
+      .query('ai_coach_conversations')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
+      .order('desc')
       .collect();
 
-    return conversations.map(conv => ({
+    return conversations.map((conv) => ({
       id: conv._id,
       title: conv.title,
       createdAt: new Date(conv.created_at).toISOString(),
-      userId: conv.user_id
+      userId: conv.user_id,
     }));
   },
 });
@@ -35,21 +36,21 @@ export const getConversations = query({
 export const createConversation = mutation({
   args: {
     clerkId: v.string(),
-    title: v.string()
+    title: v.string(),
   },
   handler: async (ctx, args) => {
     // Get user first
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .first();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const now = Date.now();
-    const conversationId = await ctx.db.insert("ai_coach_conversations", {
+    const conversationId = await ctx.db.insert('ai_coach_conversations', {
       user_id: user._id,
       title: args.title,
       created_at: now,
@@ -60,7 +61,7 @@ export const createConversation = mutation({
       id: conversationId,
       title: args.title,
       createdAt: new Date(now).toISOString(),
-      userId: user._id
+      userId: user._id,
     };
   },
 });
@@ -69,38 +70,38 @@ export const createConversation = mutation({
 export const getMessages = query({
   args: {
     clerkId: v.string(),
-    conversationId: v.id("ai_coach_conversations")
+    conversationId: v.id('ai_coach_conversations'),
   },
   handler: async (ctx, args) => {
     // Get user first
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .first();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Verify conversation belongs to user
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation || conversation.user_id !== user._id) {
-      throw new Error("Conversation not found or access denied");
+      throw new Error('Conversation not found or access denied');
     }
 
     // Get messages for the conversation
     const messages = await ctx.db
-      .query("ai_coach_messages")
-      .withIndex("by_conversation", (q) => q.eq("conversation_id", args.conversationId))
-      .order("asc")
+      .query('ai_coach_messages')
+      .withIndex('by_conversation', (q) => q.eq('conversation_id', args.conversationId))
+      .order('asc')
       .collect();
 
-    return messages.map(msg => ({
+    return messages.map((msg) => ({
       id: msg._id,
       conversationId: msg.conversation_id,
       isUser: msg.is_user,
       message: msg.message,
-      timestamp: new Date(msg.timestamp).toISOString()
+      timestamp: new Date(msg.timestamp).toISOString(),
     }));
   },
 });
@@ -109,31 +110,31 @@ export const getMessages = query({
 export const addMessages = mutation({
   args: {
     clerkId: v.string(),
-    conversationId: v.id("ai_coach_conversations"),
+    conversationId: v.id('ai_coach_conversations'),
     userMessage: v.string(),
-    aiMessage: v.string()
+    aiMessage: v.string(),
   },
   handler: async (ctx, args) => {
     // Get user first
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .first();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Verify conversation belongs to user
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation || conversation.user_id !== user._id) {
-      throw new Error("Conversation not found or access denied");
+      throw new Error('Conversation not found or access denied');
     }
 
     const now = Date.now();
 
     // Add user message
-    const userMessageId = await ctx.db.insert("ai_coach_messages", {
+    const userMessageId = await ctx.db.insert('ai_coach_messages', {
       conversation_id: args.conversationId,
       user_id: user._id,
       is_user: true,
@@ -142,7 +143,7 @@ export const addMessages = mutation({
     });
 
     // Add AI message
-    const aiMessageId = await ctx.db.insert("ai_coach_messages", {
+    const aiMessageId = await ctx.db.insert('ai_coach_messages', {
       conversation_id: args.conversationId,
       user_id: user._id,
       is_user: false,
@@ -152,7 +153,7 @@ export const addMessages = mutation({
 
     // Update conversation timestamp
     await ctx.db.patch(args.conversationId, {
-      updated_at: now
+      updated_at: now,
     });
 
     return [
@@ -161,15 +162,15 @@ export const addMessages = mutation({
         conversationId: args.conversationId,
         isUser: true,
         message: args.userMessage,
-        timestamp: new Date(now).toISOString()
+        timestamp: new Date(now).toISOString(),
       },
       {
         id: aiMessageId,
         conversationId: args.conversationId,
         isUser: false,
         message: args.aiMessage,
-        timestamp: new Date(now + 1).toISOString()
-      }
+        timestamp: new Date(now + 1).toISOString(),
+      },
     ];
   },
 });

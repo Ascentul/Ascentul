@@ -1,6 +1,7 @@
-import { v } from "convex/values";
-import { mutation } from "./_generated/server";
-import { getAuthenticatedUser } from "./lib/roles";
+import { v } from 'convex/values';
+
+import { mutation } from './_generated/server';
+import { getAuthenticatedUser } from './lib/roles';
 
 export const updateOnboardingProgress = mutation({
   args: {
@@ -10,17 +11,17 @@ export const updateOnboardingProgress = mutation({
   handler: async (ctx, args) => {
     const actingUser = await getAuthenticatedUser(ctx);
     const isSelf = actingUser.clerkId === args.clerkId;
-    if (!isSelf && actingUser.role !== "super_admin") {
-      throw new Error("Unauthorized");
+    if (!isSelf && actingUser.role !== 'super_admin') {
+      throw new Error('Unauthorized');
     }
 
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const onboarding_completed = args.completed_tasks.length >= 5;
@@ -43,17 +44,17 @@ export const toggleHideProgressCard = mutation({
   handler: async (ctx, args) => {
     const actingUser = await getAuthenticatedUser(ctx);
     const isSelf = actingUser.clerkId === args.clerkId;
-    if (!isSelf && actingUser.role !== "super_admin") {
-      throw new Error("Unauthorized");
+    if (!isSelf && actingUser.role !== 'super_admin') {
+      throw new Error('Unauthorized');
     }
 
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     await ctx.db.patch(user._id, {

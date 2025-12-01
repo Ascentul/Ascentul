@@ -1,18 +1,22 @@
-"use client"
+'use client';
 
-import React, { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { useUser } from "@clerk/nextjs"
-import { useMutation, useQuery } from "convex/react"
-import { api } from "convex/_generated/api"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Save, Trash2, ArrowLeft, Download, Plus, X, Upload as UploadIcon } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { generateResumePDF } from "@/lib/resume-pdf-generator"
-import type { ResumeData } from "@/components/resume/ResumeDocument"
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import {
+  ArrowLeft,
+  Download,
+  Loader2,
+  Plus,
+  Save,
+  Trash2,
+  Upload as UploadIcon,
+  X,
+} from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+
+import type { ResumeData } from '@/components/resume/ResumeDocument';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,170 +26,173 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { generateResumePDF } from '@/lib/resume-pdf-generator';
 
 interface ContactInfo {
-  name: string
-  email: string
-  phone: string
-  location: string
-  linkedin: string
-  github: string
-  website: string
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  linkedin: string;
+  github: string;
+  website: string;
 }
 
 interface Experience {
-  id: string
-  title: string
-  company: string
-  location: string
-  startDate: string
-  endDate: string
-  current: boolean
-  description: string
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  description: string;
 }
 
 interface Education {
-  id: string
-  school: string
-  degree: string
-  field: string
-  location: string
-  startYear: string
-  endYear: string
-  gpa: string
-  honors: string
+  id: string;
+  school: string;
+  degree: string;
+  field: string;
+  location: string;
+  startYear: string;
+  endYear: string;
+  gpa: string;
+  honors: string;
 }
 
 interface Project {
-  id: string
-  name: string
-  role: string
-  description: string
-  technologies: string
-  url: string
+  id: string;
+  name: string;
+  role: string;
+  description: string;
+  technologies: string;
+  url: string;
 }
 
 interface Achievement {
-  id: string
-  title: string
-  description: string
-  date: string
+  id: string;
+  title: string;
+  description: string;
+  date: string;
 }
 
 export default function ResumeEditorPage() {
-  const params = useParams()
-  const router = useRouter()
-  const { user } = useUser()
-  const clerkId = user?.id
-  const resumeId = (Array.isArray((params as any)?.id) ? (params as any).id[0] : (params as any)?.id) as string
-  const isNewResume = !resumeId || resumeId === "new"
+  const params = useParams();
+  const router = useRouter();
+  const { user } = useUser();
+  const clerkId = user?.id;
+  const resumeId = (
+    Array.isArray((params as any)?.id) ? (params as any).id[0] : (params as any)?.id
+  ) as string;
+  const isNewResume = !resumeId || resumeId === 'new';
 
   const resume = useQuery(
     api.resumes.getResumeById,
-    !isNewResume && clerkId && resumeId ? ({ clerkId, resumeId } as any) : "skip"
-  ) as any
+    !isNewResume && clerkId && resumeId ? ({ clerkId, resumeId } as any) : 'skip',
+  ) as any;
 
-  const userProfile = useQuery(
-    api.users.getUserByClerkId,
-    clerkId ? { clerkId } : "skip"
-  ) as any
+  const userProfile = useQuery(api.users.getUserByClerkId, clerkId ? { clerkId } : 'skip') as any;
 
-  const userProjects = useQuery(
-    api.projects.getUserProjects,
-    clerkId ? { clerkId } : "skip"
-  )
+  const userProjects = useQuery(api.projects.getUserProjects, clerkId ? { clerkId } : 'skip');
 
-  const createResumeMutation = useMutation(api.resumes.createResume)
-  const updateResume = useMutation(api.resumes.updateResume)
-  const deleteResume = useMutation(api.resumes.deleteResume)
+  const createResumeMutation = useMutation(api.resumes.createResume);
+  const updateResume = useMutation(api.resumes.updateResume);
+  const deleteResume = useMutation(api.resumes.deleteResume);
 
-  const [title, setTitle] = useState("")
+  const [title, setTitle] = useState('');
   const [contactInfo, setContactInfo] = useState<ContactInfo>({
-    name: "",
-    email: "",
-    phone: "",
-    location: "",
-    linkedin: "",
-    github: "",
-    website: ""
-  })
-  const [summary, setSummary] = useState("")
-  const [skillsText, setSkillsText] = useState("")
-  const [experience, setExperience] = useState<Experience[]>([])
-  const [education, setEducation] = useState<Education[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [achievements, setAchievements] = useState<Achievement[]>([])
+    name: '',
+    email: '',
+    phone: '',
+    location: '',
+    linkedin: '',
+    github: '',
+    website: '',
+  });
+  const [summary, setSummary] = useState('');
+  const [skillsText, setSkillsText] = useState('');
+  const [experience, setExperience] = useState<Experience[]>([]);
+  const [education, setEducation] = useState<Education[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
 
-  const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const { toast } = useToast()
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [importing, setImporting] = useState(false)
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   // Hydrate local state when data loads
   useEffect(() => {
-    if (!resume) return
-    setTitle(resume.title || "")
-    const content = resume.content || {}
+    if (!resume) return;
+    setTitle(resume.title || '');
+    const content = resume.content || {};
 
     // Contact Info - check both contactInfo and personalInfo for backward compatibility
-    const contactData = content.contactInfo || content.personalInfo || {
-      name: "",
-      email: "",
-      phone: "",
-      location: "",
-      linkedin: "",
-      github: "",
-      website: ""
-    }
-    setContactInfo(contactData)
+    const contactData = content.contactInfo ||
+      content.personalInfo || {
+        name: '',
+        email: '',
+        phone: '',
+        location: '',
+        linkedin: '',
+        github: '',
+        website: '',
+      };
+    setContactInfo(contactData);
 
-    setSummary(content.summary || "")
-    setSkillsText((content.skills || []).join(", "))
-    setExperience(content.experience || [])
-    setEducation(content.education || [])
-    setProjects(content.projects || [])
-    setAchievements(content.achievements || [])
-  }, [resume])
+    setSummary(content.summary || '');
+    setSkillsText((content.skills || []).join(', '));
+    setExperience(content.experience || []);
+    setEducation(content.education || []);
+    setProjects(content.projects || []);
+    setAchievements(content.achievements || []);
+  }, [resume]);
 
-  const loading = !isNewResume && resume === undefined
+  const loading = !isNewResume && resume === undefined;
 
   // If the resume was deleted or cannot be accessed, return to list
   useEffect(() => {
     if (resume === null) {
-      router.replace('/resumes')
+      router.replace('/resumes');
     }
-  }, [resume, router])
+  }, [resume, router]);
 
   const importFromProfile = async () => {
     if (userProfile === undefined) {
       toast({
         title: 'Loading...',
         description: 'Please wait while we load your profile',
-        variant: 'default'
-      })
-      return
+        variant: 'default',
+      });
+      return;
     }
 
     if (!userProfile) {
       toast({
         title: 'Profile not found',
         description: 'Please complete your career profile first',
-        variant: 'destructive'
-      })
-      return
+        variant: 'destructive',
+      });
+      return;
     }
 
-    setImporting(true)
+    setImporting(true);
     try {
       // Debug logging
       console.log('Importing from profile:', {
         userProfile,
         workHistory: userProfile.work_history,
         educationHistory: userProfile.education_history,
-        projects: userProjects
-      })
+        projects: userProjects,
+      });
 
       // Map work history to experience
       const experienceData = (userProfile.work_history || []).map((job: any) => ({
@@ -194,12 +201,12 @@ export default function ResumeEditorPage() {
         company: job.company || '',
         location: job.location || '',
         startDate: job.start_date || '',
-        endDate: job.is_current ? 'Present' : (job.end_date || ''),
+        endDate: job.is_current ? 'Present' : job.end_date || '',
         current: job.is_current || false,
-        description: job.summary || ''
-      }))
+        description: job.summary || '',
+      }));
 
-      console.log('Mapped experience:', experienceData)
+      console.log('Mapped experience:', experienceData);
 
       // Map education history to education
       const educationData = (userProfile.education_history || []).map((edu: any) => ({
@@ -212,8 +219,8 @@ export default function ResumeEditorPage() {
         endYear: edu.end_year || '',
         graduationYear: edu.end_year || '',
         gpa: '',
-        honors: ''
-      }))
+        honors: '',
+      }));
 
       // Map projects from projects table
       const projectsData = (userProjects || []).map((proj: any) => ({
@@ -222,57 +229,57 @@ export default function ResumeEditorPage() {
         role: proj.role || '',
         technologies: Array.isArray(proj.technologies) ? proj.technologies.join(', ') : '',
         description: proj.description || '',
-        url: proj.url || proj.github_url || ''
-      }))
+        url: proj.url || proj.github_url || '',
+      }));
 
       // Map achievements from achievements_history
       const achievementsData = (userProfile.achievements_history || []).map((ach: any) => ({
         id: Date.now().toString() + Math.random(), // Ensure unique IDs
         title: ach.title || '',
         description: ach.description || '',
-        date: ach.date || ''
-      }))
+        date: ach.date || '',
+      }));
 
       // Import all profile data
       setContactInfo({
-        name: userProfile.name || user?.fullName || "",
-        email: userProfile.email || user?.primaryEmailAddress?.emailAddress || "",
-        phone: user?.phoneNumbers?.[0]?.phoneNumber || "",
-        location: userProfile.location || "",
-        linkedin: userProfile.linkedin_url || "",
-        github: userProfile.github_url || "",
-        website: userProfile.website || ""
-      })
+        name: userProfile.name || user?.fullName || '',
+        email: userProfile.email || user?.primaryEmailAddress?.emailAddress || '',
+        phone: user?.phoneNumbers?.[0]?.phoneNumber || '',
+        location: userProfile.location || '',
+        linkedin: userProfile.linkedin_url || '',
+        github: userProfile.github_url || '',
+        website: userProfile.website || '',
+      });
 
-      setSummary(userProfile.bio || "")
-      setSkillsText(userProfile.skills || "")
-      setExperience(experienceData)
-      setEducation(educationData)
-      setProjects(projectsData)
-      setAchievements(achievementsData)
+      setSummary(userProfile.bio || '');
+      setSkillsText(userProfile.skills || '');
+      setExperience(experienceData);
+      setEducation(educationData);
+      setProjects(projectsData);
+      setAchievements(achievementsData);
 
       toast({
-        title: "Profile Imported",
-        description: "Career profile data has been imported successfully",
-        variant: "success"
-      })
+        title: 'Profile Imported',
+        description: 'Career profile data has been imported successfully',
+        variant: 'success',
+      });
     } catch (error) {
-      console.error('Import error:', error)
-      const errorMsg = error instanceof Error ? error.message : 'Failed to import profile data'
+      console.error('Import error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Failed to import profile data';
       toast({
-        title: "Import Failed",
+        title: 'Import Failed',
         description: errorMsg,
-        variant: "destructive"
-      })
+        variant: 'destructive',
+      });
     } finally {
-      setImporting(false)
+      setImporting(false);
     }
-  }
+  };
 
   const doSave = async () => {
-    if (!clerkId) return
+    if (!clerkId) return;
 
-    const normalizedTitle = title.trim() || "Untitled Resume"
+    const normalizedTitle = title.trim() || 'Untitled Resume';
 
     // Clean up empty social links from contact info
     const cleanedContactInfo = {
@@ -280,39 +287,43 @@ export default function ResumeEditorPage() {
       linkedin: contactInfo.linkedin?.trim() || undefined,
       github: contactInfo.github?.trim() || undefined,
       website: contactInfo.website?.trim() || undefined,
-    }
+    };
     // Remove undefined properties to keep JSON clean
     Object.keys(cleanedContactInfo).forEach(
-      key => cleanedContactInfo[key as keyof typeof cleanedContactInfo] === undefined &&
-        delete cleanedContactInfo[key as keyof typeof cleanedContactInfo]
-    )
+      (key) =>
+        cleanedContactInfo[key as keyof typeof cleanedContactInfo] === undefined &&
+        delete cleanedContactInfo[key as keyof typeof cleanedContactInfo],
+    );
 
     const contentPayload = {
       contactInfo: cleanedContactInfo,
       summary,
-      skills: skillsText.split(",").map((s) => s.trim()).filter((s) => s.length > 0),
+      skills: skillsText
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
       experience,
       education,
       projects,
       achievements,
-    }
+    };
 
-    setSaving(true)
+    setSaving(true);
     try {
       if (isNewResume) {
         await createResumeMutation({
           clerkId,
           title: normalizedTitle,
           content: contentPayload,
-          visibility: "private",
-          source: "manual",
-        } as any)
+          visibility: 'private',
+          source: 'manual',
+        } as any);
 
         toast({
-          title: "Resume created",
-          description: "Your new resume has been saved.",
-          variant: "success",
-        })
+          title: 'Resume created',
+          description: 'Your new resume has been saved.',
+          variant: 'success',
+        });
       } else if (resume?._id) {
         await updateResume({
           clerkId,
@@ -321,125 +332,117 @@ export default function ResumeEditorPage() {
             title: normalizedTitle,
             content: contentPayload,
           },
-        } as any)
+        } as any);
 
         toast({
-          title: "Saved",
-          description: "Your resume has been saved successfully.",
-          variant: "success",
-        })
+          title: 'Saved',
+          description: 'Your resume has been saved successfully.',
+          variant: 'success',
+        });
       } else {
-        throw new Error("Resume not found")
+        throw new Error('Resume not found');
       }
 
       setTimeout(() => {
-        router.push("/resumes")
-      }, 500)
+        router.push('/resumes');
+      }, 500);
     } catch (e: any) {
       toast({
-        title: "Save failed",
-        description: e?.message || "Please try again.",
-        variant: "destructive",
-      })
+        title: 'Save failed',
+        description: e?.message || 'Please try again.',
+        variant: 'destructive',
+      });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   // Experience management
   const addExperience = () => {
     const newExp: Experience = {
       id: Date.now().toString(),
-      title: "",
-      company: "",
-      location: "",
-      startDate: "",
-      endDate: "",
+      title: '',
+      company: '',
+      location: '',
+      startDate: '',
+      endDate: '',
       current: false,
-      description: ""
-    }
-    setExperience([...experience, newExp])
-  }
+      description: '',
+    };
+    setExperience([...experience, newExp]);
+  };
 
   const removeExperience = (id: string) => {
-    setExperience(experience.filter(exp => exp.id !== id))
-  }
+    setExperience(experience.filter((exp) => exp.id !== id));
+  };
 
   const updateExperience = (id: string, field: keyof Experience, value: any) => {
-    setExperience(experience.map(exp =>
-      exp.id === id ? { ...exp, [field]: value } : exp
-    ))
-  }
+    setExperience(experience.map((exp) => (exp.id === id ? { ...exp, [field]: value } : exp)));
+  };
 
   // Education management
   const addEducation = () => {
     const newEdu: Education = {
       id: Date.now().toString(),
-      school: "",
-      degree: "",
-      field: "",
-      location: "",
-      startYear: "",
-      endYear: "",
-      gpa: "",
-      honors: ""
-    }
-    setEducation([...education, newEdu])
-  }
+      school: '',
+      degree: '',
+      field: '',
+      location: '',
+      startYear: '',
+      endYear: '',
+      gpa: '',
+      honors: '',
+    };
+    setEducation([...education, newEdu]);
+  };
 
   const removeEducation = (id: string) => {
-    setEducation(education.filter(edu => edu.id !== id))
-  }
+    setEducation(education.filter((edu) => edu.id !== id));
+  };
 
   const updateEducation = (id: string, field: keyof Education, value: string) => {
-    setEducation(education.map(edu =>
-      edu.id === id ? { ...edu, [field]: value } : edu
-    ))
-  }
+    setEducation(education.map((edu) => (edu.id === id ? { ...edu, [field]: value } : edu)));
+  };
 
   // Project management
   const addProject = () => {
     const newProject: Project = {
       id: Date.now().toString(),
-      name: "",
-      role: "",
-      description: "",
-      technologies: "",
-      url: ""
-    }
-    setProjects([...projects, newProject])
-  }
+      name: '',
+      role: '',
+      description: '',
+      technologies: '',
+      url: '',
+    };
+    setProjects([...projects, newProject]);
+  };
 
   const removeProject = (id: string) => {
-    setProjects(projects.filter(proj => proj.id !== id))
-  }
+    setProjects(projects.filter((proj) => proj.id !== id));
+  };
 
   const updateProject = (id: string, field: keyof Project, value: string) => {
-    setProjects(projects.map(proj =>
-      proj.id === id ? { ...proj, [field]: value } : proj
-    ))
-  }
+    setProjects(projects.map((proj) => (proj.id === id ? { ...proj, [field]: value } : proj)));
+  };
 
   // Achievement management
   const addAchievement = () => {
     const newAchievement: Achievement = {
       id: Date.now().toString(),
-      title: "",
-      description: "",
-      date: ""
-    }
-    setAchievements([...achievements, newAchievement])
-  }
+      title: '',
+      description: '',
+      date: '',
+    };
+    setAchievements([...achievements, newAchievement]);
+  };
 
   const removeAchievement = (id: string) => {
-    setAchievements(achievements.filter(ach => ach.id !== id))
-  }
+    setAchievements(achievements.filter((ach) => ach.id !== id));
+  };
 
   const updateAchievement = (id: string, field: keyof Achievement, value: string) => {
-    setAchievements(achievements.map(ach =>
-      ach.id === id ? { ...ach, [field]: value } : ach
-    ))
-  }
+    setAchievements(achievements.map((ach) => (ach.id === id ? { ...ach, [field]: value } : ach)));
+  };
 
   // PDF export using unified generator
   const exportPdf = async () => {
@@ -456,59 +459,87 @@ export default function ResumeEditorPage() {
           website: contactInfo.website || '',
         },
         summary,
-        skills: skillsText ? skillsText.split(',').map(s => s.trim()).filter(Boolean) : [],
+        skills: skillsText
+          ? skillsText
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
         experience,
         education,
         projects,
         achievements,
-      }
+      };
 
-      const fileName = `${(title || contactInfo?.name || 'resume').replace(/\s+/g, '_')}.pdf`
-      await generateResumePDF(resumeData, fileName)
+      const fileName = `${(title || contactInfo?.name || 'resume').replace(/\s+/g, '_')}.pdf`;
+      await generateResumePDF(resumeData, fileName);
 
-      toast({ title: 'Exported', description: 'PDF downloaded successfully.', variant: 'success' })
+      toast({ title: 'Exported', description: 'PDF downloaded successfully.', variant: 'success' });
     } catch (e: any) {
-      console.error('PDF export error:', e)
-      const errorMsg = e?.message || 'An error occurred during PDF export. Please check your resume data and try again.'
-      toast({ title: 'Export failed', description: errorMsg, variant: 'destructive' })
+      console.error('PDF export error:', e);
+      const errorMsg =
+        e?.message ||
+        'An error occurred during PDF export. Please check your resume data and try again.';
+      toast({ title: 'Export failed', description: errorMsg, variant: 'destructive' });
     }
-  }
+  };
 
   const doDelete = async () => {
-    if (!clerkId || !resume?._id) return
-    setDeleting(true)
+    if (!clerkId || !resume?._id) return;
+    setDeleting(true);
     try {
-      await deleteResume({ clerkId, resumeId: resume._id } as any)
-      toast({ title: "Deleted", description: "Resume removed.", variant: 'success' })
-      router.replace("/resumes")
+      await deleteResume({ clerkId, resumeId: resume._id } as any);
+      toast({ title: 'Deleted', description: 'Resume removed.', variant: 'success' });
+      router.replace('/resumes');
     } catch (e: any) {
-      toast({ title: "Delete failed", description: e?.message || "Please try again.", variant: "destructive" })
+      toast({
+        title: 'Delete failed',
+        description: e?.message || 'Please try again.',
+        variant: 'destructive',
+      });
     } finally {
-      setDeleting(false)
-      setConfirmOpen(false)
+      setDeleting(false);
+      setConfirmOpen(false);
     }
-  }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => router.push("/resumes")}>
+          <Button variant="outline" onClick={() => router.push('/resumes')}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
           <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
-            {isNewResume ? "Create Resume" : "Edit Resume"}
+            {isNewResume ? 'Create Resume' : 'Edit Resume'}
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={importFromProfile} disabled={importing || !userProfile}>
-            {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UploadIcon className="h-4 w-4 mr-2" />}
+          <Button
+            variant="outline"
+            onClick={importFromProfile}
+            disabled={importing || !userProfile}
+          >
+            {importing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <UploadIcon className="h-4 w-4 mr-2" />
+            )}
             Import from Career Profile
           </Button>
           {!isNewResume && (
             <>
-              <Button variant="destructive" onClick={() => setConfirmOpen(true)} disabled={!resume || deleting}>
-                {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />} Delete
+              <Button
+                variant="destructive"
+                onClick={() => setConfirmOpen(true)}
+                disabled={!resume || deleting}
+              >
+                {deleting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}{' '}
+                Delete
               </Button>
               <Button variant="outline" onClick={exportPdf} disabled={!resume}>
                 <Download className="h-4 w-4 mr-2" /> Export PDF
@@ -516,8 +547,12 @@ export default function ResumeEditorPage() {
             </>
           )}
           <Button onClick={doSave} disabled={saving || !clerkId}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-            {isNewResume ? "Save Resume" : "Save"}
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {isNewResume ? 'Save Resume' : 'Save'}
           </Button>
         </div>
       </div>
@@ -542,7 +577,11 @@ export default function ResumeEditorPage() {
             <CardContent className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Resume Title</label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Software Engineer Resume" />
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Software Engineer Resume"
+                />
               </div>
             </CardContent>
           </Card>
@@ -558,7 +597,7 @@ export default function ResumeEditorPage() {
                   <label className="block text-sm font-medium mb-1">Full Name</label>
                   <Input
                     value={contactInfo.name}
-                    onChange={(e) => setContactInfo({...contactInfo, name: e.target.value})}
+                    onChange={(e) => setContactInfo({ ...contactInfo, name: e.target.value })}
                     placeholder="John Doe"
                   />
                 </div>
@@ -567,7 +606,7 @@ export default function ResumeEditorPage() {
                   <Input
                     type="email"
                     value={contactInfo.email}
-                    onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})}
+                    onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
                     placeholder="john@example.com"
                   />
                 </div>
@@ -575,7 +614,7 @@ export default function ResumeEditorPage() {
                   <label className="block text-sm font-medium mb-1">Phone</label>
                   <Input
                     value={contactInfo.phone}
-                    onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})}
+                    onChange={(e) => setContactInfo({ ...contactInfo, phone: e.target.value })}
                     placeholder="+1 (555) 123-4567"
                   />
                 </div>
@@ -583,7 +622,7 @@ export default function ResumeEditorPage() {
                   <label className="block text-sm font-medium mb-1">Location</label>
                   <Input
                     value={contactInfo.location}
-                    onChange={(e) => setContactInfo({...contactInfo, location: e.target.value})}
+                    onChange={(e) => setContactInfo({ ...contactInfo, location: e.target.value })}
                     placeholder="San Francisco, CA"
                   />
                 </div>
@@ -591,7 +630,7 @@ export default function ResumeEditorPage() {
                   <label className="block text-sm font-medium mb-1">LinkedIn</label>
                   <Input
                     value={contactInfo.linkedin}
-                    onChange={(e) => setContactInfo({...contactInfo, linkedin: e.target.value})}
+                    onChange={(e) => setContactInfo({ ...contactInfo, linkedin: e.target.value })}
                     placeholder="linkedin.com/in/johndoe"
                   />
                 </div>
@@ -599,7 +638,7 @@ export default function ResumeEditorPage() {
                   <label className="block text-sm font-medium mb-1">GitHub</label>
                   <Input
                     value={contactInfo.github}
-                    onChange={(e) => setContactInfo({...contactInfo, github: e.target.value})}
+                    onChange={(e) => setContactInfo({ ...contactInfo, github: e.target.value })}
                     placeholder="github.com/johndoe"
                   />
                 </div>
@@ -607,7 +646,7 @@ export default function ResumeEditorPage() {
                   <label className="block text-sm font-medium mb-1">Website</label>
                   <Input
                     value={contactInfo.website}
-                    onChange={(e) => setContactInfo({...contactInfo, website: e.target.value})}
+                    onChange={(e) => setContactInfo({ ...contactInfo, website: e.target.value })}
                     placeholder="johndoe.com"
                   />
                 </div>
@@ -655,7 +694,9 @@ export default function ResumeEditorPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {experience.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No experience added yet. Click "Add Experience" to get started.</p>
+                <p className="text-sm text-muted-foreground">
+                  No experience added yet. Click "Add Experience" to get started.
+                </p>
               ) : (
                 experience.map((exp, idx) => (
                   <div key={exp.id} className="border rounded-lg p-4 space-y-4 relative">
@@ -721,7 +762,9 @@ export default function ResumeEditorPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Responsibilities & Achievements</label>
+                      <label className="block text-sm font-medium mb-1">
+                        Responsibilities & Achievements
+                      </label>
                       <Textarea
                         rows={4}
                         value={exp.description}
@@ -745,7 +788,9 @@ export default function ResumeEditorPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {education.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No education added yet. Click "Add Education" to get started.</p>
+                <p className="text-sm text-muted-foreground">
+                  No education added yet. Click "Add Education" to get started.
+                </p>
               ) : (
                 education.map((edu, idx) => (
                   <div key={edu.id} className="border rounded-lg p-4 space-y-4 relative">
@@ -776,7 +821,9 @@ export default function ResumeEditorPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1">Major/Field of Study</label>
+                        <label className="block text-sm font-medium mb-1">
+                          Major/Field of Study
+                        </label>
                         <Input
                           value={edu.field}
                           onChange={(e) => updateEducation(edu.id, 'field', e.target.value)}
@@ -840,7 +887,9 @@ export default function ResumeEditorPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {projects.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No projects added yet. Click "Add Project" to get started.</p>
+                <p className="text-sm text-muted-foreground">
+                  No projects added yet. Click "Add Project" to get started.
+                </p>
               ) : (
                 projects.map((proj, idx) => (
                   <div key={proj.id} className="border rounded-lg p-4 space-y-4 relative">
@@ -912,7 +961,9 @@ export default function ResumeEditorPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {achievements.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No achievements added yet. Click "Add Achievement" to get started.</p>
+                <p className="text-sm text-muted-foreground">
+                  No achievements added yet. Click "Add Achievement" to get started.
+                </p>
               ) : (
                 achievements.map((ach, idx) => (
                   <div key={ach.id} className="border rounded-lg p-4 space-y-4 relative">
@@ -971,7 +1022,11 @@ export default function ResumeEditorPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={doDelete} disabled={deleting} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={doDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
               {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               Delete
             </AlertDialogAction>
@@ -979,5 +1034,5 @@ export default function ResumeEditorPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

@@ -1,9 +1,20 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { format } from 'date-fns';
+import { AlertCircle, Building2, Calendar, ExternalLink, Search, User } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -11,19 +22,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, Building2, User, Calendar, ExternalLink, AlertCircle } from "lucide-react";
-import { format } from "date-fns";
-import Link from "next/link";
-import { isValidHttpUrl } from "@/lib/utils";
-import { ACTIVE_STAGES, type ApplicationStage } from "@/lib/advisor/stages";
+} from '@/components/ui/table';
+import { ACTIVE_STAGES, type ApplicationStage } from '@/lib/advisor/stages';
+import { isValidHttpUrl } from '@/lib/utils';
 
 interface Application {
   _id: string;
@@ -48,21 +49,21 @@ interface ApplicationTableProps {
   isLoading?: boolean;
 }
 
-const STAGE_BADGE_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  Prospect: "outline",
-  Applied: "default",
-  Interview: "secondary",
-  Offer: "default",
-  Accepted: "default",
-  Rejected: "destructive",
-  Withdrawn: "secondary",
-  Archived: "outline",
+const STAGE_BADGE_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  Prospect: 'outline',
+  Applied: 'default',
+  Interview: 'secondary',
+  Offer: 'default',
+  Accepted: 'default',
+  Rejected: 'destructive',
+  Withdrawn: 'secondary',
+  Archived: 'outline',
 };
 
 export function ApplicationTable({ applications, isLoading }: ApplicationTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [stageFilter, setStageFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<"date" | "student" | "company">("date");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stageFilter, setStageFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'date' | 'student' | 'company'>('date');
 
   // Filter applications
   const filteredApplications = applications.filter((app) => {
@@ -72,17 +73,17 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
       app.position_title.toLowerCase().includes(search) ||
       app.student_name.toLowerCase().includes(search);
 
-    const matchesStage = stageFilter === "all" || app.stage === stageFilter;
+    const matchesStage = stageFilter === 'all' || app.stage === stageFilter;
 
     return matchesSearch && matchesStage;
   });
 
   // Sort applications
   const sortedApplications = [...filteredApplications].sort((a, b) => {
-    if (sortBy === "date") {
+    if (sortBy === 'date') {
       // Use ?? instead of || to avoid treating 0 (epoch) as falsy
       return (b.applied_date ?? b.created_at) - (a.applied_date ?? a.created_at);
-    } else if (sortBy === "student") {
+    } else if (sortBy === 'student') {
       return a.student_name.localeCompare(b.student_name);
     } else {
       return a.company_name.localeCompare(b.company_name);
@@ -138,7 +139,11 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
           </SelectContent>
         </Select>
 
-        <Select value={sortBy} onValueChange={(val) => setSortBy(val as "date" | "student" | "company")} aria-label="Sort by">
+        <Select
+          value={sortBy}
+          onValueChange={(val) => setSortBy(val as 'date' | 'student' | 'company')}
+          aria-label="Sort by"
+        >
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
@@ -160,9 +165,9 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
         <div className="border rounded-lg p-12 text-center">
           <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">
-            {searchTerm || stageFilter !== "all"
-              ? "No applications match your filters"
-              : "No applications yet"}
+            {searchTerm || stageFilter !== 'all'
+              ? 'No applications match your filters'
+              : 'No applications yet'}
           </p>
         </div>
       ) : (
@@ -182,14 +187,10 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
             <TableBody>
               {sortedApplications.map((app) => {
                 const isActive = activeStages.includes(app.stage);
-                const isOverdue =
-                  isActive && app.next_step_date && app.next_step_date < now;
+                const isOverdue = isActive && app.next_step_date && app.next_step_date < now;
 
                 return (
-                  <TableRow
-                    key={app._id}
-                    className={isOverdue ? "bg-orange-50" : ""}
-                  >
+                  <TableRow key={app._id} className={isOverdue ? 'bg-orange-50' : ''}>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -198,9 +199,7 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
                     </TableCell>
 
                     <TableCell>
-                      <div className="max-w-xs truncate">
-                        {app.position_title}
-                      </div>
+                      <div className="max-w-xs truncate">{app.position_title}</div>
                     </TableCell>
 
                     <TableCell>
@@ -211,7 +210,7 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
                     </TableCell>
 
                     <TableCell>
-                      <Badge variant={STAGE_BADGE_VARIANTS[app.stage] || "outline"}>
+                      <Badge variant={STAGE_BADGE_VARIANTS[app.stage] || 'outline'}>
                         {app.stage}
                       </Badge>
                     </TableCell>
@@ -220,7 +219,7 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
                       {app.applied_date ? (
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-3 w-3 text-muted-foreground" />
-                          {format(new Date(app.applied_date), "MMM d, yyyy")}
+                          {format(new Date(app.applied_date), 'MMM d, yyyy')}
                         </div>
                       ) : (
                         <span className="text-muted-foreground text-sm">-</span>
@@ -239,11 +238,11 @@ export function ApplicationTable({ applications, isLoading }: ApplicationTablePr
                           {app.next_step_date && app.next_step_date > 0 && (
                             <div
                               className={`text-xs ${
-                                isOverdue ? "text-orange-600" : "text-muted-foreground"
+                                isOverdue ? 'text-orange-600' : 'text-muted-foreground'
                               }`}
                             >
-                              {format(new Date(app.next_step_date), "MMM d")}
-                              {isOverdue && " (Overdue)"}
+                              {format(new Date(app.next_step_date), 'MMM d')}
+                              {isOverdue && ' (Overdue)'}
                             </div>
                           )}
                         </div>

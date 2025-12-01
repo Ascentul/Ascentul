@@ -1,52 +1,65 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { useParams } from 'next/navigation'
-import Image from 'next/image'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Textarea } from '@/components/ui/textarea'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import {
-  MapPin, Mail, Phone, Linkedin, Github, Globe,
-  Briefcase, GraduationCap, Award, FolderGit2,
-  Calendar, ExternalLink, Upload, Camera, Save
-} from 'lucide-react'
-import { useUser } from '@clerk/nextjs'
-import { useToast } from '@/hooks/use-toast'
+  Award,
+  Briefcase,
+  Calendar,
+  Camera,
+  ExternalLink,
+  FolderGit2,
+  Github,
+  Globe,
+  GraduationCap,
+  Linkedin,
+  Mail,
+  MapPin,
+  Phone,
+  Save,
+  Upload,
+} from 'lucide-react';
+import Image from 'next/image';
+import { useParams } from 'next/navigation';
+import React, { useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 export default function PublicProfilePage() {
-  const params = useParams()
-  const userId = params.userId as string
-  const { user: currentUser } = useUser()
-  const { toast } = useToast()
+  const params = useParams();
+  const userId = params.userId as string;
+  const { user: currentUser } = useUser();
+  const { toast } = useToast();
 
   // Check if this is the user's own profile
-  const isOwnProfile = currentUser?.id === userId
+  const isOwnProfile = currentUser?.id === userId;
 
   // Fetch user data
-  const userData = useQuery(api.users.getUserByClerkId, { clerkId: userId })
-  const projects = useQuery(api.projects.getUserProjects, { clerkId: userId })
-  const achievements = useQuery(api.achievements.getUserAchievements, { clerkId: userId })
+  const userData = useQuery(api.users.getUserByClerkId, { clerkId: userId });
+  const projects = useQuery(api.projects.getUserProjects, { clerkId: userId });
+  const achievements = useQuery(api.achievements.getUserAchievements, { clerkId: userId });
 
   // Fetch current viewer's data to check if they're a university admin
   const viewerData = useQuery(
     api.users.getUserByClerkId,
-    currentUser?.id ? { clerkId: currentUser.id } : 'skip'
-  )
+    currentUser?.id ? { clerkId: currentUser.id } : 'skip',
+  );
 
-  const [coverImage, setCoverImage] = useState<string | null>(null)
-  const [profileImage, setProfileImage] = useState<string | null>(null)
-  const [adminNotes, setAdminNotes] = useState<string>('')
-  const [isSavingNotes, setIsSavingNotes] = useState(false)
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [adminNotes, setAdminNotes] = useState<string>('');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
-  const updateUserMutation = useMutation(api.users.updateUserById)
+  const updateUserMutation = useMutation(api.users.updateUserById);
 
-  const user = userData as any
-  const viewer = viewerData as any
+  const user = userData as any;
+  const viewer = viewerData as any;
 
   // Check if viewer is a university admin viewing a student from their university
   const isUniversityAdminViewing =
@@ -55,14 +68,14 @@ export default function PublicProfilePage() {
     user &&
     user.university_id === viewer.university_id &&
     user.role === 'user' &&
-    !isOwnProfile
+    !isOwnProfile;
 
   // Initialize admin notes when user data loads
   React.useEffect(() => {
     if (user && isUniversityAdminViewing) {
-      setAdminNotes(user.university_admin_notes || '')
+      setAdminNotes(user.university_admin_notes || '');
     }
-  }, [user, isUniversityAdminViewing])
+  }, [user, isUniversityAdminViewing]);
 
   // Handle loading and error states
   if (userData === undefined) {
@@ -70,7 +83,7 @@ export default function PublicProfilePage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
-    )
+    );
   }
 
   if (userData === null) {
@@ -78,39 +91,40 @@ export default function PublicProfilePage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Profile Not Found</h1>
-          <p className="text-gray-600 mb-4">The user profile you're looking for doesn't exist or you don't have permission to view it.</p>
-          <Button onClick={() => window.history.back()}>
-            Go Back
-          </Button>
+          <p className="text-gray-600 mb-4">
+            The user profile you're looking for doesn't exist or you don't have permission to view
+            it.
+          </p>
+          <Button onClick={() => window.history.back()}>Go Back</Button>
         </div>
       </div>
-    )
+    );
   }
 
   const handleSaveAdminNotes = async () => {
-    if (!user._id) return
-    setIsSavingNotes(true)
+    if (!user._id) return;
+    setIsSavingNotes(true);
     try {
       await updateUserMutation({
         id: user._id,
         updates: {
           university_admin_notes: adminNotes,
         },
-      })
+      });
       toast({
         title: 'Notes Saved',
         description: 'University admin notes have been updated',
-      })
+      });
     } catch (error: any) {
       toast({
         title: 'Error',
         description: error.message || 'Failed to save notes',
         variant: 'destructive',
-      })
+      });
     } finally {
-      setIsSavingNotes(false)
+      setIsSavingNotes(false);
     }
-  }
+  };
 
   /**
    * Handle cover image upload
@@ -122,34 +136,34 @@ export default function PublicProfilePage() {
    * 4. Add file size/type validation
    */
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     // Validate file size (max 10MB to prevent browser freeze from large data URLs)
-    const maxSize = 10 * 1024 * 1024
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       toast({
         title: 'File too large',
         description: 'Please select an image under 10MB',
         variant: 'destructive',
-      })
-      return
+      });
+      return;
     }
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onloadend = () => {
-      setCoverImage(reader.result as string)
+      setCoverImage(reader.result as string);
       // TODO: Implement cloud storage upload - see comment above for implementation plan
-    }
+    };
     reader.onerror = () => {
       toast({
         title: 'Upload failed',
         description: 'Failed to read the image file',
         variant: 'destructive',
-      })
-    }
-    reader.readAsDataURL(file)
-  }
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   /**
    * Handle profile image upload
@@ -161,46 +175,41 @@ export default function PublicProfilePage() {
    * 4. Add file size/type validation (max 5MB, images only)
    */
   const handleProfileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     // Validate file size (max 5MB to prevent browser freeze from large data URLs)
-    const maxSize = 5 * 1024 * 1024
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       toast({
         title: 'File too large',
         description: 'Please select an image under 5MB',
         variant: 'destructive',
-      })
-      return
+      });
+      return;
     }
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onloadend = () => {
-      setProfileImage(reader.result as string)
+      setProfileImage(reader.result as string);
       // TODO: Implement cloud storage upload - see comment above for implementation plan
-    }
+    };
     reader.onerror = () => {
       toast({
         title: 'Upload failed',
         description: 'Failed to read the image file',
         variant: 'destructive',
-      })
-    }
-    reader.readAsDataURL(file)
-  }
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Cover Image */}
       <div className="relative h-64 bg-gradient-to-r from-blue-600 to-indigo-700">
         {(coverImage || user.cover_image) && (
-          <Image
-            src={coverImage || user.cover_image}
-            alt="Cover"
-            fill
-            className="object-cover"
-          />
+          <Image src={coverImage || user.cover_image} alt="Cover" fill className="object-cover" />
         )}
         {isOwnProfile && (
           <label className="absolute bottom-4 right-4 cursor-pointer">
@@ -210,12 +219,7 @@ export default function PublicProfilePage() {
                 Change Cover
               </span>
             </Button>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleCoverUpload}
-              className="hidden"
-            />
+            <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
           </label>
         )}
       </div>
@@ -227,7 +231,7 @@ export default function PublicProfilePage() {
             {/* Profile Image */}
             <div className="relative">
               <div className="w-40 h-40 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden relative">
-                {(profileImage || user.profile_image) ? (
+                {profileImage || user.profile_image ? (
                   <Image
                     src={profileImage || user.profile_image}
                     alt={user.name}
@@ -367,7 +371,9 @@ export default function PublicProfilePage() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold">{user.current_position}</h3>
-                        <p className="text-sm text-gray-600">{user.current_company || 'Company Name'}</p>
+                        <p className="text-sm text-gray-600">
+                          {user.current_company || 'Company Name'}
+                        </p>
                         <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
                           <Calendar className="h-3 w-3" />
                           <span>Present</span>
@@ -398,7 +404,9 @@ export default function PublicProfilePage() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold">{user.education}</h3>
-                        <p className="text-sm text-gray-600">{user.university_name || 'University'}</p>
+                        <p className="text-sm text-gray-600">
+                          {user.university_name || 'University'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -423,7 +431,9 @@ export default function PublicProfilePage() {
                       <div key={project._id} className="border-l-2 border-purple-200 pl-4">
                         <h3 className="font-semibold">{project.title}</h3>
                         {project.description && (
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{project.description}</p>
+                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                            {project.description}
+                          </p>
                         )}
                         {project.technologies && project.technologies.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
@@ -510,7 +520,8 @@ export default function PublicProfilePage() {
                     University Admin Notes (Private)
                   </CardTitle>
                   <p className="text-sm text-amber-700">
-                    These notes are only visible to university administrators and will not be shown to the student.
+                    These notes are only visible to university administrators and will not be shown
+                    to the student.
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -545,5 +556,5 @@ export default function PublicProfilePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

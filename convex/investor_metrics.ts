@@ -27,9 +27,10 @@
  * For optimization patterns, see: https://docs.convex.dev/database/pagination
  */
 
-import { v } from "convex/values"
-import { query } from "./_generated/server"
-import { requireSuperAdmin } from "./lib/roles"
+import { v } from 'convex/values';
+
+import { query } from './_generated/server';
+import { requireSuperAdmin } from './lib/roles';
 
 /**
  * Get comprehensive user metrics for investor reporting
@@ -43,62 +44,44 @@ export const getUserMetrics = query({
   },
   handler: async (ctx, args) => {
     // Verify super admin
-    await requireSuperAdmin(ctx)
+    await requireSuperAdmin(ctx);
 
     // NOTE: Loads all users for comprehensive metrics
     // For large datasets (>50k users), consider implementing caching
-    const allUsers = await ctx.db.query("users").collect()
+    const allUsers = await ctx.db.query('users').collect();
 
     // Separate real users from test users
-    const realUsers = allUsers.filter(u => !u.is_test_user)
-    const testUsers = allUsers.filter(u => u.is_test_user)
+    const realUsers = allUsers.filter((u) => !u.is_test_user);
+    const testUsers = allUsers.filter((u) => u.is_test_user);
 
     // Active users (real users only, not deleted/suspended)
-    const activeUsers = realUsers.filter(
-      u => (u.account_status || 'active') === 'active'
-    )
+    const activeUsers = realUsers.filter((u) => (u.account_status || 'active') === 'active');
 
     // Deleted users (real users only)
-    const deletedUsers = realUsers.filter(
-      u => u.account_status === 'deleted'
-    )
+    const deletedUsers = realUsers.filter((u) => u.account_status === 'deleted');
 
     // Pending activation (real users only)
-    const pendingUsers = realUsers.filter(
-      u => u.account_status === 'pending_activation'
-    )
+    const pendingUsers = realUsers.filter((u) => u.account_status === 'pending_activation');
 
     // Suspended users (real users only)
-    const suspendedUsers = realUsers.filter(
-      u => u.account_status === 'suspended'
-    )
+    const suspendedUsers = realUsers.filter((u) => u.account_status === 'suspended');
 
     // Subscription breakdown (active real users only)
-    const freeUsers = activeUsers.filter(
-      u => u.subscription_plan === 'free'
-    )
-    const premiumUsers = activeUsers.filter(
-      u => u.subscription_plan === 'premium'
-    )
-    const universityUsers = activeUsers.filter(
-      u => u.subscription_plan === 'university'
-    )
+    const freeUsers = activeUsers.filter((u) => u.subscription_plan === 'free');
+    const premiumUsers = activeUsers.filter((u) => u.subscription_plan === 'premium');
+    const universityUsers = activeUsers.filter((u) => u.subscription_plan === 'university');
 
     // Role breakdown (active real users only)
-    const individualUsers = activeUsers.filter(
-      u => u.role === 'user' || u.role === 'individual'
-    )
-    const students = activeUsers.filter(u => u.role === 'student')
-    const staff = activeUsers.filter(u => u.role === 'staff')
-    const universityAdmins = activeUsers.filter(u => u.role === 'university_admin')
-    const advisors = activeUsers.filter(u => u.role === 'advisor')
-    const superAdmins = activeUsers.filter(u => u.role === 'super_admin')
+    const individualUsers = activeUsers.filter((u) => u.role === 'user' || u.role === 'individual');
+    const students = activeUsers.filter((u) => u.role === 'student');
+    const staff = activeUsers.filter((u) => u.role === 'staff');
+    const universityAdmins = activeUsers.filter((u) => u.role === 'university_admin');
+    const advisors = activeUsers.filter((u) => u.role === 'advisor');
+    const superAdmins = activeUsers.filter((u) => u.role === 'super_admin');
 
     // Growth metrics (last 30 days)
-    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000)
-    const newUsersLast30Days = activeUsers.filter(
-      u => u.created_at >= thirtyDaysAgo
-    ).length
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const newUsersLast30Days = activeUsers.filter((u) => u.created_at >= thirtyDaysAgo).length;
 
     // Monthly recurring revenue estimate (premium users only)
     // Pricing structure (from Clerk Billing config):
@@ -107,15 +90,15 @@ export const getUserMetrics = query({
     //
     // ASSUMPTION: 65% of premium users choose annual billing (industry standard for SaaS)
     // This weighted average provides more accurate MRR than assuming all monthly ($30)
-    const monthlyRate = 30
-    const annualRate = 20  // $240/year = $20/month effective
-    const annualBillingPercentage = 0.65 // 65% choose annual, 35% choose monthly
+    const monthlyRate = 30;
+    const annualRate = 20; // $240/year = $20/month effective
+    const annualBillingPercentage = 0.65; // 65% choose annual, 35% choose monthly
 
-    const weightedAvgRate = (annualRate * annualBillingPercentage) +
-                             (monthlyRate * (1 - annualBillingPercentage))
+    const weightedAvgRate =
+      annualRate * annualBillingPercentage + monthlyRate * (1 - annualBillingPercentage);
     // Result: (20 * 0.65) + (30 * 0.35) = 13 + 10.5 = $23.50/user average
 
-    const mrr = Math.round(premiumUsers.length * weightedAvgRate)
+    const mrr = Math.round(premiumUsers.length * weightedAvgRate);
 
     /**
      * FEATURE INCOMPLETE: Using weighted average estimate instead of real Stripe data
@@ -164,9 +147,10 @@ export const getUserMetrics = query({
       // Growth metrics
       growth: {
         new_users_last_30_days: newUsersLast30Days,
-        growth_rate_30d: activeUsers.length > 0
-          ? ((newUsersLast30Days / activeUsers.length) * 100).toFixed(2) + '%'
-          : '0%',
+        growth_rate_30d:
+          activeUsers.length > 0
+            ? ((newUsersLast30Days / activeUsers.length) * 100).toFixed(2) + '%'
+            : '0%',
       },
 
       // Revenue metrics
@@ -181,9 +165,9 @@ export const getUserMetrics = query({
 
       // Timestamp for report generation
       generated_at: Date.now(),
-    }
+    };
   },
-})
+});
 
 /**
  * Get user growth over time
@@ -198,50 +182,49 @@ export const getUserGrowthHistory = query({
   },
   handler: async (ctx, args) => {
     // Verify super admin
-    await requireSuperAdmin(ctx)
+    await requireSuperAdmin(ctx);
 
-    const monthsToShow = args.months || 12
+    const monthsToShow = args.months || 12;
     // NOTE: Loads all users for growth analysis
-    const allUsers = await ctx.db.query("users").collect()
-    const realUsers = allUsers.filter(u => !u.is_test_user)
+    const allUsers = await ctx.db.query('users').collect();
+    const realUsers = allUsers.filter((u) => !u.is_test_user);
 
     // Calculate monthly data points
-    const monthlyData = []
-    const now = Date.now()
+    const monthlyData = [];
+    const now = Date.now();
 
     for (let i = monthsToShow - 1; i >= 0; i--) {
-      const monthStart = new Date()
-      monthStart.setMonth(monthStart.getMonth() - i)
-      monthStart.setDate(1)
-      monthStart.setHours(0, 0, 0, 0)
-      const monthStartTime = monthStart.getTime()
+      const monthStart = new Date();
+      monthStart.setMonth(monthStart.getMonth() - i);
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const monthStartTime = monthStart.getTime();
 
-      const monthEnd = new Date(monthStart)
-      monthEnd.setMonth(monthEnd.getMonth() + 1)
-      const monthEndTime = monthEnd.getTime()
+      const monthEnd = new Date(monthStart);
+      monthEnd.setMonth(monthEnd.getMonth() + 1);
+      const monthEndTime = monthEnd.getTime();
 
       // Count users created in this month
       const usersCreatedThisMonth = realUsers.filter(
-        u => u.created_at >= monthStartTime && u.created_at < monthEndTime
-      ).length
+        (u) => u.created_at >= monthStartTime && u.created_at < monthEndTime,
+      ).length;
 
       // Count total active users at end of this month
       // Note: Uses current account_status, not historical state at monthEndTime
       const activeUsersAtMonthEnd = realUsers.filter(
-        u => u.created_at <= monthEndTime &&
-        (u.account_status || 'active') === 'active'
-      ).length
+        (u) => u.created_at <= monthEndTime && (u.account_status || 'active') === 'active',
+      ).length;
 
       monthlyData.push({
         month: monthStart.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
         new_users: usersCreatedThisMonth,
         total_active: activeUsersAtMonthEnd,
-      })
+      });
     }
 
-    return monthlyData
+    return monthlyData;
   },
-})
+});
 
 /**
  * Get university metrics for investor reporting
@@ -255,26 +238,27 @@ export const getUniversityMetrics = query({
   },
   handler: async (ctx, args) => {
     // Verify super admin
-    await requireSuperAdmin(ctx)
+    await requireSuperAdmin(ctx);
 
-    const universities = await ctx.db.query("universities").collect()
+    const universities = await ctx.db.query('universities').collect();
     // NOTE: Loads all users for university utilization calculation
-    const allUsers = await ctx.db.query("users").collect()
+    const allUsers = await ctx.db.query('users').collect();
 
     // Filter active students/advisors only
     const activeUniversityUsers = allUsers.filter(
-      u => !u.is_test_user &&
-      (u.account_status || 'active') === 'active' &&
-      u.subscription_plan === 'university' &&
-      u.university_id
-    )
+      (u) =>
+        !u.is_test_user &&
+        (u.account_status || 'active') === 'active' &&
+        u.subscription_plan === 'university' &&
+        u.university_id,
+    );
 
     // Calculate metrics per university
-    const universityStats = universities.map(uni => {
-      const uniUsers = activeUniversityUsers.filter(u => u.university_id === uni._id)
-      const students = uniUsers.filter(u => u.role === 'student')
-      const admins = uniUsers.filter(u => u.role === 'university_admin')
-      const advisors = uniUsers.filter(u => u.role === 'advisor')
+    const universityStats = universities.map((uni) => {
+      const uniUsers = activeUniversityUsers.filter((u) => u.university_id === uni._id);
+      const students = uniUsers.filter((u) => u.role === 'student');
+      const admins = uniUsers.filter((u) => u.role === 'university_admin');
+      const advisors = uniUsers.filter((u) => u.role === 'advisor');
 
       return {
         university_id: uni._id,
@@ -283,20 +267,20 @@ export const getUniversityMetrics = query({
         total_seats: uni.license_seats,
         used_seats: uniUsers.length,
         available_seats: uni.license_seats - uniUsers.length,
-        utilization_rate: uni.license_seats > 0
-          ? ((uniUsers.length / uni.license_seats) * 100).toFixed(1) + '%'
-          : '0%',
+        utilization_rate:
+          uni.license_seats > 0
+            ? ((uniUsers.length / uni.license_seats) * 100).toFixed(1) + '%'
+            : '0%',
         students: students.length,
         admins: admins.length,
         advisors: advisors.length,
-      }
-    })
+      };
+    });
 
     // Calculate aggregate metrics
     const totalSeats = universities.reduce((sum, u) => sum + u.license_seats, 0);
-    const utilizationRate = totalSeats > 0
-      ? ((activeUniversityUsers.length / totalSeats) * 100).toFixed(1) + '%'
-      : '0%';
+    const utilizationRate =
+      totalSeats > 0 ? ((activeUniversityUsers.length / totalSeats) * 100).toFixed(1) + '%' : '0%';
 
     return {
       total_universities: universities.length,
@@ -304,6 +288,6 @@ export const getUniversityMetrics = query({
       used_seats: activeUniversityUsers.length,
       utilization_rate: utilizationRate,
       universities: universityStats,
-    }
+    };
   },
-})
+});

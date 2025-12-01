@@ -1,4 +1,4 @@
-"use node";
+'use node';
 
 /**
  * Node.js actions for admin user management
@@ -6,31 +6,32 @@
  * and make authenticated fetch requests to Next.js API routes
  */
 
-import { v } from "convex/values";
-import { action } from "./_generated/server";
-import { api, internal } from "./_generated/api";
+import { v } from 'convex/values';
+
+import { api, internal } from './_generated/api';
+import { action } from './_generated/server';
 
 /**
  * Tables to cascade delete when hard-deleting a user.
  * IMPORTANT: Must match validTables list in _getRecordsByUserId (admin_users.ts)
  */
 const TABLES_TO_CASCADE = [
-  "applications",
-  "resumes",
-  "cover_letters",
-  "goals",
-  "projects",
-  "networking_contacts",
-  "contact_interactions",
-  "followup_actions",
-  "career_paths",
-  "ai_coach_conversations",
-  "ai_coach_messages",
-  "support_tickets",
-  "user_achievements",
-  "user_daily_activity",
-  "job_searches",
-  "daily_recommendations",
+  'applications',
+  'resumes',
+  'cover_letters',
+  'goals',
+  'projects',
+  'networking_contacts',
+  'contact_interactions',
+  'followup_actions',
+  'career_paths',
+  'ai_coach_conversations',
+  'ai_coach_messages',
+  'support_tickets',
+  'user_achievements',
+  'user_daily_activity',
+  'job_searches',
+  'daily_recommendations',
 ] as const;
 
 // Type for minimal user data from getAllUsersMinimal query
@@ -46,21 +47,21 @@ type MinimalUser = {
 // Validate query results at the trust boundary
 function assertMinimalUsers(data: any): asserts data is MinimalUser[] {
   if (!Array.isArray(data)) {
-    throw new Error("Expected data to be an array");
+    throw new Error('Expected data to be an array');
   }
 
   for (const user of data) {
-    if (!user || typeof user !== "object") {
-      throw new Error("Invalid user record: not an object");
+    if (!user || typeof user !== 'object') {
+      throw new Error('Invalid user record: not an object');
     }
-    if (typeof (user as any)._id !== "string" || typeof (user as any).clerkId !== "string") {
-      throw new Error("Invalid user record: missing required id fields");
+    if (typeof (user as any)._id !== 'string' || typeof (user as any).clerkId !== 'string') {
+      throw new Error('Invalid user record: missing required id fields');
     }
-    if ("is_test_user" in user && typeof (user as any).is_test_user !== "boolean") {
-      throw new Error("Invalid user record: is_test_user must be boolean");
+    if ('is_test_user' in user && typeof (user as any).is_test_user !== 'boolean') {
+      throw new Error('Invalid user record: is_test_user must be boolean');
     }
-    if ("account_status" in user && typeof (user as any).account_status !== "string") {
-      throw new Error("Invalid user record: account_status must be string");
+    if ('account_status' in user && typeof (user as any).account_status !== 'string') {
+      throw new Error('Invalid user record: account_status must be string');
     }
   }
 }
@@ -74,29 +75,32 @@ export const softDeleteUser = action({
     targetClerkId: v.string(),
     reason: v.optional(v.string()),
   },
-  handler: async (ctx, args): Promise<{success: boolean; message: string; userId: any}> => {
+  handler: async (ctx, args): Promise<{ success: boolean; message: string; userId: any }> => {
     // Get app URL from environment
     const appUrl = process.env.CONVEX_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
 
     if (!appUrl) {
       throw new Error(
-        "Server configuration error: App URL not configured. " +
-        "Set CONVEX_APP_URL or NEXT_PUBLIC_APP_URL in Convex dashboard."
+        'Server configuration error: App URL not configured. ' +
+          'Set CONVEX_APP_URL or NEXT_PUBLIC_APP_URL in Convex dashboard.',
       );
     }
 
     // Get admin identity
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized: Not authenticated");
+      throw new Error('Unauthorized: Not authenticated');
     }
 
     // Soft delete in Convex
-    const result: {success: boolean; message: string; userId: any} = await ctx.runMutation(internal.admin_users._softDeleteUserInternal, {
-      targetClerkId: args.targetClerkId,
-      adminClerkId: identity.subject,
-      reason: args.reason,
-    });
+    const result: { success: boolean; message: string; userId: any } = await ctx.runMutation(
+      internal.admin_users._softDeleteUserInternal,
+      {
+        targetClerkId: args.targetClerkId,
+        adminClerkId: identity.subject,
+        reason: args.reason,
+      },
+    );
 
     // Disable Clerk account (ban user to prevent login)
     try {
@@ -120,7 +124,7 @@ export const softDeleteUser = action({
 
     return result;
   },
-})
+});
 
 /**
  * Hard delete a test user (super_admin only)
@@ -152,10 +156,16 @@ export const hardDeleteUser = action({
           }
 
           lastError = new Error(`Clerk delete failed (status ${response.status})`);
-          console.error(`[HardDeleteUser] Clerk delete attempt ${attempt}/${maxAttempts} failed:`, await response.text());
+          console.error(
+            `[HardDeleteUser] Clerk delete attempt ${attempt}/${maxAttempts} failed:`,
+            await response.text(),
+          );
         } catch (error) {
           lastError = error;
-          console.error(`[HardDeleteUser] Clerk delete attempt ${attempt}/${maxAttempts} threw:`, error);
+          console.error(
+            `[HardDeleteUser] Clerk delete attempt ${attempt}/${maxAttempts} threw:`,
+            error,
+          );
         }
       }
 
@@ -167,15 +177,15 @@ export const hardDeleteUser = action({
 
     if (!appUrl) {
       throw new Error(
-        "Server configuration error: App URL not configured. " +
-        "Set CONVEX_APP_URL or NEXT_PUBLIC_APP_URL in Convex dashboard."
+        'Server configuration error: App URL not configured. ' +
+          'Set CONVEX_APP_URL or NEXT_PUBLIC_APP_URL in Convex dashboard.',
       );
     }
 
     // Get admin identity
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized: Not authenticated");
+      throw new Error('Unauthorized: Not authenticated');
     }
 
     // Get admin user
@@ -183,8 +193,8 @@ export const hardDeleteUser = action({
       clerkId: identity.subject,
     });
 
-    if (!admin || admin.role !== "super_admin") {
-      throw new Error("Forbidden: Only super admins can hard delete users");
+    if (!admin || admin.role !== 'super_admin') {
+      throw new Error('Forbidden: Only super admins can hard delete users');
     }
 
     // Get target user
@@ -193,18 +203,18 @@ export const hardDeleteUser = action({
     });
 
     if (!targetUser) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Prevent deleting self
     if (targetUser.clerkId === admin.clerkId) {
-      throw new Error("Cannot delete your own account");
+      throw new Error('Cannot delete your own account');
     }
 
     // ONLY allow hard delete for test users
     if (!targetUser.is_test_user) {
       throw new Error(
-        "Cannot hard delete real users. Only test users can be permanently deleted. Use softDeleteUser instead."
+        'Cannot hard delete real users. Only test users can be permanently deleted. Use softDeleteUser instead.',
       );
     }
 
@@ -217,13 +227,10 @@ export const hardDeleteUser = action({
     for (const tableName of tablesToCascade) {
       try {
         // Query records for this user
-        const records = await ctx.runQuery(
-          internal.admin_users._getRecordsByUserId,
-          {
-            tableName,
-            userId: targetUser._id,
-          }
-        );
+        const records = await ctx.runQuery(internal.admin_users._getRecordsByUserId, {
+          tableName,
+          userId: targetUser._id,
+        });
 
         // Delete each record
         for (const recordId of records) {
@@ -241,15 +248,15 @@ export const hardDeleteUser = action({
 
     // Create audit log BEFORE deleting the user
     await ctx.runMutation(internal.audit_logs._createAuditLogInternal, {
-      action: "user_hard_deleted",
-      target_type: "user",
+      action: 'user_hard_deleted',
+      target_type: 'user',
       target_id: targetUser._id,
       target_email: targetUser.email,
       target_name: targetUser.name,
       performed_by_id: admin._id,
       performed_by_email: admin.email,
       performed_by_name: admin.name,
-      reason: "Test user permanently deleted (hard delete)",
+      reason: 'Test user permanently deleted (hard delete)',
       metadata: {
         targetRole: targetUser.role,
         targetUniversityId: targetUser.university_id,
@@ -285,7 +292,7 @@ export const hardDeleteUser = action({
       deletedRecords,
     };
   },
-})
+});
 
 /**
  * Restore a soft-deleted user (super_admin only)
@@ -295,21 +302,21 @@ export const restoreDeletedUser = action({
   args: {
     targetClerkId: v.string(),
   },
-  handler: async (ctx, args): Promise<{success: boolean; message: string; userId: any}> => {
+  handler: async (ctx, args): Promise<{ success: boolean; message: string; userId: any }> => {
     // Get app URL from environment
     const appUrl = process.env.CONVEX_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
 
     if (!appUrl) {
       throw new Error(
-        "Server configuration error: App URL not configured. " +
-        "Set CONVEX_APP_URL or NEXT_PUBLIC_APP_URL in Convex dashboard."
+        'Server configuration error: App URL not configured. ' +
+          'Set CONVEX_APP_URL or NEXT_PUBLIC_APP_URL in Convex dashboard.',
       );
     }
 
     // Get admin identity
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized: Not authenticated");
+      throw new Error('Unauthorized: Not authenticated');
     }
 
     // Get admin user
@@ -317,8 +324,8 @@ export const restoreDeletedUser = action({
       clerkId: identity.subject,
     });
 
-    if (!admin || admin.role !== "super_admin") {
-      throw new Error("Forbidden: Only super admins can restore deleted users");
+    if (!admin || admin.role !== 'super_admin') {
+      throw new Error('Forbidden: Only super admins can restore deleted users');
     }
 
     // Get target user
@@ -327,12 +334,12 @@ export const restoreDeletedUser = action({
     });
 
     if (!targetUser) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Verify user is actually deleted
-    if (targetUser.account_status !== "deleted") {
-      throw new Error("User is not deleted. Cannot restore an active user.");
+    if (targetUser.account_status !== 'deleted') {
+      throw new Error('User is not deleted. Cannot restore an active user.');
     }
 
     // Restore in Convex
@@ -362,7 +369,7 @@ export const restoreDeletedUser = action({
 
     return result;
   },
-})
+});
 
 /**
  * Reconcile lingering test users by re-attempting hard delete (Convex + Clerk).
@@ -372,7 +379,7 @@ export const restoreDeletedUser = action({
 type ReconcileResult = {
   clerkId: string;
   userId?: string;
-  status: "deleted" | "failed";
+  status: 'deleted' | 'failed';
   deletedRecords?: number;
   error?: string;
   clerkError?: string;
@@ -383,7 +390,10 @@ export const reconcileTestUsers = action({
     limit: v.optional(v.number()),
     includeDeletedStatus: v.optional(v.boolean()), // also include account_status === "deleted"
   },
-  handler: async (ctx, args): Promise<{
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
     totalCandidates: number;
     processed: number;
     deleted: number;
@@ -394,22 +404,22 @@ export const reconcileTestUsers = action({
 
     if (!appUrl) {
       throw new Error(
-        "Server configuration error: App URL not configured. " +
-        "Set CONVEX_APP_URL or NEXT_PUBLIC_APP_URL in Convex dashboard."
+        'Server configuration error: App URL not configured. ' +
+          'Set CONVEX_APP_URL or NEXT_PUBLIC_APP_URL in Convex dashboard.',
       );
     }
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized: Not authenticated");
+      throw new Error('Unauthorized: Not authenticated');
     }
 
     const admin = await ctx.runQuery(api.users.getUserByClerkId, {
       clerkId: identity.subject,
     });
 
-    if (!admin || admin.role !== "super_admin") {
-      throw new Error("Forbidden: Only super admins can reconcile test users");
+    if (!admin || admin.role !== 'super_admin') {
+      throw new Error('Forbidden: Only super admins can reconcile test users');
     }
 
     const deleteFromClerk = async (clerkId: string) => {
@@ -432,10 +442,16 @@ export const reconcileTestUsers = action({
           }
 
           lastError = new Error(`Clerk delete failed (status ${response.status})`);
-          console.error(`[ReconcileTestUsers] Clerk delete attempt ${attempt}/${maxAttempts} failed:`, await response.text());
+          console.error(
+            `[ReconcileTestUsers] Clerk delete attempt ${attempt}/${maxAttempts} failed:`,
+            await response.text(),
+          );
         } catch (error) {
           lastError = error;
-          console.error(`[ReconcileTestUsers] Clerk delete attempt ${attempt}/${maxAttempts} threw:`, error);
+          console.error(
+            `[ReconcileTestUsers] Clerk delete attempt ${attempt}/${maxAttempts} threw:`,
+            error,
+          );
         }
       }
 
@@ -450,9 +466,10 @@ export const reconcileTestUsers = action({
     });
 
     assertMinimalUsers(usersPage.page);
-    const candidates = usersPage.page.filter((u) =>
-      u.is_test_user === true &&
-      (u.account_status !== "deleted" || args.includeDeletedStatus === true)
+    const candidates = usersPage.page.filter(
+      (u) =>
+        u.is_test_user === true &&
+        (u.account_status !== 'deleted' || args.includeDeletedStatus === true),
     );
 
     const tablesToCascade = TABLES_TO_CASCADE;
@@ -466,8 +483,8 @@ export const reconcileTestUsers = action({
         if (user.clerkId === admin.clerkId) {
           results.push({
             clerkId: user.clerkId,
-            status: "failed",
-            error: "Cannot delete your own account",
+            status: 'failed',
+            error: 'Cannot delete your own account',
           });
           continue;
         }
@@ -480,7 +497,7 @@ export const reconcileTestUsers = action({
         if (!targetUser) {
           // Already gone in Convex; still attempt Clerk cleanup
           await deleteFromClerk(user.clerkId);
-          results.push({ clerkId: user.clerkId, status: "deleted", deletedRecords: 0 });
+          results.push({ clerkId: user.clerkId, status: 'deleted', deletedRecords: 0 });
           continue;
         }
 
@@ -488,21 +505,18 @@ export const reconcileTestUsers = action({
           results.push({
             clerkId: user.clerkId,
             userId: targetUser._id,
-            status: "failed",
-            error: "Not a test user; skipping",
+            status: 'failed',
+            error: 'Not a test user; skipping',
           });
           continue;
         }
 
         for (const tableName of tablesToCascade) {
           try {
-            const records = await ctx.runQuery(
-              internal.admin_users._getRecordsByUserId,
-              {
-                tableName,
-                userId: targetUser._id,
-              }
-            );
+            const records = await ctx.runQuery(internal.admin_users._getRecordsByUserId, {
+              tableName,
+              userId: targetUser._id,
+            });
 
             for (const recordId of records) {
               await ctx.runMutation(internal.admin_users._deleteRecord, {
@@ -516,15 +530,15 @@ export const reconcileTestUsers = action({
           }
         }
         await ctx.runMutation(internal.audit_logs._createAuditLogInternal, {
-          action: "user_hard_deleted_reconcile",
-          target_type: "user",
+          action: 'user_hard_deleted_reconcile',
+          target_type: 'user',
           target_id: targetUser._id,
           target_email: targetUser.email,
           target_name: targetUser.name,
           performed_by_id: admin._id,
           performed_by_email: admin.email,
           performed_by_name: admin.name,
-          reason: "Test user permanently deleted (reconcile)",
+          reason: 'Test user permanently deleted (reconcile)',
           metadata: {
             targetRole: targetUser.role,
             targetUniversityId: targetUser.university_id,
@@ -545,20 +559,23 @@ export const reconcileTestUsers = action({
         } catch (error) {
           clerkDeleted = false;
           clerkError = error instanceof Error ? error.message : String(error);
-          console.error('[ReconcileTestUsers] Failed to delete Clerk account after retries:', error);
+          console.error(
+            '[ReconcileTestUsers] Failed to delete Clerk account after retries:',
+            error,
+          );
         }
 
         results.push({
           clerkId: user.clerkId,
           userId: targetUser._id,
-          status: "deleted",
+          status: 'deleted',
           deletedRecords,
           ...(clerkError && { error: clerkError }),
         });
       } catch (error) {
         results.push({
           clerkId: user.clerkId,
-          status: "failed",
+          status: 'failed',
           error: error instanceof Error ? error.message : String(error),
           deletedRecords,
         });
@@ -568,9 +585,9 @@ export const reconcileTestUsers = action({
     return {
       totalCandidates: candidates.length,
       processed: results.length,
-      deleted: results.filter((r) => r.status === "deleted").length,
-      failed: results.filter((r) => r.status === "failed").length,
+      deleted: results.filter((r) => r.status === 'deleted').length,
+      failed: results.filter((r) => r.status === 'failed').length,
       results,
     };
   },
-})
+});

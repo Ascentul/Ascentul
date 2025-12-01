@@ -1,11 +1,29 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
+import {
+  AlertTriangle,
+  Briefcase,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  GraduationCap,
+  Info,
+  School,
+  Shield,
+  User,
+  UserCog,
+  Users,
+  X,
+} from 'lucide-react';
+import React, { useState } from 'react';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Table,
   TableBody,
@@ -13,40 +31,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
-  Shield,
-  Users,
-  School,
-  GraduationCap,
-  UserCog,
-  User,
-  Briefcase,
-  Check,
-  X,
-  ChevronDown,
-  ChevronRight,
-  Info,
-  AlertTriangle,
-} from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+} from '@/components/ui/table';
 
 interface RoleInfo {
-  role: string
-  displayName: string
-  icon: React.ReactNode
-  color: string
-  description: string
+  role: string;
+  displayName: string;
+  icon: React.ReactNode;
+  color: string;
+  description: string;
   permissions: {
-    feature: string
-    access: 'full' | 'limited' | 'own' | 'none'
-    details?: string
-  }[]
+    feature: string;
+    access: 'full' | 'limited' | 'own' | 'none';
+    details?: string;
+  }[];
 }
 
 const rolePermissions: RoleInfo[] = [
@@ -59,13 +56,29 @@ const rolePermissions: RoleInfo[] = [
     permissions: [
       { feature: 'Platform Settings', access: 'full', details: 'Configure system-wide settings' },
       { feature: 'User Management', access: 'full', details: 'Create, edit, delete any user' },
-      { feature: 'University Management', access: 'full', details: 'Create and manage all universities' },
-      { feature: 'Student Management', access: 'full', details: 'Manage students across all universities' },
-      { feature: 'Platform Analytics', access: 'full', details: 'View system-wide metrics and reports' },
+      {
+        feature: 'University Management',
+        access: 'full',
+        details: 'Create and manage all universities',
+      },
+      {
+        feature: 'Student Management',
+        access: 'full',
+        details: 'Manage students across all universities',
+      },
+      {
+        feature: 'Platform Analytics',
+        access: 'full',
+        details: 'View system-wide metrics and reports',
+      },
       { feature: 'University Analytics', access: 'full', details: 'View all university analytics' },
       { feature: 'Audit Logs', access: 'full', details: 'View all system audit logs' },
       { feature: 'Support Tickets', access: 'full', details: 'Manage all support tickets' },
-      { feature: 'Career Tools', access: 'full', details: 'Access all career development features' },
+      {
+        feature: 'Career Tools',
+        access: 'full',
+        details: 'Access all career development features',
+      },
     ],
   },
   {
@@ -76,14 +89,34 @@ const rolePermissions: RoleInfo[] = [
     description: 'Administrator for a specific university with scoped management access',
     permissions: [
       { feature: 'Platform Settings', access: 'none' },
-      { feature: 'User Management', access: 'limited', details: 'Manage users within own university only' },
-      { feature: 'University Management', access: 'own', details: 'Manage own university settings' },
-      { feature: 'Student Management', access: 'limited', details: 'Manage students in own university' },
+      {
+        feature: 'User Management',
+        access: 'limited',
+        details: 'Manage users within own university only',
+      },
+      {
+        feature: 'University Management',
+        access: 'own',
+        details: 'Manage own university settings',
+      },
+      {
+        feature: 'Student Management',
+        access: 'limited',
+        details: 'Manage students in own university',
+      },
       { feature: 'Platform Analytics', access: 'none' },
       { feature: 'University Analytics', access: 'own', details: 'View own university analytics' },
       { feature: 'Audit Logs', access: 'none' },
-      { feature: 'Support Tickets', access: 'limited', details: 'View and manage university tickets' },
-      { feature: 'Career Tools', access: 'full', details: 'Access all career development features' },
+      {
+        feature: 'Support Tickets',
+        access: 'limited',
+        details: 'View and manage university tickets',
+      },
+      {
+        feature: 'Career Tools',
+        access: 'full',
+        details: 'Access all career development features',
+      },
     ],
   },
   {
@@ -96,12 +129,20 @@ const rolePermissions: RoleInfo[] = [
       { feature: 'Platform Settings', access: 'none' },
       { feature: 'User Management', access: 'none' },
       { feature: 'University Management', access: 'none' },
-      { feature: 'Student Management', access: 'limited', details: 'View and assist assigned students' },
+      {
+        feature: 'Student Management',
+        access: 'limited',
+        details: 'View and assist assigned students',
+      },
       { feature: 'Platform Analytics', access: 'none' },
       { feature: 'University Analytics', access: 'own', details: 'View own university analytics' },
       { feature: 'Audit Logs', access: 'none' },
       { feature: 'Support Tickets', access: 'limited', details: 'View university support tickets' },
-      { feature: 'Career Tools', access: 'full', details: 'Access all career development features' },
+      {
+        feature: 'Career Tools',
+        access: 'full',
+        details: 'Access all career development features',
+      },
     ],
   },
   {
@@ -119,7 +160,11 @@ const rolePermissions: RoleInfo[] = [
       { feature: 'University Analytics', access: 'none' },
       { feature: 'Audit Logs', access: 'none' },
       { feature: 'Support Tickets', access: 'own', details: 'Create and view own support tickets' },
-      { feature: 'Career Tools', access: 'full', details: 'Full access with university subscription' },
+      {
+        feature: 'Career Tools',
+        access: 'full',
+        details: 'Full access with university subscription',
+      },
     ],
   },
   {
@@ -155,7 +200,11 @@ const rolePermissions: RoleInfo[] = [
       { feature: 'University Analytics', access: 'none' },
       { feature: 'Audit Logs', access: 'none' },
       { feature: 'Support Tickets', access: 'full', details: 'Manage all support tickets' },
-      { feature: 'Career Tools', access: 'full', details: 'Access all career development features' },
+      {
+        feature: 'Career Tools',
+        access: 'full',
+        details: 'Access all career development features',
+      },
     ],
   },
   {
@@ -176,48 +225,48 @@ const rolePermissions: RoleInfo[] = [
       { feature: 'Career Tools', access: 'full', details: 'Access based on subscription tier' },
     ],
   },
-]
+];
 
 const accessLevelColors = {
   full: 'text-green-600 bg-green-50',
   limited: 'text-blue-600 bg-blue-50',
   own: 'text-purple-600 bg-purple-50',
   none: 'text-gray-400 bg-gray-50',
-}
+};
 
 const accessLevelIcons = {
   full: <Check className="h-4 w-4" />,
   limited: <Check className="h-4 w-4" />,
   own: <Check className="h-4 w-4" />,
   none: <X className="h-4 w-4" />,
-}
+};
 
 export function RolePermissionsGuide() {
-  const [expandedRoles, setExpandedRoles] = useState<Set<string>>(new Set())
+  const [expandedRoles, setExpandedRoles] = useState<Set<string>>(new Set());
 
   // Fetch route access mappings from backend (single source of truth)
-  const roleRoutes = useQuery(api.roleValidation.getAllRoleRoutes)
+  const roleRoutes = useQuery(api.roleValidation.getAllRoleRoutes);
 
   // Distinguish between loading (undefined) and error (query failed)
-  const isLoadingRoutes = roleRoutes === undefined
+  const isLoadingRoutes = roleRoutes === undefined;
 
   const toggleRole = (role: string) => {
-    const newExpanded = new Set(expandedRoles)
+    const newExpanded = new Set(expandedRoles);
     if (newExpanded.has(role)) {
-      newExpanded.delete(role)
+      newExpanded.delete(role);
     } else {
-      newExpanded.add(role)
+      newExpanded.add(role);
     }
-    setExpandedRoles(newExpanded)
-  }
+    setExpandedRoles(newExpanded);
+  };
 
   const expandAll = () => {
-    setExpandedRoles(new Set(rolePermissions.map(r => r.role)))
-  }
+    setExpandedRoles(new Set(rolePermissions.map((r) => r.role)));
+  };
 
   const collapseAll = () => {
-    setExpandedRoles(new Set())
-  }
+    setExpandedRoles(new Set());
+  };
 
   return (
     <Card>
@@ -244,7 +293,8 @@ export function RolePermissionsGuide() {
           <Info className="h-4 w-4" />
           <AlertDescription>
             <strong>Important:</strong> Roles are managed in Clerk (source of truth). Changes sync
-            automatically to the database via webhook. The database role is used for display purposes only.
+            automatically to the database via webhook. The database role is used for display
+            purposes only.
           </AlertDescription>
         </Alert>
 
@@ -268,32 +318,33 @@ export function RolePermissionsGuide() {
             </TableHeader>
             <TableBody>
               {/* Create rows for each unique feature */}
-              {rolePermissions.length > 0 && Array.from(
-                new Set(rolePermissions.flatMap(r => r.permissions.map(p => p.feature)))
-              ).map((feature) => (
-                <TableRow key={feature}>
-                  <TableCell className="font-medium">{feature}</TableCell>
-                  {rolePermissions.map((roleInfo) => {
-                    const permission = roleInfo.permissions.find(p => p.feature === feature)
-                    const access = permission?.access || 'none'
-                    return (
-                      <TableCell key={roleInfo.role} className="text-center">
-                        <div className="flex items-center justify-center">
-                          <Badge
-                            variant="outline"
-                            className={`${accessLevelColors[access]} flex items-center gap-1`}
-                          >
-                            {accessLevelIcons[access]}
-                            <span className="capitalize text-xs">
-                              {access === 'none' ? '' : access}
-                            </span>
-                          </Badge>
-                        </div>
-                      </TableCell>
-                    )
-                  })}
-                </TableRow>
-              ))}
+              {rolePermissions.length > 0 &&
+                Array.from(
+                  new Set(rolePermissions.flatMap((r) => r.permissions.map((p) => p.feature))),
+                ).map((feature) => (
+                  <TableRow key={feature}>
+                    <TableCell className="font-medium">{feature}</TableCell>
+                    {rolePermissions.map((roleInfo) => {
+                      const permission = roleInfo.permissions.find((p) => p.feature === feature);
+                      const access = permission?.access || 'none';
+                      return (
+                        <TableCell key={roleInfo.role} className="text-center">
+                          <div className="flex items-center justify-center">
+                            <Badge
+                              variant="outline"
+                              className={`${accessLevelColors[access]} flex items-center gap-1`}
+                            >
+                              {accessLevelIcons[access]}
+                              <span className="capitalize text-xs">
+                                {access === 'none' ? '' : access}
+                              </span>
+                            </Badge>
+                          </div>
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </div>
@@ -376,16 +427,17 @@ export function RolePermissionsGuide() {
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Failed to load route access data. Please refresh the page or contact support if the issue persists.
+                  Failed to load route access data. Please refresh the page or contact support if
+                  the issue persists.
                 </AlertDescription>
               </Alert>
             ) : (
               <div className="space-y-4">
                 {roleRoutes.map(({ role, routes }) => {
-                  const roleInfo = rolePermissions.find(r => r.role === role)
+                  const roleInfo = rolePermissions.find((r) => r.role === role);
 
                   // Skip roles with no routes
-                  if (!routes || routes.length === 0) return null
+                  if (!routes || routes.length === 0) return null;
 
                   return (
                     <div key={role} className="border rounded-lg p-4">
@@ -404,7 +456,7 @@ export function RolePermissionsGuide() {
                         ))}
                       </div>
                     </div>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -412,5 +464,5 @@ export function RolePermissionsGuide() {
         </Card>
       </CardContent>
     </Card>
-  )
+  );
 }

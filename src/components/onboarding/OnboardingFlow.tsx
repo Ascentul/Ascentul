@@ -1,13 +1,14 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useUser } from "@clerk/nextjs";
-import { useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
-import { ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation } from 'convex/react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+
+import { PlanCard } from '@/components/pricing/PlanCard';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -15,20 +16,20 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { PlanCard } from "@/components/pricing/PlanCard";
-import { PRICING, PLAN_FEATURES } from "@/config/pricing";
+} from '@/components/ui/select';
+import { PLAN_FEATURES, PRICING } from '@/config/pricing';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 interface OnboardingData {
   major: string;
@@ -37,9 +38,9 @@ interface OnboardingData {
 }
 
 const defaultOnboardingData: OnboardingData = {
-  major: "",
-  graduationYear: "",
-  dreamJob: "",
+  major: '',
+  graduationYear: '',
+  dreamJob: '',
 };
 
 export function OnboardingFlow() {
@@ -56,15 +57,18 @@ export function OnboardingFlow() {
 
     if (!sessionRefreshed && clerkUser) {
       // Reload the user to get fresh subscription data from Clerk
-      clerkUser.reload().then(() => {
-        console.log('[OnboardingFlow] User session refreshed after payment');
-        // Add URL param to prevent repeated reloads
-        const url = new URL(window.location.href);
-        url.searchParams.set('session_refreshed', 'true');
-        window.history.replaceState({}, '', url);
-      }).catch((err) => {
-        console.error('[OnboardingFlow] Error refreshing session:', err);
-      });
+      clerkUser
+        .reload()
+        .then(() => {
+          console.log('[OnboardingFlow] User session refreshed after payment');
+          // Add URL param to prevent repeated reloads
+          const url = new URL(window.location.href);
+          url.searchParams.set('session_refreshed', 'true');
+          window.history.replaceState({}, '', url);
+        })
+        .catch((err) => {
+          console.error('[OnboardingFlow] Error refreshing session:', err);
+        });
     }
   }, [clerkUser, searchParams]);
 
@@ -82,7 +86,9 @@ export function OnboardingFlow() {
   const educationStep = shouldSkipPlanSelection ? 1 : 2;
   const dreamJobStep = shouldSkipPlanSelection ? 2 : 3;
 
-  const [step, setStep] = useState<number>(shouldSkipPlanSelection ? educationStep : planSelectionStep);
+  const [step, setStep] = useState<number>(
+    shouldSkipPlanSelection ? educationStep : planSelectionStep,
+  );
   const [data, setData] = useState<OnboardingData>(defaultOnboardingData);
   const [progress, setProgress] = useState<number>(0);
   const [isSavingOnboarding, setIsSavingOnboarding] = useState<boolean>(false);
@@ -96,9 +102,9 @@ export function OnboardingFlow() {
   useEffect(() => {
     if (step === planSelectionStep && hasPremium && !subscription.isLoading) {
       toast({
-        title: "Subscription activated!",
+        title: 'Subscription activated!',
         description: `Welcome to ${subscription.planName}!`,
-        variant: "success",
+        variant: 'success',
       });
       setStep(educationStep);
     }
@@ -117,10 +123,9 @@ export function OnboardingFlow() {
       const success = await saveOnboardingData();
       if (!success) {
         toast({
-          title: "Error saving onboarding data",
-          description:
-            "There was an error saving your profile information. Please try again.",
-          variant: "destructive",
+          title: 'Error saving onboarding data',
+          description: 'There was an error saving your profile information. Please try again.',
+          variant: 'destructive',
         });
       }
     } else if (step < totalSteps) {
@@ -175,9 +180,10 @@ export function OnboardingFlow() {
       toast({
         variant: 'destructive',
         title: 'Checkout Failed',
-        description: error instanceof Error && error.name === 'AbortError'
-          ? 'Request timed out. Please try again.'
-          : 'Failed to start checkout. Please try again.',
+        description:
+          error instanceof Error && error.name === 'AbortError'
+            ? 'Request timed out. Please try again.'
+            : 'Failed to start checkout. Please try again.',
       });
       setIsCheckingOut(null);
     }
@@ -200,19 +206,19 @@ export function OnboardingFlow() {
       });
 
       toast({
-        title: "Welcome to Ascentful!",
-        description: "Your profile has been set up successfully.",
-        variant: "success",
+        title: 'Welcome to Ascentful!',
+        description: 'Your profile has been set up successfully.',
+        variant: 'success',
       });
 
       // Wait for Convex to propagate
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Redirect to dashboard
-      window.location.href = "/dashboard";
+      window.location.href = '/dashboard';
       return true;
     } catch (error) {
-      console.error("Error saving onboarding data:", error);
+      console.error('Error saving onboarding data:', error);
       return false;
     } finally {
       setIsSavingOnboarding(false);
@@ -225,9 +231,12 @@ export function OnboardingFlow() {
       return (
         <div className="space-y-6">
           <CardHeader>
-            <CardTitle className="text-2xl md:text-3xl font-bold text-center">Choose Your Plan</CardTitle>
+            <CardTitle className="text-2xl md:text-3xl font-bold text-center">
+              Choose Your Plan
+            </CardTitle>
             <CardDescription className="text-center">
-              Select the plan that best fits your career goals. You can upgrade or downgrade at any time.
+              Select the plan that best fits your career goals. You can upgrade or downgrade at any
+              time.
             </CardDescription>
             <p className="mt-2 text-lg md:text-xl font-bold text-brand-blue text-center">
               Save {PRICING.annual.savingsPercentage} with annual billing
@@ -267,9 +276,7 @@ export function OnboardingFlow() {
             {/* Free plan option */}
             <div className="border-t pt-6 mt-8">
               <div className="text-center">
-                <p className="text-sm text-zinc-600 mb-4">
-                  Not ready to subscribe?
-                </p>
+                <p className="text-sm text-zinc-600 mb-4">Not ready to subscribe?</p>
                 <Button
                   variant="ghost"
                   onClick={handleSkipPlanSelection}
@@ -289,12 +296,9 @@ export function OnboardingFlow() {
       return (
         <div className="space-y-6">
           <CardHeader>
-            <CardTitle className="text-2xl">
-              Tell us about your education
-            </CardTitle>
+            <CardTitle className="text-2xl">Tell us about your education</CardTitle>
             <CardDescription>
-              Help us personalize your experience by sharing your academic
-              details.
+              Help us personalize your experience by sharing your academic details.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -304,16 +308,14 @@ export function OnboardingFlow() {
                 id="major"
                 placeholder="e.g., Computer Science, Business, Psychology"
                 value={data.major}
-                onChange={(e) => handleDataChange("major", e.target.value)}
+                onChange={(e) => handleDataChange('major', e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="grad-year">Expected graduation year</Label>
               <Select
                 value={data.graduationYear}
-                onValueChange={(value) =>
-                  handleDataChange("graduationYear", value)
-                }
+                onValueChange={(value) => handleDataChange('graduationYear', value)}
               >
                 <SelectTrigger id="grad-year">
                   <SelectValue placeholder="Select graduation year" />
@@ -345,7 +347,7 @@ export function OnboardingFlow() {
             <Button
               onClick={handleNext}
               disabled={!data.major || !data.graduationYear}
-              className={shouldSkipPlanSelection ? "ml-auto" : ""}
+              className={shouldSkipPlanSelection ? 'ml-auto' : ''}
             >
               Next <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
@@ -361,8 +363,7 @@ export function OnboardingFlow() {
           <CardHeader>
             <CardTitle className="text-2xl">What's your dream job?</CardTitle>
             <CardDescription>
-              Tell us about your career aspirations so we can help you get
-              there.
+              Tell us about your career aspirations so we can help you get there.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -372,11 +373,10 @@ export function OnboardingFlow() {
                 id="dreamJob"
                 placeholder="e.g., Software Engineer at Google, Marketing Manager, Data Scientist"
                 value={data.dreamJob}
-                onChange={(e) => handleDataChange("dreamJob", e.target.value)}
+                onChange={(e) => handleDataChange('dreamJob', e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Be as specific or general as you'd like - this helps us tailor
-                your experience.
+                Be as specific or general as you'd like - this helps us tailor your experience.
               </p>
             </div>
           </CardContent>
@@ -388,7 +388,7 @@ export function OnboardingFlow() {
               onClick={async () => {
                 const success = await saveOnboardingData();
                 if (success) {
-                  router.push("/dashboard");
+                  router.push('/dashboard');
                 }
               }}
               disabled={isSavingOnboarding || !data.dreamJob}
@@ -400,7 +400,7 @@ export function OnboardingFlow() {
                   Setting up...
                 </>
               ) : (
-                "Complete Setup"
+                'Complete Setup'
               )}
             </Button>
           </CardFooter>

@@ -1,17 +1,23 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import { Building2, Edit, Plus, Trash2, Users } from 'lucide-react';
+import React, { useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -19,20 +25,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { Building2, Users, Plus, Edit, Trash2 } from "lucide-react";
+} from '@/components/ui/table';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 export default function UniversityDepartmentsPage() {
   const { user, isAdmin, subscription } = useAuth();
@@ -41,17 +36,15 @@ export default function UniversityDepartmentsPage() {
 
   // Access control: Only university_admin or super_admin can manage departments
   // subscription.isUniversity is NOT sufficient - it includes regular students
-  const canAccess =
-    !!user &&
-    (isAdmin || user.role === 'university_admin');
+  const canAccess = !!user && (isAdmin || user.role === 'university_admin');
 
   const departments = useQuery(
     api.university_admin.listDepartments,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
   ) as any[] | undefined;
   const students = useQuery(
     api.university_admin.listStudents,
-    clerkUser?.id ? { clerkId: clerkUser.id, limit: 1000 } : "skip",
+    clerkUser?.id ? { clerkId: clerkUser.id, limit: 1000 } : 'skip',
   ) as any[] | undefined;
 
   // Mutations for department management
@@ -65,7 +58,7 @@ export default function UniversityDepartmentsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Form states
-  const [formData, setFormData] = useState({ name: "", code: "" });
+  const [formData, setFormData] = useState({ name: '', code: '' });
   const [editingDepartment, setEditingDepartment] = useState<any>(null);
   const [deletingDepartment, setDeletingDepartment] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -113,17 +106,17 @@ export default function UniversityDepartmentsPage() {
         code: formData.code.trim() || undefined,
       });
       toast({
-        title: "Success",
-        description: "Department created successfully",
-        variant: "success",
+        title: 'Success',
+        description: 'Department created successfully',
+        variant: 'success',
       });
       setCreateOpen(false);
-      setFormData({ name: "", code: "" });
+      setFormData({ name: '', code: '' });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create department",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to create department',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -144,18 +137,18 @@ export default function UniversityDepartmentsPage() {
         },
       });
       toast({
-        title: "Success",
-        description: "Department updated successfully",
-        variant: "success",
+        title: 'Success',
+        description: 'Department updated successfully',
+        variant: 'success',
       });
       setEditOpen(false);
       setEditingDepartment(null);
-      setFormData({ name: "", code: "" });
+      setFormData({ name: '', code: '' });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to update department",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to update department',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -172,17 +165,17 @@ export default function UniversityDepartmentsPage() {
         departmentId: deletingDepartment._id,
       });
       toast({
-        title: "Success",
-        description: "Department deleted successfully",
-        variant: "success",
+        title: 'Success',
+        description: 'Department deleted successfully',
+        variant: 'success',
       });
       setDeleteOpen(false);
       setDeletingDepartment(null);
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete department",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to delete department',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -192,7 +185,7 @@ export default function UniversityDepartmentsPage() {
   // Open edit modal
   const openEditModal = (department: any) => {
     setEditingDepartment(department);
-    setFormData({ name: department.name, code: department.code || "" });
+    setFormData({ name: department.name, code: department.code || '' });
     setEditOpen(true);
   };
 
@@ -206,17 +199,12 @@ export default function UniversityDepartmentsPage() {
     <div className="max-w-screen-2xl mx-auto p-4 md:p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
-            Departments
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Departments</h1>
           <p className="text-muted-foreground">
             Manage academic departments and track student distribution.
           </p>
         </div>
-        <Button
-          onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-2"
-        >
+        <Button onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Add Department
         </Button>
@@ -226,9 +214,7 @@ export default function UniversityDepartmentsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">
-              Total Departments
-            </CardTitle>
+            <CardTitle className="text-base font-medium">Total Departments</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
@@ -240,17 +226,13 @@ export default function UniversityDepartmentsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">
-              Students per Department
-            </CardTitle>
+            <CardTitle className="text-base font-medium">Students per Department</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
               <Users className="h-5 w-5 text-muted-foreground mr-2" />
               <div className="text-2xl font-bold">
-                {departments.length > 0
-                  ? Math.round(students.length / departments.length)
-                  : 0}
+                {departments.length > 0 ? Math.round(students.length / departments.length) : 0}
               </div>
             </div>
             <div className="text-xs text-muted-foreground mt-1">Average</div>
@@ -259,41 +241,32 @@ export default function UniversityDepartmentsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">
-              Active Departments
-            </CardTitle>
+            <CardTitle className="text-base font-medium">Active Departments</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
               <Building2 className="h-5 w-5 text-muted-foreground mr-2" />
               <div className="text-2xl font-bold">{departments.length}</div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              All departments active
-            </div>
+            <div className="text-xs text-muted-foreground mt-1">All departments active</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">
-              Department Usage
-            </CardTitle>
+            <CardTitle className="text-base font-medium">Department Usage</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
               <Users className="h-5 w-5 text-muted-foreground mr-2" />
               <div className="text-2xl font-bold">
                 {students.length > 0
-                  ? Math.round((students.length / departments.length) * 100) /
-                    100
+                  ? Math.round((students.length / departments.length) * 100) / 100
                   : 0}
                 %
               </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Utilization rate
-            </div>
+            <div className="text-xs text-muted-foreground mt-1">Utilization rate</div>
           </CardContent>
         </Card>
       </div>
@@ -302,9 +275,7 @@ export default function UniversityDepartmentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Department Overview</CardTitle>
-          <CardDescription>
-            Academic departments and student distribution
-          </CardDescription>
+          <CardDescription>Academic departments and student distribution</CardDescription>
         </CardHeader>
         <CardContent>
           {departments.length === 0 ? (
@@ -323,9 +294,7 @@ export default function UniversityDepartmentsPage() {
                   <Card key={String(department._id)} className="relative">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-lg">
-                          {department.name}
-                        </CardTitle>
+                        <CardTitle className="text-lg">{department.name}</CardTitle>
                         <div className="flex gap-1">
                           <Button
                             variant="ghost"
@@ -349,23 +318,17 @@ export default function UniversityDepartmentsPage() {
                     <CardContent>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">
-                            Students
-                          </span>
+                          <span className="text-sm text-muted-foreground">Students</span>
                           <Badge variant="secondary">{studentCount}</Badge>
                         </div>
                         {department.code && (
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">
-                              Code
-                            </span>
+                            <span className="text-sm text-muted-foreground">Code</span>
                             <Badge variant="outline">{department.code}</Badge>
                           </div>
                         )}
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">
-                            Status
-                          </span>
+                          <span className="text-sm text-muted-foreground">Status</span>
                           <Badge variant="default">Active</Badge>
                         </div>
                       </div>
@@ -391,9 +354,7 @@ export default function UniversityDepartmentsPage() {
                 id="deptName"
                 placeholder="e.g., Computer Science"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
               />
             </div>
             <div>
@@ -402,9 +363,7 @@ export default function UniversityDepartmentsPage() {
                 id="deptCode"
                 placeholder="e.g., CS"
                 value={formData.code}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, code: e.target.value }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, code: e.target.value }))}
               />
               <div className="text-xs text-muted-foreground mt-1">
                 Short code for the department (e.g., CS for Computer Science)
@@ -415,11 +374,8 @@ export default function UniversityDepartmentsPage() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={loading || !formData.name.trim()}
-            >
-              {loading ? "Creating..." : "Create Department"}
+            <Button onClick={handleCreate} disabled={loading || !formData.name.trim()}>
+              {loading ? 'Creating...' : 'Create Department'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -438,9 +394,7 @@ export default function UniversityDepartmentsPage() {
                 id="editDeptName"
                 placeholder="e.g., Computer Science"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
               />
             </div>
             <div>
@@ -449,9 +403,7 @@ export default function UniversityDepartmentsPage() {
                 id="editDeptCode"
                 placeholder="e.g., CS"
                 value={formData.code}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, code: e.target.value }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, code: e.target.value }))}
               />
               <div className="text-xs text-muted-foreground mt-1">
                 Short code for the department (e.g., CS for Computer Science)
@@ -462,11 +414,8 @@ export default function UniversityDepartmentsPage() {
             <Button variant="outline" onClick={() => setEditOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleEdit}
-              disabled={loading || !formData.name.trim()}
-            >
-              {loading ? "Updating..." : "Update Department"}
+            <Button onClick={handleEdit} disabled={loading || !formData.name.trim()}>
+              {loading ? 'Updating...' : 'Update Department'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -479,25 +428,17 @@ export default function UniversityDepartmentsPage() {
             <DialogTitle>Delete Department</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p>
-              Are you sure you want to delete the department "
-              {deletingDepartment?.name}"?
-            </p>
+            <p>Are you sure you want to delete the department "{deletingDepartment?.name}"?</p>
             <p className="text-sm text-muted-foreground">
-              This action cannot be undone. All associated data will be
-              permanently removed.
+              This action cannot be undone. All associated data will be permanently removed.
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={loading}
-            >
-              {loading ? "Deleting..." : "Delete Department"}
+            <Button variant="destructive" onClick={handleDelete} disabled={loading}>
+              {loading ? 'Deleting...' : 'Delete Department'}
             </Button>
           </DialogFooter>
         </DialogContent>

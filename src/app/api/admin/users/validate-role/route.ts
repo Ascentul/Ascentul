@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth, clerkClient } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
-import { api } from 'convex/_generated/api'
-import { Id } from 'convex/_generated/dataModel'
-import { ClerkPublicMetadata } from '@/types/clerk'
+import { auth, clerkClient } from '@clerk/nextjs/server';
+import { api } from 'convex/_generated/api';
+import { Id } from 'convex/_generated/dataModel';
+import { ConvexHttpClient } from 'convex/browser';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
+import { ClerkPublicMetadata } from '@/types/clerk';
 
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 
 /**
  * Validate a role transition
@@ -19,44 +20,41 @@ const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
  */
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await auth()
-    const { userId } = authResult
+    const authResult = await auth();
+    const { userId } = authResult;
 
     if (!userId) {
       return NextResponse.json(
         { valid: false, error: 'Unauthorized - Please sign in' },
-        { status: 401 }
-      )
+        { status: 401 },
+      );
     }
 
     // Verify caller is super_admin
-    const client = await clerkClient()
-    const caller = await client.users.getUser(userId)
-    const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role
+    const client = await clerkClient();
+    const caller = await client.users.getUser(userId);
+    const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role;
 
     if (callerRole !== 'super_admin') {
       return NextResponse.json(
         { valid: false, error: 'Forbidden - Only super admins can validate roles' },
-        { status: 403 }
-      )
+        { status: 403 },
+      );
     }
 
     if (!convexUrl) {
-      console.error('[API] Missing NEXT_PUBLIC_CONVEX_URL')
+      console.error('[API] Missing NEXT_PUBLIC_CONVEX_URL');
       return NextResponse.json(
         { valid: false, error: 'Server configuration error' },
-        { status: 500 }
-      )
+        { status: 500 },
+      );
     }
 
-    const body = await request.json()
-    const { userId: targetUserId, currentRole, newRole, universityId } = body
+    const body = await request.json();
+    const { userId: targetUserId, currentRole, newRole, universityId } = body;
 
     if (!targetUserId || !currentRole || !newRole) {
-      return NextResponse.json(
-        { valid: false, error: 'Missing required fields' },
-        { status: 400 }
-      )
+      return NextResponse.json({ valid: false, error: 'Missing required fields' }, { status: 400 });
     }
 
     // Validate universityId format if provided
@@ -64,44 +62,45 @@ export async function POST(request: NextRequest) {
       if (typeof universityId !== 'string' || universityId.trim().length === 0) {
         return NextResponse.json(
           { valid: false, error: 'Invalid university ID: must be a non-empty string' },
-          { status: 400 }
-        )
+          { status: 400 },
+        );
       }
 
       // Basic format check: Convex IDs are alphanumeric with possible underscores
       if (!/^[a-z0-9_]+$/i.test(universityId)) {
         return NextResponse.json(
           { valid: false, error: 'Invalid university ID format: contains invalid characters' },
-          { status: 400 }
-        )
+          { status: 400 },
+        );
       }
     }
 
     // Use Convex query to validate (centralizes business logic)
-    const convex = new ConvexHttpClient(convexUrl)
-    const convexToken = await authResult.getToken({ template: 'convex' })
+    const convex = new ConvexHttpClient(convexUrl);
+    const convexToken = await authResult.getToken({ template: 'convex' });
     if (convexToken) {
-      convex.setAuth(convexToken)
+      convex.setAuth(convexToken);
     }
 
     const result = await convex.query(api.roleValidation.validateRoleTransition, {
       userId: targetUserId,
       currentRole,
       newRole,
-      universityId: universityId && typeof universityId === 'string' && universityId.trim().length > 0
-        ? (universityId as Id<"universities">)
-        : undefined,
-    })
+      universityId:
+        universityId && typeof universityId === 'string' && universityId.trim().length > 0
+          ? (universityId as Id<'universities'>)
+          : undefined,
+    });
 
-    return NextResponse.json(result)
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('[API] Role validation error:', error)
+    console.error('[API] Role validation error:', error);
     return NextResponse.json(
       {
         valid: false,
         error: error instanceof Error ? error.message : 'Validation failed',
       },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }

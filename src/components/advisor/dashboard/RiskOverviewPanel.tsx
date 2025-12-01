@@ -14,9 +14,10 @@
  * - High Volume No Offers: Students with many applications but no success yet
  */
 
+import { AlertCircle, Search, TrendingDown, Users } from 'lucide-react';
 import Link from 'next/link';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingDown, Search, Users, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -90,7 +91,7 @@ function RiskTile({ icon, title, count, subtitle, href, variant = 'warning' }: R
       className={cn(
         'block p-4 rounded-lg border border-slate-200 transition-all',
         'hover:border-slate-300 hover:shadow-sm',
-        styles.bg
+        styles.bg,
       )}
     >
       <div className="flex items-start gap-3">
@@ -99,9 +100,7 @@ function RiskTile({ icon, title, count, subtitle, href, variant = 'warning' }: R
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className={cn('text-2xl font-bold', styles.countColor)}>
-              {count}
-            </span>
+            <span className={cn('text-2xl font-bold', styles.countColor)}>{count}</span>
           </div>
           <h3 className="text-sm font-medium text-slate-900 truncate">{title}</h3>
           <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{subtitle}</p>
@@ -151,9 +150,7 @@ export function RiskOverviewPanel({ data, isLoading }: RiskOverviewPanelProps) {
   if (!data) return null;
 
   const totalAtRisk =
-    data.lowEngagement.count +
-    data.stalledSearch.count +
-    data.priorityPopulation.count;
+    data.lowEngagement.count + data.stalledSearch.count + data.priorityPopulation.count;
 
   return (
     <Card>
@@ -164,9 +161,7 @@ export function RiskOverviewPanel({ data, isLoading }: RiskOverviewPanelProps) {
             Risk Overview
           </CardTitle>
           {totalAtRisk > 0 && (
-            <span className="text-sm text-slate-500">
-              {totalAtRisk} students at risk
-            </span>
+            <span className="text-sm text-slate-500">{totalAtRisk} students at risk</span>
           )}
         </div>
       </CardHeader>

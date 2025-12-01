@@ -5,9 +5,10 @@
  * This ensures consistent rules across Kanban, Table, and Stats components.
  */
 
-import { useMemo, useState, useEffect } from 'react';
-import { NeedActionReason, UrgencyLevel, NeedActionFields } from '../types';
 import { ACTIVE_STAGES, type ApplicationStage } from 'convex/advisor_constants';
+import { useEffect, useMemo, useState } from 'react';
+
+import { NeedActionFields, NeedActionReason, UrgencyLevel } from '../types';
 
 /**
  * Interval for time-based cache invalidation (1 minute)
@@ -27,7 +28,7 @@ const FOURTEEN_DAYS = 14 * ONE_DAY;
  */
 export interface ApplicationForTriage {
   next_step?: string;
-  next_step_date?: number;  // Due date
+  next_step_date?: number; // Due date
   updated_at: number;
   stage: ApplicationStage;
 }
@@ -53,10 +54,7 @@ export interface NeedActionResult {
  * Core triage logic (shared between hook and batch function)
  * Extracted to eliminate duplication and ensure consistency
  */
-function calculateNeedAction(
-  application: ApplicationForTriage,
-  now: number
-): NeedActionResult {
+function calculateNeedAction(application: ApplicationForTriage, now: number): NeedActionResult {
   const reasons: NeedActionReason[] = [];
 
   // Only apply triage rules to active stages
@@ -84,9 +82,7 @@ function calculateNeedAction(
   }
 
   // Rule 2: Overdue (due date in the past)
-  const isOverdue =
-    application.next_step_date !== undefined &&
-    application.next_step_date < now;
+  const isOverdue = application.next_step_date !== undefined && application.next_step_date < now;
   if (isOverdue) {
     reasons.push('overdue');
   }
@@ -140,7 +136,7 @@ function calculateNeedAction(
  */
 function useCurrentTimeBucket(): number {
   const [timeBucket, setTimeBucket] = useState(() =>
-    Math.floor(Date.now() / TIME_BUCKET_INTERVAL_MS)
+    Math.floor(Date.now() / TIME_BUCKET_INTERVAL_MS),
   );
 
   useEffect(() => {
@@ -165,7 +161,13 @@ export function useNeedActionRules(application: ApplicationForTriage): NeedActio
     () => calculateNeedAction(application, Date.now()),
     // timeBucket changes every minute, ensuring time-sensitive calculations stay fresh
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [application.next_step, application.next_step_date, application.updated_at, application.stage, timeBucket]
+    [
+      application.next_step,
+      application.next_step_date,
+      application.updated_at,
+      application.stage,
+      timeBucket,
+    ],
   );
 }
 
@@ -188,7 +190,7 @@ export function computeNeedAction(application: ApplicationForTriage): NeedAction
  * to match the consumer-facing interface in types/index.ts
  */
 export function enrichApplicationsWithNeedAction<T extends ApplicationForTriage>(
-  applications: T[]
+  applications: T[],
 ): Array<T & NeedActionFields> {
   return applications.map((app) => {
     const result = computeNeedAction(app);

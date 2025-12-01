@@ -14,8 +14,9 @@
  * - Urgent document reviews that students are waiting on
  */
 
+import { AlertTriangle, Clock, FileEdit, FileQuestion, UserX } from 'lucide-react';
 import Link from 'next/link';
-import { AlertTriangle, Clock, FileQuestion, UserX, FileEdit } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
 interface AttentionItem {
@@ -52,7 +53,14 @@ interface AttentionChipProps {
   subtitle?: string;
 }
 
-function AttentionChip({ icon, label, count, href, variant = 'warning', subtitle }: AttentionChipProps) {
+function AttentionChip({
+  icon,
+  label,
+  count,
+  href,
+  variant = 'warning',
+  subtitle,
+}: AttentionChipProps) {
   if (count === 0) return null;
 
   const variantClasses = {
@@ -67,7 +75,7 @@ function AttentionChip({ icon, label, count, href, variant = 'warning', subtitle
       className={cn(
         'flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors',
         'min-w-[140px] shrink-0',
-        variantClasses[variant]
+        variantClasses[variant],
       )}
     >
       <div className="flex-shrink-0">{icon}</div>
@@ -76,9 +84,7 @@ function AttentionChip({ icon, label, count, href, variant = 'warning', subtitle
           <span className="font-semibold text-lg leading-none">{count}</span>
           <span className="text-sm font-medium truncate">{label}</span>
         </div>
-        {subtitle && (
-          <p className="text-xs opacity-75 truncate">{subtitle}</p>
-        )}
+        {subtitle && <p className="text-xs opacity-75 truncate">{subtitle}</p>}
       </div>
     </Link>
   );

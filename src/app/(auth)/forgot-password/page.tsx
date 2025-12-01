@@ -1,53 +1,61 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react'
+import { zodResolver } from '@hookform/resolvers/zod';
+import { api } from 'convex/_generated/api';
+import { useMutation } from 'convex/react';
+import { ArrowLeft, CheckCircle2, Mail } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
-})
+});
 
-type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
-  const router = useRouter()
-  const requestPasswordReset = useMutation(api.password_reset.requestPasswordReset)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const requestPasswordReset = useMutation(api.password_reset.requestPasswordReset);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       email: '',
     },
-  })
+  });
 
   const onSubmit = async (data: ForgotPasswordFormValues) => {
-    setIsSubmitting(true)
-    setError(null)
+    setIsSubmitting(true);
+    setError(null);
 
     try {
-      await requestPasswordReset({ email: data.email })
-      setIsSuccess(true)
+      await requestPasswordReset({ email: data.email });
+      setIsSuccess(true);
     } catch (err: any) {
-      console.error('Password reset request failed:', err)
-      setError(err?.message || 'Failed to send reset email. Please try again.')
+      console.error('Password reset request failed:', err);
+      setError(err?.message || 'Failed to send reset email. Please try again.');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   if (isSuccess) {
     return (
@@ -66,21 +74,19 @@ export default function ForgotPasswordPage() {
             <div className="flex gap-3 p-4 rounded-lg border bg-blue-50 border-blue-200">
               <Mail className="h-5 w-5 text-blue-600 mt-0.5" />
               <div className="text-sm text-blue-900">
-                If an account exists with the email you provided, you'll receive a password reset link shortly.
-                Please check your spam folder if you don't see it in your inbox.
+                If an account exists with the email you provided, you'll receive a password reset
+                link shortly. Please check your spam folder if you don't see it in your inbox.
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground text-center">
-                Didn't receive the email?
-              </p>
+              <p className="text-sm text-muted-foreground text-center">Didn't receive the email?</p>
               <Button
                 variant="outline"
                 className="w-full"
                 onClick={() => {
-                  setIsSuccess(false)
-                  form.reset()
+                  setIsSuccess(false);
+                  form.reset();
                 }}
               >
                 Try another email
@@ -98,7 +104,7 @@ export default function ForgotPasswordPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -167,5 +173,5 @@ export default function ForgotPasswordPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

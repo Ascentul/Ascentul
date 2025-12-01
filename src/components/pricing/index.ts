@@ -1,4 +1,4 @@
-export { PlanCard } from './PlanCard'
-export type { PlanCardProps } from './PlanCard'
-export { TrustRow } from './TrustRow'
-export { PricingFAQ } from './PricingFAQ'
+export type { PlanCardProps } from './PlanCard';
+export { PlanCard } from './PlanCard';
+export { PricingFAQ } from './PricingFAQ';
+export { TrustRow } from './TrustRow';

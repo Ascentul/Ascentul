@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
-import { getErrorMessage } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
+
+import { ASSIGNABLE_STUDENT_ROLES, hasAdvisorAccess } from '@/lib/constants/roles';
 import { convexServer } from '@/lib/convex-server';
-import { hasAdvisorAccess, ASSIGNABLE_STUDENT_ROLES } from '@/lib/constants/roles';
+import { getErrorMessage } from '@/lib/errors';
 
 /**
  * Assign a student to a university
@@ -29,19 +30,13 @@ export async function POST(req: NextRequest) {
     const { clerkId, email, role, departmentId } = body;
 
     if (!clerkId || !email) {
-      return NextResponse.json(
-        { error: 'Missing clerkId or email' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing clerkId or email' }, { status: 400 });
     }
 
     // Validate departmentId format if provided (Convex will enforce ID validity)
     if (departmentId !== undefined) {
       if (typeof departmentId !== 'string' || !departmentId.trim()) {
-        return NextResponse.json(
-          { error: 'Invalid departmentId format' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Invalid departmentId format' }, { status: 400 });
       }
     }
 
@@ -49,21 +44,25 @@ export async function POST(req: NextRequest) {
     const adminUser = await convexServer.query(
       api.users.getUserByClerkId,
       { clerkId: userId },
-      token
+      token,
     );
 
     if (!adminUser || !adminUser.university_id) {
       return NextResponse.json(
         { error: 'University admin not found or no university assigned' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Verify admin has permission
     if (!hasAdvisorAccess(adminUser.role)) {
-      return NextResponse.json({
-        error: 'Insufficient permissions. Only super admins, university admins, and advisors can assign students.'
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          error:
+            'Insufficient permissions. Only super admins, university admins, and advisors can assign students.',
+        },
+        { status: 403 },
+      );
     }
 
     // Validate department ownership (if provided)
@@ -71,13 +70,13 @@ export async function POST(req: NextRequest) {
       const department = await convexServer.query(
         api.departments.getDepartment,
         { departmentId: departmentId as Id<'departments'> },
-        token
+        token,
       );
 
       if (!department || department.university_id !== adminUser.university_id) {
         return NextResponse.json(
           { error: 'Department not found or access denied' },
-          { status: 403 }
+          { status: 403 },
         );
       }
     }
@@ -86,7 +85,8 @@ export async function POST(req: NextRequest) {
     // Note: This mutation should be idempotent - if the student is already assigned,
     // it should update rather than fail, to prevent issues on retry
     // Validate role if provided
-    const assignedRole = role && (ASSIGNABLE_STUDENT_ROLES as readonly string[]).includes(role) ? role : 'user';
+    const assignedRole =
+      role && (ASSIGNABLE_STUDENT_ROLES as readonly string[]).includes(role) ? role : 'user';
 
     const result = await convexServer.mutation(
       api.university_admin.assignStudentByEmail,
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
         role: assignedRole,
         departmentId: departmentId as Id<'departments'> | undefined,
       },
-      token
+      token,
     );
 
     // Sync to Clerk publicMetadata
@@ -134,9 +134,6 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     console.error('Assign student error:', error);
     const message = getErrorMessage(error, 'Internal server error');
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

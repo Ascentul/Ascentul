@@ -1,36 +1,23 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import Image from "next/image";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import {
-  Plus,
+  Edit,
   ExternalLink,
   Github,
+  Image as ImageIcon,
   Pencil,
+  Plus,
   Trash2,
   Upload,
-  Image as ImageIcon,
-  Edit,
-} from "lucide-react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
+} from 'lucide-react';
+import Image from 'next/image';
+import React, { useState } from 'react';
+
+import { UpgradeModal } from '@/components/modals/UpgradeModal';
+import { ProjectPreviewModal } from '@/components/project-preview-modal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,9 +27,23 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { ProjectPreviewModal } from "@/components/project-preview-modal";
-import { UpgradeModal } from "@/components/modals/UpgradeModal";
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 interface Project {
   _id: string;
@@ -66,12 +67,12 @@ export default function ProjectsPage() {
 
   const projects = useQuery(
     api.projects.getUserProjects,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
   ) as Project[] | undefined;
 
   const userData = useQuery(
     api.users.getUserByClerkId,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
   );
 
   const createProjectMutation = useMutation(api.projects.createProject);
@@ -88,32 +89,32 @@ export default function ProjectsPage() {
   const isFreeUser = !hasPremium; // Use Clerk Billing subscription check
 
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    technologies: "",
-    github_url: "",
-    url: "",
-    role: "",
-    company: "",
-    start_date: "",
-    end_date: "",
-    image_url: "",
-    type: "personal",
+    title: '',
+    description: '',
+    technologies: '',
+    github_url: '',
+    url: '',
+    role: '',
+    company: '',
+    start_date: '',
+    end_date: '',
+    image_url: '',
+    type: 'personal',
   });
 
   const resetForm = () => {
     setFormData({
-      title: "",
-      description: "",
-      technologies: "",
-      github_url: "",
-      url: "",
-      role: "",
-      company: "",
-      start_date: "",
-      end_date: "",
-      image_url: "",
-      type: "personal",
+      title: '',
+      description: '',
+      technologies: '',
+      github_url: '',
+      url: '',
+      role: '',
+      company: '',
+      start_date: '',
+      end_date: '',
+      image_url: '',
+      type: 'personal',
     });
   };
 
@@ -127,40 +128,36 @@ export default function ProjectsPage() {
         title: formData.title,
         description: formData.description || undefined,
         technologies: formData.technologies
-          .split(",")
+          .split(',')
           .map((t) => t.trim())
           .filter(Boolean),
-        type: formData.type as "personal" | "professional",
+        type: formData.type as 'personal' | 'professional',
         url: formData.url || undefined,
         github_url: formData.github_url || undefined,
         role: formData.role || undefined,
         company: formData.company || undefined,
         image_url: formData.image_url || undefined,
-        start_date: formData.start_date
-          ? new Date(formData.start_date).getTime()
-          : undefined,
-        end_date: formData.end_date
-          ? new Date(formData.end_date).getTime()
-          : undefined,
+        start_date: formData.start_date ? new Date(formData.start_date).getTime() : undefined,
+        end_date: formData.end_date ? new Date(formData.end_date).getTime() : undefined,
       });
 
       toast({
-        title: "Project created",
-        description: "Your project has been added successfully.",
-        variant: "success",
+        title: 'Project created',
+        description: 'Your project has been added successfully.',
+        variant: 'success',
       });
       setShowCreateForm(false);
       resetForm();
     } catch (error: any) {
       // Check if error is about free plan limit
-      if (error?.message?.includes("Free plan limit reached")) {
+      if (error?.message?.includes('Free plan limit reached')) {
         setShowCreateForm(false);
         setShowUpgradeModal(true);
       } else {
         toast({
-          title: "Error",
-          description: "Failed to create project. Please try again.",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Failed to create project. Please try again.',
+          variant: 'destructive',
         });
       }
     }
@@ -170,20 +167,18 @@ export default function ProjectsPage() {
     setEditingProject(project);
     setFormData({
       title: project.title,
-      description: project.description || "",
-      technologies: project.technologies.join(", "),
-      github_url: project.github_url || "",
-      url: project.url || "",
-      role: project.role || "",
-      company: project.company || "",
+      description: project.description || '',
+      technologies: project.technologies.join(', '),
+      github_url: project.github_url || '',
+      url: project.url || '',
+      role: project.role || '',
+      company: project.company || '',
       start_date: project.start_date
-        ? new Date(project.start_date).toISOString().split("T")[0]
-        : "",
-      end_date: project.end_date
-        ? new Date(project.end_date).toISOString().split("T")[0]
-        : "",
-      image_url: project.image_url || "",
-      type: project.type || "personal",
+        ? new Date(project.start_date).toISOString().split('T')[0]
+        : '',
+      end_date: project.end_date ? new Date(project.end_date).toISOString().split('T')[0] : '',
+      image_url: project.image_url || '',
+      type: project.type || 'personal',
     });
   };
 
@@ -199,7 +194,7 @@ export default function ProjectsPage() {
           title: formData.title,
           description: formData.description || undefined,
           technologies: formData.technologies
-            .split(",")
+            .split(',')
             .map((t) => t.trim())
             .filter(Boolean),
           url: formData.url || undefined,
@@ -207,27 +202,23 @@ export default function ProjectsPage() {
           role: formData.role || undefined,
           company: formData.company || undefined,
           image_url: formData.image_url || undefined,
-          start_date: formData.start_date
-            ? new Date(formData.start_date).getTime()
-            : undefined,
-          end_date: formData.end_date
-            ? new Date(formData.end_date).getTime()
-            : undefined,
+          start_date: formData.start_date ? new Date(formData.start_date).getTime() : undefined,
+          end_date: formData.end_date ? new Date(formData.end_date).getTime() : undefined,
         },
       });
 
       toast({
-        title: "Project updated",
-        description: "Your project has been updated successfully.",
-        variant: "success",
+        title: 'Project updated',
+        description: 'Your project has been updated successfully.',
+        variant: 'success',
       });
       setEditingProject(null);
       resetForm();
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to update project. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update project. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -242,24 +233,21 @@ export default function ProjectsPage() {
       });
 
       toast({
-        title: "Project deleted",
-        description: "Your project has been deleted successfully.",
-        variant: "success",
+        title: 'Project deleted',
+        description: 'Your project has been deleted successfully.',
+        variant: 'success',
       });
       setDeleteId(null);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to delete project. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to delete project. Please try again.',
+        variant: 'destructive',
       });
     }
   };
 
-  const handleImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    projectId?: string,
-  ) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, projectId?: string) => {
     const file = e.target.files?.[0];
     if (!file || !clerkUser?.id) return;
 
@@ -279,12 +267,12 @@ export default function ProjectsPage() {
               image_url: imageUrl,
             },
           });
-          toast({ title: "Image uploaded", variant: "success" });
+          toast({ title: 'Image uploaded', variant: 'success' });
         } catch (error) {
           toast({
-            title: "Error",
-            description: "Failed to upload image.",
-            variant: "destructive",
+            title: 'Error',
+            description: 'Failed to upload image.',
+            variant: 'destructive',
           });
         } finally {
           setUploadingImage(null);
@@ -299,9 +287,9 @@ export default function ProjectsPage() {
 
   const formatDate = (timestamp?: number) => {
     if (!timestamp) return null;
-    return new Date(timestamp).toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric',
     });
   };
 
@@ -309,12 +297,8 @@ export default function ProjectsPage() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Projects
-          </h1>
-          <p className="text-muted-foreground">
-            Showcase your projects and technical work
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Projects</h1>
+          <p className="text-muted-foreground">Showcase your projects and technical work</p>
         </div>
         <Button
           onClick={() => {
@@ -344,22 +328,15 @@ export default function ProjectsPage() {
       >
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingProject ? "Edit Project" : "Add New Project"}
-            </DialogTitle>
+            <DialogTitle>{editingProject ? 'Edit Project' : 'Add New Project'}</DialogTitle>
           </DialogHeader>
-          <form
-            onSubmit={editingProject ? handleEdit : handleCreate}
-            className="space-y-4"
-          >
+          <form onSubmit={editingProject ? handleEdit : handleCreate} className="space-y-4">
             <div>
               <Label htmlFor="title">Project Title *</Label>
               <Input
                 id="title"
                 value={formData.title}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="My Awesome Project"
                 required
               />
@@ -370,9 +347,7 @@ export default function ProjectsPage() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Describe your project, technologies used, and your contributions..."
                 rows={3}
               />
@@ -390,12 +365,7 @@ export default function ProjectsPage() {
                 />
                 {formData.image_url && (
                   <div className="w-16 h-16 rounded border overflow-hidden flex-shrink-0 relative">
-                    <Image
-                      src={formData.image_url}
-                      alt="Preview"
-                      fill
-                      className="object-cover"
-                    />
+                    <Image src={formData.image_url} alt="Preview" fill className="object-cover" />
                   </div>
                 )}
               </div>
@@ -407,9 +377,7 @@ export default function ProjectsPage() {
                 <select
                   id="type"
                   value={formData.type}
-                  onChange={(e) =>
-                    setFormData({ ...formData, type: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="personal">Personal</option>
@@ -421,9 +389,7 @@ export default function ProjectsPage() {
                 <Input
                   id="role"
                   value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   placeholder="Full Stack Developer"
                 />
               </div>
@@ -434,23 +400,17 @@ export default function ProjectsPage() {
               <Input
                 id="company"
                 value={formData.company}
-                onChange={(e) =>
-                  setFormData({ ...formData, company: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                 placeholder="Personal Project"
               />
             </div>
 
             <div>
-              <Label htmlFor="technologies">
-                Technologies (comma-separated)
-              </Label>
+              <Label htmlFor="technologies">Technologies (comma-separated)</Label>
               <Input
                 id="technologies"
                 value={formData.technologies}
-                onChange={(e) =>
-                  setFormData({ ...formData, technologies: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, technologies: e.target.value })}
                 placeholder="React, Node.js, MongoDB"
               />
             </div>
@@ -462,9 +422,7 @@ export default function ProjectsPage() {
                   id="github_url"
                   type="url"
                   value={formData.github_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, github_url: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, github_url: e.target.value })}
                   placeholder="https://github.com/username/project"
                 />
               </div>
@@ -474,9 +432,7 @@ export default function ProjectsPage() {
                   id="url"
                   type="url"
                   value={formData.url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, url: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                   placeholder="https://myproject.com"
                 />
               </div>
@@ -489,9 +445,7 @@ export default function ProjectsPage() {
                   id="start_date"
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, start_date: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                 />
               </div>
               <div>
@@ -500,9 +454,7 @@ export default function ProjectsPage() {
                   id="end_date"
                   type="date"
                   value={formData.end_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, end_date: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                 />
               </div>
             </div>
@@ -513,33 +465,24 @@ export default function ProjectsPage() {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit">
-                {editingProject ? "Save Changes" : "Create Project"}
-              </Button>
+              <Button type="submit">{editingProject ? 'Save Changes' : 'Create Project'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog
-        open={!!deleteId}
-        onOpenChange={(open) => !open && setDeleteId(null)}
-      >
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Project</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this project? This action cannot
-              be undone.
+              Are you sure you want to delete this project? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -607,24 +550,19 @@ export default function ProjectsPage() {
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center">
                     <ImageIcon className="h-16 w-16 text-gray-300" />
-                    <p className="text-xs text-[#888] mt-2">
-                      No image uploaded yet
-                    </p>
+                    <p className="text-xs text-[#888] mt-2">No image uploaded yet</p>
                   </div>
                 )}
 
                 {/* Project Type Badge */}
                 <div className="absolute bottom-2 right-2">
                   <Badge
-                    variant={
-                      project.type === "professional" ? "default" : "secondary"
-                    }
+                    variant={project.type === 'professional' ? 'default' : 'secondary'}
                     className="bg-white/90 backdrop-blur-sm shadow-sm"
                   >
                     {project.type
-                      ? project.type.charAt(0).toUpperCase() +
-                        project.type.slice(1)
-                      : "Personal"}
+                      ? project.type.charAt(0).toUpperCase() + project.type.slice(1)
+                      : 'Personal'}
                   </Badge>
                 </div>
 
@@ -657,28 +595,20 @@ export default function ProjectsPage() {
 
               {/* Project Content Section */}
               <div className="p-5">
-                <h2 className="text-xl font-semibold mb-2 line-clamp-1">
-                  {project.title}
-                </h2>
+                <h2 className="text-xl font-semibold mb-2 line-clamp-1">{project.title}</h2>
 
                 {(project.start_date || project.end_date) && (
                   <div className="text-sm text-neutral-500 mb-3">
-                    {formatDate(project.start_date)} -{" "}
-                    {project.end_date
-                      ? formatDate(project.end_date)
-                      : "Present"}
+                    {formatDate(project.start_date)} -{' '}
+                    {project.end_date ? formatDate(project.end_date) : 'Present'}
                   </div>
                 )}
 
                 {project.role && (
-                  <p className="text-sm text-muted-foreground mb-1">
-                    {project.role}
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-1">{project.role}</p>
                 )}
                 {project.company && (
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {project.company}
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-3">{project.company}</p>
                 )}
 
                 {project.description && (
@@ -713,11 +643,7 @@ export default function ProjectsPage() {
                       asChild
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <a
-                        href={project.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
+                      <a href={project.url} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-3 w-3 mr-1" />
                         Demo
                       </a>
@@ -730,11 +656,7 @@ export default function ProjectsPage() {
                       asChild
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <a
-                        href={project.github_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
+                      <a href={project.github_url} target="_blank" rel="noopener noreferrer">
                         <Github className="h-3 w-3 mr-1" />
                         Code
                       </a>
@@ -748,11 +670,7 @@ export default function ProjectsPage() {
       )}
 
       {/* Upgrade Modal for Free User Limits */}
-      <UpgradeModal
-        open={showUpgradeModal}
-        onOpenChange={setShowUpgradeModal}
-        feature="project"
-      />
+      <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} feature="project" />
     </div>
   );
 }

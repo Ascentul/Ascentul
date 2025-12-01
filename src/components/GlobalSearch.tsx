@@ -1,23 +1,24 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
 import {
-  Search,
-  Briefcase,
-  Target,
-  FileText,
-  PenLine,
-  Users,
-  FolderKanban,
-  Plus,
   ArrowRight,
+  Briefcase,
   Command,
+  FileText,
+  FolderKanban,
   Loader2,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+  PenLine,
+  Plus,
+  Search,
+  Target,
+  Users,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { cn } from '@/lib/utils';
 
 // Type icons mapping
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -27,7 +28,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   cover_letter: PenLine,
   contact: Users,
   project: FolderKanban,
-}
+};
 
 const TYPE_COLORS: Record<string, string> = {
   application: 'bg-blue-100 text-blue-600',
@@ -36,7 +37,7 @@ const TYPE_COLORS: Record<string, string> = {
   cover_letter: 'bg-rose-100 text-rose-600',
   contact: 'bg-amber-100 text-amber-600',
   project: 'bg-teal-100 text-teal-600',
-}
+};
 
 const TYPE_LABELS: Record<string, string> = {
   application: 'Application',
@@ -45,114 +46,114 @@ const TYPE_LABELS: Record<string, string> = {
   cover_letter: 'Cover Letter',
   contact: 'Contact',
   project: 'Project',
-}
+};
 
 interface SearchResult {
-  id: string
-  type: 'application' | 'goal' | 'resume' | 'cover_letter' | 'contact' | 'project'
-  title: string
-  subtitle?: string
-  href: string
-  matchedField?: string
+  id: string;
+  type: 'application' | 'goal' | 'resume' | 'cover_letter' | 'contact' | 'project';
+  title: string;
+  subtitle?: string;
+  href: string;
+  matchedField?: string;
 }
 
 interface QuickAction {
-  id: string
-  label: string
-  href: string
-  shortcut: string
+  id: string;
+  label: string;
+  href: string;
+  shortcut: string;
 }
 
 interface GlobalSearchProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
-  const router = useRouter()
-  const [query, setQuery] = useState('')
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const listRef = useRef<HTMLDivElement>(null)
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   // Fetch search results
   const searchResults = useQuery(
     api.search.globalSearch,
-    query.length >= 2 ? { query, limit: 10 } : 'skip'
-  )
+    query.length >= 2 ? { query, limit: 10 } : 'skip',
+  );
 
   // Fetch quick actions
-  const quickActionsData = useQuery(api.search.getQuickActions)
+  const quickActionsData = useQuery(api.search.getQuickActions);
 
-  const results = searchResults?.results || []
-  const quickActions = quickActionsData?.actions || []
-  const isSearching = query.length >= 2 && searchResults === undefined
+  const results = searchResults?.results || [];
+  const quickActions = quickActionsData?.actions || [];
+  const isSearching = query.length >= 2 && searchResults === undefined;
 
   // Show quick actions when no query, search results when there's a query
-  const showQuickActions = query.length < 2
-  const items = showQuickActions ? quickActions : results
+  const showQuickActions = query.length < 2;
+  const items = showQuickActions ? quickActions : results;
 
   // Reset selection when items change
   useEffect(() => {
-    setSelectedIndex(0)
-  }, [query])
+    setSelectedIndex(0);
+  }, [query]);
 
   // Focus input when opened
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      inputRef.current.focus()
+      inputRef.current.focus();
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (!isOpen) return
+      if (!isOpen) return;
 
       switch (e.key) {
         case 'ArrowDown':
-          e.preventDefault()
-          setSelectedIndex((prev) => Math.min(prev + 1, items.length - 1))
-          break
+          e.preventDefault();
+          setSelectedIndex((prev) => Math.min(prev + 1, items.length - 1));
+          break;
         case 'ArrowUp':
-          e.preventDefault()
-          setSelectedIndex((prev) => Math.max(prev - 1, 0))
-          break
+          e.preventDefault();
+          setSelectedIndex((prev) => Math.max(prev - 1, 0));
+          break;
         case 'Enter':
-          e.preventDefault()
+          e.preventDefault();
           if (items[selectedIndex]) {
-            const item = items[selectedIndex]
-            router.push(item.href)
-            onClose()
-            setQuery('')
+            const item = items[selectedIndex];
+            router.push(item.href);
+            onClose();
+            setQuery('');
           }
-          break
+          break;
         case 'Escape':
-          e.preventDefault()
-          onClose()
-          setQuery('')
-          break
+          e.preventDefault();
+          onClose();
+          setQuery('');
+          break;
       }
     },
-    [isOpen, items, selectedIndex, router, onClose]
-  )
+    [isOpen, items, selectedIndex, router, onClose],
+  );
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   // Scroll selected item into view
   useEffect(() => {
     if (listRef.current) {
-      const selectedElement = listRef.current.children[selectedIndex] as HTMLElement
+      const selectedElement = listRef.current.children[selectedIndex] as HTMLElement;
       if (selectedElement) {
-        selectedElement.scrollIntoView({ block: 'nearest' })
+        selectedElement.scrollIntoView({ block: 'nearest' });
       }
     }
-  }, [selectedIndex])
+  }, [selectedIndex]);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <>
@@ -160,8 +161,8 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       <div
         className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
         onClick={() => {
-          onClose()
-          setQuery('')
+          onClose();
+          setQuery('');
         }}
       />
 
@@ -197,16 +198,16 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                   <button
                     key={action.id}
                     onClick={() => {
-                      router.push(action.href)
-                      onClose()
-                      setQuery('')
+                      router.push(action.href);
+                      onClose();
+                      setQuery('');
                     }}
                     onMouseEnter={() => setSelectedIndex(index)}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
                       selectedIndex === index
                         ? 'bg-[#5371FF]/10 text-[#5371FF]'
-                        : 'text-slate-700 hover:bg-slate-50'
+                        : 'text-slate-700 hover:bg-slate-50',
                     )}
                   >
                     {action.id.startsWith('new-') ? (
@@ -231,29 +232,27 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                   </p>
                 </div>
                 {results.map((result, index) => {
-                  const Icon = TYPE_ICONS[result.type] || FileText
-                  const colorClass = TYPE_COLORS[result.type] || 'bg-slate-100 text-slate-600'
+                  const Icon = TYPE_ICONS[result.type] || FileText;
+                  const colorClass = TYPE_COLORS[result.type] || 'bg-slate-100 text-slate-600';
 
                   return (
                     <button
                       key={result.id}
                       onClick={() => {
-                        router.push(result.href)
-                        onClose()
-                        setQuery('')
+                        router.push(result.href);
+                        onClose();
+                        setQuery('');
                       }}
                       onMouseEnter={() => setSelectedIndex(index)}
                       className={cn(
                         'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
-                        selectedIndex === index
-                          ? 'bg-[#5371FF]/10'
-                          : 'hover:bg-slate-50'
+                        selectedIndex === index ? 'bg-[#5371FF]/10' : 'hover:bg-slate-50',
                       )}
                     >
                       <div
                         className={cn(
                           'flex h-8 w-8 items-center justify-center rounded-lg',
-                          colorClass
+                          colorClass,
                         )}
                       >
                         <Icon className="h-4 w-4" />
@@ -262,31 +261,27 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                         <p
                           className={cn(
                             'text-sm font-medium truncate',
-                            selectedIndex === index ? 'text-[#5371FF]' : 'text-slate-900'
+                            selectedIndex === index ? 'text-[#5371FF]' : 'text-slate-900',
                           )}
                         >
                           {result.title}
                         </p>
                         {result.subtitle && (
-                          <p className="text-xs text-slate-500 truncate">
-                            {result.subtitle}
-                          </p>
+                          <p className="text-xs text-slate-500 truncate">{result.subtitle}</p>
                         )}
                       </div>
                       <span className="text-xs text-slate-400 flex-shrink-0">
                         {TYPE_LABELS[result.type]}
                       </span>
                     </button>
-                  )
+                  );
                 })}
               </>
             ) : query.length >= 2 && !isSearching ? (
               <div className="py-8 text-center">
                 <Search className="mx-auto h-8 w-8 text-slate-300" />
                 <p className="mt-2 text-sm text-slate-500">No results found</p>
-                <p className="mt-1 text-xs text-slate-400">
-                  Try a different search term
-                </p>
+                <p className="mt-1 text-xs text-slate-400">Try a different search term</p>
               </div>
             ) : null}
           </div>
@@ -312,31 +307,31 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
         </div>
       </div>
     </>
-  )
+  );
 }
 
 /**
  * Hook to manage global search state and keyboard shortcut
  */
 export function useGlobalSearch() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Cmd+K or Ctrl+K to open
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        setIsOpen(true)
+        e.preventDefault();
+        setIsOpen(true);
       }
-    }
+    };
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return {
     isOpen,
     open: () => setIsOpen(true),
     close: () => setIsOpen(false),
-  }
+  };
 }

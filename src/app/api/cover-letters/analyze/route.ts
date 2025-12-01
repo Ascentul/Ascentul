@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { api } from "convex/_generated/api";
-import OpenAI from "openai";
+import { api } from 'convex/_generated/api';
+import { NextRequest, NextResponse } from 'next/server';
+import OpenAI from 'openai';
+
+import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
-import { requireConvexToken } from "@/lib/convex-auth";
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -18,32 +19,27 @@ type AnalysisResult = {
 };
 
 const buildProfileSummary = (profile: any | null) => {
-  if (!profile) return "No additional career profile data provided.";
+  if (!profile) return 'No additional career profile data provided.';
   const lines: string[] = [];
-  if (profile.current_position)
-    lines.push(`Current position: ${profile.current_position}`);
-  if (profile.current_company)
-    lines.push(`Current company: ${profile.current_company}`);
-  if (profile.experience_level)
-    lines.push(`Experience level: ${profile.experience_level}`);
+  if (profile.current_position) lines.push(`Current position: ${profile.current_position}`);
+  if (profile.current_company) lines.push(`Current company: ${profile.current_company}`);
+  if (profile.experience_level) lines.push(`Experience level: ${profile.experience_level}`);
   if (profile.industry) lines.push(`Industry focus: ${profile.industry}`);
   if (profile.skills) lines.push(`Skills: ${profile.skills}`);
   if (profile.bio) lines.push(`Bio: ${profile.bio}`);
   if (profile.career_goals) lines.push(`Career goals: ${profile.career_goals}`);
   if (profile.education) lines.push(`Education: ${profile.education}`);
-  return lines.length
-    ? lines.join("\n")
-    : "No additional career profile data provided.";
+  return lines.length ? lines.join('\n') : 'No additional career profile data provided.';
 };
 
 const normalizeText = (value?: string) =>
-  (value || "").replace(/\r\n/g, "\n").replace(/\t/g, " ").trim();
+  (value || '').replace(/\r\n/g, '\n').replace(/\t/g, ' ').trim();
 
 const formatList = (items: string[]): string => {
-  if (!items.length) return "";
+  if (!items.length) return '';
   if (items.length === 1) return items[0];
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+  return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
 };
 
 const extractHighlights = (jobDescription?: string, max = 3): string[] => {
@@ -51,13 +47,13 @@ const extractHighlights = (jobDescription?: string, max = 3): string[] => {
   if (!normalized) return [];
 
   const lines = normalized
-    .split("\n")
+    .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
 
   const bulletLines = lines
     .filter((line) => /^[-*•]/.test(line))
-    .map((line) => line.replace(/^[-*•\s]+/, "").trim())
+    .map((line) => line.replace(/^[-*•\s]+/, '').trim())
     .filter(Boolean);
 
   const sourceLines =
@@ -70,24 +66,23 @@ const extractHighlights = (jobDescription?: string, max = 3): string[] => {
 
   return sourceLines.slice(0, max).map((line) => {
     const words = line.split(/\s+/);
-    return words.length <= 14
-      ? line.replace(/\s+/g, " ")
-      : `${words.slice(0, 14).join(" ")}...`;
+    return words.length <= 14 ? line.replace(/\s+/g, ' ') : `${words.slice(0, 14).join(' ')}...`;
   });
 };
 
-const extractGreeting = (letter: string, companyName?: string): {
+const extractGreeting = (
+  letter: string,
+  companyName?: string,
+): {
   greeting: string;
   remainder: string;
 } => {
-  const match = letter.match(
-    /^(Dear [^\n]+|Hello [^\n]+|Hi [^\n]+|To [^\n]+|Greetings[^\n]*)\n*/i,
-  );
+  const match = letter.match(/^(Dear [^\n]+|Hello [^\n]+|Hi [^\n]+|To [^\n]+|Greetings[^\n]*)\n*/i);
   if (!match) {
     const fallback =
       companyName && companyName.trim().length > 0
         ? `Dear ${companyName.trim()} Hiring Manager,`
-        : "Dear Hiring Manager,";
+        : 'Dear Hiring Manager,';
     return { greeting: fallback, remainder: letter.trimStart() };
   }
   return {
@@ -148,32 +143,27 @@ const buildOptimizedFallbackLetter = ({
     companyName ? `at ${companyName}` : null,
   ]
     .filter(Boolean)
-    .join(" ");
+    .join(' ');
 
   if (!normalizedLetter) {
     return [
-      companyName
-        ? `Dear ${companyName} Hiring Manager,`
-        : "Dear Hiring Manager,",
-      "",
+      companyName ? `Dear ${companyName} Hiring Manager,` : 'Dear Hiring Manager,',
+      '',
       [
-        "Thank you for considering my application.",
+        'Thank you for considering my application.',
         roleDescriptor
           ? `I aligned this version to ${roleDescriptor}, highlighting impact and concrete wins.`
-          : "I aligned this version to your stated requirements, highlighting impact and concrete wins.",
-        "I showcase measurable achievements that mirror the responsibilities in the job description and explain how those experiences translate to your team.",
-      ].join(" "),
-      "",
-      `Sincerely,\n${profileName || "Your Name"}`,
+          : 'I aligned this version to your stated requirements, highlighting impact and concrete wins.',
+        'I showcase measurable achievements that mirror the responsibilities in the job description and explain how those experiences translate to your team.',
+      ].join(' '),
+      '',
+      `Sincerely,\n${profileName || 'Your Name'}`,
     ]
       .filter(Boolean)
-      .join("\n\n");
+      .join('\n\n');
   }
 
-  const { greeting, remainder } = extractGreeting(
-    normalizedLetter,
-    companyName,
-  );
+  const { greeting, remainder } = extractGreeting(normalizedLetter, companyName);
   const { body, closing } = extractClosing(remainder, profileName);
 
   const paragraphs = body
@@ -184,9 +174,9 @@ const buildOptimizedFallbackLetter = ({
   // Simply reorder paragraphs without adding meta-commentary
   const reorderedParagraphs = paragraphs.filter(Boolean);
 
-  return [greeting, "", reorderedParagraphs.join("\n\n"), "", closing]
+  return [greeting, '', reorderedParagraphs.join('\n\n'), '', closing]
     .filter((section) => normalizeText(section).length > 0)
-    .join("\n\n");
+    .join('\n\n');
 };
 
 const fallbackAnalysis = (
@@ -207,18 +197,16 @@ const fallbackAnalysis = (
 ): AnalysisResult => {
   const analysis: AnalysisResult = {
     summary:
-      "We could not reach the analysis service, so here is a quick checklist based on the information you provided.",
+      'We could not reach the analysis service, so here is a quick checklist based on the information you provided.',
     alignmentScore: 60,
-    strengths: [
-      "The letter is professional in tone and references the role explicitly.",
-    ],
+    strengths: ['The letter is professional in tone and references the role explicitly.'],
     gaps: [
-      "Add concrete metrics or examples that match the job description requirements.",
-      "Reference specific skills or achievements that align with the role.",
+      'Add concrete metrics or examples that match the job description requirements.',
+      'Reference specific skills or achievements that align with the role.',
     ],
     recommendations: [
-      "Emphasize quantifiable achievements that mirror the job description.",
-      "Add a closing paragraph that reiterates how you will support the team.",
+      'Emphasize quantifiable achievements that mirror the job description.',
+      'Add a closing paragraph that reiterates how you will support the team.',
     ],
   };
 
@@ -238,12 +226,9 @@ const fallbackAnalysis = (
 export async function POST(request: NextRequest) {
   try {
     const { userId, token } = await requireConvexToken();
-    
+
     if (!userId || !token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { jobDescription, coverLetter, optimize, roleTitle, companyName } =
@@ -258,7 +243,7 @@ export async function POST(request: NextRequest) {
     if (!jobDescription || !coverLetter) {
       return NextResponse.json(
         {
-          error: "Job description and cover letter content are required",
+          error: 'Job description and cover letter content are required',
         },
         { status: 400 },
       );
@@ -266,13 +251,9 @@ export async function POST(request: NextRequest) {
 
     let profile: any | null = null;
     try {
-      profile = await convexServer.query(
-        api.users.getUserByClerkId,
-        { clerkId: userId },
-        token
-      );
+      profile = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token);
     } catch (error) {
-      console.error("Failed to fetch career profile for analysis", error);
+      console.error('Failed to fetch career profile for analysis', error);
     }
 
     const profileSummary = buildProfileSummary(profile);
@@ -286,11 +267,11 @@ export async function POST(request: NextRequest) {
         roleTitle ? `Target Role: ${roleTitle}` : null,
       ]
         .filter(Boolean)
-        .join("\n");
+        .join('\n');
 
       const prompt = `You are an honest career coach. Review the following cover letter against the job description and provide structured feedback.
 
-${contextHeader ? `${contextHeader}\n\n` : ""}Job Description:
+${contextHeader ? `${contextHeader}\n\n` : ''}Job Description:
 ${jobDescription}
 
 Candidate Cover Letter:
@@ -303,33 +284,33 @@ Instructions:
 - Only use information present in the cover letter, job description, or career profile.
 - Do not invent achievements or skills. If information is missing, call that out.
 - Respond in JSON with keys: summary (string), alignmentScore (0-100 number), strengths (string array), gaps (string array), recommendations (string array).
-${optimize ? "- Include optimizedLetter (string) that rewrites the cover letter truthfully using provided information." : ""}
+${optimize ? '- Include optimizedLetter (string) that rewrites the cover letter truthfully using provided information.' : ''}
 `;
 
       try {
         const completion = await openai.chat.completions.create({
-          model: "gpt-4o",
+          model: 'gpt-4o',
           messages: [
             {
-              role: "system",
+              role: 'system',
               content:
-                "You are a meticulous career coach who only uses verified information to evaluate and improve cover letters.",
+                'You are a meticulous career coach who only uses verified information to evaluate and improve cover letters.',
             },
-            { role: "user", content: prompt },
+            { role: 'user', content: prompt },
           ],
           temperature: 0.2,
           max_tokens: 1200,
         });
 
-        const raw = completion.choices[0]?.message?.content || "";
+        const raw = completion.choices[0]?.message?.content || '';
         try {
           const parsed = JSON.parse(raw);
           const sanitized: AnalysisResult = {
-            summary: typeof parsed.summary === "string" ? parsed.summary : "",
+            summary: typeof parsed.summary === 'string' ? parsed.summary : '',
             alignmentScore:
-              typeof parsed.alignmentScore === "number"
+              typeof parsed.alignmentScore === 'number'
                 ? parsed.alignmentScore
-                : Number.parseFloat(parsed.alignmentScore ?? "0") || 0,
+                : Number.parseFloat(parsed.alignmentScore ?? '0') || 0,
             strengths: Array.isArray(parsed.strengths)
               ? parsed.strengths.map((item: unknown) => String(item))
               : [],
@@ -341,19 +322,16 @@ ${optimize ? "- Include optimizedLetter (string) that rewrites the cover letter 
               : [],
           };
 
-          if (optimize && typeof parsed.optimizedLetter === "string") {
+          if (optimize && typeof parsed.optimizedLetter === 'string') {
             sanitized.optimizedLetter = parsed.optimizedLetter;
           }
 
           analysis = sanitized;
         } catch (parseError) {
-          console.warn(
-            "Failed to parse analysis JSON, returning structured fallback",
-            parseError,
-          );
+          console.warn('Failed to parse analysis JSON, returning structured fallback', parseError);
         }
       } catch (error) {
-        console.error("OpenAI analysis failed", error);
+        console.error('OpenAI analysis failed', error);
       }
     }
 
@@ -373,10 +351,7 @@ ${optimize ? "- Include optimizedLetter (string) that rewrites the cover letter 
 
     return NextResponse.json({ analysis }, { status: 200 });
   } catch (error) {
-    console.error("Error analyzing cover letter:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    console.error('Error analyzing cover letter:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

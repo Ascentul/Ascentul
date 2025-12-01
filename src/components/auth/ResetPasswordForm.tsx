@@ -1,94 +1,103 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSignIn } from '@clerk/nextjs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/hooks/use-toast'
-import { Eye, EyeOff, ArrowLeft, KeyRound } from 'lucide-react'
+import { useSignIn } from '@clerk/nextjs';
+import { ArrowLeft, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 // Clerk reset codes are 6 digits
-const RESET_CODE_LENGTH = 6
+const RESET_CODE_LENGTH = 6;
 
 interface ResetPasswordFormProps {
-  successMessage?: string,
-  onBack: () => void,
+  successMessage?: string;
+  onBack: () => void;
 }
 
 export function ResetPasswordForm({ successMessage, onBack }: ResetPasswordFormProps) {
-  const router = useRouter()
-  const { isLoaded, signIn, setActive } = useSignIn()
-  const { toast } = useToast()
+  const router = useRouter();
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const { toast } = useToast();
 
-  const [resetCode, setResetCode] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [resettingPassword, setResettingPassword] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    if (!isLoaded) return
+    e.preventDefault();
+    setError(null);
+    if (!isLoaded) return;
 
     if (!resetCode.trim() || !newPassword.trim()) {
-      setError('Please enter both the reset code and new password')
-      return
+      setError('Please enter both the reset code and new password');
+      return;
     }
 
     if (!/^\d{6}$/.test(resetCode.trim())) {
-      setError('Reset code must be 6 digits')
-      return
+      setError('Reset code must be 6 digits');
+      return;
     }
 
     if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long')
-      return
+      setError('Password must be at least 8 characters long');
+      return;
     }
 
     try {
-      setResettingPassword(true)
+      setResettingPassword(true);
       const result = await signIn.attemptFirstFactor({
         strategy: 'reset_password_email_code',
         code: resetCode,
         password: newPassword,
-      })
+      });
 
       if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
+        await setActive({ session: result.createdSessionId });
         toast({
           title: 'Password reset successful!',
           description: 'You have been signed in with your new password.',
-        })
-        router.replace('/dashboard')
+        });
+        router.replace('/dashboard');
       } else {
-        setError('Password reset failed. Please try again.')
+        setError('Password reset failed. Please try again.');
       }
     } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ code?: string; longMessage?: string }>; message?: string }
-      const code = clerkError?.errors?.[0]?.code
+      const clerkError = err as {
+        errors?: Array<{ code?: string; longMessage?: string }>;
+        message?: string;
+      };
+      const code = clerkError?.errors?.[0]?.code;
       if (code === 'form_code_incorrect') {
-        setError('Incorrect reset code. Please check your email and try again.')
+        setError('Incorrect reset code. Please check your email and try again.');
       } else if (code === 'form_password_pwned') {
-        setError('This password has been found in a data breach. Please choose a different password.')
+        setError(
+          'This password has been found in a data breach. Please choose a different password.',
+        );
       } else {
-        const msg = clerkError?.errors?.[0]?.longMessage || clerkError?.message || 'Password reset failed'
-        setError(msg)
+        const msg =
+          clerkError?.errors?.[0]?.longMessage || clerkError?.message || 'Password reset failed';
+        setError(msg);
       }
     } finally {
-      setResettingPassword(false)
+      setResettingPassword(false);
     }
-  }
+  };
 
   return (
     <Card className="border-neutral-200/80 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl">
       <CardHeader className="space-y-1 pb-6">
         <div className="flex items-center gap-2 text-center justify-center">
           <KeyRound className="h-5 w-5 text-brand-blue" />
-          <CardTitle className="text-2xl font-semibold text-zinc-900">Create new password</CardTitle>
+          <CardTitle className="text-2xl font-semibold text-zinc-900">
+            Create new password
+          </CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -137,9 +146,7 @@ export function ResetPasswordForm({ successMessage, onBack }: ResetPasswordFormP
                 )}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Must be at least 8 characters long
-            </p>
+            <p className="text-xs text-muted-foreground">Must be at least 8 characters long</p>
           </div>
 
           {error && (
@@ -158,17 +165,12 @@ export function ResetPasswordForm({ successMessage, onBack }: ResetPasswordFormP
         </form>
 
         <div className="text-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="text-muted-foreground"
-          >
+          <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

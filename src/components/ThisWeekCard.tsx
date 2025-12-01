@@ -1,26 +1,27 @@
-'use client'
+'use client';
 
-import { useMemo } from 'react'
-import Link from 'next/link'
-import { useUser } from '@clerk/nextjs'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
 import {
-  CalendarDays,
-  Target,
-  MessageSquare,
-  Clock,
-  Check,
   Briefcase,
-  Users,
+  CalendarDays,
+  Check,
+  Clock,
   FileText,
+  MessageSquare,
   Sparkles,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { JourneyStage, generateMissions, type Mission } from '@/lib/journey'
+  Target,
+  Users,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useMemo } from 'react';
+
+import { generateMissions, JourneyStage, type Mission } from '@/lib/journey';
+import { cn } from '@/lib/utils';
 
 interface ThisWeekCardProps {
-  currentStage: JourneyStage
+  currentStage: JourneyStage;
 }
 
 // Mission pill component
@@ -31,8 +32,8 @@ function MissionPill({ mission }: { mission: Mission }) {
     resume: FileText,
     interview: MessageSquare,
     contact: Users,
-  }
-  const Icon = iconMap[mission.type]
+  };
+  const Icon = iconMap[mission.type];
 
   return (
     <Link href={mission.href}>
@@ -41,7 +42,7 @@ function MissionPill({ mission }: { mission: Mission }) {
           'flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all w-full',
           mission.isCompleted
             ? 'bg-green-50 text-green-700 border border-green-200'
-            : 'bg-slate-50 text-slate-700 border border-slate-200 hover:border-[#5371FF]/50 hover:bg-[#5371FF]/5'
+            : 'bg-slate-50 text-slate-700 border border-slate-200 hover:border-[#5371FF]/50 hover:bg-[#5371FF]/5',
         )}
       >
         {mission.isCompleted ? (
@@ -52,39 +53,39 @@ function MissionPill({ mission }: { mission: Mission }) {
         <span className={cn(mission.isCompleted && 'line-through')}>{mission.text}</span>
       </button>
     </Link>
-  )
+  );
 }
 
 interface UpcomingItem {
-  id: string
-  type: 'interview' | 'goal' | 'followup'
-  title: string
-  subtitle?: string
-  date: number
-  href: string
+  id: string;
+  type: 'interview' | 'goal' | 'followup';
+  title: string;
+  subtitle?: string;
+  date: number;
+  href: string;
 }
 
 function formatUpcomingDate(timestamp: number): string {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const tomorrow = new Date(now)
-  tomorrow.setDate(tomorrow.getDate() + 1)
+  const date = new Date(timestamp);
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const isToday = date.toDateString() === now.toDateString()
-  const isTomorrow = date.toDateString() === tomorrow.toDateString()
+  const isToday = date.toDateString() === now.toDateString();
+  const isTomorrow = date.toDateString() === tomorrow.toDateString();
 
   if (isToday) {
-    return `Today, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+    return `Today, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
   }
   if (isTomorrow) {
-    return `Tomorrow, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+    return `Tomorrow, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
   }
 
   return date.toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-  })
+  });
 }
 
 function UpcomingItemRow({ item }: { item: UpcomingItem }) {
@@ -92,14 +93,14 @@ function UpcomingItemRow({ item }: { item: UpcomingItem }) {
     interview: MessageSquare,
     goal: Target,
     followup: Clock,
-  }
+  };
   const colorMap = {
     interview: 'bg-purple-100 text-purple-600',
     goal: 'bg-indigo-100 text-indigo-600',
     followup: 'bg-amber-100 text-amber-600',
-  }
+  };
 
-  const Icon = iconMap[item.type]
+  const Icon = iconMap[item.type];
 
   return (
     <Link
@@ -109,64 +110,60 @@ function UpcomingItemRow({ item }: { item: UpcomingItem }) {
       <div
         className={cn(
           'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0',
-          colorMap[item.type]
+          colorMap[item.type],
         )}
       >
         <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-slate-900 truncate">{item.title}</p>
-        {item.subtitle && (
-          <p className="text-xs text-slate-500 truncate">{item.subtitle}</p>
-        )}
+        {item.subtitle && <p className="text-xs text-slate-500 truncate">{item.subtitle}</p>}
       </div>
-      <span className="text-xs text-slate-500 flex-shrink-0">
-        {formatUpcomingDate(item.date)}
-      </span>
+      <span className="text-xs text-slate-500 flex-shrink-0">{formatUpcomingDate(item.date)}</span>
     </Link>
-  )
+  );
 }
 
 export function ThisWeekCard({ currentStage }: ThisWeekCardProps) {
-  const { user: clerkUser } = useUser()
-  const clerkId = clerkUser?.id
-  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
+  const { user: clerkUser } = useUser();
+  const clerkId = clerkUser?.id;
+  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
   // Fetch dashboard data
   const dashboardData = useQuery(
     api.analytics.getUserDashboardAnalytics,
-    clerkId ? { clerkId } : 'skip'
-  )
+    clerkId ? { clerkId } : 'skip',
+  );
 
   // Fetch activity data for streak
-  const activityData = useQuery(api.activity.getActivityYear, { timezone })
+  const activityData = useQuery(api.activity.getActivityYear, { timezone });
 
   // Fetch goals
-  const goals = useQuery(api.goals.getUserGoals, clerkId ? { clerkId } : 'skip')
+  const goals = useQuery(api.goals.getUserGoals, clerkId ? { clerkId } : 'skip');
 
   // Fetch contacts
-  const contacts = useQuery(api.contacts.getUserContacts, clerkId ? { clerkId } : 'skip')
+  const contacts = useQuery(api.contacts.getUserContacts, clerkId ? { clerkId } : 'skip');
 
-  const isLoading = dashboardData === undefined
+  const isLoading = dashboardData === undefined;
 
   // Get today's activity
-  const todayIso = new Date().toISOString().split('T')[0]
+  const todayIso = new Date().toISOString().split('T')[0];
   const todayActivity = useMemo(() => {
-    if (!activityData) return { didAction: false, actionCount: 0 }
-    const today = activityData.find((d) => d.date === todayIso)
+    if (!activityData) return { didAction: false, actionCount: 0 };
+    const today = activityData.find((d) => d.date === todayIso);
     return {
       didAction: today?.didAction ?? false,
       actionCount: today?.actionCount ?? 0,
-    }
-  }, [activityData, todayIso])
+    };
+  }, [activityData, todayIso]);
 
   // Check if any goals were updated today
   const goalsUpdatedToday = useMemo(() => {
-    if (!goals) return false
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
-    return goals.some((g) => g.updated_at && g.updated_at >= todayStart.getTime())
-  }, [goals])
+    if (!goals) return false;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    return goals.some((g) => g.updated_at && g.updated_at >= todayStart.getTime());
+  }, [goals]);
 
   // Generate missions based on stage
   const missions = useMemo(() => {
@@ -176,18 +173,18 @@ export function ThisWeekCard({ currentStage }: ThisWeekCardProps) {
       hasContacts: (contacts?.length || 0) > 0,
       didActionToday: todayActivity.didAction,
       hasResume: (dashboardData?.journeyProgress?.resumeBuilding?.count || 0) > 0,
-    })
-  }, [currentStage, dashboardData, goalsUpdatedToday, contacts, todayActivity])
+    });
+  }, [currentStage, dashboardData, goalsUpdatedToday, contacts, todayActivity]);
 
   // Build upcoming items from dashboard data
   const upcomingItems = useMemo(() => {
-    const items: UpcomingItem[] = []
-    const now = Date.now()
-    const weekFromNow = now + 7 * 24 * 60 * 60 * 1000
+    const items: UpcomingItem[] = [];
+    const now = Date.now();
+    const weekFromNow = now + 7 * 24 * 60 * 60 * 1000;
 
     // Add next interview if available
     if (dashboardData?.nextInterviewDetails) {
-      const interview = dashboardData.nextInterviewDetails
+      const interview = dashboardData.nextInterviewDetails;
       if (interview.date && interview.date <= weekFromNow) {
         items.push({
           id: `interview-${interview.company}`,
@@ -196,7 +193,7 @@ export function ThisWeekCard({ currentStage }: ThisWeekCardProps) {
           subtitle: interview.title,
           date: interview.date,
           href: '/applications',
-        })
+        });
       }
     }
 
@@ -215,18 +212,18 @@ export function ThisWeekCard({ currentStage }: ThisWeekCardProps) {
             title: goal.title,
             date: goal.target_date,
             href: '/goals',
-          })
+          });
         }
       }
     }
 
     // Sort by date
-    items.sort((a, b) => a.date - b.date)
+    items.sort((a, b) => a.date - b.date);
 
-    return items.slice(0, 4)
-  }, [dashboardData, goals])
+    return items.slice(0, 4);
+  }, [dashboardData, goals]);
 
-  const completedMissions = missions.filter((m) => m.isCompleted).length
+  const completedMissions = missions.filter((m) => m.isCompleted).length;
 
   return (
     <section className="h-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col">
@@ -302,5 +299,5 @@ export function ThisWeekCard({ currentStage }: ThisWeekCardProps) {
         )}
       </div>
     </section>
-  )
+  );
 }

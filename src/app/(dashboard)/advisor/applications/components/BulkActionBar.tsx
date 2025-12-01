@@ -19,23 +19,10 @@
  * - Accessible with keyboard navigation
  */
 
+import { AlertTriangle, Archive, CheckCircle2, ChevronRight, Edit2, X } from 'lucide-react';
 import React, { useState } from 'react';
-import {
-  Archive,
-  ChevronRight,
-  X,
-  AlertTriangle,
-  Edit2,
-  CheckCircle2,
-} from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -45,9 +32,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { getReasonCodesForStage, isTerminalStage, requiresReasonCode } from '@/lib/advisor/stages';
+
 import { ApplicationStage } from '../types';
-import { isTerminalStage, requiresReasonCode, getReasonCodesForStage } from '@/lib/advisor/stages';
 
 // ============================================================================
 // Types
@@ -95,7 +90,9 @@ export function BulkActionBar({
   });
 
   // Get available reason codes for current stage
-  const availableReasonCodes = confirmDialog.stage ? getReasonCodesForStage(confirmDialog.stage) : null;
+  const availableReasonCodes = confirmDialog.stage
+    ? getReasonCodesForStage(confirmDialog.stage)
+    : null;
   const reasonCodeRequired = confirmDialog.stage ? requiresReasonCode(confirmDialog.stage) : false;
 
   // Only render if items are selected
@@ -362,14 +359,14 @@ export function BulkActionBar({
               {confirmDialog.action === 'archive' ? (
                 <>
                   You are about to archive <strong>{selectedCount}</strong>{' '}
-                  {selectedCount === 1 ? 'application' : 'applications'}. Archived
-                  applications can be restored later.
+                  {selectedCount === 1 ? 'application' : 'applications'}. Archived applications can
+                  be restored later.
                 </>
               ) : confirmDialog.action === 'update-next-step' ? (
                 <>
                   Set the next step for <strong>{selectedCount}</strong>{' '}
-                  {selectedCount === 1 ? 'application' : 'applications'}. This will help
-                  you and students track what needs to be done.
+                  {selectedCount === 1 ? 'application' : 'applications'}. This will help you and
+                  students track what needs to be done.
                 </>
               ) : (
                 <>
@@ -385,10 +382,7 @@ export function BulkActionBar({
           {confirmDialog.action === 'update-next-step' ? (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label
-                  htmlFor="bulk-next-step"
-                  className="text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="bulk-next-step" className="text-sm font-medium text-gray-700">
                   Next Step (required)
                 </label>
                 <Input
@@ -400,10 +394,7 @@ export function BulkActionBar({
                 />
               </div>
               <div className="space-y-2">
-                <label
-                  htmlFor="bulk-due-date"
-                  className="text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="bulk-due-date" className="text-sm font-medium text-gray-700">
                   Due Date (optional)
                 </label>
                 <Input
@@ -420,10 +411,7 @@ export function BulkActionBar({
               {/* Reason Code (for Rejected/Withdrawn) */}
               {reasonCodeRequired && availableReasonCodes && (
                 <div className="space-y-2">
-                  <label
-                    htmlFor="bulk-reason-code"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <label htmlFor="bulk-reason-code" className="text-sm font-medium text-gray-700">
                     Reason (required)
                   </label>
                   <Select value={reasonCode} onValueChange={setReasonCode}>
@@ -443,10 +431,7 @@ export function BulkActionBar({
 
               {/* Notes */}
               <div className="space-y-2">
-                <label
-                  htmlFor="bulk-action-notes"
-                  className="text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="bulk-action-notes" className="text-sm font-medium text-gray-700">
                   Additional Notes (required)
                 </label>
                 <Textarea
@@ -461,10 +446,7 @@ export function BulkActionBar({
             </div>
           ) : (
             <div className="space-y-2">
-              <label
-                htmlFor="bulk-archive-reason"
-                className="text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="bulk-archive-reason" className="text-sm font-medium text-gray-700">
                 Reason (optional)
               </label>
               <Textarea

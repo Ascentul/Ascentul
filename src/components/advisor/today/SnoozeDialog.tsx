@@ -7,7 +7,13 @@
  * a calendar picker for custom dates.
  */
 
+import type { Id } from 'convex/_generated/dataModel';
+import { addDays, addMonths, addWeeks, format, startOfDay } from 'date-fns';
+import { CalendarDays, Clock } from 'lucide-react';
 import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Dialog,
   DialogContent,
@@ -16,11 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { addDays, addWeeks, addMonths, startOfDay, format } from 'date-fns';
-import { Clock, CalendarDays } from 'lucide-react';
-import type { Id } from 'convex/_generated/dataModel';
 
 interface SnoozeDialogProps {
   open: boolean;
@@ -111,9 +112,7 @@ export function SnoozeDialog({
                 className="flex flex-col h-auto py-2"
               >
                 <span className="font-medium">Tomorrow</span>
-                <span className="text-xs text-muted-foreground">
-                  {format(tomorrow, 'MMM d')}
-                </span>
+                <span className="text-xs text-muted-foreground">{format(tomorrow, 'MMM d')}</span>
               </Button>
               <Button
                 variant="outline"
@@ -123,9 +122,7 @@ export function SnoozeDialog({
                 className="flex flex-col h-auto py-2"
               >
                 <span className="font-medium">Next Week</span>
-                <span className="text-xs text-muted-foreground">
-                  {format(nextWeek, 'MMM d')}
-                </span>
+                <span className="text-xs text-muted-foreground">{format(nextWeek, 'MMM d')}</span>
               </Button>
               <Button
                 variant="outline"
@@ -135,9 +132,7 @@ export function SnoozeDialog({
                 className="flex flex-col h-auto py-2"
               >
                 <span className="font-medium">Next Month</span>
-                <span className="text-xs text-muted-foreground">
-                  {format(nextMonth, 'MMM d')}
-                </span>
+                <span className="text-xs text-muted-foreground">{format(nextMonth, 'MMM d')}</span>
               </Button>
             </div>
           </div>
@@ -188,7 +183,9 @@ export function SnoozeDialog({
                   onClick={handleCustomSnooze}
                   disabled={!selectedDate || isSubmitting}
                 >
-                  {isSubmitting ? 'Snoozing...' : `Snooze to ${selectedDate ? format(selectedDate, 'MMM d') : '...'}`}
+                  {isSubmitting
+                    ? 'Snoozing...'
+                    : `Snooze to ${selectedDate ? format(selectedDate, 'MMM d') : '...'}`}
                 </Button>
               </DialogFooter>
             </div>

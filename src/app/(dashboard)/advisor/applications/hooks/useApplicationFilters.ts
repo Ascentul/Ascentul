@@ -11,15 +11,16 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
+
 import {
-  ApplicationFilters,
-  DEFAULT_FILTERS,
-  INBOX_MODE_FILTERS,
-  ApplicationStage,
-  EnrichedApplication,
-  TimeWindow,
-  NeedActionReason,
   ACTIVE_STAGES,
+  ApplicationFilters,
+  ApplicationStage,
+  DEFAULT_FILTERS,
+  EnrichedApplication,
+  INBOX_MODE_FILTERS,
+  NeedActionReason,
+  TimeWindow,
 } from '../types';
 
 export interface UseApplicationFiltersResult {
@@ -106,7 +107,11 @@ export function useApplicationFilters(): UseApplicationFiltersResult {
    * Toggle need-action filter
    */
   const setNeedsAction = useCallback((needsAction: boolean) => {
-    setFilters((prev) => ({ ...prev, needsAction, needActionReason: needsAction ? prev.needActionReason : undefined }));
+    setFilters((prev) => ({
+      ...prev,
+      needsAction,
+      needActionReason: needsAction ? prev.needActionReason : undefined,
+    }));
   }, []);
 
   /**
@@ -116,7 +121,7 @@ export function useApplicationFilters(): UseApplicationFiltersResult {
     setFilters((prev) => ({
       ...prev,
       needActionReason: reason,
-      needsAction: reason !== undefined ? true : prev.needsAction
+      needsAction: reason !== undefined ? true : prev.needsAction,
     }));
   }, []);
 
@@ -137,12 +142,9 @@ export function useApplicationFilters(): UseApplicationFiltersResult {
   /**
    * Set applied date range
    */
-  const setAppliedDateRange = useCallback(
-    (range: { from: number; to: number } | undefined) => {
-      setFilters((prev) => ({ ...prev, appliedDateRange: range }));
-    },
-    []
-  );
+  const setAppliedDateRange = useCallback((range: { from: number; to: number } | undefined) => {
+    setFilters((prev) => ({ ...prev, appliedDateRange: range }));
+  }, []);
 
   /**
    * Clear all filters
@@ -219,7 +221,7 @@ export function useApplicationFilters(): UseApplicationFiltersResult {
           const timeLimit = filters.timeWindow === 'this_week' ? oneWeek : oneMonth;
           const withinTimeWindow =
             (app.next_step_date && app.next_step_date <= now + timeLimit) ||
-            (app.updated_at >= now - timeLimit);
+            app.updated_at >= now - timeLimit;
 
           if (!withinTimeWindow) return false;
         }
@@ -238,7 +240,7 @@ export function useApplicationFilters(): UseApplicationFiltersResult {
         return true;
       });
     },
-    [filters]
+    [filters],
   );
 
   return {
@@ -263,9 +265,7 @@ export function useApplicationFilters(): UseApplicationFiltersResult {
 /**
  * Hook to compute available cohorts from applications
  */
-export function useAvailableCohorts(
-  applications: EnrichedApplication[]
-): string[] {
+export function useAvailableCohorts(applications: EnrichedApplication[]): string[] {
   return useMemo(() => {
     const cohorts = new Set<string>();
     applications.forEach((app) => {

@@ -1,5 +1,6 @@
-import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { v } from 'convex/values';
+
+import { query } from './_generated/server';
 
 /**
  * Global search across user's data objects
@@ -26,8 +27,8 @@ export const globalSearch = query({
 
     // Get user
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', clerkId))
       .unique();
 
     if (!user) {
@@ -36,7 +37,7 @@ export const globalSearch = query({
 
     const results: Array<{
       id: string;
-      type: "application" | "goal" | "resume" | "cover_letter" | "contact" | "project";
+      type: 'application' | 'goal' | 'resume' | 'cover_letter' | 'contact' | 'project';
       title: string;
       subtitle?: string;
       href: string;
@@ -45,8 +46,8 @@ export const globalSearch = query({
 
     // Search Applications
     const applications = await ctx.db
-      .query("applications")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .query('applications')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
       .take(100);
 
     for (const app of applications) {
@@ -57,19 +58,19 @@ export const globalSearch = query({
       if (companyMatch || titleMatch || notesMatch) {
         results.push({
           id: app._id,
-          type: "application",
+          type: 'application',
           title: `${app.company} - ${app.job_title}`,
-          subtitle: app.stage || app.status || "Saved",
+          subtitle: app.stage || app.status || 'Saved',
           href: `/applications/${app._id}`,
-          matchedField: companyMatch ? "company" : titleMatch ? "job title" : "notes",
+          matchedField: companyMatch ? 'company' : titleMatch ? 'job title' : 'notes',
         });
       }
     }
 
     // Search Goals
     const goals = await ctx.db
-      .query("goals")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .query('goals')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
       .take(100);
 
     for (const goal of goals) {
@@ -80,19 +81,19 @@ export const globalSearch = query({
       if (titleMatch || descMatch || categoryMatch) {
         results.push({
           id: goal._id,
-          type: "goal",
+          type: 'goal',
           title: goal.title,
-          subtitle: goal.status || "Active",
+          subtitle: goal.status || 'Active',
           href: `/goals`,
-          matchedField: titleMatch ? "title" : descMatch ? "description" : "category",
+          matchedField: titleMatch ? 'title' : descMatch ? 'description' : 'category',
         });
       }
     }
 
     // Search Resumes
     const resumes = await ctx.db
-      .query("resumes")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .query('resumes')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
       .take(50);
 
     for (const resume of resumes) {
@@ -102,19 +103,19 @@ export const globalSearch = query({
       if (titleMatch || extractedMatch) {
         results.push({
           id: resume._id,
-          type: "resume",
-          title: resume.title || "Untitled Resume",
-          subtitle: resume.source || "Manual",
+          type: 'resume',
+          title: resume.title || 'Untitled Resume',
+          subtitle: resume.source || 'Manual',
           href: `/resumes/${resume._id}`,
-          matchedField: titleMatch ? "title" : "content",
+          matchedField: titleMatch ? 'title' : 'content',
         });
       }
     }
 
     // Search Cover Letters
     const coverLetters = await ctx.db
-      .query("cover_letters")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .query('cover_letters')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
       .take(50);
 
     for (const letter of coverLetters) {
@@ -126,19 +127,27 @@ export const globalSearch = query({
       if (nameMatch || contentMatch || companyMatch || jobTitleMatch) {
         results.push({
           id: letter._id,
-          type: "cover_letter",
-          title: letter.name || "Untitled Cover Letter",
-          subtitle: letter.company_name ? `${letter.job_title} at ${letter.company_name}` : letter.job_title,
+          type: 'cover_letter',
+          title: letter.name || 'Untitled Cover Letter',
+          subtitle: letter.company_name
+            ? `${letter.job_title} at ${letter.company_name}`
+            : letter.job_title,
           href: `/cover-letters/${letter._id}`,
-          matchedField: nameMatch ? "name" : companyMatch ? "company" : jobTitleMatch ? "job title" : "content",
+          matchedField: nameMatch
+            ? 'name'
+            : companyMatch
+              ? 'company'
+              : jobTitleMatch
+                ? 'job title'
+                : 'content',
         });
       }
     }
 
     // Search Contacts
     const contacts = await ctx.db
-      .query("networking_contacts")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .query('networking_contacts')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
       .take(100);
 
     for (const contact of contacts) {
@@ -150,35 +159,51 @@ export const globalSearch = query({
       if (nameMatch || companyMatch || positionMatch || notesMatch) {
         results.push({
           id: contact._id,
-          type: "contact",
+          type: 'contact',
           title: contact.name,
-          subtitle: contact.company ? `${contact.position || ""} at ${contact.company}`.trim() : contact.position,
+          subtitle: contact.company
+            ? `${contact.position || ''} at ${contact.company}`.trim()
+            : contact.position,
           href: `/contacts/${contact._id}`,
-          matchedField: nameMatch ? "name" : companyMatch ? "company" : positionMatch ? "position" : "notes",
+          matchedField: nameMatch
+            ? 'name'
+            : companyMatch
+              ? 'company'
+              : positionMatch
+                ? 'position'
+                : 'notes',
         });
       }
     }
 
     // Search Projects
     const projects = await ctx.db
-      .query("projects")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
+      .query('projects')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
       .take(50);
 
     for (const project of projects) {
       const titleMatch = project.title?.toLowerCase().includes(searchQuery);
       const descMatch = project.description?.toLowerCase().includes(searchQuery);
-      const techMatch = project.technologies?.some((t: string) => t.toLowerCase().includes(searchQuery));
+      const techMatch = project.technologies?.some((t: string) =>
+        t.toLowerCase().includes(searchQuery),
+      );
       const companyMatch = project.company?.toLowerCase().includes(searchQuery);
 
       if (titleMatch || descMatch || techMatch || companyMatch) {
         results.push({
           id: project._id,
-          type: "project",
+          type: 'project',
           title: project.title,
-          subtitle: project.type || "Personal",
+          subtitle: project.type || 'Personal',
           href: `/projects/${project._id}`,
-          matchedField: titleMatch ? "title" : descMatch ? "description" : companyMatch ? "company" : "technologies",
+          matchedField: titleMatch
+            ? 'title'
+            : descMatch
+              ? 'description'
+              : companyMatch
+                ? 'company'
+                : 'technologies',
         });
       }
     }
@@ -195,8 +220,10 @@ export const globalSearch = query({
 
     results.sort((a, b) => {
       // Title matches come first
-      const aIsTitle = a.matchedField === "title" || a.matchedField === "name" || a.matchedField === "company";
-      const bIsTitle = b.matchedField === "title" || b.matchedField === "name" || b.matchedField === "company";
+      const aIsTitle =
+        a.matchedField === 'title' || a.matchedField === 'name' || a.matchedField === 'company';
+      const bIsTitle =
+        b.matchedField === 'title' || b.matchedField === 'name' || b.matchedField === 'company';
 
       if (aIsTitle && !bIsTitle) return -1;
       if (!aIsTitle && bIsTitle) return 1;
@@ -223,15 +250,25 @@ export const getQuickActions = query({
     // Return static quick actions
     return {
       actions: [
-        { id: "new-application", label: "Add new application", href: "/applications/new", shortcut: "A" },
-        { id: "new-goal", label: "Create new goal", href: "/goals/new", shortcut: "G" },
-        { id: "new-resume", label: "Create new resume", href: "/resumes/new", shortcut: "R" },
-        { id: "new-contact", label: "Add new contact", href: "/contacts/new", shortcut: "C" },
-        { id: "dashboard", label: "Go to dashboard", href: "/dashboard", shortcut: "D" },
-        { id: "applications", label: "View all applications", href: "/applications", shortcut: "1" },
-        { id: "goals", label: "View all goals", href: "/goals", shortcut: "2" },
-        { id: "resumes", label: "View all resumes", href: "/resumes", shortcut: "3" },
-        { id: "contacts", label: "View all contacts", href: "/contacts", shortcut: "4" },
+        {
+          id: 'new-application',
+          label: 'Add new application',
+          href: '/applications/new',
+          shortcut: 'A',
+        },
+        { id: 'new-goal', label: 'Create new goal', href: '/goals/new', shortcut: 'G' },
+        { id: 'new-resume', label: 'Create new resume', href: '/resumes/new', shortcut: 'R' },
+        { id: 'new-contact', label: 'Add new contact', href: '/contacts/new', shortcut: 'C' },
+        { id: 'dashboard', label: 'Go to dashboard', href: '/dashboard', shortcut: 'D' },
+        {
+          id: 'applications',
+          label: 'View all applications',
+          href: '/applications',
+          shortcut: '1',
+        },
+        { id: 'goals', label: 'View all goals', href: '/goals', shortcut: '2' },
+        { id: 'resumes', label: 'View all resumes', href: '/resumes', shortcut: '3' },
+        { id: 'contacts', label: 'View all contacts', href: '/contacts', shortcut: '4' },
       ],
     };
   },

@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
-import { getErrorMessage } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
+
+import { hasPlatformAdminAccess, hasUniversityAdminAccess } from '@/lib/constants/roles';
 import { convexServer } from '@/lib/convex-server';
-import { hasUniversityAdminAccess, hasPlatformAdminAccess } from '@/lib/constants/roles';
+import { getErrorMessage } from '@/lib/errors';
 
 /**
  * Sync university assignment to Clerk publicMetadata
@@ -29,16 +30,17 @@ export async function POST(req: NextRequest) {
     const { studentEmail, universityId } = body;
 
     if (!studentEmail || !universityId) {
-      return NextResponse.json(
-        { error: 'Missing studentEmail or universityId' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing studentEmail or universityId' }, { status: 400 });
     }
 
     // Verify the requester is a university admin
-    const adminUser = await convexServer.query(api.users.getUserByClerkId, {
-      clerkId: userId,
-    }, token);
+    const adminUser = await convexServer.query(
+      api.users.getUserByClerkId,
+      {
+        clerkId: userId,
+      },
+      token,
+    );
 
     if (!adminUser || !hasUniversityAdminAccess(adminUser.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
     if (!hasPlatformAdminAccess(adminUser.role) && adminUser.university_id !== universityId) {
       return NextResponse.json(
         { error: 'Cannot assign students to other universities' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -80,7 +82,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log(`[Sync Clerk Metadata] Updated user ${studentEmail} with university_id: ${universityId}`);
+    console.log(
+      `[Sync Clerk Metadata] Updated user ${studentEmail} with university_id: ${universityId}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -90,9 +94,6 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     console.error('Sync Clerk metadata error:', error);
     const message = getErrorMessage(error, 'Internal server error');
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

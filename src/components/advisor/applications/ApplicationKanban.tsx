@@ -1,16 +1,18 @@
 'use client';
 
+import type { Id } from 'convex/_generated/dataModel';
+import { format } from 'date-fns';
+import { ArrowRight, Building2, Calendar, ExternalLink, RefreshCw, User } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Building2, User, Calendar, ArrowRight, ExternalLink, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
-import Link from 'next/link';
-import { StageTransitionModal } from './StageTransitionModal';
-import type { Id } from 'convex/_generated/dataModel';
-import { cn, isValidHttpUrl } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ACTIVE_STAGES, ALL_STAGES, type ApplicationStage } from '@/lib/advisor/stages';
+import { cn, isValidHttpUrl } from '@/lib/utils';
+
+import { StageTransitionModal } from './StageTransitionModal';
 
 interface Application {
   _id: string;
@@ -38,18 +40,18 @@ interface ApplicationKanbanProps {
 }
 
 const STAGE_COLORS: Record<string, string> = {
-  Prospect: "bg-gray-100 border-gray-300",
-  Applied: "bg-blue-100 border-blue-300",
-  Interview: "bg-purple-100 border-purple-300",
-  Offer: "bg-green-100 border-green-300",
-  Accepted: "bg-emerald-100 border-emerald-300",
-  Rejected: "bg-red-100 border-red-300",
-  Withdrawn: "bg-orange-100 border-orange-300",
-  Archived: "bg-slate-100 border-slate-300",
+  Prospect: 'bg-gray-100 border-gray-300',
+  Applied: 'bg-blue-100 border-blue-300',
+  Interview: 'bg-purple-100 border-purple-300',
+  Offer: 'bg-green-100 border-green-300',
+  Accepted: 'bg-emerald-100 border-emerald-300',
+  Rejected: 'bg-red-100 border-red-300',
+  Withdrawn: 'bg-orange-100 border-orange-300',
+  Archived: 'bg-slate-100 border-slate-300',
 };
 
 // Kanban view excludes 'Archived' stage from display
-const STAGE_ORDER = ALL_STAGES.filter(stage => stage !== 'Archived');
+const STAGE_ORDER = ALL_STAGES.filter((stage) => stage !== 'Archived');
 
 export function ApplicationKanban({
   applicationsByStage,
@@ -88,19 +90,14 @@ export function ApplicationKanban({
     );
   }
 
-  const totalApps = Object.values(applicationsByStage).reduce(
-    (sum, apps) => sum + apps.length,
-    0
-  );
+  const totalApps = Object.values(applicationsByStage).reduce((sum, apps) => sum + apps.length, 0);
 
   if (totalApps === 0) {
     return (
       <div className="border rounded-lg p-12 text-center">
         <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <p className="text-muted-foreground mb-2">No applications yet</p>
-        <p className="text-sm text-muted-foreground">
-          Student applications will appear here
-        </p>
+        <p className="text-sm text-muted-foreground">Student applications will appear here</p>
       </div>
     );
   }
@@ -114,10 +111,7 @@ export function ApplicationKanban({
           const now = Date.now();
 
           return (
-            <div
-              key={stage}
-              className="flex-shrink-0 w-80 min-w-[320px]"
-            >
+            <div key={stage} className="flex-shrink-0 w-80 min-w-[320px]">
               <Card className={STAGE_COLORS[stage]}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center justify-between">
@@ -134,17 +128,14 @@ export function ApplicationKanban({
                     </div>
                   ) : (
                     applications.map((app) => {
-                      const isOverdue =
-                        isActive &&
-                        app.next_step_date &&
-                        app.next_step_date < now;
+                      const isOverdue = isActive && app.next_step_date && app.next_step_date < now;
 
                       return (
                         <Card
                           key={app._id}
                           className={cn(
-                            "hover:shadow-md transition-shadow",
-                            isOverdue && "border-orange-400 bg-orange-50"
+                            'hover:shadow-md transition-shadow',
+                            isOverdue && 'border-orange-400 bg-orange-50',
                           )}
                         >
                           <CardContent className="p-4 space-y-3">
@@ -175,7 +166,7 @@ export function ApplicationKanban({
                             {app.applied_date && !isNaN(new Date(app.applied_date).getTime()) && (
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Calendar className="h-3 w-3" />
-                                Applied {format(new Date(app.applied_date), "MMM d")}
+                                Applied {format(new Date(app.applied_date), 'MMM d')}
                               </div>
                             )}
 
@@ -183,10 +174,10 @@ export function ApplicationKanban({
                             {app.next_step && isActive && (
                               <div
                                 className={cn(
-                                  "text-xs p-2 rounded",
+                                  'text-xs p-2 rounded',
                                   isOverdue
-                                    ? "bg-orange-100 text-orange-800"
-                                    : "bg-blue-50 text-blue-700"
+                                    ? 'bg-orange-100 text-orange-800'
+                                    : 'bg-blue-50 text-blue-700',
                                 )}
                               >
                                 <div className="flex items-center gap-1 mb-1">
@@ -194,22 +185,20 @@ export function ApplicationKanban({
                                   <span className="font-medium">Next:</span>
                                 </div>
                                 <div className="truncate">{app.next_step}</div>
-                                {app.next_step_date && !isNaN(new Date(app.next_step_date).getTime()) && (
-                                  <div className="text-xs mt-1">
-                                    {format(new Date(app.next_step_date), "MMM d")}
-                                    {isOverdue && " (Overdue)"}
-                                  </div>
-                                )}
+                                {app.next_step_date &&
+                                  !isNaN(new Date(app.next_step_date).getTime()) && (
+                                    <div className="text-xs mt-1">
+                                      {format(new Date(app.next_step_date), 'MMM d')}
+                                      {isOverdue && ' (Overdue)'}
+                                    </div>
+                                  )}
                               </div>
                             )}
 
                             {/* Actions */}
                             <div className="flex flex-col gap-2 pt-2 border-t">
                               <div className="flex gap-2">
-                                <Link
-                                  href={`/advisor/students/${app.user_id}`}
-                                  className="flex-1"
-                                >
+                                <Link href={`/advisor/students/${app.user_id}`} className="flex-1">
                                   <Button variant="outline" size="sm" className="w-full">
                                     View Student
                                   </Button>
@@ -221,7 +210,7 @@ export function ApplicationKanban({
                                     rel="noopener noreferrer"
                                     aria-label={`Open application for ${app.company_name} in new tab`}
                                   >
-                                  <Button variant="ghost" size="sm">
+                                    <Button variant="ghost" size="sm">
                                       <ExternalLink className="h-4 w-4" />
                                       <span className="sr-only">Open application</span>
                                     </Button>

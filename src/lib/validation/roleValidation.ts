@@ -5,7 +5,7 @@
  * webhooks, and other server-side code.
  */
 
-import { VALID_USER_ROLES, UserRole } from '@/lib/constants/roles'
+import { UserRole, VALID_USER_ROLES } from '@/lib/constants/roles';
 
 /**
  * Validates if a value is a valid user role
@@ -15,9 +15,9 @@ import { VALID_USER_ROLES, UserRole } from '@/lib/constants/roles'
  */
 export function validateRole(role: unknown): UserRole | null {
   if (role && typeof role === 'string' && VALID_USER_ROLES.includes(role as UserRole)) {
-    return role as UserRole
+    return role as UserRole;
   }
-  return null
+  return null;
 }
 
 /**
@@ -28,11 +28,11 @@ export function validateRole(role: unknown): UserRole | null {
  * @returns The role as UserRole if valid, null otherwise
  */
 export function validateRoleOrWarn(role: unknown, context: string): UserRole | null {
-  const validated = validateRole(role)
+  const validated = validateRole(role);
   if (role && !validated) {
-    console.warn(`[${context}] Invalid role: "${role}". Will be set to null.`)
+    console.warn(`[${context}] Invalid role: "${role}". Will be set to null.`);
   }
-  return validated
+  return validated;
 }
 
 /**
@@ -42,5 +42,5 @@ export function validateRoleOrWarn(role: unknown, context: string): UserRole | n
  * @returns True if the value is a valid UserRole
  */
 export function isValidUserRole(role: string): role is UserRole {
-  return VALID_USER_ROLES.includes(role as UserRole)
+  return VALID_USER_ROLES.includes(role as UserRole);
 }

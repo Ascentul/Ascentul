@@ -1,10 +1,11 @@
-"use client"
+'use client';
 
-import { useState } from 'react'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { PageHeader } from '@/components/ui/page-header'
+import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
 
 const SAMPLE_DATA = {
   email: 'student@university.edu',
@@ -15,19 +16,20 @@ const SAMPLE_DATA = {
   activationUrl: 'https://app.ascentful.io/activate/xyz789',
   dashboardUrl: 'https://app.ascentful.io/dashboard',
   ticketSubject: 'Help with resume builder',
-  responseMessage: 'Hi John, thanks for reaching out! I can help you with the resume builder. Here are the steps...',
+  responseMessage:
+    'Hi John, thanks for reaching out! I can help you with the resume builder. Here are the steps...',
   ticketUrl: 'https://app.ascentful.io/support/ticket123',
   universityAdminName: 'Dr. Sarah Johnson',
   role: 'Career Advisor',
-}
+};
 
 type EmailTemplate = {
-  id: string
-  name: string
-  description: string
-  subject: string
-  getHtml: () => string
-}
+  id: string;
+  name: string;
+  description: string;
+  subject: string;
+  getHtml: () => string;
+};
 
 const emailTemplates: EmailTemplate[] = [
   {
@@ -464,20 +466,17 @@ const emailTemplates: EmailTemplate[] = [
       </div>
     `,
   },
-]
+];
 
 export default function EmailPreviewPage() {
-  const { user } = useAuth()
-  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate>(emailTemplates[0])
+  const { user } = useAuth();
+  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate>(emailTemplates[0]);
 
   // Authorization check - only super admins can access email templates
   if (user?.role !== 'super_admin') {
     return (
       <div className="space-y-4">
-        <PageHeader
-          title="Unauthorized"
-          description="Access Denied"
-        />
+        <PageHeader title="Unauthorized" description="Access Denied" />
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-2">Super Admin Access Required</h2>
           <p className="text-muted-foreground">
@@ -485,7 +484,7 @@ export default function EmailPreviewPage() {
           </p>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -510,11 +509,11 @@ export default function EmailPreviewPage() {
                 >
                   <div className="w-full">
                     <div className="font-medium break-words">{template.name}</div>
-                    <div className={`text-xs mt-1 break-words ${
-                      selectedTemplate.id === template.id
-                        ? 'text-white/80'
-                        : 'text-neutral-500'
-                    }`}>
+                    <div
+                      className={`text-xs mt-1 break-words ${
+                        selectedTemplate.id === template.id ? 'text-white/80' : 'text-neutral-500'
+                      }`}
+                    >
                       {template.description}
                     </div>
                   </div>
@@ -550,11 +549,11 @@ export default function EmailPreviewPage() {
                 onClick={() => {
                   const blob = new Blob([selectedTemplate.getHtml()], {
                     type: 'text/html',
-                  })
-                  const url = URL.createObjectURL(blob)
-                  window.open(url, '_blank')
+                  });
+                  const url = URL.createObjectURL(blob);
+                  window.open(url, '_blank');
                   // Revoke the URL after a short delay to allow the browser to load it
-                  setTimeout(() => URL.revokeObjectURL(url), 100)
+                  setTimeout(() => URL.revokeObjectURL(url), 100);
                 }}
               >
                 Open in New Tab
@@ -562,8 +561,8 @@ export default function EmailPreviewPage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  navigator.clipboard.writeText(selectedTemplate.getHtml())
-                  alert('HTML copied to clipboard!')
+                  navigator.clipboard.writeText(selectedTemplate.getHtml());
+                  alert('HTML copied to clipboard!');
                 }}
               >
                 Copy HTML
@@ -573,5 +572,5 @@ export default function EmailPreviewPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

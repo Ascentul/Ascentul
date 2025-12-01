@@ -1,24 +1,29 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useToast } from "@/hooks/use-toast";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import Link from "next/link";
-import { useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
-
-// Import UI components
+import { useUser } from '@clerk/nextjs';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { api } from 'convex/_generated/api';
+import { useMutation } from 'convex/react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  AlertTriangle,
+  Camera,
+  Download,
+  Key,
+  Loader2,
+  LogOut,
+  ShieldCheck,
+  Trash2,
+  User,
+} from 'lucide-react';
+import Link from 'next/link';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+// Import UI components
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +31,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -35,29 +40,28 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ShieldCheck, Loader2, Key, LogOut, Camera, User, Download, Trash2, AlertTriangle } from "lucide-react";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 // Password change form schema
 const passwordChangeSchema = z
   .object({
-    currentPassword: z.string().min(1, "Current password is required"),
+    currentPassword: z.string().min(1, 'Current password is required'),
     newPassword: z
       .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-      .regex(/[0-9]/, "Password must contain at least one number"),
-    confirmPassword: z.string().min(1, "Please confirm your new password"),
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one number'),
+    confirmPassword: z.string().min(1, 'Please confirm your new password'),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
   });
 
 type PasswordChangeFormValues = z.infer<typeof passwordChangeSchema>;
@@ -75,15 +79,15 @@ export default function AccountPage() {
   const [isExportingData, setIsExportingData] = useState(false);
   const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [profileForm, setProfileForm] = useState({
-    name: "",
-    email: "",
-    jobTitle: "",
-    company: "",
-    location: "",
-    website: "",
-    bio: "",
+    name: '',
+    email: '',
+    jobTitle: '',
+    company: '',
+    location: '',
+    website: '',
+    bio: '',
   });
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -96,13 +100,13 @@ export default function AccountPage() {
   React.useEffect(() => {
     if (user && clerkUser && !isEditingProfile) {
       setProfileForm({
-        name: user.name || clerkUser.fullName || "",
-        email: user.email || clerkUser.emailAddresses?.[0]?.emailAddress || "",
-        jobTitle: user.job_title || "",
-        company: user.company || "",
-        location: user.location || "",
-        website: user.website || "",
-        bio: user.bio || "",
+        name: user.name || clerkUser.fullName || '',
+        email: user.email || clerkUser.emailAddresses?.[0]?.emailAddress || '',
+        jobTitle: user.job_title || '',
+        company: user.company || '',
+        location: user.location || '',
+        website: user.website || '',
+        bio: user.bio || '',
       });
     }
   }, [user, clerkUser, isEditingProfile]);
@@ -111,16 +115,16 @@ export default function AccountPage() {
   const passwordForm = useForm<PasswordChangeFormValues>({
     resolver: zodResolver(passwordChangeSchema),
     defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
     },
   });
 
   const handlePasswordChange = async (data: PasswordChangeFormValues) => {
     setIsLoading(true);
     try {
-      if (!clerkUser) throw new Error("No user found");
+      if (!clerkUser) throw new Error('No user found');
 
       await clerkUser.updatePassword({
         newPassword: data.newPassword,
@@ -129,18 +133,20 @@ export default function AccountPage() {
       });
 
       toast({
-        title: "Password changed",
-        description: "Your password has been changed successfully.",
-        variant: "success",
+        title: 'Password changed',
+        description: 'Your password has been changed successfully.',
+        variant: 'success',
       });
       setIsChangingPassword(false);
       passwordForm.reset();
     } catch (error: any) {
-      console.error("Password change error:", error);
+      console.error('Password change error:', error);
       toast({
-        title: "Error",
-        description: error?.errors?.[0]?.message || "Failed to change password. Please check your current password and try again.",
-        variant: "destructive",
+        title: 'Error',
+        description:
+          error?.errors?.[0]?.message ||
+          'Failed to change password. Please check your current password and try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -151,26 +157,27 @@ export default function AccountPage() {
   const handleDataExport = async () => {
     setIsExportingData(true);
     try {
-      const response = await fetch("/api/gdpr/export-data", {
-        method: "POST",
+      const response = await fetch('/api/gdpr/export-data', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       });
 
       if (!response.ok) {
-        throw new Error("Failed to export data");
+        throw new Error('Failed to export data');
       }
 
       // Get the filename from the response header or generate one
-      const contentDisposition = response.headers.get("Content-Disposition");
+      const contentDisposition = response.headers.get('Content-Disposition');
       const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
-      const filename = filenameMatch?.[1] || `personal-data-export-${new Date().toISOString().split("T")[0]}.json`;
+      const filename =
+        filenameMatch?.[1] || `personal-data-export-${new Date().toISOString().split('T')[0]}.json`;
 
       // Create a blob from the response and trigger download
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
@@ -179,16 +186,16 @@ export default function AccountPage() {
       document.body.removeChild(a);
 
       toast({
-        title: "Data exported successfully",
-        description: "Your personal data has been downloaded as a JSON file.",
-        variant: "success",
+        title: 'Data exported successfully',
+        description: 'Your personal data has been downloaded as a JSON file.',
+        variant: 'success',
       });
     } catch (error) {
-      console.error("Data export error:", error);
+      console.error('Data export error:', error);
       toast({
-        title: "Export failed",
-        description: "Failed to export your data. Please try again.",
-        variant: "destructive",
+        title: 'Export failed',
+        description: 'Failed to export your data. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsExportingData(false);
@@ -197,52 +204,52 @@ export default function AccountPage() {
 
   // GDPR Account Deletion handler
   const handleAccountDeletion = async () => {
-    if (deleteConfirmText !== "DELETE MY ACCOUNT") {
+    if (deleteConfirmText !== 'DELETE MY ACCOUNT') {
       toast({
-        title: "Confirmation required",
+        title: 'Confirmation required',
         description: "Please type 'DELETE MY ACCOUNT' to confirm.",
-        variant: "destructive",
+        variant: 'destructive',
       });
       return;
     }
 
     setIsRequestingDeletion(true);
     try {
-      const response = await fetch("/api/gdpr/delete-account", {
-        method: "POST",
+      const response = await fetch('/api/gdpr/delete-account', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          reason: "User requested deletion via account settings",
+          reason: 'User requested deletion via account settings',
         }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to request account deletion");
+        throw new Error(result.error || 'Failed to request account deletion');
       }
 
       toast({
-        title: "Deletion requested",
+        title: 'Deletion requested',
         description: result.message,
-        variant: "success",
+        variant: 'success',
       });
 
       setShowDeleteConfirmation(false);
-      setDeleteConfirmText("");
+      setDeleteConfirmText('');
 
       // If immediate deletion, sign out
-      if (result.deletionType === "immediate") {
+      if (result.deletionType === 'immediate') {
         await signOut();
       }
     } catch (error: any) {
-      console.error("Account deletion error:", error);
+      console.error('Account deletion error:', error);
       toast({
-        title: "Deletion failed",
-        description: error.message || "Failed to request account deletion. Please try again.",
-        variant: "destructive",
+        title: 'Deletion failed',
+        description: error.message || 'Failed to request account deletion. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsRequestingDeletion(false);
@@ -250,20 +257,20 @@ export default function AccountPage() {
   };
 
   const handleImageUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
+    if (!file.type.startsWith('image/')) {
       toast({
-        title: "Invalid file type",
-        description: "Please upload an image file",
-        variant: "destructive",
+        title: 'Invalid file type',
+        description: 'Please upload an image file',
+        variant: 'destructive',
       });
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: "File too large",
-        description: "Please upload an image smaller than 5MB",
-        variant: "destructive",
+        title: 'File too large',
+        description: 'Please upload an image smaller than 5MB',
+        variant: 'destructive',
       });
       return;
     }
@@ -272,12 +279,12 @@ export default function AccountPage() {
     try {
       const uploadUrl = await generateAvatarUploadUrlMutation();
       const uploadResult = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
         body: file,
       });
 
-      if (!uploadResult.ok) throw new Error("Failed to upload image");
+      if (!uploadResult.ok) throw new Error('Failed to upload image');
 
       const { storageId } = await uploadResult.json();
 
@@ -287,17 +294,17 @@ export default function AccountPage() {
           storageId,
         });
         toast({
-          title: "Profile picture updated",
-          description: "Your profile picture has been updated successfully",
-          variant: "success",
+          title: 'Profile picture updated',
+          description: 'Your profile picture has been updated successfully',
+          variant: 'success',
         });
       }
     } catch (error) {
-      console.error("Image upload error:", error);
+      console.error('Image upload error:', error);
       toast({
-        title: "Upload failed",
-        description: "Failed to upload image. Please try again.",
-        variant: "destructive",
+        title: 'Upload failed',
+        description: 'Failed to upload image. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsUploadingImage(false);
@@ -317,12 +324,8 @@ export default function AccountPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
-          Account Settings
-        </h1>
-        <p className="text-muted-foreground">
-          Manage your security settings and preferences
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Account Settings</h1>
+        <p className="text-muted-foreground">Manage your security settings and preferences</p>
       </div>
 
       <div className="space-y-6">
@@ -333,9 +336,7 @@ export default function AccountPage() {
               <User className="h-5 w-5" />
               Profile Settings
             </CardTitle>
-            <CardDescription>
-              Manage your profile picture and account preferences
-            </CardDescription>
+            <CardDescription>Manage your profile picture and account preferences</CardDescription>
             {/* Profile form stays visible for tests */}
             <div className="flex justify-end">
               <Button
@@ -356,13 +357,11 @@ export default function AccountPage() {
                     src={
                       user?.profile_image ||
                       clerkUser?.imageUrl ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || clerkUser?.firstName || "User")}&background=0C29AB&color=fff`
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || clerkUser?.firstName || 'User')}&background=0C29AB&color=fff`
                     }
                   />
                   <AvatarFallback>
-                    {(user?.name || clerkUser?.firstName || "U")
-                      .charAt(0)
-                      .toUpperCase()}
+                    {(user?.name || clerkUser?.firstName || 'U').charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>
@@ -388,9 +387,7 @@ export default function AccountPage() {
                 />
                 <Button
                   variant="outline"
-                  onClick={() =>
-                    document.getElementById("profile-upload")?.click()
-                  }
+                  onClick={() => document.getElementById('profile-upload')?.click()}
                   disabled={isUploadingImage}
                 >
                   {isUploadingImage ? (
@@ -408,11 +405,11 @@ export default function AccountPage() {
               </div>
             </div>
 
-              <div className="space-y-3 border rounded-lg p-4">
-                <div>
-                  <h4 className="font-medium">Profile Details</h4>
-                  <p className="text-sm text-muted-foreground">Update website and bio</p>
-                </div>
+            <div className="space-y-3 border rounded-lg p-4">
+              <div>
+                <h4 className="font-medium">Profile Details</h4>
+                <p className="text-sm text-muted-foreground">Update website and bio</p>
+              </div>
 
               {isEditingProfile && (
                 <div className="space-y-3">
@@ -427,7 +424,7 @@ export default function AccountPage() {
                       aria-readonly="true"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Sign-in email is managed by Clerk.{" "}
+                      Sign-in email is managed by Clerk.{' '}
                       <Button asChild variant="link" className="px-0 h-auto font-normal">
                         <Link href="/user">Change sign-in email in Clerk</Link>
                       </Button>
@@ -491,31 +488,32 @@ export default function AccountPage() {
                       placeholder="Tell us about yourself (max 500 characters)"
                       value={profileForm.bio}
                       maxLength={500}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setProfileForm({ ...profileForm, bio: e.target.value })}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {profileForm.bio.length}/500
-                    </p>
-                  </div>
-                  {profileError && (
-                    <p className="text-sm text-destructive">{profileError}</p>
-                  )}
-                  <div className="flex gap-2 justify-end">
-                    <Button variant="outline" onClick={() => {
-                      setIsEditingProfile(false);
-                      setProfileError(null);
-                      if (user && clerkUser) {
-                        setProfileForm({
-                          name: user.name || clerkUser.fullName || "",
-                          email: user.email || clerkUser.emailAddresses?.[0]?.emailAddress || "",
-                          jobTitle: user.job_title || "",
-                          company: user.company || "",
-                          location: user.location || "",
-                          website: user.website || "",
-                          bio: user.bio || "",
-                        });
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                        setProfileForm({ ...profileForm, bio: e.target.value })
                       }
-                    }}>
+                    />
+                    <p className="text-xs text-muted-foreground">{profileForm.bio.length}/500</p>
+                  </div>
+                  {profileError && <p className="text-sm text-destructive">{profileError}</p>}
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingProfile(false);
+                        setProfileError(null);
+                        if (user && clerkUser) {
+                          setProfileForm({
+                            name: user.name || clerkUser.fullName || '',
+                            email: user.email || clerkUser.emailAddresses?.[0]?.emailAddress || '',
+                            jobTitle: user.job_title || '',
+                            company: user.company || '',
+                            location: user.location || '',
+                            website: user.website || '',
+                            bio: user.bio || '',
+                          });
+                        }
+                      }}
+                    >
                       Cancel
                     </Button>
                     <Button
@@ -523,11 +521,11 @@ export default function AccountPage() {
                       onClick={async () => {
                         const urlPattern = /^https?:\/\/.+/i;
                         if (profileForm.website && !urlPattern.test(profileForm.website)) {
-                          setProfileError("Please enter a valid URL");
+                          setProfileError('Please enter a valid URL');
                           return;
                         }
                         if (profileForm.bio.length > 500) {
-                          setProfileError("Bio must be 500 characters or less");
+                          setProfileError('Bio must be 500 characters or less');
                           return;
                         }
                         setProfileError(null);
@@ -547,31 +545,31 @@ export default function AccountPage() {
                               },
                             });
                             toast({
-                              title: "Profile updated",
-                              description: "Your profile has been updated successfully.",
-                              variant: "success",
+                              title: 'Profile updated',
+                              description: 'Your profile has been updated successfully.',
+                              variant: 'success',
                             });
                             setIsEditingProfile(false);
                           } catch (error) {
-                            console.error("Profile update error:", error);
+                            console.error('Profile update error:', error);
                             toast({
-                              title: "Error",
-                              description: "Failed to update profile. Please try again.",
-                              variant: "destructive",
+                              title: 'Error',
+                              description: 'Failed to update profile. Please try again.',
+                              variant: 'destructive',
                             });
                           } finally {
                             setIsSavingProfile(false);
                           }
                         } else {
                           toast({
-                            title: "Error",
-                            description: "Unable to save profile. Please try again.",
-                            variant: "destructive",
+                            title: 'Error',
+                            description: 'Unable to save profile. Please try again.',
+                            variant: 'destructive',
                           });
                         }
                       }}
                     >
-                      {isSavingProfile ? "Saving..." : "Save Changes"}
+                      {isSavingProfile ? 'Saving...' : 'Save Changes'}
                     </Button>
                   </div>
                 </div>
@@ -587,9 +585,7 @@ export default function AccountPage() {
               <ShieldCheck className="h-5 w-5" />
               Security Settings
             </CardTitle>
-            <CardDescription>
-              Manage your account security and authentication
-            </CardDescription>
+            <CardDescription>Manage your account security and authentication</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-4">
@@ -599,14 +595,9 @@ export default function AccountPage() {
                     <Key className="h-5 w-5 text-muted-foreground" />
                     <h3 className="font-medium">Password</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Change your account password
-                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">Change your account password</p>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsChangingPassword(true)}
-                >
+                <Button variant="outline" onClick={() => setIsChangingPassword(true)}>
                   Change Password
                 </Button>
               </div>
@@ -636,9 +627,7 @@ export default function AccountPage() {
               <Download className="h-5 w-5" />
               Data Privacy Rights
             </CardTitle>
-            <CardDescription>
-              Exercise your data privacy rights under GDPR
-            </CardDescription>
+            <CardDescription>Exercise your data privacy rights under GDPR</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-4">
@@ -653,11 +642,7 @@ export default function AccountPage() {
                     Download all your personal data in JSON format (GDPR Article 20)
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={handleDataExport}
-                  disabled={isExportingData}
-                >
+                <Button variant="outline" onClick={handleDataExport} disabled={isExportingData}>
                   {isExportingData ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -683,10 +668,7 @@ export default function AccountPage() {
                     Permanently delete your account and all associated data (GDPR Article 17)
                   </p>
                 </div>
-                <Button
-                  variant="destructive"
-                  onClick={() => setShowDeleteConfirmation(true)}
-                >
+                <Button variant="destructive" onClick={() => setShowDeleteConfirmation(true)}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Account
                 </Button>
@@ -695,9 +677,10 @@ export default function AccountPage() {
 
             <div className="p-4 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                <strong>Your rights under GDPR:</strong> You have the right to access, rectify, and delete your personal data.
-                When you request deletion, your account will enter a 30-day grace period during which you can cancel the request.
-                After 30 days, your data will be permanently deleted. Some data may be retained for legal compliance.
+                <strong>Your rights under GDPR:</strong> You have the right to access, rectify, and
+                delete your personal data. When you request deletion, your account will enter a
+                30-day grace period during which you can cancel the request. After 30 days, your
+                data will be permanently deleted. Some data may be retained for legal compliance.
               </p>
             </div>
           </CardContent>
@@ -714,7 +697,8 @@ export default function AccountPage() {
             </DialogTitle>
             <DialogDescription className="space-y-4">
               <p>
-                This action will permanently delete your account and all associated data after a 30-day grace period.
+                This action will permanently delete your account and all associated data after a
+                30-day grace period.
               </p>
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
                 <strong>Warning:</strong> This includes all your:
@@ -727,9 +711,7 @@ export default function AccountPage() {
                   <li>All other personal data</li>
                 </ul>
               </div>
-              <p>
-                You can cancel this request anytime during the 30-day grace period.
-              </p>
+              <p>You can cancel this request anytime during the 30-day grace period.</p>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -751,7 +733,7 @@ export default function AccountPage() {
               variant="outline"
               onClick={() => {
                 setShowDeleteConfirmation(false);
-                setDeleteConfirmText("");
+                setDeleteConfirmText('');
               }}
             >
               Cancel
@@ -759,7 +741,7 @@ export default function AccountPage() {
             <Button
               variant="destructive"
               onClick={handleAccountDeletion}
-              disabled={isRequestingDeletion || deleteConfirmText !== "DELETE MY ACCOUNT"}
+              disabled={isRequestingDeletion || deleteConfirmText !== 'DELETE MY ACCOUNT'}
             >
               {isRequestingDeletion ? (
                 <>
@@ -782,15 +764,10 @@ export default function AccountPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
-            <DialogDescription>
-              Enter your current password and choose a new one
-            </DialogDescription>
+            <DialogDescription>Enter your current password and choose a new one</DialogDescription>
           </DialogHeader>
           <Form {...passwordForm}>
-            <form
-              onSubmit={passwordForm.handleSubmit(handlePasswordChange)}
-              className="space-y-4"
-            >
+            <form onSubmit={passwordForm.handleSubmit(handlePasswordChange)} className="space-y-4">
               <FormField
                 control={passwordForm.control}
                 name="currentPassword"
@@ -798,11 +775,7 @@ export default function AccountPage() {
                   <FormItem>
                     <FormLabel>Current Password</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter your current password"
-                        {...field}
-                      />
+                      <Input type="password" placeholder="Enter your current password" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -815,15 +788,11 @@ export default function AccountPage() {
                   <FormItem>
                     <FormLabel>New Password</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter your new password"
-                        {...field}
-                      />
+                      <Input type="password" placeholder="Enter your new password" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Password must be at least 8 characters and include
-                      uppercase, lowercase, and a number.
+                      Password must be at least 8 characters and include uppercase, lowercase, and a
+                      number.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -836,11 +805,7 @@ export default function AccountPage() {
                   <FormItem>
                     <FormLabel>Confirm New Password</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Confirm your new password"
-                        {...field}
-                      />
+                      <Input type="password" placeholder="Confirm your new password" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -857,11 +822,10 @@ export default function AccountPage() {
                 <Button type="submit" disabled={isLoading}>
                   {isLoading ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />{" "}
-                      Changing...
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Changing...
                     </>
                   ) : (
-                    "Change Password"
+                    'Change Password'
                   )}
                 </Button>
               </DialogFooter>

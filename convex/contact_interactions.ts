@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+
 import type { Doc, Id } from './_generated/dataModel';
+import { mutation, query } from './_generated/server';
 import { buildContactRelationship } from './lib/followUpValidation';
 
 // Get all follow-ups for a specific contact
@@ -41,9 +42,7 @@ export const getNeedFollowup = query({
       .collect();
 
     // Filter for contact-related follow-ups that are open
-    const contactFollowups = allFollowups.filter(
-      (f) => f.contact_id && f.status === 'open',
-    );
+    const contactFollowups = allFollowups.filter((f) => f.contact_id && f.status === 'open');
 
     return contactFollowups;
   },
@@ -78,12 +77,13 @@ export const createContactFollowup = mutation({
     const userRole = user.role;
     const allowedRoles = ['user', 'individual', 'student'];
     if (!allowedRoles.includes(userRole)) {
-      throw new Error('createContactFollowup is only for student-created follow-ups. Advisors should use advisor-specific mutations.');
+      throw new Error(
+        'createContactFollowup is only for student-created follow-ups. Advisors should use advisor-specific mutations.',
+      );
     }
 
     const now = Date.now();
-    const title =
-      args.description?.substring(0, 100) || `${args.type} follow-up`;
+    const title = args.description?.substring(0, 100) || `${args.type} follow-up`;
 
     const id = await ctx.db.insert('follow_ups', {
       // Core fields
@@ -132,12 +132,7 @@ export const updateContactFollowup = mutation({
       status: v.optional(v.union(v.literal('open'), v.literal('done'))),
       notes: v.optional(v.string()),
       priority: v.optional(
-        v.union(
-          v.literal('low'),
-          v.literal('medium'),
-          v.literal('high'),
-          v.literal('urgent'),
-        ),
+        v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('urgent')),
       ),
     }),
   },
@@ -251,19 +246,19 @@ export const deleteContactFollowup = mutation({
 
 // Get all interactions for a specific contact
 export const getContactInteractions = query({
-  args: { clerkId: v.string(), contactId: v.id("networking_contacts") },
+  args: { clerkId: v.string(), contactId: v.id('networking_contacts') },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const interactions = await ctx.db
-      .query("contact_interactions")
-      .withIndex("by_contact", (q) => q.eq("contact_id", args.contactId))
-      .order("desc")
+      .query('contact_interactions')
+      .withIndex('by_contact', (q) => q.eq('contact_id', args.contactId))
+      .order('desc')
       .collect();
 
     return interactions.filter((i) => i.user_id === user._id);
@@ -274,27 +269,27 @@ export const getContactInteractions = query({
 export const logInteraction = mutation({
   args: {
     clerkId: v.string(),
-    contactId: v.id("networking_contacts"),
+    contactId: v.id('networking_contacts'),
     notes: v.optional(v.string()),
     noteDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const contact = await ctx.db.get(args.contactId);
     if (!contact || contact.user_id !== user._id) {
-      throw new Error("Contact not found or unauthorized");
+      throw new Error('Contact not found or unauthorized');
     }
 
     const now = Date.now();
 
     // Create interaction record
-    await ctx.db.insert("contact_interactions", {
+    await ctx.db.insert('contact_interactions', {
       user_id: user._id,
       contact_id: args.contactId,
       notes: args.notes,
@@ -309,7 +304,7 @@ export const logInteraction = mutation({
       const dateStamp =
         args.noteDate && args.noteDate.trim().length > 0
           ? args.noteDate.trim()
-          : new Date(now).toLocaleDateString("en-US");
+          : new Date(now).toLocaleDateString('en-US');
       const entry = `[${dateStamp}] ${trimmedNotes}`;
       updatedNotes = contact.notes ? `${contact.notes}\n\n${entry}` : entry;
     }

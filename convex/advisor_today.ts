@@ -13,14 +13,11 @@
  * - Documentation tracking (sessions missing notes)
  */
 
-import { query } from "./_generated/server";
-import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
-import {
-  getCurrentUser,
-  requireAdvisorRole,
-  requireTenant,
-} from "./advisor_auth";
+import { v } from 'convex/values';
+
+import { Id } from './_generated/dataModel';
+import { query } from './_generated/server';
+import { getCurrentUser, requireAdvisorRole, requireTenant } from './advisor_auth';
 
 /**
  * Get today's schedule and tasks
@@ -62,29 +59,26 @@ export const getTodayOverview = query({
 
     // Get today's sessions
     const sessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
-        q.and(
-          q.gte(q.field("start_at"), startTimestamp),
-          q.lte(q.field("start_at"), endTimestamp),
-        ),
+        q.and(q.gte(q.field('start_at'), startTimestamp), q.lte(q.field('start_at'), endTimestamp)),
       )
       .collect();
 
     // Get follow-ups due today
     // Migrated to follow_ups table (unified table for all follow-up tasks)
     const followUps = await ctx.db
-      .query("follow_ups")
-      .withIndex("by_university", (q) => q.eq("university_id", universityId))
+      .query('follow_ups')
+      .withIndex('by_university', (q) => q.eq('university_id', universityId))
       .filter((q) =>
         q.and(
-          q.eq(q.field("created_by_id"), sessionCtx.userId),
-          q.eq(q.field("created_by_type"), "advisor"),
-          q.lte(q.field("due_at"), endTimestamp),
-          q.eq(q.field("status"), "open"),
+          q.eq(q.field('created_by_id'), sessionCtx.userId),
+          q.eq(q.field('created_by_type'), 'advisor'),
+          q.lte(q.field('due_at'), endTimestamp),
+          q.eq(q.field('status'), 'open'),
         ),
       )
       .collect();
@@ -92,7 +86,7 @@ export const getTodayOverview = query({
     // Filter ensures due_at exists (DB query already filtered by endTimestamp)
     // Type guard refines the type to guarantee due_at is number
     const todayFollowUps = followUps.filter(
-      (f): f is typeof f & { due_at: number } => f.due_at !== undefined
+      (f): f is typeof f & { due_at: number } => f.due_at !== undefined,
     );
 
     // Batch fetch all unique students to avoid N+1 queries
@@ -101,14 +95,12 @@ export const getTodayOverview = query({
       ...todayFollowUps.map((f) => f.user_id),
     ]);
 
-    const students = await Promise.all(
-      Array.from(studentIds).map((id) => ctx.db.get(id))
-    );
+    const students = await Promise.all(Array.from(studentIds).map((id) => ctx.db.get(id)));
 
     const studentMap = new Map(
       students
         .filter((student): student is NonNullable<typeof student> => student !== null)
-        .map((student) => [student._id, student])
+        .map((student) => [student._id, student]),
     );
 
     // Enrich sessions with student data from map
@@ -117,8 +109,8 @@ export const getTodayOverview = query({
       return {
         _id: session._id,
         student_id: session.student_id,
-        student_name: student?.name || "Unknown",
-        student_email: student?.email || "",
+        student_name: student?.name || 'Unknown',
+        student_email: student?.email || '',
         title: session.title,
         session_type: session.session_type,
         start_at: session.start_at,
@@ -136,7 +128,7 @@ export const getTodayOverview = query({
       return {
         _id: followUp._id,
         student_id: followUp.user_id, // Return as student_id for backward compatibility
-        student_name: student?.name || "Unknown",
+        student_name: student?.name || 'Unknown',
         title: followUp.title,
         description: followUp.description,
         due_at: followUp.due_at,
@@ -147,13 +139,9 @@ export const getTodayOverview = query({
     });
 
     // Calculate stats
-    const completedSessions = sessions.filter(
-      (s) => s.status === "completed",
-    ).length;
+    const completedSessions = sessions.filter((s) => s.status === 'completed').length;
     const upcomingSessions = sessions.filter((s) => s.start_at > now).length;
-    const overdueFollowUps = todayFollowUps.filter(
-      (f) => f.due_at && f.due_at < now,
-    ).length;
+    const overdueFollowUps = todayFollowUps.filter((f) => f.due_at && f.due_at < now).length;
 
     return {
       sessions: enrichedSessions.sort((a, b) => a.start_at - b.start_at),
@@ -192,23 +180,23 @@ interface StudentContext {
 function calculateRiskTags(
   lastLogin: number | undefined,
   applications: { stage?: string; status?: string; updated_at?: number }[],
-  now: number
+  now: number,
 ): string[] {
   const tags: string[] = [];
   const DAY_MS = 24 * 60 * 60 * 1000;
 
   // Low engagement: No login in 21+ days or never logged in
   if (!lastLogin || now - lastLogin > 21 * DAY_MS) {
-    tags.push("low_engagement");
+    tags.push('low_engagement');
   }
 
   // Stalled search: Has applications but no stage change in 14+ days
   if (applications.length > 0) {
     const recentActivity = applications.some(
-      (app) => app.updated_at && now - app.updated_at < 14 * DAY_MS
+      (app) => app.updated_at && now - app.updated_at < 14 * DAY_MS,
     );
     if (!recentActivity) {
-      tags.push("stalled_search");
+      tags.push('stalled_search');
     }
   }
 
@@ -217,10 +205,11 @@ function calculateRiskTags(
     // Check for offers using stage with status fallback during migration
     // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
     const hasOffer = applications.some(
-      (app) => app.stage === "Offer" || app.stage === "Accepted" || (!app.stage && app.status === "offer")
+      (app) =>
+        app.stage === 'Offer' || app.stage === 'Accepted' || (!app.stage && app.status === 'offer'),
     );
     if (!hasOffer) {
-      tags.push("high_volume_no_offers");
+      tags.push('high_volume_no_offers');
     }
   }
 
@@ -276,84 +265,72 @@ export const getTodayOverviewV2 = query({
 
     // Get today's sessions
     const todaySessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
-        q.and(
-          q.gte(q.field("start_at"), startTimestamp),
-          q.lte(q.field("start_at"), endTimestamp)
-        )
+        q.and(q.gte(q.field('start_at'), startTimestamp), q.lte(q.field('start_at'), endTimestamp)),
       )
       .collect();
 
     // Get coming up sessions (next 3 days)
     const comingUpSessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
-        q.and(
-          q.gte(q.field("start_at"), tomorrowStart),
-          q.lte(q.field("start_at"), comingUpEnd)
-        )
+        q.and(q.gte(q.field('start_at'), tomorrowStart), q.lte(q.field('start_at'), comingUpEnd)),
       )
       .collect();
 
     // Get sessions from last 3 days that may need documentation
     const pastSessionsStart = startTimestamp - 3 * DAY_MS;
     const pastSessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
         q.and(
-          q.gte(q.field("start_at"), pastSessionsStart),
-          q.lt(q.field("start_at"), startTimestamp),
-          q.eq(q.field("status"), "completed")
-        )
+          q.gte(q.field('start_at'), pastSessionsStart),
+          q.lt(q.field('start_at'), startTimestamp),
+          q.eq(q.field('status'), 'completed'),
+        ),
       )
       .collect();
 
     // Sessions missing notes (completed but no notes)
-    const undocumentedSessions = pastSessions.filter(
-      (s) => !s.notes || s.notes.trim() === ""
-    );
+    const undocumentedSessions = pastSessions.filter((s) => !s.notes || s.notes.trim() === '');
 
     // Get all follow-ups (overdue + today + upcoming 7 days)
     const allFollowUps = await ctx.db
-      .query("follow_ups")
-      .withIndex("by_university", (q) => q.eq("university_id", universityId))
+      .query('follow_ups')
+      .withIndex('by_university', (q) => q.eq('university_id', universityId))
       .filter((q) =>
         q.and(
-          q.eq(q.field("created_by_id"), sessionCtx.userId),
-          q.eq(q.field("created_by_type"), "advisor"),
-          q.lte(q.field("due_at"), upcomingEnd),
-          q.eq(q.field("status"), "open")
-        )
+          q.eq(q.field('created_by_id'), sessionCtx.userId),
+          q.eq(q.field('created_by_type'), 'advisor'),
+          q.lte(q.field('due_at'), upcomingEnd),
+          q.eq(q.field('status'), 'open'),
+        ),
       )
       .collect();
 
     // Group follow-ups
-    const overdueFollowUps = allFollowUps.filter(
-      (f) => f.due_at && f.due_at < startTimestamp
-    );
+    const overdueFollowUps = allFollowUps.filter((f) => f.due_at && f.due_at < startTimestamp);
     const todayFollowUps = allFollowUps.filter(
-      (f) => f.due_at && f.due_at >= startTimestamp && f.due_at <= endTimestamp
+      (f) => f.due_at && f.due_at >= startTimestamp && f.due_at <= endTimestamp,
     );
-    const upcomingFollowUps = allFollowUps.filter(
-      (f) => f.due_at && f.due_at > endTimestamp
-    );
+    const upcomingFollowUps = allFollowUps.filter((f) => f.due_at && f.due_at > endTimestamp);
 
     // ========================================================================
     // Batch fetch student data to avoid N+1 queries
     // ========================================================================
 
     // Collect all unique student IDs for basic info (name, email)
-    const allStudentIds = new Set<Id<"users">>([
+    const allStudentIds = new Set<Id<'users'>>([
       ...todaySessions.map((s) => s.student_id),
       ...comingUpSessions.map((s) => s.student_id),
       ...undocumentedSessions.map((s) => s.student_id),
@@ -363,70 +340,71 @@ export const getTodayOverviewV2 = query({
     // Only fetch expensive context (session history, resumes, applications) for students
     // who appear in sessions that will display context - today's and coming up sessions
     // This significantly reduces queries for advisors with many follow-ups
-    const studentsNeedingContext = new Set<Id<"users">>([
+    const studentsNeedingContext = new Set<Id<'users'>>([
       ...todaySessions.map((s) => s.student_id),
       ...comingUpSessions.map((s) => s.student_id),
     ]);
 
     // Batch fetch students (all need basic info)
-    const students = await Promise.all(
-      Array.from(allStudentIds).map((id) => ctx.db.get(id))
-    );
+    const students = await Promise.all(Array.from(allStudentIds).map((id) => ctx.db.get(id)));
 
     const studentMap = new Map(
       students
         .filter((student): student is NonNullable<typeof student> => student !== null)
-        .map((student) => [student._id, student])
+        .map((student) => [student._id, student]),
     );
 
     // Batch fetch session history ONLY for students with sessions (not all follow-up students)
-    const sessionHistoryByStudent = new Map<Id<"users">, typeof todaySessions>();
+    const sessionHistoryByStudent = new Map<Id<'users'>, typeof todaySessions>();
     await Promise.all(
       Array.from(studentsNeedingContext).map(async (studentId) => {
         const history = await ctx.db
-          .query("advisor_sessions")
-          .withIndex("by_student", (q) =>
-            q.eq("student_id", studentId).eq("university_id", universityId)
+          .query('advisor_sessions')
+          .withIndex('by_student', (q) =>
+            q.eq('student_id', studentId).eq('university_id', universityId),
           )
-          .filter((q) => q.eq(q.field("advisor_id"), sessionCtx.userId))
+          .filter((q) => q.eq(q.field('advisor_id'), sessionCtx.userId))
           .collect();
         sessionHistoryByStudent.set(studentId, history);
-      })
+      }),
     );
 
     // Batch fetch resume counts ONLY for students with sessions
-    const resumeCountByStudent = new Map<Id<"users">, number>();
+    const resumeCountByStudent = new Map<Id<'users'>, number>();
     await Promise.all(
       Array.from(studentsNeedingContext).map(async (studentId) => {
         const resumes = await ctx.db
-          .query("resumes")
-          .withIndex("by_user", (q) => q.eq("user_id", studentId))
+          .query('resumes')
+          .withIndex('by_user', (q) => q.eq('user_id', studentId))
           .collect();
         resumeCountByStudent.set(studentId, resumes.length);
-      })
+      }),
     );
 
     // Batch fetch applications ONLY for students with sessions
     // Include status for calculateRiskTags migration fallback (see docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md)
-    const applicationsByStudent = new Map<Id<"users">, { stage?: string; status?: string; updated_at?: number }[]>();
+    const applicationsByStudent = new Map<
+      Id<'users'>,
+      { stage?: string; status?: string; updated_at?: number }[]
+    >();
     await Promise.all(
       Array.from(studentsNeedingContext).map(async (studentId) => {
         const apps = await ctx.db
-          .query("applications")
-          .withIndex("by_user", (q) => q.eq("user_id", studentId))
+          .query('applications')
+          .withIndex('by_user', (q) => q.eq('user_id', studentId))
           .collect();
         applicationsByStudent.set(
           studentId,
-          apps.map((a) => ({ stage: a.stage, status: a.status, updated_at: a.updated_at }))
+          apps.map((a) => ({ stage: a.stage, status: a.status, updated_at: a.updated_at })),
         );
-      })
+      }),
     );
 
     // ========================================================================
     // Build student context enrichment
     // ========================================================================
 
-    function getStudentContext(studentId: Id<"users">): StudentContext {
+    function getStudentContext(studentId: Id<'users'>): StudentContext {
       const student = studentMap.get(studentId);
       const sessionHistory = sessionHistoryByStudent.get(studentId) || [];
       const resumes = resumeCountByStudent.get(studentId) || 0;
@@ -434,7 +412,7 @@ export const getTodayOverviewV2 = query({
 
       // Find most recent completed session before today
       const pastCompletedSessions = sessionHistory
-        .filter((s) => s.status === "completed" && s.start_at < startTimestamp)
+        .filter((s) => s.status === 'completed' && s.start_at < startTimestamp)
         .sort((a, b) => b.start_at - a.start_at);
 
       return {
@@ -458,8 +436,8 @@ export const getTodayOverviewV2 = query({
       return {
         _id: session._id,
         student_id: session.student_id,
-        student_name: student?.name || "Unknown",
-        student_email: student?.email || "",
+        student_name: student?.name || 'Unknown',
+        student_email: student?.email || '',
         title: session.title,
         session_type: session.session_type,
         start_at: session.start_at,
@@ -480,7 +458,7 @@ export const getTodayOverviewV2 = query({
       return {
         _id: session._id,
         student_id: session.student_id,
-        student_name: student?.name || "Unknown",
+        student_name: student?.name || 'Unknown',
         title: session.title,
         session_type: session.session_type,
         start_at: session.start_at,
@@ -489,12 +467,12 @@ export const getTodayOverviewV2 = query({
     });
 
     // Helper to enrich follow-ups
-    function enrichFollowUp(followUp: typeof allFollowUps[0]) {
+    function enrichFollowUp(followUp: (typeof allFollowUps)[0]) {
       const student = studentMap.get(followUp.user_id);
       return {
         _id: followUp._id,
         student_id: followUp.user_id,
-        student_name: student?.name || "Unknown",
+        student_name: student?.name || 'Unknown',
         title: followUp.title,
         description: followUp.description,
         due_at: followUp.due_at,
@@ -505,14 +483,22 @@ export const getTodayOverviewV2 = query({
     }
 
     // Group coming up sessions by day
-    const comingUpByDay: { date: number; dayLabel: string; sessions: typeof enrichedTodaySessions }[] = [];
+    const comingUpByDay: {
+      date: number;
+      dayLabel: string;
+      sessions: typeof enrichedTodaySessions;
+    }[] = [];
 
     // Create day buckets
     for (let i = 1; i <= 3; i++) {
       const dayStart = startTimestamp + i * DAY_MS;
       const dayEnd = dayStart + DAY_MS - 1;
       const dayDate = new Date(dayStart - tzOffsetMs);
-      const dayLabel = dayDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+      const dayLabel = dayDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
 
       const daySessions = comingUpSessions
         .filter((s) => s.start_at >= dayStart && s.start_at <= dayEnd)
@@ -521,8 +507,8 @@ export const getTodayOverviewV2 = query({
           return {
             _id: session._id,
             student_id: session.student_id,
-            student_name: student?.name || "Unknown",
-            student_email: student?.email || "",
+            student_name: student?.name || 'Unknown',
+            student_email: student?.email || '',
             title: session.title,
             session_type: session.session_type,
             start_at: session.start_at,
@@ -544,15 +530,19 @@ export const getTodayOverviewV2 = query({
     }
 
     // Calculate stats
-    const completedSessions = todaySessions.filter((s) => s.status === "completed").length;
+    const completedSessions = todaySessions.filter((s) => s.status === 'completed').length;
     const upcomingSessions = todaySessions.filter((s) => s.start_at > now).length;
 
     return {
       sessions: enrichedTodaySessions.sort((a, b) => a.start_at - b.start_at),
       followUps: {
-        overdue: overdueFollowUps.map(enrichFollowUp).sort((a, b) => (a.due_at || 0) - (b.due_at || 0)),
+        overdue: overdueFollowUps
+          .map(enrichFollowUp)
+          .sort((a, b) => (a.due_at || 0) - (b.due_at || 0)),
         today: todayFollowUps.map(enrichFollowUp).sort((a, b) => (a.due_at || 0) - (b.due_at || 0)),
-        upcoming: upcomingFollowUps.map(enrichFollowUp).sort((a, b) => (a.due_at || 0) - (b.due_at || 0)),
+        upcoming: upcomingFollowUps
+          .map(enrichFollowUp)
+          .sort((a, b) => (a.due_at || 0) - (b.due_at || 0)),
       },
       comingUp: comingUpByDay,
       documentation: enrichedUndocumented.sort((a, b) => b.start_at - a.start_at),

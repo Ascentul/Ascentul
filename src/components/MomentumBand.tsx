@@ -1,30 +1,31 @@
-'use client'
+'use client';
 
-import { useMemo } from 'react'
-import Link from 'next/link'
-import { useUser } from '@clerk/nextjs'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
 import {
-  Flame,
-  Trophy,
-  Zap,
-  Target,
   Briefcase,
-  MessageSquare,
-  FileText,
-  Users,
   CheckCircle,
   Clock,
+  FileText,
+  Flame,
   FolderKanban,
+  MessageSquare,
   PenLine,
-  Sparkles,
   Plus,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
-import { groupActivitiesByPeriod, type ActivityType, type TimelineActivity } from '@/lib/journey'
+  Sparkles,
+  Target,
+  Trophy,
+  Users,
+  Zap,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useMemo } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { type ActivityType, groupActivitiesByPeriod, type TimelineActivity } from '@/lib/journey';
+import { cn } from '@/lib/utils';
 
 // Activity type configuration
 const ACTIVITY_ICONS: Record<string, React.ElementType> = {
@@ -39,7 +40,7 @@ const ACTIVITY_ICONS: Record<string, React.ElementType> = {
   cover_letter: PenLine,
   project: FolderKanban,
   contact: Users,
-}
+};
 
 const ACTIVITY_COLORS: Record<string, string> = {
   application: 'bg-blue-100 text-blue-600',
@@ -53,54 +54,58 @@ const ACTIVITY_COLORS: Record<string, string> = {
   cover_letter: 'bg-rose-100 text-rose-600',
   project: 'bg-teal-100 text-teal-600',
   contact: 'bg-amber-100 text-amber-600',
-}
+};
 
 // Compact heatmap for the last 30 days
-function CompactHeatmap({ data }: { data: Array<{ date: string; didAction: boolean; actionCount: number }> }) {
-  const todayIso = new Date().toISOString().split('T')[0]
+function CompactHeatmap({
+  data,
+}: {
+  data: Array<{ date: string; didAction: boolean; actionCount: number }>;
+}) {
+  const todayIso = new Date().toISOString().split('T')[0];
 
   // Generate last 30 days
   const days = useMemo(() => {
-    const result = []
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const result = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     for (let i = 29; i >= 0; i--) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateStr = date.toISOString().split('T')[0]
-      const activity = data.find((d) => d.date === dateStr)
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const activity = data.find((d) => d.date === dateStr);
 
       result.push({
         date: dateStr,
         didAction: activity?.didAction ?? false,
         actionCount: activity?.actionCount ?? 0,
         isToday: dateStr === todayIso,
-      })
+      });
     }
-    return result
-  }, [data, todayIso])
+    return result;
+  }, [data, todayIso]);
 
   // Get intensity level
   const getIntensity = (count: number, didAction: boolean) => {
-    if (!didAction) return 0
-    if (count <= 1) return 1
-    if (count <= 3) return 2
-    if (count <= 6) return 3
-    return 4
-  }
+    if (!didAction) return 0;
+    if (count <= 1) return 1;
+    if (count <= 3) return 2;
+    if (count <= 6) return 3;
+    return 4;
+  };
 
   // Format date for tooltip
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00Z')
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-  }
+    const date = new Date(dateStr + 'T00:00:00Z');
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  };
 
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex flex-wrap gap-1">
         {days.map((day) => {
-          const level = getIntensity(day.actionCount, day.didAction)
+          const level = getIntensity(day.actionCount, day.didAction);
 
           return (
             <Tooltip key={day.date}>
@@ -113,7 +118,7 @@ function CompactHeatmap({ data }: { data: Array<{ date: string; didAction: boole
                     level === 2 && 'bg-indigo-200',
                     level === 3 && 'bg-indigo-300',
                     level === 4 && 'bg-indigo-500',
-                    day.isToday && 'ring-2 ring-indigo-400 ring-offset-1'
+                    day.isToday && 'ring-2 ring-indigo-400 ring-offset-1',
                   )}
                 />
               </TooltipTrigger>
@@ -121,73 +126,78 @@ function CompactHeatmap({ data }: { data: Array<{ date: string; didAction: boole
                 {formatDate(day.date)} • {day.actionCount} action{day.actionCount !== 1 ? 's' : ''}
               </TooltipContent>
             </Tooltip>
-          )
+          );
         })}
       </div>
     </TooltipProvider>
-  )
+  );
 }
 
 // Get link for activity item
 function getActivityLink(activity: TimelineActivity): string | null {
-  const idParts = activity.id.split('-')
-  const entityId = idParts[idParts.length - 1]
+  const idParts = activity.id.split('-');
+  const entityId = idParts[idParts.length - 1];
 
   switch (activity.type) {
     case 'application':
     case 'application_update':
-      return `/applications/${entityId}`
+      return `/applications/${entityId}`;
     case 'interview':
     case 'followup':
     case 'followup_completed':
-      return '/applications'
+      return '/applications';
     case 'goal':
     case 'goal_completed':
-      return '/goals'
+      return '/goals';
     case 'resume':
-      return `/resumes/${entityId}`
+      return `/resumes/${entityId}`;
     case 'cover_letter':
-      return `/cover-letters/${entityId}`
+      return `/cover-letters/${entityId}`;
     case 'project':
-      return `/projects/${entityId}`
+      return `/projects/${entityId}`;
     case 'contact':
-      return `/contacts/${entityId}`
+      return `/contacts/${entityId}`;
     default:
-      return null
+      return null;
   }
 }
 
 // Format relative time
 function formatRelativeTime(timestamp: number): string {
-  const now = Date.now()
-  const diffMs = now - timestamp
-  const diffMins = Math.floor(diffMs / (1000 * 60))
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const now = Date.now();
+  const diffMs = now - timestamp;
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffMins < 1) return 'Just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays === 1) return 'Yesterday'
-  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
 
-  const date = new Date(timestamp)
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const date = new Date(timestamp);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function ActivityItem({ activity }: { activity: TimelineActivity }) {
-  const Icon = ACTIVITY_ICONS[activity.type] || Sparkles
-  const colorClass = ACTIVITY_COLORS[activity.type] || 'bg-slate-100 text-slate-600'
-  const link = getActivityLink(activity)
+  const Icon = ACTIVITY_ICONS[activity.type] || Sparkles;
+  const colorClass = ACTIVITY_COLORS[activity.type] || 'bg-slate-100 text-slate-600';
+  const link = getActivityLink(activity);
 
   const content = (
     <div
       className={cn(
         'flex items-start gap-3 py-2 px-2 rounded-lg transition-colors',
-        link && 'hover:bg-slate-50 cursor-pointer'
+        link && 'hover:bg-slate-50 cursor-pointer',
       )}
     >
-      <div className={cn('w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0', colorClass)}>
+      <div
+        className={cn(
+          'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0',
+          colorClass,
+        )}
+      >
         <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="flex-1 min-w-0">
@@ -195,23 +205,17 @@ function ActivityItem({ activity }: { activity: TimelineActivity }) {
         <p className="text-xs text-slate-500 mt-0.5">{formatRelativeTime(activity.timestamp)}</p>
       </div>
     </div>
-  )
+  );
 
   if (link) {
-    return <Link href={link}>{content}</Link>
+    return <Link href={link}>{content}</Link>;
   }
 
-  return content
+  return content;
 }
 
-function TimelineGroup({
-  label,
-  activities,
-}: {
-  label: string
-  activities: TimelineActivity[]
-}) {
-  if (activities.length === 0) return null
+function TimelineGroup({ label, activities }: { label: string; activities: TimelineActivity[] }) {
+  if (activities.length === 0) return null;
 
   return (
     <div className="mb-3 last:mb-0">
@@ -224,39 +228,40 @@ function TimelineGroup({
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 export function MomentumBand() {
-  const { user: clerkUser } = useUser()
-  const clerkId = clerkUser?.id
-  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
+  const { user: clerkUser } = useUser();
+  const clerkId = clerkUser?.id;
+  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
   // Fetch streak and activity data
-  const activityData = useQuery(api.activity.getActivityYear, { timezone })
-  const streakSummary = useQuery(api.activity.getStreakSummary, { timezone })
+  const activityData = useQuery(api.activity.getActivityYear, { timezone });
+  const streakSummary = useQuery(api.activity.getStreakSummary, { timezone });
 
   // Fetch dashboard analytics for recent activity
   const dashboardData = useQuery(
     api.analytics.getUserDashboardAnalytics,
-    clerkId ? { clerkId } : 'skip'
-  )
+    clerkId ? { clerkId } : 'skip',
+  );
 
-  const isLoading = activityData === undefined || streakSummary === undefined || dashboardData === undefined
+  const isLoading =
+    activityData === undefined || streakSummary === undefined || dashboardData === undefined;
 
   // Get recent activity from dashboard data
   const activities = useMemo(() => {
-    if (!dashboardData?.recentActivity) return []
-    return dashboardData.recentActivity as TimelineActivity[]
-  }, [dashboardData])
+    if (!dashboardData?.recentActivity) return [];
+    return dashboardData.recentActivity as TimelineActivity[];
+  }, [dashboardData]);
 
   // Group by day
   const groupedActivities = useMemo(() => {
-    return groupActivitiesByPeriod(activities)
-  }, [activities])
+    return groupActivitiesByPeriod(activities);
+  }, [activities]);
 
-  const hasAnyActivity = activities.length > 0
-  const thisWeekActions = dashboardData?.thisWeek?.totalActions || 0
+  const hasAnyActivity = activities.length > 0;
+  const thisWeekActions = dashboardData?.thisWeek?.totalActions || 0;
 
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -344,11 +349,7 @@ export function MomentumBand() {
                     Complete your first career action to start building your timeline
                   </p>
                   <Link href="/applications/new">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-xs rounded-xl"
-                    >
+                    <Button size="sm" variant="outline" className="text-xs rounded-xl">
                       <Plus className="h-3.5 w-3.5 mr-1" />
                       Add an application
                     </Button>
@@ -363,7 +364,10 @@ export function MomentumBand() {
                   </div>
                   {/* Right column: Earlier this week + Older */}
                   <div>
-                    <TimelineGroup label="Earlier this week" activities={groupedActivities.earlierThisWeek} />
+                    <TimelineGroup
+                      label="Earlier this week"
+                      activities={groupedActivities.earlierThisWeek}
+                    />
                     <TimelineGroup label="Older" activities={groupedActivities.older.slice(0, 3)} />
                   </div>
                 </div>
@@ -373,5 +377,5 @@ export function MomentumBand() {
         )}
       </div>
     </section>
-  )
+  );
 }

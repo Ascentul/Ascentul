@@ -10,9 +10,9 @@
  * - SnoozeDialog: Dialog for snoozing follow-ups to a new date
  */
 
-export { MetricCard } from './MetricCard';
-export { EnhancedSessionCard } from './EnhancedSessionCard';
-export { FollowUpPanel } from './FollowUpPanel';
 export { ComingUpPanel } from './ComingUpPanel';
 export { DocumentationPanel } from './DocumentationPanel';
+export { EnhancedSessionCard } from './EnhancedSessionCard';
+export { FollowUpPanel } from './FollowUpPanel';
+export { MetricCard } from './MetricCard';
 export { SnoozeDialog } from './SnoozeDialog';

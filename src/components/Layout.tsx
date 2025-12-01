@@ -1,30 +1,31 @@
-'use client'
+'use client';
 
-import { ReactNode, useState } from 'react'
-import { useUser } from '@clerk/nextjs'
-import { Loader2, Menu } from 'lucide-react'
-import Sidebar from '@/components/Sidebar'
-import { Button } from '@/components/ui/button'
-import AppTopBar from '@/components/layout/AppTopBar'
+import { useUser } from '@clerk/nextjs';
+import { Loader2, Menu } from 'lucide-react';
+import { ReactNode, useState } from 'react';
+
+import AppTopBar from '@/components/layout/AppTopBar';
+import Sidebar from '@/components/Sidebar';
+import { Button } from '@/components/ui/button';
 
 interface LayoutProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { user, isLoaded } = useUser()
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const { user, isLoaded } = useUser();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const toggleMobileSidebar = () => {
-    setMobileSidebarOpen(!mobileSidebarOpen)
-  }
+    setMobileSidebarOpen(!mobileSidebarOpen);
+  };
 
   if (!isLoaded) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#F1F3F9]">
         <Loader2 className="h-10 w-10 animate-spin text-primary-500" />
       </div>
-    )
+    );
   }
 
   return (
@@ -67,13 +68,11 @@ export function Layout({ children }: LayoutProps) {
           <AppTopBar />
           <main className="flex-1 overflow-y-auto">
             <div className="px-4 pb-4 md:px-6">
-              <div className="w-full rounded-3xl bg-white p-5 shadow-sm">
-                {children}
-              </div>
+              <div className="w-full rounded-3xl bg-white p-5 shadow-sm">{children}</div>
             </div>
           </main>
         </div>
       </div>
     </>
-  )
+  );
 }

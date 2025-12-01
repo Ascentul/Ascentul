@@ -1,18 +1,19 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { requireMembership } from "./lib/roles";
+import { v } from 'convex/values';
+
+import { mutation, query } from './_generated/server';
+import { requireMembership } from './lib/roles';
 
 // Get cover letters for a user
 export const getUserCoverLetters = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Note: We don't require membership for read queries - users can always view their own cover letters
@@ -20,9 +21,9 @@ export const getUserCoverLetters = query({
 
     // OPTIMIZED: Add limit to prevent bandwidth issues
     const coverLetters = await ctx.db
-      .query("cover_letters")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .order("desc")
+      .query('cover_letters')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
+      .order('desc')
       .take(50); // Limit to 50 most recent cover letters
 
     return coverLetters;
@@ -41,28 +42,29 @@ export const createCoverLetter = mutation({
     closing: v.string(),
     source: v.optional(
       v.union(
-        v.literal("manual"),
-        v.literal("ai_generated"),
-        v.literal("ai_optimized"),
-        v.literal("pdf_upload"),
+        v.literal('manual'),
+        v.literal('ai_generated'),
+        v.literal('ai_optimized'),
+        v.literal('pdf_upload'),
       ),
     ),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
-    const coverLetterId = await ctx.db.insert("cover_letters", {
+    const coverLetterId = await ctx.db.insert('cover_letters', {
       user_id: user._id,
       university_id: membership?.university_id ?? user.university_id,
       name: args.name,
@@ -71,7 +73,7 @@ export const createCoverLetter = mutation({
       template: args.template,
       content: args.content,
       closing: args.closing,
-      source: args.source ?? "manual",
+      source: args.source ?? 'manual',
       created_at: Date.now(),
       updated_at: Date.now(),
     });
@@ -85,7 +87,7 @@ export const createCoverLetter = mutation({
 export const updateCoverLetter = mutation({
   args: {
     clerkId: v.string(),
-    coverLetterId: v.id("cover_letters"),
+    coverLetterId: v.id('cover_letters'),
     updates: v.object({
       name: v.optional(v.string()),
       job_title: v.optional(v.string()),
@@ -95,35 +97,40 @@ export const updateCoverLetter = mutation({
       closing: v.optional(v.string()),
       source: v.optional(
         v.union(
-          v.literal("manual"),
-          v.literal("ai_generated"),
-          v.literal("ai_optimized"),
-          v.literal("pdf_upload"),
+          v.literal('manual'),
+          v.literal('ai_generated'),
+          v.literal('ai_optimized'),
+          v.literal('pdf_upload'),
         ),
       ),
     }),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
     const coverLetter = await ctx.db.get(args.coverLetterId);
     if (!coverLetter || coverLetter.user_id !== user._id) {
-      throw new Error("Cover letter not found or unauthorized");
+      throw new Error('Cover letter not found or unauthorized');
     }
 
-    if (coverLetter.university_id && membership && coverLetter.university_id !== membership.university_id) {
-      throw new Error("Unauthorized: Cover letter belongs to another university");
+    if (
+      coverLetter.university_id &&
+      membership &&
+      coverLetter.university_id !== membership.university_id
+    ) {
+      throw new Error('Unauthorized: Cover letter belongs to another university');
     }
 
     await ctx.db.patch(args.coverLetterId, {
@@ -139,49 +146,49 @@ export const updateCoverLetter = mutation({
 export const deleteCoverLetter = mutation({
   args: {
     clerkId: v.string(),
-    coverLetterId: v.id("cover_letters"),
+    coverLetterId: v.id('cover_letters'),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
     const coverLetter = await ctx.db.get(args.coverLetterId);
     if (!coverLetter || coverLetter.user_id !== user._id) {
-      throw new Error("Cover letter not found or unauthorized");
+      throw new Error('Cover letter not found or unauthorized');
     }
 
     // University isolation check
-    if (coverLetter.university_id && membership && coverLetter.university_id !== membership.university_id) {
-      throw new Error("Unauthorized: Cover letter belongs to another university");
+    if (
+      coverLetter.university_id &&
+      membership &&
+      coverLetter.university_id !== membership.university_id
+    ) {
+      throw new Error('Unauthorized: Cover letter belongs to another university');
     }
 
     // Referential integrity: Check for active reviews before deletion
     // Uses by_cover_letter index for O(1) lookup instead of scanning by_student
     // Active reviews are those awaiting action (waiting/in_review), not finalized ones (approved/needs_edits)
     const activeReview = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_cover_letter", (q) => q.eq("cover_letter_id", args.coverLetterId))
-      .filter((q) =>
-        q.or(
-          q.eq(q.field("status"), "waiting"),
-          q.eq(q.field("status"), "in_review"),
-        ),
-      )
+      .query('advisor_reviews')
+      .withIndex('by_cover_letter', (q) => q.eq('cover_letter_id', args.coverLetterId))
+      .filter((q) => q.or(q.eq(q.field('status'), 'waiting'), q.eq(q.field('status'), 'in_review')))
       .first();
 
     if (activeReview) {
       throw new Error(
-        "Cannot delete cover letter: Active review in progress. Please wait for the review to complete or contact your advisor.",
+        'Cannot delete cover letter: Active review in progress. Please wait for the review to complete or contact your advisor.',
       );
     }
 
@@ -201,12 +208,12 @@ export const generateCoverLetterContent = mutation({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Mock AI-generated content for now

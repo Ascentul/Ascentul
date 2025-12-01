@@ -1,12 +1,14 @@
 'use client';
 
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
-import { SessionItem } from './SessionItem';
-import { FollowUpItem } from './FollowUpItem';
+import { Calendar as CalendarIcon } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+
+import { FollowUpItem } from './FollowUpItem';
+import { SessionItem } from './SessionItem';
 
 interface Session {
   _id: string;
@@ -45,7 +47,7 @@ export function DayCard({ day, sessions, followUps, now }: DayCardProps) {
 
   return (
     <Card className={cn(isToday && 'border-blue-500')}>
-      <CardContent className='p-4'>
+      <CardContent className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5 text-muted-foreground" />
@@ -57,7 +59,8 @@ export function DayCard({ day, sessions, followUps, now }: DayCardProps) {
             )}
           </div>
           <div className="text-sm text-muted-foreground">
-            {sessions.length} {sessions.length === 1 ? 'session' : 'sessions'}, {followUps.length} {followUps.length === 1 ? 'task' : 'tasks'}
+            {sessions.length} {sessions.length === 1 ? 'session' : 'sessions'}, {followUps.length}{' '}
+            {followUps.length === 1 ? 'task' : 'tasks'}
           </div>
         </div>
 

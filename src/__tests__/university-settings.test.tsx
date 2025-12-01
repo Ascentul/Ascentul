@@ -1,37 +1,38 @@
 // @ts-nocheck
-import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { useUser } from '@clerk/nextjs'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { useMutation, useQuery } from 'convex/react'
-import UniversitySettingsPage from '@/app/(dashboard)/university/settings/page'
+import { useUser } from '@clerk/nextjs';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useMutation, useQuery } from 'convex/react';
+import React from 'react';
+
+import UniversitySettingsPage from '@/app/(dashboard)/university/settings/page';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
 
 jest.mock('@clerk/nextjs', () => ({
   useUser: jest.fn(),
-}))
+}));
 jest.mock('@/contexts/ClerkAuthProvider', () => ({
   useAuth: jest.fn(),
-}))
+}));
 jest.mock('convex/react', () => ({
   useQuery: jest.fn(),
   useMutation: jest.fn(),
-}))
-const toastMock = jest.fn()
+}));
+const toastMock = jest.fn();
 jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
     toast: toastMock,
   }),
-}))
+}));
 
-const mockUseUser = useUser as jest.MockedFunction<typeof useUser>
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
-const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>
-const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>
+const mockUseUser = useUser as jest.MockedFunction<typeof useUser>;
+const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
+const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
 
 // TODO: Update these tests to match current UI implementation
 // Tests are skipped because UI components have changed significantly
 describe.skip('UniversitySettingsPage - Settings Persistence', () => {
-  const mockUpdateUniversitySettings = jest.fn()
+  const mockUpdateUniversitySettings = jest.fn();
   const mockUniversityData = {
     _id: 'uni-id-123',
     name: 'Test University',
@@ -47,10 +48,10 @@ describe.skip('UniversitySettingsPage - Settings Persistence', () => {
     status: 'active',
     created_at: Date.now(),
     updated_at: Date.now(),
-  }
+  };
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.clearAllMocks();
 
     mockUseUser.mockReturnValue({
       user: {
@@ -58,7 +59,7 @@ describe.skip('UniversitySettingsPage - Settings Persistence', () => {
       } as any,
       isLoaded: true,
       isSignedIn: true,
-    } as any)
+    } as any);
 
     mockUseAuth.mockReturnValue({
       user: {
@@ -77,44 +78,44 @@ describe.skip('UniversitySettingsPage - Settings Persistence', () => {
       isSignedIn: true,
       signOut: jest.fn(),
       isAdmin: true,
-    })
+    });
 
-    mockUseMutation.mockReturnValue(mockUpdateUniversitySettings)
-    mockUseQuery.mockReturnValue(mockUniversityData)
-  })
+    mockUseMutation.mockReturnValue(mockUpdateUniversitySettings);
+    mockUseQuery.mockReturnValue(mockUniversityData);
+  });
 
   test('should have onClick handler wired to Save Changes button', () => {
-    render(<UniversitySettingsPage />)
+    render(<UniversitySettingsPage />);
 
-    const saveButton = screen.getByText(/save changes/i)
-    expect(saveButton).toBeInTheDocument()
+    const saveButton = screen.getByText(/save changes/i);
+    expect(saveButton).toBeInTheDocument();
 
     // Button should not be disabled initially
-    expect(saveButton).not.toBeDisabled()
-  })
+    expect(saveButton).not.toBeDisabled();
+  });
 
   test('should call updateUniversitySettings mutation when saving', async () => {
     mockUpdateUniversitySettings.mockResolvedValue({
       success: true,
       message: 'University settings updated successfully',
-    })
+    });
 
-    render(<UniversitySettingsPage />)
+    render(<UniversitySettingsPage />);
 
     // Update fields
-    const nameInput = screen.getByLabelText(/university name/i)
-    const descriptionInput = screen.getByLabelText(/description/i)
-    const websiteInput = screen.getByLabelText(/website/i)
-    const contactEmailInput = screen.getByLabelText(/contact email/i)
+    const nameInput = screen.getByLabelText(/university name/i);
+    const descriptionInput = screen.getByLabelText(/description/i);
+    const websiteInput = screen.getByLabelText(/website/i);
+    const contactEmailInput = screen.getByLabelText(/contact email/i);
 
-    fireEvent.change(nameInput, { target: { value: 'Updated University Name' } })
-    fireEvent.change(descriptionInput, { target: { value: 'Updated description' } })
-    fireEvent.change(websiteInput, { target: { value: 'https://updated.edu' } })
-    fireEvent.change(contactEmailInput, { target: { value: 'new@testuni.edu' } })
+    fireEvent.change(nameInput, { target: { value: 'Updated University Name' } });
+    fireEvent.change(descriptionInput, { target: { value: 'Updated description' } });
+    fireEvent.change(websiteInput, { target: { value: 'https://updated.edu' } });
+    fireEvent.change(contactEmailInput, { target: { value: 'new@testuni.edu' } });
 
     // Click save
-    const saveButton = screen.getByText(/save changes/i)
-    fireEvent.click(saveButton)
+    const saveButton = screen.getByText(/save changes/i);
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(mockUpdateUniversitySettings).toHaveBeenCalledWith({
@@ -128,38 +129,38 @@ describe.skip('UniversitySettingsPage - Settings Persistence', () => {
           max_students: expect.any(Number),
           license_seats: expect.any(Number),
         },
-      })
-    })
-  })
+      });
+    });
+  });
 
   test('should load existing university settings into form', () => {
-    render(<UniversitySettingsPage />)
+    render(<UniversitySettingsPage />);
 
     // Verify form is populated with existing data
-    const nameInput = screen.getByDisplayValue('Test University')
-    const descriptionInput = screen.getByDisplayValue('A great institution')
-    const websiteInput = screen.getByDisplayValue('https://testuni.edu')
-    const contactEmailInput = screen.getByDisplayValue('contact@testuni.edu')
+    const nameInput = screen.getByDisplayValue('Test University');
+    const descriptionInput = screen.getByDisplayValue('A great institution');
+    const websiteInput = screen.getByDisplayValue('https://testuni.edu');
+    const contactEmailInput = screen.getByDisplayValue('contact@testuni.edu');
 
-    expect(nameInput).toBeInTheDocument()
-    expect(descriptionInput).toBeInTheDocument()
-    expect(websiteInput).toBeInTheDocument()
-    expect(contactEmailInput).toBeInTheDocument()
-  })
+    expect(nameInput).toBeInTheDocument();
+    expect(descriptionInput).toBeInTheDocument();
+    expect(websiteInput).toBeInTheDocument();
+    expect(contactEmailInput).toBeInTheDocument();
+  });
 
   test('should update max_students and license_seats', async () => {
-    mockUpdateUniversitySettings.mockResolvedValue({ success: true })
+    mockUpdateUniversitySettings.mockResolvedValue({ success: true });
 
-    render(<UniversitySettingsPage />)
+    render(<UniversitySettingsPage />);
 
-    const maxStudentsInput = screen.getByLabelText(/maximum students/i)
-    const licenseSeatsInput = screen.getByLabelText(/license seats/i)
+    const maxStudentsInput = screen.getByLabelText(/maximum students/i);
+    const licenseSeatsInput = screen.getByLabelText(/license seats/i);
 
-    fireEvent.change(maxStudentsInput, { target: { value: '10000' } })
-    fireEvent.change(licenseSeatsInput, { target: { value: '2000' } })
+    fireEvent.change(maxStudentsInput, { target: { value: '10000' } });
+    fireEvent.change(licenseSeatsInput, { target: { value: '2000' } });
 
-    const saveButton = screen.getByText(/save changes/i)
-    fireEvent.click(saveButton)
+    const saveButton = screen.getByText(/save changes/i);
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(mockUpdateUniversitySettings).toHaveBeenCalledWith(
@@ -168,57 +169,55 @@ describe.skip('UniversitySettingsPage - Settings Persistence', () => {
             max_students: 10000,
             license_seats: 2000,
           }),
-        })
-      )
-    })
-  })
+        }),
+      );
+    });
+  });
 
   test('should show loading state during save', async () => {
-    let resolvePromise: any
+    let resolvePromise: any;
     const promise = new Promise((resolve) => {
-      resolvePromise = resolve
-    })
-    mockUpdateUniversitySettings.mockReturnValue(promise)
+      resolvePromise = resolve;
+    });
+    mockUpdateUniversitySettings.mockReturnValue(promise);
 
-    render(<UniversitySettingsPage />)
+    render(<UniversitySettingsPage />);
 
-    const saveButton = screen.getByText(/save changes/i)
-    fireEvent.click(saveButton)
+    const saveButton = screen.getByText(/save changes/i);
+    fireEvent.click(saveButton);
 
     // Should show loading state
     await waitFor(() => {
-      expect(screen.getByText(/saving/i)).toBeInTheDocument()
-    })
+      expect(screen.getByText(/saving/i)).toBeInTheDocument();
+    });
 
     // Resolve promise
-    resolvePromise({ success: true })
+    resolvePromise({ success: true });
 
     await waitFor(() => {
-      expect(screen.queryByText(/saving/i)).not.toBeInTheDocument()
-    })
-  })
+      expect(screen.queryByText(/saving/i)).not.toBeInTheDocument();
+    });
+  });
 
   test('should handle save errors', async () => {
-    mockUpdateUniversitySettings.mockRejectedValue(
-      new Error('Failed to update university')
-    )
+    mockUpdateUniversitySettings.mockRejectedValue(new Error('Failed to update university'));
 
-    const { toast } = require('@/hooks/use-toast').useToast()
+    const { toast } = require('@/hooks/use-toast').useToast();
 
-    render(<UniversitySettingsPage />)
+    render(<UniversitySettingsPage />);
 
-    const saveButton = screen.getByText(/save changes/i)
-    fireEvent.click(saveButton)
+    const saveButton = screen.getByText(/save changes/i);
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Error',
           variant: 'destructive',
-        })
-      )
-    })
-  })
+        }),
+      );
+    });
+  });
 
   test('should restrict access to authorized users only', () => {
     mockUseAuth.mockReturnValue({
@@ -237,40 +236,40 @@ describe.skip('UniversitySettingsPage - Settings Persistence', () => {
       isSignedIn: true,
       signOut: jest.fn(),
       isAdmin: false,
-    })
+    });
 
-    render(<UniversitySettingsPage />)
+    render(<UniversitySettingsPage />);
 
-    expect(screen.getByText(/unauthorized/i)).toBeInTheDocument()
-    expect(screen.queryByText(/save changes/i)).not.toBeInTheDocument()
-  })
+    expect(screen.getByText(/unauthorized/i)).toBeInTheDocument();
+    expect(screen.queryByText(/save changes/i)).not.toBeInTheDocument();
+  });
 
   test('should persist settings across page reloads', async () => {
     // First render with initial data
-    const { rerender } = render(<UniversitySettingsPage />)
+    const { rerender } = render(<UniversitySettingsPage />);
 
     // Update settings
-    mockUpdateUniversitySettings.mockResolvedValue({ success: true })
+    mockUpdateUniversitySettings.mockResolvedValue({ success: true });
 
-    const nameInput = screen.getByLabelText(/university name/i)
-    fireEvent.change(nameInput, { target: { value: 'New Name' } })
+    const nameInput = screen.getByLabelText(/university name/i);
+    fireEvent.change(nameInput, { target: { value: 'New Name' } });
 
-    const saveButton = screen.getByText(/save changes/i)
-    fireEvent.click(saveButton)
+    const saveButton = screen.getByText(/save changes/i);
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(mockUpdateUniversitySettings).toHaveBeenCalled()
-    })
+      expect(mockUpdateUniversitySettings).toHaveBeenCalled();
+    });
 
     // Simulate page reload with updated data
     mockUseQuery.mockReturnValue({
       ...mockUniversityData,
       name: 'New Name',
-    })
+    });
 
-    rerender(<UniversitySettingsPage />)
+    rerender(<UniversitySettingsPage />);
 
     // Verify updated data is loaded
-    expect(screen.getByDisplayValue('New Name')).toBeInTheDocument()
-  })
-})
+    expect(screen.getByDisplayValue('New Name')).toBeInTheDocument();
+  });
+});

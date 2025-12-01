@@ -21,15 +21,16 @@
  * - Heavy use of block comments within the array
  */
 
-import { VALID_USER_ROLES } from '@/lib/constants/roles'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+import { VALID_USER_ROLES } from '@/lib/constants/roles';
 
 describe('Role Definition Synchronization', () => {
   it('should have matching role definitions between frontend and Convex', () => {
     // Read the Convex roleValidation.ts file
-    const convexFilePath = join(process.cwd(), 'convex', 'lib', 'roleValidation.ts')
-    const convexFileContent = readFileSync(convexFilePath, 'utf-8')
+    const convexFilePath = join(process.cwd(), 'convex', 'lib', 'roleValidation.ts');
+    const convexFileContent = readFileSync(convexFilePath, 'utf-8');
 
     // Extract ROLE_VALUES array from Convex file using more robust regex
     // This regex handles:
@@ -38,36 +39,36 @@ describe('Role Definition Synchronization', () => {
     // - Comments within the array
     // - Trailing commas
     const roleValuesMatch = convexFileContent.match(
-      /const\s+ROLE_VALUES\s*=\s*\[([\s\S]*?)\]\s*as\s+const/
-    )
+      /const\s+ROLE_VALUES\s*=\s*\[([\s\S]*?)\]\s*as\s+const/,
+    );
 
     if (!roleValuesMatch) {
-      throw new Error('Could not find ROLE_VALUES in convex/lib/roleValidation.ts')
+      throw new Error('Could not find ROLE_VALUES in convex/lib/roleValidation.ts');
     }
 
     // Parse the roles from the Convex file
     // More robust parsing that handles various formatting styles
-    const convexRolesString = roleValuesMatch[1]
+    const convexRolesString = roleValuesMatch[1];
     const convexRoles = convexRolesString
       .split('\n')
-      .map(line => line.trim())
+      .map((line) => line.trim())
       // Remove inline comments
-      .map(line => line.replace(/\/\/.*$/, '').trim())
+      .map((line) => line.replace(/\/\/.*$/, '').trim())
       // Filter lines that start with quotes (single or double)
-      .filter(line => line.match(/^["'][\w_]+["']/))
+      .filter((line) => line.match(/^["'][\w_]+["']/))
       // Extract the actual role string value
-      .map(line => {
-        const match = line.match(/^["']([\w_]+)["']/)
-        return match ? match[1] : null
+      .map((line) => {
+        const match = line.match(/^["']([\w_]+)["']/);
+        return match ? match[1] : null;
       })
-      .filter((role): role is string => role !== null)
+      .filter((role): role is string => role !== null);
 
     // Get frontend roles
-    const frontendRoles = [...VALID_USER_ROLES]
+    const frontendRoles = [...VALID_USER_ROLES];
 
     // Compare arrays
-    expect(convexRoles).toEqual(frontendRoles)
-  })
+    expect(convexRoles).toEqual(frontendRoles);
+  });
 
   it('should have all expected roles defined', () => {
     const expectedRoles = [
@@ -78,8 +79,8 @@ describe('Role Definition Synchronization', () => {
       'individual',
       'staff',
       'user',
-    ]
+    ];
 
-    expect([...VALID_USER_ROLES]).toEqual(expectedRoles)
-  })
-})
+    expect([...VALID_USER_ROLES]).toEqual(expectedRoles);
+  });
+});

@@ -1,61 +1,61 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { api } from 'convex/_generated/api';
+import { Id } from 'convex/_generated/dataModel';
+import { NextRequest, NextResponse } from 'next/server';
 
-import { api } from 'convex/_generated/api'
-import { Id } from 'convex/_generated/dataModel'
-import { convexServer } from '@/lib/convex-server';
-import { requireConvexToken } from '@/lib/convex-auth';
 import { hasUniversityAdminAccess } from '@/lib/constants/roles';
+import { requireConvexToken } from '@/lib/convex-auth';
+import { convexServer } from '@/lib/convex-server';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
     // Get authentication from request
-    const authResult = await requireConvexToken()
-    const userId = authResult.userId
-    const token = authResult.token
+    const authResult = await requireConvexToken();
+    const userId = authResult.userId;
+    const token = authResult.token;
 
-    const body = await request.json()
-    const { clerkId } = body
+    const body = await request.json();
+    const { clerkId } = body;
 
     if (!clerkId) {
-      return NextResponse.json({ error: 'Missing clerkId' }, { status: 400 })
+      return NextResponse.json({ error: 'Missing clerkId' }, { status: 400 });
     }
 
     // For additional security, verify the clerkId matches the authenticated user
     if (userId !== clerkId) {
-      return NextResponse.json({ error: 'ClerkId mismatch' }, { status: 403 })
+      return NextResponse.json({ error: 'ClerkId mismatch' }, { status: 403 });
     }
 
     // Get the current user to verify admin access
-    let user
+    let user;
     try {
-      user = await convexServer.query(api.users.getUserByClerkId, { clerkId }, token)
+      user = await convexServer.query(api.users.getUserByClerkId, { clerkId }, token);
     } catch (error) {
-      console.error('Error fetching user by clerkId:', error)
-      return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 })
+      console.error('Error fetching user by clerkId:', error);
+      return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 });
     }
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     if (!hasUniversityAdminAccess(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     // Get university data
-    let universityId = user.university_id
+    let universityId = user.university_id;
 
     // If university admin user doesn't have university_id, try to find university by admin_email
     if (!universityId && user.role === 'university_admin' && user.email) {
       try {
         // Use indexed query for efficient lookup instead of fetching all universities
-        const matchingUniversity = await convexServer.query(
+        const matchingUniversity = (await convexServer.query(
           api.universities_queries.getUniversityByAdminEmail,
           { email: user.email },
-          token
-        ) as any;
+          token,
+        )) as any;
 
         if (matchingUniversity) {
           universityId = matchingUniversity._id;
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
           // Note: Using user._id instead of email for privacy compliance (GDPR/CCPA/FERPA)
           console.warn(
             `[SECURITY] Auto-assigning university_id for admin: user_id=${user._id} -> ${universityId} (${matchingUniversity.name}). ` +
-            `This indicates the account was not properly configured during creation.`
+              `This indicates the account was not properly configured during creation.`,
           );
 
           // Update user's university_id for future requests.
@@ -76,9 +76,9 @@ export async function POST(request: NextRequest) {
             api.users.updateUser,
             {
               clerkId,
-              updates: { university_id: universityId }
+              updates: { university_id: universityId },
             },
-            token
+            token,
           );
 
           // COMPLIANCE: Persistent audit log for this security-sensitive auto-assignment
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
                   // PII excluded for GDPR/CCPA compliance - user identified by target_id
                 },
               },
-              token
+              token,
             );
           } catch (auditError) {
             console.error('Failed to create audit log for auto-assignment:', auditError);
@@ -113,30 +113,32 @@ export async function POST(request: NextRequest) {
       // For university admin users, they should have a university_id
       // If they don't, provide a helpful error message
       if (user.role === 'university_admin') {
-        return NextResponse.json({
-          error: 'University admin account not properly configured. Please contact support to assign your account to a university.'
-        }, { status: 400 })
+        return NextResponse.json(
+          {
+            error:
+              'University admin account not properly configured. Please contact support to assign your account to a university.',
+          },
+          { status: 400 },
+        );
       }
-      return NextResponse.json({ error: 'No university assigned to user' }, { status: 400 })
+      return NextResponse.json({ error: 'No university assigned to user' }, { status: 400 });
     }
 
     // Fetch all relevant data including per-student metrics
-    let students, departments, studentProgress
+    let students, departments, studentProgress;
     try {
       [students, departments, studentProgress] = await Promise.all([
         convexServer.query(api.university_admin.listStudents, { clerkId, limit: 1000 }, token),
         convexServer.query(api.university_admin.listDepartments, { clerkId }, token),
         convexServer.query(api.university_admin.getStudentProgress, { clerkId }, token),
-      ])
+      ]);
     } catch (error) {
-      console.error('Error fetching university data:', error)
-      return NextResponse.json({ error: 'Failed to fetch university data' }, { status: 500 })
+      console.error('Error fetching university data:', error);
+      return NextResponse.json({ error: 'Failed to fetch university data' }, { status: 500 });
     }
 
     // Create a map of student progress by student ID for fast lookup
-    const progressMap = new Map(
-      (studentProgress as any[]).map(p => [String(p.studentId), p])
-    )
+    const progressMap = new Map((studentProgress as any[]).map((p) => [String(p.studentId), p]));
 
     // Generate CSV content
     const csvHeaders = [
@@ -149,62 +151,66 @@ export async function POST(request: NextRequest) {
       'Goals Set',
       'Applications Submitted',
       'Resumes Created',
-      'Cover Letters Created'
-    ]
+      'Cover Letters Created',
+    ];
 
-    const csvRows = students.map(student => {
+    const csvRows = students.map((student) => {
       // Get actual metrics from studentProgress query
       const progress = progressMap.get(String(student._id)) || {
         goals: 0,
         applications: 0,
         resumes: 0,
         coverLetters: 0,
-      }
+      };
 
       return [
         student.name || '',
         student.email || '',
         student.role || '',
-        student.department_id ? departments.find(d => d._id === student.department_id as any)?.name || '' : '',
+        student.department_id
+          ? departments.find((d) => d._id === (student.department_id as any))?.name || ''
+          : '',
         student.created_at ? new Date(student.created_at).toLocaleDateString() : '',
         student.updated_at ? new Date(student.updated_at).toLocaleDateString() : '',
         progress.goals ?? 0,
         progress.applications ?? 0,
         progress.resumes ?? 0,
         progress.coverLetters ?? 0,
-      ]
-    })
+      ];
+    });
 
     // Escape CSV cells to handle commas and quotes
     const escapeCSV = (field: string | number) => {
-      const stringField = String(field)
+      const stringField = String(field);
       if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
-        return `"${stringField.replace(/"/g, '""')}"`
+        return `"${stringField.replace(/"/g, '""')}"`;
       }
-      return stringField
-    }
+      return stringField;
+    };
 
     const csvContent = [
       csvHeaders.join(','),
-      ...csvRows.map(row => row.map(escapeCSV).join(','))
-    ].join('\n')
+      ...csvRows.map((row) => row.map(escapeCSV).join(',')),
+    ].join('\n');
 
-    const filename = `university-report-${new Date().toISOString().split('T')[0]}.csv`
+    const filename = `university-report-${new Date().toISOString().split('T')[0]}.csv`;
 
     return new NextResponse(csvContent, {
       status: 200,
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="${filename}"`
-      }
-    })
-
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      },
+    });
   } catch (error) {
-    console.error('Export reports error:', error)
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
-    return NextResponse.json({
-      error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? String(error) : undefined
-    }, { status: 500 })
+    console.error('Export reports error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined,
+      },
+      { status: 500 },
+    );
   }
 }

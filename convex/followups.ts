@@ -1,4 +1,5 @@
 import { ConvexError, v } from 'convex/values';
+
 import { mutation, query } from './_generated/server';
 import { buildApplicationRelationship } from './lib/followUpValidation';
 import { getAuthenticatedUser } from './lib/roles';
@@ -22,9 +23,7 @@ export const getUserFollowups = query({
         const application = followup.application_id
           ? await ctx.db.get(followup.application_id)
           : null;
-        const contact = followup.contact_id
-          ? await ctx.db.get(followup.contact_id)
-          : null;
+        const contact = followup.contact_id ? await ctx.db.get(followup.contact_id) : null;
 
         return {
           ...followup,
@@ -45,9 +44,7 @@ export const getFollowupsForApplication = query({
 
     const items = await ctx.db
       .query('follow_ups')
-      .withIndex('by_application', (q) =>
-        q.eq('application_id', args.applicationId),
-      )
+      .withIndex('by_application', (q) => q.eq('application_id', args.applicationId))
       .order('desc')
       .collect();
 
@@ -67,17 +64,18 @@ export const createFollowup = mutation({
     const user = await getAuthenticatedUser(ctx);
 
     const now = Date.now();
-    const title =
-      args.description?.trim().substring(0, 100) ||
-      `${args.type || 'Follow-up'} task`;
+    const title = args.description?.trim().substring(0, 100) || `${args.type || 'Follow-up'} task`;
 
     // Determine created_by_type based on user role
     const userRole = user.role;
-    const createdByType = 
-      userRole === 'student' ? 'student' 
-      : userRole === 'advisor' ? 'advisor' 
-      : userRole === 'individual' ? 'individual'
-      : 'student'; // Treat other roles as student for follow-up ownership
+    const createdByType =
+      userRole === 'student'
+        ? 'student'
+        : userRole === 'advisor'
+          ? 'advisor'
+          : userRole === 'individual'
+            ? 'individual'
+            : 'student'; // Treat other roles as student for follow-up ownership
 
     const id = await ctx.db.insert('follow_ups', {
       // Core fields

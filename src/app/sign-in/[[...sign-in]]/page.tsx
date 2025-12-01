@@ -1,66 +1,67 @@
-"use client"
+'use client';
 
-import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@clerk/nextjs'
-import { Check, KeyRound } from 'lucide-react'
-import { AuthLayout } from '@/components/auth/AuthLayout'
-import { SignInForm } from '@/components/auth/SignInForm'
-import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm'
-import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm'
+import { useAuth } from '@clerk/nextjs';
+import { Check, KeyRound } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
+import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
+import { SignInForm } from '@/components/auth/SignInForm';
 
 export default function Page() {
-  const router = useRouter()
-  const { isLoaded: authLoaded, isSignedIn } = useAuth()
+  const router = useRouter();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
 
-  const [step, setStep] = useState<'signin' | 'forgot' | 'reset'>('signin')
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [step, setStep] = useState<'signin' | 'forgot' | 'reset'>('signin');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Clear any cached authentication data on component mount
   useEffect(() => {
     // Clear localStorage and sessionStorage to prevent cached auth issues
     if (typeof window !== 'undefined') {
-      localStorage.clear()
-      sessionStorage.clear()
+      localStorage.clear();
+      sessionStorage.clear();
     }
-  }, [])
+  }, []);
 
   // If a session already exists, redirect to dashboard to avoid Clerk "session_exists" errors
   useEffect(() => {
     if (authLoaded && isSignedIn) {
-      router.replace('/dashboard')
+      router.replace('/dashboard');
     }
-  }, [authLoaded, isSignedIn, router])
+  }, [authLoaded, isSignedIn, router]);
 
   // Show loading state while checking authentication
   if (!authLoaded) {
-    return null
+    return null;
   }
 
   // Don't render if redirecting
   if (isSignedIn) {
-    return null
+    return null;
   }
 
   const handleForgotPassword = () => {
-    setStep('forgot')
-    setSuccessMessage(null)
-  }
+    setStep('forgot');
+    setSuccessMessage(null);
+  };
 
   const handleBackToSignIn = () => {
-    setStep('signin')
-    setSuccessMessage(null)
-  }
+    setStep('signin');
+    setSuccessMessage(null);
+  };
 
   const handleForgotPasswordSuccess = (userEmail: string) => {
-    setStep('reset')
-    setSuccessMessage(`We've sent a password reset code to ${userEmail}`)
-  }
+    setStep('reset');
+    setSuccessMessage(`We've sent a password reset code to ${userEmail}`);
+  };
 
   const handleBackToForgot = () => {
-    setStep('forgot')
-    setSuccessMessage(null)
-  }
+    setStep('forgot');
+    setSuccessMessage(null);
+  };
 
   // Render based on current step
   if (step === 'forgot') {
@@ -70,7 +71,8 @@ export default function Page() {
         marketingContent={
           <>
             <p className="text-white/95 mb-6">
-              No worries! We'll help you reset it quickly and securely so you can get back to your career journey.
+              No worries! We'll help you reset it quickly and securely so you can get back to your
+              career journey.
             </p>
             <div className="flex items-center gap-3">
               <KeyRound className="h-5 w-5" />
@@ -79,12 +81,9 @@ export default function Page() {
           </>
         }
       >
-        <ForgotPasswordForm
-          onBack={handleBackToSignIn}
-          onSuccess={handleForgotPasswordSuccess}
-        />
+        <ForgotPasswordForm onBack={handleBackToSignIn} onSuccess={handleForgotPasswordSuccess} />
       </AuthLayout>
-    )
+    );
   }
 
   if (step === 'reset') {
@@ -108,7 +107,7 @@ export default function Page() {
           onBack={handleBackToForgot}
         />
       </AuthLayout>
-    )
+    );
   }
 
   return (
@@ -147,5 +146,5 @@ export default function Page() {
     >
       <SignInForm onForgotPassword={handleForgotPassword} />
     </AuthLayout>
-  )
+  );
 }

@@ -30,13 +30,9 @@ export const enableAllAdvisorFlags = internalMutation({
     const now = Date.now();
 
     // Batch fetch all existing settings to avoid N+1 queries
-    const allSettings = await ctx.db
-      .query('platform_settings')
-      .collect();
+    const allSettings = await ctx.db.query('platform_settings').collect();
 
-    const settingsMap = new Map(
-      allSettings.map((s) => [s.setting_key, s])
-    );
+    const settingsMap = new Map(allSettings.map((s) => [s.setting_key, s]));
 
     let enabledCount = 0;
     let createdCount = 0;
@@ -76,7 +72,9 @@ export const enableAllAdvisorFlags = internalMutation({
       console.log('\n✅ All advisor features enabled!');
       console.log('Users with advisor role can now access /advisor routes');
     } else {
-      console.log(`\n⚠️  Completed with ${failedCount} failure(s). Some advisor features may not be enabled.`);
+      console.log(
+        `\n⚠️  Completed with ${failedCount} failure(s). Some advisor features may not be enabled.`,
+      );
       console.log('Failed flags:', failedFlags.join(', '));
     }
 
@@ -97,13 +95,9 @@ export const disableAllAdvisorFlags = internalMutation({
     const now = Date.now();
 
     // Batch fetch all existing settings to avoid N+1 queries
-    const allSettings = await ctx.db
-      .query('platform_settings')
-      .collect();
+    const allSettings = await ctx.db.query('platform_settings').collect();
 
-    const settingsMap = new Map(
-      allSettings.map((s) => [s.setting_key, s])
-    );
+    const settingsMap = new Map(allSettings.map((s) => [s.setting_key, s]));
 
     let disabledCount = 0;
     let failedCount = 0;
@@ -132,7 +126,9 @@ export const disableAllAdvisorFlags = internalMutation({
     if (failedCount === 0) {
       console.log('\n✅ All advisor features disabled!');
     } else {
-      console.log(`\n⚠️  Completed with ${failedCount} failure(s). Some advisor features may not be disabled.`);
+      console.log(
+        `\n⚠️  Completed with ${failedCount} failure(s). Some advisor features may not be disabled.`,
+      );
       console.log('Failed flags:', failedFlags.join(', '));
     }
 

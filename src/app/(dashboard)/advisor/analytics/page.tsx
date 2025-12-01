@@ -1,31 +1,26 @@
 'use client';
 
-import { useMemo } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useQuery } from 'convex/react';
 import { api } from 'convex/_generated/api';
-import { AdvisorGate } from '@/components/advisor/AdvisorGate';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { ActivityChart } from '@/components/advisor/analytics/ActivityChart';
-import { UpcomingItems, UpcomingItem } from '@/components/advisor/analytics/UpcomingItems';
-import { ReviewQueueSnapshot } from '@/components/advisor/analytics/ReviewQueueSnapshot';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery } from 'convex/react';
+import { endOfMonth, endOfWeek, startOfMonth, startOfWeek, subWeeks } from 'date-fns';
 import {
-  Users,
-  Calendar,
-  Clock,
-  TrendingUp,
   AlertCircle,
+  Calendar,
   CheckCircle,
+  Clock,
   Loader2,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
-import {
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  subWeeks,
-} from 'date-fns';
+import { useMemo } from 'react';
+
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
+import { ActivityChart } from '@/components/advisor/analytics/ActivityChart';
+import { ReviewQueueSnapshot } from '@/components/advisor/analytics/ReviewQueueSnapshot';
+import { UpcomingItem, UpcomingItems } from '@/components/advisor/analytics/UpcomingItems';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function AdvisorAnalyticsPage() {
   const { user: clerkUser } = useUser();
@@ -46,38 +41,32 @@ export default function AdvisorAnalyticsPage() {
   // Queries
   const weekStats = useQuery(
     api.advisor_calendar.getCalendarStats,
-    clerkId ? { clerkId, startDate: weekStart, endDate: weekEnd } : 'skip'
+    clerkId ? { clerkId, startDate: weekStart, endDate: weekEnd } : 'skip',
   );
 
   const monthStats = useQuery(
     api.advisor_calendar.getCalendarStats,
-    clerkId ? { clerkId, startDate: monthStart, endDate: monthEnd } : 'skip'
+    clerkId ? { clerkId, startDate: monthStart, endDate: monthEnd } : 'skip',
   );
 
-  const caseload = useQuery(
-    api.advisor_students.getMyCaseload,
-    clerkId ? { clerkId } : 'skip'
-  );
+  const caseload = useQuery(api.advisor_students.getMyCaseload, clerkId ? { clerkId } : 'skip');
 
   const weekSessions = useQuery(
     api.advisor_calendar.getSessionsInRange,
-    clerkId ? { clerkId, startDate: weekStart, endDate: weekEnd } : 'skip'
+    clerkId ? { clerkId, startDate: weekStart, endDate: weekEnd } : 'skip',
   );
 
   const weekFollowUps = useQuery(
     api.advisor_calendar.getFollowUpsInRange,
-    clerkId ? { clerkId, startDate: weekStart, endDate: weekEnd } : 'skip'
+    clerkId ? { clerkId, startDate: weekStart, endDate: weekEnd } : 'skip',
   );
 
   const activitySessions = useQuery(
     api.advisor_calendar.getSessionsInRange,
-    clerkId ? { clerkId, startDate: activityStart, endDate: weekEnd } : 'skip'
+    clerkId ? { clerkId, startDate: activityStart, endDate: weekEnd } : 'skip',
   );
 
-  const reviews = useQuery(
-    api.advisor_reviews_queries.getReviews,
-    clerkId ? { clerkId } : 'skip'
-  );
+  const reviews = useQuery(api.advisor_reviews_queries.getReviews, clerkId ? { clerkId } : 'skip');
 
   // Build activity chart data (sessions per week for last 4 weeks)
   const activityData = useMemo(() => {
@@ -203,7 +192,8 @@ export default function AdvisorAnalyticsPage() {
                   <CardContent>
                     <div className="text-2xl font-bold">{weekStats?.totalSessions ?? '-'}</div>
                     <p className="text-xs text-muted-foreground">
-                      {weekStats?.completedSessions ?? 0} completed, {weekStats?.upcomingSessions ?? 0} upcoming
+                      {weekStats?.completedSessions ?? 0} completed,{' '}
+                      {weekStats?.upcomingSessions ?? 0} upcoming
                     </p>
                   </CardContent>
                 </Card>
@@ -257,10 +247,7 @@ export default function AdvisorAnalyticsPage() {
 
               {/* Review Queue */}
               <div className="grid gap-6 lg:grid-cols-2">
-                <ReviewQueueSnapshot
-                  reviews={pendingReviews}
-                  isLoading={reviews === undefined}
-                />
+                <ReviewQueueSnapshot reviews={pendingReviews} isLoading={reviews === undefined} />
 
                 {/* Month Overview */}
                 <Card>
@@ -277,11 +264,15 @@ export default function AdvisorAnalyticsPage() {
                         <p className="text-sm text-muted-foreground">Total Sessions</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <div className="text-3xl font-bold">{monthStats?.uniqueStudents ?? '-'}</div>
+                        <div className="text-3xl font-bold">
+                          {monthStats?.uniqueStudents ?? '-'}
+                        </div>
                         <p className="text-sm text-muted-foreground">Students Seen</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <div className="text-3xl font-bold">{monthStats?.completedSessions ?? '-'}</div>
+                        <div className="text-3xl font-bold">
+                          {monthStats?.completedSessions ?? '-'}
+                        </div>
                         <p className="text-sm text-muted-foreground">Completed</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">

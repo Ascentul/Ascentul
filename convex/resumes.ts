@@ -1,18 +1,19 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { requireMembership } from "./lib/roles";
+import { v } from 'convex/values';
+
+import { mutation, query } from './_generated/server';
+import { requireMembership } from './lib/roles';
 
 // Get resumes for a user
 export const getUserResumes = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Note: We don't require membership for read queries - users can always view their own resumes
@@ -20,9 +21,9 @@ export const getUserResumes = query({
 
     // OPTIMIZED: Add limit to prevent bandwidth issues
     const resumes = await ctx.db
-      .query("resumes")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .order("desc")
+      .query('resumes')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
+      .order('desc')
       .take(50); // Limit to 50 most recent resumes
 
     return resumes;
@@ -35,32 +36,35 @@ export const createResume = mutation({
     clerkId: v.string(),
     title: v.string(),
     content: v.any(),
-    visibility: v.union(v.literal("private"), v.literal("public")),
-    source: v.optional(v.union(
-      v.literal("manual"),
-      v.literal("ai_generated"),
-      v.literal("ai_optimized"),
-      v.literal("pdf_upload"),
-    )),
+    visibility: v.union(v.literal('private'), v.literal('public')),
+    source: v.optional(
+      v.union(
+        v.literal('manual'),
+        v.literal('ai_generated'),
+        v.literal('ai_optimized'),
+        v.literal('pdf_upload'),
+      ),
+    ),
     job_description: v.optional(v.string()),
     extracted_text: v.optional(v.string()),
     analysis_result: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
-    const resumeId = await ctx.db.insert("resumes", {
+    const resumeId = await ctx.db.insert('resumes', {
       user_id: user._id,
       university_id: membership?.university_id ?? user.university_id,
       title: args.title,
@@ -82,11 +86,11 @@ export const createResume = mutation({
 export const updateResume = mutation({
   args: {
     clerkId: v.string(),
-    resumeId: v.id("resumes"),
+    resumeId: v.id('resumes'),
     updates: v.object({
       title: v.optional(v.string()),
       content: v.optional(v.any()),
-      visibility: v.optional(v.union(v.literal("private"), v.literal("public"))),
+      visibility: v.optional(v.union(v.literal('private'), v.literal('public'))),
       extracted_text: v.optional(v.string()),
       job_description: v.optional(v.string()),
       analysis_result: v.optional(v.any()),
@@ -96,26 +100,27 @@ export const updateResume = mutation({
   handler: async (ctx, { clerkId, resumeId, updates }) => {
     // Get user by Clerk ID
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', clerkId))
       .first();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
     // Verify ownership
     const resume = await ctx.db.get(resumeId);
     if (!resume || resume.user_id !== user._id) {
-      throw new Error("Resume not found or access denied");
+      throw new Error('Resume not found or access denied');
     }
 
     if (resume.university_id && user.university_id && resume.university_id !== user.university_id) {
-      throw new Error("Unauthorized: Resume belongs to another university");
+      throw new Error('Unauthorized: Resume belongs to another university');
     }
 
     // Update the resume
@@ -132,49 +137,45 @@ export const updateResume = mutation({
 export const deleteResume = mutation({
   args: {
     clerkId: v.string(),
-    resumeId: v.id("resumes"),
+    resumeId: v.id('resumes'),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
     const resume = await ctx.db.get(args.resumeId);
     if (!resume || resume.user_id !== user._id) {
-      throw new Error("Resume not found or unauthorized");
+      throw new Error('Resume not found or unauthorized');
     }
 
     // University isolation check
     if (resume.university_id && user.university_id && resume.university_id !== user.university_id) {
-      throw new Error("Unauthorized: Resume belongs to another university");
+      throw new Error('Unauthorized: Resume belongs to another university');
     }
 
     // Referential integrity: Check for active reviews before deletion
     // Uses by_resume index for O(1) lookup instead of scanning by_student
     // Active reviews are those awaiting action (waiting/in_review), not finalized ones (approved/needs_edits)
     const activeReview = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_resume", (q) => q.eq("resume_id", args.resumeId))
-      .filter((q) =>
-        q.or(
-          q.eq(q.field("status"), "waiting"),
-          q.eq(q.field("status"), "in_review"),
-        ),
-      )
+      .query('advisor_reviews')
+      .withIndex('by_resume', (q) => q.eq('resume_id', args.resumeId))
+      .filter((q) => q.or(q.eq(q.field('status'), 'waiting'), q.eq(q.field('status'), 'in_review')))
       .first();
 
     if (activeReview) {
       throw new Error(
-        "Cannot delete resume: Active review in progress. Please wait for the review to complete or contact your advisor.",
+        'Cannot delete resume: Active review in progress. Please wait for the review to complete or contact your advisor.',
       );
     }
 
@@ -187,15 +188,15 @@ export const deleteResume = mutation({
 export const getResumeById = query({
   args: {
     clerkId: v.string(),
-    resumeId: v.id("resumes"),
+    resumeId: v.id('resumes'),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     // Note: We don't require membership for read queries - consistent with getUserResumes
     // Users can always view their own resumes regardless of membership status

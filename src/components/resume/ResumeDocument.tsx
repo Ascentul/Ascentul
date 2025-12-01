@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+
 import { formatDateRange, parseDescription } from '@/lib/resume-utils';
 
 export interface ContactInfo {
@@ -129,7 +130,7 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
           paddingTop: '8px',
           paddingBottom: '12px',
           marginBottom: '24px',
-          borderBottom: `1px solid ${COLORS.PRIMARY_ACCENT}`
+          borderBottom: `1px solid ${COLORS.PRIMARY_ACCENT}`,
         }}
       >
         <h1
@@ -138,7 +139,7 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
             fontSize: FONT_SIZES.name,
             fontWeight: 700,
             lineHeight: '1.2',
-            color: COLORS.BLACK
+            color: COLORS.BLACK,
           }}
         >
           {contactInfo.name}
@@ -148,7 +149,7 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
           style={{
             fontSize: FONT_SIZES.small,
             color: COLORS.LIGHT_GRAY,
-            lineHeight: '1.2'
+            lineHeight: '1.2',
           }}
         >
           {[
@@ -200,9 +201,7 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
           >
             Skills
           </h2>
-          <p style={{ fontSize: FONT_SIZES.body }}>
-            {skills.join(', ')}
-          </p>
+          <p style={{ fontSize: FONT_SIZES.body }}>{skills.join(', ')}</p>
         </section>
       )}
 
@@ -227,9 +226,14 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
             return (
               <div key={exp.id} style={{ marginTop: index > 0 ? '12px' : '0' }}>
                 {/* Company and Date - Flex Layout */}
-                <div className="flex justify-between items-baseline gap-2" style={{ marginBottom: '4px' }}>
+                <div
+                  className="flex justify-between items-baseline gap-2"
+                  style={{ marginBottom: '4px' }}
+                >
                   <div className="flex items-baseline gap-2">
-                    <span style={{ fontSize: FONT_SIZES.company, fontWeight: 700, color: COLORS.BLACK }}>
+                    <span
+                      style={{ fontSize: FONT_SIZES.company, fontWeight: 700, color: COLORS.BLACK }}
+                    >
                       {exp.company}
                     </span>
                     {exp.location && (
@@ -238,13 +242,26 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
                       </span>
                     )}
                   </div>
-                  <span style={{ fontSize: FONT_SIZES.small, color: COLORS.LIGHT_GRAY, whiteSpace: 'nowrap' }}>
+                  <span
+                    style={{
+                      fontSize: FONT_SIZES.small,
+                      color: COLORS.LIGHT_GRAY,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     {formatDateRange(exp.startDate, exp.endDate, exp.current)}
                   </span>
                 </div>
 
                 {/* Role */}
-                <div style={{ fontSize: FONT_SIZES.body, fontWeight: 600, color: COLORS.GRAY, marginBottom: '4px' }}>
+                <div
+                  style={{
+                    fontSize: FONT_SIZES.body,
+                    fontWeight: 600,
+                    color: COLORS.GRAY,
+                    marginBottom: '4px',
+                  }}
+                >
                   {exp.title}
                 </div>
 
@@ -258,20 +275,32 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
                 {/* Key Contributions (new format) */}
                 {exp.keyContributions && exp.keyContributions.length > 0 && (
                   <div style={{ marginTop: '4px' }}>
-                    <div style={{ fontSize: FONT_SIZES.small, fontWeight: 600, color: COLORS.DARK_GRAY, marginBottom: '4px' }}>
+                    <div
+                      style={{
+                        fontSize: FONT_SIZES.small,
+                        fontWeight: 600,
+                        color: COLORS.DARK_GRAY,
+                        marginBottom: '4px',
+                      }}
+                    >
                       Key Contributions
                     </div>
-                    <ul style={{
-                      listStyleType: 'disc',
-                      listStylePosition: 'outside',
-                      paddingLeft: '20px',
-                    }}>
+                    <ul
+                      style={{
+                        listStyleType: 'disc',
+                        listStylePosition: 'outside',
+                        paddingLeft: '20px',
+                      }}
+                    >
                       {exp.keyContributions.map((contribution, idx) => (
-                        <li key={idx} style={{
-                          fontSize: FONT_SIZES.body,
-                          lineHeight: '1.3',
-                          marginBottom: '4px'
-                        }}>
+                        <li
+                          key={idx}
+                          style={{
+                            fontSize: FONT_SIZES.body,
+                            lineHeight: '1.3',
+                            marginBottom: '4px',
+                          }}
+                        >
                           {contribution}
                         </li>
                       ))}
@@ -281,18 +310,23 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
 
                 {/* Description Bullets (fallback for old format) */}
                 {!exp.summary && !exp.keyContributions && bullets.length > 0 && (
-                  <ul style={{
-                    listStyleType: 'disc',
-                    listStylePosition: 'outside',
-                    paddingLeft: '20px',
-                    marginTop: '4px'
-                  }}>
+                  <ul
+                    style={{
+                      listStyleType: 'disc',
+                      listStylePosition: 'outside',
+                      paddingLeft: '20px',
+                      marginTop: '4px',
+                    }}
+                  >
                     {bullets.map((bullet, idx) => (
-                      <li key={idx} style={{
-                        fontSize: FONT_SIZES.body,
-                        lineHeight: '1.3',
-                        marginBottom: '4px'
-                      }}>
+                      <li
+                        key={idx}
+                        style={{
+                          fontSize: FONT_SIZES.body,
+                          lineHeight: '1.3',
+                          marginBottom: '4px',
+                        }}
+                      >
                         {bullet}
                       </li>
                     ))}
@@ -322,11 +356,22 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
           {education.map((edu, index) => (
             <div key={edu.id} style={{ marginTop: index > 0 ? '12px' : '0' }}>
               {/* School and Dates */}
-              <div className="flex justify-between items-baseline gap-2" style={{ marginBottom: '4px' }}>
-                <span style={{ fontSize: FONT_SIZES.company, fontWeight: 700, color: COLORS.BLACK }}>
+              <div
+                className="flex justify-between items-baseline gap-2"
+                style={{ marginBottom: '4px' }}
+              >
+                <span
+                  style={{ fontSize: FONT_SIZES.company, fontWeight: 700, color: COLORS.BLACK }}
+                >
                   {edu.school}
                 </span>
-                <span style={{ fontSize: FONT_SIZES.small, color: COLORS.LIGHT_GRAY, whiteSpace: 'nowrap' }}>
+                <span
+                  style={{
+                    fontSize: FONT_SIZES.small,
+                    color: COLORS.LIGHT_GRAY,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {edu.startYear && edu.endYear
                     ? `${edu.startYear} - ${edu.endYear}`
                     : edu.endYear || ''}
@@ -350,9 +395,7 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
               {/* GPA and Honors */}
               {(edu.gpa || edu.honors) && (
                 <div style={{ fontSize: FONT_SIZES.small, color: COLORS.GRAY, marginTop: '4px' }}>
-                  {[edu.gpa && `GPA: ${edu.gpa}`, edu.honors]
-                    .filter(Boolean)
-                    .join(' · ')}
+                  {[edu.gpa && `GPA: ${edu.gpa}`, edu.honors].filter(Boolean).join(' · ')}
                 </div>
               )}
             </div>
@@ -382,11 +425,20 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
               <div key={project.id} style={{ marginTop: index > 0 ? '12px' : '0' }}>
                 {/* Project Name and Role */}
                 <div style={{ marginBottom: '4px' }}>
-                  <span style={{ fontSize: FONT_SIZES.company, fontWeight: 700, color: COLORS.BLACK }}>
+                  <span
+                    style={{ fontSize: FONT_SIZES.company, fontWeight: 700, color: COLORS.BLACK }}
+                  >
                     {project.name}
                   </span>
                   {project.role && (
-                    <span style={{ fontSize: FONT_SIZES.small, fontStyle: 'italic', color: COLORS.GRAY, marginLeft: '8px' }}>
+                    <span
+                      style={{
+                        fontSize: FONT_SIZES.small,
+                        fontStyle: 'italic',
+                        color: COLORS.GRAY,
+                        marginLeft: '8px',
+                      }}
+                    >
                       {project.role}
                     </span>
                   )}
@@ -394,7 +446,13 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
 
                 {/* Technologies */}
                 {project.technologies && (
-                  <div style={{ fontSize: FONT_SIZES.small, color: COLORS.LIGHT_GRAY, marginBottom: '4px' }}>
+                  <div
+                    style={{
+                      fontSize: FONT_SIZES.small,
+                      color: COLORS.LIGHT_GRAY,
+                      marginBottom: '4px',
+                    }}
+                  >
                     Technologies: {project.technologies}
                   </div>
                 )}
@@ -402,7 +460,10 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
                 {/* URL */}
                 {project.url && (
                   <div style={{ fontSize: FONT_SIZES.small, marginBottom: '4px' }}>
-                    <a href={project.url} style={{ color: COLORS.PRIMARY_ACCENT, textDecoration: 'underline' }}>
+                    <a
+                      href={project.url}
+                      style={{ color: COLORS.PRIMARY_ACCENT, textDecoration: 'underline' }}
+                    >
                       {project.url}
                     </a>
                   </div>
@@ -410,18 +471,23 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
 
                 {/* Description */}
                 {bullets.length > 0 && (
-                  <ul style={{
-                    listStyleType: 'disc',
-                    listStylePosition: 'outside',
-                    paddingLeft: '20px',
-                    marginTop: '4px'
-                  }}>
+                  <ul
+                    style={{
+                      listStyleType: 'disc',
+                      listStylePosition: 'outside',
+                      paddingLeft: '20px',
+                      marginTop: '4px',
+                    }}
+                  >
                     {bullets.map((bullet, idx) => (
-                      <li key={idx} style={{
-                        fontSize: FONT_SIZES.body,
-                        lineHeight: '1.3',
-                        marginBottom: '4px'
-                      }}>
+                      <li
+                        key={idx}
+                        style={{
+                          fontSize: FONT_SIZES.body,
+                          lineHeight: '1.3',
+                          marginBottom: '4px',
+                        }}
+                      >
                         {bullet}
                       </li>
                     ))}
@@ -448,26 +514,39 @@ export const ResumeDocument: React.FC<ResumeDocumentProps> = ({ data, className 
           >
             Achievements
           </h2>
-          <ul style={{
-            listStyleType: 'disc',
-            listStylePosition: 'outside',
-            paddingLeft: '20px',
-            marginTop: '4px'
-          }}>
+          <ul
+            style={{
+              listStyleType: 'disc',
+              listStylePosition: 'outside',
+              paddingLeft: '20px',
+              marginTop: '4px',
+            }}
+          >
             {achievements.map((achievement) => (
-              <li key={achievement.id} style={{
-                fontSize: FONT_SIZES.body,
-                lineHeight: '1.3',
-                marginBottom: '8px'
-              }}>
+              <li
+                key={achievement.id}
+                style={{
+                  fontSize: FONT_SIZES.body,
+                  lineHeight: '1.3',
+                  marginBottom: '8px',
+                }}
+              >
                 <span style={{ fontWeight: 600 }}>{achievement.title}</span>
                 {achievement.date && (
-                  <span style={{ fontSize: FONT_SIZES.small, color: COLORS.LIGHT_GRAY, marginLeft: '8px' }}>
+                  <span
+                    style={{
+                      fontSize: FONT_SIZES.small,
+                      color: COLORS.LIGHT_GRAY,
+                      marginLeft: '8px',
+                    }}
+                  >
                     ({achievement.date})
                   </span>
                 )}
                 {achievement.description && (
-                  <span className="block" style={{ marginTop: '4px' }}>{achievement.description}</span>
+                  <span className="block" style={{ marginTop: '4px' }}>
+                    {achievement.description}
+                  </span>
                 )}
               </li>
             ))}

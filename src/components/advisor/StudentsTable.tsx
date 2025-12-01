@@ -1,11 +1,12 @@
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Search, AlertCircle, GraduationCap } from "lucide-react";
-import Link from "next/link";
+import { AlertCircle, GraduationCap, Search } from 'lucide-react';
+import Link from 'next/link';
+import { useMemo, useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface Student {
   _id: string;
@@ -71,7 +72,7 @@ function getStatusBadge(student: Student, activeApps: number) {
 }
 
 export function StudentsTable({ students, isLoading }: StudentsTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
 
   // Filter students by search term (memoized for performance)
@@ -92,10 +93,7 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
     if (filteredStudents.length === 0) {
       return { startIndex: 0, endIndex: 0 };
     }
-    const start = Math.max(
-      0,
-      Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN,
-    );
+    const start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
     const end = Math.min(
       filteredStudents.length,
       Math.ceil((scrollTop + VIEWPORT_HEIGHT) / ROW_HEIGHT) + OVERSCAN,
@@ -143,7 +141,7 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
       {filteredStudents.length === 0 ? (
         <div className="border rounded-lg p-12 text-center">
           <p className="text-muted-foreground">
-            {searchTerm ? "No students match your search" : "No students in your caseload"}
+            {searchTerm ? 'No students match your search' : 'No students in your caseload'}
           </p>
         </div>
       ) : (
@@ -155,50 +153,65 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
           >
             <table className="w-full border-collapse" aria-rowcount={filteredStudents.length + 1}>
               <caption className="sr-only">
-                Student caseload showing {filteredStudents.length} students with their major, graduation year, active applications, follow-ups, status, and profile links
+                Student caseload showing {filteredStudents.length} students with their major,
+                graduation year, active applications, follow-ups, status, and profile links
               </caption>
               <thead className="bg-muted/50 sticky top-0 z-10">
                 <tr className="border-b" aria-rowindex={1}>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground"
+                  >
                     Student
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground hidden sm:table-cell">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground hidden sm:table-cell"
+                  >
                     Major
                   </th>
-                  <th scope="col" className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground hidden sm:table-cell">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground hidden sm:table-cell"
+                  >
                     Grad Year
                   </th>
-                  <th scope="col" className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground hidden sm:table-cell">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground hidden sm:table-cell"
+                  >
                     Active Apps
                   </th>
-                  <th scope="col" className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground hidden sm:table-cell">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground hidden sm:table-cell"
+                  >
                     Follow-ups
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground hidden sm:table-cell">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground hidden sm:table-cell"
+                  >
                     Status
                   </th>
-                  <th scope="col" className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground">
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground"
+                  >
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody
-                className="relative"
-                style={{ height: totalHeight }}
-              >
+              <tbody className="relative" style={{ height: totalHeight }}>
                 {/* Spacer row for offset before visible rows */}
                 {translateY > 0 && (
-                  <tr
-                    style={{ height: translateY, visibility: 'hidden' }}
-                    aria-hidden="true"
-                  >
+                  <tr style={{ height: translateY, visibility: 'hidden' }} aria-hidden="true">
                     <td colSpan={COLUMN_COUNT}></td>
                   </tr>
                 )}
 
                 {visibleStudents.map((student, index) => {
-                  const activeApps =
-                    student.metadata?.activeApplicationsCount || 0;
+                  const activeApps = student.metadata?.activeApplicationsCount || 0;
                   const statusBadge = getStatusBadge(student, activeApps);
 
                   return (
@@ -219,15 +232,24 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
                         <div className="sm:hidden mt-2 space-y-1 text-xs">
                           <div className="flex items-center gap-2">
                             <GraduationCap className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-muted-foreground">{student.major || "Not set"}</span>
-                            <span className="text-muted-foreground">• Class of {student.graduation_year || "N/A"}</span>
+                            <span className="text-muted-foreground">
+                              {student.major || 'Not set'}
+                            </span>
+                            <span className="text-muted-foreground">
+                              • Class of {student.graduation_year || 'N/A'}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-muted-foreground">Apps:</span>
-                            <Badge variant={activeApps > 0 ? "default" : "secondary"} className="text-xs">
+                            <Badge
+                              variant={activeApps > 0 ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
                               {activeApps}
                             </Badge>
-                            <span className="text-muted-foreground">Follow-ups: {student.metadata?.openFollowUpsCount || 0}</span>
+                            <span className="text-muted-foreground">
+                              Follow-ups: {student.metadata?.openFollowUpsCount || 0}
+                            </span>
                             {statusBadge}
                           </div>
                         </div>
@@ -235,28 +257,24 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
                       <td className="px-4 py-3 align-middle text-sm hidden sm:table-cell">
                         <div className="flex items-center gap-2">
                           <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                          {student.major || "Not set"}
+                          {student.major || 'Not set'}
                         </div>
                       </td>
                       <td className="px-4 py-3 align-middle text-center text-sm text-muted-foreground hidden sm:table-cell">
-                        {student.graduation_year || "-"}
+                        {student.graduation_year || '-'}
                       </td>
                       <td className="px-4 py-3 align-middle text-center hidden sm:table-cell">
-                        <Badge variant={activeApps > 0 ? "default" : "secondary"}>
+                        <Badge variant={activeApps > 0 ? 'default' : 'secondary'}>
                           {activeApps}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 align-middle text-center text-sm hidden sm:table-cell">
                         {student.metadata?.openFollowUpsCount || 0}
                       </td>
-                      <td className="px-4 py-3 align-middle hidden sm:table-cell">
-                        {statusBadge}
-                      </td>
+                      <td className="px-4 py-3 align-middle hidden sm:table-cell">{statusBadge}</td>
                       <td className="px-4 py-3 align-middle text-right">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/advisor/students/${student._id}`}>
-                            View Profile
-                          </Link>
+                          <Link href={`/advisor/students/${student._id}`}>View Profile</Link>
                         </Button>
                       </td>
                     </tr>
@@ -264,11 +282,11 @@ export function StudentsTable({ students, isLoading }: StudentsTableProps) {
                 })}
 
                 {/* Spacer row for offset after visible rows */}
-                {(translateY + visibleStudents.length * ROW_HEIGHT) < totalHeight && (
+                {translateY + visibleStudents.length * ROW_HEIGHT < totalHeight && (
                   <tr
                     style={{
-                      height: totalHeight - translateY - (visibleStudents.length * ROW_HEIGHT),
-                      visibility: 'hidden'
+                      height: totalHeight - translateY - visibleStudents.length * ROW_HEIGHT,
+                      visibility: 'hidden',
                     }}
                     aria-hidden="true"
                   >

@@ -3,7 +3,7 @@
  * Server-side helpers for managing Clerk users via the Backend API
  */
 
-import { clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from '@clerk/nextjs/server';
 
 /**
  * Disable a Clerk user (prevents login but preserves identity)
@@ -80,7 +80,7 @@ export async function isClerkUserBanned(clerkId: string): Promise<boolean> {
  */
 export async function updateClerkUserMetadata(
   clerkId: string,
-  metadata: Record<string, any>
+  metadata: Record<string, any>,
 ): Promise<void> {
   try {
     const client = await clerkClient();

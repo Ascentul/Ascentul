@@ -14,15 +14,17 @@
  */
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
+
 import { Badge } from '@/components/ui/badge';
-import {
-  NeedActionReason,
-  NEED_ACTION_LABELS,
-  NEED_ACTION_ICONS,
-  ApplicationStats,
-} from '../types';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+import {
+  ApplicationStats,
+  NEED_ACTION_ICONS,
+  NEED_ACTION_LABELS,
+  NeedActionReason,
+} from '../types';
 
 // ============================================================================
 // Types
@@ -103,13 +105,7 @@ interface QuickFilterPillProps {
   onClick: () => void;
 }
 
-function QuickFilterPill({
-  reason,
-  count,
-  variant,
-  isActive,
-  onClick,
-}: QuickFilterPillProps) {
+function QuickFilterPill({ reason, count, variant, isActive, onClick }: QuickFilterPillProps) {
   const variantStyles = {
     critical: {
       button: isActive
@@ -142,17 +138,16 @@ function QuickFilterPill({
       className={cn(
         'gap-2 h-8 transition-all',
         variantStyles[variant].button,
-        isActive && 'ring-2 ring-offset-1'
+        isActive && 'ring-2 ring-offset-1',
       )}
       aria-pressed={isActive}
       aria-label={`Filter by ${label} (${count} applications)`}
     >
-      <span className="text-base" aria-hidden="true">{icon}</span>
+      <span className="text-base" aria-hidden="true">
+        {icon}
+      </span>
       <span className="text-xs font-medium">{label}</span>
-      <Badge
-        variant="secondary"
-        className={cn('h-5 px-1.5 text-xs', variantStyles[variant].badge)}
-      >
+      <Badge variant="secondary" className={cn('h-5 px-1.5 text-xs', variantStyles[variant].badge)}>
         {count}
       </Badge>
     </Button>

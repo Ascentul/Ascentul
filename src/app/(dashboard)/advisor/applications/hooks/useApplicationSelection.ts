@@ -8,8 +8,9 @@
  * - Keyboard shortcuts
  */
 
-import { useCallback, useState } from 'react';
 import { Id } from 'convex/_generated/dataModel';
+import { useCallback, useState } from 'react';
+
 import { ApplicationSelection, EMPTY_SELECTION } from '../types';
 
 export interface UseApplicationSelectionResult {
@@ -22,7 +23,11 @@ export interface UseApplicationSelectionResult {
   // Actions
   toggleSelection: (id: Id<'applications'>) => void;
   toggleAll: (allIds: Id<'applications'>[]) => void;
-  selectRange: (startId: Id<'applications'>, endId: Id<'applications'>, allIds: Id<'applications'>[]) => void;
+  selectRange: (
+    startId: Id<'applications'>,
+    endId: Id<'applications'>,
+    allIds: Id<'applications'>[],
+  ) => void;
   clearSelection: () => void;
   selectOnly: (id: Id<'applications'>) => void;
 
@@ -51,7 +56,7 @@ export function useApplicationSelection(): UseApplicationSelectionResult {
       // Normal mode: selected if in the set
       return selection.selectedIds.has(idStr);
     },
-    [selection]
+    [selection],
   );
 
   /**
@@ -102,9 +107,7 @@ export function useApplicationSelection(): UseApplicationSelectionResult {
       }
 
       // If currently in select-all mode or all are selected, deselect all
-      const allIdsSelected = allIds.every((id) =>
-        prev.selectedIds.has(id.toString())
-      );
+      const allIdsSelected = allIds.every((id) => prev.selectedIds.has(id.toString()));
       const currentlyAllSelected =
         (prev.selectAll && prev.excludedIds.size === 0) || allIdsSelected;
 
@@ -127,11 +130,7 @@ export function useApplicationSelection(): UseApplicationSelectionResult {
    * Select a range of applications (for Shift+Click)
    */
   const selectRange = useCallback(
-    (
-      startId: Id<'applications'>,
-      endId: Id<'applications'>,
-      allIds: Id<'applications'>[]
-    ) => {
+    (startId: Id<'applications'>, endId: Id<'applications'>, allIds: Id<'applications'>[]) => {
       // Compare by string value to avoid object reference mismatch issues
       const startIdStr = startId.toString();
       const endIdStr = endId.toString();
@@ -154,7 +153,7 @@ export function useApplicationSelection(): UseApplicationSelectionResult {
         };
       });
     },
-    []
+    [],
   );
 
   /**
@@ -188,7 +187,7 @@ export function useApplicationSelection(): UseApplicationSelectionResult {
     if (selection.selectAll) {
       // In select-all mode, return all IDs except excluded ones
       return Array.from(selection.selectedIds).filter(
-        (id) => !selection.excludedIds.has(id)
+        (id) => !selection.excludedIds.has(id),
       ) as Id<'applications'>[];
     }
     // Normal mode: return all selected IDs
@@ -226,15 +225,15 @@ export function useApplicationSelection(): UseApplicationSelectionResult {
  */
 export function useSelectionKeyboardShortcuts(
   selection: UseApplicationSelectionResult,
-  allIds: Id<'applications'>[]
+  allIds: Id<'applications'>[],
 ) {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       // Cmd/Ctrl + A: Select all (but allow default in text inputs)
       if ((event.metaKey || event.ctrlKey) && event.key === 'a') {
         const activeElement = document.activeElement;
-        const isInputFocused = activeElement instanceof HTMLInputElement ||
-                               activeElement instanceof HTMLTextAreaElement;
+        const isInputFocused =
+          activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement;
         if (isInputFocused) return; // Allow default text selection in inputs
         event.preventDefault();
         selection.toggleAll(allIds);
@@ -246,7 +245,7 @@ export function useSelectionKeyboardShortcuts(
         selection.clearSelection();
       }
     },
-    [selection, allIds]
+    [selection, allIds],
   );
 
   return { handleKeyDown };

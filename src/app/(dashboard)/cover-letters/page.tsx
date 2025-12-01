@@ -1,30 +1,31 @@
-"use client";
+'use client';
 
-import React, { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import {
-  Plus,
-  FileText,
-  Loader2,
   Copy,
-  Trash2,
   Download,
   Edit,
-  Sparkles,
-  Upload,
   Eye,
-} from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { CoverLetterPreviewModal } from "@/components/cover-letter-preview-modal";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { exportCoverLetterPDF } from "@/utils/exportCoverLetter";
+  FileText,
+  Loader2,
+  Plus,
+  Sparkles,
+  Trash2,
+  Upload,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useMemo, useState } from 'react';
+
+import { CoverLetterPreviewModal } from '@/components/cover-letter-preview-modal';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
+import { exportCoverLetterPDF } from '@/utils/exportCoverLetter';
 
 export type CoverLetterDoc = {
   _id: string;
@@ -36,7 +37,7 @@ export type CoverLetterDoc = {
   closing: string;
   created_at: number;
   updated_at: number;
-  source?: "manual" | "ai_generated" | "ai_optimized" | "pdf_upload";
+  source?: 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload';
 };
 
 type CoverLetterAnalysis = {
@@ -55,38 +56,37 @@ export default function CoverLettersPage() {
   const clerkId = user?.id;
   const { toast } = useToast();
   const [creating, setCreating] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "my-letters" | "generate-ai" | "upload-analyze"
-  >("my-letters");
+  const [activeTab, setActiveTab] = useState<'my-letters' | 'generate-ai' | 'upload-analyze'>(
+    'my-letters',
+  );
 
   // AI Generation state
-  const [jobDescription, setJobDescription] = useState("");
-  const [jobRole, setJobRole] = useState("");
-  const [jobCompany, setJobCompany] = useState("");
+  const [jobDescription, setJobDescription] = useState('');
+  const [jobRole, setJobRole] = useState('');
+  const [jobCompany, setJobCompany] = useState('');
   const [generating, setGenerating] = useState(false);
 
   // Upload & Analyze state
-  const [coverLetterDraft, setCoverLetterDraft] = useState("");
-  const [analyzeJobDescription, setAnalyzeJobDescription] = useState("");
-  const [analyzeRole, setAnalyzeRole] = useState("");
-  const [analyzeCompany, setAnalyzeCompany] = useState("");
+  const [coverLetterDraft, setCoverLetterDraft] = useState('');
+  const [analyzeJobDescription, setAnalyzeJobDescription] = useState('');
+  const [analyzeRole, setAnalyzeRole] = useState('');
+  const [analyzeCompany, setAnalyzeCompany] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] =
-    useState<CoverLetterAnalysis | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<CoverLetterAnalysis | null>(null);
   const [showOptimized, setShowOptimized] = useState(false);
   const [savingOptimized, setSavingOptimized] = useState(false);
 
   const profileHighlights = useMemo(() => {
-    if (!profile) return "";
+    if (!profile) return '';
     const parts: string[] = [];
     if (profile.job_title) parts.push(profile.job_title);
     if (profile.company) parts.push(`@ ${profile.company}`);
-    return parts.join(" ");
+    return parts.join(' ');
   }, [profile]);
 
   const coverLetters = useQuery(
     api.cover_letters.getUserCoverLetters,
-    clerkId ? { clerkId } : "skip",
+    clerkId ? { clerkId } : 'skip',
   ) as CoverLetterDoc[] | undefined;
 
   const createCoverLetter = useMutation(api.cover_letters.createCoverLetter);
@@ -95,15 +95,11 @@ export default function CoverLettersPage() {
   const loading = !coverLetters && !!clerkId;
 
   const sorted = useMemo(() => {
-    return (coverLetters ?? [])
-      .slice()
-      .sort((a, b) => b.updated_at - a.updated_at);
+    return (coverLetters ?? []).slice().sort((a, b) => b.updated_at - a.updated_at);
   }, [coverLetters]);
 
   // Preview state
-  const [previewLetter, setPreviewLetter] = useState<CoverLetterDoc | null>(
-    null,
-  );
+  const [previewLetter, setPreviewLetter] = useState<CoverLetterDoc | null>(null);
 
   const handleCreate = async () => {
     if (!clerkId) return;
@@ -111,13 +107,13 @@ export default function CoverLettersPage() {
     try {
       const doc = await createCoverLetter({
         clerkId,
-        name: "Untitled Cover Letter",
-        job_title: "Position",
+        name: 'Untitled Cover Letter',
+        job_title: 'Position',
         company_name: undefined,
-        template: "standard",
-        content: "",
-        closing: "Sincerely,",
-        source: "manual",
+        template: 'standard',
+        content: '',
+        closing: 'Sincerely,',
+        source: 'manual',
       });
       // navigate to detail page
       if (doc && (doc as any)._id) {
@@ -140,15 +136,15 @@ export default function CoverLettersPage() {
         job_title: original.job_title,
         company_name: original.company_name,
         template: original.template,
-        content: original.content || "",
+        content: original.content || '',
         closing: original.closing,
-        source: original.source || "manual",
+        source: original.source || 'manual',
       });
 
       toast({
-        title: "Cover Letter Copied",
-        description: "Your cover letter has been duplicated successfully",
-        variant: "success",
+        title: 'Cover Letter Copied',
+        description: 'Your cover letter has been duplicated successfully',
+        variant: 'success',
       });
 
       if (doc && (doc as any)._id) {
@@ -156,29 +152,29 @@ export default function CoverLettersPage() {
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to copy cover letter",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to copy cover letter',
+        variant: 'destructive',
       });
     }
   };
 
   const deleteLetter = async (letterId: string) => {
     if (!clerkId) return;
-    if (!confirm("Are you sure you want to delete this cover letter?")) return;
+    if (!confirm('Are you sure you want to delete this cover letter?')) return;
 
     try {
       await deleteCoverLetter({ clerkId, coverLetterId: letterId as any });
       toast({
-        title: "Cover Letter Deleted",
-        description: "Your cover letter has been deleted successfully",
-        variant: "success",
+        title: 'Cover Letter Deleted',
+        description: 'Your cover letter has been deleted successfully',
+        variant: 'success',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to delete cover letter",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to delete cover letter',
+        variant: 'destructive',
       });
     }
   };
@@ -187,18 +183,18 @@ export default function CoverLettersPage() {
     if (!clerkId) return;
     if (!jobDescription.trim() || !jobRole.trim() || !jobCompany.trim()) {
       toast({
-        title: "Missing details",
+        title: 'Missing details',
         description:
-          "Please provide the company, role, and job description so we can generate a truthful cover letter.",
-        variant: "destructive",
+          'Please provide the company, role, and job description so we can generate a truthful cover letter.',
+        variant: 'destructive',
       });
       return;
     }
     setGenerating(true);
     try {
-      const response = await fetch("/api/cover-letters/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/cover-letters/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jobDescription,
           companyName: jobCompany,
@@ -206,17 +202,16 @@ export default function CoverLettersPage() {
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || "Failed to generate");
+      if (!response.ok) throw new Error(data?.error || 'Failed to generate');
 
       if (data.warning) {
-        toast({ title: "Heads up", description: data.warning });
+        toast({ title: 'Heads up', description: data.warning });
       }
 
       toast({
-        title: "Cover letter ready",
-        description:
-          "We used your career profile to generate a tailored draft.",
-        variant: "success",
+        title: 'Cover letter ready',
+        description: 'We used your career profile to generate a tailored draft.',
+        variant: 'success',
       });
       const created = data.coverLetter;
       if (created && created._id) {
@@ -228,21 +223,20 @@ export default function CoverLettersPage() {
           name: `AI Cover Letter - ${jobCompany}`,
           job_title: jobRole,
           company_name: jobCompany || undefined,
-          template: "standard",
+          template: 'standard',
           content:
             data.generatedContent ||
             `Generated from job description: ${jobDescription.substring(0, 100)}...`,
-          closing: "Sincerely,",
-          source: "ai_generated",
+          closing: 'Sincerely,',
+          source: 'ai_generated',
         });
-        if (doc && (doc as any)._id)
-          router.push(`/cover-letters/${(doc as any)._id}`);
+        if (doc && (doc as any)._id) router.push(`/cover-letters/${(doc as any)._id}`);
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to generate cover letter",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to generate cover letter',
+        variant: 'destructive',
       });
     } finally {
       setGenerating(false);
@@ -252,10 +246,9 @@ export default function CoverLettersPage() {
   const analyzeLetter = async () => {
     if (!coverLetterDraft.trim() || !analyzeJobDescription.trim()) {
       toast({
-        title: "Missing details",
-        description:
-          "Please paste both the cover letter and the job description for analysis.",
-        variant: "destructive",
+        title: 'Missing details',
+        description: 'Please paste both the cover letter and the job description for analysis.',
+        variant: 'destructive',
       });
       return;
     }
@@ -264,9 +257,9 @@ export default function CoverLettersPage() {
     setAnalysisResult(null);
     setShowOptimized(false);
     try {
-      const response = await fetch("/api/cover-letters/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/cover-letters/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jobDescription: analyzeJobDescription,
           coverLetter: coverLetterDraft,
@@ -278,28 +271,25 @@ export default function CoverLettersPage() {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.error || "Failed to analyze cover letter");
+        throw new Error(data?.error || 'Failed to analyze cover letter');
       }
 
       const analysis = data.analysis as CoverLetterAnalysis | undefined;
       if (!analysis) {
-        throw new Error("Analysis was not returned. Please try again.");
+        throw new Error('Analysis was not returned. Please try again.');
       }
 
       setAnalysisResult(analysis);
       toast({
-        title: "Analysis complete",
-        description: "Review the insights below to refine your cover letter.",
-        variant: "success",
+        title: 'Analysis complete',
+        description: 'Review the insights below to refine your cover letter.',
+        variant: 'success',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to analyze cover letter",
-        variant: "destructive",
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to analyze cover letter',
+        variant: 'destructive',
       });
     } finally {
       setAnalyzing(false);
@@ -312,27 +302,27 @@ export default function CoverLettersPage() {
     try {
       const doc = await createCoverLetter({
         clerkId,
-        name: `Optimized Cover Letter - ${analyzeCompany || "Saved"}`,
-        job_title: analyzeRole || "Target Role",
+        name: `Optimized Cover Letter - ${analyzeCompany || 'Saved'}`,
+        job_title: analyzeRole || 'Target Role',
         company_name: analyzeCompany || undefined,
-        template: "standard",
+        template: 'standard',
         content: analysisResult.optimizedLetter,
-        closing: "Sincerely,",
-        source: "ai_optimized",
+        closing: 'Sincerely,',
+        source: 'ai_optimized',
       });
       toast({
-        title: "Optimized letter saved",
-        description: "Your improved cover letter is now in My Cover Letters.",
-        variant: "success",
+        title: 'Optimized letter saved',
+        description: 'Your improved cover letter is now in My Cover Letters.',
+        variant: 'success',
       });
       if (doc && (doc as any)._id) {
         router.push(`/cover-letters/${(doc as any)._id}`);
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to save optimized letter",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to save optimized letter',
+        variant: 'destructive',
       });
     } finally {
       setSavingOptimized(false);
@@ -341,26 +331,24 @@ export default function CoverLettersPage() {
 
   const exportLetter = (letter: CoverLetterDoc) => {
     try {
-      const exportUserName = user?.fullName || (profile as any)?.name || "";
+      const exportUserName = user?.fullName || (profile as any)?.name || '';
       const exportUserEmail =
-        user?.primaryEmailAddress?.emailAddress ||
-        (profile as any)?.email ||
-        "";
+        user?.primaryEmailAddress?.emailAddress || (profile as any)?.email || '';
       exportCoverLetterPDF({
         letter,
         userName: exportUserName,
         userEmail: exportUserEmail,
       });
       toast({
-        title: "Exported",
-        description: "PDF downloaded successfully.",
-        variant: "success",
+        title: 'Exported',
+        description: 'PDF downloaded successfully.',
+        variant: 'success',
       });
     } catch (error) {
       toast({
-        title: "Export failed",
-        description: "Unable to export this cover letter.",
-        variant: "destructive",
+        title: 'Export failed',
+        description: 'Unable to export this cover letter.',
+        variant: 'destructive',
       });
     }
   };
@@ -371,32 +359,30 @@ export default function CoverLettersPage() {
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
           Cover Letter Coach
         </h1>
-        <p className="text-muted-foreground">
-          Create, manage, and optimize your cover letters
-        </p>
+        <p className="text-muted-foreground">Create, manage, and optimize your cover letters</p>
       </div>
 
       {/* Three Toggle System */}
       <div className="mb-6 flex gap-2">
         <Button
-          variant={activeTab === "my-letters" ? "default" : "outline"}
-          onClick={() => setActiveTab("my-letters")}
+          variant={activeTab === 'my-letters' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('my-letters')}
           className="flex items-center gap-2"
         >
           <FileText className="h-4 w-4" />
           My Cover Letters
         </Button>
         <Button
-          variant={activeTab === "generate-ai" ? "default" : "outline"}
-          onClick={() => setActiveTab("generate-ai")}
+          variant={activeTab === 'generate-ai' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('generate-ai')}
           className="flex items-center gap-2"
         >
           <Sparkles className="h-4 w-4" />
           Generate with AI
         </Button>
         <Button
-          variant={activeTab === "upload-analyze" ? "default" : "outline"}
-          onClick={() => setActiveTab("upload-analyze")}
+          variant={activeTab === 'upload-analyze' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('upload-analyze')}
           className="flex items-center gap-2"
         >
           <Upload className="h-4 w-4" />
@@ -405,7 +391,7 @@ export default function CoverLettersPage() {
       </div>
 
       {/* My Cover Letters Tab */}
-      {activeTab === "my-letters" && (
+      {activeTab === 'my-letters' && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Your Cover Letters</h2>
@@ -414,7 +400,7 @@ export default function CoverLettersPage() {
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
                 <Plus className="h-4 w-4 mr-2" />
-              )}{" "}
+              )}{' '}
               New Cover Letter
             </Button>
           </div>
@@ -437,7 +423,7 @@ export default function CoverLettersPage() {
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (
                     <Plus className="h-4 w-4 mr-2" />
-                  )}{" "}
+                  )}{' '}
                   New Cover Letter
                 </Button>
               </CardContent>
@@ -447,14 +433,30 @@ export default function CoverLettersPage() {
               {sorted!.map((c) => {
                 const getSourceBadge = () => {
                   switch (c.source) {
-                    case "ai_generated":
-                      return <span className="text-[11px] bg-purple-100 text-purple-700 px-2 py-1 rounded-full whitespace-nowrap">AI Generated</span>;
-                    case "ai_optimized":
-                      return <span className="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full whitespace-nowrap">AI Optimized</span>;
-                    case "pdf_upload":
-                      return <span className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-full whitespace-nowrap">PDF Upload</span>;
-                    case "manual":
-                      return <span className="text-[11px] bg-gray-100 text-gray-700 px-2 py-1 rounded-full whitespace-nowrap">Manual</span>;
+                    case 'ai_generated':
+                      return (
+                        <span className="text-[11px] bg-purple-100 text-purple-700 px-2 py-1 rounded-full whitespace-nowrap">
+                          AI Generated
+                        </span>
+                      );
+                    case 'ai_optimized':
+                      return (
+                        <span className="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full whitespace-nowrap">
+                          AI Optimized
+                        </span>
+                      );
+                    case 'pdf_upload':
+                      return (
+                        <span className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-full whitespace-nowrap">
+                          PDF Upload
+                        </span>
+                      );
+                    case 'manual':
+                      return (
+                        <span className="text-[11px] bg-gray-100 text-gray-700 px-2 py-1 rounded-full whitespace-nowrap">
+                          Manual
+                        </span>
+                      );
                     default:
                       return null;
                   }
@@ -475,7 +477,7 @@ export default function CoverLettersPage() {
                             </div>
                             <div className="min-w-0 flex-1">
                               <h3 className="font-semibold text-sm text-slate-900 truncate">
-                                {c.name || "Untitled Cover Letter"}
+                                {c.name || 'Untitled Cover Letter'}
                               </h3>
                               <p className="text-xs text-muted-foreground truncate">
                                 Last updated {new Date(c.updated_at).toLocaleDateString()}
@@ -486,13 +488,9 @@ export default function CoverLettersPage() {
                         </div>
 
                         <div className="rounded-lg border border-dashed border-slate-200 bg-white/60 px-4 py-2 text-xs text-slate-500">
-                          <p>
-                            Created {new Date(c.created_at).toLocaleDateString()}
-                          </p>
+                          <p>Created {new Date(c.created_at).toLocaleDateString()}</p>
                           <p className="mt-0.5 truncate">
-                            {c.company_name
-                              ? `${c.job_title} @ ${c.company_name}`
-                              : c.job_title}
+                            {c.company_name ? `${c.job_title} @ ${c.company_name}` : c.job_title}
                           </p>
                         </div>
 
@@ -564,22 +562,19 @@ export default function CoverLettersPage() {
       )}
 
       {/* Generate with AI Tab */}
-      {activeTab === "generate-ai" && (
+      {activeTab === 'generate-ai' && (
         <div>
           <Card>
             <CardHeader>
               <CardTitle>Generate Cover Letter with AI</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Paste a job description and AI will create a tailored cover
-                letter for the role
+                Paste a job description and AI will create a tailored cover letter for the role
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Company Name
-                  </label>
+                  <label className="text-sm font-medium mb-2 block">Company Name</label>
                   <Input
                     placeholder="e.g. Acme Corporation"
                     value={jobCompany}
@@ -588,9 +583,7 @@ export default function CoverLettersPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Role / Position
-                  </label>
+                  <label className="text-sm font-medium mb-2 block">Role / Position</label>
                   <Input
                     placeholder="e.g. Senior Product Manager"
                     value={jobRole}
@@ -600,9 +593,7 @@ export default function CoverLettersPage() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Job Description
-                </label>
+                <label className="text-sm font-medium mb-2 block">Job Description</label>
                 <Textarea
                   placeholder="Paste the job description here..."
                   value={jobDescription}
@@ -616,10 +607,7 @@ export default function CoverLettersPage() {
                 <Button
                   onClick={generateWithAI}
                   disabled={
-                    !jobDescription.trim() ||
-                    !jobRole.trim() ||
-                    !jobCompany.trim() ||
-                    generating
+                    !jobDescription.trim() || !jobRole.trim() || !jobCompany.trim() || generating
                   }
                   className="w-full"
                 >
@@ -642,22 +630,20 @@ export default function CoverLettersPage() {
       )}
 
       {/* Upload & Analyze Tab */}
-      {activeTab === "upload-analyze" && (
+      {activeTab === 'upload-analyze' && (
         <div>
           <Card>
             <CardHeader>
               <CardTitle>Upload & Analyze Cover Letter</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Paste your cover letter and the target job description to
-                understand fit and next steps
+                Paste your cover letter and the target job description to understand fit and next
+                steps
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Target Role (optional)
-                  </label>
+                  <label className="text-sm font-medium mb-2 block">Target Role (optional)</label>
                   <Input
                     placeholder="e.g. Product Marketing Manager"
                     value={analyzeRole}
@@ -666,9 +652,7 @@ export default function CoverLettersPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Company (optional)
-                  </label>
+                  <label className="text-sm font-medium mb-2 block">Company (optional)</label>
                   <Input
                     placeholder="e.g. Northwind Labs"
                     value={analyzeCompany}
@@ -678,9 +662,7 @@ export default function CoverLettersPage() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Cover Letter
-                </label>
+                <label className="text-sm font-medium mb-2 block">Cover Letter</label>
                 <Textarea
                   placeholder="Paste the cover letter you want to analyze..."
                   value={coverLetterDraft}
@@ -694,9 +676,7 @@ export default function CoverLettersPage() {
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Job Description
-                </label>
+                <label className="text-sm font-medium mb-2 block">Job Description</label>
                 <Textarea
                   placeholder="Paste the target job description..."
                   value={analyzeJobDescription}
@@ -708,11 +688,7 @@ export default function CoverLettersPage() {
               </div>
               <Button
                 onClick={analyzeLetter}
-                disabled={
-                  !coverLetterDraft.trim() ||
-                  !analyzeJobDescription.trim() ||
-                  analyzing
-                }
+                disabled={!coverLetterDraft.trim() || !analyzeJobDescription.trim() || analyzing}
                 className="w-full"
               >
                 {analyzing ? (
@@ -734,17 +710,12 @@ export default function CoverLettersPage() {
                   <div className="rounded-lg bg-blue-50 border border-blue-100 p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="h-6 w-1 bg-blue-600 rounded-full"></div>
-                      <h3 className="text-lg font-semibold text-blue-900">
-                        Strengths
-                      </h3>
+                      <h3 className="text-lg font-semibold text-blue-900">Strengths</h3>
                     </div>
                     <ul className="space-y-2 text-sm text-gray-700">
                       {analysisResult.strengths.length ? (
                         analysisResult.strengths.map((item, idx) => (
-                          <li
-                            key={`strength-${idx}`}
-                            className="flex items-start gap-2"
-                          >
+                          <li key={`strength-${idx}`} className="flex items-start gap-2">
                             <span className="text-blue-600 mt-0.5">•</span>
                             <span>{item}</span>
                           </li>
@@ -759,17 +730,12 @@ export default function CoverLettersPage() {
 
                     <div className="flex items-center gap-2 mt-6 mb-4">
                       <div className="h-6 w-1 bg-yellow-600 rounded-full"></div>
-                      <h3 className="text-lg font-semibold text-yellow-900">
-                        Areas to Improve
-                      </h3>
+                      <h3 className="text-lg font-semibold text-yellow-900">Areas to Improve</h3>
                     </div>
                     <ul className="space-y-2 text-sm text-gray-700">
                       {analysisResult.gaps.length ? (
                         analysisResult.gaps.map((item, idx) => (
-                          <li
-                            key={`gap-${idx}`}
-                            className="flex items-start gap-2"
-                          >
+                          <li key={`gap-${idx}`} className="flex items-start gap-2">
                             <span className="text-yellow-600 mt-0.5">•</span>
                             <span>{item}</span>
                           </li>
@@ -784,17 +750,12 @@ export default function CoverLettersPage() {
 
                     <div className="flex items-center gap-2 mt-6 mb-4">
                       <div className="h-6 w-1 bg-purple-600 rounded-full"></div>
-                      <h3 className="text-lg font-semibold text-purple-900">
-                        Suggestions
-                      </h3>
+                      <h3 className="text-lg font-semibold text-purple-900">Suggestions</h3>
                     </div>
                     <ul className="space-y-2 text-sm text-gray-700">
                       {analysisResult.recommendations.length ? (
                         analysisResult.recommendations.map((item, idx) => (
-                          <li
-                            key={`rec-${idx}`}
-                            className="flex items-start gap-2"
-                          >
+                          <li key={`rec-${idx}`} className="flex items-start gap-2">
                             <span className="text-purple-600 mt-0.5">•</span>
                             <span>{item}</span>
                           </li>
@@ -824,7 +785,7 @@ export default function CoverLettersPage() {
                           onClick={() => setShowOptimized((prev) => !prev)}
                           className="text-blue-600 hover:text-blue-700"
                         >
-                          {showOptimized ? "Hide" : "Show"}
+                          {showOptimized ? 'Hide' : 'Show'}
                         </Button>
                       </div>
 
@@ -838,14 +799,11 @@ export default function CoverLettersPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                navigator.clipboard.writeText(
-                                  analysisResult.optimizedLetter || "",
-                                );
+                                navigator.clipboard.writeText(analysisResult.optimizedLetter || '');
                                 toast({
-                                  title: "Copied!",
-                                  description:
-                                    "Optimized letter copied to clipboard",
-                                  variant: "success",
+                                  title: 'Copied!',
+                                  description: 'Optimized letter copied to clipboard',
+                                  variant: 'success',
                                 });
                               }}
                             >
@@ -887,8 +845,8 @@ export default function CoverLettersPage() {
           open={!!previewLetter}
           onClose={() => setPreviewLetter(null)}
           letter={previewLetter}
-          userName={user?.fullName || ""}
-          userEmail={user?.primaryEmailAddress?.emailAddress || ""}
+          userName={user?.fullName || ''}
+          userEmail={user?.primaryEmailAddress?.emailAddress || ''}
         />
       )}
     </div>

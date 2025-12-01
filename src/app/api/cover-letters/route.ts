@@ -1,28 +1,37 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { api } from 'convex/_generated/api';
+import { NextRequest, NextResponse } from 'next/server';
 
-import { api } from 'convex/_generated/api'
-import { convexServer } from '@/lib/convex-server';
 import { requireConvexToken } from '@/lib/convex-auth';
+import { convexServer } from '@/lib/convex-server';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
-type CoverLetterSource = 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload'
-const ALLOWED_SOURCES = new Set<CoverLetterSource>(['manual', 'ai_generated', 'ai_optimized', 'pdf_upload'])
+type CoverLetterSource = 'manual' | 'ai_generated' | 'ai_optimized' | 'pdf_upload';
+const ALLOWED_SOURCES = new Set<CoverLetterSource>([
+  'manual',
+  'ai_generated',
+  'ai_optimized',
+  'pdf_upload',
+]);
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId, token } = await requireConvexToken()
-    const coverLetters = await convexServer.query(api.cover_letters.getUserCoverLetters, { clerkId: userId }, token)
-    return NextResponse.json({ coverLetters })
+    const { userId, token } = await requireConvexToken();
+    const coverLetters = await convexServer.query(
+      api.cover_letters.getUserCoverLetters,
+      { clerkId: userId },
+      token,
+    );
+    return NextResponse.json({ coverLetters });
   } catch (error) {
-    console.error('Error fetching cover letters:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error fetching cover letters:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, token } = await requireConvexToken()
+    const { userId, token } = await requireConvexToken();
     let body;
     try {
       body = await request.json();
@@ -33,32 +42,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
     const { title, content, company_name, position, job_description, source } = body as {
-      title?: string
-      content?: string
-      company_name?: string
-      position?: string
-      job_description?: string
-      source?: string
-    }
+      title?: string;
+      content?: string;
+      company_name?: string;
+      position?: string;
+      job_description?: string;
+      source?: string;
+    };
 
     if (!title || !content) {
-      return NextResponse.json({ error: 'Title and content are required' }, { status: 400 })
+      return NextResponse.json({ error: 'Title and content are required' }, { status: 400 });
     }
 
-    const coverLetter = await convexServer.mutation(api.cover_letters.createCoverLetter, {
-      clerkId: userId,
-      name: title,
-      job_title: position ? String(position) : 'Position',
-      company_name: company_name ? String(company_name) : undefined,
-      template: 'standard',
-      content: String(content),
-      closing: 'Sincerely,',
-      source: ALLOWED_SOURCES.has(source as CoverLetterSource) ? (source as CoverLetterSource) : 'manual',
-    }, token)
+    const coverLetter = await convexServer.mutation(
+      api.cover_letters.createCoverLetter,
+      {
+        clerkId: userId,
+        name: title,
+        job_title: position ? String(position) : 'Position',
+        company_name: company_name ? String(company_name) : undefined,
+        template: 'standard',
+        content: String(content),
+        closing: 'Sincerely,',
+        source: ALLOWED_SOURCES.has(source as CoverLetterSource)
+          ? (source as CoverLetterSource)
+          : 'manual',
+      },
+      token,
+    );
 
-    return NextResponse.json({ coverLetter }, { status: 201 })
+    return NextResponse.json({ coverLetter }, { status: 201 });
   } catch (error) {
-    console.error('Error creating cover letter:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error creating cover letter:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

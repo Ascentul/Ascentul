@@ -1,81 +1,76 @@
-"use client";
+'use client';
 
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useMemo,
-  useCallback,
-} from "react";
-import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useImpersonation } from "@/contexts/ImpersonationContext";
-import { useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
-import { hasUniversityAdminAccess } from "@/lib/constants/roles";
-import { Progress } from "@/components/ui/progress";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  BarChart,
+  Bell,
+  BookOpen,
+  Bot,
+  Briefcase,
+  Building,
+  Calendar,
+  ChevronRight,
+  ChevronsLeft,
+  ClipboardList,
+  Clock,
+  FileEdit,
+  FileText,
+  FolderGit2,
+  GitBranch,
+  GraduationCap,
+  HelpCircle,
+  LayoutDashboard,
+  LineChart,
+  Linkedin,
+  LogOut,
+  Mail,
+  Menu,
+  Mic,
+  PanelLeft,
+  PanelRight,
+  School,
+  Search,
+  Settings,
+  ShieldCheck,
+  Target,
+  Trophy,
+  User as UserIcon,
+  UserRound,
+  Zap,
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
-  DialogTrigger,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import {
-  LayoutDashboard,
-  Target,
-  FileText,
-  Mail,
-  UserRound,
-  Briefcase,
-  Trophy,
-  Bot,
-  Settings,
-  LogOut,
-  GraduationCap,
-  BookOpen,
-  School,
-  ShieldCheck,
-  GitBranch,
-  Linkedin,
-  FolderGit2,
-  Search,
-  ChevronRight,
-  LineChart,
-  BarChart,
-  ClipboardList,
-  Clock,
-  Building,
-  Calendar,
-  FileEdit,
-  PanelLeft,
-  PanelRight,
-  ChevronsLeft,
-  Menu,
-  User as UserIcon,
-  Mic,
-  HelpCircle,
-  Bell,
-  Zap,
-} from "lucide-react";
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useImpersonation } from '@/contexts/ImpersonationContext';
+import { useToast } from '@/hooks/use-toast';
+import { hasUniversityAdminAccess } from '@/lib/constants/roles';
 
 // Sidebar section types
 type SidebarSection = {
@@ -100,10 +95,7 @@ interface SidebarProps {
   onToggle?: () => void;
 }
 
-const Sidebar = React.memo(function Sidebar({
-  isOpen,
-  onToggle,
-}: SidebarProps = {}) {
+const Sidebar = React.memo(function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const { user: clerkUser } = useUser();
@@ -116,64 +108,53 @@ const Sidebar = React.memo(function Sidebar({
   const effectivePlan = getEffectivePlan();
 
   // Determine admin status based on effective role (for impersonation)
-  const effectiveIsAdmin = effectiveRole === "super_admin";
-  const effectiveIsUniAdmin = effectiveRole === "university_admin";
+  const effectiveIsAdmin = effectiveRole === 'super_admin';
+  const effectiveIsUniAdmin = effectiveRole === 'university_admin';
 
   // Fetch viewer data to get student context (university name)
-  const viewer = useQuery(
-    api.viewer.getViewer,
-    clerkUser ? {} : "skip"
-  );
+  const viewer = useQuery(api.viewer.getViewer, clerkUser ? {} : 'skip');
 
   // Check if user is on free plan and not a university admin or premium user
   // When impersonating, use the effective plan/role
-  const isFreeUser = useMemo(
-    () => {
-      if (impersonation.isImpersonating) {
-        // When impersonating, use effective plan
-        return effectivePlan === "free";
-      }
-      return !hasPremium &&
-        user?.role !== "university_admin" &&
-        !isAdmin;
-    },
-    [impersonation.isImpersonating, effectivePlan, hasPremium, user?.role, isAdmin],
-  );
+  const isFreeUser = useMemo(() => {
+    if (impersonation.isImpersonating) {
+      // When impersonating, use effective plan
+      return effectivePlan === 'free';
+    }
+    return !hasPremium && user?.role !== 'university_admin' && !isAdmin;
+  }, [impersonation.isImpersonating, effectivePlan, hasPremium, user?.role, isAdmin]);
 
-  const isUniversityUser = useMemo(
-    () => {
-      if (impersonation.isImpersonating) {
-        return effectivePlan === "university" || hasUniversityAdminAccess(effectiveRole);
-      }
-      return hasUniversityAdminAccess(user?.role) || subscription.isUniversity;
-    },
-    [impersonation.isImpersonating, effectivePlan, effectiveRole, user?.role, subscription.isUniversity],
-  );
+  const isUniversityUser = useMemo(() => {
+    if (impersonation.isImpersonating) {
+      return effectivePlan === 'university' || hasUniversityAdminAccess(effectiveRole);
+    }
+    return hasUniversityAdminAccess(user?.role) || subscription.isUniversity;
+  }, [
+    impersonation.isImpersonating,
+    effectivePlan,
+    effectiveRole,
+    user?.role,
+    subscription.isUniversity,
+  ]);
 
   // Fetch usage data ONLY for free users (optimization: skip query for premium/university users)
   const usageData = useQuery(
     api.usage.getUserUsage,
-    user?.clerkId && isFreeUser ? { clerkId: user.clerkId } : "skip"
+    user?.clerkId && isFreeUser ? { clerkId: user.clerkId } : 'skip',
   );
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [hoverSection, setHoverSection] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<boolean>(
-    typeof window !== "undefined"
-      ? localStorage.getItem("sidebarExpanded") !== "false"
-      : true,
+    typeof window !== 'undefined' ? localStorage.getItem('sidebarExpanded') !== 'false' : true,
   );
-  const [menuPositions, setMenuPositions] = useState<Record<string, number>>(
-    {},
-  );
+  const [menuPositions, setMenuPositions] = useState<Record<string, number>>({});
   // Persisted collapsed state per section id
-  const [collapsedSections, setCollapsedSections] = useState<
-    Record<string, boolean>
-  >(() => {
-    if (typeof window !== "undefined") {
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
+    if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem("sidebarCollapsedSections");
+        const saved = localStorage.getItem('sidebarCollapsedSections');
         return saved ? JSON.parse(saved) : {};
       } catch {}
     }
@@ -182,9 +163,9 @@ const Sidebar = React.memo(function Sidebar({
 
   // Support ticket related state
   const [showSupportModal, setShowSupportModal] = useState(false);
-  const [subject, setSubject] = useState("");
-  const [description, setDescription] = useState("");
-  const [issueType, setIssueType] = useState("Other");
+  const [subject, setSubject] = useState('');
+  const [description, setDescription] = useState('');
+  const [issueType, setIssueType] = useState('Other');
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Upsell modal for Pro-only features
   const [showUpsellModal, setShowUpsellModal] = useState(false);
@@ -193,80 +174,80 @@ const Sidebar = React.memo(function Sidebar({
   const sidebarSections: SidebarSection[] = useMemo(
     () => [
       {
-        id: "dashboard",
-        title: "Dashboard",
+        id: 'dashboard',
+        title: 'Dashboard',
         icon: <LayoutDashboard className="h-5 w-5" />,
-        href: "/dashboard",
+        href: '/dashboard',
       },
       {
-        id: "applications",
-        title: "Applications",
+        id: 'applications',
+        title: 'Applications',
         icon: <ClipboardList className="h-5 w-5" />,
-        href: "/applications",
+        href: '/applications',
       },
       {
-        id: "my-path",
-        title: "My Path",
+        id: 'my-path',
+        title: 'My Path',
         icon: <Target className="h-5 w-5" />,
         items: [
           {
-            href: "/goals",
+            href: '/goals',
             icon: <Target className="h-4 w-4" />,
-            label: "Goals",
+            label: 'Goals',
           },
           {
-            href: "/career-path",
+            href: '/career-path',
             icon: <GitBranch className="h-4 w-4" />,
-            label: "Career Path Explorer",
+            label: 'Career Path Explorer',
           },
         ],
       },
       {
-        id: "portfolio",
-        title: "Portfolio",
+        id: 'portfolio',
+        title: 'Portfolio',
         icon: <FolderGit2 className="h-5 w-5" />,
         items: [
           {
-            href: "/resumes",
+            href: '/resumes',
             icon: <FileText className="h-4 w-4" />,
-            label: "Resume Studio",
+            label: 'Resume Studio',
           },
           {
-            href: "/cover-letters",
+            href: '/cover-letters',
             icon: <Mail className="h-4 w-4" />,
-            label: "Cover Letter Coach",
+            label: 'Cover Letter Coach',
           },
           {
-            href: "/projects",
+            href: '/projects',
             icon: <FolderGit2 className="h-4 w-4" />,
-            label: "Projects",
+            label: 'Projects',
           },
         ],
       },
       {
-        id: "connections",
-        title: "Connections",
+        id: 'connections',
+        title: 'Connections',
         icon: <UserRound className="h-5 w-5" />,
         items: [
           {
-            href: "/contacts",
+            href: '/contacts',
             icon: <UserRound className="h-4 w-4" />,
-            label: "Network Hub",
+            label: 'Network Hub',
           },
         ],
       },
       {
-        id: "career-coach",
-        title: "Career Coach",
+        id: 'career-coach',
+        title: 'Career Coach',
         icon: <Bot className="h-5 w-5" />,
-        href: "/career-coach",
+        href: '/career-coach',
         pro: true,
       },
       {
-        id: "career-profile",
-        title: "Career Profile",
+        id: 'career-profile',
+        title: 'Career Profile',
         icon: <UserIcon className="h-5 w-5" />,
-        href: "/profile",
+        href: '/profile',
       },
     ],
     [],
@@ -276,40 +257,40 @@ const Sidebar = React.memo(function Sidebar({
   const adminSections: SidebarSection[] = useMemo(
     () => [
       {
-        id: "admin-dashboard",
-        title: "Admin Dashboard",
+        id: 'admin-dashboard',
+        title: 'Admin Dashboard',
         icon: <ShieldCheck className="h-5 w-5" />,
-        href: "/admin",
+        href: '/admin',
       },
       {
-        id: "admin-users",
-        title: "User Management",
+        id: 'admin-users',
+        title: 'User Management',
         icon: <UserIcon className="h-5 w-5" />,
-        href: "/admin/users",
+        href: '/admin/users',
       },
       {
-        id: "admin-universities",
-        title: "Universities",
+        id: 'admin-universities',
+        title: 'Universities',
         icon: <School className="h-5 w-5" />,
-        href: "/admin/universities",
+        href: '/admin/universities',
       },
       {
-        id: "admin-analytics",
-        title: "Analytics",
+        id: 'admin-analytics',
+        title: 'Analytics',
         icon: <BarChart className="h-5 w-5" />,
-        href: "/admin/analytics",
+        href: '/admin/analytics',
       },
       {
-        id: "admin-support",
-        title: "Support Tickets",
+        id: 'admin-support',
+        title: 'Support Tickets',
         icon: <HelpCircle className="h-5 w-5" />,
-        href: "/admin/support",
+        href: '/admin/support',
       },
       {
-        id: "admin-settings",
-        title: "Settings",
+        id: 'admin-settings',
+        title: 'Settings',
         icon: <Settings className="h-5 w-5" />,
-        href: "/admin/settings",
+        href: '/admin/settings',
       },
     ],
     [],
@@ -319,34 +300,34 @@ const Sidebar = React.memo(function Sidebar({
   const universitySections: SidebarSection[] = useMemo(
     () => [
       {
-        id: "university-dashboard",
-        title: "Dashboard",
+        id: 'university-dashboard',
+        title: 'Dashboard',
         icon: <School className="h-5 w-5" />,
-        href: "/university",
+        href: '/university',
       },
       {
-        id: "university-students",
-        title: "Students",
+        id: 'university-students',
+        title: 'Students',
         icon: <UserIcon className="h-5 w-5" />,
-        href: "/university/students",
+        href: '/university/students',
       },
       {
-        id: "university-departments",
-        title: "Departments",
+        id: 'university-departments',
+        title: 'Departments',
         icon: <Building className="h-5 w-5" />,
-        href: "/university/departments",
+        href: '/university/departments',
       },
       {
-        id: "university-analytics",
-        title: "Analytics",
+        id: 'university-analytics',
+        title: 'Analytics',
         icon: <BarChart className="h-5 w-5" />,
-        href: "/university/analytics",
+        href: '/university/analytics',
       },
       {
-        id: "university-support",
-        title: "Support",
+        id: 'university-support',
+        title: 'Support',
         icon: <HelpCircle className="h-5 w-5" />,
-        href: "/support",
+        href: '/support',
       },
     ],
     [],
@@ -356,71 +337,68 @@ const Sidebar = React.memo(function Sidebar({
   const advisorSections: SidebarSection[] = useMemo(
     () => [
       {
-        id: "advisor-dashboard",
-        title: "Dashboard",
+        id: 'advisor-dashboard',
+        title: 'Dashboard',
         icon: <LayoutDashboard className="h-5 w-5" />,
-        href: "/advisor",
+        href: '/advisor',
       },
       {
-        id: "advisor-students",
-        title: "Students",
+        id: 'advisor-students',
+        title: 'Students',
         icon: <UserIcon className="h-5 w-5" />,
-        href: "/advisor/students",
+        href: '/advisor/students',
       },
       {
-        id: "advisor-advising",
-        title: "Advising",
+        id: 'advisor-advising',
+        title: 'Advising',
         icon: <Calendar className="h-5 w-5" />,
         items: [
           {
-            href: "/advisor/advising/today",
+            href: '/advisor/advising/today',
             icon: <Clock className="h-4 w-4" />,
-            label: "Today",
+            label: 'Today',
           },
           {
-            href: "/advisor/advising/calendar",
+            href: '/advisor/advising/calendar',
             icon: <Calendar className="h-4 w-4" />,
-            label: "Calendar",
+            label: 'Calendar',
           },
           {
-            href: "/advisor/advising/sessions",
+            href: '/advisor/advising/sessions',
             icon: <Mic className="h-4 w-4" />,
-            label: "Sessions",
+            label: 'Sessions',
           },
           {
-            href: "/advisor/advising/reviews",
+            href: '/advisor/advising/reviews',
             icon: <FileEdit className="h-4 w-4" />,
-            label: "Reviews",
+            label: 'Reviews',
           },
         ],
       },
       {
-        id: "advisor-applications",
-        title: "Applications",
+        id: 'advisor-applications',
+        title: 'Applications',
         icon: <ClipboardList className="h-5 w-5" />,
-        href: "/advisor/applications",
+        href: '/advisor/applications',
       },
       {
-        id: "advisor-analytics",
-        title: "Analytics",
+        id: 'advisor-analytics',
+        title: 'Analytics',
         icon: <LineChart className="h-5 w-5" />,
-        href: "/advisor/analytics",
+        href: '/advisor/analytics',
       },
       {
-        id: "advisor-support",
-        title: "Support",
+        id: 'advisor-support',
+        title: 'Support',
         icon: <HelpCircle className="h-5 w-5" />,
-        href: "/advisor/support",
+        href: '/advisor/support',
       },
     ],
     [],
   );
 
   // Check if user is advisor (supports impersonation)
-  const effectiveIsAdvisor = useMemo(
-    () => effectiveRole === "advisor",
-    [effectiveRole],
-  );
+  const effectiveIsAdvisor = useMemo(() => effectiveRole === 'advisor', [effectiveRole]);
 
   // Determine which sections to show based on effective role (supports impersonation)
   const allSections: SidebarSection[] = useMemo(() => {
@@ -433,14 +411,22 @@ const Sidebar = React.memo(function Sidebar({
     } else {
       return sidebarSections;
     }
-  }, [effectiveIsAdvisor, effectiveIsUniAdmin, effectiveIsAdmin, advisorSections, universitySections, adminSections, sidebarSections]);
+  }, [
+    effectiveIsAdvisor,
+    effectiveIsUniAdmin,
+    effectiveIsAdmin,
+    advisorSections,
+    universitySections,
+    adminSections,
+    sidebarSections,
+  ]);
 
   // Memoize isActive function
   const isActive = useCallback(
     (href: string, exact?: boolean) => {
       if (exact) return pathname === href;
       // For non-exact matches, use prefix matching to handle nested routes
-      return pathname === href || pathname.startsWith(href + "/");
+      return pathname === href || pathname.startsWith(href + '/');
     },
     [pathname],
   );
@@ -452,8 +438,7 @@ const Sidebar = React.memo(function Sidebar({
       if (s.items) {
         for (const it of s.items) {
           // Use exact matching for admin dashboard items to avoid conflicts
-          const shouldUseExact =
-            s.id === "admin-dashboard" && it.href === "/admin";
+          const shouldUseExact = s.id === 'admin-dashboard' && it.href === '/admin';
           if (isActive(it.href, shouldUseExact)) return s.id;
         }
       }
@@ -463,9 +448,9 @@ const Sidebar = React.memo(function Sidebar({
 
   // On first load, default all sections with items to collapsed, but auto-expand the active one
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     try {
-      const initialized = localStorage.getItem("sidebarCollapsedInitialized");
+      const initialized = localStorage.getItem('sidebarCollapsedInitialized');
       if (!initialized) {
         const next: Record<string, boolean> = {};
         for (const s of allSections) {
@@ -474,8 +459,8 @@ const Sidebar = React.memo(function Sidebar({
         const activeId = getActiveSectionId();
         if (activeId) next[activeId] = false; // expand active section
         setCollapsedSections(next);
-        localStorage.setItem("sidebarCollapsedSections", JSON.stringify(next));
-        localStorage.setItem("sidebarCollapsedInitialized", "true");
+        localStorage.setItem('sidebarCollapsedSections', JSON.stringify(next));
+        localStorage.setItem('sidebarCollapsedInitialized', 'true');
       }
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -489,7 +474,7 @@ const Sidebar = React.memo(function Sidebar({
       if (prev && prev[activeId] === false) return prev;
       const next = { ...prev, [activeId]: false };
       try {
-        localStorage.setItem("sidebarCollapsedSections", JSON.stringify(next));
+        localStorage.setItem('sidebarCollapsedSections', JSON.stringify(next));
       } catch {}
       return next;
     });
@@ -499,9 +484,9 @@ const Sidebar = React.memo(function Sidebar({
   const handleLogout = useCallback(async () => {
     try {
       await signOut();
-      router.push("/sign-in");
+      router.push('/sign-in');
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error('Logout error:', error);
     }
   }, [signOut, router]);
 
@@ -510,27 +495,27 @@ const Sidebar = React.memo(function Sidebar({
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/support/tickets", {
-        method: "POST",
+      const response = await fetch('/api/support/tickets', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           subject,
           description,
           issueType,
-          source: "sidebar",
+          source: 'sidebar',
         }),
       });
 
       if (response.ok) {
         setShowSupportModal(false);
-        setSubject("");
-        setDescription("");
-        setIssueType("Other");
+        setSubject('');
+        setDescription('');
+        setIssueType('Other');
       }
     } catch (error) {
-      console.error("Error submitting support ticket:", error);
+      console.error('Error submitting support ticket:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -539,8 +524,8 @@ const Sidebar = React.memo(function Sidebar({
   const toggleExpanded = useCallback(() => {
     const newExpanded = !expanded;
     setExpanded(newExpanded);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("sidebarExpanded", newExpanded.toString());
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebarExpanded', newExpanded.toString());
     }
   }, [expanded]);
 
@@ -549,22 +534,23 @@ const Sidebar = React.memo(function Sidebar({
       // Use exact matching for the main admin dashboard item to avoid highlighting conflicts
       // when on sub-pages like /admin/analytics - only highlight the specific item, not the parent
       const shouldUseExact =
-        forceExact ||
-        (sectionId === "admin-dashboard" && item.href === "/admin");
+        forceExact || (sectionId === 'admin-dashboard' && item.href === '/admin');
       const active = isActive(item.href, shouldUseExact);
       const disabled = item.pro && isFreeUser;
 
       return (
         <Link
           key={item.href}
-          href={disabled ? "#" : item.href}
+          href={disabled ? '#' : item.href}
           className={`
           flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 border border-transparent
-          ${active
-            ? "bg-white text-slate-900 shadow-sm border-slate-200"
-            : disabled
-              ? "cursor-not-allowed text-slate-400"
-              : "text-slate-500 hover:text-slate-900 hover:bg-white/50"}
+          ${
+            active
+              ? 'bg-white text-slate-900 shadow-sm border-slate-200'
+              : disabled
+                ? 'cursor-not-allowed text-slate-400'
+                : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'
+          }
           `}
           onClick={
             disabled
@@ -581,9 +567,7 @@ const Sidebar = React.memo(function Sidebar({
           {expanded && (
             <>
               <span className="flex-1">{item.label}</span>
-              {item.pro && isFreeUser && (
-                <Zap className="h-3 w-3 text-warning-500" />
-              )}
+              {item.pro && isFreeUser && <Zap className="h-3 w-3 text-warning-500" />}
             </>
           )}
         </Link>
@@ -603,13 +587,12 @@ const Sidebar = React.memo(function Sidebar({
       const hasActiveItem =
         hasItems &&
         section.items?.some((item) => {
-          const shouldUseExact =
-            section.id === "admin-dashboard" && item.href === "/admin";
+          const shouldUseExact = section.id === 'admin-dashboard' && item.href === '/admin';
           return isActive(item.href, shouldUseExact);
         });
 
       // Check if this is a pro feature
-      const isPro = "pro" in section && section.pro;
+      const isPro = 'pro' in section && section.pro;
       const disabled = isPro && isFreeUser;
 
       if (!hasItems && section.onClick) {
@@ -620,18 +603,20 @@ const Sidebar = React.memo(function Sidebar({
             onClick={section.onClick}
             className={`
             w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors
-            ${disabled
-              ? "cursor-not-allowed text-slate-400"
-              : "text-slate-500 hover:text-slate-900 hover:bg-white/50"}
+            ${
+              disabled
+                ? 'cursor-not-allowed text-slate-400'
+                : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'
+            }
           `}
           >
-            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center">{section.icon}</span>
+            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+              {section.icon}
+            </span>
             {expanded && (
               <>
                 <span className="flex-1">{section.title}</span>
-                {isPro && isFreeUser && (
-                  <Zap className="h-3 w-3 text-warning-500" />
-                )}
+                {isPro && isFreeUser && <Zap className="h-3 w-3 text-warning-500" />}
               </>
             )}
           </button>
@@ -643,14 +628,16 @@ const Sidebar = React.memo(function Sidebar({
         return (
           <Link
             key={section.id}
-            href={disabled ? "#" : section.href}
+            href={disabled ? '#' : section.href}
             className={`
             flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 border border-transparent
-            ${sectionActive || hasActiveItem
-              ? "bg-white text-slate-900 shadow-sm border-slate-200"
-              : disabled
-                ? "cursor-not-allowed text-slate-400"
-                : "text-slate-500 hover:text-slate-900 hover:bg-white/50"}
+            ${
+              sectionActive || hasActiveItem
+                ? 'bg-white text-slate-900 shadow-sm border-slate-200'
+                : disabled
+                  ? 'cursor-not-allowed text-slate-400'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'
+            }
           `}
             onClick={
               disabled
@@ -661,13 +648,13 @@ const Sidebar = React.memo(function Sidebar({
                 : undefined
             }
           >
-            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center">{section.icon}</span>
+            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+              {section.icon}
+            </span>
             {expanded && (
               <>
                 <span className="flex-1">{section.title}</span>
-                {isPro && isFreeUser && (
-                  <Zap className="h-3 w-3 text-warning-500" />
-                )}
+                {isPro && isFreeUser && <Zap className="h-3 w-3 text-warning-500" />}
               </>
             )}
           </Link>
@@ -679,10 +666,7 @@ const Sidebar = React.memo(function Sidebar({
         setCollapsedSections((prev) => {
           const next = { ...prev, [section.id]: !prev[section.id] };
           try {
-            localStorage.setItem(
-              "sidebarCollapsedSections",
-              JSON.stringify(next),
-            );
+            localStorage.setItem('sidebarCollapsedSections', JSON.stringify(next));
           } catch {}
           return next;
         });
@@ -696,11 +680,13 @@ const Sidebar = React.memo(function Sidebar({
             aria-expanded={!isCollapsed}
             onClick={toggleSectionItems}
           >
-            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center">{section.icon}</span>
+            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+              {section.icon}
+            </span>
             {expanded && <span className="flex-1">{section.title}</span>}
             {expanded && (
               <ChevronRight
-                className={`h-4 w-4 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
+                className={`h-4 w-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
               />
             )}
           </div>
@@ -709,10 +695,10 @@ const Sidebar = React.memo(function Sidebar({
               <motion.div
                 key={`${section.id}-items`}
                 initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
+                animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-                style={{ overflow: "hidden" }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                style={{ overflow: 'hidden' }}
                 className="ml-4 space-y-1"
               >
                 {section.items?.map((it) => renderSidebarItem(it, section.id))}
@@ -731,8 +717,8 @@ const Sidebar = React.memo(function Sidebar({
         ref={sidebarRef}
         className={`
           transition-all duration-300 ease-in-out z-30
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          ${expanded ? "w-72" : "w-20"}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${expanded ? 'w-72' : 'w-20'}
           md:translate-x-0
           fixed inset-y-0 left-0 md:relative md:inset-0 flex flex-col
           bg-app-bg pl-6 pr-3 py-5 h-full overflow-y-auto no-scrollbar
@@ -742,7 +728,7 @@ const Sidebar = React.memo(function Sidebar({
         <div className="flex h-full w-full flex-col">
           {/* Header */}
           <div
-            className={`flex items-center ${expanded ? "justify-between" : "justify-center"} mb-6`}
+            className={`flex items-center ${expanded ? 'justify-between' : 'justify-center'} mb-6`}
           >
             {expanded && (
               <div className="flex items-center gap-2">
@@ -756,24 +742,13 @@ const Sidebar = React.memo(function Sidebar({
                 <h1 className="text-xl font-semibold text-primary-500">Ascentful</h1>
               </div>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleExpanded}
-              className="hidden md:flex"
-            >
-              {expanded ? (
-                <ChevronsLeft className="h-4 w-4" />
-              ) : (
-                <PanelRight className="h-4 w-4" />
-              )}
+            <Button variant="ghost" size="icon" onClick={toggleExpanded} className="hidden md:flex">
+              {expanded ? <ChevronsLeft className="h-4 w-4" /> : <PanelRight className="h-4 w-4" />}
             </Button>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-2 mb-4 w-full">
-            {allSections.map(renderSection)}
-          </nav>
+          <nav className="flex-1 space-y-2 mb-4 w-full">{allSections.map(renderSection)}</nav>
 
           {/* Free Plan Tile near footer */}
           {isFreeUser && expanded && (
@@ -781,7 +756,9 @@ const Sidebar = React.memo(function Sidebar({
               <div className="flex items-center justify-between text-xs text-slate-600">
                 <span className="font-semibold text-slate-900">Free Plan</span>
                 {usageData ? (
-                  <span>{usageData.stepsCompleted}/{usageData.totalSteps} steps</span>
+                  <span>
+                    {usageData.stepsCompleted}/{usageData.totalSteps} steps
+                  </span>
                 ) : (
                   <span>Loading...</span>
                 )}
@@ -792,14 +769,8 @@ const Sidebar = React.memo(function Sidebar({
                   className="h-2"
                 />
               </div>
-              <Link
-                href="/pricing"
-                className="mt-3 block w-full"
-              >
-                <Button
-                  size="sm"
-                  className="w-full bg-primary-500 hover:bg-primary-700 text-white"
-                >
+              <Link href="/pricing" className="mt-3 block w-full">
+                <Button size="sm" className="w-full bg-primary-500 hover:bg-primary-700 text-white">
                   Upgrade to Pro
                 </Button>
               </Link>
@@ -808,8 +779,10 @@ const Sidebar = React.memo(function Sidebar({
 
           {/* University Badge - for university-affiliated users */}
           {viewer?.university && (
-            <div className={`mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm ${expanded ? "" : "flex justify-center"}`}>
-              <div className={`flex items-center ${expanded ? "gap-3" : ""}`}>
+            <div
+              className={`mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm ${expanded ? '' : 'flex justify-center'}`}
+            >
+              <div className={`flex items-center ${expanded ? 'gap-3' : ''}`}>
                 {viewer.university.universityLogo ? (
                   <Image
                     src={viewer.university.universityLogo}
@@ -819,8 +792,10 @@ const Sidebar = React.memo(function Sidebar({
                     className="rounded-lg object-contain"
                   />
                 ) : (
-                  <div className={`flex items-center justify-center rounded-lg bg-primary-100 ${expanded ? "h-9 w-9" : "h-8 w-8"}`}>
-                    <School className={`text-primary-500 ${expanded ? "h-5 w-5" : "h-4 w-4"}`} />
+                  <div
+                    className={`flex items-center justify-center rounded-lg bg-primary-100 ${expanded ? 'h-9 w-9' : 'h-8 w-8'}`}
+                  >
+                    <School className={`text-primary-500 ${expanded ? 'h-5 w-5' : 'h-4 w-4'}`} />
                   </div>
                 )}
                 {expanded && (
@@ -829,7 +804,11 @@ const Sidebar = React.memo(function Sidebar({
                       {viewer.university.universityName}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {effectiveRole === "university_admin" ? "Administrator" : effectiveRole === "advisor" ? "Advisor" : "Student"}
+                      {effectiveRole === 'university_admin'
+                        ? 'Administrator'
+                        : effectiveRole === 'advisor'
+                          ? 'Advisor'
+                          : 'Student'}
                     </p>
                   </div>
                 )}
@@ -845,8 +824,8 @@ const Sidebar = React.memo(function Sidebar({
                 <DialogHeader>
                   <DialogTitle>Unlock Pro Features</DialogTitle>
                   <DialogDescription>
-                    This feature is available on the Pro plan. Upgrade to access
-                    LinkedIn Integration and other premium tools.
+                    This feature is available on the Pro plan. Upgrade to access LinkedIn
+                    Integration and other premium tools.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="text-sm text-neutral-600">
@@ -861,12 +840,12 @@ const Sidebar = React.memo(function Sidebar({
                     onClick={async () => {
                       setShowUpsellModal(false);
                       try {
-                        const response = await fetch("/api/stripe/checkout", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
+                        const response = await fetch('/api/stripe/checkout', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
-                            plan: "premium",
-                            interval: "monthly",
+                            plan: 'premium',
+                            interval: 'monthly',
                           }),
                         });
                         const data = await response.json();
@@ -874,17 +853,17 @@ const Sidebar = React.memo(function Sidebar({
                           window.location.href = data.url;
                         } else {
                           toast({
-                            title: "Checkout failed",
-                            description: "Unable to initiate checkout. Please try again.",
-                            variant: "destructive",
+                            title: 'Checkout failed',
+                            description: 'Unable to initiate checkout. Please try again.',
+                            variant: 'destructive',
                           });
                         }
                       } catch (error) {
-                        console.error("Checkout error:", error);
+                        console.error('Checkout error:', error);
                         toast({
-                          title: "Checkout failed",
-                          description: "Unable to initiate checkout. Please try again.",
-                          variant: "destructive",
+                          title: 'Checkout failed',
+                          description: 'Unable to initiate checkout. Please try again.',
+                          variant: 'destructive',
                         });
                       }
                     }}
@@ -894,7 +873,6 @@ const Sidebar = React.memo(function Sidebar({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-
           </div>
         </div>
       </div>

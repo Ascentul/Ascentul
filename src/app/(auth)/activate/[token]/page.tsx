@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useSignUp } from '@clerk/nextjs';
 import { useMutation, useQuery } from 'convex/react';
-import { api } from '../../../../../convex/_generated/api';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+
+import { api } from '../../../../../convex/_generated/api';
 
 interface PageProps {
   params: { token: string };
@@ -198,7 +200,6 @@ export default function ActivateAccountPage({ params }: PageProps) {
             router.push('/dashboard');
         }
       }, 1500);
-
     } catch (err: any) {
       console.error('Activation error:', err);
 
@@ -208,7 +209,9 @@ export default function ActivateAccountPage({ params }: PageProps) {
         if (clerkError?.code === 'form_identifier_exists') {
           setError('This email is already registered. Please sign in instead.');
         } else if (clerkError?.code === 'form_password_pwned') {
-          setError('This password has been found in data breaches. Please choose a more secure password.');
+          setError(
+            'This password has been found in data breaches. Please choose a more secure password.',
+          );
         } else if (clerkError?.code === 'form_param_format_invalid') {
           setError('Invalid email format. Please check your email address.');
         } else {
@@ -241,29 +244,20 @@ export default function ActivateAccountPage({ params }: PageProps) {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-red-600">Invalid or Expired Link</CardTitle>
-            <CardDescription>
-              This activation link is invalid or has expired.
-            </CardDescription>
+            <CardDescription>This activation link is invalid or has expired.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert>
               <AlertDescription>
-                Activation links expire after 24 hours. Please contact your administrator to receive a new activation email.
+                Activation links expire after 24 hours. Please contact your administrator to receive
+                a new activation email.
               </AlertDescription>
             </Alert>
             <div className="flex flex-col gap-2">
-              <Button
-                onClick={() => router.push('/sign-in')}
-                variant="default"
-                className="w-full"
-              >
+              <Button onClick={() => router.push('/sign-in')} variant="default" className="w-full">
                 Go to Sign In
               </Button>
-              <Button
-                onClick={() => router.push('/contact')}
-                variant="outline"
-                className="w-full"
-              >
+              <Button onClick={() => router.push('/contact')} variant="outline" className="w-full">
                 Contact Support
               </Button>
             </div>
@@ -278,9 +272,7 @@ export default function ActivateAccountPage({ params }: PageProps) {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Set Your Password</CardTitle>
-          <CardDescription>
-            Create a password to activate your account
-          </CardDescription>
+          <CardDescription>Create a password to activate your account</CardDescription>
         </CardHeader>
         <CardContent>
           {!needsVerification && (
@@ -288,13 +280,7 @@ export default function ActivateAccountPage({ params }: PageProps) {
               {/* Email (readonly) */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  disabled
-                  className="bg-gray-50"
-                />
+                <Input id="email" type="email" value={email} disabled className="bg-gray-50" />
               </div>
 
               {/* Password */}
@@ -317,16 +303,10 @@ export default function ActivateAccountPage({ params }: PageProps) {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     tabIndex={-1}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500">
-                  Must be at least 8 characters long
-                </p>
+                <p className="text-xs text-gray-500">Must be at least 8 characters long</p>
               </div>
 
               {/* Confirm Password */}
@@ -366,11 +346,7 @@ export default function ActivateAccountPage({ params }: PageProps) {
               )}
 
               {/* Submit Button */}
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -383,7 +359,12 @@ export default function ActivateAccountPage({ params }: PageProps) {
 
               {/* Help Text */}
               <div className="text-center text-sm text-gray-500">
-                <p>Having trouble? <a href="/contact" className="text-primary hover:underline">Contact support</a></p>
+                <p>
+                  Having trouble?{' '}
+                  <a href="/contact" className="text-primary hover:underline">
+                    Contact support
+                  </a>
+                </p>
               </div>
             </form>
           )}
@@ -392,7 +373,8 @@ export default function ActivateAccountPage({ params }: PageProps) {
             <form onSubmit={handleVerifyEmail} className="space-y-4">
               <Alert>
                 <AlertDescription>
-                  We sent a 6-digit verification code to <strong>{email}</strong>. Please check your email and enter the code below.
+                  We sent a 6-digit verification code to <strong>{email}</strong>. Please check your
+                  email and enter the code below.
                 </AlertDescription>
               </Alert>
 
@@ -402,7 +384,9 @@ export default function ActivateAccountPage({ params }: PageProps) {
                   id="verificationCode"
                   type="text"
                   value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={(e) =>
+                    setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                  }
                   placeholder="Enter 6-digit code"
                   required
                   disabled={isLoading}
@@ -424,7 +408,11 @@ export default function ActivateAccountPage({ params }: PageProps) {
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full" disabled={isLoading || verificationCode.length !== 6}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || verificationCode.length !== 6}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

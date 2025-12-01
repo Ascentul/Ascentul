@@ -1,0 +1,7 @@
+node_modules/
+.next/
+convex/_generated/
+archive/
+*.md
+pnpm-lock.yaml
+package-lock.json

@@ -8,19 +8,20 @@
  * - Assignment management (admin only)
  */
 
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import { v } from 'convex/values';
+
+import type { Id } from './_generated/dataModel';
+import { mutation, query } from './_generated/server';
 import {
-  getCurrentUser,
-  requireTenant,
-  requireAdvisorRole,
-  getOwnedStudentIds,
   assertCanAccessStudent,
   createAuditLog,
-} from "./advisor_auth";
-import { requireSuperAdmin } from "./lib/roles";
+  getCurrentUser,
+  getOwnedStudentIds,
+  requireAdvisorRole,
+  requireTenant,
+} from './advisor_auth';
 import { ACTIVE_STAGES } from './advisor_constants';
+import { requireSuperAdmin } from './lib/roles';
 
 /**
  * Get advisor's caseload (all students they own)
@@ -32,7 +33,7 @@ export const getMyCaseload = query({
       v.object({
         major: v.optional(v.string()),
         graduationYear: v.optional(v.string()),
-        departmentId: v.optional(v.id("departments")),
+        departmentId: v.optional(v.id('departments')),
         atRisk: v.optional(v.boolean()),
       }),
     ),
@@ -50,14 +51,10 @@ export const getMyCaseload = query({
     }
 
     // Fetch full student records
-    const students = await Promise.all(
-      studentIds.map((id) => ctx.db.get(id)),
-    );
+    const students = await Promise.all(studentIds.map((id) => ctx.db.get(id)));
 
     // Filter out nulls and apply filters
-    let filteredStudents = students.filter(
-      (s): s is NonNullable<typeof s> => s !== null,
-    );
+    let filteredStudents = students.filter((s): s is NonNullable<typeof s> => s !== null);
 
     // Calculate time thresholds once at the top for reuse
     const now = Date.now();
@@ -67,9 +64,7 @@ export const getMyCaseload = query({
       const filters = args.filters;
 
       if (filters.major) {
-        filteredStudents = filteredStudents.filter(
-          (s) => s.major === filters.major,
-        );
+        filteredStudents = filteredStudents.filter((s) => s.major === filters.major);
       }
 
       if (filters.graduationYear) {
@@ -79,9 +74,7 @@ export const getMyCaseload = query({
       }
 
       if (filters.departmentId) {
-        filteredStudents = filteredStudents.filter(
-          (s) => s.department_id === filters.departmentId,
-        );
+        filteredStudents = filteredStudents.filter((s) => s.department_id === filters.departmentId);
       }
 
       // At-risk filter (engagement-based): students with no activity in 60+ days
@@ -95,7 +88,7 @@ export const getMyCaseload = query({
       }
     }
 
-    const studentIdSet = new Set<Id<"users">>(filteredStudents.map((s) => s._id));
+    const studentIdSet = new Set<Id<'users'>>(filteredStudents.map((s) => s._id));
 
     // Aggregate follow-ups once (from unified follow_ups table)
     // Use collect() instead of take() to ensure accurate counts for all students
@@ -103,36 +96,30 @@ export const getMyCaseload = query({
       .query('follow_ups')
       .withIndex('by_university', (q) => q.eq('university_id', universityId))
       .filter((q) =>
-        q.and(
-          q.eq(q.field('status'), 'open'),
-          q.eq(q.field('created_by_id'), sessionCtx.userId),
-        ),
+        q.and(q.eq(q.field('status'), 'open'), q.eq(q.field('created_by_id'), sessionCtx.userId)),
       )
       .collect();
 
     const followUpsByStudent = new Map<Id<'users'>, number>();
     for (const followUp of openFollowUps) {
       if (!studentIdSet.has(followUp.user_id)) continue;
-      followUpsByStudent.set(
-        followUp.user_id,
-        (followUpsByStudent.get(followUp.user_id) || 0) + 1,
-      );
+      followUpsByStudent.set(followUp.user_id, (followUpsByStudent.get(followUp.user_id) || 0) + 1);
     }
 
     // Aggregate upcoming sessions once
     // Use collect() instead of take() to ensure accurate next session for all students
     const upcomingSessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
-      .filter((q) => q.gte(q.field("start_at"), now))
-      .order("asc")
+      .filter((q) => q.gte(q.field('start_at'), now))
+      .order('asc')
       .collect();
 
     const nextSessionByStudent = new Map<
-      Id<"users">,
-      { id: Id<"advisor_sessions">; scheduledAt?: number; title?: string | null }
+      Id<'users'>,
+      { id: Id<'advisor_sessions'>; scheduledAt?: number; title?: string | null }
     >();
 
     for (const session of upcomingSessions) {
@@ -148,34 +135,28 @@ export const getMyCaseload = query({
     // Aggregate application stats once
     // Use collect() instead of take() to ensure accurate counts for all students
     const advisorApplications = await ctx.db
-      .query("applications")
-      .withIndex("by_advisor", (q) =>
-        q.eq("assigned_advisor_id", sessionCtx.userId),
-      )
+      .query('applications')
+      .withIndex('by_advisor', (q) => q.eq('assigned_advisor_id', sessionCtx.userId))
       .collect();
 
     const activeStages = new Set(ACTIVE_STAGES);
-    const appStatsByStudent = new Map<
-      Id<"users">,
-      { active: number; hasOffer: boolean }
-    >();
+    const appStatsByStudent = new Map<Id<'users'>, { active: number; hasOffer: boolean }>();
 
     for (const application of advisorApplications) {
       if (!studentIdSet.has(application.user_id)) continue;
-      const stats =
-        appStatsByStudent.get(application.user_id) ?? {
-          active: 0,
-          hasOffer: false,
-        };
+      const stats = appStatsByStudent.get(application.user_id) ?? {
+        active: 0,
+        hasOffer: false,
+      };
       if (application.stage && activeStages.has(application.stage)) {
         stats.active += 1;
       }
       // Check for offers using stage with status fallback during migration
       // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
       if (
-        application.stage === "Offer" ||
-        application.stage === "Accepted" ||
-        (!application.stage && application.status === "offer")
+        application.stage === 'Offer' ||
+        application.stage === 'Accepted' ||
+        (!application.stage && application.status === 'offer')
       ) {
         stats.hasOffer = true;
       }
@@ -217,90 +198,78 @@ export const getMyCaseload = query({
 export const getStudentProfile = query({
   args: {
     clerkId: v.string(),
-    studentId: v.id("users"),
+    studentId: v.id('users'),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
     requireAdvisorRole(sessionCtx);
 
     // Check ownership/access
-    const student = await assertCanAccessStudent(
-      ctx,
-      sessionCtx,
-      args.studentId,
-    );
+    const student = await assertCanAccessStudent(ctx, sessionCtx, args.studentId);
 
     const universityId = requireTenant(sessionCtx);
 
     // Fetch all related data in parallel
     // Use collect() for single-student queries to avoid silently truncating data
-    const [
-      goals,
-      applications,
-      resumes,
-      coverLetters,
-      projects,
-      sessions,
-      followUps,
-      reviews,
-    ] = await Promise.all([
-      // Goals
-      ctx.db
-        .query("goals")
-        .withIndex("by_user", (q) => q.eq("user_id", args.studentId))
-        .collect(),
+    const [goals, applications, resumes, coverLetters, projects, sessions, followUps, reviews] =
+      await Promise.all([
+        // Goals
+        ctx.db
+          .query('goals')
+          .withIndex('by_user', (q) => q.eq('user_id', args.studentId))
+          .collect(),
 
-      // Applications
-      ctx.db
-        .query("applications")
-        .withIndex("by_user", (q) => q.eq("user_id", args.studentId))
-        .collect(),
+        // Applications
+        ctx.db
+          .query('applications')
+          .withIndex('by_user', (q) => q.eq('user_id', args.studentId))
+          .collect(),
 
-      // Resumes
-      ctx.db
-        .query("resumes")
-        .withIndex("by_user", (q) => q.eq("user_id", args.studentId))
-        .collect(),
+        // Resumes
+        ctx.db
+          .query('resumes')
+          .withIndex('by_user', (q) => q.eq('user_id', args.studentId))
+          .collect(),
 
-      // Cover Letters
-      ctx.db
-        .query("cover_letters")
-        .withIndex("by_user", (q) => q.eq("user_id", args.studentId))
-        .collect(),
+        // Cover Letters
+        ctx.db
+          .query('cover_letters')
+          .withIndex('by_user', (q) => q.eq('user_id', args.studentId))
+          .collect(),
 
-      // Projects
-      ctx.db
-        .query("projects")
-        .withIndex("by_user", (q) => q.eq("user_id", args.studentId))
-        .collect(),
+        // Projects
+        ctx.db
+          .query('projects')
+          .withIndex('by_user', (q) => q.eq('user_id', args.studentId))
+          .collect(),
 
-      // Advisor sessions (fetch once, slice for recent activity)
-      ctx.db
-        .query("advisor_sessions")
-        .withIndex("by_student", (q) =>
-          q.eq("student_id", args.studentId).eq("university_id", universityId),
-        )
-        .order("desc")
-        .collect(),
+        // Advisor sessions (fetch once, slice for recent activity)
+        ctx.db
+          .query('advisor_sessions')
+          .withIndex('by_student', (q) =>
+            q.eq('student_id', args.studentId).eq('university_id', universityId),
+          )
+          .order('desc')
+          .collect(),
 
-      // Follow-ups (from unified follow_ups table)
-      ctx.db
-        .query('follow_ups')
-        .withIndex('by_user_university', (q) =>
-          q.eq('user_id', args.studentId).eq('university_id', universityId),
-        )
-        .order('desc')
-        .collect(),
+        // Follow-ups (from unified follow_ups table)
+        ctx.db
+          .query('follow_ups')
+          .withIndex('by_user_university', (q) =>
+            q.eq('user_id', args.studentId).eq('university_id', universityId),
+          )
+          .order('desc')
+          .collect(),
 
-      // Reviews
-      ctx.db
-        .query("advisor_reviews")
-        .withIndex("by_student", (q) =>
-          q.eq("student_id", args.studentId).eq("university_id", universityId),
-        )
-        .order("desc")
-        .collect(),
-    ]);
+        // Reviews
+        ctx.db
+          .query('advisor_reviews')
+          .withIndex('by_student', (q) =>
+            q.eq('student_id', args.studentId).eq('university_id', universityId),
+          )
+          .order('desc')
+          .collect(),
+      ]);
 
     return {
       student,
@@ -323,7 +292,7 @@ export const getStudentProfile = query({
 export const addAdvisorNote = mutation({
   args: {
     clerkId: v.string(),
-    studentId: v.id("users"),
+    studentId: v.id('users'),
     note: v.string(),
   },
   handler: async (ctx, args) => {
@@ -332,7 +301,7 @@ export const addAdvisorNote = mutation({
 
     // Validate note is not empty
     if (!args.note.trim()) {
-      throw new Error("Note cannot be empty");
+      throw new Error('Note cannot be empty');
     }
 
     // Check ownership
@@ -341,18 +310,16 @@ export const addAdvisorNote = mutation({
 
     // Get current notes
     const student = await ctx.db.get(args.studentId);
-    if (!student) throw new Error("Student not found");
+    if (!student) throw new Error('Student not found');
 
-    const currentNotes = student.university_admin_notes || "";
+    const currentNotes = student.university_admin_notes || '';
     const timestamp = new Date().toISOString();
-    const userName = sessionCtx.email.includes("@")
-      ? sessionCtx.email.split("@")[0]
+    const userName = sessionCtx.email.includes('@')
+      ? sessionCtx.email.split('@')[0]
       : sessionCtx.email;
 
     const newNote = `[${timestamp}] ${userName}: ${args.note}`;
-    const updatedNotes = currentNotes
-      ? `${currentNotes}\n\n${newNote}`
-      : newNote;
+    const updatedNotes = currentNotes ? `${currentNotes}\n\n${newNote}` : newNote;
 
     // Update student record
     await ctx.db.patch(args.studentId, {
@@ -366,8 +333,8 @@ export const addAdvisorNote = mutation({
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId,
-      action: "advisor.note_added",
-      entityType: "student",
+      action: 'advisor.note_added',
+      entityType: 'student',
       entityId: args.studentId,
       studentId: args.studentId,
       newValue: {
@@ -387,21 +354,18 @@ export const addAdvisorNote = mutation({
 export const assignStudentToAdvisor = mutation({
   args: {
     clerkId: v.string(),
-    studentId: v.id("users"),
-    advisorId: v.id("users"),
+    studentId: v.id('users'),
+    advisorId: v.id('users'),
     isOwner: v.boolean(),
-    sharedType: v.optional(v.union(v.literal("reviewer"), v.literal("temp"))),
+    sharedType: v.optional(v.union(v.literal('reviewer'), v.literal('temp'))),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
 
     // Only university_admin and super_admin can assign students
-    if (
-      sessionCtx.role !== "university_admin" &&
-      sessionCtx.role !== "super_admin"
-    ) {
-      throw new Error("Unauthorized: Only admins can assign students");
+    if (sessionCtx.role !== 'university_admin' && sessionCtx.role !== 'super_admin') {
+      throw new Error('Unauthorized: Only admins can assign students');
     }
 
     const universityId = requireTenant(sessionCtx);
@@ -413,20 +377,15 @@ export const assignStudentToAdvisor = mutation({
     ]);
 
     if (!student || !advisor) {
-      throw new Error("Student or advisor not found");
+      throw new Error('Student or advisor not found');
     }
 
-    if (
-      student.university_id !== universityId ||
-      advisor.university_id !== universityId
-    ) {
-      throw new Error(
-        "Student and advisor must be in the same university as admin",
-      );
+    if (student.university_id !== universityId || advisor.university_id !== universityId) {
+      throw new Error('Student and advisor must be in the same university as admin');
     }
 
-    if (advisor.role !== "advisor") {
-      throw new Error("Assigned user must have advisor role");
+    if (advisor.role !== 'advisor') {
+      throw new Error('Assigned user must have advisor role');
     }
 
     // UNIQUENESS ENFORCEMENT: Exactly one owner per student
@@ -451,9 +410,9 @@ export const assignStudentToAdvisor = mutation({
     if (args.isOwner) {
       // Find ALL current owners (handles corrupted state with multiple owners)
       const existingOwners = await ctx.db
-        .query("student_advisors")
-        .withIndex("by_student_owner", (q) =>
-          q.eq("student_id", args.studentId).eq("is_owner", true),
+        .query('student_advisors')
+        .withIndex('by_student_owner', (q) =>
+          q.eq('student_id', args.studentId).eq('is_owner', true),
         )
         .collect();
 
@@ -474,15 +433,15 @@ export const assignStudentToAdvisor = mutation({
 
     // Check if assignment already exists
     const existing = await ctx.db
-      .query("student_advisors")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", args.advisorId).eq("university_id", universityId),
+      .query('student_advisors')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', args.advisorId).eq('university_id', universityId),
       )
-      .filter((q) => q.eq(q.field("student_id"), args.studentId))
+      .filter((q) => q.eq(q.field('student_id'), args.studentId))
       .unique();
 
     const now = Date.now();
-    let resultId: Id<"student_advisors">;
+    let resultId: Id<'student_advisors'>;
 
     if (existing) {
       // Update existing assignment
@@ -497,18 +456,18 @@ export const assignStudentToAdvisor = mutation({
       await createAuditLog(ctx, {
         actorId: sessionCtx.userId,
         universityId,
-        action: "student.advisor_updated",
-        entityType: "student_advisor",
+        action: 'student.advisor_updated',
+        entityType: 'student_advisor',
         entityId: existing._id,
         studentId: args.studentId,
         previousValue: { is_owner: existing.is_owner },
         newValue: { is_owner: args.isOwner },
-        });
+      });
 
       resultId = existing._id;
     } else {
       // Create new assignment
-      const assignmentId = await ctx.db.insert("student_advisors", {
+      const assignmentId = await ctx.db.insert('student_advisors', {
         student_id: args.studentId,
         advisor_id: args.advisorId,
         university_id: universityId,
@@ -525,12 +484,12 @@ export const assignStudentToAdvisor = mutation({
       await createAuditLog(ctx, {
         actorId: sessionCtx.userId,
         universityId,
-        action: "student.advisor_assigned",
-        entityType: "student_advisor",
+        action: 'student.advisor_assigned',
+        entityType: 'student_advisor',
         entityId: assignmentId,
         studentId: args.studentId,
         newValue: { advisor_id: args.advisorId, is_owner: args.isOwner },
-        });
+      });
 
       resultId = assignmentId;
     }
@@ -540,15 +499,15 @@ export const assignStudentToAdvisor = mutation({
     // created multiple owners or removed the owner unexpectedly
     if (args.isOwner) {
       const owners = await ctx.db
-        .query("student_advisors")
-        .withIndex("by_student_owner", (q) =>
-          q.eq("student_id", args.studentId).eq("is_owner", true),
+        .query('student_advisors')
+        .withIndex('by_student_owner', (q) =>
+          q.eq('student_id', args.studentId).eq('is_owner', true),
         )
         .collect();
 
       if (owners.length !== 1) {
         console.warn(
-          `[assignStudentToAdvisor] Consistency warning: Found ${owners.length} owners for student ${args.studentId}. Expected exactly 1.`
+          `[assignStudentToAdvisor] Consistency warning: Found ${owners.length} owners for student ${args.studentId}. Expected exactly 1.`,
         );
 
         if (owners.length > 1) {
@@ -561,20 +520,22 @@ export const assignStudentToAdvisor = mutation({
             await createAuditLog(ctx, {
               actorId: sessionCtx.userId,
               universityId,
-              action: "student.owner_auto_corrected",
-              entityType: "student_advisor",
+              action: 'student.owner_auto_corrected',
+              entityType: 'student_advisor',
               entityId: sortedByTime[i]._id,
               studentId: args.studentId,
               previousValue: { is_owner: true },
-              newValue: { is_owner: false, reason: "duplicate_owner_correction" },
-                    });
+              newValue: { is_owner: false, reason: 'duplicate_owner_correction' },
+            });
           }
-          console.log(`[assignStudentToAdvisor] Auto-corrected: kept ${sortedByTime[0].advisor_id} as owner`);
+          console.log(
+            `[assignStudentToAdvisor] Auto-corrected: kept ${sortedByTime[0].advisor_id} as owner`,
+          );
         } else if (owners.length === 0) {
           // Zero owners after isOwner=true operation indicates a bug - escalate
           throw new Error(
             `Consistency error: No owner found for student ${args.studentId} after owner assignment. ` +
-            `This indicates a database integrity issue that requires investigation.`
+              `This indicates a database integrity issue that requires investigation.`,
           );
         }
       }
@@ -590,54 +551,47 @@ export const assignStudentToAdvisor = mutation({
 export const removeStudentAdvisor = mutation({
   args: {
     clerkId: v.string(),
-    assignmentId: v.id("student_advisors"),
+    assignmentId: v.id('student_advisors'),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
 
     // Only university_admin and super_admin can remove assignments
-    if (
-      sessionCtx.role !== "university_admin" &&
-      sessionCtx.role !== "super_admin"
-    ) {
-      throw new Error("Unauthorized: Only admins can remove assignments");
+    if (sessionCtx.role !== 'university_admin' && sessionCtx.role !== 'super_admin') {
+      throw new Error('Unauthorized: Only admins can remove assignments');
     }
 
     const universityId = requireTenant(sessionCtx);
 
     const assignment = await ctx.db.get(args.assignmentId);
     if (!assignment) {
-      throw new Error("Assignment not found");
+      throw new Error('Assignment not found');
     }
 
     if (assignment.university_id !== universityId) {
-      throw new Error("Assignment not in your university");
+      throw new Error('Assignment not in your university');
     }
 
     // Prevent orphaning a student without any advisor
     // Get all other advisors for this student (excluding the one being removed)
     const otherAdvisors = await ctx.db
-      .query("student_advisors")
-      .withIndex("by_student", (q) =>
-        q.eq("student_id", assignment.student_id).eq("university_id", universityId),
+      .query('student_advisors')
+      .withIndex('by_student', (q) =>
+        q.eq('student_id', assignment.student_id).eq('university_id', universityId),
       )
-      .filter((q) => q.neq(q.field("_id"), args.assignmentId))
+      .filter((q) => q.neq(q.field('_id'), args.assignmentId))
       .collect();
 
     if (otherAdvisors.length === 0) {
-      throw new Error(
-        "Cannot remove the only advisor. Assign another advisor first.",
-      );
+      throw new Error('Cannot remove the only advisor. Assign another advisor first.');
     }
 
     // If removing an owner, ensure another owner exists
     if (assignment.is_owner) {
       const hasAnotherOwner = otherAdvisors.some((a) => a.is_owner);
       if (!hasAnotherOwner) {
-        throw new Error(
-          "Cannot remove the owner advisor. Assign another advisor as owner first.",
-        );
+        throw new Error('Cannot remove the owner advisor. Assign another advisor as owner first.');
       }
     }
 
@@ -645,8 +599,8 @@ export const removeStudentAdvisor = mutation({
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId,
-      action: "student.advisor_removed",
-      entityType: "student_advisor",
+      action: 'student.advisor_removed',
+      entityType: 'student_advisor',
       entityId: args.assignmentId,
       studentId: assignment.student_id,
       previousValue: {
@@ -681,8 +635,8 @@ export const findDuplicateOwners = query({
 
     // Get all ownership records
     const allOwnerRecords = await ctx.db
-      .query("student_advisors")
-      .filter((q) => q.eq(q.field("is_owner"), true))
+      .query('student_advisors')
+      .filter((q) => q.eq(q.field('is_owner'), true))
       .collect();
 
     // Group by student_id
@@ -721,7 +675,7 @@ export const findDuplicateOwners = query({
     }
 
     // Find students with NO owners
-    const allStudentAssignments = await ctx.db.query("student_advisors").collect();
+    const allStudentAssignments = await ctx.db.query('student_advisors').collect();
     const studentsWithAssignments = new Set(allStudentAssignments.map((a) => a.student_id));
     const studentsWithOwners = new Set(allOwnerRecords.map((r) => r.student_id));
 

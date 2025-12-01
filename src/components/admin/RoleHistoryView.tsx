@@ -1,13 +1,23 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import type { Doc } from 'convex/_generated/dataModel'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { api } from 'convex/_generated/api';
+import type { Doc } from 'convex/_generated/dataModel';
+import { useQuery } from 'convex/react';
+import { format } from 'date-fns';
+import { ArrowRight, Download, History, Loader2, Search, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -15,94 +25,88 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Loader2, Search, Download, ArrowRight, Shield, History } from 'lucide-react'
-import { format } from 'date-fns'
+} from '@/components/ui/table';
 
-type AuditLog = Doc<'audit_logs'>
+type AuditLog = Doc<'audit_logs'>;
 
 interface RoleHistoryViewProps {
-  clerkId: string
+  clerkId: string;
 }
 
 export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [timeFilter, setTimeFilter] = useState<'all' | '7d' | '30d' | '90d'>('30d')
+  const [searchQuery, setSearchQuery] = useState('');
+  const [timeFilter, setTimeFilter] = useState<'all' | '7d' | '30d' | '90d'>('30d');
 
   // Calculate start date based on time filter (used for client-side filtering)
   const startDate = React.useMemo(() => {
-    if (timeFilter === 'all') return 0
+    if (timeFilter === 'all') return 0;
 
-    const now = Date.now()
-    const days = timeFilter === '7d' ? 7 : timeFilter === '30d' ? 30 : 90
-    return now - (days * 24 * 60 * 60 * 1000)
-  }, [timeFilter])
+    const now = Date.now();
+    const days = timeFilter === '7d' ? 7 : timeFilter === '30d' ? 30 : 90;
+    return now - days * 24 * 60 * 60 * 1000;
+  }, [timeFilter]);
 
   // Fetch role change audit logs
-  const auditLogs = useQuery(
-    api.audit_logs.getAuditLogs,
-    {
-      clerkId,
-      limit: 100,
-    }
-  )
+  const auditLogs = useQuery(api.audit_logs.getAuditLogs, {
+    clerkId,
+    limit: 100,
+  });
 
   // Filter logs by search query, action type, and time
   const filteredLogs = React.useMemo(() => {
-    if (!auditLogs) return []
+    if (!auditLogs) return [];
 
     return auditLogs.filter((log: AuditLog) => {
       // Filter for role change actions only
-      if (log.action !== 'user_role_changed') return false
+      if (log.action !== 'user_role_changed') return false;
 
       // Time filter
-      const logTime = log.timestamp ?? log.created_at
-      if (logTime === undefined) return false // Skip logs without timestamps
-      if (startDate > 0 && logTime < startDate) return false
+      const logTime = log.timestamp ?? log.created_at;
+      if (logTime === undefined) return false; // Skip logs without timestamps
+      if (startDate > 0 && logTime < startDate) return false;
 
       // Search filter
       if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        const matchesTarget = log.target_name?.toLowerCase().includes(query) ||
-                             log.target_email?.toLowerCase().includes(query)
-        const matchesPerformer = log.performed_by_name?.toLowerCase().includes(query) ||
-                                log.performed_by_email?.toLowerCase().includes(query)
-        if (!matchesTarget && !matchesPerformer) return false
+        const query = searchQuery.toLowerCase();
+        const matchesTarget =
+          log.target_name?.toLowerCase().includes(query) ||
+          log.target_email?.toLowerCase().includes(query);
+        const matchesPerformer =
+          log.performed_by_name?.toLowerCase().includes(query) ||
+          log.performed_by_email?.toLowerCase().includes(query);
+        if (!matchesTarget && !matchesPerformer) return false;
       }
 
-      return true
-    })
-  }, [auditLogs, searchQuery, startDate])
+      return true;
+    });
+  }, [auditLogs, searchQuery, startDate]);
 
   // Statistics
   const stats = React.useMemo(() => {
-    if (!filteredLogs) return { total: 0, uniqueUsers: 0, uniquePerformers: 0 }
+    if (!filteredLogs) return { total: 0, uniqueUsers: 0, uniquePerformers: 0 };
 
-    const uniqueUsers = new Set(filteredLogs.map((log: AuditLog) => log.target_email).filter(Boolean))
-    const uniquePerformers = new Set(filteredLogs.map((log: AuditLog) => log.performed_by_email).filter(Boolean))
+    const uniqueUsers = new Set(
+      filteredLogs.map((log: AuditLog) => log.target_email).filter(Boolean),
+    );
+    const uniquePerformers = new Set(
+      filteredLogs.map((log: AuditLog) => log.performed_by_email).filter(Boolean),
+    );
 
     return {
       total: filteredLogs.length,
       uniqueUsers: uniqueUsers.size,
       uniquePerformers: uniquePerformers.size,
-    }
-  }, [filteredLogs])
+    };
+  }, [filteredLogs]);
 
   const exportToCSV = () => {
-    if (!filteredLogs || filteredLogs.length === 0) return
+    if (!filteredLogs || filteredLogs.length === 0) return;
 
-    const headers = ['Timestamp', 'User', 'Email', 'Old Role', 'New Role', 'Changed By', 'Reason']
+    const headers = ['Timestamp', 'User', 'Email', 'Old Role', 'New Role', 'Changed By', 'Reason'];
     const rows = filteredLogs.map((log: AuditLog) => {
       // Timestamp is guaranteed by filter on line 67, but use fallback for type safety
-      const logTime = log.timestamp ?? log.created_at
-      const metadata = log.metadata as { old_role?: string; new_role?: string } | undefined
+      const logTime = log.timestamp ?? log.created_at;
+      const metadata = log.metadata as { old_role?: string; new_role?: string } | undefined;
       return [
         logTime ? format(new Date(logTime), 'yyyy-MM-dd HH:mm:ss') : 'N/A',
         log.target_name || '',
@@ -111,27 +115,31 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
         metadata?.new_role || '',
         log.performed_by_name || '',
         log.reason || '',
-      ]
-    })
+      ];
+    });
 
     const csvContent = [
       headers.join(','),
-      ...rows.map((row) => row.map((cell) => {
-        // Escape quotes and handle newlines/carriage returns
-        const str = String(cell).replace(/"/g, '""').replace(/\r?\n/g, ' ')
-        return `"${str}"`
-      }).join(',')),
-    ].join('\n')
+      ...rows.map((row) =>
+        row
+          .map((cell) => {
+            // Escape quotes and handle newlines/carriage returns
+            const str = String(cell).replace(/"/g, '""').replace(/\r?\n/g, ' ');
+            return `"${str}"`;
+          })
+          .join(','),
+      ),
+    ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `role-history-${format(new Date(), 'yyyy-MM-dd')}.csv`
-    a.click()
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `role-history-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
     // Delay revocation to ensure download completes
-    setTimeout(() => URL.revokeObjectURL(url), 100)
-  }
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  };
 
   if (!auditLogs) {
     return (
@@ -141,7 +149,7 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
           <span className="ml-3 text-muted-foreground">Loading role history...</span>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -157,7 +165,12 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
               Audit trail of all role changes ({stats.total} changes)
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={exportToCSV} disabled={filteredLogs.length === 0}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToCSV}
+            disabled={filteredLogs.length === 0}
+          >
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
@@ -225,11 +238,13 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
                 </TableRow>
               ) : (
                 filteredLogs.map((log: AuditLog) => {
-                  const metadata = log.metadata as { old_role?: string; new_role?: string } | undefined
-                  const oldRole = metadata?.old_role
-                  const newRole = metadata?.new_role
+                  const metadata = log.metadata as
+                    | { old_role?: string; new_role?: string }
+                    | undefined;
+                  const oldRole = metadata?.old_role;
+                  const newRole = metadata?.new_role;
                   // Timestamp is guaranteed by filter on line 67
-                  const logTime = log.timestamp ?? log.created_at ?? 0
+                  const logTime = log.timestamp ?? log.created_at ?? 0;
 
                   return (
                     <TableRow key={log._id}>
@@ -269,11 +284,13 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
                       </TableCell>
                       <TableCell className="text-sm max-w-xs">
                         <div className="truncate" title={log.reason || 'No reason provided'}>
-                          {log.reason || <span className="text-muted-foreground italic">No reason provided</span>}
+                          {log.reason || (
+                            <span className="text-muted-foreground italic">No reason provided</span>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
-                  )
+                  );
                 })
               )}
             </TableBody>
@@ -283,10 +300,11 @@ export function RoleHistoryView({ clerkId }: RoleHistoryViewProps) {
         {/* Pagination info */}
         {auditLogs && auditLogs.length >= 100 && (
           <div className="text-sm text-muted-foreground text-center">
-            Showing the most recent 100 role changes for the selected time period. Export to CSV for complete history.
+            Showing the most recent 100 role changes for the selected time period. Export to CSV for
+            complete history.
           </div>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

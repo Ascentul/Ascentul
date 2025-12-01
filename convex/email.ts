@@ -3,11 +3,12 @@
  * Actions can call external services like Mailgun/SendGrid
  */
 
-"use node"
+'use node';
 
-import { action } from "./_generated/server"
-import { v } from "convex/values"
-import { sanitizeError } from "./lib/piiSafe"
+import { v } from 'convex/values';
+
+import { action } from './_generated/server';
+import { sanitizeError } from './lib/piiSafe';
 
 /**
  * Send activation email to newly created user with magic link
@@ -21,45 +22,44 @@ export const sendActivationEmail = action({
   },
   handler: async (ctx, args) => {
     // Import email module (only available in actions, not mutations)
-    const { sendActivationEmail: sendEmail } = await import("../src/lib/email")
+    const { sendActivationEmail: sendEmail } = await import('../src/lib/email');
 
-    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`
+    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`;
 
     try {
-      const result = await sendEmail(
-        args.email,
-        args.name,
-        activationUrl
-      )
+      const result = await sendEmail(args.email, args.name, activationUrl);
 
       return {
         success: true,
         messageId: result.id,
-        message: "Activation email sent successfully",
-      }
+        message: 'Activation email sent successfully',
+      };
     } catch (error) {
       // Sanitize error to avoid logging PII from email service response
-      console.error("Failed to send activation email:", sanitizeError(error))
+      console.error('Failed to send activation email:', sanitizeError(error));
 
       // In development or when email service is not configured,
       // don't fail the user creation - just log the error
-      const errorMessage = (error as Error).message
-      if (errorMessage.includes('No email service configured') ||
-          errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
-          errorMessage.includes('SENDGRID_API_KEY')) {
-        console.warn("Email service not configured - user created but activation email not sent")
+      const errorMessage = (error as Error).message;
+      if (
+        errorMessage.includes('No email service configured') ||
+        errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
+        errorMessage.includes('SENDGRID_API_KEY')
+      ) {
+        console.warn('Email service not configured - user created but activation email not sent');
         return {
           success: false,
           messageId: null,
-          message: "User created successfully, but activation email could not be sent (email service not configured)",
-        }
+          message:
+            'User created successfully, but activation email could not be sent (email service not configured)',
+        };
       }
 
       // For other errors, still throw
-      throw new Error("Failed to send activation email: " + errorMessage)
+      throw new Error('Failed to send activation email: ' + errorMessage);
     }
   },
-})
+});
 
 /**
  * Send support ticket response email
@@ -73,9 +73,9 @@ export const sendSupportTicketResponseEmail = action({
     ticketId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { sendSupportTicketResponseEmail: sendEmail } = await import("../src/lib/email")
+    const { sendSupportTicketResponseEmail: sendEmail } = await import('../src/lib/email');
 
-    const ticketUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/support/${args.ticketId}`
+    const ticketUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/support/${args.ticketId}`;
 
     try {
       const result = await sendEmail(
@@ -83,26 +83,26 @@ export const sendSupportTicketResponseEmail = action({
         args.name,
         args.ticketSubject,
         args.responseMessage,
-        ticketUrl
-      )
+        ticketUrl,
+      );
 
       return {
         success: true,
         messageId: result.id,
-        message: "Support ticket response email sent successfully",
-      }
+        message: 'Support ticket response email sent successfully',
+      };
     } catch (error) {
       // Sanitize error to avoid logging PII from email service response
-      console.error("Failed to send support ticket response email:", sanitizeError(error))
+      console.error('Failed to send support ticket response email:', sanitizeError(error));
       // Return failure but don't throw - email is non-critical
       return {
         success: false,
         messageId: null,
-        message: "Email service not configured: " + (error as Error).message,
-      }
+        message: 'Email service not configured: ' + (error as Error).message,
+      };
     }
   },
-})
+});
 
 /**
  * Send welcome email to self-registered user
@@ -113,22 +113,22 @@ export const sendWelcomeEmail = action({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const { sendWelcomeEmail: sendEmail } = await import("../src/lib/email")
+    const { sendWelcomeEmail: sendEmail } = await import('../src/lib/email');
 
     try {
-      const result = await sendEmail(args.email, args.name)
+      const result = await sendEmail(args.email, args.name);
 
       return {
         success: true,
         messageId: result.id,
-        message: "Welcome email sent successfully",
-      }
+        message: 'Welcome email sent successfully',
+      };
     } catch (error) {
-      console.error("Failed to send welcome email:", sanitizeError(error))
-      throw new Error("Failed to send welcome email. Please try again later.")
+      console.error('Failed to send welcome email:', sanitizeError(error));
+      throw new Error('Failed to send welcome email. Please try again later.');
     }
   },
-})
+});
 
 /**
  * Send password reset email
@@ -140,9 +140,9 @@ export const sendPasswordResetEmail = action({
     resetToken: v.string(),
   },
   handler: async (ctx, args) => {
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/reset-password/${args.resetToken}`
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/reset-password/${args.resetToken}`;
 
-    const subject = "Reset Your Ascentul Password"
+    const subject = 'Reset Your Ascentul Password';
     const text = `Hello ${args.name},
 
 We received a request to reset your password for your Ascentul account.
@@ -155,7 +155,7 @@ This link will expire in 1 hour.
 If you didn't request this password reset, you can safely ignore this email.
 
 Best regards,
-The Ascentul Team`
+The Ascentul Team`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
@@ -190,29 +190,29 @@ The Ascentul Team`
           <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
         </div>
       </div>
-    `
+    `;
 
     try {
-      const { sendEmail } = await import("../src/lib/email")
+      const { sendEmail } = await import('../src/lib/email');
       const result = await sendEmail({
         to: args.email,
         subject,
         text,
         html,
-      })
+      });
 
       return {
         success: true,
         messageId: result.id,
-        message: "Password reset email sent successfully",
-      }
+        message: 'Password reset email sent successfully',
+      };
     } catch (error) {
-      const sanitized = sanitizeError(error)
-      console.error("Failed to send password reset email:", sanitized)
-      throw new Error("Failed to send password reset email: " + sanitized.message)
+      const sanitized = sanitizeError(error);
+      console.error('Failed to send password reset email:', sanitized);
+      throw new Error('Failed to send password reset email: ' + sanitized.message);
     }
   },
-})
+});
 
 /**
  * Send university invitation email to student
@@ -225,33 +225,29 @@ export const sendUniversityStudentInvitationEmail = action({
     activationToken: v.string(),
   },
   handler: async (ctx, args) => {
-    const { sendUniversityInvitationEmail: sendEmail } = await import("../src/lib/email")
+    const { sendUniversityInvitationEmail: sendEmail } = await import('../src/lib/email');
 
-    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`
+    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`;
 
     try {
       // sendUniversityInvitationEmail expects (email, universityName, inviteLink)
-      const result = await sendEmail(
-        args.email,
-        args.universityName,
-        activationUrl
-      )
+      const result = await sendEmail(args.email, args.universityName, activationUrl);
 
       return {
         success: true,
         messageId: result.id,
-        message: "University student invitation email sent successfully",
-      }
+        message: 'University student invitation email sent successfully',
+      };
     } catch (error) {
-      console.error("Failed to send university student invitation email:", sanitizeError(error))
+      console.error('Failed to send university student invitation email:', sanitizeError(error));
       return {
         success: false,
         messageId: null,
-        message: "Email service not configured: " + (error as Error).message,
-      }
+        message: 'Email service not configured: ' + (error as Error).message,
+      };
     }
   },
-})
+});
 
 /**
  * Send university invitation email to advisor
@@ -264,36 +260,36 @@ export const sendUniversityAdvisorInvitationEmail = action({
     activationToken: v.string(),
   },
   handler: async (ctx, args) => {
-    const { sendUniversityAdvisorInvitationEmail: sendEmail } = await import("../src/lib/email")
+    const { sendUniversityAdvisorInvitationEmail: sendEmail } = await import('../src/lib/email');
 
-    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`
+    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`;
 
     try {
       // sendUniversityAdvisorInvitationEmail expects (email, firstName, universityAdminName, role, inviteLink)
-      const firstName = args.name.split(' ')[0] || args.name
+      const firstName = args.name.split(' ')[0] || args.name;
       const result = await sendEmail(
         args.email,
         firstName,
         'University Admin',
         'Advisor',
-        activationUrl
-      )
+        activationUrl,
+      );
 
       return {
         success: true,
         messageId: result.id,
-        message: "University advisor invitation email sent successfully",
-      }
+        message: 'University advisor invitation email sent successfully',
+      };
     } catch (error) {
-      console.error("Failed to send university advisor invitation email:", sanitizeError(error))
+      console.error('Failed to send university advisor invitation email:', sanitizeError(error));
       return {
         success: false,
         messageId: null,
-        message: "Email service not configured: " + (error as Error).message,
-      }
+        message: 'Email service not configured: ' + (error as Error).message,
+      };
     }
   },
-})
+});
 
 /**
  * Send university admin invitation email (from super admin)
@@ -306,35 +302,30 @@ export const sendUniversityAdminInvitationEmail = action({
     activationToken: v.string(),
   },
   handler: async (ctx, args) => {
-    const { sendSuperAdminUniversityInvitationEmail: sendEmail } = await import("../src/lib/email")
+    const { sendSuperAdminUniversityInvitationEmail: sendEmail } = await import('../src/lib/email');
 
-    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`
+    const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/activate/${args.activationToken}`;
 
     try {
       // sendSuperAdminUniversityInvitationEmail expects (email, firstName, universityName, inviteLink)
-      const firstName = args.name.split(' ')[0] || args.name
-      const result = await sendEmail(
-        args.email,
-        firstName,
-        args.universityName,
-        activationUrl
-      )
+      const firstName = args.name.split(' ')[0] || args.name;
+      const result = await sendEmail(args.email, firstName, args.universityName, activationUrl);
 
       return {
         success: true,
         messageId: result.id,
-        message: "University admin invitation email sent successfully",
-      }
+        message: 'University admin invitation email sent successfully',
+      };
     } catch (error) {
-      console.error("Failed to send university admin invitation email:", sanitizeError(error))
+      console.error('Failed to send university admin invitation email:', sanitizeError(error));
       return {
         success: false,
         messageId: null,
-        message: "Email service not configured: " + (error as Error).message,
-      }
+        message: 'Email service not configured: ' + (error as Error).message,
+      };
     }
   },
-})
+});
 
 /**
  * Send payment confirmation email to user after successful payment
@@ -347,46 +338,46 @@ export const sendPaymentConfirmationEmail = action({
     plan: v.string(),
   },
   handler: async (ctx, args) => {
-    const { sendPaymentConfirmationEmail: sendEmail } = await import("../src/lib/email")
+    const { sendPaymentConfirmationEmail: sendEmail } = await import('../src/lib/email');
 
     try {
-      const result = await sendEmail(
-        args.email,
-        args.name,
-        args.amount,
-        args.plan
-      )
+      const result = await sendEmail(args.email, args.name, args.amount, args.plan);
 
       return {
         success: true,
         messageId: result.id,
-        message: "Payment confirmation email sent successfully",
-      }
+        message: 'Payment confirmation email sent successfully',
+      };
     } catch (error) {
-      console.error("Failed to send payment confirmation email:", sanitizeError(error))
+      console.error('Failed to send payment confirmation email:', sanitizeError(error));
 
       // Email is non-critical, don't fail the payment process
-      const errorMessage = (error as Error).message
-      if (errorMessage.includes('No email service configured') ||
-          errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
-          errorMessage.includes('SENDGRID_API_KEY')) {
-        console.warn("Email service not configured - payment processed but confirmation email not sent")
+      const errorMessage = (error as Error).message;
+      if (
+        errorMessage.includes('No email service configured') ||
+        errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
+        errorMessage.includes('SENDGRID_API_KEY')
+      ) {
+        console.warn(
+          'Email service not configured - payment processed but confirmation email not sent',
+        );
         return {
           success: false,
           messageId: null,
-          message: "Payment confirmed, but confirmation email could not be sent (email service not configured)",
-        }
+          message:
+            'Payment confirmed, but confirmation email could not be sent (email service not configured)',
+        };
       }
 
       // Return failure but don't throw - email is non-critical
       return {
         success: false,
         messageId: null,
-        message: "Email service error: " + errorMessage,
-      }
+        message: 'Email service error: ' + errorMessage,
+      };
     }
   },
-})
+});
 
 /**
  * Send review completion notification to student
@@ -399,43 +390,43 @@ export const sendReviewCompletionEmail = action({
     reviewUrl: v.string(),
   },
   handler: async (ctx, args) => {
-    const { sendReviewCompletionEmail: sendEmail } = await import("../src/lib/email")
+    const { sendReviewCompletionEmail: sendEmail } = await import('../src/lib/email');
 
     try {
-      const result = await sendEmail(
-        args.email,
-        args.studentName,
-        args.reviewType,
-        args.reviewUrl
-      )
+      const result = await sendEmail(args.email, args.studentName, args.reviewType, args.reviewUrl);
 
       return {
         success: true,
         messageId: result.id,
-        message: "Review completion email sent successfully",
-      }
+        message: 'Review completion email sent successfully',
+      };
     } catch (error) {
-      console.error("Failed to send review completion email:", sanitizeError(error))
+      console.error('Failed to send review completion email:', sanitizeError(error));
 
       // Email is non-critical, don't fail the review completion process
-      const errorMessage = (error as Error).message
-      if (errorMessage.includes('No email service configured') ||
-          errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
-          errorMessage.includes('SENDGRID_API_KEY')) {
-        console.warn("Email service not configured - review completed but notification email not sent")
+      const errorMessage = (error as Error).message;
+      if (
+        errorMessage.includes('No email service configured') ||
+        errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
+        errorMessage.includes('SENDGRID_API_KEY')
+      ) {
+        console.warn(
+          'Email service not configured - review completed but notification email not sent',
+        );
         return {
           success: false,
           messageId: null,
-          message: "Review completed, but notification email could not be sent (email service not configured)",
-        }
+          message:
+            'Review completed, but notification email could not be sent (email service not configured)',
+        };
       }
 
       // Return failure but don't throw - email is non-critical
       return {
         success: false,
         messageId: null,
-        message: "Email service error: " + errorMessage,
-      }
+        message: 'Email service error: ' + errorMessage,
+      };
     }
   },
-})
+});

@@ -1,27 +1,28 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { api } from "./_generated/api";
-import { requireMembership } from "./lib/roles";
+import { v } from 'convex/values';
+
+import { api } from './_generated/api';
+import { mutation, query } from './_generated/server';
+import { requireMembership } from './lib/roles';
 
 // Get goals for a Clerk user
 export const getUserGoals = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     // Note: We don't require membership for read queries - users can always view their own goals
     // Membership is only used for write operations and tenant isolation
 
     // OPTIMIZED: Add limit to prevent bandwidth issues for power users
     const goals = await ctx.db
-      .query("goals")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .order("desc")
+      .query('goals')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
+      .order('desc')
       .take(200); // Limit to 200 most recent goals
 
     return goals;
@@ -29,12 +30,12 @@ export const getUserGoals = query({
 });
 
 const statusValidator = v.union(
-  v.literal("not_started"),
-  v.literal("in_progress"),
-  v.literal("active"),
-  v.literal("completed"),
-  v.literal("paused"),
-  v.literal("cancelled"),
+  v.literal('not_started'),
+  v.literal('in_progress'),
+  v.literal('active'),
+  v.literal('completed'),
+  v.literal('paused'),
+  v.literal('cancelled'),
 );
 
 const checklistItem = v.object({
@@ -57,18 +58,18 @@ export const createGoal = mutation({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     // Only require membership for university-affiliated students
     // Individual users can create goals without a membership
     let membership = null;
-    if (user.role === "student" && user.university_id) {
+    if (user.role === 'student' && user.university_id) {
       try {
-        membership = (await requireMembership(ctx, { role: "student" })).membership;
+        membership = (await requireMembership(ctx, { role: 'student' })).membership;
       } catch {
         // If membership check fails but user has university_id, continue without membership
         // This handles edge cases during onboarding or membership transitions
@@ -95,14 +96,14 @@ export const createGoal = mutation({
     // }
 
     const now = Date.now();
-    const id = await ctx.db.insert("goals", {
+    const id = await ctx.db.insert('goals', {
       user_id: user._id,
       university_id: membership?.university_id ?? user.university_id,
       title: args.title,
       description: args.description,
       category: args.category,
       target_date: args.target_date,
-      status: args.status ?? "not_started",
+      status: args.status ?? 'not_started',
       progress: args.progress ?? 0,
       checklist: args.checklist,
       created_at: now,
@@ -120,7 +121,7 @@ export const createGoal = mutation({
 export const updateGoal = mutation({
   args: {
     clerkId: v.string(),
-    goalId: v.id("goals"),
+    goalId: v.id('goals'),
     updates: v.object({
       title: v.optional(v.string()),
       description: v.optional(v.string()),
@@ -135,27 +136,26 @@ export const updateGoal = mutation({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     // Only require membership for university-affiliated students
     let membership = null;
-    if (user.role === "student" && user.university_id) {
+    if (user.role === 'student' && user.university_id) {
       try {
-        membership = (await requireMembership(ctx, { role: "student" })).membership;
+        membership = (await requireMembership(ctx, { role: 'student' })).membership;
       } catch {
         membership = null;
       }
     }
 
     const goal = await ctx.db.get(args.goalId);
-    if (!goal || goal.user_id !== user._id)
-      throw new Error("Goal not found or unauthorized");
+    if (!goal || goal.user_id !== user._id) throw new Error('Goal not found or unauthorized');
 
     if (goal.university_id && membership && goal.university_id !== membership.university_id) {
-      throw new Error("Unauthorized: Goal belongs to another university");
+      throw new Error('Unauthorized: Goal belongs to another university');
     }
 
     // Remove 'completed' field as it's not in the schema
@@ -163,15 +163,19 @@ export const updateGoal = mutation({
     const updates: any = { ...restUpdates, updated_at: Date.now() };
 
     // Set completed_at timestamp when status is changed to completed (if not already set)
-    if (args.updates.status === "completed" && goal.status !== "completed" && !args.updates.completed_at) {
+    if (
+      args.updates.status === 'completed' &&
+      goal.status !== 'completed' &&
+      !args.updates.completed_at
+    ) {
       updates.completed_at = Date.now();
     }
 
     // Clear completed_at if status is changed from completed to something else (if not explicitly set)
     if (
-      goal.status === "completed" &&
+      goal.status === 'completed' &&
       args.updates.status &&
-      args.updates.status !== "completed" &&
+      args.updates.status !== 'completed' &&
       args.updates.completed_at === undefined
     ) {
       updates.completed_at = undefined;
@@ -184,30 +188,29 @@ export const updateGoal = mutation({
 
 // Delete goal
 export const deleteGoal = mutation({
-  args: { clerkId: v.string(), goalId: v.id("goals") },
+  args: { clerkId: v.string(), goalId: v.id('goals') },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     // Only require membership for university-affiliated students
     let membership = null;
-    if (user.role === "student" && user.university_id) {
+    if (user.role === 'student' && user.university_id) {
       try {
-        membership = (await requireMembership(ctx, { role: "student" })).membership;
+        membership = (await requireMembership(ctx, { role: 'student' })).membership;
       } catch {
         membership = null;
       }
     }
 
     const goal = await ctx.db.get(args.goalId);
-    if (!goal || goal.user_id !== user._id)
-      throw new Error("Goal not found or unauthorized");
+    if (!goal || goal.user_id !== user._id) throw new Error('Goal not found or unauthorized');
 
     if (goal.university_id && membership && goal.university_id !== membership.university_id) {
-      throw new Error("Unauthorized: Goal belongs to another university");
+      throw new Error('Unauthorized: Goal belongs to another university');
     }
 
     await ctx.db.delete(args.goalId);

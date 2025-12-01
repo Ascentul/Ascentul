@@ -1,31 +1,32 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
-import { useQuery } from 'convex/react';
 import { api } from 'convex/_generated/api';
 import type { Id } from 'convex/_generated/dataModel';
-import { AdvisorGate } from '@/components/advisor/AdvisorGate';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { SessionEditor } from '@/components/advisor/sessions/SessionEditor';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useQuery } from 'convex/react';
+import { format } from 'date-fns';
 import {
   ArrowLeft,
   Calendar,
   Clock,
-  User,
-  MapPin,
-  Video,
   Eye,
   EyeOff,
   Loader2,
+  MapPin,
+  User,
+  Video,
 } from 'lucide-react';
-import { format } from 'date-fns';
 import Link from 'next/link';
-import { isValidHttpUrl } from '@/lib/utils';
+import { useParams, useRouter } from 'next/navigation';
+
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
+import { SessionEditor } from '@/components/advisor/sessions/SessionEditor';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { isValidConvexId } from '@/lib/convex-ids';
+import { isValidHttpUrl } from '@/lib/utils';
 
 // Session type labels
 const SESSION_TYPE_LABELS: Record<string, string> = {
@@ -59,13 +60,13 @@ export default function SessionDetailPage() {
     api.advisor_sessions.getSessionById,
     clerkUser?.id && sessionId && isValidSessionId
       ? { sessionId: sessionId as Id<'advisor_sessions'> }
-      : 'skip'
+      : 'skip',
   );
 
   // Fetch student info
   const caseload = useQuery(
     api.advisor_students.getMyCaseload,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
   );
 
   // Find student in caseload
@@ -110,8 +111,6 @@ export default function SessionDetailPage() {
       </ErrorBoundary>
     );
   }
-
-
 
   const sessionDate = session.scheduled_at ?? session.start_at ?? null;
 
@@ -187,9 +186,7 @@ export default function SessionDetailPage() {
                         <p className="text-sm text-muted-foreground">{student.email}</p>
                       )}
                       <Button variant="outline" size="sm" asChild className="w-full mt-2">
-                        <Link href={`/advisor/students/${student._id}`}>
-                          View Profile
-                        </Link>
+                        <Link href={`/advisor/students/${student._id}`}>View Profile</Link>
                       </Button>
                     </div>
                   ) : (

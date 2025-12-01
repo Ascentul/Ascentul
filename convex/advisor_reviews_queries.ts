@@ -7,14 +7,15 @@
  * - Filter reviews by status/type
  */
 
-import { query, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
+
 import { Id } from './_generated/dataModel';
+import { query, QueryCtx } from './_generated/server';
 import {
   getCurrentUser,
+  getOwnedStudentIds,
   requireAdvisorRole,
   requireTenant,
-  getOwnedStudentIds,
 } from './advisor_auth';
 
 /**
@@ -43,13 +44,13 @@ type CoverLetterContent = {
  */
 async function getAssetDetails(
   ctx: QueryCtx,
-  assetType: "resume" | "cover_letter",
-  resumeId: Id<"resumes"> | undefined,
-  coverLetterId: Id<"cover_letters"> | undefined,
-  includeContent: boolean = false
+  assetType: 'resume' | 'cover_letter',
+  resumeId: Id<'resumes'> | undefined,
+  coverLetterId: Id<'cover_letters'> | undefined,
+  includeContent: boolean = false,
 ): Promise<{
   name: string;
-  id: Id<"resumes"> | Id<"cover_letters"> | null;
+  id: Id<'resumes'> | Id<'cover_letters'> | null;
   content: ResumeContent | CoverLetterContent | null;
 }> {
   if (assetType === 'resume' && resumeId) {
@@ -90,7 +91,9 @@ async function getAssetDetails(
     }
     console.warn(`Cover letter ${coverLetterId} not found for asset_type=${assetType}`);
   } else {
-    console.warn(`Asset not found: type=${assetType}, resumeId=${resumeId}, coverLetterId=${coverLetterId}`);
+    console.warn(
+      `Asset not found: type=${assetType}, resumeId=${resumeId}, coverLetterId=${coverLetterId}`,
+    );
   }
 
   return { name: 'Unknown', id: null, content: null };
@@ -104,15 +107,13 @@ export const getReviews = query({
     clerkId: v.string(),
     status: v.optional(
       v.union(
-        v.literal("waiting"),
-        v.literal("in_review"),
-        v.literal("needs_edits"),
-        v.literal("approved")
-      )
+        v.literal('waiting'),
+        v.literal('in_review'),
+        v.literal('needs_edits'),
+        v.literal('approved'),
+      ),
     ),
-    asset_type: v.optional(
-      v.union(v.literal("resume"), v.literal("cover_letter"))
-    ),
+    asset_type: v.optional(v.union(v.literal('resume'), v.literal('cover_letter'))),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -128,9 +129,9 @@ export const getReviews = query({
       // (no compound index for both fields)
       const statusFilter = args.status;
       reviews = await ctx.db
-        .query("advisor_reviews")
-        .withIndex("by_status", (q) =>
-          q.eq("status", statusFilter).eq("university_id", universityId)
+        .query('advisor_reviews')
+        .withIndex('by_status', (q) =>
+          q.eq('status', statusFilter).eq('university_id', universityId),
         )
         .collect();
       reviews = reviews.filter((r) => r.asset_type === args.asset_type);
@@ -138,32 +139,30 @@ export const getReviews = query({
       // Status filter only: use by_status index
       const statusFilter = args.status;
       reviews = await ctx.db
-        .query("advisor_reviews")
-        .withIndex("by_status", (q) =>
-          q.eq("status", statusFilter).eq("university_id", universityId)
+        .query('advisor_reviews')
+        .withIndex('by_status', (q) =>
+          q.eq('status', statusFilter).eq('university_id', universityId),
         )
         .collect();
     } else if (args.asset_type) {
       // Asset type filter only: use by_asset_type index
       const assetTypeFilter = args.asset_type;
       reviews = await ctx.db
-        .query("advisor_reviews")
-        .withIndex("by_asset_type", (q) =>
-          q.eq("asset_type", assetTypeFilter).eq("university_id", universityId)
+        .query('advisor_reviews')
+        .withIndex('by_asset_type', (q) =>
+          q.eq('asset_type', assetTypeFilter).eq('university_id', universityId),
         )
         .collect();
     } else {
       // No filters: use by_university index
       reviews = await ctx.db
-        .query("advisor_reviews")
-        .withIndex("by_university", (q) => q.eq("university_id", universityId))
+        .query('advisor_reviews')
+        .withIndex('by_university', (q) => q.eq('university_id', universityId))
         .collect();
     }
 
     // Filter to advisor caseload and enrich with student data
-    const caseloadReviews = reviews.filter((review) =>
-      ownedStudentIds.has(review.student_id)
-    );
+    const caseloadReviews = reviews.filter((review) => ownedStudentIds.has(review.student_id));
 
     const enrichedReviews = await Promise.all(
       caseloadReviews.map(async (review) => {
@@ -178,7 +177,7 @@ export const getReviews = query({
           review.asset_type,
           review.resume_id,
           review.cover_letter_id,
-          false // Don't include full content in list view
+          false, // Don't include full content in list view
         );
 
         return {
@@ -210,7 +209,7 @@ export const getReviews = query({
 export const getReviewById = query({
   args: {
     clerkId: v.string(),
-    review_id: v.id("advisor_reviews"),
+    review_id: v.id('advisor_reviews'),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -219,19 +218,19 @@ export const getReviewById = query({
 
     const review = await ctx.db.get(args.review_id);
     if (!review) {
-      throw new Error("Review not found");
+      throw new Error('Review not found');
     }
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new Error("Unauthorized: Review not in your university");
+      throw new Error('Unauthorized: Review not in your university');
     }
 
     // Verify advisor can access this student (caseload)
     const ownedStudentIds = await getOwnedStudentIds(ctx, sessionCtx);
     const ownedStudentIdSet = new Set(ownedStudentIds);
     if (!ownedStudentIdSet.has(review.student_id)) {
-      throw new Error("Unauthorized: Student not in your caseload");
+      throw new Error('Unauthorized: Student not in your caseload');
     }
 
     const student = await ctx.db.get(review.student_id);
@@ -241,7 +240,7 @@ export const getReviewById = query({
       review.asset_type,
       review.resume_id,
       review.cover_letter_id,
-      true // Include full content for detail view
+      true, // Include full content for detail view
     );
 
     // For detail views, asset must exist to provide complete review information
@@ -286,14 +285,12 @@ export const getReviewQueueStats = query({
     const ownedStudentIds = new Set(await getOwnedStudentIds(ctx, sessionCtx));
 
     const allReviews = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_university", (q) => q.eq("university_id", universityId))
+      .query('advisor_reviews')
+      .withIndex('by_university', (q) => q.eq('university_id', universityId))
       .collect();
 
     // Filter to advisor's caseload for consistent stats
-    const caseloadReviews = allReviews.filter((r) =>
-      ownedStudentIds.has(r.student_id)
-    );
+    const caseloadReviews = allReviews.filter((r) => ownedStudentIds.has(r.student_id));
 
     // Single-pass statistics calculation for better performance
     // Urgent threshold: reviews waiting more than 3 days
@@ -301,21 +298,29 @@ export const getReviewQueueStats = query({
 
     const stats = caseloadReviews.reduce(
       (acc, r) => {
-        if (r.status === "waiting") {
+        if (r.status === 'waiting') {
           acc.waiting++;
           // Check if waiting review is urgent (submitted > 3 days ago)
           if (r.created_at < urgentThreshold) {
             acc.urgent++;
           }
         }
-        if (r.status === "in_review") acc.inReview++;
-        if (r.status === "needs_edits") acc.needsEdits++;
-        if (r.status === "approved") acc.approved++;
-        if (r.asset_type === "resume") acc.resumes++;
-        if (r.asset_type === "cover_letter") acc.coverLetters++;
+        if (r.status === 'in_review') acc.inReview++;
+        if (r.status === 'needs_edits') acc.needsEdits++;
+        if (r.status === 'approved') acc.approved++;
+        if (r.asset_type === 'resume') acc.resumes++;
+        if (r.asset_type === 'cover_letter') acc.coverLetters++;
         return acc;
       },
-      { waiting: 0, inReview: 0, needsEdits: 0, approved: 0, resumes: 0, coverLetters: 0, urgent: 0 }
+      {
+        waiting: 0,
+        inReview: 0,
+        needsEdits: 0,
+        approved: 0,
+        resumes: 0,
+        coverLetters: 0,
+        urgent: 0,
+      },
     );
 
     return {

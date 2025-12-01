@@ -16,10 +16,32 @@
  * - Stage transition modal
  */
 
-import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { Id } from 'convex/_generated/dataModel';
+import { format, formatDistanceToNow } from 'date-fns';
+import {
+  Activity,
+  AlertCircle,
+  ArrowRight,
+  Building2,
+  Calendar,
+  Clock,
+  Edit2,
+  ExternalLink,
+  MoreVertical,
+  Plus,
+  RefreshCw,
+  User,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useMemo, useState } from 'react';
+
+import {
+  ApplicationStage,
+  EnrichedApplication,
+} from '@/app/(dashboard)/advisor/applications/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,26 +49,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Building2,
-  User,
-  Calendar,
-  ArrowRight,
-  ExternalLink,
-  RefreshCw,
-  AlertCircle,
-  Clock,
-  MoreVertical,
-  Edit2,
-  Activity,
-  Plus,
-} from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
-import Link from 'next/link';
-import { StageTransitionModal } from './StageTransitionModal';
-import type { Id } from 'convex/_generated/dataModel';
 import { cn, isValidHttpUrl } from '@/lib/utils';
-import { EnrichedApplication, ApplicationStage } from '@/app/(dashboard)/advisor/applications/types';
+
+import { StageTransitionModal } from './StageTransitionModal';
 
 // ============================================================================
 // Types
@@ -61,13 +66,13 @@ interface ApplicationKanbanEnhancedProps {
 }
 
 const STAGE_COLORS: Record<string, string> = {
-  Prospect: "bg-gray-100 border-gray-300",
-  Applied: "bg-blue-100 border-blue-300",
-  Interview: "bg-purple-100 border-purple-300",
-  Offer: "bg-green-100 border-green-300",
-  Accepted: "bg-emerald-100 border-emerald-300",
-  Rejected: "bg-red-100 border-red-300",
-  Withdrawn: "bg-orange-100 border-orange-300",
+  Prospect: 'bg-gray-100 border-gray-300',
+  Applied: 'bg-blue-100 border-blue-300',
+  Interview: 'bg-purple-100 border-purple-300',
+  Offer: 'bg-green-100 border-green-300',
+  Accepted: 'bg-emerald-100 border-emerald-300',
+  Rejected: 'bg-red-100 border-red-300',
+  Withdrawn: 'bg-orange-100 border-orange-300',
 };
 
 const STAGE_ORDER: ApplicationStage[] = [
@@ -187,9 +192,7 @@ export function ApplicationKanbanEnhanced({
       <div className="border rounded-lg p-12 text-center">
         <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <p className="text-muted-foreground mb-2">No applications yet</p>
-        <p className="text-sm text-muted-foreground">
-          Student applications will appear here
-        </p>
+        <p className="text-sm text-muted-foreground">Student applications will appear here</p>
       </div>
     );
   }
@@ -202,10 +205,7 @@ export function ApplicationKanbanEnhanced({
           const needActionCount = needActionCountsByStage[stage] || 0;
 
           return (
-            <div
-              key={stage}
-              className="flex-shrink-0 w-80 min-w-[320px]"
-            >
+            <div key={stage} className="flex-shrink-0 w-80 min-w-[320px]">
               <Card className={STAGE_COLORS[stage]}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center justify-between">
@@ -222,9 +222,7 @@ export function ApplicationKanbanEnhanced({
                         </Badge>
                       )}
                       {/* Total count */}
-                      <Badge variant="secondary">
-                        {stageApps.length}
-                      </Badge>
+                      <Badge variant="secondary">{stageApps.length}</Badge>
                     </div>
                   </CardTitle>
                 </CardHeader>
@@ -282,17 +280,12 @@ interface ApplicationCardProps {
   onEditNextStep?: (app: EnrichedApplication) => void;
 }
 
-function ApplicationCard({
-  app,
-  clerkId,
-  onStageChange,
-  onEditNextStep,
-}: ApplicationCardProps) {
+function ApplicationCard({ app, clerkId, onStageChange, onEditNextStep }: ApplicationCardProps) {
   return (
     <Card
       className={cn(
-        "hover:shadow-md transition-all",
-        app.needsAction && "border-orange-400 bg-orange-50/50 ring-1 ring-orange-200"
+        'hover:shadow-md transition-all',
+        app.needsAction && 'border-orange-400 bg-orange-50/50 ring-1 ring-orange-200',
       )}
     >
       <CardContent className="p-4 space-y-3">
@@ -302,31 +295,30 @@ function ApplicationCard({
             <Badge
               variant="destructive"
               className={cn(
-                "gap-1 font-semibold",
-                app.isOverdue
-                  ? "bg-red-500 hover:bg-red-600"
-                  : "bg-orange-500 hover:bg-orange-600"
+                'gap-1 font-semibold',
+                app.isOverdue ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600',
               )}
             >
               <AlertCircle className="h-3 w-3" aria-hidden="true" />
-              {app.isOverdue ? "Overdue" : app.isDueSoon ? "Due Soon" : "Needs Action"}
+              {app.isOverdue ? 'Overdue' : app.isDueSoon ? 'Due Soon' : 'Needs Action'}
             </Badge>
           ) : (
             <div />
           )}
           {/* Last Activity */}
           <div className="flex items-center gap-1 text-muted-foreground">
-            <Activity className={cn(
-              "h-3 w-3",
-              app.isStale ? "text-gray-400" : "text-muted-foreground"
-            )} aria-hidden="true" />
-            <span className={cn(
-              app.isStale && "font-medium text-gray-500"
-            )}>
-              {app.daysSinceUpdate == null ? "-" :
-               app.daysSinceUpdate === 0 ? "Today" :
-               app.daysSinceUpdate === 1 ? "1d" :
-               `${app.daysSinceUpdate}d`}
+            <Activity
+              className={cn('h-3 w-3', app.isStale ? 'text-gray-400' : 'text-muted-foreground')}
+              aria-hidden="true"
+            />
+            <span className={cn(app.isStale && 'font-medium text-gray-500')}>
+              {app.daysSinceUpdate == null
+                ? '-'
+                : app.daysSinceUpdate === 0
+                  ? 'Today'
+                  : app.daysSinceUpdate === 1
+                    ? '1d'
+                    : `${app.daysSinceUpdate}d`}
             </span>
           </div>
         </div>
@@ -334,14 +326,13 @@ function ApplicationCard({
         {/* Company & Position */}
         <div>
           <div className="flex items-start gap-2 mb-1">
-            <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <Building2
+              className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0"
+              aria-hidden="true"
+            />
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-sm truncate">
-                {app.company_name}
-              </h4>
-              <p className="text-xs text-muted-foreground truncate">
-                {app.position_title}
-              </p>
+              <h4 className="font-semibold text-sm truncate">{app.company_name}</h4>
+              <p className="text-xs text-muted-foreground truncate">{app.position_title}</p>
             </div>
             {/* Quick Actions Menu */}
             <DropdownMenu>
@@ -369,11 +360,7 @@ function ApplicationCard({
                 </DropdownMenuItem>
                 {app.application_url && isValidHttpUrl(app.application_url) && (
                   <DropdownMenuItem asChild>
-                    <a
-                      href={app.application_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
+                    <a href={app.application_url} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-4 w-4 mr-2" aria-hidden="true" />
                       Open Application
                     </a>
@@ -387,9 +374,7 @@ function ApplicationCard({
         {/* Student */}
         <div className="flex items-center gap-2 text-xs">
           <User className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
-          <span className="text-muted-foreground truncate">
-            {app.student_name}
-          </span>
+          <span className="text-muted-foreground truncate">{app.student_name}</span>
           {app.student_graduation_year && (
             <span className="text-muted-foreground">
               '{String(app.student_graduation_year).slice(-2)}
@@ -401,7 +386,7 @@ function ApplicationCard({
         {app.applied_date && !isNaN(new Date(app.applied_date).getTime()) && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" aria-hidden="true" />
-            Applied {format(new Date(app.applied_date), "MMM d")}
+            Applied {format(new Date(app.applied_date), 'MMM d')}
           </div>
         )}
 
@@ -409,12 +394,12 @@ function ApplicationCard({
         {app.next_step ? (
           <div
             className={cn(
-              "text-xs p-2 rounded-md border",
+              'text-xs p-2 rounded-md border',
               app.isOverdue
-                ? "bg-red-50 border-red-200 text-red-800"
+                ? 'bg-red-50 border-red-200 text-red-800'
                 : app.isDueSoon
-                ? "bg-orange-50 border-orange-200 text-orange-800"
-                : "bg-blue-50 border-blue-200 text-blue-800"
+                  ? 'bg-orange-50 border-orange-200 text-orange-800'
+                  : 'bg-blue-50 border-blue-200 text-blue-800',
             )}
           >
             <div className="flex items-center gap-1 mb-1">
@@ -425,8 +410,8 @@ function ApplicationCard({
             {app.next_step_date && !isNaN(new Date(app.next_step_date).getTime()) && (
               <div className="flex items-center gap-1 mt-1 font-medium">
                 <Clock className="h-3 w-3" aria-hidden="true" />
-                {format(new Date(app.next_step_date), "MMM d")}
-                {app.isOverdue && " (Overdue)"}
+                {format(new Date(app.next_step_date), 'MMM d')}
+                {app.isOverdue && ' (Overdue)'}
                 {!app.isOverdue && (
                   <span className="text-muted-foreground font-normal">
                     ({formatDistanceToNow(new Date(app.next_step_date), { addSuffix: true })})
@@ -450,20 +435,13 @@ function ApplicationCard({
         {/* Actions */}
         <div className="flex flex-col gap-2 pt-2 border-t">
           <div className="flex gap-2">
-            <Link
-              href={`/advisor/students/${app.user_id}`}
-              className="flex-1"
-            >
+            <Link href={`/advisor/students/${app.user_id}`} className="flex-1">
               <Button variant="outline" size="sm" className="w-full text-xs">
                 View Student
               </Button>
             </Link>
             {app.application_url && isValidHttpUrl(app.application_url) && (
-              <a
-                href={app.application_url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={app.application_url} target="_blank" rel="noopener noreferrer">
                 <Button variant="ghost" size="sm" className="px-2">
                   <ExternalLink className="h-4 w-4" />
                   <span className="sr-only">Open application URL</span>

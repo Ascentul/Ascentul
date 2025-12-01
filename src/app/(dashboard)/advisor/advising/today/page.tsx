@@ -14,35 +14,29 @@
  * - Two-column layout: Schedule (left) | Panels (right)
  */
 
-import { AdvisorGate } from '@/components/advisor/AdvisorGate';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { useUser } from '@clerk/nextjs';
-import { useQuery, useMutation } from 'convex/react';
 import { api } from 'convex/_generated/api';
-import {
-  Calendar,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Plus,
-} from 'lucide-react';
-import { format } from 'date-fns';
-import Link from 'next/link';
-import { useState, useRef } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import type { Id } from 'convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
+import { format } from 'date-fns';
+import { AlertCircle, Calendar, CheckCircle2, Clock, Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useRef, useState } from 'react';
 
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
 // New components
 import {
-  MetricCard,
-  EnhancedSessionCard,
-  FollowUpPanel,
   ComingUpPanel,
   DocumentationPanel,
+  EnhancedSessionCard,
+  FollowUpPanel,
+  MetricCard,
   SnoozeDialog,
 } from '@/components/advisor/today';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdvisorTodayPage() {
   const { user } = useUser();
@@ -55,7 +49,7 @@ export default function AdvisorTodayPage() {
 
   // State for snooze dialog
   const [snoozeDialogOpen, setSnoozeDialogOpen] = useState(false);
-  const [snoozeFollowUpId, setSnoozeFollowUpId] = useState<Id<"follow_ups"> | null>(null);
+  const [snoozeFollowUpId, setSnoozeFollowUpId] = useState<Id<'follow_ups'> | null>(null);
   const [snoozeFollowUpTitle, setSnoozeFollowUpTitle] = useState<string | undefined>(undefined);
 
   // Refs for scroll targets
@@ -68,7 +62,7 @@ export default function AdvisorTodayPage() {
   // Use V2 query for enhanced data
   const todayData = useQuery(
     api.advisor_today.getTodayOverviewV2,
-    clerkId ? { clerkId, timezoneOffset } : 'skip'
+    clerkId ? { clerkId, timezoneOffset } : 'skip',
   );
 
   const updateFollowup = useMutation(api.followups.updateFollowup);
@@ -101,7 +95,7 @@ export default function AdvisorTodayPage() {
   };
 
   // Follow-up actions
-  const handleCompleteFollowUp = async (followUpId: Id<"follow_ups">) => {
+  const handleCompleteFollowUp = async (followUpId: Id<'follow_ups'>) => {
     if (!clerkId) return;
 
     try {
@@ -116,14 +110,14 @@ export default function AdvisorTodayPage() {
     }
   };
 
-  const handleSnoozeFollowUp = (followUpId: Id<"follow_ups">, title?: string) => {
+  const handleSnoozeFollowUp = (followUpId: Id<'follow_ups'>, title?: string) => {
     // Title is passed directly from the caller to avoid accessing followUps before definition
     setSnoozeFollowUpId(followUpId);
     setSnoozeFollowUpTitle(title);
     setSnoozeDialogOpen(true);
   };
 
-  const handleSnoozeConfirm = async (followUpId: Id<"follow_ups">, newDate: number) => {
+  const handleSnoozeConfirm = async (followUpId: Id<'follow_ups'>, newDate: number) => {
     if (!clerkId) return;
 
     try {
@@ -140,11 +134,11 @@ export default function AdvisorTodayPage() {
   };
 
   // Session quick actions
-  const handleAddNote = (sessionId: Id<"advisor_sessions">) => {
+  const handleAddNote = (sessionId: Id<'advisor_sessions'>) => {
     router.push(`/advisor/advising/sessions/${sessionId}?edit=notes`);
   };
 
-  const handleAddFollowUp = (studentId: Id<"users">) => {
+  const handleAddFollowUp = (studentId: Id<'users'>) => {
     router.push(`/advisor/students/${studentId}?action=add-followup`);
   };
 
@@ -169,9 +163,7 @@ export default function AdvisorTodayPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Today</h1>
-            <p className="text-muted-foreground mt-1">
-              {format(new Date(), 'EEEE, MMMM d, yyyy')}
-            </p>
+            <p className="text-muted-foreground mt-1">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
           </div>
           <div className="flex gap-2">
             <Link href="/advisor/advising/sessions/new">
@@ -246,9 +238,7 @@ export default function AdvisorTodayPage() {
                 ) : !todayData?.sessions || todayData.sessions.length === 0 ? (
                   <div className="border rounded-lg p-12 text-center">
                     <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-4">
-                      No sessions scheduled for today
-                    </p>
+                    <p className="text-muted-foreground mb-4">No sessions scheduled for today</p>
                     <Link href="/advisor/advising/sessions/new">
                       <Button variant="outline" size="sm">
                         <Plus className="h-4 w-4 mr-2" />
@@ -287,10 +277,7 @@ export default function AdvisorTodayPage() {
             </div>
 
             {/* Coming Up Panel */}
-            <ComingUpPanel
-              days={todayData?.comingUp ?? []}
-              isLoading={isLoading}
-            />
+            <ComingUpPanel days={todayData?.comingUp ?? []} isLoading={isLoading} />
 
             {/* Documentation Panel */}
             <DocumentationPanel

@@ -7,7 +7,7 @@
  * - Server Actions
  */
 
-import { auth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server';
 
 /**
  * Check if the current user has premium access
@@ -29,11 +29,11 @@ import { auth } from '@clerk/nextjs/server'
  * ```
  */
 export async function checkPremiumAccess(): Promise<boolean> {
-  const { has } = await auth()
+  const { has } = await auth();
 
   // Check if user has the premium plan
   // Note: This plan includes both monthly and annual billing options
-  return has({ plan: 'premium_monthly' })
+  return has({ plan: 'premium_monthly' });
 }
 
 /**
@@ -48,8 +48,8 @@ export async function checkPremiumAccess(): Promise<boolean> {
  * ```
  */
 export async function checkPlan(planSlug: string): Promise<boolean> {
-  const { has } = await auth()
-  return has({ plan: planSlug })
+  const { has } = await auth();
+  return has({ plan: planSlug });
 }
 
 /**
@@ -64,6 +64,6 @@ export async function checkPlan(planSlug: string): Promise<boolean> {
  * ```
  */
 export async function checkFeature(featureName: string): Promise<boolean> {
-  const { has } = await auth()
-  return has({ feature: featureName })
+  const { has } = await auth();
+  return has({ feature: featureName });
 }

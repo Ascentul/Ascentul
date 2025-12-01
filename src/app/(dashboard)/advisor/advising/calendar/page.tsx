@@ -1,31 +1,26 @@
-"use client";
+'use client';
 
-import { useState, useMemo } from "react";
-import { AdvisorGate } from "@/components/advisor/AdvisorGate";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarView } from "@/components/advisor/calendar/CalendarView";
-import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
-import type { FunctionReturnType } from "convex/server";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
+import type { FunctionReturnType } from 'convex/server';
 import {
-  Calendar as CalendarIcon,
-  Plus,
-  TrendingUp,
-  Clock,
-  Users,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import {
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
   addMonths,
-  subMonths,
+  endOfMonth,
+  endOfWeek,
   format,
-} from "date-fns";
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from 'date-fns';
+import { Calendar as CalendarIcon, Clock, Plus, TrendingUp, Users } from 'lucide-react';
+import Link from 'next/link';
+import { useMemo, useState } from 'react';
+
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
+import { CalendarView } from '@/components/advisor/calendar/CalendarView';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function AdvisorCalendarPage() {
   const { user } = useUser();
@@ -49,17 +44,17 @@ export default function AdvisorCalendarPage() {
 
   const sessions = useQuery(
     api.advisor_calendar.getSessionsInRange,
-    clerkId ? { clerkId, startDate, endDate } : "skip"
+    clerkId ? { clerkId, startDate, endDate } : 'skip',
   );
 
   const followUps = useQuery(
     api.advisor_calendar.getFollowUpsInRange,
-    clerkId ? { clerkId, startDate, endDate } : "skip"
+    clerkId ? { clerkId, startDate, endDate } : 'skip',
   );
 
   const stats = useQuery(
     api.advisor_calendar.getCalendarStats,
-    clerkId ? { clerkId, startDate, endDate } : "skip"
+    clerkId ? { clerkId, startDate, endDate } : 'skip',
   );
 
   const isLoading = sessions === undefined || followUps === undefined || stats === undefined;
@@ -92,9 +87,7 @@ export default function AdvisorCalendarPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Calendar</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage your advising schedule
-            </p>
+            <p className="text-muted-foreground mt-1">Manage your advising schedule</p>
           </div>
           <div className="flex gap-2">
             <Link href="/advisor/advising/sessions/new">
@@ -123,15 +116,11 @@ export default function AdvisorCalendarPage() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Sessions
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
               <CalendarIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {stats?.totalSessions ?? "-"}
-              </div>
+              <div className="text-2xl font-bold">{stats?.totalSessions ?? '-'}</div>
             </CardContent>
           </Card>
 
@@ -142,36 +131,28 @@ export default function AdvisorCalendarPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats?.totalHours !== undefined ? `${stats.totalHours}h` : "-"}
+                {stats?.totalHours !== undefined ? `${stats.totalHours}h` : '-'}
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Unique Students
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Unique Students</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {stats?.uniqueStudents ?? "-"}
-              </div>
+              <div className="text-2xl font-bold">{stats?.uniqueStudents ?? '-'}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Upcoming Sessions
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Upcoming Sessions</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {stats?.upcomingSessions ?? "-"}
-              </div>
+              <div className="text-2xl font-bold">{stats?.upcomingSessions ?? '-'}</div>
             </CardContent>
           </Card>
         </div>

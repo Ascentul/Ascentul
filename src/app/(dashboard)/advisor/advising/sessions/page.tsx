@@ -1,25 +1,32 @@
 'use client';
 
-import { useState, useMemo } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useQuery, useMutation } from 'convex/react';
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
+import { endOfDay, format, startOfDay } from 'date-fns';
+import {
+  AlertCircle,
+  Calendar,
+  CheckCircle,
+  Clock,
+  ExternalLink,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  Search,
+  User,
+  Video,
+  XCircle,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useMemo, useState } from 'react';
+
 import { AdvisorGate } from '@/components/advisor/AdvisorGate';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +36,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -36,30 +59,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Calendar,
-  Clock,
-  Plus,
-  Search,
-  MoreHorizontal,
-  User,
-  Video,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Loader2,
-  ExternalLink,
-} from 'lucide-react';
-import { format, startOfDay, endOfDay } from 'date-fns';
-import Link from 'next/link';
 import { isValidHttpUrl } from '@/lib/utils';
 
 // Session type labels
@@ -125,14 +126,11 @@ export default function AdvisorSessionsPage() {
   });
 
   // Queries
-  const sessions = useQuery(
-    api.advisor_sessions.getSessions,
-    clerkUser?.id ? {} : 'skip'
-  );
+  const sessions = useQuery(api.advisor_sessions.getSessions, clerkUser?.id ? {} : 'skip');
 
   const caseload = useQuery(
     api.advisor_students.getMyCaseload,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
   );
 
   // Mutations
@@ -220,7 +218,13 @@ export default function AdvisorSessionsPage() {
 
   // Handle create session
   const handleCreateSession = async () => {
-    if (!clerkUser?.id || !newSession.student_id || !newSession.title || !newSession.date || !newSession.time) {
+    if (
+      !clerkUser?.id ||
+      !newSession.student_id ||
+      !newSession.title ||
+      !newSession.date ||
+      !newSession.time
+    ) {
       toast({
         title: 'Missing fields',
         description: 'Please fill in all required fields',
@@ -245,7 +249,13 @@ export default function AdvisorSessionsPage() {
         clerkId: clerkUser.id,
         student_id: newSession.student_id as Id<'users'>,
         title: newSession.title,
-        session_type: newSession.session_type as 'career_planning' | 'resume_review' | 'mock_interview' | 'application_strategy' | 'general_advising' | 'other',
+        session_type: newSession.session_type as
+          | 'career_planning'
+          | 'resume_review'
+          | 'mock_interview'
+          | 'application_strategy'
+          | 'general_advising'
+          | 'other',
         start_at: dateTime.getTime(),
         duration_minutes: parseInt(newSession.duration_minutes, 10),
         location: newSession.location || undefined,
@@ -289,9 +299,10 @@ export default function AdvisorSessionsPage() {
   const handleCancelSession = async (sessionId: Id<'advisor_sessions'>) => {
     if (!clerkUser?.id) return;
 
-    const confirmCancel = typeof window === 'undefined'
-      ? true
-      : window.confirm('Are you sure you want to cancel this session?');
+    const confirmCancel =
+      typeof window === 'undefined'
+        ? true
+        : window.confirm('Are you sure you want to cancel this session?');
     if (!confirmCancel) return;
 
     try {
@@ -319,9 +330,7 @@ export default function AdvisorSessionsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Sessions</h1>
-              <p className="text-muted-foreground mt-1">
-                Track and manage advising sessions
-              </p>
+              <p className="text-muted-foreground mt-1">Track and manage advising sessions</p>
             </div>
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -395,7 +404,10 @@ export default function AdvisorSessionsPage() {
                 </div>
 
                 {/* Date Range */}
-                <Select value={dateRange} onValueChange={(v) => setDateRange(v as 'all' | 'past' | 'upcoming' | 'today')}>
+                <Select
+                  value={dateRange}
+                  onValueChange={(v) => setDateRange(v as 'all' | 'past' | 'upcoming' | 'today')}
+                >
                   <SelectTrigger className="w-[150px]">
                     <SelectValue placeholder="Date range" />
                   </SelectTrigger>
@@ -503,7 +515,8 @@ export default function AdvisorSessionsPage() {
                           </TableCell>
                           <TableCell>
                             <span className="text-sm">
-                              {SESSION_TYPE_LABELS[session.session_type || ''] || session.session_type}
+                              {SESSION_TYPE_LABELS[session.session_type || ''] ||
+                                session.session_type}
                             </span>
                           </TableCell>
                           <TableCell>
@@ -577,9 +590,7 @@ export default function AdvisorSessionsPage() {
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>Schedule New Session</DialogTitle>
-              <DialogDescription>
-                Create a new advising session with a student
-              </DialogDescription>
+              <DialogDescription>Create a new advising session with a student</DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
