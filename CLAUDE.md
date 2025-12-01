@@ -50,6 +50,20 @@ Copy `.env.example` to `.env.local` and configure:
 
 ⚠️ **Do not add Supabase or Stripe Payment Link variables** - project uses Clerk Billing.
 
+### Secrets Management
+
+See **[docs/SECRETS_MANAGEMENT.md](docs/SECRETS_MANAGEMENT.md)** for:
+- Secret categories (High/Medium/Low sensitivity)
+- Rotation policies and schedules
+- Access control requirements
+- Storage locations (Vercel, Convex, local)
+
+**Key rules:**
+- Never commit secrets to git
+- Use `.env.example` as reference (contains no real values)
+- High sensitivity secrets rotate every 90 days
+- Rotate immediately on personnel changes or suspected compromise
+
 ## Clerk Billing Configuration
 
 The app uses **Clerk Billing** for premium subscriptions (Stripe integration managed by Clerk).
