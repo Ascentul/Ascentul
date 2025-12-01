@@ -48,6 +48,7 @@ const PERMISSIONS = {
   'platform.universities.manage': ['super_admin'],
   'platform.analytics.view': ['super_admin'],
   'platform.audit.view': ['super_admin'],
+  'platform.billing.manage': ['super_admin'],
 
   // University-level
   'university.settings.view': ['super_admin', 'university_admin'],
@@ -57,6 +58,7 @@ const PERMISSIONS = {
   'university.advisors.view': ['super_admin', 'university_admin'],
   'university.advisors.manage': ['super_admin', 'university_admin'],
   'university.analytics.view': ['super_admin', 'university_admin', 'advisor'],
+  'university.invitations.manage': ['super_admin', 'university_admin'],
   'university.data.export': ['super_admin', 'university_admin'],
 
   // Advisor-level
@@ -64,6 +66,8 @@ const PERMISSIONS = {
   'advisor.students.assign': ['super_admin', 'university_admin'],
   'advisor.notes.view': ['super_admin', 'university_admin', 'advisor'],
   'advisor.notes.create': ['super_admin', 'university_admin', 'advisor'],
+  'advisor.sessions.view': ['super_admin', 'university_admin', 'advisor'],
+  'advisor.sessions.manage': ['super_admin', 'university_admin', 'advisor'],
 
   // Student-level (self-service)
   'student.profile.view': ['super_admin', 'university_admin', 'advisor', 'student', 'individual'],
@@ -80,6 +84,21 @@ const PERMISSIONS = {
   'student.resumes.manage': ['student', 'individual'],
   'student.goals.view': ['super_admin', 'university_admin', 'advisor', 'student', 'individual'],
   'student.goals.manage': ['student', 'individual'],
+
+  // Support tickets
+  'support.tickets.view.all': ['super_admin', 'staff'],
+  'support.tickets.view.university': ['university_admin'],
+  'support.tickets.view.own': ['student', 'individual', 'user', 'advisor'],
+  'support.tickets.create': [
+    'super_admin',
+    'university_admin',
+    'advisor',
+    'student',
+    'individual',
+    'staff',
+    'user',
+  ],
+  'support.tickets.respond': ['super_admin', 'staff'],
 
   // Career tools
   'tools.ai_coach.use': [
@@ -100,9 +119,38 @@ const PERMISSIONS = {
     'staff',
     'user',
   ],
+  'tools.cover_letter.use': [
+    'super_admin',
+    'university_admin',
+    'advisor',
+    'student',
+    'individual',
+    'staff',
+    'user',
+  ],
+  'tools.career_paths.use': [
+    'super_admin',
+    'university_admin',
+    'advisor',
+    'student',
+    'individual',
+    'staff',
+    'user',
+  ],
 } as const;
 
 type Permission = keyof typeof PERMISSIONS;
+
+// Permission context constants (extracted to avoid duplication)
+const SELF_ONLY_PERMISSIONS: Permission[] = [
+  'student.profile.edit',
+  'student.applications.manage',
+  'student.resumes.manage',
+  'student.goals.manage',
+  'support.tickets.view.own',
+];
+
+const UNIVERSITY_SCOPED_PREFIXES = ['university.', 'advisor.'];
 
 interface PermissionGateProps {
   /** The permission to check */
@@ -164,14 +212,7 @@ export function PermissionGate({
   }
 
   // Check self-only permissions (user can only act on their own resources)
-  const selfOnlyPermissions: Permission[] = [
-    'student.profile.edit',
-    'student.applications.manage',
-    'student.resumes.manage',
-    'student.goals.manage',
-  ];
-
-  if (selfOnlyPermissions.includes(permission) && resourceOwnerId) {
+  if (SELF_ONLY_PERMISSIONS.includes(permission) && resourceOwnerId) {
     // Compare Clerk ID or Convex ID
     if (resourceOwnerId !== userId) {
       return <>{fallback}</>;
@@ -179,8 +220,7 @@ export function PermissionGate({
   }
 
   // Check university-scoped permissions
-  const universityScopedPrefixes = ['university.', 'advisor.'];
-  const isUniversityScoped = universityScopedPrefixes.some((prefix) =>
+  const isUniversityScoped = UNIVERSITY_SCOPED_PREFIXES.some((prefix) =>
     permission.startsWith(prefix),
   );
 
@@ -232,22 +272,14 @@ export function useHasPermission(
   }
 
   // Check ownership for self-only permissions
-  const selfOnlyPermissions: Permission[] = [
-    'student.profile.edit',
-    'student.applications.manage',
-    'student.resumes.manage',
-    'student.goals.manage',
-  ];
-
-  if (selfOnlyPermissions.includes(permission) && context?.resourceOwnerId) {
+  if (SELF_ONLY_PERMISSIONS.includes(permission) && context?.resourceOwnerId) {
     if (context.resourceOwnerId !== userId) {
       return { hasPermission: false, isLoaded };
     }
   }
 
   // Check university scope
-  const universityScopedPrefixes = ['university.', 'advisor.'];
-  const isUniversityScoped = universityScopedPrefixes.some((prefix) =>
+  const isUniversityScoped = UNIVERSITY_SCOPED_PREFIXES.some((prefix) =>
     permission.startsWith(prefix),
   );
 
