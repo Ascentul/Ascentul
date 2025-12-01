@@ -36,6 +36,15 @@ jest.mock('convex/nextjs', () => ({
   fetchMutation: (...args: unknown[]) => mockFetchMutation(...args),
 }));
 
+// Mock convex-server - the wrapper used by API routes
+jest.mock('@/lib/convex-server', () => ({
+  convexServer: {
+    query: (...args: unknown[]) => mockFetchQuery(...args),
+    mutation: (...args: unknown[]) => mockFetchMutation(...args),
+    action: jest.fn(),
+  },
+}));
+
 // Mock convex/_generated/api
 jest.mock(
   'convex/_generated/api',
@@ -148,7 +157,7 @@ describe('AI Coach API Routes', () => {
         expect(mockFetchQuery).toHaveBeenCalledWith(
           expect.any(Object),
           { clerkId: 'test-user-id' },
-          { token: 'mock-convex-token' },
+          'mock-convex-token',
         );
       });
 
@@ -202,7 +211,7 @@ describe('AI Coach API Routes', () => {
         expect(mockFetchMutation).toHaveBeenCalledWith(
           expect.any(Object),
           { clerkId: 'test-user-id', title: 'New Conversation' },
-          { token: 'mock-convex-token' },
+          'mock-convex-token',
         );
       });
 
