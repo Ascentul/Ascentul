@@ -83,7 +83,7 @@ export function CareerGoalsSummary() {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
       }}
-      className="mb-6 h-full"
+      className="h-full"
     >
       <Card
         className="h-full flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-0 shadow-sm"

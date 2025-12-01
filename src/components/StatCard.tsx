@@ -10,6 +10,8 @@ type StatCardVariant = 'interview' | 'applications' | 'followups' | 'goals'
 interface StatCardProps {
   label: string
   metric: ReactNode
+  /** Accessible text for metric when metric is a ReactNode (e.g., "5 applications") */
+  metricLabel?: string
   helper: string
   icon: ReactNode
   variant: StatCardVariant
@@ -53,6 +55,7 @@ const variantStyles: Record<StatCardVariant, {
 export default function StatCard({
   label,
   metric,
+  metricLabel,
   helper,
   icon,
   variant,
@@ -62,6 +65,10 @@ export default function StatCard({
 }: StatCardProps) {
   const styles = variantStyles[variant]
   const isClickable = !!href || !!onClick
+
+  // Build accessible label - prefer explicit metricLabel, fall back to string/number metric
+  const accessibleMetric = metricLabel
+    || (typeof metric === 'string' || typeof metric === 'number' ? String(metric) : '')
 
   const cardContent = (
     <>
@@ -108,7 +115,7 @@ export default function StatCard({
 
   if (href) {
     return (
-      <Link href={href} className={cardClasses} aria-label={`${label}: ${typeof metric === 'string' || typeof metric === 'number' ? metric : ''}`}>
+      <Link href={href} className={cardClasses} aria-label={`${label}: ${accessibleMetric}`}>
         {cardContent}
       </Link>
     )
@@ -120,7 +127,7 @@ export default function StatCard({
         type="button"
         onClick={onClick}
         className={cn(cardClasses, "text-left")}
-        aria-label={`${label}: ${typeof metric === 'string' || typeof metric === 'number' ? metric : ''}`}
+        aria-label={`${label}: ${accessibleMetric}`}
       >
         {cardContent}
       </button>

@@ -151,9 +151,12 @@ export default function DashboardPage() {
     }
   }
 
-  // Calculate nextInterviewDays from nextInterviewDetails
+  // Calculate nextInterviewDays from nextInterviewDetails (null if interview is in the past)
   const nextInterviewDays = dashboardData?.nextInterviewDetails?.date
-    ? Math.ceil((dashboardData.nextInterviewDetails.date - Date.now()) / (1000 * 60 * 60 * 24))
+    ? (() => {
+        const days = Math.ceil((dashboardData.nextInterviewDetails.date - Date.now()) / (1000 * 60 * 60 * 24))
+        return days >= 0 ? days : null
+      })()
     : null
 
   return (
@@ -198,24 +201,23 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
-          {/* Row 4: Goals Summary + Smart Recommendations (2-column grid) */}
+          {/* Row 4: Applications Journey */}
+          <motion.div variants={cardAnimation}>
+            <ApplicationsJourney />
+          </motion.div>
+
+          {/* Row 5: Goals Summary + Smart Recommendations (2-column grid) */}
           <motion.div
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch"
             variants={staggeredContainer}
           >
-            <motion.div variants={cardAnimation}>
+            <motion.div variants={cardAnimation} className="h-full">
               <CareerGoalsSummary />
             </motion.div>
 
-            <motion.div variants={cardAnimation} id="recommendations">
+            <motion.div variants={cardAnimation} id="recommendations" className="h-full">
               <TodaysRecommendations />
             </motion.div>
-          </motion.div>
-
-
-          {/* Row 5: Applications Journey */}
-          <motion.div variants={cardAnimation}>
-            <ApplicationsJourney />
           </motion.div>
 
           {/* Row 6: Career Timeline */}
