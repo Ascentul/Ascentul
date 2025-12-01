@@ -264,8 +264,19 @@ export const updateToolConfig = mutation({
     pass_threshold: v.optional(v.number()),
     rubric: v.optional(v.any()),
     updated_by: v.string(),
+    clerkId: v.string(),
   },
   handler: async (ctx, args) => {
+    // Authorization check - admin only
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
+      .unique();
+
+    if (!user || user.role !== 'super_admin') {
+      throw new Error('Unauthorized: Admin access required');
+    }
+
     const existing = await ctx.db
       .query('ai_evaluation_config')
       .withIndex('by_tool', (q) => q.eq('tool_id', args.tool_id))
@@ -306,14 +317,25 @@ export const getAllToolConfigs = query({
 
 /**
  * Delete old evaluations (for data retention)
- * Should be called by a scheduled job
+ * Should be called by a scheduled job or admin
  */
 export const deleteOldEvaluations = mutation({
   args: {
     days_to_keep: v.number(),
     limit: v.optional(v.number()),
+    clerkId: v.string(),
   },
   handler: async (ctx, args) => {
+    // Authorization check - admin only
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
+      .unique();
+
+    if (!user || user.role !== 'super_admin') {
+      throw new Error('Unauthorized: Admin access required');
+    }
+
     const cutoff = Date.now() - args.days_to_keep * 24 * 60 * 60 * 1000;
     const limit = args.limit ?? 1000;
 
