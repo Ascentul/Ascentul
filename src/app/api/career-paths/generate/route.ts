@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 import { evaluate } from '@/lib/ai-evaluation';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 import { checkPremiumAccess } from '@/lib/subscription-server';
 
 export const runtime = 'nodejs';
@@ -740,14 +741,44 @@ const buildGuidancePath = (profile: any, domain: DomainKey, targetRole: string):
 };
 
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'career-path',
+    httpMethod: 'POST',
+    httpPath: '/api/career-paths/generate',
+  });
+
+  const startTime = Date.now();
+  log.info('Career path generation request started', { event: 'request.start' });
+
   try {
     const authResult = await auth();
     const { userId } = authResult;
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) {
+      log.warn('User not authenticated', { event: 'auth.failed', errorCode: 'UNAUTHORIZED' });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     const token = await authResult.getToken({ template: 'convex' });
     if (!token) {
-      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
+      log.warn('Failed to obtain auth token', {
+        event: 'auth.token_failed',
+        errorCode: 'UNAUTHORIZED',
+      });
+      return NextResponse.json(
+        { error: 'Failed to obtain auth token' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Check free plan limit before generating (using Clerk Billing)
@@ -763,14 +794,25 @@ export async function POST(request: NextRequest) {
         );
 
         if (existingPaths && existingPaths.length >= 1) {
+          log.info('Free plan limit reached', {
+            event: 'billing.limit_reached',
+            clerkId: userId,
+            extra: { existingPathsCount: existingPaths.length },
+          });
           return NextResponse.json(
             { error: 'Free plan limit reached. Upgrade to Premium for unlimited career paths.' },
-            { status: 403 },
+            {
+              status: 403,
+              headers: { 'x-correlation-id': correlationId },
+            },
           );
         }
       }
     } catch (limitCheckError) {
-      console.warn('Career path limit check failed, proceeding with generation', limitCheckError);
+      log.warn('Career path limit check failed, proceeding with generation', {
+        event: 'billing.limit_check_failed',
+        errorCode: toErrorCode(limitCheckError),
+      });
     }
 
     const body = await request.json().catch(() => ({}));
@@ -852,10 +894,16 @@ export async function POST(request: NextRequest) {
                 { token },
               );
             } catch (convexError) {
-              console.error('CareerPath profile persistence failed', convexError);
+              log.error('CareerPath profile persistence failed', toErrorCode(convexError), {
+                event: 'career-path.save_failed',
+                clerkId: userId,
+              });
               return NextResponse.json(
                 { error: 'Failed to save career path. Please try again.' },
-                { status: 500 },
+                {
+                  status: 500,
+                  headers: { 'x-correlation-id': correlationId },
+                },
               );
             }
 
@@ -869,23 +917,43 @@ export async function POST(request: NextRequest) {
               });
 
               if (!evalResult.passed) {
-                console.warn('[AI Evaluation] Career paths generation failed evaluation:', {
-                  score: evalResult.overall_score,
-                  risk_flags: evalResult.risk_flags,
-                  explanation: evalResult.explanation,
+                log.warn('Career paths generation failed evaluation', {
+                  event: 'ai.evaluation_failed',
+                  clerkId: userId,
+                  extra: {
+                    score: evalResult.overall_score,
+                    risk_flags: evalResult.risk_flags,
+                  },
                 });
               }
             } catch (evalError) {
               // Don't block on evaluation failures
-              console.error('[AI Evaluation] Error evaluating career paths:', evalError);
+              log.warn('Error evaluating career paths', {
+                event: 'ai.evaluation_error',
+                errorCode: toErrorCode(evalError),
+              });
             }
 
-            return NextResponse.json({
-              paths: sanitizedPaths,
-              usedModel: model,
-              usedFallback: false,
-              promptVariant: variant,
+            const durationMs = Date.now() - startTime;
+            log.info('Career path generated successfully', {
+              event: 'career-path.generated',
+              clerkId: userId,
+              httpStatus: 200,
+              durationMs,
+              extra: { usedModel: model, promptVariant: variant, pathCount: sanitizedPaths.length },
             });
+
+            return NextResponse.json(
+              {
+                paths: sanitizedPaths,
+                usedModel: model,
+                usedFallback: false,
+                promptVariant: variant,
+              },
+              {
+                headers: { 'x-correlation-id': correlationId },
+              },
+            );
           } catch (error) {
             continue;
           }
@@ -893,9 +961,10 @@ export async function POST(request: NextRequest) {
       }
 
       if (lastFailure) {
-        console.warn('Profile path fallback triggered after quality failures', {
-          userId,
-          reason: lastFailure,
+        log.warn('Profile path fallback triggered after quality failures', {
+          event: 'career-path.quality_fallback',
+          clerkId: userId,
+          extra: { reason: lastFailure },
         });
       }
     }
@@ -915,20 +984,50 @@ export async function POST(request: NextRequest) {
         { token },
       );
     } catch (persistenceError) {
-      console.error('CareerPath guidance persistence failed', persistenceError);
+      log.error('CareerPath guidance persistence failed', toErrorCode(persistenceError), {
+        event: 'career-path.guidance_save_failed',
+        clerkId: userId,
+      });
       return NextResponse.json(
         { error: 'Failed to save guidance path. Please try again.' },
-        { status: 500 },
+        {
+          status: 500,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
-    return NextResponse.json({
-      paths: [guidancePath],
-      usedFallback: true,
-      guidance: true,
+    const durationMs = Date.now() - startTime;
+    log.info('Career path guidance generated', {
+      event: 'career-path.guidance_generated',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
     });
-  } catch (error: any) {
-    console.error('POST /api/career-paths/generate error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        paths: [guidancePath],
+        usedFallback: true,
+        guidance: true,
+      },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
+  } catch (error: unknown) {
+    const durationMs = Date.now() - startTime;
+    log.error('Career path generation request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

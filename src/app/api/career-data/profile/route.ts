@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -91,8 +92,19 @@ function formatWorkHistory(workHistory: any[]): any[] {
 }
 
 export async function GET(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'career-path',
+    httpMethod: 'GET',
+    httpPath: '/api/career-data/profile',
+  });
+
+  const startTime = Date.now();
+  log.debug('Career data profile request started', { event: 'request.start' });
+
   try {
     const { userId, token } = await requireConvexToken();
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     let user: any = null;
     let projects: any[] = [];
@@ -100,15 +112,31 @@ export async function GET(request: NextRequest) {
     try {
       user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token);
     } catch (userError) {
-      console.error('Failed to fetch user profile:', {
-        message: userError instanceof Error ? userError.message : 'Unknown error',
+      log.error('Failed to fetch user profile', toErrorCode(userError), {
+        event: 'data.fetch_failed',
       });
-      return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 503 });
+      return NextResponse.json(
+        { error: 'Failed to fetch user profile' },
+        {
+          status: 503,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     if (!user) {
-      console.error('User not found in Convex for authenticated user');
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
+      log.warn('User not found in Convex', {
+        event: 'data.not_found',
+        errorCode: 'NOT_FOUND',
+        clerkId: userId,
+      });
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        {
+          status: 404,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     try {
@@ -118,8 +146,9 @@ export async function GET(request: NextRequest) {
         token,
       )) as any[];
     } catch (projectError) {
-      console.warn('Failed to fetch user projects:', {
-        message: projectError instanceof Error ? projectError.message : 'Unknown error',
+      log.warn('Failed to fetch user projects', {
+        event: 'data.fetch_failed',
+        errorCode: toErrorCode(projectError),
       });
       // projects are optional; continue with empty array
     }
@@ -149,9 +178,29 @@ export async function GET(request: NextRequest) {
       current_company: user?.current_company,
     };
 
-    return NextResponse.json(profile);
+    const durationMs = Date.now() - startTime;
+    log.debug('Career data profile request completed', {
+      event: 'request.success',
+      httpStatus: 200,
+      durationMs,
+    });
+
+    return NextResponse.json(profile, {
+      headers: { 'x-correlation-id': correlationId },
+    });
   } catch (error: any) {
-    console.error('GET /api/career-data/profile error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('Career data profile error', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

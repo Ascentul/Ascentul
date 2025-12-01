@@ -2,6 +2,8 @@ import { promises as fs } from 'fs';
 import { NextRequest } from 'next/server';
 import path from 'path';
 
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -40,15 +42,34 @@ function getContentType(filePath: string) {
   }
 }
 
-export async function GET(_req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+  const correlationId = getCorrelationIdFromRequest(req);
+  const log = createRequestLogger(correlationId, {
+    feature: 'file',
+    httpMethod: 'GET',
+    httpPath: '/api/files/[...path]',
+  });
+
   try {
     const { path: segments } = await ctx.params;
     if (!segments || segments.length < 2) {
-      return new Response(JSON.stringify({ error: 'Invalid path' }), { status: 400 });
+      log.warn('Invalid path', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return new Response(JSON.stringify({ error: 'Invalid path' }), {
+        status: 400,
+        headers: { 'x-correlation-id': correlationId },
+      });
     }
     const [root, ...rest] = segments;
     if (!ALLOWED_ROOTS.has(root)) {
-      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+      log.warn('Root not allowed', {
+        event: 'validation.failed',
+        errorCode: 'NOT_FOUND',
+        extra: { root },
+      });
+      return new Response(JSON.stringify({ error: 'Not found' }), {
+        status: 404,
+        headers: { 'x-correlation-id': correlationId },
+      });
     }
 
     const safeRelPath = path.join(root, ...rest);
@@ -57,7 +78,14 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ path: stri
     // Prevent path traversal outside uploads/
     const resolved = path.resolve(fullPath);
     if (!resolved.startsWith(path.resolve(uploadsRoot()))) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+      log.warn('Path traversal attempt blocked', {
+        event: 'security.path_traversal',
+        errorCode: 'FORBIDDEN',
+      });
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { 'x-correlation-id': correlationId },
+      });
     }
 
     const data = await fs.readFile(resolved);
@@ -66,13 +94,20 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ path: stri
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000, immutable',
+        'x-correlation-id': correlationId,
       },
     });
   } catch (err: any) {
     if (err && err.code === 'ENOENT') {
-      return new Response(JSON.stringify({ error: 'File not found' }), { status: 404 });
+      return new Response(JSON.stringify({ error: 'File not found' }), {
+        status: 404,
+        headers: { 'x-correlation-id': correlationId },
+      });
     }
-    console.error('File serve error:', err);
-    return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500 });
+    log.error('File serve error', toErrorCode(err), { event: 'request.error', httpStatus: 500 });
+    return new Response(JSON.stringify({ error: 'Internal error' }), {
+      status: 500,
+      headers: { 'x-correlation-id': correlationId },
+    });
   }
 }
