@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 import { evaluate } from '@/lib/ai-evaluation';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -72,22 +73,51 @@ IMPORTANT: Only recommend established, well-known certifications from major prov
     }
 
     return null;
-  } catch (error) {
-    console.error('Certification extraction failed:', error);
+  } catch {
+    // Error logged at the route handler level
     return null;
   }
 }
 
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'career-path',
+    httpMethod: 'POST',
+    httpPath: '/api/career-certifications',
+  });
+
+  const startTime = Date.now();
+  log.debug('Career certifications request started', { event: 'request.start' });
+
   try {
     const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) {
+      log.warn('User not authenticated', { event: 'auth.failed', errorCode: 'UNAUTHORIZED' });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     const body = await request.json().catch(() => ({}));
     const role = String(body?.role || '');
     const level = String(body?.level || '');
     const skills: Skill[] = Array.isArray(body?.skills) ? body.skills : [];
-    if (!role) return NextResponse.json({ error: 'role is required' }, { status: 400 });
+    if (!role) {
+      log.warn('Missing role', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'role is required' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
 
     // Extract skill names for context
     const skillNames = skills.map((s) => s.name);
@@ -105,18 +135,34 @@ export async function POST(request: NextRequest) {
         });
 
         if (!evalResult.passed) {
-          console.warn('[AI Evaluation] Career certifications failed evaluation:', {
-            score: evalResult.overall_score,
-            risk_flags: evalResult.risk_flags,
-            explanation: evalResult.explanation,
+          log.warn('Career certifications failed AI evaluation', {
+            event: 'ai.evaluation_failed',
+            clerkId: userId,
+            extra: {
+              score: evalResult.overall_score,
+              risk_flags: evalResult.risk_flags,
+            },
           });
         }
       } catch (evalError) {
         // Don't block on evaluation failures
-        console.error('[AI Evaluation] Error evaluating career certifications:', evalError);
+        log.warn('Error evaluating career certifications', {
+          event: 'ai.evaluation_error',
+          errorCode: toErrorCode(evalError),
+        });
       }
 
-      return NextResponse.json(aiResults);
+      const durationMs = Date.now() - startTime;
+      log.debug('Career certifications request completed', {
+        event: 'request.success',
+        clerkId: userId,
+        httpStatus: 200,
+        durationMs,
+      });
+
+      return NextResponse.json(aiResults, {
+        headers: { 'x-correlation-id': correlationId },
+      });
     }
 
     // Fallback mock data
@@ -152,9 +198,31 @@ export async function POST(request: NextRequest) {
         },
       ],
     };
-    return NextResponse.json(mock);
+
+    const durationMs = Date.now() - startTime;
+    log.debug('Career certifications fallback returned', {
+      event: 'request.success',
+      httpStatus: 200,
+      durationMs,
+      extra: { fallback: true },
+    });
+
+    return NextResponse.json(mock, {
+      headers: { 'x-correlation-id': correlationId },
+    });
   } catch (error: any) {
-    console.error('POST /api/career-certifications error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('Career certifications error', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

@@ -5,6 +5,7 @@ import OpenAI from 'openai';
 import { evaluate } from '@/lib/ai-evaluation';
 import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -225,12 +226,34 @@ const fallbackAnalysis = (
 };
 
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'cover-letter',
+    httpMethod: 'POST',
+    httpPath: '/api/cover-letters/analyze',
+  });
+
+  const startTime = Date.now();
+  log.info('Cover letter analysis request started', { event: 'request.start' });
+
   try {
     const { userId, token } = await requireConvexToken();
 
     if (!userId || !token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      log.warn('Unauthorized analysis request', {
+        event: 'auth.failed',
+        errorCode: 'UNAUTHORIZED',
+      });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
+
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     const { jobDescription, coverLetter, optimize, roleTitle, companyName } =
       (await request.json()) as {
@@ -242,11 +265,15 @@ export async function POST(request: NextRequest) {
       };
 
     if (!jobDescription || !coverLetter) {
+      log.warn('Missing required fields', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
       return NextResponse.json(
         {
           error: 'Job description and cover letter content are required',
         },
-        { status: 400 },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
@@ -254,7 +281,10 @@ export async function POST(request: NextRequest) {
     try {
       profile = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token);
     } catch (error) {
-      console.error('Failed to fetch career profile for analysis', error);
+      log.warn('Failed to fetch career profile for analysis', {
+        event: 'context.fetch.error',
+        errorCode: toErrorCode(error),
+      });
     }
 
     const profileSummary = buildProfileSummary(profile);
@@ -263,6 +293,8 @@ export async function POST(request: NextRequest) {
     let analysis: AnalysisResult | null = null;
 
     if (openai) {
+      log.info('Starting OpenAI analysis', { event: 'ai.request' });
+
       const contextHeader = [
         companyName ? `Company: ${companyName}` : null,
         roleTitle ? `Target Role: ${roleTitle}` : null,
@@ -328,6 +360,10 @@ ${optimize ? '- Include optimizedLetter (string) that rewrites the cover letter 
           }
 
           analysis = sanitized;
+          log.info('OpenAI analysis completed', {
+            event: 'ai.response',
+            extra: { alignmentScore: sanitized.alignmentScore },
+          });
 
           // Evaluate AI-generated analysis (non-blocking for now)
           try {
@@ -339,25 +375,37 @@ ${optimize ? '- Include optimizedLetter (string) that rewrites the cover letter 
             });
 
             if (!evalResult.passed) {
-              console.warn('[AI Evaluation] Cover letter analysis failed evaluation:', {
-                score: evalResult.overall_score,
-                risk_flags: evalResult.risk_flags,
-                explanation: evalResult.explanation,
+              log.warn('Cover letter analysis failed AI evaluation', {
+                event: 'ai.evaluation.failed',
+                extra: {
+                  score: evalResult.overall_score,
+                  riskFlagsCount: evalResult.risk_flags?.length ?? 0,
+                },
               });
             }
           } catch (evalError) {
             // Don't block on evaluation failures
-            console.error('[AI Evaluation] Error evaluating cover letter analysis:', evalError);
+            log.warn('Error evaluating cover letter analysis', {
+              event: 'ai.evaluation.error',
+              errorCode: toErrorCode(evalError),
+            });
           }
         } catch (parseError) {
-          console.warn('Failed to parse analysis JSON, returning structured fallback', parseError);
+          log.warn('Failed to parse analysis JSON, returning structured fallback', {
+            event: 'ai.parse.error',
+            errorCode: toErrorCode(parseError),
+          });
         }
       } catch (error) {
-        console.error('OpenAI analysis failed', error);
+        log.warn('OpenAI analysis failed', {
+          event: 'ai.error',
+          errorCode: toErrorCode(error),
+        });
       }
     }
 
     if (!analysis) {
+      log.info('Using fallback analysis', { event: 'ai.fallback' });
       analysis = fallbackAnalysis(profileName, {
         roleTitle,
         companyName,
@@ -371,9 +419,35 @@ ${optimize ? '- Include optimizedLetter (string) that rewrites the cover letter 
       delete analysis.optimizedLetter;
     }
 
-    return NextResponse.json({ analysis }, { status: 200 });
+    const durationMs = Date.now() - startTime;
+    log.info('Cover letter analysis request completed', {
+      event: 'request.success',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
+      extra: { alignmentScore: analysis.alignmentScore, optimize },
+    });
+
+    return NextResponse.json(
+      { analysis },
+      {
+        status: 200,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (error) {
-    console.error('Error analyzing cover letter:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('Cover letter analysis request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

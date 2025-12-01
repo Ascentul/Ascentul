@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
+
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'application',
+    httpMethod: 'POST',
+    httpPath: '/api/jobs/search',
+  });
+
+  const startTime = Date.now();
+  log.debug('Job search request started', { event: 'request.start' });
+
   try {
     const body = await request.json().catch(() => ({}));
     let { query, location, jobType, experienceLevel, page = 1, perPage = 20 } = body;
@@ -143,16 +155,38 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({
-      jobs,
-      total: Number(data.count ?? jobs.length),
-      page: Number(page),
-      perPage: Number(perPage),
-      totalPages: Math.max(1, Math.ceil(Number(data.count ?? jobs.length) / Number(perPage))),
-      query: { query, location, jobType, experienceLevel },
+    const durationMs = Date.now() - startTime;
+    log.debug('Job search completed', {
+      event: 'request.success',
+      httpStatus: 200,
+      durationMs,
+      extra: { jobCount: jobs.length, total: Number(data.count ?? jobs.length) },
     });
+
+    return NextResponse.json(
+      {
+        jobs,
+        total: Number(data.count ?? jobs.length),
+        page: Number(page),
+        perPage: Number(perPage),
+        totalPages: Math.max(1, Math.ceil(Number(data.count ?? jobs.length) / Number(perPage))),
+        query: { query, location, jobType, experienceLevel },
+      },
+      { headers: { 'x-correlation-id': correlationId } },
+    );
   } catch (error) {
-    console.error('Error searching jobs:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('Error searching jobs', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

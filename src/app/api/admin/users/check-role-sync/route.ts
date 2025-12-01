@@ -3,6 +3,7 @@ import { api } from 'convex/_generated/api';
 import { ConvexHttpClient } from 'convex/browser';
 import { NextRequest, NextResponse } from 'next/server';
 
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 import { ClerkPublicMetadata } from '@/types/clerk';
 
 export const runtime = 'nodejs';
@@ -18,13 +19,31 @@ const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
  * Returns: Diagnostic information about role sync status
  */
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'admin',
+    httpMethod: 'POST',
+    httpPath: '/api/admin/users/check-role-sync',
+  });
+
+  const startTime = Date.now();
+  log.info('Role sync check request started', { event: 'request.start' });
+
   try {
     const authResult = await auth();
     const { userId } = authResult;
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized - Please sign in' }, { status: 401 });
+      log.warn('User not authenticated', { event: 'auth.failed', errorCode: 'UNAUTHORIZED' });
+      return NextResponse.json(
+        { error: 'Unauthorized - Please sign in' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     // Verify caller is super_admin
     const client = await clerkClient();
@@ -124,27 +143,49 @@ export async function POST(request: NextRequest) {
       suggestions.push('Roles are in sync - no action needed');
     }
 
-    return NextResponse.json({
-      user: convexUser,
-      clerkData: {
-        id: clerkUser.id,
-        email: clerkUser.emailAddresses[0]?.emailAddress || 'no-email',
-        name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
-      },
-      mismatch,
-      clerkRole,
-      convexRole,
-      lastSync: convexUser.updated_at || null,
-      issues,
-      suggestions,
+    const durationMs = Date.now() - startTime;
+    log.info('Role sync check completed', {
+      event: 'admin.role_sync_checked',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
+      extra: { mismatch },
     });
+
+    return NextResponse.json(
+      {
+        user: convexUser,
+        clerkData: {
+          id: clerkUser.id,
+          email: clerkUser.emailAddresses[0]?.emailAddress || 'no-email',
+          name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
+        },
+        mismatch,
+        clerkRole,
+        convexRole,
+        lastSync: convexUser.updated_at || null,
+        issues,
+        suggestions,
+      },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (error) {
-    console.error('[API] Role sync check error:', error);
+    const durationMs = Date.now() - startTime;
+    log.error('Role sync check error', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Diagnostic failed',
       },
-      { status: 500 },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
     );
   }
 }

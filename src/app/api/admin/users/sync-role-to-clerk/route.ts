@@ -4,6 +4,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { VALID_USER_ROLES } from '@/lib/constants/roles';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 import { isValidUserRole } from '@/lib/validation/roleValidation';
 import { ClerkPublicMetadata } from '@/types/clerk';
 
@@ -24,13 +25,31 @@ export const dynamic = 'force-dynamic';
  * @security Requires super_admin role
  */
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'admin',
+    httpMethod: 'POST',
+    httpPath: '/api/admin/users/sync-role-to-clerk',
+  });
+
+  const startTime = Date.now();
+  log.info('Sync role to Clerk request started', { event: 'request.start' });
+
   try {
     const authResult = await auth();
     const { userId: callerId } = authResult;
 
     if (!callerId) {
-      return NextResponse.json({ error: 'Unauthorized - Please sign in' }, { status: 401 });
+      log.warn('User not authenticated', { event: 'auth.failed', errorCode: 'UNAUTHORIZED' });
+      return NextResponse.json(
+        { error: 'Unauthorized - Please sign in' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
+    log.debug('User authenticated', { event: 'auth.success', clerkId: callerId });
 
     // Verify caller is super_admin
     const client = await clerkClient();
@@ -135,9 +154,11 @@ export async function POST(request: NextRequest) {
       publicMetadata: newMetadata,
     });
 
-    console.log(
-      `[API] Synced to Clerk for user ${targetUser.id}: role ${oldRole} → ${role}${convexUser.university_id ? `, university_id: ${convexUser.university_id}` : ''}`,
-    );
+    log.info('Synced role to Clerk', {
+      event: 'admin.role_synced_to_clerk',
+      clerkId: callerId,
+      extra: { targetUserId: targetUser.id, oldRole, newRole: role },
+    });
 
     // Create audit log entry
     try {
@@ -168,25 +189,49 @@ export async function POST(request: NextRequest) {
       }
     } catch (auditError) {
       // Don't fail the operation if audit logging fails
-      console.error('[API] Failed to create audit log:', auditError);
+      log.warn('Failed to create audit log', {
+        event: 'audit.log_failed',
+        errorCode: toErrorCode(auditError),
+      });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Role synced to Clerk successfully',
-      user: {
-        id: targetUser.id,
-        email: targetUser.emailAddresses[0]?.emailAddress || 'no-email',
-        role,
-      },
+    const durationMs = Date.now() - startTime;
+    log.info('Sync role to Clerk completed', {
+      event: 'request.success',
+      clerkId: callerId,
+      httpStatus: 200,
+      durationMs,
     });
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: 'Role synced to Clerk successfully',
+        user: {
+          id: targetUser.id,
+          email: targetUser.emailAddresses[0]?.emailAddress || 'no-email',
+          role,
+        },
+      },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (error) {
-    console.error('[API] Sync to Clerk error:', error);
+    const durationMs = Date.now() - startTime;
+    log.error('Sync to Clerk error', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Failed to sync role to Clerk',
       },
-      { status: 500 },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
     );
   }
 }

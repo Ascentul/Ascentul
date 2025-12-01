@@ -5,26 +5,67 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hasUniversityAdminAccess } from '@/lib/constants/roles';
 import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'university',
+    httpMethod: 'POST',
+    httpPath: '/api/university/export-reports',
+  });
+
+  const startTime = Date.now();
+  log.info('Export reports request started', { event: 'request.start' });
+
   try {
     // Get authentication from request
     const authResult = await requireConvexToken();
     const userId = authResult.userId;
     const token = authResult.token;
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
-    const body = await request.json();
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      log.warn('Invalid JSON in request body', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
     const { clerkId } = body;
 
     if (!clerkId) {
-      return NextResponse.json({ error: 'Missing clerkId' }, { status: 400 });
+      log.warn('Missing clerkId', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Missing clerkId' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // For additional security, verify the clerkId matches the authenticated user
     if (userId !== clerkId) {
-      return NextResponse.json({ error: 'ClerkId mismatch' }, { status: 403 });
+      log.warn('ClerkId mismatch', { event: 'auth.forbidden', errorCode: 'FORBIDDEN' });
+      return NextResponse.json(
+        { error: 'ClerkId mismatch' },
+        {
+          status: 403,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Get the current user to verify admin access
@@ -32,16 +73,38 @@ export async function POST(request: NextRequest) {
     try {
       user = await convexServer.query(api.users.getUserByClerkId, { clerkId }, token);
     } catch (error) {
-      console.error('Error fetching user by clerkId:', error);
-      return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 });
+      log.error('Error fetching user by clerkId', toErrorCode(error), {
+        event: 'data.fetch_failed',
+      });
+      return NextResponse.json(
+        { error: 'Failed to fetch user data' },
+        {
+          status: 500,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      log.warn('User not found', { event: 'data.not_found', errorCode: 'NOT_FOUND' });
+      return NextResponse.json(
+        { error: 'User not found' },
+        {
+          status: 404,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     if (!hasUniversityAdminAccess(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      log.warn('Insufficient permissions', { event: 'auth.forbidden', errorCode: 'FORBIDDEN' });
+      return NextResponse.json(
+        { error: 'Insufficient permissions' },
+        {
+          status: 403,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Get university data
@@ -62,10 +125,15 @@ export async function POST(request: NextRequest) {
 
           // SECURITY: Log this auto-assignment for audit trail
           // Note: Using user._id instead of email for privacy compliance (GDPR/CCPA/FERPA)
-          console.warn(
-            `[SECURITY] Auto-assigning university_id for admin: user_id=${user._id} -> ${universityId} (${matchingUniversity.name}). ` +
-              `This indicates the account was not properly configured during creation.`,
-          );
+          log.warn('Auto-assigning university_id for admin', {
+            event: 'security.auto_assignment',
+            extra: {
+              userId: user._id,
+              universityId,
+              universityName: matchingUniversity.name,
+              reason: 'Account not properly configured during creation',
+            },
+          });
 
           // Update user's university_id for future requests.
           // Note: university_id is supplementary data, not a role. The Clerk-first pattern
@@ -100,12 +168,17 @@ export async function POST(request: NextRequest) {
               token,
             );
           } catch (auditError) {
-            console.error('Failed to create audit log for auto-assignment:', auditError);
+            log.warn('Failed to create audit log for auto-assignment', {
+              event: 'audit.log_failed',
+              errorCode: toErrorCode(auditError),
+            });
             // Don't fail the operation if audit logging fails
           }
         }
       } catch (error) {
-        console.error('Error finding university for admin:', error);
+        log.error('Error finding university for admin', toErrorCode(error), {
+          event: 'data.fetch_failed',
+        });
       }
     }
 
@@ -113,15 +186,29 @@ export async function POST(request: NextRequest) {
       // For university admin users, they should have a university_id
       // If they don't, provide a helpful error message
       if (user.role === 'university_admin') {
+        log.warn('University admin account not properly configured', {
+          event: 'validation.failed',
+          errorCode: 'BAD_REQUEST',
+        });
         return NextResponse.json(
           {
             error:
               'University admin account not properly configured. Please contact support to assign your account to a university.',
           },
-          { status: 400 },
+          { status: 400, headers: { 'x-correlation-id': correlationId } },
         );
       }
-      return NextResponse.json({ error: 'No university assigned to user' }, { status: 400 });
+      log.warn('No university assigned to user', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'No university assigned to user' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Fetch all relevant data including per-student metrics
@@ -133,8 +220,16 @@ export async function POST(request: NextRequest) {
         convexServer.query(api.university_admin.getStudentProgress, { clerkId }, token),
       ]);
     } catch (error) {
-      console.error('Error fetching university data:', error);
-      return NextResponse.json({ error: 'Failed to fetch university data' }, { status: 500 });
+      log.error('Error fetching university data', toErrorCode(error), {
+        event: 'data.fetch_failed',
+      });
+      return NextResponse.json(
+        { error: 'Failed to fetch university data' },
+        {
+          status: 500,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Create a map of student progress by student ID for fast lookup
@@ -195,22 +290,36 @@ export async function POST(request: NextRequest) {
 
     const filename = `university-report-${new Date().toISOString().split('T')[0]}.csv`;
 
+    const durationMs = Date.now() - startTime;
+    log.info('Export reports completed', {
+      event: 'university.reports_exported',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
+      extra: { studentCount: students.length },
+    });
+
     return new NextResponse(csvContent, {
       status: 200,
       headers: {
         'Content-Type': 'text/csv',
         'Content-Disposition': `attachment; filename="${filename}"`,
+        'x-correlation-id': correlationId,
       },
     });
   } catch (error) {
-    console.error('Export reports error:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    const durationMs = Date.now() - startTime;
+    log.error('Export reports error', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
     return NextResponse.json(
       {
         error: 'Internal server error',
         details: process.env.NODE_ENV === 'development' ? String(error) : undefined,
       },
-      { status: 500 },
+      { status: 500, headers: { 'x-correlation-id': correlationId } },
     );
   }
 }

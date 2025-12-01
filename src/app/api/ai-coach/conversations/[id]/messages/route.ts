@@ -1,11 +1,12 @@
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
-import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 import { evaluate } from '@/lib/ai-evaluation';
 import { requireConvexToken } from '@/lib/convex-auth';
+import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 /**
  * Helper to get a mock OpenAI instance for testing
@@ -45,39 +46,90 @@ const createOpenAIClient = (): OpenAI | null => {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 };
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'ai-coach',
+    httpMethod: 'GET',
+    httpPath: '/api/ai-coach/conversations/[id]/messages',
+  });
+
+  const startTime = Date.now();
+  log.info('Messages fetch request started', { event: 'request.start' });
+
   try {
     const { userId, token } = await requireConvexToken();
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     const { id } = await params;
     const conversationId = id;
 
     if (!conversationId) {
-      return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
+      log.warn('Missing conversation ID', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Conversation ID is required' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
-    const messages = await fetchQuery(
+    const messages = await convexServer.query(
       api.ai_coach.getMessages,
       {
         clerkId: userId,
         conversationId: conversationId as Id<'ai_coach_conversations'>,
       },
-      { token },
+      token,
     );
 
-    return NextResponse.json(messages);
+    const durationMs = Date.now() - startTime;
+    log.info('Messages fetched successfully', {
+      event: 'request.success',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
+      extra: { messageCount: messages?.length ?? 0 },
+    });
+
+    return NextResponse.json(messages, {
+      headers: { 'x-correlation-id': correlationId },
+    });
   } catch (error) {
-    console.error('Error fetching conversation messages:', error);
+    const durationMs = Date.now() - startTime;
     const message = error instanceof Error ? error.message : 'Failed to fetch messages';
     const status =
       message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500;
-    return NextResponse.json({ error: message }, { status });
+    log.error('Messages fetch request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: status,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: message },
+      {
+        status,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'ai-coach',
+    httpMethod: 'POST',
+    httpPath: '/api/ai-coach/conversations/[id]/messages',
+  });
+
+  const startTime = Date.now();
+  log.info('AI Coach message request started', { event: 'request.start' });
+
   try {
     const { userId, token } = await requireConvexToken();
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     const { id } = await params;
     const conversationId = id;
@@ -85,49 +137,64 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { content } = body;
 
     if (!content || typeof content !== 'string') {
-      return NextResponse.json({ error: 'Message content is required' }, { status: 400 });
+      log.warn('Missing message content', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Message content is required' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     if (!conversationId) {
-      return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
+      log.warn('Missing conversation ID', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Conversation ID is required' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Get conversation history for context
-    const existingMessages = (await fetchQuery(
+    const existingMessages = (await convexServer.query(
       api.ai_coach.getMessages,
       {
         clerkId: userId,
         conversationId: conversationId as Id<'ai_coach_conversations'>,
       },
-      { token },
+      token,
     )) as Array<{ isUser: boolean; message: string }>;
 
-    // Fetch user context data for personalized coaching
+    // Fetch user context data for personalized coaching (do not log PII)
     let userContext = '';
     try {
       const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.all(
         [
-          fetchQuery(api.users.getUserByClerkId, { clerkId: userId }, { token }) as Promise<Record<
-            string,
-            unknown
-          > | null>,
-          fetchQuery(api.goals.getUserGoals, { clerkId: userId }, { token }) as Promise<
+          convexServer.query(
+            api.users.getUserByClerkId,
+            { clerkId: userId },
+            token,
+          ) as Promise<Record<string, unknown> | null>,
+          convexServer.query(api.goals.getUserGoals, { clerkId: userId }, token) as Promise<
             Array<Record<string, unknown>>
           >,
-          fetchQuery(
+          convexServer.query(
             api.applications.getUserApplications,
             { clerkId: userId },
-            { token },
+            token,
           ) as Promise<Array<Record<string, unknown>>>,
-          fetchQuery(api.resumes.getUserResumes, { clerkId: userId }, { token }) as Promise<
+          convexServer.query(api.resumes.getUserResumes, { clerkId: userId }, token) as Promise<
             Array<Record<string, unknown>>
           >,
-          fetchQuery(
+          convexServer.query(
             api.cover_letters.getUserCoverLetters,
             { clerkId: userId },
-            { token },
+            token,
           ) as Promise<Array<Record<string, unknown>>>,
-          fetchQuery(api.projects.getUserProjects, { clerkId: userId }, { token }) as Promise<
+          convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token) as Promise<
             Array<Record<string, unknown>>
           >,
         ],
@@ -179,7 +246,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             `${idx + 1}. ${app.job_title} at ${app.company} (Status: ${app.status})`,
           );
           // NOTE: app.notes intentionally excluded from AI context for privacy
-          // Notes may contain sensitive information (rejection reasons, personal circumstances)
         });
       }
 
@@ -214,7 +280,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       userContext = contextParts.join('\n');
     } catch (error) {
-      console.error('Error fetching user context:', error);
+      log.warn('Failed to fetch user context', {
+        event: 'context.fetch.error',
+        errorCode: toErrorCode(error),
+      });
       userContext = 'Unable to load user context data.';
     }
 
@@ -223,13 +292,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const openaiClient = createOpenAIClient();
 
     if (openaiClient) {
-      // Validate that the OpenAI client is properly configured
       if (!openaiClient.chat?.completions?.create) {
-        console.error('OpenAI client is not properly configured');
-        return NextResponse.json({ error: 'AI service is not available' }, { status: 503 });
+        log.error('OpenAI client not properly configured', 'CONFIG_ERROR', {
+          event: 'ai.config.error',
+        });
+        return NextResponse.json(
+          { error: 'AI service is not available' },
+          {
+            status: 503,
+            headers: { 'x-correlation-id': correlationId },
+          },
+        );
       }
+
+      log.info('Starting OpenAI request', { event: 'ai.request' });
+
       try {
-        // Build conversation context for the AI
         const systemPrompt = `You are an expert AI Career Coach. Your role is to provide personalized, actionable career advice based on the user's questions and background.
 
 Key guidelines:
@@ -281,7 +359,9 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
           choiceContent ||
           'I apologize, but I was unable to generate a response. Please try again.';
 
-        // Evaluate AI Coach message (non-blocking for now)
+        log.info('OpenAI response received', { event: 'ai.response' });
+
+        // Evaluate AI Coach message (non-blocking)
         try {
           const evalResult = await evaluate({
             tool_id: 'ai-coach-message',
@@ -291,27 +371,35 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
           });
 
           if (!evalResult.passed) {
-            console.warn('[AI Evaluation] AI Coach message failed evaluation:', {
-              score: evalResult.overall_score,
-              risk_flags: evalResult.risk_flags,
-              explanation: evalResult.explanation,
+            log.warn('AI Coach message failed evaluation', {
+              event: 'ai.evaluation.failed',
+              extra: {
+                score: evalResult.overall_score,
+                riskFlagsCount: evalResult.risk_flags?.length ?? 0,
+              },
             });
           }
         } catch (evalError) {
-          // Don't block on evaluation failures
-          console.error('[AI Evaluation] Error evaluating AI Coach message:', evalError);
+          log.warn('Error evaluating AI Coach message', {
+            event: 'ai.evaluation.error',
+            errorCode: toErrorCode(evalError),
+          });
         }
       } catch (openaiError) {
-        console.error('OpenAI API error:', openaiError);
+        log.warn('OpenAI API error', {
+          event: 'ai.error',
+          errorCode: toErrorCode(openaiError),
+        });
         aiResponse =
           "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.";
       }
     } else {
+      log.warn('OpenAI client not available', { event: 'ai.unavailable' });
       aiResponse = `Thank you for your question: "${content}". I'm currently unable to access my AI capabilities. Please ensure the OpenAI API is properly configured, or try again later.`;
     }
 
     // Save both messages to the database
-    const newMessages = await fetchMutation(
+    const newMessages = await convexServer.mutation(
       api.ai_coach.addMessages,
       {
         clerkId: userId,
@@ -319,15 +407,37 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
         userMessage: content,
         aiMessage: aiResponse,
       },
-      { token },
+      token,
     );
 
-    return NextResponse.json(newMessages, { status: 201 });
+    const durationMs = Date.now() - startTime;
+    log.info('AI Coach message processed', {
+      event: 'data.created',
+      clerkId: userId,
+      httpStatus: 201,
+      durationMs,
+    });
+
+    return NextResponse.json(newMessages, {
+      status: 201,
+      headers: { 'x-correlation-id': correlationId },
+    });
   } catch (error) {
-    console.error('Error sending message:', error);
+    const durationMs = Date.now() - startTime;
     const message = error instanceof Error ? error.message : 'Failed to send message';
     const status =
       message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500;
-    return NextResponse.json({ error: message }, { status });
+    log.error('AI Coach message request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: status,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: message },
+      {
+        status,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

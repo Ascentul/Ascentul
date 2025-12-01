@@ -1,9 +1,10 @@
-import { auth } from '@clerk/nextjs/server';
 import sgMail from '@sendgrid/mail';
 import { api } from 'convex/_generated/api';
 import { NextRequest, NextResponse } from 'next/server';
 
+import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 // Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
@@ -12,38 +13,107 @@ if (process.env.SENDGRID_API_KEY) {
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'support',
+    httpMethod: 'GET',
+    httpPath: '/api/support/tickets',
+  });
+
+  const startTime = Date.now();
+  log.info('Support tickets list request started', { event: 'request.start' });
+
   try {
-    const { userId, getToken } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const token = await getToken({ template: 'convex' });
-    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
+    const { userId, token } = await requireConvexToken();
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
+
     const tickets = await convexServer.query(
       api.support_tickets.listTickets,
       { clerkId: userId },
       token,
     );
-    return NextResponse.json({ tickets });
+
+    const durationMs = Date.now() - startTime;
+    log.info('Support tickets list request completed', {
+      event: 'request.success',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
+      extra: { count: tickets?.length ?? 0 },
+    });
+
+    return NextResponse.json(
+      { tickets },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (error) {
-    console.error('Error fetching support tickets:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    const status =
+      message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500;
+    log.error('Support tickets list request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: status,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: message },
+      {
+        status,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'support',
+    httpMethod: 'POST',
+    httpPath: '/api/support/tickets',
+  });
+
+  const startTime = Date.now();
+  log.info('Support ticket creation request started', { event: 'request.start' });
+
   try {
-    const { userId, getToken } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const token = await getToken({ template: 'convex' });
-    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
-    const body = await request.json();
+    const { userId, token } = await requireConvexToken();
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
+
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      log.warn('Invalid JSON in request body', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'Invalid JSON' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
     const { subject, description, issueType, source } = body;
 
     if (!subject || !description) {
-      return NextResponse.json({ error: 'Subject and description are required' }, { status: 400 });
+      log.warn('Missing required fields', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Subject and description are required' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
-    // Get user info to send email
+    // Get user info to send email (do not log email address)
     const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token);
 
     const ticket = await convexServer.mutation(
@@ -57,6 +127,12 @@ export async function POST(request: NextRequest) {
       },
       token,
     );
+
+    log.info('Support ticket created', {
+      event: 'data.created',
+      clerkId: userId,
+      extra: { issueType: issueType || 'general' },
+    });
 
     // Send email notification to user
     if (process.env.SENDGRID_API_KEY && user?.email) {
@@ -92,21 +168,50 @@ export async function POST(request: NextRequest) {
         };
 
         await sgMail.send(msg);
+        log.debug('Support ticket email sent', { event: 'email.sent' });
       } catch (emailError) {
-        console.error('Error sending support ticket email:', emailError);
+        log.warn('Failed to send support ticket email', {
+          event: 'email.failed',
+          errorCode: toErrorCode(emailError),
+        });
         // Don't fail the ticket creation if email fails
       }
     }
+
+    const durationMs = Date.now() - startTime;
+    log.info('Support ticket creation request completed', {
+      event: 'request.success',
+      clerkId: userId,
+      httpStatus: 201,
+      durationMs,
+    });
 
     return NextResponse.json(
       {
         ticket,
         message: 'Support ticket submitted successfully!',
       },
-      { status: 201 },
+      {
+        status: 201,
+        headers: { 'x-correlation-id': correlationId },
+      },
     );
   } catch (error) {
-    console.error('Error creating support ticket:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    const status =
+      message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500;
+    log.error('Support ticket creation request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: status,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: message },
+      {
+        status,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

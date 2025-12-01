@@ -10,31 +10,73 @@ import { ConvexHttpClient } from 'convex/browser';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { deleteClerkUser, disableClerkUser, enableClerkUser } from '@/lib/clerkAdmin';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'admin',
+    httpMethod: 'POST',
+    httpPath: '/api/admin/clerk-sync',
+  });
+
+  const startTime = Date.now();
+  log.info('Clerk sync request started', { event: 'request.start' });
+
   try {
     // Verify the request is from an authenticated admin
     const { userId } = await auth();
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      log.warn('User not authenticated', { event: 'auth.failed', errorCode: 'UNAUTHORIZED' });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
-    const body = await request.json();
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      log.warn('Invalid JSON in request body', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
     const { action, clerkId } = body;
 
     // Validate required fields (fail fast before expensive operations)
     if (!action || !clerkId) {
+      log.warn('Missing required fields', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
       return NextResponse.json(
         { error: 'Missing required fields: action, clerkId' },
-        { status: 400 },
+        { status: 400, headers: { 'x-correlation-id': correlationId } },
       );
     }
 
     // CRITICAL: Verify super_admin role
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
     if (!convexUrl) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      log.error('Missing NEXT_PUBLIC_CONVEX_URL', 'CONFIG_ERROR', { event: 'config.error' });
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        {
+          status: 500,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Initialize authenticated Convex client
@@ -51,7 +93,17 @@ export async function POST(request: NextRequest) {
     });
 
     if (!adminUser || adminUser.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Forbidden: Super admin role required' }, { status: 403 });
+      log.warn('Forbidden - not a super admin', {
+        event: 'auth.forbidden',
+        errorCode: 'FORBIDDEN',
+      });
+      return NextResponse.json(
+        { error: 'Forbidden: Super admin role required' },
+        {
+          status: 403,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Perform the requested action
@@ -62,7 +114,14 @@ export async function POST(request: NextRequest) {
       });
 
       if (!targetUser) {
-        return NextResponse.json({ error: 'Target user not found in database' }, { status: 404 });
+        log.warn('Target user not found', { event: 'data.not_found', errorCode: 'NOT_FOUND' });
+        return NextResponse.json(
+          { error: 'Target user not found in database' },
+          {
+            status: 404,
+            headers: { 'x-correlation-id': correlationId },
+          },
+        );
       }
 
       await disableClerkUser(clerkId);
@@ -81,14 +140,29 @@ export async function POST(request: NextRequest) {
           reason: 'Clerk account disabled (ban) via sync API',
         });
       } catch (auditError) {
-        console.error('Failed to create audit log for Clerk disable:', auditError);
+        log.warn('Failed to create audit log for Clerk disable', {
+          event: 'audit.log_failed',
+          errorCode: toErrorCode(auditError),
+        });
         // Don't fail the operation if audit logging fails
       }
 
-      return NextResponse.json({
-        success: true,
-        message: 'Clerk user disabled successfully',
+      const durationMs = Date.now() - startTime;
+      log.info('Clerk user disabled', {
+        event: 'admin.clerk_user_disabled',
+        clerkId: userId,
+        httpStatus: 200,
+        durationMs,
+        extra: { targetClerkId: clerkId },
       });
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Clerk user disabled successfully',
+        },
+        { headers: { 'x-correlation-id': correlationId } },
+      );
     } else if (action === 'enable') {
       // Get target user info for audit log
       const targetUser = await convex.query(api.users.getUserByClerkId, {
@@ -96,7 +170,14 @@ export async function POST(request: NextRequest) {
       });
 
       if (!targetUser) {
-        return NextResponse.json({ error: 'Target user not found in database' }, { status: 404 });
+        log.warn('Target user not found', { event: 'data.not_found', errorCode: 'NOT_FOUND' });
+        return NextResponse.json(
+          { error: 'Target user not found in database' },
+          {
+            status: 404,
+            headers: { 'x-correlation-id': correlationId },
+          },
+        );
       }
 
       await enableClerkUser(clerkId);
@@ -115,14 +196,29 @@ export async function POST(request: NextRequest) {
           reason: 'Clerk account enabled (unban) via sync API',
         });
       } catch (auditError) {
-        console.error('Failed to create audit log for Clerk enable:', auditError);
+        log.warn('Failed to create audit log for Clerk enable', {
+          event: 'audit.log_failed',
+          errorCode: toErrorCode(auditError),
+        });
         // Don't fail the operation if audit logging fails
       }
 
-      return NextResponse.json({
-        success: true,
-        message: 'Clerk user enabled successfully',
+      const durationMs = Date.now() - startTime;
+      log.info('Clerk user enabled', {
+        event: 'admin.clerk_user_enabled',
+        clerkId: userId,
+        httpStatus: 200,
+        durationMs,
+        extra: { targetClerkId: clerkId },
       });
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Clerk user enabled successfully',
+        },
+        { headers: { 'x-correlation-id': correlationId } },
+      );
     } else if (action === 'delete') {
       // Permanently delete Clerk user (only for hard delete of test users)
 
@@ -132,13 +228,24 @@ export async function POST(request: NextRequest) {
       });
 
       if (!targetUser) {
-        return NextResponse.json({ error: 'User not found in database' }, { status: 404 });
+        log.warn('User not found', { event: 'data.not_found', errorCode: 'NOT_FOUND' });
+        return NextResponse.json(
+          { error: 'User not found in database' },
+          {
+            status: 404,
+            headers: { 'x-correlation-id': correlationId },
+          },
+        );
       }
 
       if (!targetUser.is_test_user) {
+        log.warn('Attempted to delete non-test user', {
+          event: 'auth.forbidden',
+          errorCode: 'FORBIDDEN',
+        });
         return NextResponse.json(
           { error: 'Forbidden: Permanent deletion only allowed for test users' },
-          { status: 403 },
+          { status: 403, headers: { 'x-correlation-id': correlationId } },
         );
       }
 
@@ -161,19 +268,50 @@ export async function POST(request: NextRequest) {
           },
         });
       } catch (auditError) {
-        console.error('Failed to create audit log for Clerk delete:', auditError);
+        log.warn('Failed to create audit log for Clerk delete', {
+          event: 'audit.log_failed',
+          errorCode: toErrorCode(auditError),
+        });
         // Don't fail the operation if audit logging fails
       }
 
-      return NextResponse.json({
-        success: true,
-        message: 'Clerk user permanently deleted',
+      const durationMs = Date.now() - startTime;
+      log.info('Clerk user permanently deleted', {
+        event: 'admin.clerk_user_deleted',
+        clerkId: userId,
+        httpStatus: 200,
+        durationMs,
+        extra: { targetClerkId: clerkId, isTestUser: true },
       });
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Clerk user permanently deleted',
+        },
+        { headers: { 'x-correlation-id': correlationId } },
+      );
     } else {
-      return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
+      log.warn('Invalid action', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+        extra: { action },
+      });
+      return NextResponse.json(
+        { error: `Invalid action: ${action}` },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
   } catch (error) {
-    console.error('Clerk sync API error:', error);
+    const durationMs = Date.now() - startTime;
+    log.error('Clerk sync API error', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
     return NextResponse.json(
       {
         error: 'Failed to sync Clerk account',
@@ -181,7 +319,7 @@ export async function POST(request: NextRequest) {
           details: error instanceof Error ? error.message : 'Unknown error',
         }),
       },
-      { status: 500 },
+      { status: 500, headers: { 'x-correlation-id': correlationId } },
     );
   }
 }

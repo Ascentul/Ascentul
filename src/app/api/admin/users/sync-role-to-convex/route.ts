@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { UserRole, VALID_USER_ROLES } from '@/lib/constants/roles';
 import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 import { isValidUserRole } from '@/lib/validation/roleValidation';
 import { ClerkPublicMetadata } from '@/types/clerk';
 
@@ -39,13 +40,31 @@ export const dynamic = 'force-dynamic';
  * @security Requires super_admin role
  */
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'admin',
+    httpMethod: 'POST',
+    httpPath: '/api/admin/users/sync-role-to-convex',
+  });
+
+  const startTime = Date.now();
+  log.info('Sync role to Convex request started', { event: 'request.start' });
+
   try {
     const authResult = await auth();
     const { userId: callerId } = authResult;
 
     if (!callerId) {
-      return NextResponse.json({ error: 'Unauthorized - Please sign in' }, { status: 401 });
+      log.warn('User not authenticated', { event: 'auth.failed', errorCode: 'UNAUTHORIZED' });
+      return NextResponse.json(
+        { error: 'Unauthorized - Please sign in' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
+    log.debug('User authenticated', { event: 'auth.success', clerkId: callerId });
 
     // Verify caller is super_admin
     const client = await clerkClient();
@@ -53,9 +72,16 @@ export async function POST(request: NextRequest) {
     const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role;
 
     if (callerRole !== 'super_admin') {
+      log.warn('Forbidden - not a super admin', {
+        event: 'auth.forbidden',
+        errorCode: 'FORBIDDEN',
+      });
       return NextResponse.json(
         { error: 'Forbidden - Only super admins can sync roles' },
-        { status: 403 },
+        {
+          status: 403,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
@@ -114,29 +140,49 @@ export async function POST(request: NextRequest) {
       }
 
       roleToSync = requestedRole;
-      console.log(
-        `[API] Updated Clerk role for user ${userId}: ${currentClerkRole} → ${requestedRole}`,
-      );
+      log.info('Updated Clerk role', {
+        event: 'admin.clerk_role_updated',
+        clerkId: callerId,
+        extra: { targetUserId: userId, oldRole: currentClerkRole, newRole: requestedRole },
+      });
     } else {
       // Mode 2: Sync from Clerk - read current Clerk role and sync to Convex
       if (!currentClerkRole) {
+        log.warn('User has no role in Clerk', {
+          event: 'validation.failed',
+          errorCode: 'BAD_REQUEST',
+        });
         return NextResponse.json(
           { error: 'User has no role in Clerk publicMetadata. Please set a role first.' },
-          { status: 400 },
+          {
+            status: 400,
+            headers: { 'x-correlation-id': correlationId },
+          },
         );
       }
 
       if (!isValidUserRole(currentClerkRole)) {
+        log.warn('Invalid role in Clerk', {
+          event: 'validation.failed',
+          errorCode: 'BAD_REQUEST',
+          extra: { role: currentClerkRole },
+        });
         return NextResponse.json(
           {
             error: `Invalid role in Clerk: ${currentClerkRole}. Please fix in Clerk Dashboard first.`,
           },
-          { status: 400 },
+          {
+            status: 400,
+            headers: { 'x-correlation-id': correlationId },
+          },
         );
       }
 
       roleToSync = currentClerkRole;
-      console.log(`[API] Syncing existing Clerk role to Convex for user ${userId}: ${roleToSync}`);
+      log.info('Syncing existing Clerk role to Convex', {
+        event: 'admin.syncing_clerk_role',
+        extra: { targetUserId: userId, role: roleToSync },
+      });
     }
 
     const { token } = await requireConvexToken();
@@ -186,27 +232,47 @@ export async function POST(request: NextRequest) {
       token,
     );
 
-    console.log(`[API] Synced role to Convex for user ${userId}: ${roleToSync}`);
-
-    return NextResponse.json({
-      success: true,
-      message: requestedRole
-        ? 'Role updated in Clerk and synced to Convex'
-        : 'Role synced from Clerk to Convex',
-      user: {
-        id: targetUser.id,
-        email: targetUser.emailAddresses[0]?.emailAddress || 'no-email',
-        previousClerkRole: currentClerkRole || 'none',
-        syncedRole: roleToSync,
-      },
+    const durationMs = Date.now() - startTime;
+    log.info('Synced role to Convex', {
+      event: 'admin.role_synced_to_convex',
+      clerkId: callerId,
+      httpStatus: 200,
+      durationMs,
+      extra: { targetUserId: userId, role: roleToSync },
     });
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: requestedRole
+          ? 'Role updated in Clerk and synced to Convex'
+          : 'Role synced from Clerk to Convex',
+        user: {
+          id: targetUser.id,
+          email: targetUser.emailAddresses[0]?.emailAddress || 'no-email',
+          previousClerkRole: currentClerkRole || 'none',
+          syncedRole: roleToSync,
+        },
+      },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (error) {
-    console.error('[API] Sync to Convex error:', error);
+    const durationMs = Date.now() - startTime;
+    log.error('Sync to Convex error', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Failed to sync role to Convex',
       },
-      { status: 500 },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
     );
   }
 }

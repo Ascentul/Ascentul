@@ -6,6 +6,7 @@ import OpenAI from 'openai';
 import { buildUserContext } from '@/lib/ai-coach-helpers';
 import { evaluate } from '@/lib/ai-evaluation';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({
@@ -14,24 +15,63 @@ const openai = process.env.OPENAI_API_KEY
   : null;
 
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'ai-coach',
+    httpMethod: 'POST',
+    httpPath: '/api/ai-coach/generate-response',
+  });
+
+  const startTime = Date.now();
+  log.info('AI Coach request started', { event: 'request.start' });
+
   try {
     const { userId, getToken } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) {
+      log.warn('Unauthorized AI Coach request', {
+        event: 'auth.failed',
+        errorCode: 'UNAUTHORIZED',
+      });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
     const token = await getToken({ template: 'convex' });
     if (!token) {
-      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
+      log.warn('Failed to obtain auth token', { event: 'auth.failed', errorCode: 'TOKEN_ERROR' });
+      return NextResponse.json(
+        { error: 'Failed to obtain auth token' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
+
+    log.info('User authenticated', { event: 'auth.success', clerkId: userId });
 
     const body = await request.json();
     const { query, conversationHistory = [] } = body;
 
     if (!query || typeof query !== 'string') {
-      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
+      log.warn('Invalid query parameter', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Query is required' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Fetch user context data for personalized coaching
     let userContext = '';
     try {
+      log.debug('Fetching user context data', { event: 'context.fetch.start' });
       const [userProfile, goals, applications, resumes, coverLetters, projects] = await Promise.all(
         [
           convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token),
@@ -51,15 +91,33 @@ export async function POST(request: NextRequest) {
         coverLetters,
         projects,
       });
+      log.debug('User context fetched successfully', {
+        event: 'context.fetch.success',
+        extra: {
+          goalsCount: goals?.length ?? 0,
+          applicationsCount: applications?.length ?? 0,
+          resumesCount: resumes?.length ?? 0,
+        },
+      });
     } catch (error) {
-      console.error('Error fetching user context:', error);
+      log.warn('Failed to fetch user context', {
+        event: 'context.fetch.error',
+        errorCode: toErrorCode(error),
+      });
       userContext = 'Unable to load user context data.';
     }
 
     let response: string;
 
+    const model = process.env.OPENAI_MODEL || 'gpt-4o';
+
     if (openai) {
       try {
+        log.info('Starting OpenAI request', {
+          event: 'ai.request',
+          extra: { model, historyLength: conversationHistory.length },
+        });
+
         // Build conversation context for the AI
         const systemPrompt = `You are an expert AI Career Coach. Your role is to provide personalized, actionable career advice based on the user's questions and background.
 
@@ -99,7 +157,7 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
         });
 
         const completion = await openai.chat.completions.create({
-          model: process.env.OPENAI_MODEL || 'gpt-4o',
+          model,
           messages: messages,
           temperature: 0.7,
           max_tokens: 1500,
@@ -111,6 +169,17 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
           completion.choices[0]?.message?.content ||
           'I apologize, but I was unable to generate a response. Please try again.';
 
+        const tokenUsage = completion.usage;
+        log.info('OpenAI response received', {
+          event: 'ai.response',
+          extra: {
+            model,
+            promptTokens: tokenUsage?.prompt_tokens,
+            completionTokens: tokenUsage?.completion_tokens,
+            totalTokens: tokenUsage?.total_tokens,
+          },
+        });
+
         // Evaluate AI Coach response (non-blocking for now)
         try {
           const evalResult = await evaluate({
@@ -121,29 +190,61 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
           });
 
           if (!evalResult.passed) {
-            console.warn('[AI Evaluation] AI Coach response failed evaluation:', {
-              score: evalResult.overall_score,
-              risk_flags: evalResult.risk_flags,
-              explanation: evalResult.explanation,
+            log.warn('AI Coach response failed evaluation', {
+              event: 'ai.evaluation.failed',
+              extra: {
+                score: evalResult.overall_score,
+                riskFlagsCount: evalResult.risk_flags?.length ?? 0,
+              },
             });
           }
         } catch (evalError) {
           // Don't block on evaluation failures
-          console.error('[AI Evaluation] Error evaluating AI Coach response:', evalError);
+          log.warn('Error evaluating AI Coach response', {
+            event: 'ai.evaluation.error',
+            errorCode: toErrorCode(evalError),
+          });
         }
       } catch (openaiError) {
-        console.error('OpenAI API error:', openaiError);
+        log.error('OpenAI API error', toErrorCode(openaiError), {
+          event: 'ai.error',
+          extra: { model },
+        });
         response =
           "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.";
       }
     } else {
+      log.warn('OpenAI not configured', { event: 'ai.not_configured' });
       // Fallback response when OpenAI is not available
       response = `Thank you for your question about: "${query}". I'm currently unable to access my AI capabilities. Please ensure the OpenAI API is properly configured, or try again later.`;
     }
 
-    return NextResponse.json({ response });
+    const durationMs = Date.now() - startTime;
+    log.info('AI Coach request completed', {
+      event: 'request.success',
+      httpStatus: 200,
+      durationMs,
+    });
+
+    return NextResponse.json(
+      { response },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (error) {
-    console.error('Error generating AI response:', error);
-    return NextResponse.json({ error: 'Failed to generate AI response' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('AI Coach request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Failed to generate AI response' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

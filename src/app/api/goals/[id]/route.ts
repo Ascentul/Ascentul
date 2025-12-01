@@ -5,24 +5,56 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireConvexToken } from '@/lib/convex-auth';
 import { isValidConvexId } from '@/lib/convex-ids';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'goal',
+    httpMethod: 'PUT',
+    httpPath: '/api/goals/[id]',
+  });
+
+  const startTime = Date.now();
+  log.info('Goal update request started', { event: 'request.start' });
+
   try {
     const { userId, token } = await requireConvexToken();
     const { id: goalIdParam } = await context.params;
+
     if (
       !goalIdParam ||
       typeof goalIdParam !== 'string' ||
       goalIdParam.trim() === '' ||
       !isValidConvexId(goalIdParam)
     ) {
-      return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 });
+      log.warn('Invalid goal ID', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Invalid goal ID' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
+
+    log.debug('Updating goal', { event: 'data.update.start', extra: { goalId: goalIdParam } });
+
     let body: any;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      log.warn('Invalid JSON in request body', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     const updates: any = {};
@@ -46,38 +78,116 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         clerkId: userId,
         goalId: goalIdParam as Id<'goals'>,
         updates,
+        correlationId,
       },
       token,
     );
-    return NextResponse.json({ ok: true });
+
+    const durationMs = Date.now() - startTime;
+    log.info('Goal updated successfully', {
+      event: 'data.updated',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
+      extra: { goalId: goalIdParam, updatedFields: Object.keys(updates) },
+    });
+
+    return NextResponse.json(
+      { ok: true },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (error: any) {
-    console.error('PUT /api/goals/[id] error:', error);
+    const durationMs = Date.now() - startTime;
+    log.error('Goal update request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
     const msg = error?.message || 'Internal server error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json(
+      { error: msg },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }
 
 export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'goal',
+    httpMethod: 'DELETE',
+    httpPath: '/api/goals/[id]',
+  });
+
+  const startTime = Date.now();
+  log.info('Goal deletion request started', { event: 'request.start' });
+
   try {
     const { userId, token } = await requireConvexToken();
     const { id: goalIdParam } = await context.params;
+
     if (
       !goalIdParam ||
       typeof goalIdParam !== 'string' ||
       goalIdParam.trim() === '' ||
       !isValidConvexId(goalIdParam)
     ) {
-      return NextResponse.json({ error: 'Invalid goal ID' }, { status: 400 });
+      log.warn('Invalid goal ID', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Invalid goal ID' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
+
+    log.debug('Deleting goal', { event: 'data.delete.start', extra: { goalId: goalIdParam } });
+
     await convexServer.mutation(
       api.goals.deleteGoal,
-      { clerkId: userId, goalId: goalIdParam as Id<'goals'> },
+      {
+        clerkId: userId,
+        goalId: goalIdParam as Id<'goals'>,
+        correlationId,
+      },
       token,
     );
-    return NextResponse.json({ ok: true });
+
+    const durationMs = Date.now() - startTime;
+    log.info('Goal deleted successfully', {
+      event: 'data.deleted',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
+      extra: { goalId: goalIdParam },
+    });
+
+    return NextResponse.json(
+      { ok: true },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (error: any) {
-    console.error('DELETE /api/goals/[id] error:', error);
+    const durationMs = Date.now() - startTime;
+    log.error('Goal deletion request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
     const msg = error?.message || 'Internal server error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json(
+      { error: msg },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

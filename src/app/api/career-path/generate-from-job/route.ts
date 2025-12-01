@@ -23,6 +23,7 @@ import {
 } from '@/lib/career-path/types';
 import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 import { checkPremiumAccess } from '@/lib/subscription-server';
 
 export const runtime = 'nodejs';
@@ -1727,12 +1728,19 @@ const selectTemplate = (jobTitle: string): CareerPathTemplate => {
   return defaultTemplate;
 };
 
-const fetchUserProfile = async (clerkId: string, token: string) => {
+const fetchUserProfile = async (
+  clerkId: string,
+  token: string,
+  log?: ReturnType<typeof createRequestLogger>,
+) => {
   try {
     const user = await convexServer.query(api.users.getUserByClerkId, { clerkId }, token);
     return user;
   } catch (error) {
-    console.warn('CareerPath failed to fetch user profile', error);
+    log?.warn('CareerPath failed to fetch user profile', {
+      event: 'data.fetch_failed',
+      errorCode: toErrorCode(error),
+    });
     return null;
   }
 };
@@ -2272,7 +2280,16 @@ const persistCareerPathToConvex = async (
 };
 
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'career-path',
+    httpMethod: 'POST',
+    httpPath: '/api/career-path/generate-from-job',
+  });
+
+  const startTime = Date.now();
   const timer = startTimer('career_path_generation_total');
+  log.info('Career path generation request started', { event: 'request.start' });
 
   try {
     let userId: string;
@@ -2281,8 +2298,16 @@ export async function POST(request: NextRequest) {
       const auth = await requireConvexToken();
       userId = auth.userId;
       token = auth.token;
+      log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
     } catch (authError) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      log.warn('User not authenticated', { event: 'auth.failed', errorCode: 'UNAUTHORIZED' });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Parse and validate input with Zod
@@ -2334,13 +2359,16 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (limitCheckError) {
-        console.warn('Career path limit check failed, proceeding with generation', limitCheckError);
+        log.warn('Career path limit check failed, proceeding with generation', {
+          event: 'subscription.limit_check_failed',
+          errorCode: toErrorCode(limitCheckError),
+        });
       }
     }
 
     const template = selectTemplate(jobTitle);
     const promptContext = createContext(jobTitle, template.domain);
-    const userProfile = await fetchUserProfile(userId, token);
+    const userProfile = await fetchUserProfile(userId, token, log);
 
     // Try OpenAI, fall back to mock
     let client: OpenAI | null = null;
@@ -2355,7 +2383,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[Career Path] OpenAI client status: ${client ? 'initialized' : 'not available'}`);
+    log.debug('OpenAI client status', {
+      event: 'ai.client_status',
+      clerkId: userId,
+      extra: { initialized: !!client },
+    });
 
     if (client) {
       const promptVariants: Array<{ name: PromptVariant; prompt: string }> = [
@@ -2496,15 +2528,21 @@ export async function POST(request: NextRequest) {
               });
 
               if (!evalResult.passed) {
-                console.warn('[AI Evaluation] Career path from job failed evaluation:', {
-                  score: evalResult.overall_score,
-                  risk_flags: evalResult.risk_flags,
-                  explanation: evalResult.explanation,
+                log.warn('Career path from job failed AI evaluation', {
+                  event: 'ai.evaluation_failed',
+                  clerkId: userId,
+                  extra: {
+                    score: evalResult.overall_score,
+                    risk_flags: evalResult.risk_flags,
+                  },
                 });
               }
             } catch (evalError) {
               // Don't block on evaluation failures
-              console.error('[AI Evaluation] Error evaluating career path from job:', evalError);
+              log.warn('Error evaluating career path from job', {
+                event: 'ai.evaluation_error',
+                errorCode: toErrorCode(evalError),
+              });
             }
 
             // Return discriminated union response
@@ -2556,12 +2594,35 @@ export async function POST(request: NextRequest) {
     );
 
     // Return discriminated union response
-    return NextResponse.json({
-      ...guidancePath, // Contains type: 'profile_guidance', id, name, target_role, message, tasks
-      usedFallback: true,
+    const durationMs = Date.now() - startTime;
+    log.info('Career path generation completed with fallback', {
+      event: 'request.success',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
+      extra: { usedFallback: true },
     });
+
+    return NextResponse.json(
+      {
+        ...guidancePath, // Contains type: 'profile_guidance', id, name, target_role, message, tasks
+        usedFallback: true,
+      },
+      { headers: { 'x-correlation-id': correlationId } },
+    );
   } catch (error: any) {
-    console.error('POST /api/career-path/generate-from-job error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('Career path generation error', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

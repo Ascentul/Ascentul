@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Webhook } from 'svix';
 
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 import { validateRoleOrWarn } from '@/lib/validation/roleValidation';
 
 export const runtime = 'nodejs';
@@ -27,10 +28,28 @@ const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
 const convexServiceToken = process.env.CONVEX_INTERNAL_SERVICE_TOKEN;
 
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'webhook',
+    httpMethod: 'POST',
+    httpPath: '/api/clerk/webhook',
+  });
+
+  const startTime = Date.now();
+  log.info('Clerk webhook received', { event: 'request.start' });
+
   try {
     if (!convexServiceToken) {
-      console.error('[Clerk Webhook] Missing CONVEX_INTERNAL_SERVICE_TOKEN');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      log.error('Missing CONVEX_INTERNAL_SERVICE_TOKEN', 'CONFIG_ERROR', {
+        event: 'config.error',
+      });
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        {
+          status: 500,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     const rawBody = await request.text();
@@ -41,8 +60,16 @@ export async function POST(request: NextRequest) {
     };
 
     if (!webhookSecret) {
-      console.warn('[Clerk Webhook] No webhook secret configured - skipping verification');
-      return NextResponse.json({ received: true, warning: 'no_secret' });
+      log.error('No webhook secret configured - cannot verify webhooks', 'CONFIG_ERROR', {
+        event: 'config.error',
+      });
+      return NextResponse.json(
+        { error: 'Webhook verification not configured' },
+        {
+          status: 500,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Verify webhook signature
@@ -52,13 +79,24 @@ export async function POST(request: NextRequest) {
     try {
       event = wh.verify(rawBody, svixHeaders);
     } catch (err) {
-      console.error('[Clerk Webhook] Verification failed:', err);
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+      log.error('Webhook verification failed', 'SIGNATURE_ERROR', {
+        event: 'webhook.verification.failed',
+      });
+      return NextResponse.json(
+        { error: 'Invalid signature' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
     const eventType = event.type;
     const userData = event.data;
 
-    console.log(`[Clerk Webhook] Received event: ${eventType}`);
+    log.info('Webhook event received', {
+      event: 'webhook.event.received',
+      extra: { eventType, clerkUserId: userData.id },
+    });
 
     switch (eventType) {
       case 'user.created': {
@@ -73,9 +111,11 @@ export async function POST(request: NextRequest) {
 
         const userEmail = userData.email_addresses?.[0]?.email_address || '';
 
-        console.log(
-          `[Clerk Webhook] Creating user: ${userEmail}${validatedRole ? ` with role: ${validatedRole}` : ''}`,
-        );
+        log.info('Creating user from Clerk', {
+          event: 'user.create.start',
+          clerkId: userData.id,
+          extra: { subscriptionPlan, subscriptionStatus, role: validatedRole },
+        });
 
         // Create/activate user in Convex
         const userId = await convexServer.mutation(api.users.createUserFromClerk, {
@@ -90,7 +130,11 @@ export async function POST(request: NextRequest) {
           serviceToken: convexServiceToken,
         });
 
-        console.log(`[Clerk Webhook] Created/activated user: ${userData.id}`);
+        log.info('User created/activated in Convex', {
+          event: 'user.create.success',
+          clerkId: userData.id,
+          userId: userId as string,
+        });
 
         // Check if this user was a pending university student
         // If so, sync university_id to Clerk metadata
@@ -118,9 +162,16 @@ export async function POST(request: NextRequest) {
             await client.users.updateUser(userData.id, {
               publicMetadata: updatedMetadata,
             });
-            console.log(`[Clerk Webhook] Synced university_id and role to Clerk for ${userEmail}`);
+            log.info('Synced university_id and role to Clerk', {
+              event: 'user.sync.success',
+              clerkId: userData.id,
+              extra: { universityId: convexUser.university_id, role: roleToSync },
+            });
           } catch (syncError) {
-            console.error('[Clerk Webhook] Failed to sync to Clerk:', syncError);
+            log.error('Failed to sync to Clerk', toErrorCode(syncError), {
+              event: 'user.sync.error',
+              clerkId: userData.id,
+            });
           }
         }
 
@@ -169,12 +220,17 @@ export async function POST(request: NextRequest) {
         } else if (membershipRole) {
           // University roles MUST have university_id
           if (!universityIdString) {
-            console.error(
-              `[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`,
-            );
+            log.error('Invalid state: university role without university_id', 'VALIDATION_ERROR', {
+              event: 'user.update.validation_failed',
+              clerkId: userData.id,
+              extra: { role: membershipRole },
+            });
             return NextResponse.json(
               { error: `${membershipRole} role requires university_id` },
-              { status: 400 },
+              {
+                status: 400,
+                headers: { 'x-correlation-id': correlationId },
+              },
             );
           }
           // Pass as string - Convex validates format with v.id() validator
@@ -216,28 +272,38 @@ export async function POST(request: NextRequest) {
           // Convex v.id() validator throws ArgumentValidationError with message prefix
           const errorMessage = mutationError?.message || String(mutationError);
           if (errorMessage.includes('ArgumentValidationError:')) {
-            console.error(
-              `[Clerk Webhook] Invalid university_id format for user ${userData.id}: ${universityIdString}`,
-            );
+            log.error('Invalid university_id format', 'VALIDATION_ERROR', {
+              event: 'user.update.validation_failed',
+              clerkId: userData.id,
+              extra: { universityId: universityIdString },
+            });
             return NextResponse.json(
               { error: 'Invalid university_id format in metadata' },
-              { status: 400 },
+              {
+                status: 400,
+                headers: { 'x-correlation-id': correlationId },
+              },
             );
           }
           // Re-throw other errors
           throw mutationError;
         }
 
-        console.log(
-          `[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}${validatedRole ? `, role: ${validatedRole}` : ''}`,
-        );
+        log.info('User updated from Clerk', {
+          event: 'user.update.success',
+          clerkId: userData.id,
+          extra: { subscriptionPlan, subscriptionStatus, role: validatedRole },
+        });
         break;
       }
 
       case 'user.deleted': {
         // User was deleted from Clerk
         // This should only happen for hard-deleted test users
-        console.log(`[Clerk Webhook] User deleted from Clerk: ${userData.id}`);
+        log.info('User deleted from Clerk', {
+          event: 'user.delete.received',
+          clerkId: userData.id,
+        });
 
         // Check if user exists in Convex and is a test user
         try {
@@ -249,31 +315,66 @@ export async function POST(request: NextRequest) {
           if (convexUser) {
             if (convexUser.is_test_user) {
               // Test user - this is expected, the hard delete was initiated from our side
-              console.log(`[Clerk Webhook] Test user deletion confirmed: ${userData.id}`);
+              log.info('Test user deletion confirmed', {
+                event: 'user.delete.test_user',
+                clerkId: userData.id,
+              });
             } else {
               // Real user - this shouldn't happen, log warning
-              console.warn(
-                `[Clerk Webhook] WARNING: Real user was deleted from Clerk: ${userData.id}`,
-              );
+              log.warn('Real user was deleted from Clerk', {
+                event: 'user.delete.unexpected',
+                clerkId: userData.id,
+              });
               // Note: Deletions should only happen through softDeleteUser/hardDeleteUser actions
               // which handle both Clerk and Convex updates atomically
             }
           }
         } catch (error) {
-          console.error(`[Clerk Webhook] Error handling user deletion: ${error}`);
+          log.error('Error handling user deletion', toErrorCode(error), {
+            event: 'user.delete.error',
+            clerkId: userData.id,
+          });
         }
 
         break;
       }
 
       default:
-        console.log(`[Clerk Webhook] Unhandled event type: ${eventType}`);
+        log.info('Unhandled webhook event type', {
+          event: 'webhook.event.unhandled',
+          extra: { eventType },
+        });
     }
 
-    return NextResponse.json({ received: true });
+    const durationMs = Date.now() - startTime;
+    log.info('Clerk webhook processed', {
+      event: 'request.success',
+      httpStatus: 200,
+      durationMs,
+      extra: { eventType },
+    });
+
+    return NextResponse.json(
+      { received: true },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (err) {
-    console.error('[Clerk Webhook] Error:', err);
-    return NextResponse.json({ error: 'Webhook error' }, { status: 400 });
+    const durationMs = Date.now() - startTime;
+    // Internal errors should return 500, not 400
+    log.error('Clerk webhook error', toErrorCode(err), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Webhook error' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }
 

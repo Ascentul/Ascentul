@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hasPlatformAdminAccess, hasUniversityAdminAccess } from '@/lib/constants/roles';
 import { convexServer } from '@/lib/convex-server';
 import { getErrorMessage } from '@/lib/errors';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 /**
  * Sync university assignment to Clerk publicMetadata
@@ -15,22 +16,72 @@ import { getErrorMessage } from '@/lib/errors';
  * and grant them premium access.
  */
 export async function POST(req: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(req);
+  const log = createRequestLogger(correlationId, {
+    feature: 'university',
+    httpMethod: 'POST',
+    httpPath: '/api/university/sync-clerk-metadata',
+  });
+
+  const startTime = Date.now();
+  log.info('Sync Clerk metadata request started', { event: 'request.start' });
+
   try {
     const { userId, getToken } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      log.warn('User not authenticated', { event: 'auth.failed', errorCode: 'UNAUTHORIZED' });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     const token = await getToken({ template: 'convex' });
     if (!token) {
-      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
+      log.warn('Failed to obtain auth token', {
+        event: 'auth.token_failed',
+        errorCode: 'UNAUTHORIZED',
+      });
+      return NextResponse.json(
+        { error: 'Failed to obtain auth token' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
-    const body = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      log.warn('Invalid JSON in request body', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
     const { studentEmail, universityId } = body;
 
     if (!studentEmail || !universityId) {
-      return NextResponse.json({ error: 'Missing studentEmail or universityId' }, { status: 400 });
+      log.warn('Missing required fields', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Missing studentEmail or universityId' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Verify the requester is a university admin
@@ -43,14 +94,28 @@ export async function POST(req: NextRequest) {
     );
 
     if (!adminUser || !hasUniversityAdminAccess(adminUser.role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      log.warn('Forbidden - not a university admin', {
+        event: 'auth.forbidden',
+        errorCode: 'FORBIDDEN',
+      });
+      return NextResponse.json(
+        { error: 'Forbidden: University admin access required' },
+        {
+          status: 403,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Verify the admin belongs to this university (unless super_admin)
     if (!hasPlatformAdminAccess(adminUser.role) && adminUser.university_id !== universityId) {
+      log.warn('Admin attempting cross-university assignment', {
+        event: 'auth.forbidden',
+        errorCode: 'FORBIDDEN',
+      });
       return NextResponse.json(
         { error: 'Cannot assign students to other universities' },
-        { status: 403 },
+        { status: 403, headers: { 'x-correlation-id': correlationId } },
       );
     }
 
@@ -63,11 +128,21 @@ export async function POST(req: NextRequest) {
 
     if (!users.data || users.data.length === 0) {
       // Student doesn't have a Clerk account yet - they'll get the metadata when they sign up
-      return NextResponse.json({
-        success: true,
-        message: 'Student not yet registered. Metadata will be set upon signup.',
-        userFound: false,
+      const durationMs = Date.now() - startTime;
+      log.info('Student not yet registered', {
+        event: 'university.student_pending_sync',
+        clerkId: userId,
+        httpStatus: 200,
+        durationMs,
       });
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Student not yet registered. Metadata will be set upon signup.',
+          userFound: false,
+        },
+        { headers: { 'x-correlation-id': correlationId } },
+      );
     }
 
     const studentClerkUser = users.data[0];
@@ -82,18 +157,36 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log(
-      `[Sync Clerk Metadata] Updated user ${studentEmail} with university_id: ${universityId}`,
-    );
-
-    return NextResponse.json({
-      success: true,
-      message: 'Clerk metadata updated successfully',
-      userFound: true,
+    const durationMs = Date.now() - startTime;
+    log.info('Clerk metadata updated successfully', {
+      event: 'university.clerk_metadata_synced',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
     });
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: 'Clerk metadata updated successfully',
+        userFound: true,
+      },
+      { headers: { 'x-correlation-id': correlationId } },
+    );
   } catch (error: unknown) {
-    console.error('Sync Clerk metadata error:', error);
+    const durationMs = Date.now() - startTime;
+    log.error('Sync Clerk metadata error', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
     const message = getErrorMessage(error, 'Internal server error');
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: message },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

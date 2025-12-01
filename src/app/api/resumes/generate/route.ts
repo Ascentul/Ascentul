@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 import { evaluate } from '@/lib/ai-evaluation';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -169,17 +170,51 @@ function generateBasicResume(jobDescription: string, userProfile?: UserProfile) 
 }
 
 export async function POST(req: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(req);
+  const log = createRequestLogger(correlationId, {
+    feature: 'resume',
+    httpMethod: 'POST',
+    httpPath: '/api/resumes/generate',
+  });
+
+  const startTime = Date.now();
+  log.info('Resume generation request started', { event: 'request.start' });
+
   try {
-    const { jobDescription, userProfile } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      log.warn('Invalid JSON in request body', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'Invalid JSON' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
+    const { jobDescription, userProfile } = body;
 
     if (!jobDescription) {
-      return NextResponse.json({ error: 'Missing job description' }, { status: 400 });
+      log.warn('Missing job description', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Missing job description' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (apiKey) {
       try {
+        log.info('Starting OpenAI resume generation', { event: 'ai.request' });
         const client = new OpenAI({ apiKey });
 
         let profileContext = userProfile
@@ -371,6 +406,8 @@ Focus on keywords from the job description. Make it ATS-friendly.`;
           if (!resumeData.personalInfo.github) delete resumeData.personalInfo.github;
         }
 
+        log.info('OpenAI resume generation completed', { event: 'ai.response' });
+
         // Evaluate AI-generated resume (non-blocking for now)
         try {
           const evalResult = await evaluate({
@@ -380,41 +417,97 @@ Focus on keywords from the job description. Make it ATS-friendly.`;
           });
 
           if (!evalResult.passed) {
-            console.warn('[AI Evaluation] Resume generation failed evaluation:', {
-              score: evalResult.overall_score,
-              risk_flags: evalResult.risk_flags,
-              explanation: evalResult.explanation,
+            log.warn('Resume generation failed AI evaluation', {
+              event: 'ai.evaluation.failed',
+              extra: {
+                score: evalResult.overall_score,
+                riskFlagsCount: evalResult.risk_flags?.length ?? 0,
+              },
             });
           }
         } catch (evalError) {
           // Don't block on evaluation failures
-          console.error('[AI Evaluation] Error evaluating resume:', evalError);
+          log.warn('Error evaluating resume generation', {
+            event: 'ai.evaluation.error',
+            errorCode: toErrorCode(evalError),
+          });
         }
 
-        return NextResponse.json({
-          success: true,
-          resume: resumeData,
+        const durationMs = Date.now() - startTime;
+        log.info('Resume generation request completed', {
+          event: 'request.success',
+          httpStatus: 200,
+          durationMs,
         });
+
+        return NextResponse.json(
+          {
+            success: true,
+            resume: resumeData,
+          },
+          {
+            headers: { 'x-correlation-id': correlationId },
+          },
+        );
       } catch (aiError: any) {
-        console.error('AI generation error:', aiError);
+        log.warn('AI generation error, falling back to basic generation', {
+          event: 'ai.fallback',
+          errorCode: toErrorCode(aiError),
+        });
         // Fallback to basic generation
         const basicResume = generateBasicResume(jobDescription, userProfile);
-        return NextResponse.json({
-          success: true,
-          resume: basicResume,
-          warning: 'Used fallback generation due to AI service error',
+        const durationMs = Date.now() - startTime;
+        log.info('Resume generation completed with fallback', {
+          event: 'request.success',
+          httpStatus: 200,
+          durationMs,
+          extra: { method: 'fallback' },
         });
+        return NextResponse.json(
+          {
+            success: true,
+            resume: basicResume,
+            warning: 'Used fallback generation due to AI service error',
+          },
+          {
+            headers: { 'x-correlation-id': correlationId },
+          },
+        );
       }
     }
 
     // No OpenAI key: use basic generation
+    log.info('No OpenAI key, using basic generation', { event: 'ai.not_configured' });
     const basicResume = generateBasicResume(jobDescription, userProfile);
-    return NextResponse.json({
-      success: true,
-      resume: basicResume,
+    const durationMs = Date.now() - startTime;
+    log.info('Resume generation completed with basic generator', {
+      event: 'request.success',
+      httpStatus: 200,
+      durationMs,
+      extra: { method: 'basic' },
     });
+    return NextResponse.json(
+      {
+        success: true,
+        resume: basicResume,
+      },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (err: any) {
-    console.error('generate error', err);
-    return NextResponse.json({ error: 'Failed to generate resume' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('Resume generation request failed', toErrorCode(err), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Failed to generate resume' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

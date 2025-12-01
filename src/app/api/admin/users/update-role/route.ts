@@ -3,7 +3,9 @@ import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
 import { NextRequest, NextResponse } from 'next/server';
 
+import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 import { isValidUserRole } from '@/lib/validation/roleValidation';
 import { ClerkPublicMetadata } from '@/types/clerk';
 
@@ -23,18 +25,19 @@ export const dynamic = 'force-dynamic';
  * Body: { userId: string, newRole: string, universityId?: string }
  */
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'admin',
+    httpMethod: 'POST',
+    httpPath: '/api/admin/users/update-role',
+  });
+
+  const startTime = Date.now();
+  log.info('Role update request started', { event: 'request.start' });
+
   try {
-    const authResult = await auth();
-    const { userId, getToken } = authResult;
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized - Please sign in' }, { status: 401 });
-    }
-
-    const token = await getToken({ template: 'convex' });
-    if (!token) {
-      return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
-    }
+    const { userId, token } = await requireConvexToken();
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     // Get caller's role from Clerk
     const client = await clerkClient();
@@ -43,9 +46,17 @@ export async function POST(request: NextRequest) {
 
     // Only super_admin can update roles
     if (callerRole !== 'super_admin') {
+      log.warn('Forbidden - not super_admin', {
+        event: 'auth.forbidden',
+        errorCode: 'FORBIDDEN',
+        extra: { callerRole },
+      });
       return NextResponse.json(
         { error: 'Forbidden - Only super admins can update user roles' },
-        { status: 403 },
+        {
+          status: 403,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
@@ -53,55 +64,84 @@ export async function POST(request: NextRequest) {
     const { userId: targetUserId, newRole, universityId } = body;
 
     if (!targetUserId || !newRole) {
+      log.warn('Missing required fields', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
       return NextResponse.json(
         { error: 'Missing required fields: userId, newRole' },
-        { status: 400 },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
     // Validate role is allowed
     if (!isValidUserRole(newRole)) {
-      return NextResponse.json({ error: `Invalid role: ${newRole}` }, { status: 400 });
+      log.warn('Invalid role specified', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+        extra: { newRole },
+      });
+      return NextResponse.json(
+        { error: `Invalid role: ${newRole}` },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Prevent self-modification to avoid accidental lockout
     if (targetUserId === userId) {
+      log.warn('Self-modification attempted', {
+        event: 'validation.failed',
+        errorCode: 'FORBIDDEN',
+      });
       return NextResponse.json(
         { error: 'Cannot modify your own role. Use another super_admin account.' },
-        { status: 403 },
+        {
+          status: 403,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
-    // Get target user from Clerk
-    // Note: getUser() throws ClerkAPIResponseError if user not found
+    // Get target user from Clerk (do not log target user email)
     let targetUser;
     try {
       targetUser = await client.users.getUser(targetUserId);
-    } catch (error: any) {
-      if (error?.status === 404 || error?.errors?.[0]?.code === 'resource_not_found') {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    } catch (error: unknown) {
+      const errorObj = error as { status?: number; errors?: Array<{ code?: string }> };
+      if (errorObj?.status === 404 || errorObj?.errors?.[0]?.code === 'resource_not_found') {
+        log.warn('Target user not found', { event: 'data.not_found', errorCode: 'NOT_FOUND' });
+        return NextResponse.json(
+          { error: 'User not found' },
+          {
+            status: 404,
+            headers: { 'x-correlation-id': correlationId },
+          },
+        );
       }
-      throw error; // Re-throw other errors to be caught by outer catch
+      throw error;
     }
 
-    // Extract current role from Clerk (source of truth, don't trust client)
+    // Extract current role from Clerk (source of truth)
     const currentRole = (targetUser.publicMetadata as ClerkPublicMetadata)?.role;
 
     // Critical validation: prevent changing the super_admin role
-    // BUSINESS RULE: There is only ONE super_admin (the founder).
-    // The super_admin role should never be changed through the admin UI.
-    // This prevents accidental lockout from the platform.
-    //
-    // If the founder needs to change their role for testing, they must:
-    // 1. Use Clerk Dashboard to manually update publicMetadata.role
-    // 2. Or temporarily disable this check in code
     if (currentRole === 'super_admin' && newRole !== 'super_admin') {
+      log.warn('Attempted to modify super_admin role', {
+        event: 'auth.forbidden',
+        errorCode: 'FORBIDDEN',
+      });
       return NextResponse.json(
         {
           error:
             'Cannot change super_admin role. This role is reserved for the platform founder and cannot be modified through the admin interface. Use Clerk Dashboard for emergency role changes.',
         },
-        { status: 403 },
+        {
+          status: 403,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
@@ -110,37 +150,62 @@ export async function POST(request: NextRequest) {
       (newRole === 'student' || newRole === 'university_admin' || newRole === 'advisor') &&
       !universityId
     ) {
+      log.warn('University role missing university_id', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+        extra: { newRole },
+      });
       return NextResponse.json(
         { error: `${newRole} role requires a university affiliation` },
-        { status: 400 },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
     // Prevent university_id for non-university roles
     if (newRole === 'individual' && universityId) {
+      log.warn('Individual role with university_id', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
       return NextResponse.json(
         { error: 'Individual role cannot have university affiliation' },
-        { status: 400 },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
     // Validate university exists if provided
     if (universityId) {
-      // Validate ID format before querying
-      // Convex IDs are URL-safe base32-encoded strings
       if (typeof universityId !== 'string' || universityId.trim().length === 0) {
+        log.warn('Invalid university ID format', {
+          event: 'validation.failed',
+          errorCode: 'BAD_REQUEST',
+        });
         return NextResponse.json(
           { error: 'Invalid university ID format - must be a non-empty string' },
-          { status: 400 },
+          {
+            status: 400,
+            headers: { 'x-correlation-id': correlationId },
+          },
         );
       }
 
-      // Basic format check: Convex IDs are alphanumeric with possible underscores
-      // More thorough validation happens when querying Convex
       if (!/^[a-z0-9_]+$/i.test(universityId)) {
+        log.warn('Invalid university ID characters', {
+          event: 'validation.failed',
+          errorCode: 'BAD_REQUEST',
+        });
         return NextResponse.json(
           { error: 'Invalid university ID format - contains invalid characters' },
-          { status: 400 },
+          {
+            status: 400,
+            headers: { 'x-correlation-id': correlationId },
+          },
         );
       }
 
@@ -154,21 +219,33 @@ export async function POST(request: NextRequest) {
         )) as { status?: string } | null;
 
         if (!university) {
+          log.warn('University not found', { event: 'data.not_found', errorCode: 'NOT_FOUND' });
           return NextResponse.json(
             { error: 'Invalid university ID - university does not exist' },
-            { status: 400 },
+            {
+              status: 400,
+              headers: { 'x-correlation-id': correlationId },
+            },
           );
         }
 
-        // Warn if university is not active
         if (university.status !== 'active' && university.status !== 'trial') {
-          console.warn(`[API] Assigning user to university with status: ${university.status}`);
+          log.warn('Assigning user to inactive university', {
+            event: 'admin.university.inactive',
+            extra: { universityStatus: university.status },
+          });
         }
       } catch (error) {
-        console.error('[API] University validation error:', error);
+        log.warn('University validation error', {
+          event: 'validation.failed',
+          errorCode: toErrorCode(error),
+        });
         return NextResponse.json(
           { error: 'Invalid university ID format or university does not exist' },
-          { status: 400 },
+          {
+            status: 400,
+            headers: { 'x-correlation-id': correlationId },
+          },
         );
       }
     }
@@ -176,7 +253,7 @@ export async function POST(request: NextRequest) {
     // Determine if we should remove university_id
     const requiresUniversity = ['student', 'university_admin', 'advisor'].includes(newRole);
 
-    // Validate transition against backend rules (leverages Convex roleValidation)
+    // Validate transition against backend rules
     try {
       const validation = (await convexServer.query(
         api.roleValidation.validateRoleTransition,
@@ -191,24 +268,38 @@ export async function POST(request: NextRequest) {
       )) as { valid: boolean; error?: string } | null;
 
       if (!validation?.valid) {
+        log.warn('Role transition validation failed', {
+          event: 'validation.failed',
+          errorCode: 'BAD_REQUEST',
+          extra: { validationError: validation?.error },
+        });
         return NextResponse.json(
           { error: validation?.error || 'Invalid role transition' },
-          { status: 400 },
+          {
+            status: 400,
+            headers: { 'x-correlation-id': correlationId },
+          },
         );
       }
     } catch (validationError) {
-      console.warn('[API] Role transition validation failed:', validationError);
+      log.warn('Role transition validation threw error', {
+        event: 'validation.failed',
+        errorCode: toErrorCode(validationError),
+      });
       return NextResponse.json(
         {
           error:
             validationError instanceof Error ? validationError.message : 'Role validation failed',
         },
-        { status: 400 },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
     // Update Clerk metadata first; Convex will sync via webhook
-    const newMetadata: Record<string, any> = {
+    const newMetadata: Record<string, unknown> = {
       ...targetUser.publicMetadata,
       role: newRole,
     };
@@ -223,24 +314,50 @@ export async function POST(request: NextRequest) {
       publicMetadata: newMetadata,
     });
 
-    console.log(`[API] Updated Clerk role for user ${targetUser.id}: ${currentRole} → ${newRole}`);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Role updated in Clerk. Convex will sync via webhook.',
-      user: {
-        id: targetUser.id,
-        email: targetUser.emailAddresses[0]?.emailAddress || 'no-email',
+    const durationMs = Date.now() - startTime;
+    log.info('Role updated successfully', {
+      event: 'admin.role.updated',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
+      extra: {
+        targetUserId,
+        previousRole: currentRole || 'unknown',
         newRole,
+        hasUniversity: !!universityId,
       },
     });
-  } catch (error) {
-    console.error('[API] Role update error:', error);
+
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Failed to update role',
+        success: true,
+        message: 'Role updated in Clerk. Convex will sync via webhook.',
+        user: {
+          id: targetUser.id,
+          email: targetUser.emailAddresses[0]?.emailAddress || 'no-email',
+          newRole,
+        },
       },
-      { status: 500 },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    const message = error instanceof Error ? error.message : 'Failed to update role';
+    const status =
+      message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500;
+    log.error('Role update request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: status,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: message },
+      {
+        status,
+        headers: { 'x-correlation-id': correlationId },
+      },
     );
   }
 }
