@@ -2,14 +2,14 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
 
-function requireAdmin(user: any) {
+function requireAdmin(user: any, options?: { allowMissingUniversity?: boolean }) {
   const isAdmin = ["super_admin", "university_admin", "advisor"].includes(user.role);
   if (!isAdmin) {
     throw new Error("Unauthorized");
   }
 
-  // University-scoped roles must be tied to a university
-  if (user.role !== "super_admin" && !user.university_id) {
+  // University-scoped roles must be tied to a university (unless explicitly allowed)
+  if (user.role !== "super_admin" && !user.university_id && !options?.allowMissingUniversity) {
     throw new Error("Unauthorized: University membership required");
   }
 }
@@ -34,7 +34,7 @@ export const getOverview = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
-    requireAdmin(user);
+    requireAdmin(user, { allowMissingUniversity: true });
 
     const uniId = user.university_id;
     if (!uniId) {
@@ -105,7 +105,7 @@ export const getUniversityAnalytics = query({
   args: { clerkId: v.string(), departmentId: v.optional(v.id("departments")) },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
-    requireAdmin(user);
+    requireAdmin(user, { allowMissingUniversity: true });
 
     const uniId = user.university_id;
     if (!uniId) {
@@ -527,7 +527,7 @@ export const listStudents = query({
   args: { clerkId: v.string(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
-    requireAdmin(user);
+    requireAdmin(user, { allowMissingUniversity: true });
 
     if (!user.university_id) return [];
 
@@ -551,7 +551,7 @@ export const listDepartments = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
-    requireAdmin(user);
+    requireAdmin(user, { allowMissingUniversity: true });
     if (!user.university_id) return [];
     // OPTIMIZED: Add limit to prevent bandwidth issues
     return await ctx.db
@@ -668,7 +668,7 @@ export const getStudentMetrics = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
-    requireAdmin(user);
+    requireAdmin(user, { allowMissingUniversity: true });
 
     if (!user.university_id) {
       return {
@@ -788,7 +788,7 @@ export const getStudentProgress = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx, args.clerkId);
-    requireAdmin(user);
+    requireAdmin(user, { allowMissingUniversity: true });
 
     if (!user.university_id) return [];
 

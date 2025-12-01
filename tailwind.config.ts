@@ -124,6 +124,10 @@ const config = {
         slideUp: {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" }
+        },
+        "gradient-x": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" }
         }
       },
       animation: {
@@ -132,7 +136,8 @@ const config = {
         fadeIn: "fadeIn 0.5s ease-in-out",
         bounce: "bounce 1s ease-in-out infinite",
         slideDown: "slideDown 300ms cubic-bezier(0.87, 0, 0.13, 1)",
-        slideUp: "slideUp 300ms cubic-bezier(0.87, 0, 0.13, 1)"
+        slideUp: "slideUp 300ms cubic-bezier(0.87, 0, 0.13, 1)",
+        "gradient-x": "gradient-x 3s ease infinite"
       },
       borderRadius: {
         lg: "var(--radius)",

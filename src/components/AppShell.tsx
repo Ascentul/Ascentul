@@ -28,13 +28,13 @@ export function AppShell({ sidebar, children }: AppShellProps) {
       </aside>
 
       {/* Main Content Area - white card floating on top of grey background, scrollable */}
-      <main className="min-h-screen flex-1 pl-0 pr-6 py-6 transition-all duration-300 ease-in-out">
+      <main className="min-h-screen flex-1 pl-0 pr-6 pt-[20px] pb-6 transition-all duration-300 ease-in-out">
         {/* Notification buttons - fixed position in top right of main content area */}
-        <div className="fixed top-2 right-12 z-10">
+        <div className="fixed top-6 right-12 z-10">
           <NotificationButtons />
         </div>
 
-        <div className="mx-auto mt-2 rounded-3xl bg-white p-6 shadow-sm">
+        <div className="mx-auto rounded-3xl bg-white p-6 shadow-sm">
           {children}
         </div>
       </main>

@@ -1005,6 +1005,13 @@ export const getUserDashboardAnalytics = query({
       }
     }
 
+    // Calculate week boundaries for "this week" metrics
+    const now = Date.now();
+    const startOfWeek = new Date();
+    startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Start of Sunday
+    const weekStart = startOfWeek.getTime();
+
     // Parallelize all user data queries with safety limits to prevent over-fetching for power users
     // Note: We still fetch all records for stats calculation, but limit activity feed processing
     const [
@@ -1017,6 +1024,7 @@ export const getUserDashboardAnalytics = query({
       projects,
       contacts,
       careerPaths,
+      advisorSessions,
     ] = await Promise.all([
       ctx.db.query("applications").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
       ctx.db.query("goals").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
@@ -1027,7 +1035,16 @@ export const getUserDashboardAnalytics = query({
       ctx.db.query("projects").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
       ctx.db.query("networking_contacts").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(200),
       ctx.db.query("career_paths").withIndex("by_user", (q) => q.eq("user_id", user._id)).take(100),
+      ctx.db.query("advisor_sessions").filter((q) => q.eq(q.field("student_id"), user._id)).take(50),
     ]);
+
+    // Calculate "this week" metrics
+    const applicationsThisWeek = applications.filter(app => app.created_at >= weekStart).length;
+    const goalsThisWeek = goals.filter(goal => goal.created_at >= weekStart).length;
+    const followupsCompletedThisWeek = followupActions.filter(
+      f => f.status === 'done' && f.completed_at && f.completed_at >= weekStart
+    ).length;
+    const totalActionsThisWeek = applicationsThisWeek + goalsThisWeek + followupsCompletedThisWeek;
 
     // Calculate stats using stage with status fallback during migration
     // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
@@ -1342,6 +1359,25 @@ export const getUserDashboardAnalytics = query({
       usageData.projects.used,
     ].filter(Boolean).length;
 
+    // Calculate overdue follow-ups
+    const overdueFollowups = followupActions.filter(
+      f => f.status === 'open' && f.due_at && f.due_at < now
+    ).length;
+
+    // Get the next upcoming interview with details for hero card
+    const nextInterviewDetails = upcomingInterviews.length > 0
+      ? (() => {
+          const interview = upcomingInterviews[0];
+          // Find associated application for company name
+          const app = applications.find(a => a._id === interview.application_id);
+          return {
+            date: interview.scheduled_at,
+            company: app?.company || 'Unknown Company',
+            title: interview.title,
+          };
+        })()
+      : null;
+
     return {
       applicationStats,
       activeGoals,
@@ -1350,6 +1386,16 @@ export const getUserDashboardAnalytics = query({
       upcomingInterviews: upcomingInterviews.length,
       interviewRate,
       recentActivity,
+      // This week metrics for dashboard header
+      thisWeek: {
+        totalActions: totalActionsThisWeek,
+        applicationsAdded: applicationsThisWeek,
+        goalsCreated: goalsThisWeek,
+        followupsCompleted: followupsCompletedThisWeek,
+      },
+      // Enhanced metrics for V2 dashboard
+      overdueFollowups,
+      nextInterviewDetails,
       // Data for child components to avoid separate queries
       onboardingProgress: {
         completed_tasks: user.completed_tasks || [],
@@ -1376,6 +1422,33 @@ export const getUserDashboardAnalytics = query({
         interviewStages: interviewStages,
       },
       followupsData: followupActions,
+      // Journey progress tracking for student dashboard card
+      journeyProgress: {
+        careerExploration: {
+          isComplete: careerPaths.length > 0,
+          count: careerPaths.length,
+        },
+        resumeBuilding: {
+          isComplete: resumes.length > 0,
+          count: resumes.length,
+        },
+        jobSearch: {
+          isComplete: applications.length > 0,
+          count: applications.length,
+        },
+        advising: {
+          isComplete: advisorSessions.length > 0,
+          count: advisorSessions.length,
+          completedCount: advisorSessions.filter((s) => s.status === "completed").length,
+        },
+        completedSteps: [
+          careerPaths.length > 0,
+          resumes.length > 0,
+          applications.length > 0,
+          advisorSessions.length > 0,
+        ].filter(Boolean).length,
+        totalSteps: 4,
+      },
     };
   },
 });

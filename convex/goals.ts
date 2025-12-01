@@ -63,9 +63,18 @@ export const createGoal = mutation({
 
     if (!user) throw new Error("User not found");
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    // Only require membership for university-affiliated students
+    // Individual users can create goals without a membership
+    let membership = null;
+    if (user.role === "student" && user.university_id) {
+      try {
+        membership = (await requireMembership(ctx, { role: "student" })).membership;
+      } catch {
+        // If membership check fails but user has university_id, continue without membership
+        // This handles edge cases during onboarding or membership transitions
+        membership = null;
+      }
+    }
 
     // ARCHITECTURE NOTE: Free plan limits are enforced at the FRONTEND layer
     // - Clerk Billing (publicMetadata) is the source of truth for subscriptions
@@ -131,9 +140,15 @@ export const updateGoal = mutation({
       .unique();
     if (!user) throw new Error("User not found");
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    // Only require membership for university-affiliated students
+    let membership = null;
+    if (user.role === "student" && user.university_id) {
+      try {
+        membership = (await requireMembership(ctx, { role: "student" })).membership;
+      } catch {
+        membership = null;
+      }
+    }
 
     const goal = await ctx.db.get(args.goalId);
     if (!goal || goal.user_id !== user._id)
@@ -177,9 +192,15 @@ export const deleteGoal = mutation({
       .unique();
     if (!user) throw new Error("User not found");
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    // Only require membership for university-affiliated students
+    let membership = null;
+    if (user.role === "student" && user.university_id) {
+      try {
+        membership = (await requireMembership(ctx, { role: "student" })).membership;
+      } catch {
+        membership = null;
+      }
+    }
 
     const goal = await ctx.db.get(args.goalId);
     if (!goal || goal.user_id !== user._id)

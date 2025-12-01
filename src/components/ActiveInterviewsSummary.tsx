@@ -240,7 +240,7 @@ export function ActiveInterviewsSummary() {
       className="mb-6 h-full"
     >
       <Card
-        className="h-full flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-0 shadow-[0_6px_18px_rgba(0,0,0,0.05)]"
+        className="h-full flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-0 shadow-sm"
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 py-3">
           <div>
@@ -274,13 +274,11 @@ export function ActiveInterviewsSummary() {
               ))}
             </div>
           ) : displayItems.length === 0 ? (
-            <div className="py-8 text-center text-slate-500">
-              <Calendar className="mx-auto mb-4 h-10 w-10 opacity-60" />
-              <p className="text-sm text-slate-700">No active interviews or applications</p>
-              <p className="text-xs">Your upcoming interviews and applications will appear here</p>
-              <Link href="/applications">
-                <Button variant="link" className="mt-2 text-sm text-[#5371FF]">
-                  View Applications
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <p className="text-sm text-slate-500">No active interviews</p>
+              <Link href="/applications" className="mt-2">
+                <Button variant="outline" size="sm" className="text-xs">
+                  View applications
                 </Button>
               </Link>
             </div>

@@ -83,10 +83,10 @@ export function CareerGoalsSummary() {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
       }}
-      className="mb-6 h-full"
+      className="h-full"
     >
       <Card
-        className="h-full flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-0 shadow-[0_6px_18px_rgba(0,0,0,0.05)]"
+        className="h-full flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-0 shadow-sm"
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 py-3">
           <div>
@@ -122,20 +122,14 @@ export function CareerGoalsSummary() {
               ))}
             </div>
           ) : activeGoals.length === 0 ? (
-            <section className="flex flex-col items-center justify-center rounded-2xl bg-[#EEF2FF] border border-transparent py-8 text-center">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm">
-                <Target className="h-5 w-5 text-[#5371FF]" />
-              </div>
-              <p className="text-sm font-medium text-slate-900">No active goals</p>
-              <p className="text-xs text-slate-600 mt-1">
-                Create your first goal to start tracking progress.
-              </p>
-              <Link href="/goals" className="mt-3 inline-flex">
-                <Button className="rounded-lg bg-[#5371FF] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4863e0]">
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <p className="text-sm text-slate-500">No active goals</p>
+              <Link href="/goals" className="mt-2">
+                <Button variant="outline" size="sm" className="text-xs">
                   Create goal
                 </Button>
               </Link>
-            </section>
+            </div>
           ) : (
             <div className="divide-y divide-slate-200">
               {activeGoals.map((goal, idx) => (

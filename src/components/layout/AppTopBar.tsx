@@ -2,19 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Bell, HelpCircle, MessageCircle, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Bell, MessageCircle, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { QuickActionChips } from "@/components/dashboard/QuickActionChips";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
+import { useUser } from "@clerk/nextjs";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
+import Image from "next/image";
+import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
-import { useToast } from "@/hooks/use-toast";
-import { hasPlatformAdminAccess } from "@/lib/constants/roles";
+import { GlobalSearch, useGlobalSearch } from "@/components/GlobalSearch";
 
 type IconButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   hasUnread?: boolean;
@@ -41,19 +38,35 @@ function IconButton({ hasUnread, isActive, className = "", children, ...rest }: 
 
 export default function AppTopBar() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const { user, subscription, isAdmin } = useAuth();
+  const { user: clerkUser } = useUser();
+  const { impersonation, getEffectiveRole, getEffectivePlan } = useImpersonation();
+  const globalSearch = useGlobalSearch();
+
+  // Get effective role/plan for badge display
+  const effectiveRole = getEffectiveRole();
+  const effectivePlan = getEffectivePlan();
+  const effectiveIsAdmin = effectiveRole === "super_admin";
+
+  // Fetch viewer data to get student context (university name)
+  const viewer = useQuery(
+    api.viewer.getViewer,
+    clerkUser ? {} : "skip"
+  );
+
+  // Check if user is university-affiliated (they have a dedicated badge in sidebar)
+  const isUniversityAffiliated = viewer?.university != null;
+
+  // Compute badge text - only for non-university users (university users have sidebar badge)
+  const badgeText = effectiveIsAdmin || isUniversityAffiliated
+    ? null
+    : impersonation.isImpersonating
+      ? (effectivePlan || effectiveRole)
+      : (subscription.planName || "Free plan");
   const [openPanel, setOpenPanel] = useState<null | "search" | "messages" | "notifications">(null);
   const [unreadMessages, setUnreadMessages] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
-  const [supportOpen, setSupportOpen] = useState(false);
-  const [subject, setSubject] = useState("");
-  const [description, setDescription] = useState("");
-  const [issueType, setIssueType] = useState("Other");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Hide quick action chips for super_admin
-  const isSuperAdmin = hasPlatformAdminAccess(user?.role);
 
   // Fetch notification count from Convex
   const unreadCount = useQuery(
@@ -96,75 +109,31 @@ export default function AppTopBar() {
     return () => window.removeEventListener("mousedown", handler);
   }, [openPanel]);
 
-  const handleSupportSubmit = async () => {
-    if (!subject.trim() || !description.trim()) return;
-    setIsSubmitting(true);
-    try {
-      const response = await fetch("/api/support/tickets", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          subject,
-          description,
-          issueType,
-          source: "topbar",
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to submit support ticket");
-      }
-      
-      toast({
-        title: "Support ticket submitted",
-        description: "We'll get back to you soon.",
-      });
-      
-      setSupportOpen(false);
-      setSubject("");
-      setDescription("");
-      setIssueType("Other");
-    } catch (error) {
-      console.error("Error submitting support ticket:", error);
-      toast({
-        title: "Failed to submit ticket",
-        description: "Please try again or contact us directly.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
-    <header className="relative z-20 bg-app-bg/70 backdrop-blur">
-      <div className="relative flex w-full items-center justify-between gap-3 px-4 md:px-6" style={{ minHeight: "56px" }}>
-        {!isSuperAdmin && (
-          <div className="hidden md:flex items-center gap-2.5 flex-nowrap">
-            <QuickActionChips />
-          </div>
-        )}
+    <header className="relative z-20">
+      <div className="relative flex w-full items-center justify-end gap-3 px-4 md:px-6 h-[74px]">
+        {/* Centered Search Bar - fixed position relative to viewport center */}
+        <button
+          onClick={globalSearch.open}
+          className="hidden md:flex items-center gap-3 w-full max-w-md rounded-full border border-slate-200/80 bg-white/90 backdrop-blur-sm px-4 py-2.5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200 group fixed left-1/2 -translate-x-1/2 top-[17px] cursor-pointer"
+        >
+          <Search className="h-4 w-4 text-slate-400 group-hover:text-slate-500 transition-colors" />
+          <span className="flex-1 text-left text-sm text-slate-400 group-hover:text-slate-500 transition-colors">
+            Search applications, resumes, goals...
+          </span>
+          <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded border border-slate-200 bg-slate-100 px-1.5 font-mono text-[10px] font-medium text-slate-500">
+            ⌘K
+          </kbd>
+        </button>
 
-        <div className="flex flex-1 items-center justify-end gap-2.5" ref={panelRef}>
-          {openPanel === "search" && (
-            <div className="hidden md:flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-              <Search className="h-4 w-4 text-slate-500" />
-              <Input
-                placeholder="Search across apps..."
-                className="h-8 border-0 bg-transparent p-0 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 focus-visible:ring-offset-0"
-                autoFocus
-              />
-            </div>
+        {/* Right side icons */}
+        <div className="flex items-center gap-2.5" ref={panelRef}>
+          {/* Plan/University Badge */}
+          {badgeText && (
+            <span className="hidden md:inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              {badgeText}
+            </span>
           )}
-          <IconButton
-            aria-label="Search"
-            isActive={openPanel === "search"}
-            onClick={() => togglePanel("search")}
-          >
-            <Search className="h-4 w-4" />
-          </IconButton>
           <IconButton
             aria-label="Messages"
             hasUnread={unreadMessages}
@@ -173,67 +142,6 @@ export default function AppTopBar() {
           >
             <MessageCircle className="h-4 w-4" />
           </IconButton>
-          <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
-            <DialogTrigger asChild>
-              <button
-                type="button"
-                className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
-                aria-label="Support"
-              >
-                <HelpCircle className="h-4 w-4" />
-              </button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Contact Support</DialogTitle>
-                <DialogDescription>
-                  Describe your issue and we'll help you resolve it.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Issue Type</label>
-                  <Select value={issueType} onValueChange={setIssueType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Bug">Bug Report</SelectItem>
-                      <SelectItem value="Feature">Feature Request</SelectItem>
-                      <SelectItem value="Account">Account Issue</SelectItem>
-                      <SelectItem value="Billing">Billing Question</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Subject</label>
-                  <Input
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Brief description of your issue"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Please provide details about your issue"
-                    rows={4}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  onClick={handleSupportSubmit}
-                  disabled={isSubmitting || !subject.trim() || !description.trim()}
-                >
-                  {isSubmitting ? "Submitting..." : "Submit Ticket"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
           <IconButton
             aria-label="Notifications"
             hasUnread={hasUnreadNotifications}
@@ -242,6 +150,25 @@ export default function AppTopBar() {
           >
             <Bell className="h-4 w-4" />
           </IconButton>
+
+          {/* Profile Avatar */}
+          {clerkUser && (
+            <Link href="/account" className="flex-shrink-0" aria-label="Account settings">
+              <div className="relative h-10 w-10 rounded-full ring-2 ring-primary-500/50 hover:ring-primary-500 transition-all overflow-hidden shadow-sm">
+                <Image
+                  src={
+                    user?.profile_image ||
+                    clerkUser.imageUrl ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=5371FF&color=fff`
+                  }
+                  alt="Profile"
+                  width={40}
+                  height={40}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </Link>
+          )}
         </div>
 
         {openPanel === "messages" && (
@@ -315,6 +242,9 @@ export default function AppTopBar() {
           </div>
         )}
       </div>
+
+      {/* Global Search Modal */}
+      <GlobalSearch isOpen={globalSearch.isOpen} onClose={globalSearch.close} />
     </header>
   );
 }
