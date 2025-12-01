@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ESLint is run separately in CI (npm run lint), so we skip it during build
+  // to avoid duplicate linting and allow warnings in development
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       // Supabase storage (wildcard covers all Supabase instances - trusted CDN)
