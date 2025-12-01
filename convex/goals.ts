@@ -2,18 +2,31 @@ import { v } from 'convex/values';
 
 import { api } from './_generated/api';
 import { mutation, query } from './_generated/server';
+import { log, createLogContext, toErrorCode } from './lib/logger';
 import { requireMembership } from './lib/roles';
 
 // Get goals for a Clerk user
 export const getUserGoals = query({
-  args: { clerkId: v.string() },
+  args: {
+    clerkId: v.string(),
+    correlationId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    const logCtx = createLogContext('goal', args.correlationId);
+
     const user = await ctx.db
       .query('users')
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error('User not found');
+    if (!user) {
+      log('warn', 'User not found for goals query', {
+        ...logCtx,
+        event: 'query.user_not_found',
+        clerkId: args.clerkId,
+      });
+      throw new Error('User not found');
+    }
 
     // Note: We don't require membership for read queries - users can always view their own goals
     // Membership is only used for write operations and tenant isolation
@@ -24,6 +37,13 @@ export const getUserGoals = query({
       .withIndex('by_user', (q) => q.eq('user_id', user._id))
       .order('desc')
       .take(200); // Limit to 200 most recent goals
+
+    log('debug', 'Goals fetched', {
+      ...logCtx,
+      event: 'query.success',
+      userId: user._id,
+      extra: { goalsCount: goals.length },
+    });
 
     return goals;
   },
@@ -55,14 +75,30 @@ export const createGoal = mutation({
     progress: v.optional(v.number()),
     checklist: v.optional(v.array(checklistItem)),
     category: v.optional(v.string()),
+    correlationId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const logCtx = createLogContext('goal', args.correlationId);
+
+    log('info', 'Creating goal', {
+      ...logCtx,
+      event: 'operation.start',
+      clerkId: args.clerkId,
+    });
+
     const user = await ctx.db
       .query('users')
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error('User not found');
+    if (!user) {
+      log('warn', 'User not found for goal creation', {
+        ...logCtx,
+        event: 'operation.user_not_found',
+        clerkId: args.clerkId,
+      });
+      throw new Error('User not found');
+    }
 
     // Only require membership for university-affiliated students
     // Individual users can create goals without a membership
@@ -113,6 +149,13 @@ export const createGoal = mutation({
     // Track activity for streak (fire-and-forget)
     await ctx.scheduler.runAfter(0, api.activity.markActionForToday, {});
 
+    log('info', 'Goal created successfully', {
+      ...logCtx,
+      event: 'operation.success',
+      userId: user._id,
+      extra: { goalId: id, status: args.status ?? 'not_started' },
+    });
+
     return id;
   },
 });
@@ -133,13 +176,29 @@ export const updateGoal = mutation({
       completed: v.optional(v.boolean()), // accepted but not stored directly
       completed_at: v.optional(v.union(v.number(), v.null())),
     }),
+    correlationId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const logCtx = createLogContext('goal', args.correlationId);
+
+    log('info', 'Updating goal', {
+      ...logCtx,
+      event: 'operation.start',
+      extra: { goalId: args.goalId },
+    });
+
     const user = await ctx.db
       .query('users')
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!user) throw new Error('User not found');
+    if (!user) {
+      log('warn', 'User not found for goal update', {
+        ...logCtx,
+        event: 'operation.user_not_found',
+        clerkId: args.clerkId,
+      });
+      throw new Error('User not found');
+    }
 
     // Only require membership for university-affiliated students
     let membership = null;
@@ -152,9 +211,23 @@ export const updateGoal = mutation({
     }
 
     const goal = await ctx.db.get(args.goalId);
-    if (!goal || goal.user_id !== user._id) throw new Error('Goal not found or unauthorized');
+    if (!goal || goal.user_id !== user._id) {
+      log('warn', 'Goal not found or unauthorized', {
+        ...logCtx,
+        event: 'operation.unauthorized',
+        userId: user._id,
+        extra: { goalId: args.goalId },
+      });
+      throw new Error('Goal not found or unauthorized');
+    }
 
     if (goal.university_id && membership && goal.university_id !== membership.university_id) {
+      log('warn', 'Unauthorized: Goal belongs to another university', {
+        ...logCtx,
+        event: 'operation.unauthorized',
+        userId: user._id,
+        tenantId: goal.university_id,
+      });
       throw new Error('Unauthorized: Goal belongs to another university');
     }
 
@@ -182,19 +255,50 @@ export const updateGoal = mutation({
     }
 
     await ctx.db.patch(args.goalId, updates);
+
+    log('info', 'Goal updated successfully', {
+      ...logCtx,
+      event: 'operation.success',
+      userId: user._id,
+      extra: {
+        goalId: args.goalId,
+        updatedFields: Object.keys(restUpdates),
+        newStatus: args.updates.status,
+      },
+    });
+
     return args.goalId;
   },
 });
 
 // Delete goal
 export const deleteGoal = mutation({
-  args: { clerkId: v.string(), goalId: v.id('goals') },
+  args: {
+    clerkId: v.string(),
+    goalId: v.id('goals'),
+    correlationId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    const logCtx = createLogContext('goal', args.correlationId);
+
+    log('info', 'Deleting goal', {
+      ...logCtx,
+      event: 'operation.start',
+      extra: { goalId: args.goalId },
+    });
+
     const user = await ctx.db
       .query('users')
       .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!user) throw new Error('User not found');
+    if (!user) {
+      log('warn', 'User not found for goal deletion', {
+        ...logCtx,
+        event: 'operation.user_not_found',
+        clerkId: args.clerkId,
+      });
+      throw new Error('User not found');
+    }
 
     // Only require membership for university-affiliated students
     let membership = null;
@@ -207,13 +311,35 @@ export const deleteGoal = mutation({
     }
 
     const goal = await ctx.db.get(args.goalId);
-    if (!goal || goal.user_id !== user._id) throw new Error('Goal not found or unauthorized');
+    if (!goal || goal.user_id !== user._id) {
+      log('warn', 'Goal not found or unauthorized for deletion', {
+        ...logCtx,
+        event: 'operation.unauthorized',
+        userId: user._id,
+        extra: { goalId: args.goalId },
+      });
+      throw new Error('Goal not found or unauthorized');
+    }
 
     if (goal.university_id && membership && goal.university_id !== membership.university_id) {
+      log('warn', 'Unauthorized: Goal belongs to another university', {
+        ...logCtx,
+        event: 'operation.unauthorized',
+        userId: user._id,
+        tenantId: goal.university_id,
+      });
       throw new Error('Unauthorized: Goal belongs to another university');
     }
 
     await ctx.db.delete(args.goalId);
+
+    log('info', 'Goal deleted successfully', {
+      ...logCtx,
+      event: 'operation.success',
+      userId: user._id,
+      extra: { goalId: args.goalId },
+    });
+
     return args.goalId;
   },
 });

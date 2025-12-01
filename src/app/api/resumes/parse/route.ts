@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 import { evaluate } from '@/lib/ai-evaluation';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -346,17 +347,38 @@ function fallbackParser(resumeText: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(req);
+  const log = createRequestLogger(correlationId, {
+    feature: 'resume',
+    httpMethod: 'POST',
+    httpPath: '/api/resumes/parse',
+  });
+
+  const startTime = Date.now();
+  log.info('Resume parse request started', { event: 'request.start' });
+
   try {
     const { resumeText } = await req.json();
 
     if (!resumeText || typeof resumeText !== 'string') {
-      return NextResponse.json({ error: 'Missing or invalid resume text' }, { status: 400 });
+      log.warn('Missing or invalid resume text', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'Missing or invalid resume text' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (apiKey) {
       try {
+        log.info('Starting OpenAI resume parsing', { event: 'ai.request' });
         const client = new OpenAI({ apiKey });
 
         const prompt = `You are a professional resume parser. Parse the following resume text and extract structured information.
@@ -448,6 +470,8 @@ IMPORTANT FORMATTING RULES:
         const content = response.choices[0]?.message?.content || '{}';
         const parsedData = JSON.parse(content);
 
+        log.info('OpenAI resume parsing completed', { event: 'ai.response' });
+
         // Evaluate AI-parsed resume (non-blocking for now)
         try {
           const evalResult = await evaluate({
@@ -457,42 +481,98 @@ IMPORTANT FORMATTING RULES:
           });
 
           if (!evalResult.passed) {
-            console.warn('[AI Evaluation] Resume parsing failed evaluation:', {
-              score: evalResult.overall_score,
-              risk_flags: evalResult.risk_flags,
-              explanation: evalResult.explanation,
+            log.warn('Resume parsing failed AI evaluation', {
+              event: 'ai.evaluation.failed',
+              extra: {
+                score: evalResult.overall_score,
+                riskFlagsCount: evalResult.risk_flags?.length ?? 0,
+              },
             });
           }
         } catch (evalError) {
           // Don't block on evaluation failures
-          console.error('[AI Evaluation] Error evaluating resume parsing:', evalError);
+          log.warn('Error evaluating resume parsing', {
+            event: 'ai.evaluation.error',
+            errorCode: toErrorCode(evalError),
+          });
         }
 
-        return NextResponse.json({
-          success: true,
-          data: parsedData,
+        const durationMs = Date.now() - startTime;
+        log.info('Resume parse request completed', {
+          event: 'request.success',
+          httpStatus: 200,
+          durationMs,
         });
+
+        return NextResponse.json(
+          {
+            success: true,
+            data: parsedData,
+          },
+          {
+            headers: { 'x-correlation-id': correlationId },
+          },
+        );
       } catch (aiError: any) {
-        console.error('AI parsing error:', aiError);
+        log.warn('AI parsing error, falling back to regex parser', {
+          event: 'ai.fallback',
+          errorCode: toErrorCode(aiError),
+        });
         // Fallback to basic parsing
         const fallbackData = fallbackParser(resumeText);
-        return NextResponse.json({
-          success: true,
-          data: fallbackData,
-          warning: 'Used fallback parsing due to AI service error',
+        const durationMs = Date.now() - startTime;
+        log.info('Resume parse completed with fallback', {
+          event: 'request.success',
+          httpStatus: 200,
+          durationMs,
+          extra: { method: 'fallback' },
         });
+        return NextResponse.json(
+          {
+            success: true,
+            data: fallbackData,
+            warning: 'Used fallback parsing due to AI service error',
+          },
+          {
+            headers: { 'x-correlation-id': correlationId },
+          },
+        );
       }
     }
 
     // No OpenAI key: use fallback parser
+    log.info('No OpenAI key, using fallback parser', { event: 'ai.not_configured' });
     const fallbackData = fallbackParser(resumeText);
-    return NextResponse.json({
-      success: true,
-      data: fallbackData,
-      warning: 'OpenAI API key not configured, using basic parsing',
+    const durationMs = Date.now() - startTime;
+    log.info('Resume parse completed with fallback', {
+      event: 'request.success',
+      httpStatus: 200,
+      durationMs,
+      extra: { method: 'fallback' },
     });
+    return NextResponse.json(
+      {
+        success: true,
+        data: fallbackData,
+        warning: 'OpenAI API key not configured, using basic parsing',
+      },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (err: any) {
-    console.error('parse error', err);
-    return NextResponse.json({ error: 'Failed to parse resume' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('Resume parse request failed', toErrorCode(err), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Failed to parse resume' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

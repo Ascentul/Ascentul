@@ -10,17 +10,24 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
-  try {
-    // Get authentication from request
-    const { userId, token } = await requireConvexToken();
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'gdpr',
+    httpMethod: 'POST',
+    httpPath: '/api/gdpr/export-data',
+  });
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const startTime = Date.now();
+  log.info('GDPR data export request started', { event: 'request.start' });
+
+  try {
+    const { userId, token } = await requireConvexToken();
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     // Get the user's data export
     let exportData;
@@ -31,16 +38,29 @@ export async function POST(request: NextRequest) {
         token,
       );
     } catch (error) {
-      // Log only error message to avoid PII leakage in GDPR context
-      console.error(
-        'Error fetching user data for export:',
-        error instanceof Error ? error.message : 'Unknown error',
+      // Log only error code to avoid PII leakage in GDPR context
+      log.warn('Failed to fetch user data for export', {
+        event: 'gdpr.export.failed',
+        errorCode: toErrorCode(error),
+      });
+      return NextResponse.json(
+        { error: 'Failed to export user data' },
+        {
+          status: 500,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
-      return NextResponse.json({ error: 'Failed to export user data' }, { status: 500 });
     }
 
     if (!exportData) {
-      return NextResponse.json({ error: 'No data found for user' }, { status: 404 });
+      log.warn('No data found for user', { event: 'gdpr.export.no_data' });
+      return NextResponse.json(
+        { error: 'No data found for user' },
+        {
+          status: 404,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     // Format the JSON with proper indentation for readability
@@ -50,60 +70,98 @@ export async function POST(request: NextRequest) {
     const date = new Date().toISOString().split('T')[0];
     const filename = `personal-data-export-${date}.json`;
 
+    const durationMs = Date.now() - startTime;
+    log.info('GDPR data export completed', {
+      event: 'gdpr.export.success',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
+    });
+
     // Return as downloadable JSON file
     return new NextResponse(jsonContent, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         'Content-Disposition': `attachment; filename="${filename}"`,
+        'x-correlation-id': correlationId,
         // Security headers
         'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'no-store, no-cache, must-revalidate',
       },
     });
   } catch (error) {
-    // Log only error message to avoid PII leakage in GDPR context
-    console.error(
-      'GDPR data export error:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    const durationMs = Date.now() - startTime;
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    const status =
+      message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500;
+    log.error('GDPR data export request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: status,
+      durationMs,
+    });
     return NextResponse.json(
+      { error: message },
       {
-        error: 'Internal server error',
-        details:
-          process.env.NODE_ENV === 'development' && error instanceof Error
-            ? error.message
-            : undefined,
+        status,
+        headers: { 'x-correlation-id': correlationId },
       },
-      { status: 500 },
     );
   }
 }
 
 // GET endpoint for checking export status / initiating from browser
 export async function GET(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'gdpr',
+    httpMethod: 'GET',
+    httpPath: '/api/gdpr/export-data',
+  });
+
+  const startTime = Date.now();
+  log.info('GDPR export info request started', { event: 'request.start' });
+
   try {
     const { userId } = await requireConvexToken();
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const durationMs = Date.now() - startTime;
+    log.info('GDPR export info request completed', {
+      event: 'request.success',
+      clerkId: userId,
+      httpStatus: 200,
+      durationMs,
+    });
 
     // Return info about the export endpoint
-    return NextResponse.json({
-      message: 'Use POST request to download your personal data',
-      gdprArticles: ['Article 15 - Right of Access', 'Article 20 - Right to Data Portability'],
-      format: 'JSON',
-      instructions:
-        'Submit a POST request to this endpoint to receive a downloadable JSON file containing all your personal data.',
-    });
+    return NextResponse.json(
+      {
+        message: 'Use POST request to download your personal data',
+        gdprArticles: ['Article 15 - Right of Access', 'Article 20 - Right to Data Portability'],
+        format: 'JSON',
+        instructions:
+          'Submit a POST request to this endpoint to receive a downloadable JSON file containing all your personal data.',
+      },
+      {
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   } catch (error) {
-    console.error('GDPR export info error:', error);
+    const durationMs = Date.now() - startTime;
     const message = error instanceof Error ? error.message : 'Unknown error';
     const isAuthError = message === 'Unauthorized' || message === 'Failed to obtain auth token';
+    log.error('GDPR export info request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: isAuthError ? 401 : 500,
+      durationMs,
+    });
     return NextResponse.json(
       { error: isAuthError ? 'Unauthorized' : 'Internal server error' },
-      { status: isAuthError ? 401 : 500 },
+      {
+        status: isAuthError ? 401 : 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
     );
   }
 }

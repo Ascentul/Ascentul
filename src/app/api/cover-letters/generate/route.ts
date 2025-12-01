@@ -6,6 +6,7 @@ import OpenAI from 'openai';
 
 import { evaluate } from '@/lib/ai-evaluation';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -18,11 +19,45 @@ type Application = Doc<'applications'>;
 type CoverLetter = Doc<'cover_letters'>;
 
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'cover-letter',
+    httpMethod: 'POST',
+    httpPath: '/api/cover-letters/generate',
+  });
+
+  const startTime = Date.now();
+  log.info('Cover letter generation request started', { event: 'request.start' });
+
   try {
     const { userId, getToken } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) {
+      log.warn('Unauthorized generation request', {
+        event: 'auth.failed',
+        errorCode: 'UNAUTHORIZED',
+      });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
     const token = await getToken({ template: 'convex' });
-    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
+    if (!token) {
+      log.warn('Failed to obtain auth token', { event: 'auth.failed', errorCode: 'TOKEN_ERROR' });
+      return NextResponse.json(
+        { error: 'Failed to obtain auth token' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
+
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
+
     const body = await request.json();
     const { jobDescription, companyName, position } = body as {
       jobDescription?: string;
@@ -31,11 +66,15 @@ export async function POST(request: NextRequest) {
     };
 
     if (!jobDescription || !companyName || !position) {
+      log.warn('Missing required fields', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
       return NextResponse.json(
         {
           error: 'Job description, company name, and position are required',
         },
-        { status: 400 },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
@@ -47,7 +86,10 @@ export async function POST(request: NextRequest) {
     try {
       profile = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token);
     } catch (error) {
-      console.error('Failed to load career profile for letter generation', error);
+      log.warn('Failed to load career profile for letter generation', {
+        event: 'context.fetch.error',
+        errorCode: toErrorCode(error),
+      });
     }
 
     // Fetch user's projects to demonstrate accomplishments
@@ -55,7 +97,10 @@ export async function POST(request: NextRequest) {
       projects =
         (await convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token)) || [];
     } catch (error) {
-      console.error('Failed to load projects for letter generation', error);
+      log.warn('Failed to load projects for letter generation', {
+        event: 'context.fetch.error',
+        errorCode: toErrorCode(error),
+      });
     }
 
     // Fetch recent applications to understand career trajectory
@@ -69,7 +114,10 @@ export async function POST(request: NextRequest) {
       // Get the 5 most recent applications
       applications = applications.slice(0, 5);
     } catch (error) {
-      console.error('Failed to load applications for letter generation', error);
+      log.warn('Failed to load applications for letter generation', {
+        event: 'context.fetch.error',
+        errorCode: toErrorCode(error),
+      });
     }
 
     // Build profile summary for cover letter personalization
@@ -206,6 +254,8 @@ Structure your response as a professional cover letter body with:
 
 Remember: Be specific, be thorough, and make every sentence count. Use concrete examples from the candidate's profile. Start directly with the opening paragraph - NO greeting line.`;
 
+    log.info('Starting OpenAI cover letter generation', { event: 'ai.request' });
+
     let generatedContent: string | null = null;
     let usedFallback = false;
     try {
@@ -227,6 +277,8 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
       });
       generatedContent = completion.choices[0]?.message?.content || null;
 
+      log.info('OpenAI cover letter generation completed', { event: 'ai.response' });
+
       // Evaluate AI-generated cover letter (non-blocking for now)
       if (generatedContent) {
         try {
@@ -238,19 +290,27 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
           });
 
           if (!evalResult.passed) {
-            console.warn('[AI Evaluation] Cover letter generation failed evaluation:', {
-              score: evalResult.overall_score,
-              risk_flags: evalResult.risk_flags,
-              explanation: evalResult.explanation,
+            log.warn('Cover letter generation failed AI evaluation', {
+              event: 'ai.evaluation.failed',
+              extra: {
+                score: evalResult.overall_score,
+                riskFlagsCount: evalResult.risk_flags?.length ?? 0,
+              },
             });
           }
         } catch (evalError) {
           // Don't block on evaluation failures
-          console.error('[AI Evaluation] Error evaluating cover letter:', evalError);
+          log.warn('Error evaluating cover letter generation', {
+            event: 'ai.evaluation.error',
+            errorCode: toErrorCode(evalError),
+          });
         }
       }
     } catch (e) {
-      console.error('OpenAI generation failed, using fallback:', e);
+      log.warn('OpenAI generation failed, using fallback', {
+        event: 'ai.fallback',
+        errorCode: toErrorCode(e),
+      });
       generatedContent = null;
     }
 
@@ -334,9 +394,22 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
         token,
       );
     } catch (error) {
-      console.error('Failed to save cover letter:', error);
+      log.warn('Failed to save cover letter', {
+        event: 'data.save.error',
+        errorCode: toErrorCode(error),
+      });
       saveWarning = 'Cover letter generated but could not be saved.';
     }
+
+    const durationMs = Date.now() - startTime;
+    const httpStatus = coverLetter ? 201 : 200;
+    log.info('Cover letter generation request completed', {
+      event: coverLetter ? 'data.created' : 'request.success',
+      clerkId: userId,
+      httpStatus,
+      durationMs,
+      extra: { usedFallback, saved: !!coverLetter },
+    });
 
     return NextResponse.json(
       {
@@ -345,10 +418,24 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
         usedFallback,
         warning: saveWarning,
       },
-      { status: coverLetter ? 201 : 200 },
+      {
+        status: httpStatus,
+        headers: { 'x-correlation-id': correlationId },
+      },
     );
   } catch (error) {
-    console.error('Error generating cover letter:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('Cover letter generation request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

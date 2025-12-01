@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 import { evaluate } from '@/lib/ai-evaluation';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,13 +26,33 @@ function heuristicSuggestions(resumeText: string, jobDescription: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(req);
+  const log = createRequestLogger(correlationId, {
+    feature: 'resume',
+    httpMethod: 'POST',
+    httpPath: '/api/resumes/suggestions',
+  });
+
+  const startTime = Date.now();
+  log.info('Resume suggestions request started', { event: 'request.start' });
+
   try {
     const { resumeText, jobDescription } = await req.json();
-    if (!resumeText) return NextResponse.json({ error: 'Missing resumeText' }, { status: 400 });
+    if (!resumeText) {
+      log.warn('Missing resumeText', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Missing resumeText' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
       try {
+        log.info('Starting OpenAI suggestions', { event: 'ai.request' });
         const client = new OpenAI({ apiKey });
         const prompt = `Improve the RESUME SUMMARY and list RECOMMENDED SKILLS to add based on the JOB DESCRIPTION. Return JSON with { improvedSummary: string, recommendedSkills: string[] }.
 RESUME TEXT:\n${resumeText}\n\nJOB DESCRIPTION:\n${jobDescription || ''}`;
@@ -47,6 +68,8 @@ RESUME TEXT:\n${resumeText}\n\nJOB DESCRIPTION:\n${jobDescription || ''}`;
         const content = response.choices[0]?.message?.content || '{}';
         const parsed = JSON.parse(content);
 
+        log.info('OpenAI suggestions completed', { event: 'ai.response' });
+
         // Evaluate AI-generated suggestions (non-blocking for now)
         try {
           const evalResult = await evaluate({
@@ -56,27 +79,74 @@ RESUME TEXT:\n${resumeText}\n\nJOB DESCRIPTION:\n${jobDescription || ''}`;
           });
 
           if (!evalResult.passed) {
-            console.warn('[AI Evaluation] Resume suggestions failed evaluation:', {
-              score: evalResult.overall_score,
-              risk_flags: evalResult.risk_flags,
-              explanation: evalResult.explanation,
+            log.warn('Resume suggestions failed AI evaluation', {
+              event: 'ai.evaluation.failed',
+              extra: {
+                score: evalResult.overall_score,
+                riskFlagsCount: evalResult.risk_flags?.length ?? 0,
+              },
             });
           }
         } catch (evalError) {
           // Don't block on evaluation failures
-          console.error('[AI Evaluation] Error evaluating resume suggestions:', evalError);
+          log.warn('Error evaluating resume suggestions', {
+            event: 'ai.evaluation.error',
+            errorCode: toErrorCode(evalError),
+          });
         }
 
-        return NextResponse.json(parsed);
+        const durationMs = Date.now() - startTime;
+        log.info('Resume suggestions request completed', {
+          event: 'request.success',
+          httpStatus: 200,
+          durationMs,
+        });
+
+        return NextResponse.json(parsed, {
+          headers: { 'x-correlation-id': correlationId },
+        });
       } catch (e) {
-        // fallback
-        return NextResponse.json(heuristicSuggestions(resumeText, jobDescription || ''));
+        log.warn('AI suggestions error, falling back to heuristic', {
+          event: 'ai.fallback',
+          errorCode: toErrorCode(e),
+        });
+        const durationMs = Date.now() - startTime;
+        log.info('Resume suggestions completed with heuristic', {
+          event: 'request.success',
+          httpStatus: 200,
+          durationMs,
+          extra: { method: 'heuristic' },
+        });
+        return NextResponse.json(heuristicSuggestions(resumeText, jobDescription || ''), {
+          headers: { 'x-correlation-id': correlationId },
+        });
       }
     }
 
-    return NextResponse.json(heuristicSuggestions(resumeText, jobDescription || ''));
+    log.info('No OpenAI key, using heuristic suggestions', { event: 'ai.not_configured' });
+    const durationMs = Date.now() - startTime;
+    log.info('Resume suggestions completed with heuristic', {
+      event: 'request.success',
+      httpStatus: 200,
+      durationMs,
+      extra: { method: 'heuristic' },
+    });
+    return NextResponse.json(heuristicSuggestions(resumeText, jobDescription || ''), {
+      headers: { 'x-correlation-id': correlationId },
+    });
   } catch (e) {
-    console.error('suggestions error', e);
-    return NextResponse.json({ error: 'Failed to generate suggestions' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('Resume suggestions request failed', toErrorCode(e), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Failed to generate suggestions' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

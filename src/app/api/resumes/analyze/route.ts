@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 import { evaluate } from '@/lib/ai-evaluation';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// OpenAI client initialization moved inside handler for lazy loading
 
 const STOP_WORDS = new Set([
   'the',
@@ -322,16 +325,34 @@ function simpleAnalyze(resumeText: string, jobDescription: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(req);
+  const log = createRequestLogger(correlationId, {
+    feature: 'resume',
+    httpMethod: 'POST',
+    httpPath: '/api/resumes/analyze',
+  });
+
+  const startTime = Date.now();
+  log.info('Resume analysis request started', { event: 'request.start' });
+
   try {
     const { resumeText, jobDescription } = await req.json();
 
     if (!resumeText || !jobDescription) {
-      return NextResponse.json({ error: 'Missing resumeText or jobDescription' }, { status: 400 });
+      log.warn('Missing required fields', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Missing resumeText or jobDescription' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
       try {
+        log.info('Starting OpenAI analysis', { event: 'ai.request' });
         const client = new OpenAI({ apiKey });
         const prompt = `You are an experienced career coach and resume expert. Analyze this resume against the job description and provide helpful, specific feedback.
 
@@ -394,6 +415,14 @@ Keep suggestions practical, encouraging, and human.`;
               : deriveHighlights(resumeText),
         };
 
+        log.info('OpenAI analysis completed', {
+          event: 'ai.response',
+          extra: {
+            score: analysisResult.score,
+            strengthsCount: analysisResult.strengths?.length ?? 0,
+          },
+        });
+
         // Evaluate AI-generated analysis (non-blocking for now)
         try {
           const evalResult = await evaluate({
@@ -403,30 +432,78 @@ Keep suggestions practical, encouraging, and human.`;
           });
 
           if (!evalResult.passed) {
-            console.warn('[AI Evaluation] Resume analysis failed evaluation:', {
-              score: evalResult.overall_score,
-              risk_flags: evalResult.risk_flags,
-              explanation: evalResult.explanation,
+            log.warn('Resume analysis failed AI evaluation', {
+              event: 'ai.evaluation.failed',
+              extra: {
+                score: evalResult.overall_score,
+                riskFlagsCount: evalResult.risk_flags?.length ?? 0,
+              },
             });
           }
         } catch (evalError) {
           // Don't block on evaluation failures
-          console.error('[AI Evaluation] Error evaluating resume analysis:', evalError);
+          log.warn('Error evaluating resume analysis', {
+            event: 'ai.evaluation.error',
+            errorCode: toErrorCode(evalError),
+          });
         }
 
-        return NextResponse.json(analysisResult);
+        const durationMs = Date.now() - startTime;
+        log.info('Resume analysis request completed', {
+          event: 'request.success',
+          httpStatus: 200,
+          durationMs,
+        });
+
+        return NextResponse.json(analysisResult, {
+          headers: { 'x-correlation-id': correlationId },
+        });
       } catch (e) {
         // Fallback to heuristic if OpenAI fails
+        log.warn('OpenAI failed, falling back to heuristic', {
+          event: 'ai.fallback',
+          errorCode: toErrorCode(e),
+        });
         const result = simpleAnalyze(resumeText, jobDescription);
-        return NextResponse.json(result);
+        const durationMs = Date.now() - startTime;
+        log.info('Resume analysis completed with heuristic', {
+          event: 'request.success',
+          httpStatus: 200,
+          durationMs,
+          extra: { method: 'heuristic' },
+        });
+        return NextResponse.json(result, {
+          headers: { 'x-correlation-id': correlationId },
+        });
       }
     }
 
     // No OpenAI key: heuristic analysis
+    log.info('No OpenAI key, using heuristic analysis', { event: 'ai.not_configured' });
     const result = simpleAnalyze(resumeText, jobDescription);
-    return NextResponse.json(result);
+    const durationMs = Date.now() - startTime;
+    log.info('Resume analysis completed with heuristic', {
+      event: 'request.success',
+      httpStatus: 200,
+      durationMs,
+      extra: { method: 'heuristic' },
+    });
+    return NextResponse.json(result, {
+      headers: { 'x-correlation-id': correlationId },
+    });
   } catch (err: any) {
-    console.error('analyze error', err);
-    return NextResponse.json({ error: 'Failed to analyze resume' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('Resume analysis request failed', toErrorCode(err), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Failed to analyze resume' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

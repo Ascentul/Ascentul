@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 import { evaluate } from '@/lib/ai-evaluation';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -46,35 +47,79 @@ interface AnalysisResult {
 import { auth } from '@clerk/nextjs/server';
 
 export async function POST(req: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(req);
+  const log = createRequestLogger(correlationId, {
+    feature: 'resume',
+    httpMethod: 'POST',
+    httpPath: '/api/resumes/optimize',
+  });
+
+  const startTime = Date.now();
+  log.info('Resume optimization request started', { event: 'request.start' });
+
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      log.warn('Unauthorized optimization request', {
+        event: 'auth.failed',
+        errorCode: 'UNAUTHORIZED',
+      });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
+
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     const { originalResumeText, analysisRecommendations, jobDescription, userProfile } =
       await req.json();
 
     if (!originalResumeText) {
-      return NextResponse.json({ error: 'Missing original resume text' }, { status: 400 });
+      log.warn('Missing original resume text', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'Missing original resume text' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     if (!jobDescription) {
-      return NextResponse.json({ error: 'Missing job description' }, { status: 400 });
+      log.warn('Missing job description', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
+      return NextResponse.json(
+        { error: 'Missing job description' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
+      log.error('OpenAI API key not configured', 'CONFIG_ERROR', { event: 'config.error' });
       return NextResponse.json(
         {
           error: 'OpenAI API key not configured. Resume optimization requires AI service.',
         },
-        { status: 500 },
+        {
+          status: 500,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
     try {
+      log.info('Starting OpenAI resume optimization', { event: 'ai.request' });
       const client = new OpenAI({ apiKey });
 
       // Build context about the analysis recommendations
@@ -261,6 +306,8 @@ CRITICAL FORMATTING RULES:
         if (!resumeData.personalInfo.github) delete resumeData.personalInfo.github;
       }
 
+      log.info('OpenAI resume optimization completed', { event: 'ai.response' });
+
       // Evaluate AI-optimized resume (non-blocking for now)
       try {
         const evalResult = await evaluate({
@@ -271,33 +318,67 @@ CRITICAL FORMATTING RULES:
         });
 
         if (!evalResult.passed) {
-          console.warn('[AI Evaluation] Resume optimization failed evaluation:', {
-            score: evalResult.overall_score,
-            risk_flags: evalResult.risk_flags,
-            explanation: evalResult.explanation,
+          log.warn('Resume optimization failed AI evaluation', {
+            event: 'ai.evaluation.failed',
+            extra: {
+              score: evalResult.overall_score,
+              riskFlagsCount: evalResult.risk_flags?.length ?? 0,
+            },
           });
         }
       } catch (evalError) {
         // Don't block on evaluation failures
-        console.error('[AI Evaluation] Error evaluating resume optimization:', evalError);
+        log.warn('Error evaluating resume optimization', {
+          event: 'ai.evaluation.error',
+          errorCode: toErrorCode(evalError),
+        });
       }
 
-      return NextResponse.json({
-        success: true,
-        resume: resumeData,
+      const durationMs = Date.now() - startTime;
+      log.info('Resume optimization request completed', {
+        event: 'request.success',
+        clerkId: userId,
+        httpStatus: 200,
+        durationMs,
       });
+
+      return NextResponse.json(
+        {
+          success: true,
+          resume: resumeData,
+        },
+        {
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
     } catch (aiError: any) {
-      console.error('AI optimization error:', aiError);
+      log.error('AI optimization error', toErrorCode(aiError), {
+        event: 'ai.error',
+      });
       return NextResponse.json(
         {
           error: 'Failed to optimize resume with AI service',
           details: aiError.message,
         },
-        { status: 500 },
+        {
+          status: 500,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
   } catch (err: any) {
-    console.error('optimize error', err);
-    return NextResponse.json({ error: 'Failed to optimize resume' }, { status: 500 });
+    const durationMs = Date.now() - startTime;
+    log.error('Resume optimization request failed', toErrorCode(err), {
+      event: 'request.error',
+      httpStatus: 500,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: 'Failed to optimize resume' },
+      {
+        status: 500,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }

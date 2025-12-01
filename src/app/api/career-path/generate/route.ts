@@ -5,6 +5,7 @@ import OpenAI from 'openai';
 import { evaluate } from '@/lib/ai-evaluation';
 import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -13,17 +14,33 @@ const openai = new OpenAI({
 });
 
 export async function POST(request: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(request);
+  const log = createRequestLogger(correlationId, {
+    feature: 'career-path',
+    httpMethod: 'POST',
+    httpPath: '/api/career-path/generate',
+  });
+
+  const startTime = Date.now();
+  log.info('Career path generation request started', { event: 'request.start' });
+
   try {
     const { userId, token } = await requireConvexToken();
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
+
     const body = await request.json();
     const { currentRole, targetRole, skills, experience, timeframe } = body;
 
     if (!currentRole || !targetRole) {
+      log.warn('Missing required fields', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
       return NextResponse.json(
         {
           error: 'Current role and target role are required',
         },
-        { status: 400 },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
       );
     }
 
@@ -46,6 +63,8 @@ Create a step-by-step career path with:
 
 Format as a structured plan with clear steps and timelines.`;
 
+    log.info('Starting OpenAI career path generation', { event: 'ai.request' });
+
     let generatedPath: string | null = null;
     let usedFallback = false;
     try {
@@ -67,6 +86,8 @@ Format as a structured plan with clear steps and timelines.`;
       });
       generatedPath = completion.choices[0]?.message?.content || null;
 
+      log.info('OpenAI career path generation completed', { event: 'ai.response' });
+
       // Evaluate AI-generated career path (non-blocking for now)
       if (generatedPath) {
         try {
@@ -78,19 +99,27 @@ Format as a structured plan with clear steps and timelines.`;
           });
 
           if (!evalResult.passed) {
-            console.warn('[AI Evaluation] Career path generation failed evaluation:', {
-              score: evalResult.overall_score,
-              risk_flags: evalResult.risk_flags,
-              explanation: evalResult.explanation,
+            log.warn('Career path generation failed AI evaluation', {
+              event: 'ai.evaluation.failed',
+              extra: {
+                score: evalResult.overall_score,
+                riskFlagsCount: evalResult.risk_flags?.length ?? 0,
+              },
             });
           }
         } catch (evalError) {
           // Don't block on evaluation failures
-          console.error('[AI Evaluation] Error evaluating career path:', evalError);
+          log.warn('Error evaluating career path generation', {
+            event: 'ai.evaluation.error',
+            errorCode: toErrorCode(evalError),
+          });
         }
       }
     } catch (error) {
-      console.error('OpenAI API call failed:', error);
+      log.warn('OpenAI API call failed', {
+        event: 'ai.fallback',
+        errorCode: toErrorCode(error),
+      });
       generatedPath = null;
     }
 
@@ -120,9 +149,22 @@ Format as a structured plan with clear steps and timelines.`;
         token,
       );
     } catch (error) {
-      console.error('Failed to save career path to Convex:', error);
+      log.warn('Failed to save career path to Convex', {
+        event: 'data.save.error',
+        errorCode: toErrorCode(error),
+      });
       saveWarning = 'Career path generated but could not be saved.';
     }
+
+    const durationMs = Date.now() - startTime;
+    const httpStatus = careerPath ? 201 : 200;
+    log.info('Career path generation request completed', {
+      event: careerPath ? 'data.created' : 'request.success',
+      clerkId: userId,
+      httpStatus,
+      durationMs,
+      extra: { usedFallback, saved: !!careerPath },
+    });
 
     return NextResponse.json(
       {
@@ -131,13 +173,27 @@ Format as a structured plan with clear steps and timelines.`;
         usedFallback,
         warning: saveWarning,
       },
-      { status: careerPath ? 201 : 200 },
+      {
+        status: httpStatus,
+        headers: { 'x-correlation-id': correlationId },
+      },
     );
   } catch (error) {
-    console.error('Error generating career path:', error);
+    const durationMs = Date.now() - startTime;
     const message = error instanceof Error ? error.message : 'Internal server error';
     const status =
       message === 'Unauthorized' || message === 'Failed to obtain auth token' ? 401 : 500;
-    return NextResponse.json({ error: message }, { status });
+    log.error('Career path generation request failed', toErrorCode(error), {
+      event: 'request.error',
+      httpStatus: status,
+      durationMs,
+    });
+    return NextResponse.json(
+      { error: message },
+      {
+        status,
+        headers: { 'x-correlation-id': correlationId },
+      },
+    );
   }
 }
