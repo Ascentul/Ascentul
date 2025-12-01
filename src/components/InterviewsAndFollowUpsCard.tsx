@@ -17,7 +17,6 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { useUser } from '@clerk/nextjs'
 import { useQuery as useConvexQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
 import { format, isToday, isTomorrow, formatDistanceToNowStrict } from 'date-fns'
 import { cn } from '@/lib/utils'
 
@@ -84,7 +83,6 @@ interface InterviewItem {
 
 export function InterviewsAndFollowUpsCard() {
   const { user: clerkUser } = useUser()
-  const { user } = useAuth()
   const clerkId = clerkUser?.id
 
   // Fetch interviews data
@@ -98,10 +96,10 @@ export function InterviewsAndFollowUpsCard() {
     clerkId ? { clerkId } : 'skip'
   ) as InterviewStageDoc[] | undefined
 
-  // Fetch follow-ups data
+  // Fetch follow-ups data (query uses JWT auth internally, no clerkId arg needed)
   const followupActions = useConvexQuery(
     api.followups.getUserFollowups,
-    user?.clerkId ? {} : 'skip'
+    clerkId ? {} : 'skip'
   ) as FollowupAction[] | undefined
 
   const isLoadingInterviews = Boolean(clerkId) && (applications === undefined || interviewStages === undefined)

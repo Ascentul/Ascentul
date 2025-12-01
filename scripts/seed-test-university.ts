@@ -1,4 +1,15 @@
 /**
+ * @deprecated Use the Convex mutation instead:
+ *   npx convex run dev/seedTestUniversity:seed
+ *
+ * The Convex mutation (convex/dev/seedTestUniversity.ts) is the complete
+ * implementation that creates the university AND assigns users in a single
+ * atomic operation with direct database access.
+ *
+ * This script is kept for reference but has incomplete user assignment logic.
+ *
+ * ---
+ * Original description:
  * Seed Test University Script
  *
  * This script creates a test university and assigns test users to it.
@@ -51,6 +62,11 @@ const TEST_USER_EMAILS = [
 ];
 
 async function main() {
+  console.log("⚠️  DEPRECATED: This script has incomplete user assignment logic.");
+  console.log("   Use the Convex mutation instead:");
+  console.log("   npx convex run dev/seedTestUniversity:seed\n");
+  console.log("   Continuing anyway for reference...\n");
+
   console.log("🏫 Setting up test university...\n");
 
   try {
