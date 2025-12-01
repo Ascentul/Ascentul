@@ -169,7 +169,7 @@ export function NextBestStepHero({
             <Link
               key={chip.label}
               href={chip.href}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-slate-200 text-sm font-medium text-slate-600 hover:bg-primary-50 hover:border-primary-200 hover:text-primary-700 transition-all duration-200"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-slate-200 text-sm font-medium text-[#5371FF] hover:bg-[#EEF1FF] hover:border-[#5371FF]/30 transition-all duration-200"
             >
               <chip.icon className="h-4 w-4" />
               {chip.label}

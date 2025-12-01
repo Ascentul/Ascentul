@@ -8,17 +8,15 @@ import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
 import { CareerGoalsSummary } from '@/components/CareerGoalsSummary'
-import { ActiveInterviewsSummary } from '@/components/ActiveInterviewsSummary'
-import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
+import { InterviewsAndFollowUpsCard } from '@/components/InterviewsAndFollowUpsCard'
 import { TodaysRecommendations } from '@/components/TodaysRecommendations'
 import { HeatmapCard } from '@/components/streak/HeatmapCard'
 import { NextBestStepHero } from '@/components/NextBestStepHero'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { useRouter } from 'next/navigation'
-import StatCard from '@/components/StatCard'
+import { UpcomingSection } from '@/components/UpcomingSection'
 import { Card, CardContent } from '@/components/ui/card'
-import { Target, Clock, Briefcase, TrendingUp } from 'lucide-react'
-import Link from 'next/link'
+import { TrendingUp } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { hasAdvisorAccess, hasUniversityAdminAccess, hasPlatformAdminAccess } from '@/lib/constants/roles'
 
@@ -211,7 +209,7 @@ export default function DashboardPage() {
               {/* Left side - Header with status */}
               <div>
                 <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Hello, {user.name?.split(' ')[0] || 'there'}</h1>
-                <p className="text-base text-primary-600 mt-0.5 tracking-tight">
+                <p className="text-base mt-0.5 tracking-tight bg-gradient-to-r from-primary-500 via-primary-400 to-primary-500 bg-[length:200%_auto] animate-gradient-x bg-clip-text text-transparent">
                   How can I help you today?
                 </p>
               </div>
@@ -240,93 +238,13 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* Row 3: Stats Overview */}
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-            variants={staggeredContainer}
-          >
-            <motion.div variants={cardAnimation}>
-              <StatCard
-                variant="priority"
-                icon={<Target className="h-4 w-4" />}
-                iconBgColor="bg-[#EEF1FF]"
-                iconColor="text-[#5371FF]"
-                label="Next Interview"
-                value={stats.nextInterview}
-                fallbackOnOverflow={
-                  stats.nextInterview === 'No Interviews' || stats.nextInterview === 'No upcoming interviews'
-                    ? '-'
-                    : undefined
-                }
-                change={{
-                  type: 'no-change',
-                  text: dashboardData?.nextInterviewDetails?.company || 'Schedule one today'
-                }}
-              />
-            </motion.div>
-
-            <motion.div variants={cardAnimation}>
-              <StatCard
-                icon={<Briefcase className="h-4 w-4" />}
-                iconBgColor="bg-blue-50"
-                iconColor="text-blue-600"
-                label="Active Applications"
-                value={stats.activeApplications}
-                change={{
-                  type: stats.applicationsThisWeek > 0 ? 'increase' : 'no-change',
-                  text: stats.applicationsThisWeek > 0
-                    ? `+${stats.applicationsThisWeek} this week`
-                    : 'No new this week'
-                }}
-              />
-            </motion.div>
-
-            <motion.div variants={cardAnimation}>
-              <StatCard
-                icon={<Clock className="h-4 w-4" />}
-                iconBgColor="bg-amber-50"
-                iconColor="text-[#F59E0B]"
-                label="Follow-up Actions"
-                value={stats.pendingTasks}
-                change={{
-                  type: stats.overdueFollowups > 0 ? 'increase' : 'no-change',
-                  text: stats.overdueFollowups > 0
-                    ? `${stats.overdueFollowups} overdue`
-                    : stats.pendingTasks > 0
-                      ? 'On track'
-                      : 'All caught up'
-                }}
-              />
-            </motion.div>
-
-            <motion.div variants={cardAnimation}>
-              <StatCard
-                icon={<Target className="h-4 w-4" />}
-                iconBgColor="bg-emerald-50"
-                iconColor="text-[#16A34A]"
-                label="Active Goals"
-                value={stats.activeGoals}
-                change={{
-                  type: 'no-change',
-                  text: stats.activeGoals > 0
-                    ? 'Keep pushing forward'
-                    : 'Set your first goal'
-                }}
-              />
-            </motion.div>
-          </motion.div>
-
-          {/* Row 5: Today Board (3-column grid) */}
+          {/* Row 3: Interviews, Follow-ups & Goals (2-column grid) */}
           <motion.div
             className="grid grid-cols-1 lg:grid-cols-3 gap-6"
             variants={staggeredContainer}
           >
-            <motion.div variants={cardAnimation}>
-              <ActiveInterviewsSummary />
-            </motion.div>
-
-            <motion.div variants={cardAnimation}>
-              <FollowupActionsSummary />
+            <motion.div variants={cardAnimation} className="lg:col-span-2">
+              <InterviewsAndFollowUpsCard />
             </motion.div>
 
             <motion.div variants={cardAnimation}>

@@ -274,13 +274,11 @@ export function ActiveInterviewsSummary() {
               ))}
             </div>
           ) : displayItems.length === 0 ? (
-            <div className="py-8 text-center text-slate-500">
-              <Calendar className="mx-auto mb-4 h-10 w-10 opacity-60" />
-              <p className="text-sm text-slate-700">No active interviews or applications</p>
-              <p className="text-xs">Your upcoming interviews and applications will appear here</p>
-              <Link href="/applications">
-                <Button variant="link" className="mt-2 text-sm text-[#5371FF]">
-                  View Applications
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <p className="text-sm text-slate-500">No active interviews</p>
+              <Link href="/applications" className="mt-2">
+                <Button variant="outline" size="sm" className="text-xs">
+                  View applications
                 </Button>
               </Link>
             </div>
