@@ -4,6 +4,7 @@ import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
 import { checkPremiumAccess } from '@/lib/subscription-server';
 
 export const runtime = 'nodejs';
@@ -856,6 +857,27 @@ export async function POST(request: NextRequest) {
                 { error: 'Failed to save career path. Please try again.' },
                 { status: 500 },
               );
+            }
+
+            // Evaluate AI-generated career paths (non-blocking for now)
+            try {
+              const evalResult = await evaluate({
+                tool_id: 'career-paths-generation',
+                input: { profileData, domain: fallbackDomain, targetRole },
+                output: { paths: sanitizedPaths },
+                user_id: userId,
+              });
+
+              if (!evalResult.passed) {
+                console.warn('[AI Evaluation] Career paths generation failed evaluation:', {
+                  score: evalResult.overall_score,
+                  risk_flags: evalResult.risk_flags,
+                  explanation: evalResult.explanation,
+                });
+              }
+            } catch (evalError) {
+              // Don't block on evaluation failures
+              console.error('[AI Evaluation] Error evaluating career paths:', evalError);
             }
 
             return NextResponse.json({

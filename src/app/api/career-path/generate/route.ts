@@ -2,6 +2,7 @@ import { api } from 'convex/_generated/api';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
 import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
 
@@ -65,6 +66,29 @@ Format as a structured plan with clear steps and timelines.`;
         temperature: 0.7,
       });
       generatedPath = completion.choices[0]?.message?.content || null;
+
+      // Evaluate AI-generated career path (non-blocking for now)
+      if (generatedPath) {
+        try {
+          const evalResult = await evaluate({
+            tool_id: 'career-path-generation',
+            input: { currentRole, targetRole, skills, experience, timeframe },
+            output: { generatedPath },
+            user_id: userId,
+          });
+
+          if (!evalResult.passed) {
+            console.warn('[AI Evaluation] Career path generation failed evaluation:', {
+              score: evalResult.overall_score,
+              risk_flags: evalResult.risk_flags,
+              explanation: evalResult.explanation,
+            });
+          }
+        } catch (evalError) {
+          // Don't block on evaluation failures
+          console.error('[AI Evaluation] Error evaluating career path:', evalError);
+        }
+      }
     } catch (error) {
       console.error('OpenAI API call failed:', error);
       generatedPath = null;

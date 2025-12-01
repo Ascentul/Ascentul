@@ -2,6 +2,7 @@ import { api } from 'convex/_generated/api';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
 import { mapAiCareerPathToUI, MapperResult } from '@/lib/career-path/mappers';
 import {
   buildQualityFailure,
@@ -2484,6 +2485,27 @@ export async function POST(request: NextRequest) {
                 promptVariant: variant.name,
               },
             );
+
+            // Evaluate AI-generated career path from job (non-blocking for now)
+            try {
+              const evalResult = await evaluate({
+                tool_id: 'career-path-from-job',
+                input: { jobTitle, jobDescription: body.jobDescription, userProfile },
+                output: mainPath,
+                user_id: userId,
+              });
+
+              if (!evalResult.passed) {
+                console.warn('[AI Evaluation] Career path from job failed evaluation:', {
+                  score: evalResult.overall_score,
+                  risk_flags: evalResult.risk_flags,
+                  explanation: evalResult.explanation,
+                });
+              }
+            } catch (evalError) {
+              // Don't block on evaluation failures
+              console.error('[AI Evaluation] Error evaluating career path from job:', evalError);
+            }
 
             // Return discriminated union response
             return NextResponse.json({

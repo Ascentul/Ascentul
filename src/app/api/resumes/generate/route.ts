@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -367,6 +369,26 @@ Focus on keywords from the job description. Make it ATS-friendly.`;
         if (resumeData.personalInfo) {
           if (!resumeData.personalInfo.linkedin) delete resumeData.personalInfo.linkedin;
           if (!resumeData.personalInfo.github) delete resumeData.personalInfo.github;
+        }
+
+        // Evaluate AI-generated resume (non-blocking for now)
+        try {
+          const evalResult = await evaluate({
+            tool_id: 'resume-generation',
+            input: { jobDescription, userProfile },
+            output: resumeData,
+          });
+
+          if (!evalResult.passed) {
+            console.warn('[AI Evaluation] Resume generation failed evaluation:', {
+              score: evalResult.overall_score,
+              risk_flags: evalResult.risk_flags,
+              explanation: evalResult.explanation,
+            });
+          }
+        } catch (evalError) {
+          // Don't block on evaluation failures
+          console.error('[AI Evaluation] Error evaluating resume:', evalError);
         }
 
         return NextResponse.json({

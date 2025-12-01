@@ -33,16 +33,16 @@ else
     'secret\s*[=:]\s*["\047][^"\047]{8,}'    # secret = "..." patterns
     'api_key\s*[=:]\s*["\047][^"\047]{8,}'   # api_key = "..." patterns
 
-    # Private keys
-    '-----BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----'
-    '-----BEGIN PGP PRIVATE KEY BLOCK-----'
+    # Private keys (use -- to signal end of options for patterns starting with -)
+    'BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY'
+    'BEGIN PGP PRIVATE KEY BLOCK'
   )
 
   FOUND_SECRETS=0
 
   for file in $STAGED_FILES; do
-    # Skip binary files, .env.example, and documentation
-    if [[ "$file" == *.env.example ]] || [[ "$file" == *.md ]] || [[ "$file" == *.png ]] || [[ "$file" == *.jpg ]] || [[ "$file" == *.ico ]]; then
+    # Skip binary files, .env.example, documentation, and this hook itself (contains patterns as strings)
+    if [[ "$file" == *.env.example ]] || [[ "$file" == *.md ]] || [[ "$file" == *.png ]] || [[ "$file" == *.jpg ]] || [[ "$file" == *.ico ]] || [[ "$file" == .husky/* ]]; then
       continue
     fi
 

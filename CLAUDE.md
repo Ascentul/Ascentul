@@ -427,6 +427,79 @@ This creates test data, performs operations, and validates that:
 - Hard delete is blocked for real universities
 - Hard delete works for test universities
 
+## AI Evaluation Framework
+
+All AI-generated content is evaluated using a centralized evaluator model (GPT-4o-mini) combined with deterministic rule-based checks.
+
+**Full documentation:** [docs/AI_EVALUATOR_STRATEGY.md](docs/AI_EVALUATOR_STRATEGY.md)
+
+### Architecture
+
+```
+User Request → AI Tool (GPT-4o) → AI Output
+                                     ↓
+                          Pre-Evaluation Rules (Zod, length, forbidden patterns)
+                                     ↓
+                          Model Evaluation (GPT-4o-mini judges quality)
+                                     ↓
+                          Post-Evaluation Rules (threshold enforcement)
+                                     ↓
+                          Result: pass/fail + score + risk_flags
+                                     ↓
+                          Convex Storage (audit trail)
+```
+
+### Key Components
+
+| Component | Location | Description |
+|-----------|----------|-------------|
+| Types | `src/lib/ai-evaluation/types.ts` | Core types, tool IDs, risk flags |
+| Evaluator | `src/lib/ai-evaluation/evaluator.ts` | Main `AIEvaluator` class |
+| Rubrics | `src/lib/ai-evaluation/rubrics/` | Per-tool scoring rubrics |
+| Rules | `src/lib/ai-evaluation/rules/` | Pre/post evaluation rules |
+| Convex | `convex/ai_evaluations.ts` | Storage, metrics, config |
+
+### Usage in API Routes
+
+```typescript
+import { evaluate } from '@/lib/ai-evaluation';
+
+// After AI generates output
+const evalResult = await evaluate({
+  tool_id: 'resume-generation',
+  input: { jobDescription, userProfile },
+  output: generatedResume,
+  user_id: userId,  // optional
+});
+
+if (!evalResult.passed) {
+  // Log, retry, or return degraded response
+  console.warn('Evaluation failed:', evalResult.risk_flags);
+}
+```
+
+### Risk Flags
+
+Critical flags that block output:
+- `pii_detected` - Personal identifiable information found
+- `discriminatory_content` - Bias or discrimination detected
+- `hallucination_detected` - Made-up facts or information
+- `factual_inconsistency` - Contradicts provided context
+- `safety_concern` - Potentially harmful content
+
+### Convex Tables
+
+- `ai_evaluations` - Stores all evaluation results with scores, flags, metadata
+- `ai_evaluation_config` - Per-tool configuration overrides (thresholds, enable/disable)
+
+### Admin Dashboard
+
+Access at `/admin/ai-evaluations` to view:
+- Pass rates by tool
+- Score distributions
+- Risk flag frequency
+- Recent evaluation details
+
 ## Testing
 
 - Jest configured (`jest.config.js`, `jest.setup.js`)

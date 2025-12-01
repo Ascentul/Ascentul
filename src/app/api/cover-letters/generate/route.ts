@@ -4,6 +4,7 @@ import { Doc } from 'convex/_generated/dataModel';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
 import { convexServer } from '@/lib/convex-server';
 
 const openai = new OpenAI({
@@ -225,6 +226,29 @@ Remember: Be specific, be thorough, and make every sentence count. Use concrete 
         temperature: 0.7,
       });
       generatedContent = completion.choices[0]?.message?.content || null;
+
+      // Evaluate AI-generated cover letter (non-blocking for now)
+      if (generatedContent) {
+        try {
+          const evalResult = await evaluate({
+            tool_id: 'cover-letter-generation',
+            input: { jobDescription, companyName, position, userProfileSummary },
+            output: { content: generatedContent },
+            user_id: userId,
+          });
+
+          if (!evalResult.passed) {
+            console.warn('[AI Evaluation] Cover letter generation failed evaluation:', {
+              score: evalResult.overall_score,
+              risk_flags: evalResult.risk_flags,
+              explanation: evalResult.explanation,
+            });
+          }
+        } catch (evalError) {
+          // Don't block on evaluation failures
+          console.error('[AI Evaluation] Error evaluating cover letter:', evalError);
+        }
+      }
     } catch (e) {
       console.error('OpenAI generation failed, using fallback:', e);
       generatedContent = null;

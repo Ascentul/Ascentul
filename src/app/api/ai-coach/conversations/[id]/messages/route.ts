@@ -4,6 +4,7 @@ import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
 import { requireConvexToken } from '@/lib/convex-auth';
 
 /**
@@ -279,6 +280,27 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
         aiResponse =
           choiceContent ||
           'I apologize, but I was unable to generate a response. Please try again.';
+
+        // Evaluate AI Coach message (non-blocking for now)
+        try {
+          const evalResult = await evaluate({
+            tool_id: 'ai-coach-message',
+            input: { content, conversationHistory: existingMessages, userContext },
+            output: { response: aiResponse },
+            user_id: userId,
+          });
+
+          if (!evalResult.passed) {
+            console.warn('[AI Evaluation] AI Coach message failed evaluation:', {
+              score: evalResult.overall_score,
+              risk_flags: evalResult.risk_flags,
+              explanation: evalResult.explanation,
+            });
+          }
+        } catch (evalError) {
+          // Don't block on evaluation failures
+          console.error('[AI Evaluation] Error evaluating AI Coach message:', evalError);
+        }
       } catch (openaiError) {
         console.error('OpenAI API error:', openaiError);
         aiResponse =

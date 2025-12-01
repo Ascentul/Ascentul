@@ -2,6 +2,7 @@ import { api } from 'convex/_generated/api';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
 import { requireConvexToken } from '@/lib/convex-auth';
 import { convexServer } from '@/lib/convex-server';
 
@@ -327,6 +328,27 @@ ${optimize ? '- Include optimizedLetter (string) that rewrites the cover letter 
           }
 
           analysis = sanitized;
+
+          // Evaluate AI-generated analysis (non-blocking for now)
+          try {
+            const evalResult = await evaluate({
+              tool_id: 'cover-letter-analysis',
+              input: { jobDescription, coverLetter, roleTitle, companyName },
+              output: sanitized,
+              user_id: userId,
+            });
+
+            if (!evalResult.passed) {
+              console.warn('[AI Evaluation] Cover letter analysis failed evaluation:', {
+                score: evalResult.overall_score,
+                risk_flags: evalResult.risk_flags,
+                explanation: evalResult.explanation,
+              });
+            }
+          } catch (evalError) {
+            // Don't block on evaluation failures
+            console.error('[AI Evaluation] Error evaluating cover letter analysis:', evalError);
+          }
         } catch (parseError) {
           console.warn('Failed to parse analysis JSON, returning structured fallback', parseError);
         }
