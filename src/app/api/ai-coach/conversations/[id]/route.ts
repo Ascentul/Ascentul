@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { createRequestLogger, getCorrelationIdFromRequest } from '@/lib/logger';
+import { requireConvexToken } from '@/lib/convex-auth';
+import { createRequestLogger, getCorrelationIdFromRequest, toErrorCode } from '@/lib/logger';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const correlationId = getCorrelationIdFromRequest(request);
@@ -13,6 +14,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const startTime = Date.now();
 
   try {
+    const { userId } = await requireConvexToken();
+    log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
+
     const { id: conversationId } = await params;
     log.debug('Fetching conversation messages', { extra: { conversationId } });
 
@@ -30,7 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (error) {
     const durationMs = Date.now() - startTime;
-    log.error('Failed to fetch conversation messages', 'INTERNAL_ERROR', {
+    log.error('Failed to fetch conversation messages', toErrorCode(error), {
       event: 'request.error',
       httpStatus: 500,
       durationMs,

@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
     const form = await request.formData();
     const file = form.get('file') as File | null;
     const userId = (form.get('userId') as string) || 'anonymous';
+    // Sanitize userId to prevent path traversal attacks
+    const safeUserId = userId.replace(/[^a-zA-Z0-9_-]/g, '_');
 
     if (!file) {
       log.warn('Missing file field', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest) {
       else if (file.type === 'audio/mp4') ext = '.m4a';
     }
 
-    const filename = `speech_${userId}_${Date.now()}${ext}`;
+    const filename = `speech_${safeUserId}_${Date.now()}${ext}`;
     const dir = ensureUploadsPath('audio');
     const fullPath = path.join(dir, filename);
 

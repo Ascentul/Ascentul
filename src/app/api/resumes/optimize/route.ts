@@ -358,7 +358,6 @@ CRITICAL FORMATTING RULES:
       return NextResponse.json(
         {
           error: 'Failed to optimize resume with AI service',
-          details: aiError.message,
         },
         {
           status: 500,

@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
         errorCode: 'FORBIDDEN',
       });
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Forbidden: University admin access required' },
         {
           status: 403,
           headers: { 'x-correlation-id': correlationId },

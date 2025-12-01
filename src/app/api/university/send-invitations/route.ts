@@ -66,12 +66,12 @@ export async function POST(req: NextRequest) {
 
     const isAdmin = adminUser && hasAdvisorAccess(adminUser.role);
     if (!isAdmin || !adminUser?.university_id) {
-      log.warn('Unauthorized - not a university admin', {
+      log.warn('Forbidden - not a university admin', {
         event: 'auth.forbidden',
         errorCode: 'FORBIDDEN',
       });
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Forbidden: University admin access required' },
         {
           status: 403,
           headers: { 'x-correlation-id': correlationId },

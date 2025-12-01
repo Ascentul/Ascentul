@@ -60,12 +60,13 @@ export async function POST(request: NextRequest) {
     };
 
     if (!webhookSecret) {
-      log.warn('No webhook secret configured - skipping verification', {
-        event: 'config.warning',
+      log.error('No webhook secret configured - cannot verify webhooks', 'CONFIG_ERROR', {
+        event: 'config.error',
       });
       return NextResponse.json(
-        { received: true, warning: 'no_secret' },
+        { error: 'Webhook verification not configured' },
         {
+          status: 500,
           headers: { 'x-correlation-id': correlationId },
         },
       );

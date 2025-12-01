@@ -149,12 +149,18 @@ export async function POST(req: NextRequest) {
 
         log.info('Synced Clerk metadata for student', {
           event: 'university.student_clerk_synced',
-          clerkId: userId,
+          extra: {
+            studentClerkId: studentClerkUser.id,
+            adminClerkId: userId,
+          },
         });
       } else {
         log.info('Student user not found in Clerk - will sync on signup', {
           event: 'university.student_pending_sync',
-          clerkId: userId,
+          extra: {
+            studentEmail: email,
+            adminClerkId: userId,
+          },
         });
       }
     } catch (clerkError) {
